@@ -1,0 +1,521 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
+		4BB73EA41B587A5100552FC2 /* Atari2600Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA31B587A5100552FC2 /* Atari2600Document.swift */; };
+		4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */; };
+		4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA81B587A5100552FC2 /* Assets.xcassets */; };
+		4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EAA1B587A5100552FC2 /* MainMenu.xib */; };
+		4BB73EB71B587A5100552FC2 /* Clock_SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EB61B587A5100552FC2 /* Clock_SignalTests.swift */; };
+		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4BB73EB31B587A5100552FC2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4BB73E961B587A5100552FC2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4BB73E9D1B587A5100552FC2;
+			remoteInfo = "Clock Signal";
+		};
+		4BB73EBE1B587A5100552FC2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4BB73E961B587A5100552FC2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4BB73E9D1B587A5100552FC2;
+			remoteInfo = "Clock Signal";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		4BB73E9E1B587A5100552FC2 /* Clock Signal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Clock Signal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BB73EA11B587A5100552FC2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4BB73EA31B587A5100552FC2 /* Atari2600Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Atari2600Document.swift; sourceTree = "<group>"; };
+		4BB73EA61B587A5100552FC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/Atari2600Document.xib; sourceTree = "<group>"; };
+		4BB73EA81B587A5100552FC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4BB73EAB1B587A5100552FC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		4BB73EAD1B587A5100552FC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4BB73EB21B587A5100552FC2 /* Clock SignalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Clock SignalTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BB73EB61B587A5100552FC2 /* Clock_SignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock_SignalTests.swift; sourceTree = "<group>"; };
+		4BB73EB81B587A5100552FC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4BB73EBD1B587A5100552FC2 /* Clock SignalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Clock SignalUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock_SignalUITests.swift; sourceTree = "<group>"; };
+		4BB73EC31B587A5100552FC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4BB73E9B1B587A5100552FC2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EAF1B587A5100552FC2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EBA1B587A5100552FC2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4BB73E951B587A5100552FC2 = {
+			isa = PBXGroup;
+			children = (
+				4BB73EA01B587A5100552FC2 /* Clock Signal */,
+				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
+				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
+				4BB73E9F1B587A5100552FC2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4BB73E9F1B587A5100552FC2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4BB73E9E1B587A5100552FC2 /* Clock Signal.app */,
+				4BB73EB21B587A5100552FC2 /* Clock SignalTests.xctest */,
+				4BB73EBD1B587A5100552FC2 /* Clock SignalUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
+			isa = PBXGroup;
+			children = (
+				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
+				4BB73EA11B587A5100552FC2 /* AppDelegate.swift */,
+				4BB73EA31B587A5100552FC2 /* Atari2600Document.swift */,
+				4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */,
+				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
+				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
+				4BB73EAD1B587A5100552FC2 /* Info.plist */,
+			);
+			path = "Clock Signal";
+			sourceTree = "<group>";
+		};
+		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
+			isa = PBXGroup;
+			children = (
+				4BB73EB61B587A5100552FC2 /* Clock_SignalTests.swift */,
+				4BB73EB81B587A5100552FC2 /* Info.plist */,
+			);
+			path = "Clock SignalTests";
+			sourceTree = "<group>";
+		};
+		4BB73EC01B587A5100552FC2 /* Clock SignalUITests */ = {
+			isa = PBXGroup;
+			children = (
+				4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */,
+				4BB73EC31B587A5100552FC2 /* Info.plist */,
+			);
+			path = "Clock SignalUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4BB73E9D1B587A5100552FC2 /* Clock Signal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4BB73EC61B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock Signal" */;
+			buildPhases = (
+				4BB73E9A1B587A5100552FC2 /* Sources */,
+				4BB73E9B1B587A5100552FC2 /* Frameworks */,
+				4BB73E9C1B587A5100552FC2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Clock Signal";
+			productName = "Clock Signal";
+			productReference = 4BB73E9E1B587A5100552FC2 /* Clock Signal.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4BB73EB11B587A5100552FC2 /* Clock SignalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4BB73EC91B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock SignalTests" */;
+			buildPhases = (
+				4BB73EAE1B587A5100552FC2 /* Sources */,
+				4BB73EAF1B587A5100552FC2 /* Frameworks */,
+				4BB73EB01B587A5100552FC2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4BB73EB41B587A5100552FC2 /* PBXTargetDependency */,
+			);
+			name = "Clock SignalTests";
+			productName = "Clock SignalTests";
+			productReference = 4BB73EB21B587A5100552FC2 /* Clock SignalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4BB73EBC1B587A5100552FC2 /* Clock SignalUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4BB73ECC1B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock SignalUITests" */;
+			buildPhases = (
+				4BB73EB91B587A5100552FC2 /* Sources */,
+				4BB73EBA1B587A5100552FC2 /* Frameworks */,
+				4BB73EBB1B587A5100552FC2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4BB73EBF1B587A5100552FC2 /* PBXTargetDependency */,
+			);
+			name = "Clock SignalUITests";
+			productName = "Clock SignalUITests";
+			productReference = 4BB73EBD1B587A5100552FC2 /* Clock SignalUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4BB73E961B587A5100552FC2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0700;
+				ORGANIZATIONNAME = "Thomas Harte";
+				TargetAttributes = {
+					4BB73E9D1B587A5100552FC2 = {
+						CreatedOnToolsVersion = 7.0;
+						SystemCapabilities = {
+							com.apple.Sandbox = {
+								enabled = 1;
+							};
+						};
+					};
+					4BB73EB11B587A5100552FC2 = {
+						CreatedOnToolsVersion = 7.0;
+						TestTargetID = 4BB73E9D1B587A5100552FC2;
+					};
+					4BB73EBC1B587A5100552FC2 = {
+						CreatedOnToolsVersion = 7.0;
+						TestTargetID = 4BB73E9D1B587A5100552FC2;
+					};
+				};
+			};
+			buildConfigurationList = 4BB73E991B587A5100552FC2 /* Build configuration list for PBXProject "Clock Signal" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4BB73E951B587A5100552FC2;
+			productRefGroup = 4BB73E9F1B587A5100552FC2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4BB73E9D1B587A5100552FC2 /* Clock Signal */,
+				4BB73EB11B587A5100552FC2 /* Clock SignalTests */,
+				4BB73EBC1B587A5100552FC2 /* Clock SignalUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4BB73E9C1B587A5100552FC2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
+				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
+				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EB01B587A5100552FC2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EBB1B587A5100552FC2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4BB73E9A1B587A5100552FC2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4BB73EA41B587A5100552FC2 /* Atari2600Document.swift in Sources */,
+				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EAE1B587A5100552FC2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4BB73EB71B587A5100552FC2 /* Clock_SignalTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BB73EB91B587A5100552FC2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4BB73EB41B587A5100552FC2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4BB73E9D1B587A5100552FC2 /* Clock Signal */;
+			targetProxy = 4BB73EB31B587A5100552FC2 /* PBXContainerItemProxy */;
+		};
+		4BB73EBF1B587A5100552FC2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4BB73E9D1B587A5100552FC2 /* Clock Signal */;
+			targetProxy = 4BB73EBE1B587A5100552FC2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4BB73EA61B587A5100552FC2 /* Base */,
+			);
+			name = Atari2600Document.xib;
+			sourceTree = "<group>";
+		};
+		4BB73EAA1B587A5100552FC2 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4BB73EAB1B587A5100552FC2 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		4BB73EC41B587A5100552FC2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4BB73EC51B587A5100552FC2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4BB73EC71B587A5100552FC2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock Signal/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		4BB73EC81B587A5100552FC2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock Signal/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		4BB73ECA1B587A5100552FC2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clock Signal.app/Contents/MacOS/Clock Signal";
+			};
+			name = Debug;
+		};
+		4BB73ECB1B587A5100552FC2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clock Signal.app/Contents/MacOS/Clock Signal";
+			};
+			name = Release;
+		};
+		4BB73ECD1B587A5100552FC2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock SignalUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = "Clock Signal";
+				USES_XCTRUNNER = YES;
+			};
+			name = Debug;
+		};
+		4BB73ECE1B587A5100552FC2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Clock SignalUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = "Clock Signal";
+				USES_XCTRUNNER = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4BB73E991B587A5100552FC2 /* Build configuration list for PBXProject "Clock Signal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BB73EC41B587A5100552FC2 /* Debug */,
+				4BB73EC51B587A5100552FC2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4BB73EC61B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock Signal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BB73EC71B587A5100552FC2 /* Debug */,
+				4BB73EC81B587A5100552FC2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4BB73EC91B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock SignalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BB73ECA1B587A5100552FC2 /* Debug */,
+				4BB73ECB1B587A5100552FC2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4BB73ECC1B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock SignalUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BB73ECD1B587A5100552FC2 /* Debug */,
+				4BB73ECE1B587A5100552FC2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4BB73E961B587A5100552FC2 /* Project object */;
+}
