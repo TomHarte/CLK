@@ -9,6 +9,14 @@
 #import <Foundation/Foundation.h>
 @import AppKit;
 
+@class CSOpenGLView;
+
+@protocol CSOpenGLViewDelegate
+- (void)openGLView:(CSOpenGLView *)view didUpdateToTime:(CVTimeStamp)time;
+@end
+
 @interface CSOpenGLView : NSOpenGLView
+
+@property (nonatomic, weak) id <CSOpenGLViewDelegate> delegate;
 
 @end

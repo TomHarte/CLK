@@ -34,10 +34,10 @@
 	CVDisplayLinkStart(displayLink);
 }
 
-// This is the renderer output callback function
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
 {
-	[(__bridge CSOpenGLView *)displayLinkContext setNeedsDisplay:YES];
+	CSOpenGLView *view = (__bridge CSOpenGLView *)displayLinkContext;
+	[view.delegate openGLView:view didUpdateToTime:*now];
 	return kCVReturnSuccess;
 }
  

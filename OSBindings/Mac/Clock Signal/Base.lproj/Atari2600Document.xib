@@ -4,8 +4,9 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="8152.3"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="Document" customModule="Clock_Signal" customModuleProvider="target">
+        <customObject id="-2" userLabel="File's Owner" customClass="Atari2600Document" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>

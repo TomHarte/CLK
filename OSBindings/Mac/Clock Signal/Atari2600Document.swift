@@ -8,15 +8,17 @@
 
 import Cocoa
 
-class Atari2600Document: NSDocument {
+class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
 
 	override init() {
 	    super.init()
 		// Add your subclass-specific initialization here.
 	}
 
+	@IBOutlet weak var openGLView: CSOpenGLView?
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
+		openGLView!.delegate = self
 		// Add any code here that needs to be executed once the windowController has loaded the document's window.
 	}
 
@@ -45,5 +47,14 @@ class Atari2600Document: NSDocument {
 		atari2600?.setROM(data)
 	}
 
+	private var lastCycleCount: Int64?
+	func openGLView(view: CSOpenGLView!, didUpdateToTime time: CVTimeStamp) {
 
+		let cycleCount = (1194720 * time.videoTime) / Int64(time.videoTimeScale)
+		if let lastCycleCount = lastCycleCount {
+			let elapsedTime = cycleCount - lastCycleCount
+			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
+		}
+		lastCycleCount = cycleCount
+	}
 }
