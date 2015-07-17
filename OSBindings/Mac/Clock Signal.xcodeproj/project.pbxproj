@@ -645,6 +645,16 @@
 			path = 6502;
 			sourceTree = "<group>";
 		};
+		4B1414631B588A1100E04248 /* Test Binaries */ = {
+			isa = PBXGroup;
+			children = (
+				4BB297E01B587D8300A49093 /* 6502_functional_test.bin */,
+				4BB297E11B587D8300A49093 /* AllSuiteA.bin */,
+				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
+			);
+			name = "Test Binaries";
+			sourceTree = "<group>";
+		};
 		4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */ = {
 			isa = PBXGroup;
 			children = (
@@ -961,11 +971,9 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
-				4BB297E01B587D8300A49093 /* 6502_functional_test.bin */,
-				4BB297E11B587D8300A49093 /* AllSuiteA.bin */,
+				4B1414631B588A1100E04248 /* Test Binaries */,
 				4BB297E21B587D8300A49093 /* TestMachine.h */,
 				4BB297E31B587D8300A49093 /* TestMachine.mm */,
-				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */,
