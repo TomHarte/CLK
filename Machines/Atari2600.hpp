@@ -9,7 +9,7 @@
 #ifndef Atari2600_cpp
 #define Atari2600_cpp
 
-#include "CPU6502.hpp"
+#include "../Processors/6502/CPU6502.hpp"
 
 namespace Atari2600 {
 
