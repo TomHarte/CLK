@@ -50,6 +50,8 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
 	private var lastCycleCount: Int64?
 	func openGLView(view: CSOpenGLView!, didUpdateToTime time: CVTimeStamp) {
 
+		// TODO: treat time as a delta from old time, work out how many cycles that is plus error
+
 		// this slightly elaborate dance is to avoid overflow
 		let intendedCyclesPerSecond: Int64 = 1194720
 		let videoTimeScale64 = Int64(time.videoTimeScale)

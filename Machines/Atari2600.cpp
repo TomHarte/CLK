@@ -18,6 +18,7 @@ Machine::Machine()
 	_timestamp = 0;
 	_horizontalTimer = 0;
 	_pixelPosition = 0;
+	_crt = new Outputs::CRT(228);
 }
 
 void Machine::output_pixels(int count)

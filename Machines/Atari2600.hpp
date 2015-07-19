@@ -10,6 +10,7 @@
 #define Atari2600_cpp
 
 #include "../Processors/6502/CPU6502.hpp"
+#include "../Outputs/CRT.hpp"
 
 namespace Atari2600 {
 
@@ -39,6 +40,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		int _pixelPosition;
 		uint8_t _playFieldPixel;
 		void output_pixels(int count);
+
+		Outputs::CRT *_crt;
 };
 
 }
