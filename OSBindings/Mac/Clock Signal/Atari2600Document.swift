@@ -50,7 +50,14 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
 	private var lastCycleCount: Int64?
 	func openGLView(view: CSOpenGLView!, didUpdateToTime time: CVTimeStamp) {
 
-		let cycleCount = (1194720 * time.videoTime) / Int64(time.videoTimeScale)
+		// this slightly elaborate dance is to avoid overflow
+		let intendedCyclesPerSecond: Int64 = 1194720
+		let videoTimeScale64 = Int64(time.videoTimeScale)
+
+		let cycleCountLow = ((time.videoTime % videoTimeScale64) * intendedCyclesPerSecond) / videoTimeScale64
+		let cycleCountHigh = (time.videoTime / videoTimeScale64) * intendedCyclesPerSecond
+
+		let cycleCount = cycleCountLow + cycleCountHigh
 		if let lastCycleCount = lastCycleCount {
 			let elapsedTime = cycleCount - lastCycleCount
 			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
