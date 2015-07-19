@@ -17,54 +17,92 @@ Machine::Machine()
 	reset();
 	_timestamp = 0;
 	_horizontalTimer = 0;
-	_pixelPosition = 0;
+	_lastOutputStateDuration = 0;
+	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228);
+}
+
+void Machine::get_output_pixel(uint8_t *pixel, int offset)
+{
+	// get the playfield pixel
+	const int x = offset >> 2;
+	const int mirrored = (x / 20) & (_playFieldControl&1);
+	const int index = mirrored ? x - 20 : 19 - (x%20);
+	const int byte = 2 - (index >> 3);
+	const int lowestBit = (byte&1)^1;
+	const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
+
+	uint8_t playFieldPixel = (_playField[byte] >> bit)&1;
+
+	// TODO: almost everything!
+	pixel[0] = playFieldPixel ? 0xff : 0x00;
+	pixel[1] = playFieldPixel ? 0xff : 0x00;
+	pixel[2] = playFieldPixel ? 0xff : 0x00;
 }
 
 void Machine::output_pixels(int count)
 {
-	while(count--) {
-		const int x = _pixelPosition >> 2;
-		const int mirrored = (x / 20) & (_playFieldControl&1);
-		const int index = mirrored ? x - 20 : 19 - (x%20);
-		const int byte = 2 - (index >> 3);
-		const int lowestBit = (byte&1)^1;
-		const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
+	while(count--)
+	{
+		// logic: if in vsync, output that; otherwise if in vblank then output that;
+		// otherwise output a pixel
+		if(_vSyncEnabled) {
+			output_state(OutputState::Sync, nullptr);
+		} else {
 
-		_playFieldPixel = (_playField[byte] >> bit)&1;
+			// blank is decoded as 68 counts; sync and colour burst as 16 counts
 
-//		if(!(_pixelPosition&3))
-//			printf("[%d %d]\n", byte, bit);
-//			fputc(_playFieldPixel && !_vblank ? '*' : ' ', stdout);
+			// guesses, until I can find information: 26 cycles blank, 16 sync, 26 blank, 160 pixels
+			if(_horizontalTimer < 26) output_state(OutputState::Blank, nullptr);
+			else if (_horizontalTimer < 42) output_state(OutputState::Sync, nullptr);
+			else if (_horizontalTimer < 68) output_state(OutputState::Blank, nullptr);
+			else {
+				if(_vBlankEnabled) {
+					output_state(OutputState::Blank, nullptr);
+				} else {
+					uint8_t outputPixel[3];
+					get_output_pixel(outputPixel, _horizontalTimer - 68);
+					output_state(OutputState::Pixel, outputPixel);
+				}
+			}
+		}
 
-		_pixelPosition++;
+		_horizontalTimer = (_horizontalTimer + 1)%228;
 	}
 }
 
+void Machine::output_state(OutputState state, uint8_t *pixel)
+{
+	_lastOutputStateDuration++;
+	if(state != _lastOutputState)
+	{
+		static uint8_t blankingLevel[3] = {0, 0, 0};
+		switch(_lastOutputState)
+		{
+			case OutputState::Blank:	_crt->output_level(_lastOutputStateDuration, blankingLevel, "Atari2600");	break;
+			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);								break;
+			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, _outPixels, "Atari2600");		break;
+		}
+		_lastOutputStateDuration = 0;
+		_lastOutputState = state;
+	}
+
+	if(state == OutputState::Pixel)
+	{
+		_outPixels[(_lastOutputStateDuration * 3) + 0] = pixel[0];
+		_outPixels[(_lastOutputStateDuration * 3) + 1] = pixel[1];
+		_outPixels[(_lastOutputStateDuration * 3) + 2] = pixel[2];
+	}
+}
+
+
 void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	static int lines = 0;
 	uint8_t returnValue = 0xff;
 
+	output_pixels(3);
+
 	_timestamp++;
-
-	if (_horizontalTimer == 228) {
-		_horizontalTimer = 0;
-		_pixelPosition = 0;
-//		printf("\n");
-		lines++;
-	}
-
-	if (_horizontalTimer == 69) {
-		output_pixels(1);
-	}
-
-	if (_horizontalTimer >= 70) {
-		output_pixels(3);
-	}
-
-	_horizontalTimer += 3;
-
 
 	// check for a ROM access
 	if ((address&0x1000) && isReadOperation(operation)) {
@@ -87,21 +125,8 @@ void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t ad
 		if(isReadOperation(operation)) {
 		} else {
 			switch(address & 0x3f) {
-				case 0: {
-					bool newVsync = !!(*value & 0x02);
-
-					if (newVsync != _vsync) {
-						_vsync = newVsync;
-					}
-				} break;
-
-				case 1: {
-					bool newVblank = !!(*value & 0x02);
-
-					if (newVblank != _vblank) {
-						_vblank = newVblank;
-					}
-				} break;
+				case 0:	_vSyncEnabled = !!(*value & 0x02);	break;
+				case 1:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 2: {
 

@@ -27,21 +27,35 @@ class Machine: public CPU6502::Processor<Machine> {
 	private:
 		uint8_t _rom[4096], _ram[128];
 		uint16_t _romMask;
-		uint8_t _playField[3], _playFieldControl;
 
 		uint64_t _timestamp;
-		bool _vsync, _vblank;
 
+		// the timer
 		unsigned int _piaTimerValue;
 		unsigned int _piaTimerShift;
 
+		// graphics registers
+		uint8_t _playField[3], _playFieldControl;
+
+		// graphics output
 		int _horizontalTimer;
+		bool _vSyncEnabled, _vBlankEnabled;
 
-		int _pixelPosition;
-		uint8_t _playFieldPixel;
+		enum OutputState {
+			Sync,
+			Blank,
+			Pixel
+		};
+
 		void output_pixels(int count);
-
+		void get_output_pixel(uint8_t *pixel, int offset);
+		void output_state(OutputState state, uint8_t *pixel);
 		Outputs::CRT *_crt;
+
+		// latched output state
+		uint8_t _outPixels[480];
+		int _lastOutputStateDuration;
+		OutputState _lastOutputState;
 };
 
 }

@@ -16,12 +16,15 @@ CRT::CRT(int cycles_per_line)
 
 void CRT::output_sync(int number_of_cycles)
 {
+	printf("[%d]\n", number_of_cycles);
 }
 
 void CRT::output_level(int number_of_cycles, uint8_t *level, std::string type)
 {
+	printf("[---:%d]", number_of_cycles);
 }
 
 void CRT::output_data(int number_of_cycles, uint8_t *data, std::string type)
 {
+	printf("[+++:%d]", number_of_cycles);
 }
