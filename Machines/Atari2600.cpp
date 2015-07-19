@@ -23,15 +23,17 @@ Machine::Machine()
 void Machine::output_pixels(int count)
 {
 	while(count--) {
-		int x = _pixelPosition >> 2;
-		bool mirrored = (x / 20) && !!(_playFieldControl&1);
-		int index = mirrored ? (x%20) : 39 - x;
-		int byte = 2 - (index >> 3);
-		int bit = (index & 7)^((byte&1) ? 0 : 7);
+		const int x = _pixelPosition >> 2;
+		const int mirrored = (x / 20) & (_playFieldControl&1);
+		const int index = mirrored ? x - 20 : 19 - (x%20);
+		const int byte = 2 - (index >> 3);
+		const int lowestBit = (byte&1)^1;
+		const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
 
 		_playFieldPixel = (_playField[byte] >> bit)&1;
 
 //		if(!(_pixelPosition&3))
+//			printf("[%d %d]\n", byte, bit);
 //			fputc(_playFieldPixel && !_vblank ? '*' : ' ', stdout);
 
 		_pixelPosition++;
