@@ -129,12 +129,9 @@ void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t ad
 				case 1:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 2: {
-
-					int pixelsToRun = 228 - _horizontalTimer;
-					_piaTimerValue -= pixelsToRun;
-					if (pixelsToRun > 160) pixelsToRun = 160;
-					output_pixels(pixelsToRun);
-					_horizontalTimer = 228;
+					const int cyclesToRunFor = 228 - _horizontalTimer;
+					_piaTimerValue -= cyclesToRunFor;
+					output_pixels(cyclesToRunFor);
 				} break;
 				case 3: _horizontalTimer = 0; break;
 
