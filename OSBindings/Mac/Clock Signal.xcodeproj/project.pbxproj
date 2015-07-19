@@ -971,14 +971,14 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4BB73EB81B587A5100552FC2 /* Info.plist */,
+				4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
 				4BB297E21B587D8300A49093 /* TestMachine.h */,
 				4BB297E31B587D8300A49093 /* TestMachine.mm */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
-				4BB73EB81B587A5100552FC2 /* Info.plist */,
-				4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */,
-				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
+				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
