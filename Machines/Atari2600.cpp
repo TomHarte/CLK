@@ -86,7 +86,7 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 				_outputBuffer[3] = 0xff;
 				_crt->output_level(_lastOutputStateDuration, "Atari2600");
 			} break;
-			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);								break;
+			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
 			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, "Atari2600");		break;
 		}
 		_lastOutputStateDuration = 0;

@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <forward_list>
 
 namespace Outputs {
 
@@ -38,7 +39,7 @@ class CRT {
 
 		class CRTDelegate {
 			public:
-				void crt_did_start_vertical_retrace_with_runs(CRTRun *runs, int number_of_runs);
+				void crt_did_start_vertical_retrace_with_runs(std::forward_list<CRTRun> *runs, int runs_to_draw);
 		};
 		void set_crt_delegate(CRTDelegate *);
 
@@ -48,7 +49,7 @@ class CRT {
 	private:
 		CRTDelegate *_delegate;
 
-		int _syncCapacitorChargeLevel;
+		int _sync_capacitor_charge_level;
 		float _horizontalOffset, _verticalOffset;
 
 		uint8_t **_buffers;
@@ -56,6 +57,22 @@ class CRT {
 		int _numberOfBuffers;
 
 		int _write_allocation_pointer, _write_target_pointer;
+
+		std::forward_list<CRTRun> _runs;
+
+		void propose_hsync();
+		void charge_vsync(int number_of_cycles);
+		void drain_vsync(int number_of_cycles);
+		void run_line_for_cycles(int number_of_cycles);
+		void run_hline_for_cycles(int number_of_cycles);
+		void do_hsync();
+		void do_vsync();
+
+		int _horizontal_counter, _expected_next_hsync, _hsync_error_window, _hretrace_counter;
+
+		int _cycles_per_line;
+		bool _is_in_sync, _vsync_is_proposed;
+
 };
 
 }
