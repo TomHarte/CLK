@@ -16,10 +16,12 @@ namespace Outputs {
 
 class CRT {
 	public:
-		CRT(int cycles_per_line);
+		CRT(int cycles_per_line, int number_of_buffers, ...);
+		~CRT();
+
 		void output_sync(int number_of_cycles);
-		void output_level(int number_of_cycles, uint8_t *level, std::string type);
-		void output_data(int number_of_cycles, uint8_t *data, std::string type);
+		void output_level(int number_of_cycles, std::string type);
+		void output_data(int number_of_cycles, std::string type);
 
 		struct CRTRun {
 			struct Point {
@@ -30,6 +32,7 @@ class CRT {
 				Sync, Level, Data
 			} type;
 
+			std::string data_type;
 			uint8_t *data;
 		};
 
@@ -39,11 +42,20 @@ class CRT {
 		};
 		void set_crt_delegate(CRTDelegate *);
 
+		void allocate_write_area(int required_length);
+		uint8_t *get_write_target_for_buffer(int buffer);
+
 	private:
 		CRTDelegate *_delegate;
 
 		int _syncCapacitorChargeLevel;
 		float _horizontalOffset, _verticalOffset;
+
+		uint8_t **_buffers;
+		int *_bufferSizes;
+		int _numberOfBuffers;
+
+		int _write_allocation_pointer, _write_target_pointer;
 };
 
 }

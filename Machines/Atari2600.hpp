@@ -53,9 +53,9 @@ class Machine: public CPU6502::Processor<Machine> {
 		Outputs::CRT *_crt;
 
 		// latched output state
-		uint8_t _outPixels[480];
 		int _lastOutputStateDuration;
 		OutputState _lastOutputState;
+		uint8_t *_outputBuffer;
 };
 
 }

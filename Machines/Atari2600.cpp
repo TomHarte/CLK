@@ -14,12 +14,13 @@ using namespace Atari2600;
 
 Machine::Machine()
 {
-	reset();
 	_timestamp = 0;
 	_horizontalTimer = 0;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228);
+	_crt = new Outputs::CRT(228, 1, 4);
+
+	reset();
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
@@ -76,22 +77,34 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 	_lastOutputStateDuration++;
 	if(state != _lastOutputState)
 	{
-		static uint8_t blankingLevel[3] = {0, 0, 0};
 		switch(_lastOutputState)
 		{
-			case OutputState::Blank:	_crt->output_level(_lastOutputStateDuration, blankingLevel, "Atari2600");	break;
+			case OutputState::Blank:	{
+				_crt->allocate_write_area(1);
+				_outputBuffer = _crt->get_write_target_for_buffer(0);
+				_outputBuffer[0] = _outputBuffer[1] = _outputBuffer[2] = 0;
+				_outputBuffer[3] = 0xff;
+				_crt->output_level(_lastOutputStateDuration, "Atari2600");
+			} break;
 			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);								break;
-			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, _outPixels, "Atari2600");		break;
+			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, "Atari2600");		break;
 		}
 		_lastOutputStateDuration = 0;
 		_lastOutputState = state;
+
+		if(state == OutputState::Pixel)
+		{
+			_crt->allocate_write_area(160);
+			_outputBuffer = _crt->get_write_target_for_buffer(0);
+		}
 	}
 
 	if(state == OutputState::Pixel)
 	{
-		_outPixels[(_lastOutputStateDuration * 3) + 0] = pixel[0];
-		_outPixels[(_lastOutputStateDuration * 3) + 1] = pixel[1];
-		_outPixels[(_lastOutputStateDuration * 3) + 2] = pixel[2];
+		_outputBuffer[(_lastOutputStateDuration * 4) + 0] = pixel[0];
+		_outputBuffer[(_lastOutputStateDuration * 4) + 1] = pixel[1];
+		_outputBuffer[(_lastOutputStateDuration * 4) + 2] = pixel[2];
+		_outputBuffer[(_lastOutputStateDuration * 4) + 3] = 0xff;
 	}
 }
 
