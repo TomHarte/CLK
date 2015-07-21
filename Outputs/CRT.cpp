@@ -41,12 +41,11 @@ CRT::CRT(int cycles_per_line, int number_of_buffers, ...)
 	_write_allocation_pointer = 0;
 	_cycles_per_line = cycles_per_line;
 	_expected_next_hsync = cycles_per_line;
-	_hsync_error_window = cycles_per_line / 10;
+	_hsync_error_window = cycles_per_line >> 5;
 	_horizontal_counter = 0;
 	_sync_capacitor_charge_level = 0;
 
 	_is_in_sync = false;
-	_vsync_is_proposed = false;
 }
 
 CRT::~CRT()
@@ -64,9 +63,12 @@ CRT::~CRT()
 CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
 {
 	// do we recognise this hsync, thereby adjusting time expectations?
-	if (_horizontal_counter >= _expected_next_hsync - _hsync_error_window && hsync_is_requested) {
+	if ((_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) && hsync_is_requested) {
 		_did_detect_hsync = true;
-		_expected_next_hsync = (_expected_next_hsync + _horizontal_counter) >> 1;
+
+		int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
+		_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
+//		printf("to %d for %d\n", _expected_next_hsync, time_now);
 	}
 
 	SyncEvent proposedEvent = SyncEvent::None;
@@ -119,10 +121,10 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		{
 			switch(type)
 			{
-				case CRTRun::Type::Data: putc('-', stdout);	break;
+				case CRTRun::Type::Data: putc('-', stdout);		break;
 				case CRTRun::Type::Blank: putc(' ', stdout);	break;
 				case CRTRun::Type::Level: putc('_', stdout);	break;
-				case CRTRun::Type::Sync: putc('<', stdout);	break;
+				case CRTRun::Type::Sync: putc('<', stdout);		break;
 			}
 		}
 //		printf("[[%d]%d:%d]", type, next_event, next_run_length);
@@ -142,11 +144,14 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			default:		break;
 			case SyncEvent::StartHSync:
 				_horizontal_counter = 0;
+				printf("\n");
+			break;
+
+			case SyncEvent::EndHSync:
 				if (!_did_detect_hsync) {
-					_expected_next_hsync = (_expected_next_hsync + _cycles_per_line) >> 1;
+					_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 1) + _cycles_per_line) >> 1;
 				}
 				_did_detect_hsync = false;
-				printf("\n");
 			break;
 			case SyncEvent::StartVSync:
 				_vretrace_counter = scanlinesVerticalRetraceTime * _cycles_per_line;

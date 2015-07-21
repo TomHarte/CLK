@@ -68,10 +68,7 @@ class CRT {
 		void do_hsync();
 		void do_vsync();
 
-
 		int _cycles_per_line;
-		bool _is_in_sync, _vsync_is_proposed, _did_detect_hsync;
-
 
 		enum SyncEvent {
 			None,
@@ -79,6 +76,7 @@ class CRT {
 			StartVSync, EndVSync
 		};
 		SyncEvent advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced);
+		bool _is_in_sync, _did_detect_hsync;
 		int _sync_capacitor_charge_level, _vretrace_counter;
 		int _horizontal_counter, _expected_next_hsync, _hsync_error_window;
 
