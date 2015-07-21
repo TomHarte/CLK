@@ -22,6 +22,7 @@ class CRT {
 
 		void output_sync(int number_of_cycles);
 		void output_level(int number_of_cycles, std::string type);
+		void output_blank(int number_of_cycles, std::string type);
 		void output_data(int number_of_cycles, std::string type);
 
 		struct CRTRun {
@@ -30,7 +31,7 @@ class CRT {
 			} start_point, end_point;
 
 			enum Type {
-				Sync, Level, Data
+				Sync, Level, Data, Blank
 			} type;
 
 			std::string data_type;
@@ -49,7 +50,6 @@ class CRT {
 	private:
 		CRTDelegate *_delegate;
 
-		int _sync_capacitor_charge_level;
 		float _horizontalOffset, _verticalOffset;
 
 		uint8_t **_buffers;
@@ -68,11 +68,21 @@ class CRT {
 		void do_hsync();
 		void do_vsync();
 
-		int _horizontal_counter, _expected_next_hsync, _hsync_error_window, _hretrace_counter;
 
 		int _cycles_per_line;
-		bool _is_in_sync, _vsync_is_proposed;
+		bool _is_in_sync, _vsync_is_proposed, _did_detect_hsync;
 
+
+		enum SyncEvent {
+			None,
+			StartHSync, EndHSync,
+			StartVSync, EndVSync
+		};
+		SyncEvent advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced);
+		int _sync_capacitor_charge_level, _vretrace_counter;
+		int _horizontal_counter, _expected_next_hsync, _hsync_error_window;
+
+		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_charging, CRTRun::Type type);
 };
 
 }

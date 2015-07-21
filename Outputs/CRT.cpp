@@ -14,6 +14,9 @@ static const int bufferHeight = 512;
 
 static const int syncCapacityLineChargeThreshold = 3;
 static const int millisecondsHorizontalRetraceTime = 16;
+static const int scanlinesVerticalRetraceTime = 26;
+
+#define kEmergencyRetraceTime	(_expected_next_hsync + _hsync_error_window)
 
 using namespace Outputs;
 
@@ -42,7 +45,6 @@ CRT::CRT(int cycles_per_line, int number_of_buffers, ...)
 	_horizontal_counter = 0;
 	_sync_capacitor_charge_level = 0;
 
-	_hretrace_counter = -1;
 	_is_in_sync = false;
 	_vsync_is_proposed = false;
 }
@@ -57,148 +59,128 @@ CRT::~CRT()
 	delete[] _buffers;
 }
 
-#pragma mark - Sync decisions
+#pragma mark - Sync loop
 
-#define hretrace_period() ((millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6)
-
-void CRT::propose_hsync()
+CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
 {
-	if (_horizontal_counter >= _expected_next_hsync - _hsync_error_window)
-	{
-		_expected_next_hsync = (_horizontal_counter + _expected_next_hsync) >> 1;
-		do_hsync();
+	// do we recognise this hsync, thereby adjusting time expectations?
+	if (_horizontal_counter >= _expected_next_hsync - _hsync_error_window && hsync_is_requested) {
+		_did_detect_hsync = true;
+		_expected_next_hsync = (_expected_next_hsync + _horizontal_counter) >> 1;
 	}
-	else
-	{
-		printf("r %d\n", _horizontal_counter);
-	}
-}
 
-void CRT::charge_vsync(int number_of_cycles)
-{
-	// will we start indicating hsync during this charge?
-	const int final_capacitor_charge_level = _sync_capacitor_charge_level + number_of_cycles;
-	const int required_capacitor_charge_level = syncCapacityLineChargeThreshold*_cycles_per_line;
-	if(_sync_capacitor_charge_level < required_capacitor_charge_level && final_capacitor_charge_level >= required_capacitor_charge_level)
-	{
-		const int cycles_until_vsync_starts = required_capacitor_charge_level - _sync_capacitor_charge_level;
-		run_line_for_cycles(cycles_until_vsync_starts);
-		_vsync_is_proposed = true;
-		run_line_for_cycles(number_of_cycles - cycles_until_vsync_starts);
-	}
-	else
-	{
-		run_line_for_cycles(number_of_cycles);
-	}
-	_sync_capacitor_charge_level += number_of_cycles;
-}
+	SyncEvent proposedEvent = SyncEvent::None;
+	int proposedSyncTime = cycles_to_run_for;
 
-void CRT::drain_vsync(int number_of_cycles)
-{
-	// will we stop indicating hsync during this charge?
-	const int required_capacitor_charge_level = syncCapacityLineChargeThreshold*_cycles_per_line;
-	if(_sync_capacitor_charge_level >= required_capacitor_charge_level && _sync_capacitor_charge_level - number_of_cycles < required_capacitor_charge_level)
-	{
-		const int cycles_until_vsync_ends = _sync_capacitor_charge_level - required_capacitor_charge_level;
-		run_line_for_cycles(cycles_until_vsync_ends);
-		_vsync_is_proposed = false;
-		run_line_for_cycles(number_of_cycles - cycles_until_vsync_ends);
+	// will we end an ongoing hsync?
+	const int endOfHSyncTime = (millisecondsHorizontalRetraceTime*_cycles_per_line) >> 6;
+	if (_horizontal_counter < endOfHSyncTime && _horizontal_counter+proposedSyncTime >= endOfHSyncTime) {
+		proposedSyncTime = endOfHSyncTime - _horizontal_counter;
+		proposedEvent = SyncEvent::EndHSync;
 	}
-	else
-	{
-		run_line_for_cycles(number_of_cycles);
+
+	// will we start an hsync?
+	if (_horizontal_counter + proposedSyncTime >= _expected_next_hsync) {
+		proposedSyncTime = _expected_next_hsync - _horizontal_counter;
+		proposedEvent = SyncEvent::StartHSync;
 	}
-	_sync_capacitor_charge_level = std::max(0, _sync_capacitor_charge_level - number_of_cycles);
-}
 
-void CRT::run_line_for_cycles(int number_of_cycles)
-{
-	// we're guaranteed not to see any vertical sync events during this run_for_cycles;
-	// will we see a horizontal?
+	// will an acceptable vertical sync be triggered?
+	if (vsync_is_charging && !_vretrace_counter) {
+		const int startOfVSyncTime = syncCapacityLineChargeThreshold*_cycles_per_line;
 
-	if(!_hretrace_counter)
-	{
-		const int end_counter = _horizontal_counter + number_of_cycles;
-		const int last_allowed_retrace_time = _expected_next_hsync + _hsync_error_window;
-		if(end_counter >= last_allowed_retrace_time)
-		{
-			// there'll be a forced retrace, and we didn't detect a sync pulse so we'll
-			// push back towards the default period
-			const int cycles_before_retrace = end_counter - last_allowed_retrace_time;
-			run_hline_for_cycles(cycles_before_retrace);
-			do_hsync();
-			_hretrace_counter = hretrace_period();
-			_expected_next_hsync = (_expected_next_hsync + _cycles_per_line) >> 1;
-			run_hline_for_cycles(number_of_cycles - cycles_before_retrace);
+		 if (_sync_capacitor_charge_level < startOfVSyncTime && _sync_capacitor_charge_level + proposedSyncTime >= startOfVSyncTime) {
+			proposedSyncTime = startOfVSyncTime - _sync_capacitor_charge_level;
+			proposedEvent = SyncEvent::StartVSync;
+		 }
+	}
+
+	// TODO: will a late-in-the-day vertical sync be forced?
+
+	// will an ongoing vertical sync end?
+	if (_vretrace_counter > 0) {
+		if (_vretrace_counter < proposedSyncTime) {
+			proposedSyncTime = _vretrace_counter;
+			proposedEvent = SyncEvent::EndVSync;
 		}
+	}
+
+	*cycles_advanced = proposedSyncTime;
+	return proposedEvent;
+}
+
+void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const CRTRun::Type type)
+{
+	while(number_of_cycles) {
+		int next_run_length;
+		SyncEvent next_event = advance_to_next_sync_event(hsync_requested, vsync_charging, number_of_cycles, &next_run_length);
+
+		for(int c = 0; c < next_run_length; c++)
+		{
+			switch(type)
+			{
+				case CRTRun::Type::Data: putc('-', stdout);	break;
+				case CRTRun::Type::Blank: putc(' ', stdout);	break;
+				case CRTRun::Type::Level: putc('_', stdout);	break;
+				case CRTRun::Type::Sync: putc('<', stdout);	break;
+			}
+		}
+//		printf("[[%d]%d:%d]", type, next_event, next_run_length);
+
+		hsync_requested = false;
+
+		number_of_cycles -= next_run_length;
+		_horizontal_counter += next_run_length;
+		if (vsync_charging)
+			_sync_capacitor_charge_level += next_run_length;
 		else
-		{
-			// we'll just output, no big deal
-			run_hline_for_cycles(number_of_cycles);
+			_sync_capacitor_charge_level = std::max(_sync_capacitor_charge_level - next_run_length, 0);
+
+		_vretrace_counter = std::max(_vretrace_counter - next_run_length, 0);
+
+		switch(next_event) {
+			default:		break;
+			case SyncEvent::StartHSync:
+				_horizontal_counter = 0;
+				if (!_did_detect_hsync) {
+					_expected_next_hsync = (_expected_next_hsync + _cycles_per_line) >> 1;
+				}
+				_did_detect_hsync = false;
+				printf("\n");
+			break;
+			case SyncEvent::StartVSync:
+				_vretrace_counter = scanlinesVerticalRetraceTime * _cycles_per_line;
+				printf("\n\n===\n\n");
+			break;
 		}
 	}
-	else
-	{
-		if(_hretrace_counter - number_of_cycles < 0)
-		{
-			// we'll fully retrace and exit
-			number_of_cycles -= _hretrace_counter;
-			run_hline_for_cycles(number_of_cycles - _hretrace_counter);
-			_hretrace_counter = 0;
-		}
-		else
-		{
-			// we'll spend this whole period retracing
-			_hretrace_counter -= number_of_cycles;
-		}
-
-		_hretrace_counter = std::max(0, _hretrace_counter - number_of_cycles);
-	}
 }
-
-void CRT::run_hline_for_cycles(int number_of_cycles)
-{
-	_horizontal_counter += number_of_cycles;
-}
-
-void CRT::do_hsync()
-{
-	printf("%d\n", _horizontal_counter);
-	_hretrace_counter = hretrace_period();
-	_horizontal_counter = 0;
-}
-
 
 #pragma mark - stream feeding methods
 
 void CRT::output_sync(int number_of_cycles)
 {
-//	printf("[%d]\n", number_of_cycles);
-//
-//	if(number_of_cycles > 16)
-//	{
-//		printf("!!!\n");
-//	}
-
-	// horizontal sync is edge triggered
-	if(!_is_in_sync)
-	{
-		_is_in_sync = true;
-		propose_hsync();
-	}
-	charge_vsync(number_of_cycles);
+	bool _hsync_requested = !_is_in_sync;
+	_is_in_sync = true;
+	advance_cycles(number_of_cycles, _hsync_requested, true, CRTRun::Type::Sync);
 }
 
 void CRT::output_level(int number_of_cycles, std::string type)
 {
 	_is_in_sync = false;
-	drain_vsync(number_of_cycles);
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Level);
 }
 
 void CRT::output_data(int number_of_cycles, std::string type)
 {
 	_is_in_sync = false;
-	drain_vsync(number_of_cycles);
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Data);
+}
+
+void CRT::output_blank(int number_of_cycles, std::string type)
+{
+	_is_in_sync = false;
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Blank);
 }
 
 #pragma mark - Buffer supply
