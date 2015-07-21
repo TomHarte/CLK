@@ -20,8 +20,11 @@ static const int scanlinesVerticalRetraceTime = 26;
 
 using namespace Outputs;
 
-CRT::CRT(int cycles_per_line, int number_of_buffers, ...)
+CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 {
+	_height_of_display = height_of_display;
+	_cycles_per_line = cycles_per_line;
+
 	_horizontalOffset = 0.0f;
 	_verticalOffset = 0.0f;
 
@@ -39,13 +42,15 @@ CRT::CRT(int cycles_per_line, int number_of_buffers, ...)
 	va_end(va);
 
 	_write_allocation_pointer = 0;
-	_cycles_per_line = cycles_per_line;
 	_expected_next_hsync = cycles_per_line;
 	_hsync_error_window = cycles_per_line >> 5;
 	_horizontal_counter = 0;
 	_sync_capacitor_charge_level = 0;
 
-	_is_in_sync = false;
+	_is_receiving_sync = false;
+	_is_in_hsync = false;
+
+	_run_pointer = 0;
 }
 
 CRT::~CRT()
@@ -74,6 +79,12 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 	SyncEvent proposedEvent = SyncEvent::None;
 	int proposedSyncTime = cycles_to_run_for;
 
+	// have we overrun the maximum permitted number of horizontal syncs for this frame?
+	if (_hsync_counter > _height_of_display + 10) {
+		*cycles_advanced = 0;
+		return SyncEvent::StartHSync;
+	}
+
 	// will we end an ongoing hsync?
 	const int endOfHSyncTime = (millisecondsHorizontalRetraceTime*_cycles_per_line) >> 6;
 	if (_horizontal_counter < endOfHSyncTime && _horizontal_counter+proposedSyncTime >= endOfHSyncTime) {
@@ -97,8 +108,6 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 		 }
 	}
 
-	// TODO: will a late-in-the-day vertical sync be forced?
-
 	// will an ongoing vertical sync end?
 	if (_vretrace_counter > 0) {
 		if (_vretrace_counter < proposedSyncTime) {
@@ -111,23 +120,62 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const CRTRun::Type type)
+void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const CRTRun::Type type, const char *data_type)
 {
+	int buffer_offset = 0;
+
 	while(number_of_cycles) {
 		int next_run_length;
 		SyncEvent next_event = advance_to_next_sync_event(hsync_requested, vsync_charging, number_of_cycles, &next_run_length);
 
-		for(int c = 0; c < next_run_length; c++)
+		if(_run_pointer >= _all_runs.size())
 		{
-			switch(type)
-			{
-				case CRTRun::Type::Data: putc('-', stdout);		break;
-				case CRTRun::Type::Blank: putc(' ', stdout);	break;
-				case CRTRun::Type::Level: putc('_', stdout);	break;
-				case CRTRun::Type::Sync: putc('<', stdout);		break;
-			}
+			_all_runs.resize((_all_runs.size() * 2)+1);
 		}
-//		printf("[[%d]%d:%d]", type, next_event, next_run_length);
+
+		CRTRun *nextRun = &_all_runs[_run_pointer];
+		_run_pointer++;
+
+		nextRun->type = type;
+		nextRun->start_point.dst_x = _horizontalOffset;
+		nextRun->start_point.dst_y = _verticalOffset;
+
+		if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
+		{
+			nextRun->start_point.src_x = (_write_target_pointer + buffer_offset) & (bufferWidth - 1);
+			nextRun->start_point.dst_x = (_write_target_pointer + buffer_offset) / bufferWidth;
+		}
+		nextRun->data_type = data_type;
+
+		if (_vretrace_counter > 0)
+		{
+			_verticalOffset = std::max(0.0f, _verticalOffset - (float)number_of_cycles / (float)(scanlinesVerticalRetraceTime * _cycles_per_line));
+		}
+		else
+		{
+			_verticalOffset = std::min(1.0f, _verticalOffset + (float)number_of_cycles / (float)(_height_of_display * _cycles_per_line));
+		}
+
+		if (_is_in_hsync)
+		{
+			_horizontalOffset = std::max(0.0f, _horizontalOffset - (float)(((millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6) * number_of_cycles) / (float)_cycles_per_line);
+		}
+		else
+		{
+			_horizontalOffset = std::min(1.0f, _horizontalOffset + (float)((((64 - millisecondsHorizontalRetraceTime) * _cycles_per_line) >> 6) * number_of_cycles) / (float)_cycles_per_line);
+		}
+
+		nextRun->end_point.dst_x = _horizontalOffset;
+		nextRun->end_point.dst_y = _verticalOffset;
+		if(type == CRTRun::Type::Data)
+		{
+			buffer_offset += next_run_length;
+		}
+		if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
+		{
+			nextRun->end_point.src_x = (_write_target_pointer + buffer_offset) & (bufferWidth - 1);
+			nextRun->end_point.dst_x = (_write_target_pointer + buffer_offset) / bufferWidth;
+		}
 
 		hsync_requested = false;
 
@@ -144,48 +192,62 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			default:		break;
 			case SyncEvent::StartHSync:
 				_horizontal_counter = 0;
-				printf("\n");
+				_is_in_hsync = true;
+				_hsync_counter++;
 			break;
-
 			case SyncEvent::EndHSync:
 				if (!_did_detect_hsync) {
 					_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 1) + _cycles_per_line) >> 1;
 				}
 				_did_detect_hsync = false;
+				_is_in_hsync = false;
 			break;
 			case SyncEvent::StartVSync:
 				_vretrace_counter = scanlinesVerticalRetraceTime * _cycles_per_line;
-				printf("\n\n===\n\n");
+				_hsync_counter = 0;
+			break;
+
+			case SyncEvent::EndVSync:
+				if(_delegate != nullptr)
+					_delegate->crt_did_start_vertical_retrace_with_runs(&_all_runs[0], _run_pointer);
+				_run_pointer = 0;
 			break;
 		}
 	}
+}
+
+#pragma mark - delegate
+
+void CRT::set_crt_delegate(CRTDelegate *delegate)
+{
+	_delegate = delegate;
 }
 
 #pragma mark - stream feeding methods
 
 void CRT::output_sync(int number_of_cycles)
 {
-	bool _hsync_requested = !_is_in_sync;
-	_is_in_sync = true;
-	advance_cycles(number_of_cycles, _hsync_requested, true, CRTRun::Type::Sync);
+	bool _hsync_requested = !_is_receiving_sync;
+	_is_receiving_sync = true;
+	advance_cycles(number_of_cycles, _hsync_requested, true, CRTRun::Type::Sync, nullptr);
 }
 
-void CRT::output_level(int number_of_cycles, std::string type)
+void CRT::output_blank(int number_of_cycles)
 {
-	_is_in_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Level);
+	_is_receiving_sync = false;
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Blank, nullptr);
 }
 
-void CRT::output_data(int number_of_cycles, std::string type)
+void CRT::output_level(int number_of_cycles, const char *type)
 {
-	_is_in_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Data);
+	_is_receiving_sync = false;
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Level, type);
 }
 
-void CRT::output_blank(int number_of_cycles, std::string type)
+void CRT::output_data(int number_of_cycles, const char *type)
 {
-	_is_in_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Blank);
+	_is_receiving_sync = false;
+	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Data, type);
 }
 
 #pragma mark - Buffer supply

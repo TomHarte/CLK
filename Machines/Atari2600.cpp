@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 using namespace Atari2600;
+static const char atari2600DataType[] = "Atari2600";
 
 Machine::Machine()
 {
@@ -18,7 +19,7 @@ Machine::Machine()
 	_horizontalTimer = 0;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 1, 4);
+	_crt = new Outputs::CRT(228, 256, 1, 4);
 
 	reset();
 }
@@ -84,10 +85,10 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 				_outputBuffer = _crt->get_write_target_for_buffer(0);
 				_outputBuffer[0] = _outputBuffer[1] = _outputBuffer[2] = 0;
 				_outputBuffer[3] = 0xff;
-				_crt->output_level(_lastOutputStateDuration, "Atari2600");
+				_crt->output_level(_lastOutputStateDuration, atari2600DataType);
 			} break;
 			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
-			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, "Atari2600");		break;
+			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
 		}
 		_lastOutputStateDuration = 0;
 		_lastOutputState = state;
