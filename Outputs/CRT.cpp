@@ -12,20 +12,29 @@
 static const int bufferWidth = 512;
 static const int bufferHeight = 512;
 
-static const int syncCapacityLineChargeThreshold = 3;
-static const int millisecondsHorizontalRetraceTime = 16;
-static const int scanlinesVerticalRetraceTime = 26;
-
 using namespace Outputs;
 
 CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 {
+	static const int syncCapacityLineChargeThreshold = 3;
+	static const int millisecondsHorizontalRetraceTime = 16;
+	static const int scanlinesVerticalRetraceTime = 26;
+
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;
 	_cycles_per_line = cycles_per_line;
 
 	// generate timing values implied by the given arbuments
 	_hsync_error_window = cycles_per_line >> 5;
+
+	_sync_capacitor_charge_threshold = syncCapacityLineChargeThreshold * cycles_per_line;
+	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * cycles_per_line) >> 6;
+	_vertical_retrace_time = scanlinesVerticalRetraceTime * cycles_per_line;
+
+	_scanSpeed.x = 1.0f / (float)cycles_per_line;
+	_scanSpeed.y = 1.0f / (float)height_of_display;
+	_retraceSpeed.x = 1.0f / (float)_horizontal_retrace_time;
+	_retraceSpeed.y = 1.0f / (float)_vertical_retrace_time;
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
@@ -49,8 +58,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	_run_pointer = 0;
 
 	// reset raster position
-	_horizontalOffset = 0.0f;
-	_verticalOffset = 0.0f;
+	_rasterPosition.x = _rasterPosition.y = 0.0f;
 
 	// reset flywheel sync
 	_expected_next_hsync = cycles_per_line;
@@ -62,6 +70,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	// start off not in horizontal sync, not receiving a sync signal
 	_is_receiving_sync = false;
 	_is_in_hsync = false;
+	_vretrace_counter = 0;
 }
 
 CRT::~CRT()
@@ -91,15 +100,18 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 	int proposedSyncTime = cycles_to_run_for;
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
-	if (_hsync_counter > _height_of_display + 10) {
-		*cycles_advanced = 0;
-		return SyncEvent::StartHSync;
+	if (!_vretrace_counter)
+	{
+		float raster_distance = _scanSpeed.y * (float)proposedSyncTime;
+		if(_rasterPosition.y < 1.02f && _rasterPosition.y + raster_distance >= 1.02f) {
+			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
+			proposedEvent = SyncEvent::StartVSync;
+		}
 	}
 
 	// will we end an ongoing hsync?
-	const int endOfHSyncTime = (millisecondsHorizontalRetraceTime*_cycles_per_line) >> 6;
-	if (_horizontal_counter < endOfHSyncTime && _horizontal_counter+proposedSyncTime >= endOfHSyncTime) {
-		proposedSyncTime = endOfHSyncTime - _horizontal_counter;
+	if (_horizontal_counter < _horizontal_retrace_time && _horizontal_counter+proposedSyncTime >= _horizontal_retrace_time) {
+		proposedSyncTime = _horizontal_retrace_time - _horizontal_counter;
 		proposedEvent = SyncEvent::EndHSync;
 	}
 
@@ -111,10 +123,8 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_charging && !_vretrace_counter) {
-		const int startOfVSyncTime = syncCapacityLineChargeThreshold*_cycles_per_line;
-
-		 if (_sync_capacitor_charge_level < startOfVSyncTime && _sync_capacitor_charge_level + proposedSyncTime >= startOfVSyncTime) {
-			proposedSyncTime = startOfVSyncTime - _sync_capacitor_charge_level;
+		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
+			proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 			proposedEvent = SyncEvent::StartVSync;
 		 }
 	}
@@ -155,39 +165,31 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 		// set the type, initial raster position and type of this run
 		nextRun->type = type;
-		nextRun->start_point.dst_x = _horizontalOffset;
-		nextRun->start_point.dst_y = _verticalOffset;
+		nextRun->start_point.dst_x = _rasterPosition.x;
+		nextRun->start_point.dst_y = _rasterPosition.y;
 		nextRun->data_type = data_type;
 
 		// if this is a data or level run then store a starting data position
 		if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
 		{
 			nextRun->start_point.src_x = (_write_target_pointer + buffer_offset) & (bufferWidth - 1);
-			nextRun->start_point.dst_x = (_write_target_pointer + buffer_offset) / bufferWidth;
+			nextRun->start_point.src_y = (_write_target_pointer + buffer_offset) / bufferWidth;
 		}
 
 		// advance the raster position as dictated by current sync status
-		if (_vretrace_counter > 0)
-		{
-			_verticalOffset = std::max(0.0f, _verticalOffset - (float)number_of_cycles / (float)(scanlinesVerticalRetraceTime * _cycles_per_line));
-		}
-		else
-		{
-			_verticalOffset = std::min(1.0f, _verticalOffset + (float)number_of_cycles / (float)(_height_of_display * _cycles_per_line));
-		}
-
 		if (_is_in_hsync)
-		{
-			_horizontalOffset = std::max(0.0f, _horizontalOffset - (float)(((millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6) * number_of_cycles) / (float)_cycles_per_line);
-		}
+			_rasterPosition.x = std::max(0.0f, _rasterPosition.x - (float)number_of_cycles * _retraceSpeed.x);
 		else
-		{
-			_horizontalOffset = std::min(1.0f, _horizontalOffset + (float)((((64 - millisecondsHorizontalRetraceTime) * _cycles_per_line) >> 6) * number_of_cycles) / (float)_cycles_per_line);
-		}
+			_rasterPosition.x = std::min(1.0f, _rasterPosition.x + (float)number_of_cycles * _scanSpeed.x);
+
+		if (_vretrace_counter > 0)
+			_rasterPosition.y = std::max(0.0f, _rasterPosition.y - (float)number_of_cycles * _retraceSpeed.y);
+		else
+			_rasterPosition.y = std::min(1.0f, _rasterPosition.y + (float)number_of_cycles * _scanSpeed.y);
 
 		// store the final raster position
-		nextRun->end_point.dst_x = _horizontalOffset;
-		nextRun->end_point.dst_y = _verticalOffset;
+		nextRun->end_point.dst_x = _rasterPosition.x;
+		nextRun->end_point.dst_y = _rasterPosition.y;
 
 		// if this is a data run then advance the buffer pointer
 		if(type == CRTRun::Type::Data)
@@ -199,7 +201,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
 		{
 			nextRun->end_point.src_x = (_write_target_pointer + buffer_offset) & (bufferWidth - 1);
-			nextRun->end_point.dst_x = (_write_target_pointer + buffer_offset) / bufferWidth;
+			nextRun->end_point.src_y = (_write_target_pointer + buffer_offset) / bufferWidth;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -224,7 +226,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			case SyncEvent::StartHSync:
 				_horizontal_counter = 0;
 				_is_in_hsync = true;
-				_hsync_counter++;
 			break;
 
 			// end of horizontal sync: update the flywheel's velocity, note that we're no longer
@@ -240,8 +241,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			// start of vertical sync: reset the lines-in-this-frame counter,
 			// load the retrace counter with the amount of time it'll take to retrace
 			case SyncEvent::StartVSync:
-				_vretrace_counter = scanlinesVerticalRetraceTime * _cycles_per_line;
-				_hsync_counter = 0;
+				_vretrace_counter = _vertical_retrace_time;
 			break;
 
 			// end of vertical sync: tell the delegate that we finished vertical sync,
@@ -259,7 +259,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 #pragma mark - delegate
 
-void CRT::set_crt_delegate(CRTDelegate *delegate)
+void CRT::set_delegate(CRTDelegate *delegate)
 {
 	_delegate = delegate;
 }

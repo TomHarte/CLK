@@ -24,6 +24,8 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void set_rom(size_t length, const uint8_t *data);
 
+		Outputs::CRT *get_crt() { return _crt; }
+
 	private:
 		uint8_t _rom[4096], _ram[128];
 		uint16_t _romMask;

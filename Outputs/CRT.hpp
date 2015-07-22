@@ -42,7 +42,7 @@ class CRT {
 			public:
 				virtual void crt_did_start_vertical_retrace_with_runs(CRTRun *runs, int runs_to_draw) = 0;
 		};
-		void set_crt_delegate(CRTDelegate *delegate);
+		void set_delegate(CRTDelegate *delegate);
 
 		void allocate_write_area(int required_length);
 		uint8_t *get_write_target_for_buffer(int buffer);
@@ -61,7 +61,9 @@ class CRT {
 		int _run_pointer;
 
 		// the current scanning position
-		float _horizontalOffset, _verticalOffset;
+		struct Vector {
+			float x, y;
+		} _rasterPosition, _scanSpeed, _retraceSpeed;
 
 		// the content buffers
 		uint8_t **_buffers;
@@ -72,20 +74,18 @@ class CRT {
 		// returned and to where the next section will begin
 		int _write_allocation_pointer, _write_target_pointer;
 
-		// a counter of horizontal syncs, to allow an automatic vertical
-		// sync to be triggered if we appear to be exiting the display
-		// (TODO: switch to evaluating _verticalOffset for this)
-		int _hsync_counter;
-
 		// outer elements of sync separation
-		bool _is_receiving_sync;			// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		bool _did_detect_hsync;				// true if horizontal sync was detected during this scanline (so, this affects flywheel adjustments)
-		int _sync_capacitor_charge_level;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int _vretrace_counter;				// a down-counter for time during a vertical retrace
+		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
+		bool _did_detect_hsync;					// true if horizontal sync was detected during this scanline (so, this affects flywheel adjustments)
+		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		int _vretrace_counter;					// a down-counter for time during a vertical retrace
+		int _vertical_retrace_time;
 
 		// components of the flywheel sync
 		int _horizontal_counter;			// time run since the _start_ of the last horizontal sync
 		int _expected_next_hsync;			// our current expection of when the next horizontal sync will be encountered (which implies current flywheel velocity)
+		int _horizontal_retrace_time;
 		bool _is_in_hsync;					// true for the duration of a horizontal sync — used to determine beam running direction and speed
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
