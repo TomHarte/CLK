@@ -32,7 +32,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	_vertical_retrace_time = scanlinesVerticalRetraceTime * cycles_per_line;
 
 	_scanSpeed.x = 1.0f / (float)cycles_per_line;
-	_scanSpeed.y = 1.0f / (float)height_of_display;
+	_scanSpeed.y = 1.0f / (float)(height_of_display * cycles_per_line);
 	_retraceSpeed.x = 1.0f / (float)_horizontal_retrace_time;
 	_retraceSpeed.y = 1.0f / (float)_vertical_retrace_time;
 
