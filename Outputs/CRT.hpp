@@ -10,10 +10,63 @@
 #define CRT_cpp
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <string>
 #include <vector>
 
 namespace Outputs {
+
+struct CRTBuffer {
+	uint8_t *data;
+	int depth;
+};
+
+struct CRTRun {
+	struct Point {
+		float dst_x, dst_y;
+		int src_x, src_y;
+	} start_point, end_point;
+
+	enum Type {
+		Sync, Level, Data, Blank
+	} type;
+
+	const char *data_type;
+};
+
+class CRT;
+struct CRTFrame {
+	struct {
+		int width, height;
+	} size;
+
+	int number_of_buffers;
+	CRTBuffer *buffers;
+
+	int number_of_runs;
+	CRTRun *runs;
+
+	CRTFrame(int width, int height, int number_of_buffers, va_list buffer_sizes);
+	~CRTFrame();
+
+	private:
+		std::vector<CRTRun> _all_runs;
+
+		void reset();
+		void complete();
+
+		CRTRun *get_next_run();
+		friend CRT;
+
+		void allocate_write_area(int required_length);
+		uint8_t *get_write_target_for_buffer(int buffer);
+
+		// a pointer to the section of content buffer currently being
+		// returned and to where the next section will begin
+		int _write_allocation_pointer, _write_target_pointer;
+};
+
+static const int kCRTNumberOfFrames = 3;
 
 class CRT {
 	public:
@@ -25,24 +78,12 @@ class CRT {
 		void output_level(int number_of_cycles, const char *type);
 		void output_data(int number_of_cycles, const char *type);
 
-		struct CRTRun {
-			struct Point {
-				float dst_x, dst_y;
-				int src_x, src_y;
-			} start_point, end_point;
-
-			enum Type {
-				Sync, Level, Data, Blank
-			} type;
-
-			const char *data_type;
-		};
-
 		class CRTDelegate {
 			public:
-				virtual void crt_did_start_vertical_retrace_with_runs(CRTRun *runs, int runs_to_draw) = 0;
+				virtual void crt_did_end_frame(CRT *crt, CRTFrame *frame) = 0;
 		};
 		void set_delegate(CRTDelegate *delegate);
+		void return_frame();
 
 		void allocate_write_area(int required_length);
 		uint8_t *get_write_target_for_buffer(int buffer);
@@ -55,24 +96,17 @@ class CRT {
 		// properties directly derived from there
 		int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init
 
-		// the run delegate, buffer and buffer pointer
-		CRTDelegate *_delegate;
-		std::vector<CRTRun> _all_runs;
-		int _run_pointer;
-
 		// the current scanning position
 		struct Vector {
 			float x, y;
 		} _rasterPosition, _scanSpeed, _retraceSpeed;
 
-		// the content buffers
-		uint8_t **_buffers;
-		int *_bufferSizes;
-		int _numberOfBuffers;
-
-		// a pointer to the section of content buffer currently being
-		// returned and to where the next section will begin
-		int _write_allocation_pointer, _write_target_pointer;
+		// the run delegate and the triple buffer
+		CRTFrame *_frames[kCRTNumberOfFrames];
+		CRTFrame *_current_frame;
+		int _frames_with_delegate;
+		int _frame_read_pointer;
+		CRTDelegate *_delegate;
 
 		// outer elements of sync separation
 		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
