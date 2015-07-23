@@ -12,33 +12,35 @@
 class Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	void crt_did_end_frame(Outputs::CRT *crt, Outputs::CRTFrame *frame)
 	{
-//		printf("===\n\n");
-//		for(int run = 0; run < runs_to_draw; run++)
-//		{
-//			char character = ' ';
-//			switch(runs[run].type)
-//			{
-//				case Outputs::CRTRun::Type::Sync:	character = '<'; break;
-//				case Outputs::CRTRun::Type::Level:	character = '_'; break;
-//				case Outputs::CRTRun::Type::Data:	character = '-'; break;
-//				case Outputs::CRTRun::Type::Blank:	character = ' '; break;
-//			}
-//
-//			if(runs[run].start_point.dst_x > runs[run].end_point.dst_x)
-//			{
-//				printf("\n");
-//			}
-//
-//			float length = fabsf(runs[run].end_point.dst_x - runs[run].start_point.dst_x);
-//			int iLength = (int)(length * 64.0);
-//			for(int c = 0; c < iLength; c++)
-//			{
-//				putc(character, stdout);
-//			}
-//
-//			if (runs[run].type == Outputs::CRTRun::Type::Sync) printf("\n");
-//		}
+		printf("\n\n===\n\n");
+		int c = 0;
+		for(int run = 0; run < frame->number_of_runs; run++)
+		{
+			char character = ' ';
+			switch(frame->runs[run].type)
+			{
+				case Outputs::CRTRun::Type::Sync:	character = '<'; break;
+				case Outputs::CRTRun::Type::Level:	character = '_'; break;
+				case Outputs::CRTRun::Type::Data:	character = '-'; break;
+				case Outputs::CRTRun::Type::Blank:	character = ' '; break;
+			}
 
+			if(frame->runs[run].start_point.dst_x < 1.0 / 224.0)
+			{
+				printf("\n[%0.2f]: ", frame->runs[run].start_point.dst_y);
+				c++;
+			}
+
+			printf("(%0.2f): ", frame->runs[run].start_point.dst_x);
+			float length = fabsf(frame->runs[run].end_point.dst_x - frame->runs[run].start_point.dst_x);
+			int iLength = (int)(length * 64.0);
+			for(int c = 0; c < iLength; c++)
+			{
+				putc(character, stdout);
+			}
+		}
+
+		printf("\n\n[%d]\n\n", c);
 		crt->return_frame();
 	}
 

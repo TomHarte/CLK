@@ -235,6 +235,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			case SyncEvent::EndVSync:
 				if(_delegate && _current_frame)
 				{
+					_current_frame->complete();
 					_frames_with_delegate++;
 					_delegate->crt_did_end_frame(this, _current_frame);
 				}
@@ -243,6 +244,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 				{
 					_frame_read_pointer = (_frame_read_pointer + 1)%kCRTNumberOfFrames;
 					_current_frame = _frames[_frame_read_pointer];
+					_current_frame->reset();
 				}
 				else
 					_current_frame = nullptr;
