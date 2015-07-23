@@ -113,7 +113,6 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 	}
 }
 
-
 void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	uint8_t returnValue = 0xff;
