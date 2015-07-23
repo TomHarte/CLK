@@ -75,17 +75,8 @@ CRT::~CRT()
 
 #pragma mark - Sync loop
 
-CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
+CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
 {
-	// do we recognise this hsync, thereby adjusting time expectations?
-	if ((_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) && hsync_is_requested) {
-		_did_detect_hsync = true;
-
-		int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
-		_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
-//		printf("to %d for %d\n", _expected_next_hsync, time_now);
-	}
-
 	SyncEvent proposedEvent = SyncEvent::None;
 	int proposedSyncTime = cycles_to_run_for;
 
@@ -97,18 +88,6 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
 			proposedEvent = SyncEvent::StartVSync;
 		}
-	}
-
-	// will we end an ongoing hsync?
-	if (_horizontal_counter < _horizontal_retrace_time && _horizontal_counter+proposedSyncTime >= _horizontal_retrace_time) {
-		proposedSyncTime = _horizontal_retrace_time - _horizontal_counter;
-		proposedEvent = SyncEvent::EndHSync;
-	}
-
-	// will we start an hsync?
-	if (_horizontal_counter + proposedSyncTime >= _expected_next_hsync) {
-		proposedSyncTime = _expected_next_hsync - _horizontal_counter;
-		proposedEvent = SyncEvent::StartHSync;
 	}
 
 	// will an acceptable vertical sync be triggered?
@@ -131,6 +110,35 @@ CRT::SyncEvent CRT::advance_to_next_sync_event(bool hsync_is_requested, bool vsy
 	return proposedEvent;
 }
 
+CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
+{
+	// do we recognise this hsync, thereby adjusting future time expectations?
+	if ((_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) && hsync_is_requested) {
+		_did_detect_hsync = true;
+
+		int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
+		_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
+	}
+
+	SyncEvent proposedEvent = SyncEvent::None;
+	int proposedSyncTime = cycles_to_run_for;
+
+	// will we end an ongoing hsync?
+	if (_horizontal_counter < _horizontal_retrace_time && _horizontal_counter+proposedSyncTime >= _horizontal_retrace_time) {
+		proposedSyncTime = _horizontal_retrace_time - _horizontal_counter;
+		proposedEvent = SyncEvent::EndHSync;
+	}
+
+	// will we start an hsync?
+	if (_horizontal_counter + proposedSyncTime >= _expected_next_hsync) {
+		proposedSyncTime = _expected_next_hsync - _horizontal_counter;
+		proposedEvent = SyncEvent::StartHSync;
+	}
+
+	*cycles_advanced = proposedSyncTime;
+	return proposedEvent;
+}
+
 void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const CRTRun::Type type, const char *data_type)
 {
 	// this is safe to keep locally because it accumulates over this run of cycles only
@@ -138,16 +146,19 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 	while(number_of_cycles) {
 
-		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
-		// set it to false for the next run through this loop (if any)
-		int next_run_length;
-		SyncEvent next_event = advance_to_next_sync_event(hsync_requested, vsync_charging, number_of_cycles, &next_run_length);
+		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
+		SyncEvent next_vertical_sync_event = this->next_vertical_sync_event(vsync_charging, number_of_cycles, &time_until_vertical_sync_event);
+		SyncEvent next_horizontal_sync_event = this->next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 		hsync_requested = false;
 
-		if(_current_frame)
-		{
-			CRTRun *nextRun = _current_frame->get_next_run();
+		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
+		// set it to false for the next run through this loop (if any)
+		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
+		CRTRun *nextRun = (_current_frame && next_run_length) ? _current_frame->get_next_run() : nullptr;
+
+		if(nextRun)
+		{
 			// set the type, initial raster position and type of this run
 			nextRun->type = type;
 			nextRun->start_point.dst_x = _rasterPosition.x;
@@ -205,52 +216,63 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		_vretrace_counter = std::max(_vretrace_counter - next_run_length, 0);
 
 		// react to the incoming event...
-		switch(next_event) {
+		if(next_run_length == time_until_horizontal_sync_event)
+		{
+			switch(next_horizontal_sync_event)
+			{
+				// start of hsync: zero the scanline counter, note that we're now in
+				// horizontal sync, increment the lines-in-this-frame counter
+				case SyncEvent::StartHSync:
+					_horizontal_counter = 0;
+					_is_in_hsync = true;
+				break;
 
-			// start of hsync: zero the scanline counter, note that we're now in
-			// horizontal sync, increment the lines-in-this-frame counter
-			case SyncEvent::StartHSync:
-				_horizontal_counter = 0;
-				_is_in_hsync = true;
-			break;
+				// end of horizontal sync: update the flywheel's velocity, note that we're no longer
+				// in horizontal sync
+				case SyncEvent::EndHSync:
+					if (!_did_detect_hsync) {
+						_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 1) + _cycles_per_line) >> 1;
+					}
+					_did_detect_hsync = false;
+					_is_in_hsync = false;
+				break;
 
-			// end of horizontal sync: update the flywheel's velocity, note that we're no longer
-			// in horizontal sync
-			case SyncEvent::EndHSync:
-				if (!_did_detect_hsync) {
-					_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 1) + _cycles_per_line) >> 1;
-				}
-				_did_detect_hsync = false;
-				_is_in_hsync = false;
-			break;
+				default: break;
+			}
+		}
 
-			// start of vertical sync: reset the lines-in-this-frame counter,
-			// load the retrace counter with the amount of time it'll take to retrace
-			case SyncEvent::StartVSync:
-				_vretrace_counter = _vertical_retrace_time;
-			break;
+		if(next_run_length == time_until_vertical_sync_event)
+		{
+			switch(next_vertical_sync_event)
+			{
+				// start of vertical sync: reset the lines-in-this-frame counter,
+				// load the retrace counter with the amount of time it'll take to retrace
+				case SyncEvent::StartVSync:
+					_vretrace_counter = _vertical_retrace_time;
+				break;
 
-			// end of vertical sync: tell the delegate that we finished vertical sync,
-			// releasing all runs back into the common pool
-			case SyncEvent::EndVSync:
-				if(_delegate && _current_frame)
-				{
-					_current_frame->complete();
-					_frames_with_delegate++;
-					_delegate->crt_did_end_frame(this, _current_frame);
-				}
+				// end of vertical sync: tell the delegate that we finished vertical sync,
+				// releasing all runs back into the common pool
+				case SyncEvent::EndVSync:
+					if(_delegate && _current_frame)
+					{
+						_current_frame->complete();
+						_frames_with_delegate++;
+						_delegate->crt_did_end_frame(this, _current_frame);
+					}
 
-				if(_frames_with_delegate < kCRTNumberOfFrames)
-				{
-					_frame_read_pointer = (_frame_read_pointer + 1)%kCRTNumberOfFrames;
-					_current_frame = _frames[_frame_read_pointer];
-					_current_frame->reset();
-				}
-				else
-					_current_frame = nullptr;
-			break;
+					if(_frames_with_delegate < kCRTNumberOfFrames)
+					{
+						_frame_read_pointer = (_frame_read_pointer + 1)%kCRTNumberOfFrames;
+						_current_frame = _frames[_frame_read_pointer];
+						_current_frame->reset();
+					}
+					else
+						_current_frame = nullptr;
+				break;
 
-			default:		break;
+				default: break;
+			}
 		}
 	}
 }

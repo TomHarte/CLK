@@ -132,7 +132,8 @@ class CRT {
 			StartHSync, EndHSync,
 			StartVSync, EndVSync
 		};
-		SyncEvent advance_to_next_sync_event(bool hsync_is_requested, bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced);
+		SyncEvent next_vertical_sync_event(bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced);
+		SyncEvent next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 };
 
 }
