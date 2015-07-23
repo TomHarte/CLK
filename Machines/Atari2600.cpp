@@ -54,9 +54,10 @@ void Machine::output_pixels(int count)
 
 			// blank is decoded as 68 counts; sync and colour burst as 16 counts
 
-			// guesses, until I can find information: 26 cycles blank, 16 sync, 26 blank, 160 pixels
-			if(_horizontalTimer < 26) output_state(OutputState::Blank, nullptr);
-			else if (_horizontalTimer < 42) output_state(OutputState::Sync, nullptr);
+			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
+			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
+			if(_horizontalTimer < 13) output_state(OutputState::Blank, nullptr);
+			else if (_horizontalTimer < 39) output_state(OutputState::Sync, nullptr);
 			else if (_horizontalTimer < 68) output_state(OutputState::Blank, nullptr);
 			else {
 				if(_vBlankEnabled) {

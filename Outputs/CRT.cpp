@@ -15,8 +15,8 @@ using namespace Outputs;
 CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 {
 	const int syncCapacityLineChargeThreshold = 3;
-	const int millisecondsHorizontalRetraceTime = 16;
-	const int scanlinesVerticalRetraceTime = 26;
+	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
+	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;
@@ -113,11 +113,13 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
 {
 	// do we recognise this hsync, thereby adjusting future time expectations?
-	if ((_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) && hsync_is_requested) {
-		_did_detect_hsync = true;
+	if(hsync_is_requested) {
+		if (_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) {
+			_did_detect_hsync = true;
 
-		int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
-		_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
+			int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
+			_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
+		}
 	}
 
 	SyncEvent proposedEvent = SyncEvent::None;
