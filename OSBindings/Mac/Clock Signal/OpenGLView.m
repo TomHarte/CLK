@@ -48,15 +48,47 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	CVDisplayLinkRelease(displayLink);
 }
 
+- (void)reshape
+{
+	[super reshape];
+
+	CGSize viewSize = [self convertSize:self.bounds.size toView:self];
+	glViewport(0, 0, viewSize.width, viewSize.height);
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
 	[self.openGLContext makeCurrentContext];
 
-	CGSize viewSize = [self convertSize:self.bounds.size toView:self];
-	glViewport((GLint)0, (GLint)0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
 	[self.delegate openGLViewDrawView:self];
 
 	glSwapAPPLE();
+}
+
+- (void) awakeFromNib
+{
+	NSOpenGLPixelFormatAttribute attributes[] =
+	{
+		NSOpenGLPFADoubleBuffer,
+		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
+		0
+	};
+
+	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
+	NSOpenGLContext *context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
+
+#ifdef DEBUG
+	// When we're using a CoreProfile context, crash if we call a legacy OpenGL function
+	// This will make it much more obvious where and when such a function call is made so
+	// that we can remove such calls.
+	// Without this we'd simply get GL_INVALID_OPERATION error for calling legacy functions
+	// but it would be more difficult to see where that function was called.
+	CGLEnable([context CGLContextObj], kCGLCECrashOnRemovedFunctions);
+#endif
+
+	self.pixelFormat = pixelFormat;
+	self.openGLContext = context;
+	self.wantsBestResolutionOpenGLSurface = YES;
 }
 
 @end
