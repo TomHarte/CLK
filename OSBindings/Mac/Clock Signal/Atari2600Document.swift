@@ -18,8 +18,9 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate, CSAtari2600Delegate {
 	@IBOutlet weak var openGLView: CSOpenGLView?
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
+
 		openGLView!.delegate = self
-		// Add any code here that needs to be executed once the windowController has loaded the document's window.
+		aController.window!.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
 	}
 
 	override class func autosavesInPlace() -> Bool {
