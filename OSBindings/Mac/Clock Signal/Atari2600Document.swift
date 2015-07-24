@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
+class Atari2600Document: NSDocument, CSOpenGLViewDelegate, CSAtari2600Delegate {
 
 	override init() {
 	    super.init()
@@ -44,8 +44,11 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
 		// You can also choose to override readFromFileWrapper:ofType:error: or readFromURL:ofType:error: instead.
 		// If you override either of these, you should also override -isEntireFileLoaded to return false if the contents are lazily loaded.
 		atari2600 = CSAtari2600()
-		atari2600?.setROM(data)
+		atari2600!.setROM(data)
+		atari2600!.delegate = self
 	}
+
+	// MARK: CSOpenGLViewDelegate
 
 	private var lastCycleCount: Int64?
 	func openGLView(view: CSOpenGLView!, didUpdateToTime time: CVTimeStamp) {
@@ -65,5 +68,15 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate {
 			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
 		}
 		lastCycleCount = cycleCount
+	}
+
+	func openGLViewDrawView(view: CSOpenGLView!) {
+		atari2600!.draw()
+	}
+
+	// MARK: CSAtari2600Delegate
+
+	func atari2600NeedsRedraw(atari2600: CSAtari2600!) {
+		openGLView?.needsDisplay = true
 	}
 }

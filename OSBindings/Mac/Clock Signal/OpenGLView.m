@@ -8,6 +8,7 @@
 
 #import "OpenGLView.h"
 @import CoreVideo;
+#import <OpenGL/gl.h>
 
 @implementation CSOpenGLView {
 	CVDisplayLinkRef displayLink;
@@ -23,7 +24,7 @@
 	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
  
 	// Set the renderer output callback function
-	CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (__bridge void * __nullable)(self));
+	CVDisplayLinkSetOutputCallback(displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
  
 	// Set the display link for the current renderer
 	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
@@ -34,7 +35,7 @@
 	CVDisplayLinkStart(displayLink);
 }
 
-static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
+static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
 {
 	CSOpenGLView *view = (__bridge CSOpenGLView *)displayLinkContext;
 	[view.delegate openGLView:view didUpdateToTime:*now];
@@ -45,6 +46,17 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 {
 	// Release the display link
 	CVDisplayLinkRelease(displayLink);
+}
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	[self.openGLContext makeCurrentContext];
+
+	CGSize viewSize = [self convertSize:self.bounds.size toView:self];
+	glViewport((GLint)0, (GLint)0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
+	[self.delegate openGLViewDrawView:self];
+
+	glSwapAPPLE();
 }
 
 @end

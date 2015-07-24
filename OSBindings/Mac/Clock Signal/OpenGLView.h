@@ -13,6 +13,7 @@
 
 @protocol CSOpenGLViewDelegate
 - (void)openGLView:(CSOpenGLView *)view didUpdateToTime:(CVTimeStamp)time;
+- (void)openGLViewDrawView:(CSOpenGLView *)view;
 @end
 
 @interface CSOpenGLView : NSOpenGLView
