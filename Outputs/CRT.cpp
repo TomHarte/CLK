@@ -29,10 +29,10 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * cycles_per_line) >> 6;
 	_vertical_retrace_time = scanlinesVerticalRetraceTime * cycles_per_line;
 
-	_scanSpeed.x = 1.0f / (float)cycles_per_line;
-	_scanSpeed.y = 1.0f / (float)(height_of_display * cycles_per_line);
-	_retraceSpeed.x = 1.0f / (float)_horizontal_retrace_time;
-	_retraceSpeed.y = 1.0f / (float)_vertical_retrace_time;
+	_scanSpeed.x = UINT32_MAX / cycles_per_line;
+	_scanSpeed.y = UINT32_MAX / (height_of_display * cycles_per_line);
+	_retraceSpeed.x = UINT32_MAX / _horizontal_retrace_time;
+	_retraceSpeed.y = UINT32_MAX / _vertical_retrace_time;
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
@@ -42,15 +42,15 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	{
 		va_list va;
 		va_start(va, number_of_buffers);
-		_frames[frame] = new CRTFrame(bufferWidth, bufferHeight, number_of_buffers, va);
+		_frame_builders[frame] = new CRTFrameBuilder(bufferWidth, bufferHeight, number_of_buffers, va);
 		va_end(va);
 	}
 	_frames_with_delegate = 0;
 	_frame_read_pointer = 0;
-	_current_frame = _frames[0];
+	_current_frame_builder = _frame_builders[0];
 
 	// reset raster position
-	_rasterPosition.x = _rasterPosition.y = 0.0f;
+	_rasterPosition.x = _rasterPosition.y = 0;
 
 	// reset flywheel sync
 	_expected_next_hsync = cycles_per_line;
@@ -69,7 +69,7 @@ CRT::~CRT()
 {
 	for(int frame = 0; frame < 3; frame++)
 	{
-		delete _frames[frame];
+		delete _frame_builders[frame];
 	}
 }
 
@@ -81,14 +81,14 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 	int proposedSyncTime = cycles_to_run_for;
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
-	if (!_vretrace_counter)
-	{
-		float raster_distance = _scanSpeed.y * (float)proposedSyncTime;
-		if(_rasterPosition.y < 1.02f && _rasterPosition.y + raster_distance >= 1.02f) {
-			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
-			proposedEvent = SyncEvent::StartVSync;
-		}
-	}
+//	if (!_vretrace_counter)
+//	{
+//		float raster_distance = _scanSpeed.y * (float)proposedSyncTime;
+//		if(_rasterPosition.y < 1.02f && _rasterPosition.y + raster_distance >= 1.02f) {
+//			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
+//			proposedEvent = SyncEvent::StartVSync;
+//		}
+//	}
 
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_charging && !_vretrace_counter) {
@@ -141,10 +141,16 @@ CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycl
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const CRTRun::Type type, const char *data_type)
+void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const Type type, const char *data_type)
 {
-	// this is safe to keep locally because it accumulates over this run of cycles only
-	int buffer_offset = 0;
+	const bool is_output_run = ((type == Type::Level) || (type == Type::Data));
+	uint16_t tex_x = 0;
+	uint16_t tex_y = 0;
+
+	if(is_output_run && _current_frame_builder) {
+		tex_x = _current_frame_builder->_write_x_position;
+		tex_y = _current_frame_builder->_write_y_position;
+	}
 
 	while(number_of_cycles) {
 
@@ -157,50 +163,40 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		// set it to false for the next run through this loop (if any)
 		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
-		CRTRun *nextRun = (_current_frame && next_run_length) ? _current_frame->get_next_run() : nullptr;
+		uint16_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
 
-		if(nextRun)
+		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			nextRun->type = type;
-			nextRun->start_point.dst_x = _rasterPosition.x;
-			nextRun->start_point.dst_y = _rasterPosition.y;
-			nextRun->data_type = data_type;
+			next_run[0] = _rasterPosition.x >> 16;
+			next_run[1] = _rasterPosition.y >> 16;
+			next_run[2] = tex_x;
+			next_run[3] = tex_y;
+		}
 
-			// if this is a data or level run then store a starting data position
-			if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
-			{
-				nextRun->start_point.src_x = (_current_frame->_write_target_pointer + buffer_offset) & (_current_frame->size.width - 1);
-				nextRun->start_point.src_y = (_current_frame->_write_target_pointer + buffer_offset) / _current_frame->size.width;
-			}
+		// advance the raster position as dictated by current sync status
+		if (_is_in_hsync)
+			_rasterPosition.x = (uint32_t)std::max((int64_t)0, (int64_t)_rasterPosition.x - number_of_cycles * (int64_t)_retraceSpeed.x);
+		else
+			_rasterPosition.x = (uint32_t)std::min((int64_t)UINT32_MAX, (int64_t)_rasterPosition.x + number_of_cycles * (int64_t)_scanSpeed.x);
 
-			// advance the raster position as dictated by current sync status
-			if (_is_in_hsync)
-				_rasterPosition.x = std::max(0.0f, _rasterPosition.x - (float)number_of_cycles * _retraceSpeed.x);
-			else
-				_rasterPosition.x = std::min(1.0f, _rasterPosition.x + (float)number_of_cycles * _scanSpeed.x);
+		if (_vretrace_counter > 0)
+			_rasterPosition.y = (uint32_t)std::max((int64_t)0, (int64_t)_rasterPosition.y - number_of_cycles * (int64_t)_retraceSpeed.y);
+		else
+			_rasterPosition.y = (uint32_t)std::min((int64_t)UINT32_MAX, (int64_t)_rasterPosition.y + number_of_cycles * (int64_t)_scanSpeed.y);
 
-			if (_vretrace_counter > 0)
-				_rasterPosition.y = std::max(0.0f, _rasterPosition.y - (float)number_of_cycles * _retraceSpeed.y);
-			else
-				_rasterPosition.y = std::min(1.0f, _rasterPosition.y + (float)number_of_cycles * _scanSpeed.y);
-
+		if(next_run)
+		{
 			// store the final raster position
-			nextRun->end_point.dst_x = _rasterPosition.x;
-			nextRun->end_point.dst_y = _rasterPosition.y;
+			next_run[4] = _rasterPosition.x >> 16;
+			next_run[5] = _rasterPosition.y >> 16;
 
 			// if this is a data run then advance the buffer pointer
-			if(type == CRTRun::Type::Data)
-			{
-				buffer_offset += next_run_length;
-			}
+			if(type == Type::Data) tex_x += next_run_length;
 
 			// if this is a data or level run then store the end point
-			if(type == CRTRun::Type::Data || type == CRTRun::Type::Level)
-			{
-				nextRun->end_point.src_x = (_current_frame->_write_target_pointer + buffer_offset) & (_current_frame->size.width - 1);
-				nextRun->end_point.src_y = (_current_frame->_write_target_pointer + buffer_offset) / _current_frame->size.width;
-			}
+			next_run[6] = tex_x;
+			next_run[7] = tex_y;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -256,21 +252,21 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 				// end of vertical sync: tell the delegate that we finished vertical sync,
 				// releasing all runs back into the common pool
 				case SyncEvent::EndVSync:
-					if(_delegate && _current_frame)
+					if(_delegate && _current_frame_builder)
 					{
-						_current_frame->complete();
+						_current_frame_builder->complete();
 						_frames_with_delegate++;
-						_delegate->crt_did_end_frame(this, _current_frame);
+						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame);
 					}
 
 					if(_frames_with_delegate < kCRTNumberOfFrames)
 					{
 						_frame_read_pointer = (_frame_read_pointer + 1)%kCRTNumberOfFrames;
-						_current_frame = _frames[_frame_read_pointer];
-						_current_frame->reset();
+						_current_frame_builder = _frame_builders[_frame_read_pointer];
+						_current_frame_builder->reset();
 					}
 					else
-						_current_frame = nullptr;
+						_current_frame_builder = nullptr;
 				break;
 
 				default: break;
@@ -300,104 +296,106 @@ void CRT::output_sync(int number_of_cycles)
 {
 	bool _hsync_requested = !_is_receiving_sync;	// ensure this really is edge triggered; someone calling output_sync twice in succession shouldn't trigger it twice
 	_is_receiving_sync = true;
-	advance_cycles(number_of_cycles, _hsync_requested, true, CRTRun::Type::Sync, nullptr);
+	advance_cycles(number_of_cycles, _hsync_requested, true, Type::Sync, nullptr);
 }
 
 void CRT::output_blank(int number_of_cycles)
 {
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Blank, nullptr);
+	advance_cycles(number_of_cycles, false, false, Type::Blank, nullptr);
 }
 
 void CRT::output_level(int number_of_cycles, const char *type)
 {
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Level, type);
+	advance_cycles(number_of_cycles, false, false, Type::Level, type);
 }
 
 void CRT::output_data(int number_of_cycles, const char *type)
 {
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, false, CRTRun::Type::Data, type);
+	advance_cycles(number_of_cycles, false, false, Type::Data, type);
 }
 
 #pragma mark - Buffer supply
 
 void CRT::allocate_write_area(int required_length)
 {
-	if(_current_frame) _current_frame->allocate_write_area(required_length);
+	if(_current_frame_builder) _current_frame_builder->allocate_write_area(required_length);
 }
 
 uint8_t *CRT::get_write_target_for_buffer(int buffer)
 {
-	if (!_current_frame) return nullptr;
-	return _current_frame->get_write_target_for_buffer(buffer);
+	if (!_current_frame_builder) return nullptr;
+	return _current_frame_builder->get_write_target_for_buffer(buffer);
 }
 
 #pragma mark - CRTFrame
 
-CRTFrame::CRTFrame(int width, int height, int number_of_buffers, va_list buffer_sizes)
+CRTFrameBuilder::CRTFrameBuilder(int width, int height, int number_of_buffers, va_list buffer_sizes)
 {
-	size.width = width;
-	size.height = height;
-	this->number_of_buffers = number_of_buffers;
-	buffers = new CRTBuffer[number_of_buffers];
+	frame.size.width = width;
+	frame.size.height = height;
+	frame.number_of_buffers = number_of_buffers;
+	frame.buffers = new CRTBuffer[number_of_buffers];
 
 	for(int buffer = 0; buffer < number_of_buffers; buffer++)
 	{
-		buffers[buffer].depth = va_arg(buffer_sizes, int);
-		buffers[buffer].data = new uint8_t[width * height * buffers[buffer].depth];
+		frame.buffers[buffer].depth = va_arg(buffer_sizes, int);
+		frame.buffers[buffer].data = new uint8_t[width * height * frame.buffers[buffer].depth];
 	}
 
 	reset();
 }
 
-CRTFrame::~CRTFrame()
+CRTFrameBuilder::~CRTFrameBuilder()
 {
-	for(int buffer = 0; buffer < number_of_buffers; buffer++)
-		delete[] buffers[buffer].data;
-	delete buffers;
+	for(int buffer = 0; buffer < frame.number_of_buffers; buffer++)
+		delete[] frame.buffers[buffer].data;
+	delete frame.buffers;
 }
 
-void CRTFrame::reset()
+void CRTFrameBuilder::reset()
 {
-	number_of_runs = 0;
-	_write_allocation_pointer = _write_target_pointer = 0;
+	frame.number_of_runs = 0;
+	_write_x_position = _write_y_position = 0;
+	frame.dirty_size.width = frame.dirty_size.height = 0;
 }
 
-void CRTFrame::complete()
+void CRTFrameBuilder::complete()
 {
-	runs = &_all_runs[0];
+	frame.runs = &_all_runs[0];
 }
 
-CRTRun *CRTFrame::get_next_run()
+uint16_t *CRTFrameBuilder::get_next_run()
 {
 	// get a run from the allocated list, allocating more if we're about to overrun
-	if(number_of_runs >= _all_runs.size())
+	if(frame.number_of_runs * 8 >= _all_runs.size())
 	{
-		_all_runs.resize((_all_runs.size() * 2)+1);
+		_all_runs.resize(_all_runs.size() + 4096);
 	}
 
-	CRTRun *nextRun = &_all_runs[number_of_runs];
-	number_of_runs++;
+	uint16_t *next_run = &_all_runs[frame.number_of_runs * 8];
+	frame.number_of_runs++;
 
-	return nextRun;
+	return next_run;
 }
 
-void CRTFrame::allocate_write_area(int required_length)
+void CRTFrameBuilder::allocate_write_area(int required_length)
 {
-	int xPos = _write_allocation_pointer & (size.width - 1);
-	if (xPos + required_length > size.width)
+	if (_write_x_position + required_length > frame.size.width)
 	{
-		_write_allocation_pointer &= ~(size.width - 1);
-		_write_allocation_pointer = (_write_allocation_pointer + size.width) & ((size.height-1) * size.width);
+		_write_x_position = 0;
+		_write_y_position++;
+		frame.dirty_size.height++;
 	}
 
-	_write_target_pointer = _write_allocation_pointer;
-	_write_allocation_pointer += required_length;
+	_write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
+	_write_x_position += required_length;
+	frame.dirty_size.width = std::max(frame.dirty_size.width, _write_x_position);
 }
 
-uint8_t *CRTFrame::get_write_target_for_buffer(int buffer)
+uint8_t *CRTFrameBuilder::get_write_target_for_buffer(int buffer)
 {
-	return &buffers[buffer].data[_write_target_pointer * buffers[buffer].depth];
+	return &frame.buffers[buffer].data[_write_target_pointer * frame.buffers[buffer].depth];
 }

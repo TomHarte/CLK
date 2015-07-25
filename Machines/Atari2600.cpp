@@ -81,17 +81,7 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 	{
 		switch(_lastOutputState)
 		{
-			case OutputState::Blank:	{
-				_crt->allocate_write_area(1);
-				_outputBuffer = _crt->get_write_target_for_buffer(0);
-
-				if(_outputBuffer)
-				{
-					_outputBuffer[0] = _outputBuffer[1] = _outputBuffer[2] = 0;
-					_outputBuffer[3] = 0xff;
-				}
-				_crt->output_level(_lastOutputStateDuration, atari2600DataType);
-			} break;
+			case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);					break;
 			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
 			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
 		}

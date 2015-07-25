@@ -322,6 +322,7 @@
 		4B14145A1B58879D00E04248 /* CPU6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502AllRAM.hpp; sourceTree = "<group>"; };
 		4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WolfgangLorenzTests.swift; sourceTree = "<group>"; };
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
+		4B2632551B631A510082A461 /* CRTFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CRTFrame.h; path = ../../Outputs/CRTFrame.h; sourceTree = "<group>"; };
 		4B366DFA1B5C165A0026627B /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CRT.cpp; path = ../../Outputs/CRT.cpp; sourceTree = "<group>"; };
 		4B366DFB1B5C165A0026627B /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRT.hpp; path = ../../Outputs/CRT.hpp; sourceTree = "<group>"; };
 		4B6D7F921B58822000787C9A /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
@@ -663,6 +664,7 @@
 			children = (
 				4B366DFA1B5C165A0026627B /* CRT.cpp */,
 				4B366DFB1B5C165A0026627B /* CRT.hpp */,
+				4B2632551B631A510082A461 /* CRTFrame.h */,
 			);
 			name = Outputs;
 			sourceTree = "<group>";

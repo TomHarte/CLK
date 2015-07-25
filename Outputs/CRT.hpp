@@ -14,48 +14,24 @@
 #include <string>
 #include <vector>
 
+#include "CRTFrame.h"
+
 namespace Outputs {
 
-struct CRTBuffer {
-	uint8_t *data;
-	int depth;
-};
-
-struct CRTRun {
-	struct Point {
-		float dst_x, dst_y;
-		int src_x, src_y;
-	} start_point, end_point;
-
-	enum Type {
-		Sync, Level, Data, Blank
-	} type;
-
-	const char *data_type;
-};
-
 class CRT;
-struct CRTFrame {
-	struct {
-		int width, height;
-	} size;
+struct CRTFrameBuilder {
+	CRTFrame frame;
 
-	int number_of_buffers;
-	CRTBuffer *buffers;
-
-	int number_of_runs;
-	CRTRun *runs;
-
-	CRTFrame(int width, int height, int number_of_buffers, va_list buffer_sizes);
-	~CRTFrame();
+	CRTFrameBuilder(int width, int height, int number_of_buffers, va_list buffer_sizes);
+	~CRTFrameBuilder();
 
 	private:
-		std::vector<CRTRun> _all_runs;
+		std::vector<uint16_t> _all_runs;
 
 		void reset();
 		void complete();
 
-		CRTRun *get_next_run();
+		uint16_t *get_next_run();
 		friend CRT;
 
 		void allocate_write_area(int required_length);
@@ -63,7 +39,8 @@ struct CRTFrame {
 
 		// a pointer to the section of content buffer currently being
 		// returned and to where the next section will begin
-		int _write_allocation_pointer, _write_target_pointer;
+		int _write_x_position, _write_y_position;
+		int _write_target_pointer;
 };
 
 static const int kCRTNumberOfFrames = 3;
@@ -98,12 +75,12 @@ class CRT {
 
 		// the current scanning position
 		struct Vector {
-			float x, y;
+			uint32_t x, y;
 		} _rasterPosition, _scanSpeed, _retraceSpeed;
 
 		// the run delegate and the triple buffer
-		CRTFrame *_frames[kCRTNumberOfFrames];
-		CRTFrame *_current_frame;
+		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];
+		CRTFrameBuilder *_current_frame_builder;
 		int _frames_with_delegate;
 		int _frame_read_pointer;
 		CRTDelegate *_delegate;
@@ -123,7 +100,10 @@ class CRT {
 		bool _is_in_hsync;					// true for the duration of a horizontal sync — used to determine beam running direction and speed
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
-		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_charging, CRTRun::Type type, const char *data_type);
+		enum Type {
+			Sync, Level, Data, Blank
+		} type;
+		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_charging, Type type, const char *data_type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window

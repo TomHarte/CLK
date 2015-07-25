@@ -19,8 +19,8 @@ const char *vertexShader =
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"colour = vec4(position, 0.0, 1.0);\n"
-		"gl_Position = vec4(position, 0.0, 1.0);\n"
+		"colour = vec4(1.0, 1.0, 1.0, 1.0);\n"
+		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0, 0.0, 1.0);\n"
 	"}\n";
 
 const char *fragmentShader =
@@ -35,12 +35,12 @@ const char *fragmentShader =
 	"}\n";
 
 @interface CSAtari2600 (Callbacks)
-- (void)crtDidEndFrame:(Outputs::CRTFrame *)frame;
+- (void)crtDidEndFrame:(CRTFrame *)frame;
 @end
 
 struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	CSAtari2600 *atari;
-	void crt_did_end_frame(Outputs::CRT *crt, Outputs::CRTFrame *frame) { [atari crtDidEndFrame:frame]; }
+	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame) { [atari crtDidEndFrame:frame]; }
 };
 
 @implementation CSAtari2600 {
@@ -48,7 +48,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	Atari2600CRTDelegate _crtDelegate;
 
 	dispatch_queue_t _serialDispatchQueue;
-	Outputs::CRTFrame *_queuedFrame;
+	CRTFrame *_queuedFrame;
 
 	GLuint _vertexShader, _fragmentShader;
 	GLuint _shaderProgram;
@@ -56,7 +56,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	GLuint _arrayBuffer, _vertexArray;
 }
 
-- (void)crtDidEndFrame:(Outputs::CRTFrame *)frame {
+- (void)crtDidEndFrame:(CRTFrame *)frame {
 
 	dispatch_async(dispatch_get_main_queue(), ^{
 		if(_queuedFrame) {
@@ -95,14 +95,12 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 		glGenBuffers(1, &_arrayBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, _arrayBuffer);
 
-		GLfloat vertices[] = {
-			0.0f, 0.0f,
-			0.5f, 0.0f,
-			0.5f, 0.6f,
-			0.0f, 0.5f
+		GLushort vertices[] = {
+			0, 0,
+			32767, 32767,
 		};
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 	}
 
 	if(_queuedFrame)
@@ -114,40 +112,12 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 
 		GLint position = glGetAttribLocation(_shaderProgram, "position");
 
+		glBufferData(GL_ARRAY_BUFFER, _queuedFrame->number_of_runs * sizeof(GLushort) * 8, _queuedFrame->runs, GL_DYNAMIC_DRAW);
+
 		glEnableVertexAttribArray(position);
-		glVertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(position, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)0);
 
-		glDrawArrays(GL_LINES, 0, 4);
-
-/*		printf("\n\n===\n\n");
-		int c = 0;
-		for(int run = 0; run < _queuedFrame->number_of_runs; run++)
-		{
-			char character = ' ';
-			switch(_queuedFrame->runs[run].type)
-			{
-				case Outputs::CRTRun::Type::Sync:	character = '<'; break;
-				case Outputs::CRTRun::Type::Level:	character = '_'; break;
-				case Outputs::CRTRun::Type::Data:	character = '-'; break;
-				case Outputs::CRTRun::Type::Blank:	character = ' '; break;
-			}
-
-			if(_queuedFrame->runs[run].start_point.dst_x < 1.0 / 224.0)
-			{
-				printf("\n[%0.2f]: ", _queuedFrame->runs[run].start_point.dst_y);
-				c++;
-			}
-
-			printf("(%0.2f): ", _queuedFrame->runs[run].start_point.dst_x);
-			float length = fabsf(_queuedFrame->runs[run].end_point.dst_x - _queuedFrame->runs[run].start_point.dst_x);
-			int iLength = (int)(length * 64.0);
-			for(int c = 0; c < iLength; c++)
-			{
-				putc(character, stdout);
-			}
-		}
-
-		printf("\n\n[%d]\n\n", c);*/
+		glDrawArrays(GL_LINES, 0, _queuedFrame->number_of_runs*2);
 	}
 }
 
