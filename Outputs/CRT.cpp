@@ -14,25 +14,25 @@ using namespace Outputs;
 
 CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 {
-	const int syncCapacityLineChargeThreshold = 3;
+	const int syncCapacityLineChargeThreshold = 5;
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
 
 	// store fundamental display configuration properties
-	_height_of_display = height_of_display;
+	_height_of_display = height_of_display;// + (height_of_display / 10);
 	_cycles_per_line = cycles_per_line * _time_multiplier;
 
 	// generate timing values implied by the given arbuments
 	_hsync_error_window = _cycles_per_line >> 5;
 
-	_sync_capacitor_charge_threshold = syncCapacityLineChargeThreshold * _cycles_per_line;
+	_sync_capacitor_charge_threshold = (syncCapacityLineChargeThreshold * _cycles_per_line) >> 1;
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
 	_vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
 
 	_scanSpeed.x = UINT32_MAX / _cycles_per_line;
-	_scanSpeed.y = UINT32_MAX / (height_of_display * _cycles_per_line);
+	_scanSpeed.y = UINT32_MAX / (_height_of_display * _cycles_per_line);
 	_retraceSpeed.x = UINT32_MAX / _horizontal_retrace_time;
 	_retraceSpeed.y = UINT32_MAX / _vertical_retrace_time;
 
@@ -85,7 +85,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
 //	if (!_vretrace_counter)
 //	{
-//		float raster_distance = _scanSpeed.y * (float)proposedSyncTime;
+//		float raster_distance = _scanSpeed.y * proposedSyncTime;
 //		if(_rasterPosition.y < 1.02f && _rasterPosition.y + raster_distance >= 1.02f) {
 //			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
 //			proposedEvent = SyncEvent::StartVSync;
