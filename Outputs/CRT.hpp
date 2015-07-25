@@ -66,6 +66,10 @@ class CRT {
 		uint8_t *get_write_target_for_buffer(int buffer);
 
 	private:
+		// the incoming clock lengths will be multiplied by something to give at least 1000
+		// sample points per line
+		int _time_multiplier;
+
 		// fundamental creator-specified properties
 		int _cycles_per_line;
 		int _height_of_display;

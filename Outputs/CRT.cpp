@@ -18,19 +18,21 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
+	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
+
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;
-	_cycles_per_line = cycles_per_line;
+	_cycles_per_line = cycles_per_line * _time_multiplier;
 
 	// generate timing values implied by the given arbuments
-	_hsync_error_window = cycles_per_line >> 5;
+	_hsync_error_window = _cycles_per_line >> 5;
 
-	_sync_capacitor_charge_threshold = syncCapacityLineChargeThreshold * cycles_per_line;
-	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * cycles_per_line) >> 6;
-	_vertical_retrace_time = scanlinesVerticalRetraceTime * cycles_per_line;
+	_sync_capacitor_charge_threshold = syncCapacityLineChargeThreshold * _cycles_per_line;
+	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
+	_vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
 
-	_scanSpeed.x = UINT32_MAX / cycles_per_line;
-	_scanSpeed.y = UINT32_MAX / (height_of_display * cycles_per_line);
+	_scanSpeed.x = UINT32_MAX / _cycles_per_line;
+	_scanSpeed.y = UINT32_MAX / (height_of_display * _cycles_per_line);
 	_retraceSpeed.x = UINT32_MAX / _horizontal_retrace_time;
 	_retraceSpeed.y = UINT32_MAX / _vertical_retrace_time;
 
@@ -53,7 +55,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	_rasterPosition.x = _rasterPosition.y = 0;
 
 	// reset flywheel sync
-	_expected_next_hsync = cycles_per_line;
+	_expected_next_hsync = _cycles_per_line;
 	_horizontal_counter = 0;
 
 	// reset the vertical charge capacitor
@@ -143,6 +145,8 @@ CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycl
 
 void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const Type type, const char *data_type)
 {
+	number_of_cycles *= _time_multiplier;
+
 	const bool is_output_run = ((type == Type::Level) || (type == Type::Data));
 	uint16_t tex_x = 0;
 	uint16_t tex_y = 0;
