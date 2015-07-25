@@ -52,8 +52,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	[super reshape];
 
-	CGSize viewSize = [self convertSize:self.bounds.size toView:self];
-	glViewport(0, 0, viewSize.width, viewSize.height);
+	[self.openGLContext makeCurrentContext];
+	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
+	NSPoint viewSize = [self convertPointToBacking:backingSize];
+	glViewport(0, 0, viewSize.x, viewSize.y);
 }
 
 - (void)drawRect:(NSRect)dirtyRect
