@@ -7,19 +7,13 @@
 //
 
 #import <Foundation/Foundation.h>
-
-@class CSAtari2600;
-@protocol CSAtari2600Delegate
-- (void)atari2600NeedsRedraw:(CSAtari2600 *)atari2600;
-@end
+#import "OpenGLView.h"
 
 @interface CSAtari2600 : NSObject
 
-@property (nonatomic, weak) id <CSAtari2600Delegate> delegate;
+@property (nonatomic, strong) CSCathodeRayView *view;
 
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)setROM:(NSData *)rom;
-
-- (void)draw;
 
 @end

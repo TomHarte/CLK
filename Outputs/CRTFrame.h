@@ -13,16 +13,16 @@
 extern "C" {
 #endif
 
-struct CRTBuffer {
+typedef struct {
 	uint8_t *data;
 	int depth;
-};
+} CRTBuffer;
 
 typedef struct {
 	int width, height;
 } CRTSize;
 
-struct CRTFrame {
+typedef struct {
 	CRTSize size, dirty_size;
 
 	int number_of_buffers;
@@ -30,7 +30,7 @@ struct CRTFrame {
 
 	int number_of_runs;
 	uint16_t *runs;
-};
+} CRTFrame;
 
 #ifdef __cplusplus
 }

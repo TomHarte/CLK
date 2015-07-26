@@ -7,17 +7,18 @@
 //
 
 #import <Foundation/Foundation.h>
-@import AppKit;
+#import "CRTFrame.h"
+#import <AppKit/AppKit.h>
 
-@class CSOpenGLView;
+@class CSCathodeRayView;
 
-@protocol CSOpenGLViewDelegate
-- (void)openGLView:(CSOpenGLView *)view didUpdateToTime:(CVTimeStamp)time;
-- (void)openGLViewDrawView:(CSOpenGLView *)view;
+@protocol CSCathodeRayViewDelegate
+- (void)openGLView:(CSCathodeRayView * __nonnull)view didUpdateToTime:(CVTimeStamp)time;
 @end
 
-@interface CSOpenGLView : NSOpenGLView
+@interface CSCathodeRayView : NSOpenGLView
 
-@property (nonatomic, weak) id <CSOpenGLViewDelegate> delegate;
+@property (nonatomic, weak) id <CSCathodeRayViewDelegate> delegate;
+@property (nonatomic, assign, nullable) CRTFrame *crtFrame;
 
 @end

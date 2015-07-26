@@ -8,18 +8,19 @@
 
 import Cocoa
 
-class Atari2600Document: NSDocument, CSOpenGLViewDelegate, CSAtari2600Delegate {
+class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 
 	override init() {
 	    super.init()
 		// Add your subclass-specific initialization here.
 	}
 
-	@IBOutlet weak var openGLView: CSOpenGLView?
+	@IBOutlet weak var openGLView: CSCathodeRayView?
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
 		openGLView!.delegate = self
+		atari2600!.view = openGLView!
 
 		// bind the content aspect ratio to remain 4:3 from now on
 		aController.window!.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
@@ -45,13 +46,12 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate, CSAtari2600Delegate {
 	override func readFromData(data: NSData, ofType typeName: String) throws {
 		atari2600 = CSAtari2600()
 		atari2600!.setROM(data)
-		atari2600!.delegate = self
 	}
 
 	// MARK: CSOpenGLViewDelegate
 
 	private var lastCycleCount: Int64?
-	func openGLView(view: CSOpenGLView!, didUpdateToTime time: CVTimeStamp) {
+	func openGLView(view: CSCathodeRayView, didUpdateToTime time: CVTimeStamp) {
 
 		// TODO: treat time as a delta from old time, work out how many cycles that is plus error
 
@@ -68,10 +68,6 @@ class Atari2600Document: NSDocument, CSOpenGLViewDelegate, CSAtari2600Delegate {
 			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
 		}
 		lastCycleCount = cycleCount
-	}
-
-	func openGLViewDrawView(view: CSOpenGLView!) {
-		atari2600!.draw()
 	}
 
 	// MARK: CSAtari2600Delegate
