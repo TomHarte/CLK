@@ -21,7 +21,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		Machine();
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(size_t length, const uint8_t *data);
 

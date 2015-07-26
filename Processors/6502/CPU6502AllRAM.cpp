@@ -17,13 +17,15 @@ AllRAMProcessor::AllRAMProcessor()
 	reset();
 }
 
-void AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
+int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	if(isReadOperation(operation)) {
 		*value = _memory[address];
 	} else {
 		_memory[address] = *value;
 	}
+
+	return 1;
 }
 
 void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data)

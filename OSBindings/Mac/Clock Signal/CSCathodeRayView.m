@@ -40,7 +40,7 @@
 
 	// get the shader ready, set the clear colour
 	[self.openGLContext makeCurrentContext];
-	glClearColor(1.0, 0.0, 0.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	[self prepareShader];
 
 	// Activate the display link
@@ -100,6 +100,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	_crtFrame = crtFrame;
 	[self setNeedsDisplay:YES];
+
+	[self.openGLContext makeCurrentContext];
+	glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 8, _crtFrame->runs, GL_DYNAMIC_DRAW);
 }
 
 #pragma mark - Frame output

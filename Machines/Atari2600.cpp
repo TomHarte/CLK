@@ -108,9 +108,10 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 	}
 }
 
-void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
+int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	uint8_t returnValue = 0xff;
+	int cycle_count = 1;
 
 	output_pixels(3);
 
@@ -141,9 +142,8 @@ void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t ad
 				case 1:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 2: {
-					const int cyclesToRunFor = _horizontalTimer;
-					_piaTimerValue -= cyclesToRunFor;
-					output_pixels(cyclesToRunFor);
+					cycle_count = _horizontalTimer / 3;
+					output_pixels(3 * cycle_count);
 				} break;
 				case 3: _horizontalTimer = 227; break;
 
@@ -177,7 +177,9 @@ void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t ad
 		*value = returnValue;
 	}
 
-	_piaTimerValue--;
+	_piaTimerValue -= cycle_count;
+
+	return cycle_count;
 }
 
 void Machine::set_rom(size_t length, const uint8_t *data)

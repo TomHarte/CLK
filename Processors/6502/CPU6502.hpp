@@ -368,6 +368,7 @@ template <class T> class Processor {
 		bool _is_jammed;
 		JamHandler *_jam_handler;
 
+		int _cycles_left_to_run;
 
 	public:
 		Processor()
@@ -376,6 +377,7 @@ template <class T> class Processor {
 			_scheduledPrograms[0] = _scheduledPrograms[1] = _scheduledPrograms[2] = _scheduledPrograms[3] = nullptr;
 			_is_jammed = false;
 			_jam_handler = nullptr;
+			_cycles_left_to_run = 0;
 		}
 
 		void run_for_cycles(int number_of_cycles)
@@ -402,8 +404,9 @@ template <class T> class Processor {
 	}
 
 			checkSchedule();
+			_cycles_left_to_run += number_of_cycles;
 
-			while(number_of_cycles) {
+			while(_cycles_left_to_run > 0) {
 
 				const MicroOp cycle = _scheduledPrograms[_scheduleProgramsReadPointer][_scheduleProgramProgramCounter];
 				_scheduleProgramProgramCounter++;
@@ -835,8 +838,8 @@ template <class T> class Processor {
 				}
 
 				if (_nextBusOperation != BusOperation::None) {
-					static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
-					number_of_cycles--; _nextBusOperation = BusOperation::None;
+					_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
+					_nextBusOperation = BusOperation::None;
 				}
 			}
 		}
