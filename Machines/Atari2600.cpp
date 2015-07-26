@@ -16,7 +16,7 @@ static const char atari2600DataType[] = "Atari2600";
 Machine::Machine()
 {
 	_timestamp = 0;
-	_horizontalTimer = 0;
+	_horizontalTimer = 227;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228, 256, 1, 4);
@@ -56,21 +56,25 @@ void Machine::output_pixels(int count)
 
 			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if(_horizontalTimer < 13) output_state(OutputState::Blank, nullptr);
-			else if (_horizontalTimer < 39) output_state(OutputState::Sync, nullptr);
-			else if (_horizontalTimer < 68) output_state(OutputState::Blank, nullptr);
+			if(_horizontalTimer > 214) output_state(OutputState::Blank, nullptr);
+			else if (_horizontalTimer > 188) output_state(OutputState::Sync, nullptr);
+			else if (_horizontalTimer >= 160) output_state(OutputState::Blank, nullptr);
 			else {
 				if(_vBlankEnabled) {
 					output_state(OutputState::Blank, nullptr);
 				} else {
 					uint8_t outputPixel[3];
-					get_output_pixel(outputPixel, _horizontalTimer - 68);
+					get_output_pixel(outputPixel, 159 - _horizontalTimer);
 					output_state(OutputState::Pixel, outputPixel);
 				}
 			}
 		}
 
-		_horizontalTimer = (_horizontalTimer + 1)%228;
+		// assumption here: signed shifts right; otherwise it's just
+		// an attempt to avoid both the % operator and a conditional
+		_horizontalTimer--;
+		const int32_t sign_extension = _horizontalTimer >> 31;
+		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&227);
 	}
 }
 
@@ -137,11 +141,11 @@ void Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t ad
 				case 1:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 2: {
-					const int cyclesToRunFor = 228 - _horizontalTimer;
+					const int cyclesToRunFor = _horizontalTimer;
 					_piaTimerValue -= cyclesToRunFor;
 					output_pixels(cyclesToRunFor);
 				} break;
-				case 3: _horizontalTimer = 0; break;
+				case 3: _horizontalTimer = 227; break;
 
 				case 0x0a: _playFieldControl = *value; break;
 				case 0x0d: _playField[0] = *value; break;

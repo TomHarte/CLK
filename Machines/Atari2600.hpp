@@ -11,6 +11,7 @@
 
 #include "../Processors/6502/CPU6502.hpp"
 #include "../Outputs/CRT.hpp"
+#include <stdint.h>
 
 namespace Atari2600 {
 
@@ -40,7 +41,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playField[3], _playFieldControl;
 
 		// graphics output
-		int _horizontalTimer;
+		int32_t _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
 
 		enum OutputState {
