@@ -1,6 +1,6 @@
 //
 //  Atari2600.cpp
-//  ElectrEm
+//  CLK
 //
 //  Created by Thomas Harte on 14/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.

@@ -1,12 +1,12 @@
 //
-//  OpenGLView.m
-//  ElectrEm
+//  CSCathodeRayView.m
+//  CLK
 //
 //  Created by Thomas Harte on 16/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#import "OpenGLView.h"
+#import "CSCathodeRayView.h"
 @import CoreVideo;
 #import <OpenGL/gl3.h>
 #import <OpenGL/gl3ext.h>
@@ -18,6 +18,7 @@
 	GLuint _shaderProgram;
 	GLuint _arrayBuffer, _vertexArray;
 	GLint _positionAttribute;
+	GLint _textureCoordinatesAttribute;
 }
 
 - (void)prepareOpenGL
@@ -38,6 +39,7 @@
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
 
 	// get the shader ready, set the clear colour
+	[self.openGLContext makeCurrentContext];
 	glClearColor(1.0, 0.0, 0.0, 1.0);
 	[self prepareShader];
 
@@ -102,35 +104,59 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 #pragma mark - Frame output
 
+// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
+// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
+// from integral to floating point.
 const char *vertexShader =
 	"#version 150\n"
 	"\n"
 	"in vec2 position;\n"
+	"in vec2 srcCoordinates;\n"
 	"\n"
-	"out vec4 colour;\n"
+	"out vec2 srcCoordinatesVarying;\n"
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"colour = vec4(1.0, 1.0, 1.0, 1.0);\n"
+		"srcCoordinatesVarying = srcCoordinates;\n"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0, 0.0, 1.0);\n"
 	"}\n";
 
+// TODO: this should be factored out and be per project
 const char *fragmentShader =
 	"#version 150\n"
 	"\n"
-	"in vec4 colour;\n"
+	"in vec2 srcCoordinatesVarying;\n"
 	"out vec4 fragColour;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = colour;\n"
+		"fragColour = vec4(1.0, 1.0, 1.0, 1.0);\n"
 	"}\n";
+
+#if defined(DEBUG)
+- (void)logErrorForObject:(GLuint)object
+{
+	GLint logLength;
+	glGetShaderiv(object, GL_INFO_LOG_LENGTH, &logLength);
+	if (logLength > 0) {
+		GLchar *log = (GLchar *)malloc(logLength);
+		glGetShaderInfoLog(object, logLength, &logLength, log);
+		NSLog(@"Compile log:\n%s", log);
+		free(log);
+	}
+}
+#endif
 
 - (GLuint)compileShader:(const char *)source type:(GLenum)type
 {
 	GLuint shader = glCreateShader(type);
 	glShaderSource(shader, 1, &source, NULL);
 	glCompileShader(shader);
+
+#ifdef DEBUG
+	[self logErrorForObject:shader];
+#endif
+
 	return shader;
 }
 
@@ -144,15 +170,25 @@ const char *fragmentShader =
 	glAttachShader(_shaderProgram, _fragmentShader);
 	glLinkProgram(_shaderProgram);
 
+#ifdef DEBUG
+	[self logErrorForObject:_shaderProgram];
+#endif
+
 	glGenVertexArrays(1, &_vertexArray);
 	glBindVertexArray(_vertexArray);
 	glGenBuffers(1, &_arrayBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, _arrayBuffer);
 
 	glUseProgram(_shaderProgram);
+
 	_positionAttribute = glGetAttribLocation(_shaderProgram, "position");
+	_textureCoordinatesAttribute = glGetAttribLocation(_shaderProgram, "srcCoordinates");
+
 	glEnableVertexAttribArray(_positionAttribute);
+	glEnableVertexAttribArray(_textureCoordinatesAttribute);
+
 	glVertexAttribPointer(_positionAttribute, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)0);
+	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)(2 * sizeof(GLushort)));
 }
 
 - (void)drawRect:(NSRect)dirtyRect

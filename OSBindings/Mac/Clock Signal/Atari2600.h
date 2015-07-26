@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "OpenGLView.h"
+#import "CSCathodeRayView.h"
 
 @interface CSAtari2600 : NSObject
 

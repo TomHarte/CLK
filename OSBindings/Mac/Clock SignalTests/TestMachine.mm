@@ -1,6 +1,6 @@
 //
 //  Machine.m
-//  ElectrEm
+//  CLK
 //
 //  Created by Thomas Harte on 29/06/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.

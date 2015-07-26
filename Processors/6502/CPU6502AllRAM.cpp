@@ -1,6 +1,6 @@
 //
 //  CPU6502AllRAM.cpp
-//  ElectrEm
+//  CLK
 //
 //  Created by Thomas Harte on 13/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.
