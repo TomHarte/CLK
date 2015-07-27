@@ -174,13 +174,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 	uint16_t tex_x = 0;
 	uint16_t tex_y = 0;
 
-//	static int o;
-//	if(is_output_run)
-//	{
-//		o++;
-//		if(o&1) is_output_run = false;
-//	}
-
 	if(is_output_run && _current_frame_builder) {
 		tex_x = _current_frame_builder->_write_x_position;
 		tex_y = _current_frame_builder->_write_y_position;
@@ -302,7 +295,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 						_current_frame_builder->complete();
 						_frames_with_delegate++;
 						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame);
-//						o = 0;
 					}
 
 					if(_frames_with_delegate < kCRTNumberOfFrames)
