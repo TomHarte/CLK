@@ -131,8 +131,8 @@ const char *vertexShader =
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, srcCoordinates.y / 512.0);\n"
-		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0, 0.0, 1.0);\n"
+		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, (srcCoordinates.y + 0.5) / 512.0);\n"
+		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
 	"}\n";
 
 // TODO: this should be factored out and be per project
