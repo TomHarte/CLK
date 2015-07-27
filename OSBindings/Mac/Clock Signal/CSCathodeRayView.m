@@ -49,7 +49,7 @@
 	CVDisplayLinkStart(displayLink);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBlendFunc(GL_ONE, GL_ONE);
 }
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
@@ -131,7 +131,7 @@ const char *vertexShader =
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = vec2((srcCoordinates.x + 0.5) / 511.0, (srcCoordinates.y + 0.5) / 511.0);\n"
+		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, srcCoordinates.y / 512.0);\n"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0, 0.0, 1.0);\n"
 	"}\n";
 

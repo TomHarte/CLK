@@ -54,7 +54,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 
 	// width should be 1.0 / _height_of_display, rotated to match the direction
 	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 2.0f;
+	float halfLineWidth = (float)_height_of_display * 1.9f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * UINT32_MAX;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * UINT32_MAX;
 
@@ -205,14 +205,13 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			next_run[0] = (_rasterPosition.x + width[0]) >> 16;
-			next_run[1] = (_rasterPosition.y + width[1]) >> 16;
+			next_run[0] = next_run[20] = (_rasterPosition.x + width[0]) >> 16;
+			next_run[1] = next_run[21] = (_rasterPosition.y + width[1]) >> 16;
 			next_run[4] = (_rasterPosition.x - width[0]) >> 16;
 			next_run[5] = (_rasterPosition.y - width[1]) >> 16;
 
-			next_run[2] = next_run[6] = tex_x;
-			next_run[3] = next_run[7] = tex_y;
-
+			next_run[2] = next_run[6] = next_run[22] = tex_x;
+			next_run[3] = next_run[7] = next_run[23] = tex_y;
 		}
 
 		// advance the raster position as dictated by current sync status
@@ -236,23 +235,13 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 			next_run[16] = (_rasterPosition.x + width[0]) >> 16;
 			next_run[17] = (_rasterPosition.y + width[1]) >> 16;
-			next_run[20] = next_run[0];
-			next_run[21] = next_run[1];
-
 
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;
 
 			// if this is a data or level run then store the end point
-			next_run[10] = tex_x;
-			next_run[11] = tex_y;
-			next_run[14] = tex_x;
-			next_run[15] = tex_y;
-			next_run[18] = tex_x;
-			next_run[19] = tex_y;
-
-			next_run[22] = next_run[2];
-			next_run[23] = next_run[3];
+			next_run[10] = next_run[14] = next_run[18] = tex_x;
+			next_run[11] = next_run[15] = next_run[19] = tex_y;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -443,7 +432,7 @@ void CRTFrameBuilder::allocate_write_area(int required_length)
 	if (_next_write_x_position + required_length > frame.size.width)
 	{
 		_next_write_x_position = 0;
-		_next_write_y_position++;
+		_next_write_y_position = (_next_write_y_position+1)&(frame.size.height-1);
 		frame.dirty_size.height++;
 	}
 
