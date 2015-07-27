@@ -38,7 +38,11 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _piaTimerShift;
 
 		// graphics registers
-		uint8_t _playField[3], _playFieldControl;
+		uint8_t _playfield[3], _playfieldControl;
+		uint8_t _player0Colour;
+		uint8_t _player1Colour;
+		uint8_t _playfieldColour;
+		uint8_t _backgroundColour;
 
 		// graphics output
 		int32_t _horizontalTimer;

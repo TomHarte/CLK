@@ -54,7 +54,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 
 	// width should be 1.0 / _height_of_display, rotated to match the direction
 	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 1.9f;
+	float halfLineWidth = (float)_height_of_display * 2.0f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * UINT32_MAX;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * UINT32_MAX;
 

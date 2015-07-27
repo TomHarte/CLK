@@ -28,18 +28,28 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
 	// get the playfield pixel
 	const int x = offset >> 2;
-	const int mirrored = (x / 20) & (_playFieldControl&1);
+	const int mirrored = (x / 20) & (_playfieldControl&1);
 	const int index = mirrored ? x - 20 : 19 - (x%20);
 	const int byte = 2 - (index >> 3);
 	const int lowestBit = (byte&1)^1;
 	const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
 
-	uint8_t playFieldPixel = (_playField[byte] >> bit)&1;
+	uint8_t playFieldPixel = (_playfield[byte] >> bit)&1;
+
+	const uint8_t palette[16][3] =
+	{
+		{255, 255, 255},	{253, 250, 115},	{236, 199, 125},	{252, 187, 151},
+		{252, 180, 181},	{235, 177, 223},	{211, 178, 250},	{187, 182, 250},
+		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
+		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
+	};
 
 	// TODO: almost everything!
-	pixel[0] = playFieldPixel ? 0xff : 0x00;
-	pixel[1] = playFieldPixel ? 0xff : 0x00;
-	pixel[2] = playFieldPixel ? 0xff : 0x00;
+	uint8_t outputColour = playFieldPixel ? _playfieldColour : _backgroundColour;
+	pixel[0] = palette[outputColour >> 4][0];
+	pixel[1] = palette[outputColour >> 4][1];
+	pixel[2] = palette[outputColour >> 4][2];
+	pixel[3] = (outputColour & 14) << 4;
 }
 
 void Machine::output_pixels(int count)
@@ -63,7 +73,7 @@ void Machine::output_pixels(int count)
 				if(_vBlankEnabled) {
 					output_state(OutputState::Blank, nullptr);
 				} else {
-					uint8_t outputPixel[3];
+					uint8_t outputPixel[4];
 					get_output_pixel(outputPixel, 159 - _horizontalTimer);
 					output_state(OutputState::Pixel, outputPixel);
 				}
@@ -104,7 +114,7 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 		_outputBuffer[(_lastOutputStateDuration * 4) + 0] = pixel[0];
 		_outputBuffer[(_lastOutputStateDuration * 4) + 1] = pixel[1];
 		_outputBuffer[(_lastOutputStateDuration * 4) + 2] = pixel[2];
-		_outputBuffer[(_lastOutputStateDuration * 4) + 3] = 0xff;
+		_outputBuffer[(_lastOutputStateDuration * 4) + 3] = pixel[3];
 	}
 }
 
@@ -147,10 +157,15 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				} break;
 				case 3: _horizontalTimer = 227; break;
 
-				case 0x0a: _playFieldControl = *value; break;
-				case 0x0d: _playField[0] = *value; break;
-				case 0x0e: _playField[1] = *value; break;
-				case 0x0f: _playField[2] = *value; break;
+				case 0x06: _player0Colour = *value;		break;
+				case 0x07: _player1Colour = *value;		break;
+				case 0x08: _playfieldColour = *value;	break;
+				case 0x09: _backgroundColour = *value;	break;
+
+				case 0x0a: _playfieldControl = *value;	break;
+				case 0x0d: _playfield[0] = *value;		break;
+				case 0x0e: _playfield[1] = *value;		break;
+				case 0x0f: _playfield[2] = *value;		break;
 			}
 		}
 //		printf("Uncaught TIA %04x\n", address);
