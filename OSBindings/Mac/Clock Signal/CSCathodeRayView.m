@@ -19,6 +19,8 @@
 	GLuint _arrayBuffer, _vertexArray;
 	GLint _positionAttribute;
 	GLint _textureCoordinatesAttribute;
+
+	GLuint _textureName;
 }
 
 - (void)prepareOpenGL
@@ -45,9 +47,12 @@
 
 	// Activate the display link
 	CVDisplayLinkStart(displayLink);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 }
 
-static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
+static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
 {
 	CSCathodeRayView *view = (__bridge CSCathodeRayView *)displayLinkContext;
 	[view.delegate openGLView:view didUpdateToTime:*now];
@@ -101,8 +106,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	_crtFrame = crtFrame;
 	[self setNeedsDisplay:YES];
 
-	[self.openGLContext makeCurrentContext];
-	glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 8, _crtFrame->runs, GL_DYNAMIC_DRAW);
+	if(crtFrame)
+	{
+		[self.openGLContext makeCurrentContext];
+		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 24, _crtFrame->runs, GL_DYNAMIC_DRAW);
+
+		glBindTexture(GL_TEXTURE_2D, _textureName);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _crtFrame->size.width, _crtFrame->size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+	}
 }
 
 #pragma mark - Frame output
@@ -120,7 +131,7 @@ const char *vertexShader =
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = srcCoordinates;\n"
+		"srcCoordinatesVarying = vec2((srcCoordinates.x + 0.5) / 511.0, (srcCoordinates.y + 0.5) / 511.0);\n"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0, 0.0, 1.0);\n"
 	"}\n";
 
@@ -130,10 +141,11 @@ const char *fragmentShader =
 	"\n"
 	"in vec2 srcCoordinatesVarying;\n"
 	"out vec4 fragColour;\n"
+	"uniform sampler2D texID;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = vec4(1.0, 1.0, 1.0, 1.0);\n"
+		"fragColour = texture(texID, srcCoordinatesVarying);\n"	// vec4(1.0, 1.0, 1.0, 0.5)
 	"}\n";
 
 #if defined(DEBUG)
@@ -191,7 +203,14 @@ const char *fragmentShader =
 	glEnableVertexAttribArray(_textureCoordinatesAttribute);
 
 	glVertexAttribPointer(_positionAttribute, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)0);
-	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)(2 * sizeof(GLushort)));
+	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_FALSE, 4 * sizeof(GLushort), (void *)(2 * sizeof(GLushort)));
+
+	glGenTextures(1, &_textureName);
+	glBindTexture(GL_TEXTURE_2D, _textureName);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 - (void)drawRect:(NSRect)dirtyRect
@@ -202,8 +221,7 @@ const char *fragmentShader =
 
 	if (_crtFrame)
 	{
-		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 8, _crtFrame->runs, GL_DYNAMIC_DRAW);
-		glDrawArrays(GL_LINES, 0, _crtFrame->number_of_runs*2);
+		glDrawArrays(GL_TRIANGLES, 0, _crtFrame->number_of_runs*6);
 	}
 
 	glSwapAPPLE();

@@ -39,6 +39,7 @@ struct CRTFrameBuilder {
 
 		// a pointer to the section of content buffer currently being
 		// returned and to where the next section will begin
+		int _next_write_x_position, _next_write_y_position;
 		int _write_x_position, _write_y_position;
 		int _write_target_pointer;
 };
@@ -81,6 +82,8 @@ class CRT {
 		struct Vector {
 			uint32_t x, y;
 		} _rasterPosition, _scanSpeed, _retraceSpeed;
+
+		uint32_t _widths[4][2];
 
 		// the run delegate and the triple buffer
 		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];

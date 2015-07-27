@@ -101,7 +101,7 @@ void Machine::output_state(OutputState state, uint8_t *pixel)
 
 	if(state == OutputState::Pixel && _outputBuffer)
 	{
-		_outputBuffer[(_lastOutputStateDuration * 4) + 0] = pixel[0];
+		_outputBuffer[(_lastOutputStateDuration * 4) + 0] = 0x40;//pixel[0];
 		_outputBuffer[(_lastOutputStateDuration * 4) + 1] = pixel[1];
 		_outputBuffer[(_lastOutputStateDuration * 4) + 2] = pixel[2];
 		_outputBuffer[(_lastOutputStateDuration * 4) + 3] = 0xff;

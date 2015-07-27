@@ -8,9 +8,12 @@
 
 #include "CRT.hpp"
 #include <stdarg.h>
-
+#include <math.h>
 
 using namespace Outputs;
+
+#define kRetraceXMask	0x01
+#define kRetraceYMask	0x02
 
 CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 {
@@ -35,6 +38,25 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	_scanSpeed.y = UINT32_MAX / (_height_of_display * _cycles_per_line);
 	_retraceSpeed.x = UINT32_MAX / _horizontal_retrace_time;
 	_retraceSpeed.y = UINT32_MAX / _vertical_retrace_time;
+
+	// precompute the lengths of all four combinations of scan direction, for fast triangle
+	// strip generation later
+	float scanSpeedXfl = 1.0f / (float)_cycles_per_line;
+	float scanSpeedYfl = 1.0f / (float)(_height_of_display * _cycles_per_line);
+	float retraceSpeedXfl = 1.0f / (float)_horizontal_retrace_time;
+	float retraceSpeedYfl = 1.0f / (float)(_vertical_retrace_time);
+	float lengths[4];
+
+	lengths[0]								= sqrtf(scanSpeedXfl*scanSpeedXfl		+ scanSpeedYfl*scanSpeedYfl);
+	lengths[kRetraceXMask]					= sqrtf(retraceSpeedXfl*retraceSpeedXfl + scanSpeedYfl*scanSpeedYfl);
+	lengths[kRetraceXMask | kRetraceYMask]	= sqrtf(retraceSpeedXfl*retraceSpeedXfl + retraceSpeedYfl*retraceSpeedYfl);
+	lengths[kRetraceYMask]					= sqrtf(scanSpeedXfl*scanSpeedXfl		+ retraceSpeedYfl*retraceSpeedYfl);
+
+	// width should be 1.0 / _height_of_display, rotated to match the direction
+	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
+	float halfLineWidth = (float)_height_of_display * 2.0f;
+	_widths[0][0] = (sinf(angle) / halfLineWidth) * UINT32_MAX;
+	_widths[0][1] = (cosf(angle) / halfLineWidth) * UINT32_MAX;
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
@@ -145,11 +167,19 @@ CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycl
 
 void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const Type type, const char *data_type)
 {
+
 	number_of_cycles *= _time_multiplier;
 
-	const bool is_output_run = ((type == Type::Level) || (type == Type::Data));
+	bool is_output_run = ((type == Type::Level) || (type == Type::Data));
 	uint16_t tex_x = 0;
 	uint16_t tex_y = 0;
+
+//	static int o;
+//	if(is_output_run)
+//	{
+//		o++;
+//		if(o&1) is_output_run = false;
+//	}
 
 	if(is_output_run && _current_frame_builder) {
 		tex_x = _current_frame_builder->_write_x_position;
@@ -168,14 +198,21 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		uint16_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
+//		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | ((_vretrace_counter > 0) ? kRetraceXMask : 0);
+//		uint32_t *width = _widths[lengthMask];
+		uint32_t *width = _widths[0];
 
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			next_run[0] = _rasterPosition.x >> 16;
-			next_run[1] = _rasterPosition.y >> 16;
-			next_run[2] = tex_x;
-			next_run[3] = tex_y;
+			next_run[0] = (_rasterPosition.x + width[0]) >> 16;
+			next_run[1] = (_rasterPosition.y + width[1]) >> 16;
+			next_run[4] = (_rasterPosition.x - width[0]) >> 16;
+			next_run[5] = (_rasterPosition.y - width[1]) >> 16;
+
+			next_run[2] = next_run[6] = tex_x;
+			next_run[3] = next_run[7] = tex_y;
+
 		}
 
 		// advance the raster position as dictated by current sync status
@@ -192,15 +229,30 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		if(next_run)
 		{
 			// store the final raster position
-			next_run[4] = _rasterPosition.x >> 16;
-			next_run[5] = _rasterPosition.y >> 16;
+			next_run[8] = (_rasterPosition.x - width[0]) >> 16;
+			next_run[9] = (_rasterPosition.y - width[1]) >> 16;
+			next_run[12] = (_rasterPosition.x - width[0]) >> 16;
+			next_run[13] = (_rasterPosition.y - width[1]) >> 16;
+
+			next_run[16] = (_rasterPosition.x + width[0]) >> 16;
+			next_run[17] = (_rasterPosition.y + width[1]) >> 16;
+			next_run[20] = next_run[0];
+			next_run[21] = next_run[1];
+
 
 			// if this is a data run then advance the buffer pointer
-			if(type == Type::Data) tex_x += next_run_length;
+			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;
 
 			// if this is a data or level run then store the end point
-			next_run[6] = tex_x;
-			next_run[7] = tex_y;
+			next_run[10] = tex_x;
+			next_run[11] = tex_y;
+			next_run[14] = tex_x;
+			next_run[15] = tex_y;
+			next_run[18] = tex_x;
+			next_run[19] = tex_y;
+
+			next_run[22] = next_run[2];
+			next_run[23] = next_run[3];
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -261,6 +313,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 						_current_frame_builder->complete();
 						_frames_with_delegate++;
 						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame);
+//						o = 0;
 					}
 
 					if(_frames_with_delegate < kCRTNumberOfFrames)
@@ -362,7 +415,7 @@ CRTFrameBuilder::~CRTFrameBuilder()
 void CRTFrameBuilder::reset()
 {
 	frame.number_of_runs = 0;
-	_write_x_position = _write_y_position = 0;
+	_next_write_x_position = _next_write_y_position = 0;
 	frame.dirty_size.width = frame.dirty_size.height = 0;
 }
 
@@ -374,12 +427,12 @@ void CRTFrameBuilder::complete()
 uint16_t *CRTFrameBuilder::get_next_run()
 {
 	// get a run from the allocated list, allocating more if we're about to overrun
-	if(frame.number_of_runs * 8 >= _all_runs.size())
+	if(frame.number_of_runs * 24 >= _all_runs.size())
 	{
-		_all_runs.resize(_all_runs.size() + 4096);
+		_all_runs.resize(_all_runs.size() + 2400);
 	}
 
-	uint16_t *next_run = &_all_runs[frame.number_of_runs * 8];
+	uint16_t *next_run = &_all_runs[frame.number_of_runs * 24];
 	frame.number_of_runs++;
 
 	return next_run;
@@ -387,16 +440,18 @@ uint16_t *CRTFrameBuilder::get_next_run()
 
 void CRTFrameBuilder::allocate_write_area(int required_length)
 {
-	if (_write_x_position + required_length > frame.size.width)
+	if (_next_write_x_position + required_length > frame.size.width)
 	{
-		_write_x_position = 0;
-		_write_y_position++;
+		_next_write_x_position = 0;
+		_next_write_y_position++;
 		frame.dirty_size.height++;
 	}
 
 	_write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
-	_write_x_position += required_length;
-	frame.dirty_size.width = std::max(frame.dirty_size.width, _write_x_position);
+	_write_x_position = _next_write_x_position;
+	_write_y_position = _next_write_y_position;
+	_next_write_x_position += required_length;
+	frame.dirty_size.width = std::max(frame.dirty_size.width, _next_write_x_position);
 }
 
 uint8_t *CRTFrameBuilder::get_write_target_for_buffer(int buffer)
