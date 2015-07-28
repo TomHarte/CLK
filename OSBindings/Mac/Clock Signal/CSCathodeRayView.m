@@ -59,11 +59,23 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[view.delegate openGLView:view didUpdateToTime:*now];
 	return kCVReturnSuccess;
 }
- 
+
+- (void)invalidate
+{
+	CVDisplayLinkStop(displayLink);
+}
+
 - (void)dealloc
 {
 	// Release the display link
 	CVDisplayLinkRelease(displayLink);
+
+	// Release OpenGL buffers
+	[self.openGLContext makeCurrentContext];
+	glDeleteBuffers(1, &_arrayBuffer);
+	glDeleteVertexArrays(1, &_vertexArray);
+	glDeleteTextures(1, &_textureName);
+	glDeleteProgram(_shaderProgram);
 }
 
 - (void)reshape

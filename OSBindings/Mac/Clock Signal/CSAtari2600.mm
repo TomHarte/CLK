@@ -6,7 +6,7 @@
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#import "Atari2600.h"
+#import "CSAtari2600.h"
 #import "Atari2600.hpp"
 
 @interface CSAtari2600 (Callbacks)
@@ -60,6 +60,10 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	}
 
 	return self;
+}
+
+- (void)dealloc {
+	NSLog(@"");
 }
 
 @end

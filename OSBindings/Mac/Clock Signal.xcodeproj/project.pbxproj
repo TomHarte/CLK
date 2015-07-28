@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4B14144E1B5883E500E04248 /* Atari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14144B1B5883E500E04248 /* Atari2600.mm */; };
+		4B14144E1B5883E500E04248 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14144B1B5883E500E04248 /* CSAtari2600.mm */; };
 		4B14144F1B5883E500E04248 /* CSCathodeRayView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B14144D1B5883E500E04248 /* CSCathodeRayView.m */; };
 		4B1414511B5885DF00E04248 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6D7F921B58822000787C9A /* Atari2600.cpp */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
@@ -311,8 +311,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		4B14144A1B5883E500E04248 /* Atari2600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Atari2600.h; sourceTree = "<group>"; };
-		4B14144B1B5883E500E04248 /* Atari2600.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Atari2600.mm; sourceTree = "<group>"; };
+		4B14144A1B5883E500E04248 /* CSAtari2600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAtari2600.h; sourceTree = "<group>"; };
+		4B14144B1B5883E500E04248 /* CSAtari2600.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSAtari2600.mm; sourceTree = "<group>"; };
 		4B14144C1B5883E500E04248 /* CSCathodeRayView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSCathodeRayView.h; sourceTree = "<group>"; };
 		4B14144D1B5883E500E04248 /* CSCathodeRayView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSCathodeRayView.m; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -968,8 +968,8 @@
 			isa = PBXGroup;
 			children = (
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
-				4B14144A1B5883E500E04248 /* Atari2600.h */,
-				4B14144B1B5883E500E04248 /* Atari2600.mm */,
+				4B14144A1B5883E500E04248 /* CSAtari2600.h */,
+				4B14144B1B5883E500E04248 /* CSAtari2600.mm */,
 				4B14144C1B5883E500E04248 /* CSCathodeRayView.h */,
 				4B14144D1B5883E500E04248 /* CSCathodeRayView.m */,
 				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
@@ -1432,7 +1432,7 @@
 				4B1414511B5885DF00E04248 /* Atari2600.cpp in Sources */,
 				4B366DFC1B5C165A0026627B /* CRT.cpp in Sources */,
 				4BB73EA41B587A5100552FC2 /* Atari2600Document.swift in Sources */,
-				4B14144E1B5883E500E04248 /* Atari2600.mm in Sources */,
+				4B14144E1B5883E500E04248 /* CSAtari2600.mm in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 				4B14144F1B5883E500E04248 /* CSCathodeRayView.m in Sources */,

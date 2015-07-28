@@ -20,6 +20,7 @@ class Machine: public CPU6502::Processor<Machine> {
 	public:
 
 		Machine();
+		~Machine();
 
 		int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 

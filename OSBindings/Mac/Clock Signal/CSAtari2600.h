@@ -11,7 +11,7 @@
 
 @interface CSAtari2600 : NSObject
 
-@property (nonatomic, strong) CSCathodeRayView *view;
+@property (nonatomic, weak) CSCathodeRayView *view;
 
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)setROM:(NSData *)rom;

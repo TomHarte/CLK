@@ -21,4 +21,6 @@
 @property (nonatomic, weak) id <CSCathodeRayViewDelegate> delegate;
 @property (nonatomic, assign, nullable) CRTFrame *crtFrame;
 
+- (void)invalidate;
+
 @end

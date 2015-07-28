@@ -48,6 +48,11 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 		atari2600!.setROM(data)
 	}
 
+	override func close() {
+		super.close()
+		openGLView!.invalidate()
+	}
+
 	// MARK: CSOpenGLViewDelegate
 
 	private var lastCycleCount: Int64?

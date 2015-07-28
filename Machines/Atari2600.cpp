@@ -24,6 +24,11 @@ Machine::Machine()
 	reset();
 }
 
+Machine::~Machine()
+{
+	delete _crt;
+}
+
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
 	// get the playfield pixel
