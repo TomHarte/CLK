@@ -57,7 +57,6 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void output_pixels(int count);
 		void get_output_pixel(uint8_t *pixel, int offset);
-		void output_state(OutputState state, uint8_t *pixel);
 		Outputs::CRT *_crt;
 
 		// latched output state

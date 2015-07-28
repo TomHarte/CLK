@@ -70,65 +70,57 @@ void Machine::output_pixels(int count)
 {
 	while(count--)
 	{
+		OutputState state;
+
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
 		// otherwise output a pixel
 		if(_vSyncEnabled) {
-			output_state(OutputState::Sync, nullptr);
+			state = OutputState::Sync;
 		} else {
 
 			// blank is decoded as 68 counts; sync and colour burst as 16 counts
 
 			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if(_horizontalTimer > 214) output_state(OutputState::Blank, nullptr);
-			else if (_horizontalTimer > 188) output_state(OutputState::Sync, nullptr);
-			else if (_horizontalTimer >= 160) output_state(OutputState::Blank, nullptr);
+			if(_horizontalTimer > 214) state = OutputState::Blank;
+			else if (_horizontalTimer > 188) state = OutputState::Sync;
+			else if (_horizontalTimer >= 160) state = OutputState::Blank;
 			else {
 				if(_vBlankEnabled) {
-					output_state(OutputState::Blank, nullptr);
+					state = OutputState::Blank;
 				} else {
-					uint8_t outputPixel[4];
-					get_output_pixel(outputPixel, 159 - _horizontalTimer);
-					output_state(OutputState::Pixel, outputPixel);
+					state = OutputState::Pixel;
 				}
 			}
 		}
+
+		_lastOutputStateDuration++;
+		if(state != _lastOutputState)
+		{
+			switch(_lastOutputState)
+			{
+				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);					break;
+				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
+				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
+			}
+			_lastOutputStateDuration = 0;
+			_lastOutputState = state;
+
+			if(state == OutputState::Pixel)
+			{
+				_crt->allocate_write_area(160);
+				_outputBuffer = _crt->get_write_target_for_buffer(0);
+			}
+		}
+
+		if(state == OutputState::Pixel && _outputBuffer)
+			get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
 
 		// assumption here: signed shifts right; otherwise it's just
 		// an attempt to avoid both the % operator and a conditional
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&227);
-	}
-}
-
-void Machine::output_state(OutputState state, uint8_t *pixel)
-{
-	_lastOutputStateDuration++;
-	if(state != _lastOutputState)
-	{
-		switch(_lastOutputState)
-		{
-			case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);					break;
-			case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
-			case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
-		}
-		_lastOutputStateDuration = 0;
-		_lastOutputState = state;
-
-		if(state == OutputState::Pixel)
-		{
-			_crt->allocate_write_area(160);
-			_outputBuffer = _crt->get_write_target_for_buffer(0);
-		}
-	}
-
-	if(state == OutputState::Pixel && _outputBuffer)
-	{
-		_outputBuffer[(_lastOutputStateDuration * 4) + 0] = pixel[0];
-		_outputBuffer[(_lastOutputStateDuration * 4) + 1] = pixel[1];
-		_outputBuffer[(_lastOutputStateDuration * 4) + 2] = pixel[2];
-		_outputBuffer[(_lastOutputStateDuration * 4) + 3] = pixel[3];
 	}
 }
 
@@ -160,6 +152,16 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	// check for a TIA access
 	if (!(address&0x1080)) {
 		if(isReadOperation(operation)) {
+			switch(address & 0xf) {
+				case 0x00:	*value = 0x3f;	break;
+				case 0x01:	*value = 0x3f;	break;
+				case 0x02:	*value = 0x3f;	break;
+				case 0x03:	*value = 0x3f;	break;
+				case 0x04:	*value = 0x3f;	break;
+				case 0x05:	*value = 0x3f;	break;
+				case 0x06:	*value = 0x7f;	break;
+				case 0x07:	*value = 0x3f;	break;
+			}
 		} else {
 			switch(address & 0x3f) {
 				case 0:	_vSyncEnabled = !!(*value & 0x02);	break;
