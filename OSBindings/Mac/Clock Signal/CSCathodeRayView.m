@@ -21,6 +21,7 @@
 	GLint _textureCoordinatesAttribute;
 
 	GLuint _textureName;
+	CRTSize _textureSize;
 }
 
 - (void)prepareOpenGL
@@ -114,7 +115,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 24, _crtFrame->runs, GL_DYNAMIC_DRAW);
 
 		glBindTexture(GL_TEXTURE_2D, _textureName);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _crtFrame->size.width, _crtFrame->size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+
+		if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _crtFrame->size.width, _crtFrame->size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+			_textureSize = _crtFrame->size;
+		}
+		else
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 	}
 }
 
