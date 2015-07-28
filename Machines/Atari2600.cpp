@@ -43,13 +43,22 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
 		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
 	};
+	const uint8_t alphaValues[8] =
+	{
+//		0, 64, 108, 144, 176, 200, 220, 255
+//	};
+//
+//	{
+		69, 134, 108, 161, 186, 210, 235, 255
+	};
 
 	// TODO: almost everything!
-	uint8_t outputColour = playFieldPixel ? _playfieldColour : _backgroundColour;
+	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? ((x < 20) ? _player0Colour : _player1Colour) : _playfieldColour;
+	uint8_t outputColour = playFieldPixel ? playfieldColour : _backgroundColour;
 	pixel[0] = palette[outputColour >> 4][0];
 	pixel[1] = palette[outputColour >> 4][1];
 	pixel[2] = palette[outputColour >> 4][2];
-	pixel[3] = (outputColour & 14) << 4;
+	pixel[3] = alphaValues[(outputColour >> 1)&7];
 }
 
 void Machine::output_pixels(int count)
