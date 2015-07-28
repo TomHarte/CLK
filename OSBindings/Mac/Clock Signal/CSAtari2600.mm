@@ -14,7 +14,7 @@
 @end
 
 struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
-	CSAtari2600 *atari;
+	__weak CSAtari2600 *atari;
 	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame) { [atari crtDidEndFrame:frame]; }
 };
 
@@ -60,10 +60,6 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	}
 
 	return self;
-}
-
-- (void)dealloc {
-	NSLog(@"");
 }
 
 @end
