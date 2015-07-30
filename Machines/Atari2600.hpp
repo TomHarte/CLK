@@ -50,6 +50,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _missileGraphicsEnable[2];
 		uint8_t _ballGraphicsEnable;
 		uint8_t _playerPosition[2], _missilePosition[2], _ballPosition;
+		uint8_t _playerMotion[2], _missileMotion[2], _ballMotion;
 
 		// graphics output
 		int32_t _horizontalTimer;

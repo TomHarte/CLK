@@ -39,6 +39,8 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	const int lowestBit = (byte&1)^1;
 	const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
 
+//	printf("%d -> %d -> %d -> %d/%d\n", offset, x, index, byte, bit);
+
 	uint8_t playFieldPixel = (_playfield[byte] >> bit)&1;
 
 	const uint8_t palette[16][3] =
@@ -62,8 +64,19 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	uint8_t outputColour = playFieldPixel ? playfieldColour : _backgroundColour;
 
-	if(_horizontalTimer == _playerPosition[0]) outputColour = _player0Colour;
-	if(_horizontalTimer == _playerPosition[1]) outputColour = _player1Colour;
+	if(!playFieldPixel || !(_playfieldControl&0x04))
+	{
+		uint8_t playerOneBit = 0;
+		if(_horizontalTimer <= _playerPosition[0] && _horizontalTimer > _playerPosition[0] - 8) {
+			playerOneBit = _playerGraphics[0] >> ((_playerPosition[0] - _horizontalTimer) ^ ((_playerReflection[0]&0x8) ? 0 : 7));
+			if(playerOneBit&1) outputColour = _player0Colour;
+		}
+
+		if(_horizontalTimer <= _playerPosition[1] && _horizontalTimer > _playerPosition[1] - 8) {
+			playerOneBit = _playerGraphics[1] >> ((_playerPosition[1] - _horizontalTimer) ^ ((_playerReflection[1]&0x8) ? 0 : 7));
+			if(playerOneBit&1) outputColour = _player1Colour;
+		}
+	}
 
 	pixel[0] = palette[outputColour >> 4][0];
 	pixel[1] = palette[outputColour >> 4][1];
@@ -158,14 +171,14 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	if (!(address&0x1080)) {
 		if(isReadOperation(operation)) {
 			switch(address & 0xf) {
-				case 0x00:	*value = 0x3f;	break;
-				case 0x01:	*value = 0x3f;	break;
-				case 0x02:	*value = 0x3f;	break;
-				case 0x03:	*value = 0x3f;	break;
-				case 0x04:	*value = 0x3f;	break;
-				case 0x05:	*value = 0x3f;	break;
-				case 0x06:	*value = 0x7f;	break;
-				case 0x07:	*value = 0x3f;	break;
+				case 0x00:	returnValue &= 0x3f;	break;	// missile 0 / player collisions
+				case 0x01:	returnValue &= 0x3f;	break;	// missile 1 / player collisions
+				case 0x02:	returnValue &= 0x3f;	break;	// player 0 / playfield / ball collisions
+				case 0x03:	returnValue &= 0x3f;	break;	// player 1 / playfield / ball collisions
+				case 0x04:	returnValue &= 0x3f;	break;	// missile 0 / playfield / ball collisions
+				case 0x05:	returnValue &= 0x3f;	break;	// missile 1 / playfield / ball collisions
+				case 0x06:	returnValue &= 0x7f;	break;	// ball / playfield collisions
+				case 0x07:	returnValue &= 0x3f;	break;	// player / player, missile / missile collisions
 			}
 		} else {
 			switch(address & 0x3f) {
@@ -173,8 +186,8 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 0x02: {
-					cycle_count = _horizontalTimer / 3;
-					output_pixels(3 * cycle_count);
+					cycle_count += (_horizontalTimer / 3)+3;
+					output_pixels(_horizontalTimer+1);
 				} break;
 				case 0x03: _horizontalTimer = 227; break;
 
@@ -204,6 +217,21 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x1d: _missileGraphicsEnable[0] = *value;	break;
 				case 0x1e: _missileGraphicsEnable[1] = *value;	break;
 				case 0x1f: _ballGraphicsEnable = *value;		break;
+
+				case 0x20: _playerMotion[0] = *value;			break;
+				case 0x21: _playerMotion[1] = *value;			break;
+				case 0x22: _missileMotion[0] = *value;			break;
+				case 0x23: _missileMotion[1] = *value;			break;
+				case 0x24: _ballMotion = *value;				break;
+
+				case 0x2a:
+					_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;
+					_playerPosition[1] += (int8_t)_playerMotion[1] >> 4;
+					_missilePosition[0] += (int8_t)_missileMotion[0] >> 4;
+					_missilePosition[1] += (int8_t)_missileMotion[1] >> 4;
+					_ballPosition += (int8_t)_ballMotion >> 4;
+				break;
+				case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
 			}
 		}
 //		printf("Uncaught TIA %04x\n", address);
@@ -213,6 +241,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	if ((address&0x1280) == 0x280) {
 		if(isReadOperation(operation)) {
 			switch(address & 0xf) {
+//				case 0x00:
 				case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift; break;
 			}
 		} else {
