@@ -31,6 +31,22 @@ Machine::~Machine()
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
+	const uint8_t palette[16][3] =
+	{
+		{255, 255, 255},	{253, 250, 115},	{236, 199, 125},	{252, 187, 151},
+		{252, 180, 181},	{235, 177, 223},	{211, 178, 250},	{187, 182, 250},
+		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
+		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
+	};
+	const uint8_t alphaValues[8] =
+	{
+		//		0, 64, 108, 144, 176, 200, 220, 255
+		//	};
+		//
+		//	{
+		69, 134, 108, 161, 186, 210, 235, 255
+	};
+
 	// get the playfield pixel
 	const int x = offset >> 2;
 	const int mirrored = (x / 20) & (_playfieldControl&1);
@@ -41,41 +57,56 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 //	printf("%d -> %d -> %d -> %d/%d\n", offset, x, index, byte, bit);
 
-	uint8_t playFieldPixel = (_playfield[byte] >> bit)&1;
-
-	const uint8_t palette[16][3] =
-	{
-		{255, 255, 255},	{253, 250, 115},	{236, 199, 125},	{252, 187, 151},
-		{252, 180, 181},	{235, 177, 223},	{211, 178, 250},	{187, 182, 250},
-		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
-		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
-	};
-	const uint8_t alphaValues[8] =
-	{
-//		0, 64, 108, 144, 176, 200, 220, 255
-//	};
-//
-//	{
-		69, 134, 108, 161, 186, 210, 235, 255
-	};
+	uint8_t playfieldPixel = (_playfield[byte] >> bit)&1;
 
 	// TODO: almost everything!
-	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? ((x < 20) ? _player0Colour : _player1Colour) : _playfieldColour;
+	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[x / 20] : _playfieldColour;
+	uint8_t playerPixels[2];
 
-	uint8_t outputColour = playFieldPixel ? playfieldColour : _backgroundColour;
-
-	if(!playFieldPixel || !(_playfieldControl&0x04))
+	for(int c = 0; c < 2; c++)
 	{
-		uint8_t playerOneBit = 0;
-		if(_horizontalTimer <= _playerPosition[0] && _horizontalTimer > _playerPosition[0] - 8) {
-			playerOneBit = _playerGraphics[0] >> ((_playerPosition[0] - _horizontalTimer) ^ ((_playerReflection[0]&0x8) ? 0 : 7));
-			if(playerOneBit&1) outputColour = _player0Colour;
+		int flipMask = (_playerReflection[c]&0x8) ? 7 : 0;
+
+		int relativeTimer = _playerPosition[c] - _horizontalTimer;
+		switch (_playerAndMissileSize[c]&7)
+		{
+			case 0: break;
+			case 1:
+				if (relativeTimer >= 16) relativeTimer -= 16;
+			break;
+			case 2:
+				if (relativeTimer >= 32) relativeTimer -= 32;
+			break;
+			case 3:
+				if (relativeTimer >= 32) relativeTimer -= 32;
+				else if (relativeTimer >= 16) relativeTimer -= 16;
+			break;
+			case 4:
+				if (relativeTimer >= 64) relativeTimer -= 64;
+			break;
+			case 5:
+				relativeTimer >>= 1;
+			break;
+			case 6:
+				if (relativeTimer >= 64) relativeTimer -= 64;
+				else if (relativeTimer >= 32) relativeTimer -= 32;
+			break;
+			case 7:
+				relativeTimer >>= 2;
+			break;
 		}
 
-		if(_horizontalTimer <= _playerPosition[1] && _horizontalTimer > _playerPosition[1] - 8) {
-			playerOneBit = _playerGraphics[1] >> ((_playerPosition[1] - _horizontalTimer) ^ ((_playerReflection[1]&0x8) ? 0 : 7));
-			if(playerOneBit&1) outputColour = _player1Colour;
-		}
+		if(relativeTimer < 8)
+			playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
+		else
+			playerPixels[c] = 0;
+	}
+
+	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
+
+	if(_playfieldControl&0x04 || !playfieldPixel) {
+		if (playerPixels[0]) outputColour = _playerColour[0];
+		if (playerPixels[1]) outputColour = _playerColour[1];
 	}
 
 	pixel[0] = palette[outputColour >> 4][0];
@@ -194,8 +225,8 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x04: _playerAndMissileSize[0] = *value;	break;
 				case 0x05: _playerAndMissileSize[1] = *value;	break;
 
-				case 0x06: _player0Colour = *value;		break;
-				case 0x07: _player1Colour = *value;		break;
+				case 0x06: _playerColour[0] = *value;	break;
+				case 0x07: _playerColour[1] = *value;	break;
 				case 0x08: _playfieldColour = *value;	break;
 				case 0x09: _backgroundColour = *value;	break;
 

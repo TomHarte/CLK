@@ -40,8 +40,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// graphics registers
 		uint8_t _playfield[3], _playfieldControl;
-		uint8_t _player0Colour;
-		uint8_t _player1Colour;
+		uint8_t _playerColour[2];
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
 		uint8_t _playerAndMissileSize[2];
