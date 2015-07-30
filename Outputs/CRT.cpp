@@ -428,9 +428,9 @@ void CRTFrameBuilder::allocate_write_area(int required_length)
 		frame.dirty_size.height++;
 	}
 
-	_write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
 	_write_x_position = _next_write_x_position;
 	_write_y_position = _next_write_y_position;
+    _write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
 	_next_write_x_position += required_length;
 	frame.dirty_size.width = std::max(frame.dirty_size.width, _next_write_x_position);
 }
