@@ -22,6 +22,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
+	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
 
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;// + (height_of_display / 10);
@@ -105,14 +106,10 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 	int proposedSyncTime = cycles_to_run_for;
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
-//	if (!_vretrace_counter)
-//	{
-//		float raster_distance = _scanSpeed.y * proposedSyncTime;
-//		if(_rasterPosition.y < 1.02f && _rasterPosition.y + raster_distance >= 1.02f) {
-//			proposedSyncTime = (int)(1.02f - _rasterPosition.y) / _scanSpeed.y;
-//			proposedEvent = SyncEvent::StartVSync;
-//		}
-//	}
+	if (!_vretrace_counter && _rasterPosition.y == 0xffffffff) {
+		proposedSyncTime = 0;
+		proposedEvent = SyncEvent::StartVSync;
+	}
 
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_charging && !_vretrace_counter) {
@@ -430,7 +427,7 @@ void CRTFrameBuilder::allocate_write_area(int required_length)
 
 	_write_x_position = _next_write_x_position;
 	_write_y_position = _next_write_y_position;
-    _write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
+	_write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
 	_next_write_x_position += required_length;
 	frame.dirty_size.width = std::max(frame.dirty_size.width, _next_write_x_position);
 }

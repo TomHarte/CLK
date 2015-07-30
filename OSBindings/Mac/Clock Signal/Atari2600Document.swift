@@ -11,7 +11,7 @@ import Cocoa
 class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 
 	override init() {
-	    super.init()
+		super.init()
 		// Add your subclass-specific initialization here.
 	}
 

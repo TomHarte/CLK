@@ -20,7 +20,7 @@ Machine::Machine()
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228, 256, 1, 4);
-    _piaTimerStatus = 0xff;
+	_piaTimerStatus = 0xff;
 
 	reset();
 }
@@ -273,12 +273,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	if ((address&0x1280) == 0x280) {
 		if(isReadOperation(operation)) {
 			switch(address & 0xf) {
-				case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift;             break;
-                case 0x05: returnValue &= _piaTimerStatus; _piaTimerStatus &= ~0x40;    break;
+				case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift;				break;
+				case 0x05: returnValue &= _piaTimerStatus; _piaTimerStatus &= ~0x40;	break;
 			}
 		} else {
 			switch(address & 0x0f) {
-                case 0x04:	_piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
+				case 0x04:	_piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
 				case 0x05:	_piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
 				case 0x06:	_piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
 				case 0x07:	_piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
@@ -291,13 +291,13 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 		*value = returnValue;
 	}
 
-    if(_piaTimerValue < cycle_count) {
-        _piaTimerValue = 0x100 - cycle_count + _piaTimerValue;
-        _piaTimerShift = 0;
-        _piaTimerStatus |= 0xc0;
-    }
-    else
-        _piaTimerValue -= cycle_count;
+	if(_piaTimerValue < cycle_count) {
+		_piaTimerValue = 0x100 - cycle_count + _piaTimerValue;
+		_piaTimerShift = 0;
+		_piaTimerStatus |= 0xc0;
+	}
+	else
+		_piaTimerValue -= cycle_count;
 
 	return cycle_count;
 }
