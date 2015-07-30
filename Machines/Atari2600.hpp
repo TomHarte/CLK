@@ -37,6 +37,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		// the timer
 		unsigned int _piaTimerValue;
 		unsigned int _piaTimerShift;
+        uint8_t _piaTimerStatus;
 
 		// graphics registers
 		uint8_t _playfield[3], _playfieldControl;
