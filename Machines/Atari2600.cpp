@@ -65,7 +65,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	for(int c = 0; c < 2; c++)
 	{
-		int flipMask = (_playerReflection[c]&0x8) ? 7 : 0;
+		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
 		int relativeTimer = _playerPosition[c] - _horizontalTimer;
 		switch (_playerAndMissileSize[c]&7)
@@ -96,7 +96,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			break;
 		}
 
-		if(relativeTimer < 8)
+		if(relativeTimer >= 0 && relativeTimer < 8)
 			playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
 		else
 			playerPixels[c] = 0;
