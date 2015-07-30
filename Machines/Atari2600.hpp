@@ -44,6 +44,12 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _player1Colour;
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
+		uint8_t _playerAndMissileSize[2];
+		uint8_t _playerReflection[2];
+		uint8_t _playerGraphics[2];
+		uint8_t _missileGraphicsEnable[2];
+		uint8_t _ballGraphicsEnable;
+		uint8_t _playerPosition[2], _missilePosition[2], _ballPosition;
 
 		// graphics output
 		int32_t _horizontalTimer;

@@ -59,7 +59,12 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	// TODO: almost everything!
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? ((x < 20) ? _player0Colour : _player1Colour) : _playfieldColour;
+
 	uint8_t outputColour = playFieldPixel ? playfieldColour : _backgroundColour;
+
+	if(_horizontalTimer == _playerPosition[0]) outputColour = _player0Colour;
+	if(_horizontalTimer == _playerPosition[1]) outputColour = _player1Colour;
+
 	pixel[0] = palette[outputColour >> 4][0];
 	pixel[1] = palette[outputColour >> 4][1];
 	pixel[2] = palette[outputColour >> 4][2];
@@ -164,24 +169,41 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 			}
 		} else {
 			switch(address & 0x3f) {
-				case 0:	_vSyncEnabled = !!(*value & 0x02);	break;
-				case 1:	_vBlankEnabled = !!(*value & 0x02);	break;
+				case 0x00:	_vSyncEnabled = !!(*value & 0x02);	break;
+				case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
-				case 2: {
+				case 0x02: {
 					cycle_count = _horizontalTimer / 3;
 					output_pixels(3 * cycle_count);
 				} break;
-				case 3: _horizontalTimer = 227; break;
+				case 0x03: _horizontalTimer = 227; break;
+
+				case 0x04: _playerAndMissileSize[0] = *value;	break;
+				case 0x05: _playerAndMissileSize[1] = *value;	break;
 
 				case 0x06: _player0Colour = *value;		break;
 				case 0x07: _player1Colour = *value;		break;
 				case 0x08: _playfieldColour = *value;	break;
 				case 0x09: _backgroundColour = *value;	break;
 
-				case 0x0a: _playfieldControl = *value;	break;
-				case 0x0d: _playfield[0] = *value;		break;
-				case 0x0e: _playfield[1] = *value;		break;
-				case 0x0f: _playfield[2] = *value;		break;
+				case 0x0a: _playfieldControl = *value;		break;
+				case 0x0b: _playerReflection[0] = *value;	break;
+				case 0x0c: _playerReflection[1] = *value;	break;
+				case 0x0d: _playfield[0] = *value;			break;
+				case 0x0e: _playfield[1] = *value;			break;
+				case 0x0f: _playfield[2] = *value;			break;
+
+				case 0x10: _playerPosition[0] = _horizontalTimer;	break;
+				case 0x11: _playerPosition[1] = _horizontalTimer;	break;
+				case 0x12: _missilePosition[0] = _horizontalTimer;	break;
+				case 0x13: _missilePosition[1] = _horizontalTimer;	break;
+				case 0x14: _ballPosition = _horizontalTimer;		break;
+
+				case 0x1b: _playerGraphics[0] = *value;			break;
+				case 0x1c: _playerGraphics[1] = *value;			break;
+				case 0x1d: _missileGraphicsEnable[0] = *value;	break;
+				case 0x1e: _missileGraphicsEnable[1] = *value;	break;
+				case 0x1f: _ballGraphicsEnable = *value;		break;
 			}
 		}
 //		printf("Uncaught TIA %04x\n", address);
