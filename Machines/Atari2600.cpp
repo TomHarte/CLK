@@ -217,8 +217,8 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 0x02: {
-					cycle_count += (_horizontalTimer / 3)+1;
-					output_pixels(_horizontalTimer+3);
+					cycle_count += ((_horizontalTimer+4) / 3);
+					output_pixels(_horizontalTimer+4);
 				} break;
 				case 0x03: _horizontalTimer = 227; break;
 
