@@ -119,7 +119,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
 			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
 
-			if(proposed_sync_y > (kCRTFixedPointRange * 15) >> 4) {
+			if(proposed_sync_y > (kCRTFixedPointRange * 7) >> 3) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 				proposedEvent = SyncEvent::StartVSync;
 			}
