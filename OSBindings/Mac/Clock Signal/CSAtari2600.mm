@@ -28,8 +28,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 - (void)crtDidEndFrame:(CRTFrame *)frame {
 
 	dispatch_async(dispatch_get_main_queue(), ^{
-		BOOL hasReturn = !!self.view.crtFrame;
-		self.view.crtFrame = frame;
+		BOOL hasReturn = [self.view pushFrame:frame];
 
 		if(hasReturn)
 			dispatch_async(_serialDispatchQueue, ^{

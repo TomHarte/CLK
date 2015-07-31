@@ -12,11 +12,12 @@
 
 using namespace Atari2600;
 static const char atari2600DataType[] = "Atari2600";
+static const int horizontalTimerReload = 227;
 
 Machine::Machine()
 {
 	_timestamp = 0;
-	_horizontalTimer = 227;
+	_horizontalTimer = horizontalTimerReload;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228, 312, 1, 4);
@@ -187,7 +188,7 @@ void Machine::output_pixels(int count)
 		// an attempt to avoid both the % operator and a conditional
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
-		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&227);
+		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
 	}
 }
 
@@ -196,7 +197,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	uint8_t returnValue = 0xff;
 
 	output_pixels(3);
-	if(_horizontalTimer == 227)
+	if(_horizontalTimer == horizontalTimerReload)
 		set_ready_line(false);
 
 	if(operation != CPU6502::BusOperation::Ready) {
@@ -236,7 +237,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x02: {
 						set_ready_line(true);
 					} break;
-					case 0x03: _horizontalTimer = 227; break;
+					case 0x03: _horizontalTimer = horizontalTimerReload; break;
 
 					case 0x04: _playerAndMissileSize[0] = *value;	break;
 					case 0x05: _playerAndMissileSize[1] = *value;	break;

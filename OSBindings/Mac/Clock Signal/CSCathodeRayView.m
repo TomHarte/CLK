@@ -22,6 +22,8 @@
 
 	GLuint _textureName;
 	CRTSize _textureSize;
+
+	CRTFrame *_crtFrame;
 }
 
 - (void)prepareOpenGL
@@ -50,7 +52,7 @@
 	CVDisplayLinkStart(displayLink);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ZERO);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 }
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
@@ -116,7 +118,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.wantsBestResolutionOpenGLSurface = YES;
 }
 
-- (void)setCrtFrame:(CRTFrame *)crtFrame
+
+- (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame
 {
 	_crtFrame = crtFrame;
 	[self setNeedsDisplay:YES];
@@ -136,6 +139,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		else
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 	}
+
+	return YES;
 }
 
 #pragma mark - Frame output
@@ -153,7 +158,7 @@ const char *vertexShader =
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, (srcCoordinates.y + 0.5) / 512.0);\n"
+		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, srcCoordinates.y / 512.0);\n"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
 	"}\n";
 
@@ -167,7 +172,7 @@ const char *fragmentShader =
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = texture(texID, srcCoordinatesVarying);\n"	// vec4(1.0, 1.0, 1.0, 0.5)
+		"fragColour = texture(texID, srcCoordinatesVarying) * sin(mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668);\n"	// vec4(1.0, 1.0, 1.0, 0.5)
 	"}\n";
 
 #if defined(DEBUG)

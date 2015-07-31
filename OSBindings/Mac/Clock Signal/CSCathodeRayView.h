@@ -19,8 +19,9 @@
 @interface CSCathodeRayView : NSOpenGLView
 
 @property (nonatomic, weak) id <CSCathodeRayViewDelegate> delegate;
-@property (nonatomic, assign, nullable) CRTFrame *crtFrame;
 
 - (void)invalidate;
+
+- (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame;
 
 @end

@@ -44,7 +44,7 @@ struct CRTFrameBuilder {
 		int _write_target_pointer;
 };
 
-static const int kCRTNumberOfFrames = 3;
+static const int kCRTNumberOfFrames = 4;
 
 class CRT {
 	public:

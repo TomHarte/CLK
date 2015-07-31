@@ -12,8 +12,8 @@
 
 using namespace Outputs;
 
-static const uint32_t kCRTFixedPointRange	= 0xf8ffffff;
-static const uint32_t kCRTFixedPointOffset	= 0x00800000;
+static const uint32_t kCRTFixedPointRange	= 0xefffffff;
+static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
@@ -58,7 +58,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 
 	// width should be 1.0 / _height_of_display, rotated to match the direction
 	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 1.9f;
+	float halfLineWidth = (float)_height_of_display * 1.6f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
 
@@ -66,7 +66,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	// number of buffers, size of buffer 1, size of buffer 2...
 	const int bufferWidth = 512;
 	const int bufferHeight = 512;
-	for(int frame = 0; frame < 3; frame++)
+	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
 	{
 		va_list va;
 		va_start(va, number_of_buffers);
@@ -95,7 +95,7 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 
 CRT::~CRT()
 {
-	for(int frame = 0; frame < 3; frame++)
+	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
 	{
 		delete _frame_builders[frame];
 	}
@@ -119,7 +119,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
 			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
 
-			if(proposed_sync_y > (kCRTFixedPointRange * 7) >> 3) {
+			if(proposed_sync_y > (kCRTFixedPointRange * 15) >> 4) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 				proposedEvent = SyncEvent::StartVSync;
 			}
@@ -208,7 +208,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			next_run[5] = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
 
 			next_run[2] = next_run[6] = next_run[22] = tex_x;
-			next_run[3] = next_run[7] = next_run[23] = tex_y;
+			next_run[3] = next_run[23] = tex_y;
+			next_run[7] = tex_y + 1;
 		}
 
 		// advance the raster position as dictated by current sync status
@@ -236,7 +237,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 			// if this is a data or level run then store the end point
 			next_run[10] = next_run[14] = next_run[18] = tex_x;
-			next_run[11] = next_run[15] = next_run[19] = tex_y;
+			next_run[11] = next_run[15] = tex_y + 1;
+			next_run[19] = tex_y;
 		}
 
 		// decrement the number of cycles left to run for and increment the
