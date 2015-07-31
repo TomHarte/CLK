@@ -61,7 +61,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _missileMotion[2];
 
 		// ball registers
-		uint8_t _ballGraphicsEnable;
+		uint8_t _ballGraphicsEnable, _ballGraphicsEnableLatch;
 		uint8_t _ballPosition;
 		uint8_t _ballMotion;
 		uint8_t _ballGraphicsEnableDelay;

@@ -254,18 +254,22 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x13: _missilePosition[1] = _horizontalTimer;	break;
 				case 0x14: _ballPosition = _horizontalTimer;		break;
 
-				case 0x1b:
-				case 0x1c: {
+				case 0x1c:
+					_ballGraphicsEnable = _ballGraphicsEnableLatch;
+				case 0x1b: {
 					int index = (address & 0x3f) - 0x1b;
 					_playerGraphicsLatch[index] = *value;
 					if(!(_playerGraphicsLatchEnable[index]&1))
 						_playerGraphics[index] = _playerGraphicsLatch[index];
-					if(_playerGraphicsLatchEnable[index^1]&1)
-						_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
+					_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
 				} break;
 				case 0x1d: _missileGraphicsEnable[0] = *value;	break;
 				case 0x1e: _missileGraphicsEnable[1] = *value;	break;
-				case 0x1f: _ballGraphicsEnable = *value;		break;
+				case 0x1f:
+					_ballGraphicsEnableLatch = *value;
+					if(!(_ballGraphicsEnableDelay&1))
+						_ballGraphicsEnable = _ballGraphicsEnableLatch;
+				break;
 
 				case 0x20: _playerMotion[0] = *value;			break;
 				case 0x21: _playerMotion[1] = *value;			break;
