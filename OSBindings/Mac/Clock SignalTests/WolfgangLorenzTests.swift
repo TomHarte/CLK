@@ -10,29 +10,29 @@ import XCTest
 import Foundation
 
 class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
-    
-    func testWolfgangLorenzStart()	{
+	
+	func testWolfgangLorenzStart()	{
 		self.runWolfgangLorenzTest(" start")
 	}
-    func testWolfgangLorenzLDA()	{
+	func testWolfgangLorenzLDA()	{
 		self.runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzSTA()	{
+	func testWolfgangLorenzSTA()	{
 		self.runWolfgangLorenzTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzLDX()	{
+	func testWolfgangLorenzLDX()	{
 		self.runWolfgangLorenzTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"])
 	}
-    func testWolfgangLorenzSTX()	{
+	func testWolfgangLorenzSTX()	{
 		self.runWolfgangLorenzTest("stx", suffixes: ["z", "zy", "a"])
 	}
-    func testWolfgangLorenzLDY()	{
+	func testWolfgangLorenzLDY()	{
 		self.runWolfgangLorenzTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzSTY()	{
+	func testWolfgangLorenzSTY()	{
 		self.runWolfgangLorenzTest("sty", suffixes: ["z", "zx", "a"])
 	}
-    func testWolfgangLorenzTransfers()	{
+	func testWolfgangLorenzTransfers()	{
 		self.runWolfgangLorenzTest("taxn")
 		self.runWolfgangLorenzTest("tayn")
 		self.runWolfgangLorenzTest("txan")
@@ -40,13 +40,13 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		self.runWolfgangLorenzTest("tsxn")
 		self.runWolfgangLorenzTest("txsn")
 	}
-    func testWolfgangLorenzStack()	{
+	func testWolfgangLorenzStack()	{
 		self.runWolfgangLorenzTest("phan")
 		self.runWolfgangLorenzTest("plan")
 		self.runWolfgangLorenzTest("phpn")
 		self.runWolfgangLorenzTest("plpn")
 	}
-    func testWolfgangLorenzIncsAndDecs()	{
+	func testWolfgangLorenzIncsAndDecs()	{
 		self.runWolfgangLorenzTest("inxn")
 		self.runWolfgangLorenzTest("inyn")
 		self.runWolfgangLorenzTest("dexn")
@@ -60,28 +60,28 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		self.runWolfgangLorenzTest("deca")
 		self.runWolfgangLorenzTest("decax")
 	}
-    func testWolfgangLorenzASL()	{
+	func testWolfgangLorenzASL()	{
 		self.runWolfgangLorenzTest("asl", suffixes: ["n", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzLSR()	{
+	func testWolfgangLorenzLSR()	{
 		self.runWolfgangLorenzTest("lsr", suffixes: ["n", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzROL()	{
+	func testWolfgangLorenzROL()	{
 		self.runWolfgangLorenzTest("rol", suffixes: ["n", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzROR()	{
+	func testWolfgangLorenzROR()	{
 		self.runWolfgangLorenzTest("ror", suffixes: ["n", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzAND()	{
+	func testWolfgangLorenzAND()	{
 		self.runWolfgangLorenzTest("and", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzORA()	{
+	func testWolfgangLorenzORA()	{
 		self.runWolfgangLorenzTest("ora", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzEOR()	{
+	func testWolfgangLorenzEOR()	{
 		self.runWolfgangLorenzTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzFlagManipulation()	{
+	func testWolfgangLorenzFlagManipulation()	{
 		self.runWolfgangLorenzTest("clcn")
 		self.runWolfgangLorenzTest("secn")
 		self.runWolfgangLorenzTest("cldn")
@@ -90,21 +90,21 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		self.runWolfgangLorenzTest("sein")
 		self.runWolfgangLorenzTest("clvn")
 	}
-    func testWolfgangLorenzADC()	{
+	func testWolfgangLorenzADC()	{
 		self.runWolfgangLorenzTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzSBC()	{
+	func testWolfgangLorenzSBC()	{
 		self.runWolfgangLorenzTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzCompare()	{
+	func testWolfgangLorenzCompare()	{
 		self.runWolfgangLorenzTest("cmp", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"])
 		self.runWolfgangLorenzTest("cpx", suffixes: ["b", "z", "a"])
 		self.runWolfgangLorenzTest("cpy", suffixes: ["b", "z", "a"])
 	}
-    func testWolfgangLorenzBIT()	{
+	func testWolfgangLorenzBIT()	{
 		self.runWolfgangLorenzTest("bit", suffixes: ["z", "a"])
 	}
-    func testWolfgangLorenzFlow()	{
+	func testWolfgangLorenzFlow()	{
 		self.runWolfgangLorenzTest("brkn")
 		self.runWolfgangLorenzTest("rtin")
 		self.runWolfgangLorenzTest("jsrw")
@@ -112,7 +112,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		self.runWolfgangLorenzTest("jmpw")
 		self.runWolfgangLorenzTest("jmpi")
 	}
-    func testWolfgangLorenzBranch()	{
+	func testWolfgangLorenzBranch()	{
 		self.runWolfgangLorenzTest("beqr")
 		self.runWolfgangLorenzTest("bner")
 		self.runWolfgangLorenzTest("bmir")
@@ -122,67 +122,67 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		self.runWolfgangLorenzTest("bvsr")
 		self.runWolfgangLorenzTest("bvcr")
 	}
-    func testWolfgangLorenzNOP()	{
+	func testWolfgangLorenzNOP()	{
 		self.runWolfgangLorenzTest("nop", suffixes: ["n", "b", "z", "zx", "a", "ax"])
 	}
-    func testWolfgangLorenzASO()	{
+	func testWolfgangLorenzASO()	{
 		self.runWolfgangLorenzTest("aso", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzRLA()	{
+	func testWolfgangLorenzRLA()	{
 		self.runWolfgangLorenzTest("rla", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzLSE()	{
+	func testWolfgangLorenzLSE()	{
 		self.runWolfgangLorenzTest("lse", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzRRA()	{
+	func testWolfgangLorenzRRA()	{
 		self.runWolfgangLorenzTest("rra", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzDCM()	{
+	func testWolfgangLorenzDCM()	{
 		self.runWolfgangLorenzTest("dcm", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzINS()	{
+	func testWolfgangLorenzINS()	{
 		self.runWolfgangLorenzTest("ins", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzLAX()	{
+	func testWolfgangLorenzLAX()	{
 		self.runWolfgangLorenzTest("lax", suffixes: ["z", "zy", "a", "ay", "ix", "iy"])
 	}
-    func testWolfgangLorenzAXS()	{
+	func testWolfgangLorenzAXS()	{
 		self.runWolfgangLorenzTest("axs", suffixes: ["z", "zy", "a", "ix"])
 	}
-    func testWolfgangLorenzALR()	{
+	func testWolfgangLorenzALR()	{
 		self.runWolfgangLorenzTest("alrb")
 	}
-    func testWolfgangLorenzARR()	{
+	func testWolfgangLorenzARR()	{
 		self.runWolfgangLorenzTest("arrb")
 	}
-    func testWolfgangLorenzSBX()	{
+	func testWolfgangLorenzSBX()	{
 		self.runWolfgangLorenzTest("sbxb")
 	}
-    func testWolfgangLorenzSHA()	{
+	func testWolfgangLorenzSHA()	{
 		self.runWolfgangLorenzTest("sha", suffixes: ["ay", "iy"])
 	}
-    func testWolfgangLorenzSHX()	{
+	func testWolfgangLorenzSHX()	{
 		self.runWolfgangLorenzTest("shxay")
 	}
-    func testWolfgangLorenzSHY()	{
+	func testWolfgangLorenzSHY()	{
 		self.runWolfgangLorenzTest("shyax")
 	}
-    func testWolfgangLorenzSHS()	{
+	func testWolfgangLorenzSHS()	{
 		self.runWolfgangLorenzTest("shsay")
 	}
-    func testWolfgangLorenzLXA()	{
+	func testWolfgangLorenzLXA()	{
 		self.runWolfgangLorenzTest("lxab")
 	}
-    func testWolfgangLorenzANE()	{
+	func testWolfgangLorenzANE()	{
 		self.runWolfgangLorenzTest("aneb")
 	}
-    func testWolfgangLorenzANC()	{
+	func testWolfgangLorenzANC()	{
 		self.runWolfgangLorenzTest("ancb")
 	}
-    func testWolfgangLorenzLAS()	{
+	func testWolfgangLorenzLAS()	{
 		self.runWolfgangLorenzTest("lasay")
 	}
-    func testWolfgangLorenzSBCB()	{
+	func testWolfgangLorenzSBCB()	{
 		self.runWolfgangLorenzTest("sbcb(eb)")
 	}
 
@@ -193,138 +193,138 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		}
 	}
 
-    private var output: String = ""
-    private func runWolfgangLorenzTest(name: String) {
+	private var output: String = ""
+	private func runWolfgangLorenzTest(name: String) {
 
 		var machine: CSTestMachine!
 
-        if let filename = NSBundle(forClass: self.dynamicType).pathForResource(name, ofType: nil) {
-            if let testData = NSData(contentsOfFile: filename) {
+		if let filename = NSBundle(forClass: self.dynamicType).pathForResource(name, ofType: nil) {
+			if let testData = NSData(contentsOfFile: filename) {
 
 				machine = CSTestMachine()
 				machine.jamHandler = self
 //				machine.logActivity = true
 				output = ""
 
-                let dataPointer = UnsafePointer<UInt8>(testData.bytes)
-                let loadAddress = UInt16(dataPointer[0]) | (UInt16(dataPointer[1]) << 8)
-                let contents = testData.subdataWithRange(NSMakeRange(2, testData.length - 2))
+				let dataPointer = UnsafePointer<UInt8>(testData.bytes)
+				let loadAddress = UInt16(dataPointer[0]) | (UInt16(dataPointer[1]) << 8)
+				let contents = testData.subdataWithRange(NSMakeRange(2, testData.length - 2))
 
-                machine.setData(contents, atAddress: loadAddress)
+				machine.setData(contents, atAddress: loadAddress)
 
-                machine.setValue(0x00, forAddress: 0x0002)
-                machine.setValue(0x00, forAddress: 0xa002)
-                machine.setValue(0x80, forAddress: 0xa003)
-                machine.setValue(0xff, forAddress: 0x01fe)
-                machine.setValue(0x7f, forAddress: 0x01ff)
-                machine.setValue(0x48, forAddress: 0xfffe)
-                machine.setValue(0xff, forAddress: 0xffff)
+				machine.setValue(0x00, forAddress: 0x0002)
+				machine.setValue(0x00, forAddress: 0xa002)
+				machine.setValue(0x80, forAddress: 0xa003)
+				machine.setValue(0xff, forAddress: 0x01fe)
+				machine.setValue(0x7f, forAddress: 0x01ff)
+				machine.setValue(0x48, forAddress: 0xfffe)
+				machine.setValue(0xff, forAddress: 0xffff)
 
-                let irqHandler = NSData(bytes: [
-                    0x48, 0x8a, 0x48, 0x98, 0x48, 0xba, 0xbd, 0x04, 0x01,
-                    0x29, 0x10, 0xf0, 0x03, 0x6c, 0x16, 0x03, 0x6c, 0x14, 0x03
-                ] as [UInt8], length: 19)
-                machine.setData( irqHandler, atAddress: 0xff48)
+				let irqHandler = NSData(bytes: [
+					0x48, 0x8a, 0x48, 0x98, 0x48, 0xba, 0xbd, 0x04, 0x01,
+					0x29, 0x10, 0xf0, 0x03, 0x6c, 0x16, 0x03, 0x6c, 0x14, 0x03
+				] as [UInt8], length: 19)
+				machine.setData( irqHandler, atAddress: 0xff48)
 
-                machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2);  // print character
-                machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f);  // load
-                machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4);  // scan keyboard
-                machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000);  // exit
-                machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474);  // exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2);  // print character
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f);  // load
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4);  // scan keyboard
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000);  // exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474);  // exit
 
-                machine.setValue(0x0801, forRegister: CSTestMachineRegister.ProgramCounter)
-                machine.setValue(0xfd, forRegister: CSTestMachineRegister.StackPointer)
-                machine.setValue(0x04, forRegister: CSTestMachineRegister.Flags)
-            }
-        }
+				machine.setValue(0x0801, forRegister: CSTestMachineRegister.ProgramCounter)
+				machine.setValue(0xfd, forRegister: CSTestMachineRegister.StackPointer)
+				machine.setValue(0x04, forRegister: CSTestMachineRegister.Flags)
+			}
+		}
 
 		if machine == nil {
 			NSException(name: "Failed Test", reason: "Couldn't load file \(name)", userInfo: nil).raise()
 		}
 
-        while !machine.isJammed {
-            machine.runForNumberOfCycles(1000)
-        }
+		while !machine.isJammed {
+			machine.runForNumberOfCycles(1000)
+		}
 
 		let jammedPC = machine.valueForRegister(CSTestMachineRegister.LastOperationAddress)
 		if jammedPC != 0xe16f {
 			let hexAddress = String(format:"%04x", jammedPC)
 			NSException(name: "Failed Test", reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
 		}
-    }
+	}
 
 // MARK: MachineJamHandler
 
-    func petsciiToString(string: String) -> String {
-        let petsciiToCharCommon: [String] = [
-            "?", "?", "?", "[RUN/STOP]", "?", "[WHT]", "?", "?", "[SHIFT DISABLE]", "[SHIFT ENABLE]", "?", "?", "?", "\r", "[TEXT MODE]", "?",
-            "?", "\n", "[RVS ON]", "[HOME]", "[DEL]", "?", "?", "?", "?", "?", "?", "?", "[RED]", "[RIGHT]", "[GRN]", "[BLU]",
+	func petsciiToString(string: String) -> String {
+		let petsciiToCharCommon: [String] = [
+			"?", "?", "?", "[RUN/STOP]", "?", "[WHT]", "?", "?", "[SHIFT DISABLE]", "[SHIFT ENABLE]", "?", "?", "?", "\r", "[TEXT MODE]", "?",
+			"?", "\n", "[RVS ON]", "[HOME]", "[DEL]", "?", "?", "?", "?", "?", "?", "?", "[RED]", "[RIGHT]", "[GRN]", "[BLU]",
 
-            " ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
-            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
-        ];
+			" ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
+		];
 
-        let petsciiToCharRegular: [String] = [
-            "@", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
-            "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "[", "£", "]", "↑", "←",
-        ]
-        let petsciiToCharInverse: [String] = [
-            "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-            "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "£", "]", "↑", "←",
-        ]
+		let petsciiToCharRegular: [String] = [
+			"@", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+			"p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "[", "£", "]", "↑", "←",
+		]
+		let petsciiToCharInverse: [String] = [
+			"@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+			"P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "£", "]", "↑", "←",
+		]
 
-        var result: String = ""
-        for character in string.utf16 {
-            let charInt: Int = Int(character)
+		var result: String = ""
+		for character in string.utf16 {
+			let charInt: Int = Int(character)
 
-            var stringToAppend = ""
+			var stringToAppend = ""
 
-            if charInt&0x7f < petsciiToCharCommon.count {
-                stringToAppend = petsciiToCharCommon[charInt&0x7f]
-            } else {
-                let lookupTable = (charInt > 0x80) ? petsciiToCharInverse : petsciiToCharRegular
-                let lookupIndex = (charInt&0x7f) - petsciiToCharCommon.count
-                if lookupIndex < lookupTable.count {
-                    stringToAppend = lookupTable[lookupIndex]
-                } else {
-                    stringToAppend += "!"
-                }
-            }
+			if charInt&0x7f < petsciiToCharCommon.count {
+				stringToAppend = petsciiToCharCommon[charInt&0x7f]
+			} else {
+				let lookupTable = (charInt > 0x80) ? petsciiToCharInverse : petsciiToCharRegular
+				let lookupIndex = (charInt&0x7f) - petsciiToCharCommon.count
+				if lookupIndex < lookupTable.count {
+					stringToAppend = lookupTable[lookupIndex]
+				} else {
+					stringToAppend += "!"
+				}
+			}
 
-            result += stringToAppend
-        }
+			result += stringToAppend
+		}
 
-        return result
-    }
+		return result
+	}
 
-    func testMachine(machine: CSTestMachine!, didJamAtAddress address: UInt16) {
+	func testMachine(machine: CSTestMachine!, didJamAtAddress address: UInt16) {
 
-        switch address {
-            case 0xffd2:
-                machine.setValue(0x00, forAddress: 0x030c)
+		switch address {
+			case 0xffd2:
+				machine.setValue(0x00, forAddress: 0x030c)
 
-                let character = machine.valueForRegister(CSTestMachineRegister.A)
-                output.append(Character(UnicodeScalar(character)))
+				let character = machine.valueForRegister(CSTestMachineRegister.A)
+				output.append(Character(UnicodeScalar(character)))
 
-                machine.returnFromSubroutine()
+				machine.returnFromSubroutine()
 
-            case 0xffe4:
-                machine.setValue(0x3, forRegister:CSTestMachineRegister.A)
-                machine.returnFromSubroutine()
+			case 0xffe4:
+				machine.setValue(0x3, forRegister:CSTestMachineRegister.A)
+				machine.returnFromSubroutine()
 
-            case 0x8000, 0xa474:
-                NSException(name: "Failed test", reason: self.petsciiToString(output), userInfo: nil).raise()
+			case 0x8000, 0xa474:
+				NSException(name: "Failed test", reason: self.petsciiToString(output), userInfo: nil).raise()
 
 			case 0x0000:
-                NSException(name: "Failed test", reason: "Execution hit 0000", userInfo: nil).raise()
+				NSException(name: "Failed test", reason: "Execution hit 0000", userInfo: nil).raise()
 
-            case 0xe16f:    // load next (which we consider to be success)
+			case 0xe16f:	// load next (which we consider to be success)
 			break;
 
-            default:
+			default:
 				let hexAddress = String(format:"%04x", address)
 				NSException(name: "Failed Test", reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
-        }
-    }
+		}
+	}
 
 }

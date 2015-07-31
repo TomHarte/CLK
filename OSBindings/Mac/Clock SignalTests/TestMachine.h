@@ -9,11 +9,11 @@
 #import <Foundation/Foundation.h>
 
 typedef NS_ENUM(NSInteger, CSTestMachineRegister) {
-    CSTestMachineRegisterLastOperationAddress,
-    CSTestMachineRegisterProgramCounter,
-    CSTestMachineRegisterStackPointer,
-    CSTestMachineRegisterFlags,
-    CSTestMachineRegisterA
+	CSTestMachineRegisterLastOperationAddress,
+	CSTestMachineRegisterProgramCounter,
+	CSTestMachineRegisterStackPointer,
+	CSTestMachineRegisterFlags,
+	CSTestMachineRegisterA
 };
 
 extern const uint8_t CSTestMachineJamOpcode;

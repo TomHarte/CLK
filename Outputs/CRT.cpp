@@ -12,8 +12,8 @@
 
 using namespace Outputs;
 
-static const uint32_t kCRTFixedPointRange	= 0xefffffff;
-static const uint32_t kCRTFixedPointOffset	= 0x08000000;
+static const uint32_t kCRTFixedPointRange	= 0xf8ffffff;
+static const uint32_t kCRTFixedPointOffset	= 0x00800000;
 
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
@@ -117,14 +117,17 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_charging && !_vretrace_counter) {
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
-			proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
-			proposedEvent = SyncEvent::StartVSync;
+			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
+
+			if(proposed_sync_y > (kCRTFixedPointRange * 15) >> 4) {
+				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
+				proposedEvent = SyncEvent::StartVSync;
+			}
 		 }
 	}
 
 	// will an ongoing vertical sync end?
 	if (_vretrace_counter > 0) {
-	//  && _rasterPosition.y > ((kCRTFixedPointRange * 3) >> 2))
 		if (_vretrace_counter < proposedSyncTime) {
 			proposedSyncTime = _vretrace_counter;
 			proposedEvent = SyncEvent::EndVSync;
