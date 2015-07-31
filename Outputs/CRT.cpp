@@ -146,7 +146,7 @@ CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycl
 			_did_detect_hsync = true;
 
 			int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
-			_expected_next_hsync = (_expected_next_hsync + time_now) >> 1;
+			_expected_next_hsync = (_expected_next_hsync + _expected_next_hsync + _expected_next_hsync + time_now) >> 2;
 		}
 	}
 
