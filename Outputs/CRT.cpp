@@ -20,7 +20,7 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 {
-	const int syncCapacityLineChargeThreshold = 5;
+	const int syncCapacityLineChargeThreshold = 3;
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
@@ -58,7 +58,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 
 	// width should be 1.0 / _height_of_display, rotated to match the direction
 	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 1.6f;
+	float halfLineWidth = (float)_height_of_display * 1.2f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
 }

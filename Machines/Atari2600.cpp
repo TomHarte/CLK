@@ -36,7 +36,6 @@ void Machine::switch_region()
 	_crt->set_new_timing(228, 312);
 }
 
-
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
 	const uint8_t palette[16][3] =
@@ -144,7 +143,7 @@ void Machine::output_pixels(int count)
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
 		// otherwise output a pixel
 		if(_vSyncEnabled) {
-			state = OutputState::Sync;
+			state = (_horizontalTimer < 212) ? OutputState::Sync : OutputState::Blank;
 		} else {
 
 			// blank is decoded as 68 counts; sync and colour burst as 16 counts
