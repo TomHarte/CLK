@@ -108,7 +108,7 @@ CRT::~CRT()
 
 #pragma mark - Sync loop
 
-CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
+CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced)
 {
 	SyncEvent proposedEvent = SyncEvent::None;
 	int proposedSyncTime = cycles_to_run_for;
@@ -124,7 +124,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
 			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
 
-			if(proposed_sync_y > (kCRTFixedPointRange * 15) >> 4) {
+			if(proposed_sync_y >= (kCRTFixedPointRange * 15) >> 4) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 				proposedEvent = SyncEvent::StartVSync;
 				_did_detect_vsync = true;
@@ -134,7 +134,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 
 	// will an ongoing vertical sync end?
 	if (_vretrace_counter > 0) {
-		if (_vretrace_counter < proposedSyncTime) {
+		if (_vretrace_counter <= proposedSyncTime) {
 			proposedSyncTime = _vretrace_counter;
 			proposedEvent = SyncEvent::EndVSync;
 		}
@@ -144,7 +144,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 	return proposedEvent;
 }
 
-CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
+CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
 {
 	// do we recognise this hsync, thereby adjusting future time expectations?
 	if(hsync_is_requested) {
@@ -177,7 +177,6 @@ CRT::SyncEvent CRT::next_horizontal_sync_event(bool hsync_is_requested, int cycl
 
 void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool vsync_charging, const Type type, const char *data_type)
 {
-
 	number_of_cycles *= _time_multiplier;
 
 	bool is_output_run = ((type == Type::Level) || (type == Type::Data));
@@ -192,8 +191,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 	while(number_of_cycles) {
 
 		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
-		SyncEvent next_vertical_sync_event = this->next_vertical_sync_event(vsync_charging, number_of_cycles, &time_until_vertical_sync_event);
-		SyncEvent next_horizontal_sync_event = this->next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
+		SyncEvent next_vertical_sync_event = this->get_next_vertical_sync_event(vsync_charging, number_of_cycles, &time_until_vertical_sync_event);
+		SyncEvent next_horizontal_sync_event = this->get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 		hsync_requested = false;
 
 		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
