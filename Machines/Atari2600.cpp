@@ -19,7 +19,7 @@ Machine::Machine()
 	_horizontalTimer = 227;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 256, 1, 4);
+	_crt = new Outputs::CRT(228, 262, 1, 4);
 	_piaTimerStatus = 0xff;
 
 	reset();
@@ -105,9 +105,9 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
-	if(_playfieldControl&0x04 || !playfieldPixel) {
-		if (playerPixels[0]) outputColour = _playerColour[0];
+	if(!(_playfieldControl&0x04) || !playfieldPixel) {
 		if (playerPixels[1]) outputColour = _playerColour[1];
+		if (playerPixels[0]) outputColour = _playerColour[0];
 	}
 
 	pixel[0] = palette[outputColour >> 4][0];
