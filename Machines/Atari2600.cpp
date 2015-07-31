@@ -20,7 +20,7 @@ Machine::Machine()
 	_horizontalTimer = horizontalTimerReload;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 312, 1, 4);
+	_crt = new Outputs::CRT(228, 262, 1, 4);
 	_piaTimerStatus = 0xff;
 
 	setup6502();
@@ -30,6 +30,12 @@ Machine::~Machine()
 {
 	delete _crt;
 }
+
+void Machine::switch_region()
+{
+	_crt->set_new_timing(228, 312);
+}
+
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {

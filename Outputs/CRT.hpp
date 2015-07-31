@@ -51,6 +51,8 @@ class CRT {
 		CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...);
 		~CRT();
 
+		void set_new_timing(int cycles_per_line, int height_of_display);
+
 		void output_sync(int number_of_cycles);
 		void output_blank(int number_of_cycles);
 		void output_level(int number_of_cycles, const char *type);
@@ -58,7 +60,7 @@ class CRT {
 
 		class CRTDelegate {
 			public:
-				virtual void crt_did_end_frame(CRT *crt, CRTFrame *frame) = 0;
+				virtual void crt_did_end_frame(CRT *crt, CRTFrame *frame, bool did_detect_vsync) = 0;
 		};
 		void set_delegate(CRTDelegate *delegate);
 		void return_frame();
@@ -105,6 +107,7 @@ class CRT {
 		int _expected_next_hsync;			// our current expection of when the next horizontal sync will be encountered (which implies current flywheel velocity)
 		int _horizontal_retrace_time;
 		bool _is_in_hsync;					// true for the duration of a horizontal sync — used to determine beam running direction and speed
+		bool _did_detect_vsync;				// true if vertical sync was detected in the input stream rather than forced by emergency measure
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		enum Type {

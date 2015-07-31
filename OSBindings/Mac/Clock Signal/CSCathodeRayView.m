@@ -121,6 +121,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame
 {
+	BOOL hadFrame = _crtFrame ? YES : NO;
 	_crtFrame = crtFrame;
 	[self setNeedsDisplay:YES];
 
@@ -140,7 +141,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 	}
 
-	return YES;
+	return hadFrame;
 }
 
 #pragma mark - Frame output

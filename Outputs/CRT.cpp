@@ -18,7 +18,7 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
 
-CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
+void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 {
 	const int syncCapacityLineChargeThreshold = 5;
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
@@ -61,6 +61,11 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 	float halfLineWidth = (float)_height_of_display * 1.6f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
+}
+
+CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
+{
+	set_new_timing(cycles_per_line, height_of_display);
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
@@ -122,6 +127,7 @@ CRT::SyncEvent CRT::next_vertical_sync_event(bool vsync_is_charging, int cycles_
 			if(proposed_sync_y > (kCRTFixedPointRange * 15) >> 4) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 				proposedEvent = SyncEvent::StartVSync;
+				_did_detect_vsync = true;
 			}
 		 }
 	}
@@ -298,7 +304,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 					{
 						_current_frame_builder->complete();
 						_frames_with_delegate++;
-						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame);
+						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_hsync);
 					}
 
 					if(_frames_with_delegate < kCRTNumberOfFrames)
@@ -309,6 +315,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 					}
 					else
 						_current_frame_builder = nullptr;
+
+					_did_detect_vsync = false;
 				break;
 
 				default: break;

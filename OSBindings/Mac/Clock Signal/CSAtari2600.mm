@@ -10,12 +10,12 @@
 #import "Atari2600.hpp"
 
 @interface CSAtari2600 (Callbacks)
-- (void)crtDidEndFrame:(CRTFrame *)frame;
+- (void)crtDidEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
 @end
 
 struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	__weak CSAtari2600 *atari;
-	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame) { [atari crtDidEndFrame:frame]; }
+	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame, bool did_detect_vsync) { [atari crtDidEndFrame:frame didDetectVSync:did_detect_vsync]; }
 };
 
 @implementation CSAtari2600 {
@@ -23,9 +23,25 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	Atari2600CRTDelegate _crtDelegate;
 
 	dispatch_queue_t _serialDispatchQueue;
+
+	int _failedVSyncCount;
 }
 
-- (void)crtDidEndFrame:(CRTFrame *)frame {
+- (void)crtDidEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
+
+	if(!didDetectVSync)
+	{
+		_failedVSyncCount++;
+
+		if(_failedVSyncCount == 60)
+		{
+			_atari2600.switch_region();
+		}
+	}
+	else
+	{
+		_failedVSyncCount = MAX(_failedVSyncCount - 2, 0);
+	}
 
 	dispatch_async(dispatch_get_main_queue(), ^{
 		BOOL hasReturn = [self.view pushFrame:frame];
