@@ -48,25 +48,21 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		69, 134, 108, 161, 186, 210, 235, 255
 	};
 
-	// get the playfield pixel
+	// get the playfield pixel and hence a proposed colour
 	const int x = offset >> 2;
 	const int mirrored = (x / 20) & (_playfieldControl&1);
 	const int index = mirrored ? x - 20 : 19 - (x%20);
 	const int byte = 2 - (index >> 3);
 	const int lowestBit = (byte&1)^1;
 	const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
-
-//	printf("%d -> %d -> %d -> %d/%d\n", offset, x, index, byte, bit);
-
 	uint8_t playfieldPixel = (_playfield[byte] >> bit)&1;
-
-	// TODO: almost everything!
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[x / 20] : _playfieldColour;
-	uint8_t playerPixels[2], missilePixels[2];
 
+	// get player and missile proposed pixels
+	uint8_t playerPixels[2], missilePixels[2];
 	for(int c = 0; c < 2; c++)
 	{
-		// figure out sprite colour
+		// figure out player colour
 		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
 		int relativeTimer = _playerPosition[c] - _horizontalTimer;
@@ -109,6 +105,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
+	// get the ball proposed colour
+	uint8_t ballPixel;
+	int ballIndex = _ballPosition - _horizontalTimer;
+	int ballSize = 1 << ((_playfieldControl >> 4)&3);
+	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
+
+	// apply appropriate priority to pick a colour
+	playfieldPixel |= ballPixel;
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
@@ -116,6 +120,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if (playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
+	// map that colour to an RGBA
 	pixel[0] = palette[outputColour >> 4][0];
 	pixel[1] = palette[outputColour >> 4][1];
 	pixel[2] = palette[outputColour >> 4][2];
