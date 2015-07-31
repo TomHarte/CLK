@@ -218,8 +218,8 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 				case 0x02: {
-					cycle_count += ((_horizontalTimer+4) / 3);
-					output_pixels(_horizontalTimer+4);
+					cycle_count += ((_horizontalTimer+1) / 3);
+					output_pixels(_horizontalTimer+1);
 				} break;
 				case 0x03: _horizontalTimer = 227; break;
 
@@ -244,8 +244,15 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x13: _missilePosition[1] = _horizontalTimer;	break;
 				case 0x14: _ballPosition = _horizontalTimer;		break;
 
-				case 0x1b: _playerGraphics[0] = *value;			break;
-				case 0x1c: _playerGraphics[1] = *value;			break;
+				case 0x1b:
+				case 0x1c: {
+					int index = (address & 0x3f) - 0x1b;
+					_playerGraphicsLatch[index] = *value;
+					if(!(_playerGraphicsLatchEnable[index]&1))
+						_playerGraphics[index] = _playerGraphicsLatch[index];
+					if(_playerGraphicsLatchEnable[index^1]&1)
+						_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
+				} break;
 				case 0x1d: _missileGraphicsEnable[0] = *value;	break;
 				case 0x1e: _missileGraphicsEnable[1] = *value;	break;
 				case 0x1f: _ballGraphicsEnable = *value;		break;
@@ -255,6 +262,10 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x22: _missileMotion[0] = *value;			break;
 				case 0x23: _missileMotion[1] = *value;			break;
 				case 0x24: _ballMotion = *value;				break;
+
+				case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
+				case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
+				case 0x27: _ballGraphicsEnableDelay = *value;		break;
 
 				case 0x2a:
 					_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;

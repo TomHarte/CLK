@@ -39,18 +39,32 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _piaTimerShift;
 		uint8_t _piaTimerStatus;
 
-		// graphics registers
+		// playfield registers
 		uint8_t _playfield[3], _playfieldControl;
-		uint8_t _playerColour[2];
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
-		uint8_t _playerAndMissileSize[2];
+
+		// player registers
+		uint8_t _playerColour[2];
 		uint8_t _playerReflection[2];
-		uint8_t _playerGraphics[2];
+		uint8_t _playerGraphicsLatch[2], _playerGraphics[2];
+		uint8_t _playerPosition[2];
+		uint8_t _playerMotion[2];
+		uint8_t _playerGraphicsLatchEnable[2];
+
+		// player + missile registers
+		uint8_t _playerAndMissileSize[2];
+
+		// missile registers
 		uint8_t _missileGraphicsEnable[2];
+		uint8_t _missilePosition[2];
+		uint8_t _missileMotion[2];
+
+		// ball registers
 		uint8_t _ballGraphicsEnable;
-		uint8_t _playerPosition[2], _missilePosition[2], _ballPosition;
-		uint8_t _playerMotion[2], _missileMotion[2], _ballMotion;
+		uint8_t _ballPosition;
+		uint8_t _ballMotion;
+		uint8_t _ballGraphicsEnableDelay;
 
 		// graphics output
 		int32_t _horizontalTimer;
