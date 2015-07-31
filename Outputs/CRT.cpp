@@ -22,7 +22,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 {
 	const int syncCapacityLineChargeThreshold = 3;
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
-	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
+	const int scanlinesVerticalRetraceTime = 7;			// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
 	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
@@ -124,7 +124,7 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_charging, int cyc
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
 			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
 
-			if(proposed_sync_y >= (kCRTFixedPointRange * 15) >> 4) {
+			if(proposed_sync_y >= (kCRTFixedPointRange * 7) >> 3) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
 				proposedEvent = SyncEvent::StartVSync;
 				_did_detect_vsync = true;
