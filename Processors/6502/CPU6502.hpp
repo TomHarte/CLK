@@ -39,7 +39,7 @@ enum BusOperation {
 	Read, ReadOpcode, Write, Ready, None
 };
 
-#define isReadOperation(v) (v != CPU6502::BusOperation::Write)
+#define isReadOperation(v)	(v == CPU6502::BusOperation::Read || v == CPU6502::BusOperation::ReadOpcode)
 
 extern const uint8_t JamOpcode;
 
@@ -370,7 +370,8 @@ template <class T> class Processor {
 
 		int _cycles_left_to_run;
 
-		bool _read_line_is_enabled;
+		bool _ready_line_is_enabled;
+		bool _ready_is_active;
 
 	public:
 		Processor()
@@ -380,7 +381,8 @@ template <class T> class Processor {
 			_is_jammed = false;
 			_jam_handler = nullptr;
 			_cycles_left_to_run = 0;
-			_read_line_is_enabled = false;
+			_ready_line_is_enabled = false;
+			_ready_is_active = false;
 		}
 
 		const MicroOp *get_reset_program() {
@@ -425,9 +427,13 @@ template <class T> class Processor {
 
 			while(_cycles_left_to_run > 0) {
 
-				while (_nextBusOperation != BusOperation::Ready && _cycles_left_to_run > 0) {
+				while (_ready_is_active && _cycles_left_to_run > 0) {
+					_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
+				}
 
-					if (_nextBusOperation != BusOperation::None && _nextBusOperation != BusOperation::Ready) {
+				while (!_ready_is_active && _cycles_left_to_run > 0) {
+
+					if (_nextBusOperation != BusOperation::None) {
 						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
 						_nextBusOperation = BusOperation::None;
 					}
@@ -863,6 +869,9 @@ template <class T> class Processor {
 						break;
 					}
 
+					if (isReadOperation(_nextBusOperation) && _ready_line_is_enabled) {
+						_ready_is_active = true;
+					}
 				}
 			}
 		}
@@ -919,6 +928,13 @@ template <class T> class Processor {
 
 		void set_ready_line(bool active)
 		{
+			if(active)
+				_ready_line_is_enabled = true;
+			else
+			{
+				_ready_line_is_enabled = false;
+				_ready_is_active = false;
+			}
 		}
 
 		bool is_jammed()

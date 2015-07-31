@@ -194,144 +194,145 @@ void Machine::output_pixels(int count)
 int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	uint8_t returnValue = 0xff;
-	int cycle_count = 1;
 
 	output_pixels(3);
+	if(_horizontalTimer == 227)
+		set_ready_line(false);
 
-	// check for a ROM access
-	if ((address&0x1000) && isReadOperation(operation)) {
-//		if(operation == CPU6502::BusOperation::ReadOpcode) printf("[%04x]\n", address);
-		returnValue &= _rom[address&_romMask];
-	}
-
-	// check for a RAM access
-	if ((address&0x1280) == 0x80) {
-
-		if(isReadOperation(operation)) {
-			returnValue &= _ram[address&0x7f];
-		} else {
-			_ram[address&0x7f] = *value;
+	if(operation != CPU6502::BusOperation::Ready) {
+		// check for a ROM access
+		if ((address&0x1000) && isReadOperation(operation)) {
+			returnValue &= _rom[address&_romMask];
 		}
-	}
 
-	// check for a TIA access
-	if (!(address&0x1080)) {
-		if(isReadOperation(operation)) {
-			switch(address & 0xf) {
-				case 0x00:	returnValue &= 0x3f;	break;	// missile 0 / player collisions
-				case 0x01:	returnValue &= 0x3f;	break;	// missile 1 / player collisions
-				case 0x02:	returnValue &= 0x3f;	break;	// player 0 / playfield / ball collisions
-				case 0x03:	returnValue &= 0x3f;	break;	// player 1 / playfield / ball collisions
-				case 0x04:	returnValue &= 0x3f;	break;	// missile 0 / playfield / ball collisions
-				case 0x05:	returnValue &= 0x3f;	break;	// missile 1 / playfield / ball collisions
-				case 0x06:	returnValue &= 0x7f;	break;	// ball / playfield collisions
-				case 0x07:	returnValue &= 0x3f;	break;	// player / player, missile / missile collisions
+		// check for a RAM access
+		if ((address&0x1280) == 0x80) {
+
+			if(isReadOperation(operation)) {
+				returnValue &= _ram[address&0x7f];
+			} else {
+				_ram[address&0x7f] = *value;
 			}
-		} else {
-			switch(address & 0x3f) {
-				case 0x00:	_vSyncEnabled = !!(*value & 0x02);	break;
-				case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
+		}
 
-				case 0x02: {
-					cycle_count += ((_horizontalTimer+1) / 3);
-					output_pixels(_horizontalTimer+1);
-				} break;
-				case 0x03: _horizontalTimer = 227; break;
+		// check for a TIA access
+		if (!(address&0x1080)) {
+			if(isReadOperation(operation)) {
+				switch(address & 0xf) {
+					case 0x00:	returnValue &= 0x3f;	break;	// missile 0 / player collisions
+					case 0x01:	returnValue &= 0x3f;	break;	// missile 1 / player collisions
+					case 0x02:	returnValue &= 0x3f;	break;	// player 0 / playfield / ball collisions
+					case 0x03:	returnValue &= 0x3f;	break;	// player 1 / playfield / ball collisions
+					case 0x04:	returnValue &= 0x3f;	break;	// missile 0 / playfield / ball collisions
+					case 0x05:	returnValue &= 0x3f;	break;	// missile 1 / playfield / ball collisions
+					case 0x06:	returnValue &= 0x7f;	break;	// ball / playfield collisions
+					case 0x07:	returnValue &= 0x3f;	break;	// player / player, missile / missile collisions
+				}
+			} else {
+				switch(address & 0x3f) {
+					case 0x00:	_vSyncEnabled = !!(*value & 0x02);	break;
+					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
-				case 0x04: _playerAndMissileSize[0] = *value;	break;
-				case 0x05: _playerAndMissileSize[1] = *value;	break;
+					case 0x02: {
+						set_ready_line(true);
+					} break;
+					case 0x03: _horizontalTimer = 227; break;
 
-				case 0x06: _playerColour[0] = *value;	break;
-				case 0x07: _playerColour[1] = *value;	break;
-				case 0x08: _playfieldColour = *value;	break;
-				case 0x09: _backgroundColour = *value;	break;
+					case 0x04: _playerAndMissileSize[0] = *value;	break;
+					case 0x05: _playerAndMissileSize[1] = *value;	break;
 
-				case 0x0a: _playfieldControl = *value;		break;
-				case 0x0b: _playerReflection[0] = *value;	break;
-				case 0x0c: _playerReflection[1] = *value;	break;
-				case 0x0d: _playfield[0] = *value;			break;
-				case 0x0e: _playfield[1] = *value;			break;
-				case 0x0f: _playfield[2] = *value;			break;
+					case 0x06: _playerColour[0] = *value;	break;
+					case 0x07: _playerColour[1] = *value;	break;
+					case 0x08: _playfieldColour = *value;	break;
+					case 0x09: _backgroundColour = *value;	break;
 
-				case 0x10: _playerPosition[0] = _horizontalTimer;	break;
-				case 0x11: _playerPosition[1] = _horizontalTimer;	break;
-				case 0x12: _missilePosition[0] = _horizontalTimer;	break;
-				case 0x13: _missilePosition[1] = _horizontalTimer;	break;
-				case 0x14: _ballPosition = _horizontalTimer;		break;
+					case 0x0a: _playfieldControl = *value;		break;
+					case 0x0b: _playerReflection[0] = *value;	break;
+					case 0x0c: _playerReflection[1] = *value;	break;
+					case 0x0d: _playfield[0] = *value;			break;
+					case 0x0e: _playfield[1] = *value;			break;
+					case 0x0f: _playfield[2] = *value;			break;
 
-				case 0x1c:
-					_ballGraphicsEnable = _ballGraphicsEnableLatch;
-				case 0x1b: {
-					int index = (address & 0x3f) - 0x1b;
-					_playerGraphicsLatch[index] = *value;
-					if(!(_playerGraphicsLatchEnable[index]&1))
-						_playerGraphics[index] = _playerGraphicsLatch[index];
-					_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
-				} break;
-				case 0x1d: _missileGraphicsEnable[0] = *value;	break;
-				case 0x1e: _missileGraphicsEnable[1] = *value;	break;
-				case 0x1f:
-					_ballGraphicsEnableLatch = *value;
-					if(!(_ballGraphicsEnableDelay&1))
+					case 0x10: _playerPosition[0] = _horizontalTimer;	break;
+					case 0x11: _playerPosition[1] = _horizontalTimer;	break;
+					case 0x12: _missilePosition[0] = _horizontalTimer;	break;
+					case 0x13: _missilePosition[1] = _horizontalTimer;	break;
+					case 0x14: _ballPosition = _horizontalTimer;		break;
+
+					case 0x1c:
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;
-				break;
+					case 0x1b: {
+						int index = (address & 0x3f) - 0x1b;
+						_playerGraphicsLatch[index] = *value;
+						if(!(_playerGraphicsLatchEnable[index]&1))
+							_playerGraphics[index] = _playerGraphicsLatch[index];
+						_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
+					} break;
+					case 0x1d: _missileGraphicsEnable[0] = *value;	break;
+					case 0x1e: _missileGraphicsEnable[1] = *value;	break;
+					case 0x1f:
+						_ballGraphicsEnableLatch = *value;
+						if(!(_ballGraphicsEnableDelay&1))
+							_ballGraphicsEnable = _ballGraphicsEnableLatch;
+					break;
 
-				case 0x20: _playerMotion[0] = *value;			break;
-				case 0x21: _playerMotion[1] = *value;			break;
-				case 0x22: _missileMotion[0] = *value;			break;
-				case 0x23: _missileMotion[1] = *value;			break;
-				case 0x24: _ballMotion = *value;				break;
+					case 0x20: _playerMotion[0] = *value;			break;
+					case 0x21: _playerMotion[1] = *value;			break;
+					case 0x22: _missileMotion[0] = *value;			break;
+					case 0x23: _missileMotion[1] = *value;			break;
+					case 0x24: _ballMotion = *value;				break;
 
-				case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
-				case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
-				case 0x27: _ballGraphicsEnableDelay = *value;		break;
+					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
+					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
+					case 0x27: _ballGraphicsEnableDelay = *value;		break;
 
-//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
+	//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
 
-				case 0x2a:
-					_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;
-					_playerPosition[1] += (int8_t)_playerMotion[1] >> 4;
-					_missilePosition[0] += (int8_t)_missileMotion[0] >> 4;
-					_missilePosition[1] += (int8_t)_missileMotion[1] >> 4;
-					_ballPosition += (int8_t)_ballMotion >> 4;
-				break;
-				case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
+					case 0x2a:
+						_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;
+						_playerPosition[1] += (int8_t)_playerMotion[1] >> 4;
+						_missilePosition[0] += (int8_t)_missileMotion[0] >> 4;
+						_missilePosition[1] += (int8_t)_missileMotion[1] >> 4;
+						_ballPosition += (int8_t)_ballMotion >> 4;
+					break;
+					case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
+				}
 			}
+	//		printf("Uncaught TIA %04x\n", address);
 		}
-//		printf("Uncaught TIA %04x\n", address);
-	}
 
-	// check for a PIA access
-	if ((address&0x1280) == 0x280) {
+		// check for a PIA access
+		if ((address&0x1280) == 0x280) {
+			if(isReadOperation(operation)) {
+				switch(address & 0xf) {
+					case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift;				break;
+					case 0x05: returnValue &= _piaTimerStatus; _piaTimerStatus &= ~0x40;	break;
+				}
+			} else {
+				switch(address & 0x0f) {
+					case 0x04:	_piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x05:	_piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x06:	_piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x07:	_piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
+				}
+			}
+	//		printf("Uncaught PIA %04x\n", address);
+		}
+
 		if(isReadOperation(operation)) {
-			switch(address & 0xf) {
-				case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift;				break;
-				case 0x05: returnValue &= _piaTimerStatus; _piaTimerStatus &= ~0x40;	break;
-			}
-		} else {
-			switch(address & 0x0f) {
-				case 0x04:	_piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
-				case 0x05:	_piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
-				case 0x06:	_piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
-				case 0x07:	_piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
-			}
+			*value = returnValue;
 		}
-//		printf("Uncaught PIA %04x\n", address);
 	}
 
-	if(isReadOperation(operation)) {
-		*value = returnValue;
-	}
-
-	if(_piaTimerValue < cycle_count) {
-		_piaTimerValue = 0x100 - cycle_count + _piaTimerValue;
+	if(_piaTimerValue) {
+		_piaTimerValue --;
+	} else {
+		_piaTimerValue = 0xff;
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
-	else
-		_piaTimerValue -= cycle_count;
 
-	return cycle_count;
+	return 1;
 }
 
 void Machine::set_rom(size_t length, const uint8_t *data)
