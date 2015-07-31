@@ -33,7 +33,7 @@ extern const uint8_t CSTestMachineJamOpcode;
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineRegister)reg;
 - (uint16_t)valueForRegister:(CSTestMachineRegister)reg;
 
-- (void)reset;
+//- (void)reset;
 - (void)returnFromSubroutine;
 
 @property (nonatomic, readonly) BOOL isJammed;

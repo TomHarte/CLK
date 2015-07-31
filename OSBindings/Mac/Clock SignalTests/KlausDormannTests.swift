@@ -26,6 +26,7 @@ class KlausDormannTests: XCTestCase {
 				case 0x36ac, 0x36f6: return "Improper JSR return address on stack"
 				case 0x36e5: return "BRK flag not set on stack"
 				case 0x26d2: return "ASL zpg,x produced incorrect flags"
+				case 0x36c6: return "Unexpected RESET"
 
 				default: return "Unknown error at \(hexAddress)"
 			}

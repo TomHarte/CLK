@@ -14,7 +14,7 @@ using namespace CPU6502;
 
 AllRAMProcessor::AllRAMProcessor()
 {
-	reset();
+	setup6502();
 }
 
 int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)

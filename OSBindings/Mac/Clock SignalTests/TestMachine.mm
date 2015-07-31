@@ -68,9 +68,9 @@ class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 	_processor.set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
 }
 
-- (void)reset {
-	_processor.reset();
-}
+//- (void)reset {
+//	_processor.reset();
+//}
 
 - (void)runForNumberOfCycles:(int)cycles {
 	_processor.run_for_cycles(cycles);

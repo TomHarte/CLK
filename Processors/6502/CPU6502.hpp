@@ -36,7 +36,7 @@ enum Flag {
 };
 
 enum BusOperation {
-	Read, ReadOpcode, Write, None
+	Read, ReadOpcode, Write, Ready, None
 };
 
 #define isReadOperation(v) (v != CPU6502::BusOperation::Write)
@@ -81,7 +81,7 @@ template <class T> class Processor {
 			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
-			OperationSetFlagsFromA,						CycleScheduleJam
+			OperationSetFlagsFromA,						CycleReadRSTLow,					CycleReadRSTHigh,						CycleScheduleJam
 		};
 
 #define JAM {CycleFetchOperand, CycleScheduleJam, OperationMoveToNextProgram}
@@ -370,6 +370,8 @@ template <class T> class Processor {
 
 		int _cycles_left_to_run;
 
+		bool _read_line_is_enabled;
+
 	public:
 		Processor()
 		{
@@ -378,6 +380,21 @@ template <class T> class Processor {
 			_is_jammed = false;
 			_jam_handler = nullptr;
 			_cycles_left_to_run = 0;
+			_read_line_is_enabled = false;
+		}
+
+		const MicroOp *get_reset_program() {
+			static const MicroOp reset[] = {
+				CycleFetchOperand,
+				CycleFetchOperand,
+				CyclePullOperand,
+				CyclePullOperand,
+				CyclePullOperand,
+				CycleReadRSTLow,
+				CycleReadRSTHigh,
+				OperationMoveToNextProgram
+			};
+			return reset;
 		}
 
 		void run_for_cycles(int number_of_cycles)
@@ -408,38 +425,45 @@ template <class T> class Processor {
 
 			while(_cycles_left_to_run > 0) {
 
-				const MicroOp cycle = _scheduledPrograms[_scheduleProgramsReadPointer][_scheduleProgramProgramCounter];
-				_scheduleProgramProgramCounter++;
+				while (_nextBusOperation != BusOperation::Ready && _cycles_left_to_run > 0) {
+
+					if (_nextBusOperation != BusOperation::None && _nextBusOperation != BusOperation::Ready) {
+						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
+						_nextBusOperation = BusOperation::None;
+					}
+
+					const MicroOp cycle = _scheduledPrograms[_scheduleProgramsReadPointer][_scheduleProgramProgramCounter];
+					_scheduleProgramProgramCounter++;
 
 #define read_op(val, addr)		_nextBusOperation = BusOperation::ReadOpcode;	_busAddress = addr;		_busValue = &val
 #define read_mem(val, addr)		_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &val
 #define throwaway_read(addr)	_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &throwaway_target
 #define write_mem(val, addr)	_nextBusOperation = BusOperation::Write;		_busAddress = addr;		_busValue = &val
 
-				switch(cycle) {
+					switch(cycle) {
 
 #pragma mark - Fetch/Decode
 
-					case CycleFetchOperation:
-						_lastOperationPC = _pc;
-						_pc.full++;
-						read_op(_operation, _lastOperationPC.full);
-					break;
+						case CycleFetchOperation:
+							_lastOperationPC = _pc;
+							_pc.full++;
+							read_op(_operation, _lastOperationPC.full);
+						break;
 
-					case CycleFetchOperand:
-						read_mem(_operand, _pc.full);
-					break;
+						case CycleFetchOperand:
+							read_mem(_operand, _pc.full);
+						break;
 
-					case OperationDecodeOperation:
-						decode_operation(_operation);
-					break;
+						case OperationDecodeOperation:
+							decode_operation(_operation);
+						break;
 
-					case OperationMoveToNextProgram:
-						_scheduledPrograms[_scheduleProgramsReadPointer] = NULL;
-						_scheduleProgramsReadPointer = (_scheduleProgramsReadPointer+1)&3;
-						_scheduleProgramProgramCounter = 0;
-						checkSchedule();
-					break;
+						case OperationMoveToNextProgram:
+							_scheduledPrograms[_scheduleProgramsReadPointer] = NULL;
+							_scheduleProgramsReadPointer = (_scheduleProgramsReadPointer+1)&3;
+							_scheduleProgramProgramCounter = 0;
+							checkSchedule();
+						break;
 
 #define push(v) \
 		{\
@@ -447,399 +471,398 @@ template <class T> class Processor {
 			write_mem(v, targetAddress);\
 		}
 
-					case CycleIncPCPushPCH:				_pc.full++;														// deliberate fallthrough
-					case CyclePushPCH:					push(_pc.bytes.high);											break;
-					case CyclePushPCL:					push(_pc.bytes.low);											break;
-					case CyclePushOperand:				push(_operand);													break;
-					case CyclePushA:					push(_a);														break;
+						case CycleIncPCPushPCH:				_pc.full++;														// deliberate fallthrough
+						case CyclePushPCH:					push(_pc.bytes.high);											break;
+						case CyclePushPCL:					push(_pc.bytes.low);											break;
+						case CyclePushOperand:				push(_operand);													break;
+						case CyclePushA:					push(_a);														break;
 
 #undef push
 
-					case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
-					case CycleReadFromPC:				throwaway_read(_pc.full);										break;
+						case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
+						case CycleReadFromPC:				throwaway_read(_pc.full);										break;
 
-					case CycleSetIReadBRKLow:			_interruptFlag = Flag::Interrupt; read_mem(_pc.bytes.low, 0xfffe);	break;
-					case CycleReadBRKHigh:				read_mem(_pc.bytes.high, 0xffff);									break;
+						case CycleReadRSTLow:				read_mem(_pc.bytes.low, 0xfffc);									break;
+						case CycleReadRSTHigh:				read_mem(_pc.bytes.high, 0xfffd);									break;
+						case CycleSetIReadBRKLow:			_interruptFlag = Flag::Interrupt; read_mem(_pc.bytes.low, 0xfffe);	break;
+						case CycleReadBRKHigh:				read_mem(_pc.bytes.high, 0xffff);									break;
 
-					case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
-					case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
-					case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										break;
-					case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
-					case OperationSetFlagsFromOperand:	set_flags(_operand);											break;
-					case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;					break;
-					case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;								break;
+						case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
+						case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
+						case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										break;
+						case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
+						case OperationSetFlagsFromOperand:	set_flags(_operand);											break;
+						case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;					break;
+						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;								break;
 
-					case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);							break;
-					case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
-					case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
+						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);							break;
+						case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
+						case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
 
-					case CycleReadAndIncrementPC: {
-						uint16_t oldPC = _pc.full;
-						_pc.full++;
-						throwaway_read(oldPC);
-					} break;
+						case CycleReadAndIncrementPC: {
+							uint16_t oldPC = _pc.full;
+							_pc.full++;
+							throwaway_read(oldPC);
+						} break;
 
 #pragma mark - JAM
 
-					case CycleScheduleJam: {
-						_is_jammed = true;
-						static const MicroOp jam[] = JAM;
-						schedule_program(jam);
+						case CycleScheduleJam: {
+							_is_jammed = true;
+							static const MicroOp jam[] = JAM;
+							schedule_program(jam);
 
-						if (_jam_handler) {
-							_jam_handler->processor_did_jam(this, _pc.full - 1);
-							checkSchedule(_is_jammed = false);
-						}
-					} break;
+							if (_jam_handler) {
+								_jam_handler->processor_did_jam(this, _pc.full - 1);
+								checkSchedule(_is_jammed = false);
+							}
+						} break;
 
 #pragma mark - Bitwise
 
-					case OperationORA:	_a |= _operand;	_negativeResult = _zeroResult = _a;		break;
-					case OperationAND:	_a &= _operand;	_negativeResult = _zeroResult = _a;		break;
-					case OperationEOR:	_a ^= _operand;	_negativeResult = _zeroResult = _a;		break;
+						case OperationORA:	_a |= _operand;	_negativeResult = _zeroResult = _a;		break;
+						case OperationAND:	_a &= _operand;	_negativeResult = _zeroResult = _a;		break;
+						case OperationEOR:	_a ^= _operand;	_negativeResult = _zeroResult = _a;		break;
 
-#pragma mark - Load nad Store
+#pragma mark - Load and Store
 
-					case OperationLDA:	_a = _negativeResult = _zeroResult = _operand;			break;
-					case OperationLDX:	_x = _negativeResult = _zeroResult = _operand;			break;
-					case OperationLDY:	_y = _negativeResult = _zeroResult = _operand;			break;
-					case OperationLAX:	_a = _x = _negativeResult = _zeroResult = _operand;		break;
+						case OperationLDA:	_a = _negativeResult = _zeroResult = _operand;			break;
+						case OperationLDX:	_x = _negativeResult = _zeroResult = _operand;			break;
+						case OperationLDY:	_y = _negativeResult = _zeroResult = _operand;			break;
+						case OperationLAX:	_a = _x = _negativeResult = _zeroResult = _operand;		break;
 
-					case OperationSTA:	_operand = _a;											break;
-					case OperationSTX:	_operand = _x;											break;
-					case OperationSTY:	_operand = _y;											break;
-					case OperationSAX:	_operand = _a & _x;										break;
-					case OperationSHA:	_operand = _a & _x & (_address.bytes.high+1);			break;
-					case OperationSHX:	_operand = _x & (_address.bytes.high+1);				break;
-					case OperationSHY:	_operand = _y & (_address.bytes.high+1);				break;
-					case OperationSHS:	_s = _a & _x; _operand = _s & (_address.bytes.high+1);	break;
+						case OperationSTA:	_operand = _a;											break;
+						case OperationSTX:	_operand = _x;											break;
+						case OperationSTY:	_operand = _y;											break;
+						case OperationSAX:	_operand = _a & _x;										break;
+						case OperationSHA:	_operand = _a & _x & (_address.bytes.high+1);			break;
+						case OperationSHX:	_operand = _x & (_address.bytes.high+1);				break;
+						case OperationSHY:	_operand = _y & (_address.bytes.high+1);				break;
+						case OperationSHS:	_s = _a & _x; _operand = _s & (_address.bytes.high+1);	break;
 
-					case OperationLXA:
-						_a = _x = (_a | 0xee) & _operand;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationLXA:
+							_a = _x = (_a | 0xee) & _operand;
+							_negativeResult = _zeroResult = _a;
+						break;
 
 #pragma mark - Compare
 
-					case OperationCMP: {
-						const uint16_t temp16 = _a - _operand;
-						_negativeResult = _zeroResult = temp16;
-						_carryFlag = ((~temp16) >> 8)&1;
-					} break;
-					case OperationCPX: {
-						const uint16_t temp16 = _x - _operand;
-						_negativeResult = _zeroResult = temp16;
-						_carryFlag = ((~temp16) >> 8)&1;
-					} break;
-					case OperationCPY: {
-						const uint16_t temp16 = _y - _operand;
-						_negativeResult = _zeroResult = temp16;
-						_carryFlag = ((~temp16) >> 8)&1;
-					} break;
+						case OperationCMP: {
+							const uint16_t temp16 = _a - _operand;
+							_negativeResult = _zeroResult = temp16;
+							_carryFlag = ((~temp16) >> 8)&1;
+						} break;
+						case OperationCPX: {
+							const uint16_t temp16 = _x - _operand;
+							_negativeResult = _zeroResult = temp16;
+							_carryFlag = ((~temp16) >> 8)&1;
+						} break;
+						case OperationCPY: {
+							const uint16_t temp16 = _y - _operand;
+							_negativeResult = _zeroResult = temp16;
+							_carryFlag = ((~temp16) >> 8)&1;
+						} break;
 
 #pragma mark - BIT
 
-					case OperationBIT:
-						_zeroResult = _operand & _a;
-						_negativeResult = _operand;
-						_overflowFlag = _operand&Flag::Overflow;
-					break;
+						case OperationBIT:
+							_zeroResult = _operand & _a;
+							_negativeResult = _operand;
+							_overflowFlag = _operand&Flag::Overflow;
+						break;
 
 #pragma mark ADC/SBC (and INS)
 
-					case OperationINS:
-						_operand++;			// deliberate fallthrough
-					case OperationSBC:
-						if(_decimalFlag) {
-							const uint16_t notCarry = _carryFlag ^ 0x1;
-							const uint16_t decimalResult = (uint16_t)_a - (uint16_t)_operand - notCarry;
-							uint16_t temp16;
+						case OperationINS:
+							_operand++;			// deliberate fallthrough
+						case OperationSBC:
+							if(_decimalFlag) {
+								const uint16_t notCarry = _carryFlag ^ 0x1;
+								const uint16_t decimalResult = (uint16_t)_a - (uint16_t)_operand - notCarry;
+								uint16_t temp16;
 
-							temp16 = (_a&0xf) - (_operand&0xf) - notCarry;
-							if(temp16 > 0xf) temp16 -= 0x6;
-							temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
-							temp16 += (_a&0xf0) - (_operand&0xf0);
+								temp16 = (_a&0xf) - (_operand&0xf) - notCarry;
+								if(temp16 > 0xf) temp16 -= 0x6;
+								temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
+								temp16 += (_a&0xf0) - (_operand&0xf0);
 
-							_overflowFlag = ( ( (decimalResult^_a)&(~decimalResult^_operand) )&0x80) >> 1;
-							_negativeResult = temp16;
-							_zeroResult = decimalResult;
+								_overflowFlag = ( ( (decimalResult^_a)&(~decimalResult^_operand) )&0x80) >> 1;
+								_negativeResult = temp16;
+								_zeroResult = decimalResult;
 
-							if(temp16 > 0xff) temp16 -= 0x60;
+								if(temp16 > 0xff) temp16 -= 0x60;
 
-							_carryFlag = (temp16 > 0xff) ? 0 : Flag::Carry;
-							_a = temp16;
-							break;
-						} else {
-							_operand = ~_operand;
-						}
+								_carryFlag = (temp16 > 0xff) ? 0 : Flag::Carry;
+								_a = temp16;
+								break;
+							} else {
+								_operand = ~_operand;
+							}
 
-					// deliberate fallthrough
-					case OperationADC:
-						if(_decimalFlag) {
-							const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
-							uint16_t temp16;
+						// deliberate fallthrough
+						case OperationADC:
+							if(_decimalFlag) {
+								const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
+								uint16_t temp16;
 
-							temp16 = (_a&0xf) + (_operand&0xf) + _carryFlag;
-							if(temp16 > 0x9) temp16 += 0x6;
-							temp16 = (temp16&0x0f) + ((temp16 > 0x0f) ? 0x10 : 0x00) + (_a&0xf0) + (_operand&0xf0);
+								temp16 = (_a&0xf) + (_operand&0xf) + _carryFlag;
+								if(temp16 > 0x9) temp16 += 0x6;
+								temp16 = (temp16&0x0f) + ((temp16 > 0x0f) ? 0x10 : 0x00) + (_a&0xf0) + (_operand&0xf0);
 
-							_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-							_negativeResult = temp16;
-							_zeroResult = decimalResult;
+								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
+								_negativeResult = temp16;
+								_zeroResult = decimalResult;
 
-							if(temp16 > 0x9f) temp16 += 0x60;
+								if(temp16 > 0x9f) temp16 += 0x60;
 
-							_carryFlag = (temp16 > 0xff) ? Flag::Carry : 0;
-							_a = temp16;
-						} else {
-							const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
-							_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-							_negativeResult = _zeroResult = _a = decimalResult;
-							_carryFlag = (decimalResult >> 8)&1;
-						}
+								_carryFlag = (temp16 > 0xff) ? Flag::Carry : 0;
+								_a = temp16;
+							} else {
+								const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
+								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
+								_negativeResult = _zeroResult = _a = decimalResult;
+								_carryFlag = (decimalResult >> 8)&1;
+							}
 
-						// fix up in case this was INS
-						if(cycle == OperationINS) _operand = ~_operand;
-					break;
+							// fix up in case this was INS
+							if(cycle == OperationINS) _operand = ~_operand;
+						break;
 
 #pragma mark - Shifts and Rolls
 
-					case OperationASL:
-						_carryFlag = _operand >> 7;
-						_operand <<= 1;
-						_negativeResult = _zeroResult = _operand;
-					break;
+						case OperationASL:
+							_carryFlag = _operand >> 7;
+							_operand <<= 1;
+							_negativeResult = _zeroResult = _operand;
+						break;
 
-					case OperationASO:
-						_carryFlag = _operand >> 7;
-						_operand <<= 1;
-						_a |= _operand;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationASO:
+							_carryFlag = _operand >> 7;
+							_operand <<= 1;
+							_a |= _operand;
+							_negativeResult = _zeroResult = _a;
+						break;
 
-					case OperationROL: {
-						const uint8_t temp8 = (_operand << 1) | _carryFlag;\
-						_carryFlag = _operand >> 7;\
-						_operand = _negativeResult = _zeroResult = temp8;
-					} break;
+						case OperationROL: {
+							const uint8_t temp8 = (_operand << 1) | _carryFlag;\
+							_carryFlag = _operand >> 7;\
+							_operand = _negativeResult = _zeroResult = temp8;
+						} break;
 
-					case OperationRLA: {
-						const uint8_t temp8 = (_operand << 1) | _carryFlag;
-						_carryFlag = _operand >> 7;
-						_operand = temp8;
-						_a &= _operand;
-						_negativeResult = _zeroResult = _a;
-					} break;
+						case OperationRLA: {
+							const uint8_t temp8 = (_operand << 1) | _carryFlag;
+							_carryFlag = _operand >> 7;
+							_operand = temp8;
+							_a &= _operand;
+							_negativeResult = _zeroResult = _a;
+						} break;
 
-					case OperationLSR:
-						_carryFlag = _operand & 1;
-						_operand >>= 1;
-						_negativeResult = _zeroResult = _operand;
-					break;
+						case OperationLSR:
+							_carryFlag = _operand & 1;
+							_operand >>= 1;
+							_negativeResult = _zeroResult = _operand;
+						break;
 
-					case OperationLSE:
-						_carryFlag = _operand & 1;
-						_operand >>= 1;
-						_a ^= _operand;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationLSE:
+							_carryFlag = _operand & 1;
+							_operand >>= 1;
+							_a ^= _operand;
+							_negativeResult = _zeroResult = _a;
+						break;
 
-					case OperationASR:
-						_a &= _operand;
-						_carryFlag = _a & 1;
-						_a >>= 1;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationASR:
+							_a &= _operand;
+							_carryFlag = _a & 1;
+							_a >>= 1;
+							_negativeResult = _zeroResult = _a;
+						break;
 
-					case OperationROR: {
-						const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
-						_carryFlag = _operand & 1;
-						_operand = _negativeResult = _zeroResult = temp8;
-					} break;
+						case OperationROR: {
+							const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
+							_carryFlag = _operand & 1;
+							_operand = _negativeResult = _zeroResult = temp8;
+						} break;
 
-					case OperationRRA: {
-						const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
-						_carryFlag = _operand & 1;
-						_operand = temp8;
-					} break;
+						case OperationRRA: {
+							const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
+							_carryFlag = _operand & 1;
+							_operand = temp8;
+						} break;
 
-					case OperationDecrementOperand: _operand--; break;
-					case OperationIncrementOperand: _operand++; break;
+						case OperationDecrementOperand: _operand--; break;
+						case OperationIncrementOperand: _operand++; break;
 
-					case OperationCLC: _carryFlag = 0;			break;
-					case OperationCLI: _interruptFlag = 0;		break;
-					case OperationCLV: _overflowFlag = 0;		break;
-					case OperationCLD: _decimalFlag = 0;		break;
+						case OperationCLC: _carryFlag = 0;			break;
+						case OperationCLI: _interruptFlag = 0;		break;
+						case OperationCLV: _overflowFlag = 0;		break;
+						case OperationCLD: _decimalFlag = 0;		break;
 
-					case OperationSEC: _carryFlag = Flag::Carry;			break;
-					case OperationSEI: _interruptFlag = Flag::Interrupt;	break;
-					case OperationSED: _decimalFlag = Flag::Decimal;		break;
+						case OperationSEC: _carryFlag = Flag::Carry;			break;
+						case OperationSEI: _interruptFlag = Flag::Interrupt;	break;
+						case OperationSED: _decimalFlag = Flag::Decimal;		break;
 
-					case OperationINC: _operand++; _negativeResult = _zeroResult = _operand; break;
-					case OperationDEC: _operand--; _negativeResult = _zeroResult = _operand; break;
-					case OperationINX: _x++; _negativeResult = _zeroResult = _x; break;
-					case OperationDEX: _x--; _negativeResult = _zeroResult = _x; break;
-					case OperationINY: _y++; _negativeResult = _zeroResult = _y; break;
-					case OperationDEY: _y--; _negativeResult = _zeroResult = _y; break;
+						case OperationINC: _operand++; _negativeResult = _zeroResult = _operand; break;
+						case OperationDEC: _operand--; _negativeResult = _zeroResult = _operand; break;
+						case OperationINX: _x++; _negativeResult = _zeroResult = _x; break;
+						case OperationDEX: _x--; _negativeResult = _zeroResult = _x; break;
+						case OperationINY: _y++; _negativeResult = _zeroResult = _y; break;
+						case OperationDEY: _y--; _negativeResult = _zeroResult = _y; break;
 
-					case OperationANE:
-						_a = (_a | 0xee) & _operand & _x;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationANE:
+							_a = (_a | 0xee) & _operand & _x;
+							_negativeResult = _zeroResult = _a;
+						break;
 
-					case OperationANC:
-						_a &= _operand;
-						_negativeResult = _zeroResult = _a;
-						_carryFlag = _a >> 7;
-					break;
+						case OperationANC:
+							_a &= _operand;
+							_negativeResult = _zeroResult = _a;
+							_carryFlag = _a >> 7;
+						break;
 
-					case OperationLAS:
-						_a = _x = _s = _s & _operand;
-						_negativeResult = _zeroResult = _a;
-					break;
+						case OperationLAS:
+							_a = _x = _s = _s & _operand;
+							_negativeResult = _zeroResult = _a;
+						break;
 
 #pragma mark - Addressing Mode Work
 
-					case CycleAddXToAddressLow:
-						_nextAddress.full = _address.full + _x;
-						_address.bytes.low = _nextAddress.bytes.low;
-						if (_address.bytes.high != _nextAddress.bytes.high) {
-							throwaway_read(_address.full);
-						}
-					break;
-					case CycleAddYToAddressLow:
-						_nextAddress.full = _address.full + _y;
-						_address.bytes.low = _nextAddress.bytes.low;
-						if (_address.bytes.high != _nextAddress.bytes.high) {
-							throwaway_read(_address.full);
-						}
-					break;
-					case CycleCorrectAddressHigh:
-						_address.full = _nextAddress.full;
-					break;
-					case CycleIncrementPCFetchAddressLowFromOperand:
-						_pc.full++;
-						read_mem(_address.bytes.low, _operand);
-					break;
-					case CycleAddXToOperandFetchAddressLow:
-						_operand += _x;
-						read_mem(_address.bytes.low, _operand);
-					break;
-					case CycleIncrementOperandFetchAddressHigh:
-						_operand++;
-						read_mem(_address.bytes.high, _operand);
-					break;
-					case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
-						_pc.full++;
-					case CycleReadPCHLoadPCL: {
-						uint16_t oldPC = _pc.full;
-						_pc.bytes.low = _operand;
-						read_mem(_pc.bytes.high, oldPC);
-					} break;
+						case CycleAddXToAddressLow:
+							_nextAddress.full = _address.full + _x;
+							_address.bytes.low = _nextAddress.bytes.low;
+							if (_address.bytes.high != _nextAddress.bytes.high) {
+								throwaway_read(_address.full);
+							}
+						break;
+						case CycleAddYToAddressLow:
+							_nextAddress.full = _address.full + _y;
+							_address.bytes.low = _nextAddress.bytes.low;
+							if (_address.bytes.high != _nextAddress.bytes.high) {
+								throwaway_read(_address.full);
+							}
+						break;
+						case CycleCorrectAddressHigh:
+							_address.full = _nextAddress.full;
+						break;
+						case CycleIncrementPCFetchAddressLowFromOperand:
+							_pc.full++;
+							read_mem(_address.bytes.low, _operand);
+						break;
+						case CycleAddXToOperandFetchAddressLow:
+							_operand += _x;
+							read_mem(_address.bytes.low, _operand);
+						break;
+						case CycleIncrementOperandFetchAddressHigh:
+							_operand++;
+							read_mem(_address.bytes.high, _operand);
+						break;
+						case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
+							_pc.full++;
+						case CycleReadPCHLoadPCL: {
+							uint16_t oldPC = _pc.full;
+							_pc.bytes.low = _operand;
+							read_mem(_pc.bytes.high, oldPC);
+						} break;
 
-					case CycleReadAddressHLoadAddressL:
-						_address.bytes.low = _operand; _pc.full++;
-						read_mem(_address.bytes.high, _pc.full);
-					break;
+						case CycleReadAddressHLoadAddressL:
+							_address.bytes.low = _operand; _pc.full++;
+							read_mem(_address.bytes.high, _pc.full);
+						break;
 
-					case CycleLoadAddressAbsolute: {
-						uint16_t nextPC = _pc.full+1;
-						_pc.full += 2;
-						_address.bytes.low = _operand;
-						read_mem(_address.bytes.high, nextPC);
-					} break;
+						case CycleLoadAddressAbsolute: {
+							uint16_t nextPC = _pc.full+1;
+							_pc.full += 2;
+							_address.bytes.low = _operand;
+							read_mem(_address.bytes.high, nextPC);
+						} break;
 
-					case OperationLoadAddressZeroPage:
-						_pc.full++;
-						_address.full = _operand;
-					break;
+						case OperationLoadAddressZeroPage:
+							_pc.full++;
+							_address.full = _operand;
+						break;
 
-					case CycleLoadAddessZeroX:
-						_pc.full++;
-						_address.full = (_operand + _x)&0xff;
-						throwaway_read(_operand);
-					break;
+						case CycleLoadAddessZeroX:
+							_pc.full++;
+							_address.full = (_operand + _x)&0xff;
+							throwaway_read(_operand);
+						break;
 
-					case CycleLoadAddessZeroY:
-						_pc.full++;
-						_address.full = (_operand + _y)&0xff;
-						throwaway_read(_operand);
-					break;
+						case CycleLoadAddessZeroY:
+							_pc.full++;
+							_address.full = (_operand + _y)&0xff;
+							throwaway_read(_operand);
+						break;
 
-					case OperationIncrementPC:			_pc.full++;						break;
-					case CycleFetchOperandFromAddress:	read_mem(_operand, _address.full);	break;
-					case CycleWriteOperandToAddress:	write_mem(_operand, _address.full);	break;
-					case OperationCopyOperandFromA:		_operand = _a;					break;
-					case OperationCopyOperandToA:		_a = _operand;					break;
+						case OperationIncrementPC:			_pc.full++;						break;
+						case CycleFetchOperandFromAddress:	read_mem(_operand, _address.full);	break;
+						case CycleWriteOperandToAddress:	write_mem(_operand, _address.full);	break;
+						case OperationCopyOperandFromA:		_operand = _a;					break;
+						case OperationCopyOperandToA:		_a = _operand;					break;
 
 #pragma mark - Branching
 
 #define BRA(condition)	_pc.full++; if(condition) schedule_program(doBranch)
 
-					case OperationBPL: BRA(!(_negativeResult&0x80));				break;
-					case OperationBMI: BRA(_negativeResult&0x80);					break;
-					case OperationBVC: BRA(!_overflowFlag);							break;
-					case OperationBVS: BRA(_overflowFlag);							break;
-					case OperationBCC: BRA(!_carryFlag);							break;
-					case OperationBCS: BRA(_carryFlag);								break;
-					case OperationBNE: BRA(_zeroResult);							break;
-					case OperationBEQ: BRA(!_zeroResult);							break;
+						case OperationBPL: BRA(!(_negativeResult&0x80));				break;
+						case OperationBMI: BRA(_negativeResult&0x80);					break;
+						case OperationBVC: BRA(!_overflowFlag);							break;
+						case OperationBVS: BRA(_overflowFlag);							break;
+						case OperationBCC: BRA(!_carryFlag);							break;
+						case OperationBCS: BRA(_carryFlag);								break;
+						case OperationBNE: BRA(_zeroResult);							break;
+						case OperationBEQ: BRA(!_zeroResult);							break;
 
-					case CycleAddSignedOperandToPC:
-						_nextAddress.full = _pc.full + (int8_t)_operand;
-						_pc.bytes.low = _nextAddress.bytes.low;
-						if(_nextAddress.bytes.high != _pc.bytes.high) {
-							uint16_t halfUpdatedPc = _pc.full;
-							_pc.full = _nextAddress.full;
-							throwaway_read(halfUpdatedPc);
-						}
-					break;
+						case CycleAddSignedOperandToPC:
+							_nextAddress.full = _pc.full + (int8_t)_operand;
+							_pc.bytes.low = _nextAddress.bytes.low;
+							if(_nextAddress.bytes.high != _pc.bytes.high) {
+								uint16_t halfUpdatedPc = _pc.full;
+								_pc.full = _nextAddress.full;
+								throwaway_read(halfUpdatedPc);
+							}
+						break;
 
 #undef BRA
 
 #pragma mark - Transfers
 
-					case OperationTXA: _zeroResult = _negativeResult = _a = _x; break;
-					case OperationTYA: _zeroResult = _negativeResult = _a = _y; break;
-					case OperationTXS: _s = _x;									break;
-					case OperationTAY: _zeroResult = _negativeResult = _y = _a; break;
-					case OperationTAX: _zeroResult = _negativeResult = _x = _a; break;
-					case OperationTSX: _zeroResult = _negativeResult = _x = _s; break;
+						case OperationTXA: _zeroResult = _negativeResult = _a = _x; break;
+						case OperationTYA: _zeroResult = _negativeResult = _a = _y; break;
+						case OperationTXS: _s = _x;									break;
+						case OperationTAY: _zeroResult = _negativeResult = _y = _a; break;
+						case OperationTAX: _zeroResult = _negativeResult = _x = _a; break;
+						case OperationTSX: _zeroResult = _negativeResult = _x = _s; break;
 
-					case OperationARR:
-						if(_decimalFlag) {
-							_a &= _operand;
-							uint8_t unshiftedA = _a;
-							_a = (_a >> 1) | (_carryFlag << 7);
-							_zeroResult = _negativeResult = _a;
-							_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
+						case OperationARR:
+							if(_decimalFlag) {
+								_a &= _operand;
+								uint8_t unshiftedA = _a;
+								_a = (_a >> 1) | (_carryFlag << 7);
+								_zeroResult = _negativeResult = _a;
+								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
 
-							if ((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
+								if ((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
 
-							_carryFlag = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
-							if (_carryFlag) _a += 0x60;
+								_carryFlag = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
+								if (_carryFlag) _a += 0x60;
 
-						} else {
-							_a &= _operand;
-							_a = (_a >> 1) | (_carryFlag << 7);
-							_negativeResult = _zeroResult = _a;
-							_carryFlag = (_a >> 6)&1;
-							_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
-						}
-					break;
+							} else {
+								_a &= _operand;
+								_a = (_a >> 1) | (_carryFlag << 7);
+								_negativeResult = _zeroResult = _a;
+								_carryFlag = (_a >> 6)&1;
+								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
+							}
+						break;
 
-					case OperationSBX:
-						_x &= _a;
-						uint16_t difference = _x - _operand;
-						_x = (uint8_t)difference;
-						_negativeResult = _zeroResult = _x;
-						_carryFlag = ((difference >> 8)&1)^1;
-					break;
-				}
+						case OperationSBX:
+							_x &= _a;
+							uint16_t difference = _x - _operand;
+							_x = (uint8_t)difference;
+							_negativeResult = _zeroResult = _x;
+							_carryFlag = ((difference >> 8)&1)^1;
+						break;
+					}
 
-				if (_nextBusOperation != BusOperation::None) {
-					_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
-					_nextBusOperation = BusOperation::None;
 				}
 			}
 		}
@@ -869,17 +892,17 @@ template <class T> class Processor {
 			}
 		}
 
-		void reset()
+		void setup6502()
 		{
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0xfffc, &_pc.bytes.low);
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0xfffd, &_pc.bytes.high);
-
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
 			_interruptFlag = Flag::Interrupt;
 			_carryFlag &= Flag::Carry;
 			_decimalFlag &= Flag::Decimal;
 			_overflowFlag &= Flag::Overflow;
+			_s = 0;
+			schedule_program(get_reset_program());
+			_nextBusOperation = BusOperation::None;
 		}
 
 		void return_from_subroutine()
@@ -894,6 +917,10 @@ template <class T> class Processor {
 			}
 		}
 
+		void set_ready_line(bool active)
+		{
+		}
+
 		bool is_jammed()
 		{
 			return _is_jammed;
@@ -903,7 +930,6 @@ template <class T> class Processor {
 		{
 			_jam_handler = handler;
 		}
-
 };
 
 }

@@ -19,10 +19,10 @@ Machine::Machine()
 	_horizontalTimer = 227;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 262, 1, 4);
+	_crt = new Outputs::CRT(228, 312, 1, 4);
 	_piaTimerStatus = 0xff;
 
-	reset();
+	setup6502();
 }
 
 Machine::~Machine()
@@ -142,10 +142,15 @@ void Machine::output_pixels(int count)
 
 			// blank is decoded as 68 counts; sync and colour burst as 16 counts
 
+			// 4 blank
+			// 4 sync
+			// 9 'blank'; colour burst after 4
+			// 40 pixels
+
 			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if(_horizontalTimer > 214) state = OutputState::Blank;
-			else if (_horizontalTimer > 188) state = OutputState::Sync;
+			if(_horizontalTimer >= 212) state = OutputState::Blank;
+			else if (_horizontalTimer >= 196) state = OutputState::Sync;
 			else if (_horizontalTimer >= 160) state = OutputState::Blank;
 			else {
 				if(_vBlankEnabled) {
@@ -334,5 +339,4 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 	length = std::min((size_t)4096, length);
 	memcpy(_rom, data, length);
 	_romMask = length - 1;
-	reset();
 }
