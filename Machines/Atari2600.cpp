@@ -62,10 +62,11 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	// TODO: almost everything!
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[x / 20] : _playfieldColour;
-	uint8_t playerPixels[2];
+	uint8_t playerPixels[2], missilePixels[2];
 
 	for(int c = 0; c < 2; c++)
 	{
+		// figure out sprite colour
 		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
 		int relativeTimer = _playerPosition[c] - _horizontalTimer;
@@ -101,13 +102,18 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
 		else
 			playerPixels[c] = 0;
+
+		// figure out missile colour
+		int missileIndex = _missilePosition[c] - _horizontalTimer;
+		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
+		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
-		if (playerPixels[1]) outputColour = _playerColour[1];
-		if (playerPixels[0]) outputColour = _playerColour[0];
+		if (playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
+		if (playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
 	pixel[0] = palette[outputColour >> 4][0];
@@ -118,6 +124,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 void Machine::output_pixels(int count)
 {
+	_timestamp += count;
 	while(count--)
 	{
 		OutputState state;
@@ -180,8 +187,6 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	int cycle_count = 1;
 
 	output_pixels(3);
-
-	_timestamp++;
 
 	// check for a ROM access
 	if ((address&0x1000) && isReadOperation(operation)) {
@@ -266,6 +271,8 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 				case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
 				case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
 				case 0x27: _ballGraphicsEnableDelay = *value;		break;
+
+//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
 
 				case 0x2a:
 					_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;
