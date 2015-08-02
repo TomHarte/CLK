@@ -37,30 +37,18 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 	_sync_capacitor_charge_threshold = (syncCapacityLineChargeThreshold * _cycles_per_line) >> 1;
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
 	const int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
+	const float halfLineWidth = (float)_height_of_display * 1.0f;
 
-	_scanSpeed.x = kCRTFixedPointRange / _cycles_per_line;
-	_scanSpeed.y = kCRTFixedPointRange / (_height_of_display * _cycles_per_line);
-	_retraceSpeed.x = kCRTFixedPointRange / _horizontal_retrace_time;
-	_retraceSpeed.y = kCRTFixedPointRange / vertical_retrace_time;
+	for(int c = 0; c < 4; c++)
+	{
+		_scanSpeed[c].x = (c&kRetraceXMask) ? -(kCRTFixedPointRange / _horizontal_retrace_time)	: (kCRTFixedPointRange / _cycles_per_line);
+		_scanSpeed[c].y = (c&kRetraceYMask) ? -(kCRTFixedPointRange / vertical_retrace_time)	: (kCRTFixedPointRange / (_height_of_display * _cycles_per_line));
 
-	// precompute the lengths of all four combinations of scan direction, for fast triangle
-	// strip generation later
-	float scanSpeedXfl = 1.0f / (float)_cycles_per_line;
-	float scanSpeedYfl = 1.0f / (float)(_height_of_display * _cycles_per_line);
-	float retraceSpeedXfl = 1.0f / (float)_horizontal_retrace_time;
-	float retraceSpeedYfl = 1.0f / (float)(vertical_retrace_time);
-	float lengths[4];
-
-	lengths[0]								= sqrtf(scanSpeedXfl*scanSpeedXfl		+ scanSpeedYfl*scanSpeedYfl);
-	lengths[kRetraceXMask]					= sqrtf(retraceSpeedXfl*retraceSpeedXfl + scanSpeedYfl*scanSpeedYfl);
-	lengths[kRetraceXMask | kRetraceYMask]	= sqrtf(retraceSpeedXfl*retraceSpeedXfl + retraceSpeedYfl*retraceSpeedYfl);
-	lengths[kRetraceYMask]					= sqrtf(scanSpeedXfl*scanSpeedXfl		+ retraceSpeedYfl*retraceSpeedYfl);
-
-	// width should be 1.0 / _height_of_display, rotated to match the direction
-	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 1.0f;
-	_widths[0][0] = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
-	_widths[0][1] = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
+		// width should be 1.0 / _height_of_display, rotated to match the direction
+		float angle = atan2f(_scanSpeed[c].y, _scanSpeed[c].x);
+		_beamWidth[c].x = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
+		_beamWidth[c].y = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
+	}
 }
 
 CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
@@ -115,14 +103,14 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_charging, int cyc
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
 	if (!_is_in_vsync) {
-		int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed.y;
+		int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed[0].y;
 
 		if(time_until_end_of_frame < proposedSyncTime) {
 			proposedSyncTime = time_until_end_of_frame;
 			proposedEvent = SyncEvent::StartVSync;
 		}
 	} else {
-		int time_until_start_of_frame = _rasterPosition.y / _retraceSpeed.y;
+		int time_until_start_of_frame = _rasterPosition.y / _scanSpeed[kRetraceYMask].y;
 
 		if(time_until_start_of_frame < proposedSyncTime) {
 			proposedSyncTime = time_until_start_of_frame;
@@ -133,7 +121,7 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_charging, int cyc
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_charging && !_is_in_vsync) {
 		 if (_sync_capacitor_charge_level < _sync_capacitor_charge_threshold && _sync_capacitor_charge_level + proposedSyncTime >= _sync_capacitor_charge_threshold) {
-			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed.y;
+			uint32_t proposed_sync_y = _rasterPosition.y + (_sync_capacitor_charge_threshold - _sync_capacitor_charge_level) * _scanSpeed[0].y;
 
 			if(proposed_sync_y >= (kCRTFixedPointRange * 7) >> 3) {
 				proposedSyncTime = _sync_capacitor_charge_threshold - _sync_capacitor_charge_level;
@@ -203,9 +191,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		uint16_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
-//		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | ((_vretrace_counter > 0) ? kRetraceXMask : 0);
-//		uint32_t *width = _widths[lengthMask];
-		uint32_t *width = _widths[0];
+		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | (_is_in_vsync ? kRetraceXMask : 0);
 
 #define position_x(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0]
 #define position_y(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 1]
@@ -216,10 +202,10 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			position_x(0) = position_x(4) = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
-			position_y(0) = position_y(4) = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
-			position_x(1) = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
-			position_y(1) = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
+			position_x(0) = position_x(4) = (kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x) >> 16;
+			position_y(0) = position_y(4) = (kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y) >> 16;
+			position_x(1) = (kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x) >> 16;
+			position_y(1) = (kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y) >> 16;
 
 			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
 
@@ -230,23 +216,27 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		}
 
 		// advance the raster position as dictated by current sync status
+		int64_t end_position[2];
+		end_position[0] = (int64_t)_rasterPosition.x + (int64_t)number_of_cycles * (int32_t)_scanSpeed[lengthMask].x;
+		end_position[1] = (int64_t)_rasterPosition.y + (int64_t)number_of_cycles * (int32_t)_scanSpeed[lengthMask].y;
+
 		if (_is_in_hsync)
-			_rasterPosition.x = (uint32_t)std::max((int64_t)0, (int64_t)_rasterPosition.x - number_of_cycles * (int64_t)_retraceSpeed.x);
+			_rasterPosition.x = (uint32_t)std::max((int64_t)0, end_position[0]);
 		else
-			_rasterPosition.x = (uint32_t)std::min((int64_t)kCRTFixedPointRange, (int64_t)_rasterPosition.x + number_of_cycles * (int64_t)_scanSpeed.x);
+			_rasterPosition.x = (uint32_t)std::min((int64_t)kCRTFixedPointRange, end_position[0]);
 
 		if (_is_in_vsync)
-			_rasterPosition.y = (uint32_t)std::max((int64_t)0, (int64_t)_rasterPosition.y - number_of_cycles * (int64_t)_retraceSpeed.y);
+			_rasterPosition.y = (uint32_t)std::max((int64_t)0, end_position[0]);
 		else
-			_rasterPosition.y = (uint32_t)std::min((int64_t)kCRTFixedPointRange, (int64_t)_rasterPosition.y + number_of_cycles * (int64_t)_scanSpeed.y);
+			_rasterPosition.y = (uint32_t)std::min((int64_t)kCRTFixedPointRange, end_position[1]);
 
 		if(next_run)
 		{
 			// store the final raster position
-			position_x(2) = position_x(3) = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
-			position_y(2) = position_y(3) = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
-			position_x(5) = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
-			position_y(5) = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
+			position_x(2) = position_x(3) = (kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x) >> 16;
+			position_y(2) = position_y(3) = (kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y) >> 16;
+			position_x(5) = (kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x) >> 16;
+			position_y(5) = (kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y) >> 16;
 
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;

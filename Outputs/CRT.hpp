@@ -83,9 +83,7 @@ class CRT {
 		// the current scanning position
 		struct Vector {
 			uint32_t x, y;
-		} _rasterPosition, _scanSpeed, _retraceSpeed;
-
-		uint32_t _widths[4][2];
+		} _rasterPosition, _scanSpeed[4], _beamWidth[4];
 
 		// the run delegate and the triple buffer
 		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];
