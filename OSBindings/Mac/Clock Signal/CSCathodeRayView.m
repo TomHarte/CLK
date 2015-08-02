@@ -173,7 +173,7 @@ const char *fragmentShader =
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = texture(texID, srcCoordinatesVarying) * sin(mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668);\n"	// vec4(1.0, 1.0, 1.0, 0.5)
+		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668));\n"	// vec4(1.0, 1.0, 1.0, 0.5)
 	"}\n";
 
 #if defined(DEBUG)

@@ -99,8 +99,7 @@ class CRT {
 		bool _did_detect_hsync;					// true if horizontal sync was detected during this scanline (so, this affects flywheel adjustments)
 		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
 		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int _vretrace_counter;					// a down-counter for time during a vertical retrace
-		int _vertical_retrace_time;
+		int _is_in_vsync;
 
 		// components of the flywheel sync
 		int _horizontal_counter;			// time run since the _start_ of the last horizontal sync
