@@ -58,7 +58,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 
 	// width should be 1.0 / _height_of_display, rotated to match the direction
 	float angle = atan2f(scanSpeedYfl, scanSpeedXfl);
-	float halfLineWidth = (float)_height_of_display * 1.2f;
+	float halfLineWidth = (float)_height_of_display * 1.0f;
 	_widths[0][0] = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
 	_widths[0][1] = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
 }
@@ -222,8 +222,11 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 			position_y(1) = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
 
 			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
-			tex_y(0) = tex_y(4) = tex_y;
-			tex_y(1) = tex_y + 1;
+
+			// these things are constants across the line so just throw them out now
+			tex_y(0) = tex_y(4) = tex_y(1) = tex_y(2) = tex_y(3) = tex_y(5) = tex_y;
+			lateral(0) = lateral(4) = lateral(5) = 0;
+			lateral(1) = lateral(2) = lateral(3) = 1;
 		}
 
 		// advance the raster position as dictated by current sync status
@@ -250,8 +253,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 
 			// if this is a data or level run then store the end point
 			tex_x(2) = tex_x(3) = tex_x(5) = tex_x;
-			tex_y(2) = tex_y(3) = tex_y+1;
-			tex_y(5) = tex_y;
 		}
 
 		// decrement the number of cycles left to run for and increment the

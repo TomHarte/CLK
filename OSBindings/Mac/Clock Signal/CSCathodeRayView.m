@@ -156,14 +156,15 @@ const char *vertexShader =
 	"\n"
 	"in vec2 position;\n"
 	"in vec2 srcCoordinates;\n"
+	"in float lateral;\n"
 	"\n"
 	"out vec2 srcCoordinatesVarying;\n"
-	"out float offsetVarying;\n"
+	"out float lateralVarying;\n"
 	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, srcCoordinates.y / 512.0);\n"
-		"offsetVarying = mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668;"
+		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, (srcCoordinates.y + 0.5) / 512.0);\n"
+		"lateralVarying = lateral * 2.09435310266667 + 0.52359877566668;"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
 	"}\n";
 
@@ -172,13 +173,13 @@ const char *fragmentShader =
 	"#version 150\n"
 	"\n"
 	"in vec2 srcCoordinatesVarying;\n"
-	"in float offsetVarying;"
+	"in float lateralVarying;"
 	"out vec4 fragColour;\n"
 	"uniform sampler2D texID;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(offsetVarying));\n"	// vec4(1.0, 1.0, 1.0, 0.5)
+		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(lateralVarying));\n"
 	"}\n";
 
 #if defined(DEBUG)
