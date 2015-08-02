@@ -11,6 +11,7 @@
 #import <OpenGL/gl3.h>
 #import <OpenGL/gl3ext.h>
 
+
 @implementation CSCathodeRayView {
 	CVDisplayLinkRef displayLink;
 
@@ -19,6 +20,7 @@
 	GLuint _arrayBuffer, _vertexArray;
 	GLint _positionAttribute;
 	GLint _textureCoordinatesAttribute;
+	GLint _lateralAttribute;
 
 	GLuint _textureName;
 	CRTSize _textureSize;
@@ -128,7 +130,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	if(crtFrame)
 	{
 		[self.openGLContext makeCurrentContext];
-		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * 24, _crtFrame->runs, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
 
 		glBindTexture(GL_TEXTURE_2D, _textureName);
 
@@ -156,10 +158,12 @@ const char *vertexShader =
 	"in vec2 srcCoordinates;\n"
 	"\n"
 	"out vec2 srcCoordinatesVarying;\n"
+	"out float offsetVarying;\n"
 	"\n"
 	"void main (void)\n"
 	"{\n"
 		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, srcCoordinates.y / 512.0);\n"
+		"offsetVarying = mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668;"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
 	"}\n";
 
@@ -168,12 +172,13 @@ const char *fragmentShader =
 	"#version 150\n"
 	"\n"
 	"in vec2 srcCoordinatesVarying;\n"
+	"in float offsetVarying;"
 	"out vec4 fragColour;\n"
 	"uniform sampler2D texID;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(mod(srcCoordinatesVarying.y * 512, 1.0) * 2.09435310266667 + 0.52359877566668));\n"	// vec4(1.0, 1.0, 1.0, 0.5)
+		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(offsetVarying));\n"	// vec4(1.0, 1.0, 1.0, 0.5)
 	"}\n";
 
 #if defined(DEBUG)
@@ -226,12 +231,16 @@ const char *fragmentShader =
 
 	_positionAttribute = glGetAttribLocation(_shaderProgram, "position");
 	_textureCoordinatesAttribute = glGetAttribLocation(_shaderProgram, "srcCoordinates");
+	_lateralAttribute = glGetAttribLocation(_shaderProgram, "lateral");
 
 	glEnableVertexAttribArray(_positionAttribute);
 	glEnableVertexAttribArray(_textureCoordinatesAttribute);
+	glEnableVertexAttribArray(_lateralAttribute);
 
-	glVertexAttribPointer(_positionAttribute, 2, GL_UNSIGNED_SHORT, GL_TRUE, 4 * sizeof(GLushort), (void *)0);
-	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_FALSE, 4 * sizeof(GLushort), (void *)(2 * sizeof(GLushort)));
+	const GLsizei vertexStride = kCRTSizeOfVertex * sizeof(GLushort);
+	glVertexAttribPointer(_positionAttribute,			2, GL_UNSIGNED_SHORT, GL_TRUE,	vertexStride, (void *)(kCRTVertexOffsetOfPosition * sizeof(GLushort)));
+	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)(kCRTVertexOffsetOfTexCoord * sizeof(GLushort)));
+	glVertexAttribPointer(_lateralAttribute,			1, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)(kCRTVertexOffsetOfLateral * sizeof(GLushort)));
 
 	glGenTextures(1, &_textureName);
 	glBindTexture(GL_TEXTURE_2D, _textureName);

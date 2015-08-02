@@ -36,4 +36,9 @@ typedef struct {
 }
 #endif
 
+static const int kCRTSizeOfVertex = 5;
+static const int kCRTVertexOffsetOfPosition = 0;
+static const int kCRTVertexOffsetOfTexCoord = 2;
+static const int kCRTVertexOffsetOfLateral = 4;
+
 #endif /* CRTFrame_h */

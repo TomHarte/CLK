@@ -20,8 +20,8 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 {
-	const int syncCapacityLineChargeThreshold = 3;
-	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
+	const int syncCapacityLineChargeThreshold = 4;
+	const int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
 	const int scanlinesVerticalRetraceTime = 7;			// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
@@ -207,17 +207,23 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 //		uint32_t *width = _widths[lengthMask];
 		uint32_t *width = _widths[0];
 
+#define position_x(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0]
+#define position_y(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 1]
+#define tex_x(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 0]
+#define tex_y(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 1]
+#define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
+
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			next_run[0] = next_run[20] = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
-			next_run[1] = next_run[21] = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
-			next_run[4] = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
-			next_run[5] = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
+			position_x(0) = position_x(4) = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
+			position_y(0) = position_y(4) = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
+			position_x(1) = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
+			position_y(1) = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
 
-			next_run[2] = next_run[6] = next_run[22] = tex_x;
-			next_run[3] = next_run[23] = tex_y;
-			next_run[7] = tex_y + 1;
+			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
+			tex_y(0) = tex_y(4) = tex_y;
+			tex_y(1) = tex_y + 1;
 		}
 
 		// advance the raster position as dictated by current sync status
@@ -234,19 +240,18 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 		if(next_run)
 		{
 			// store the final raster position
-			next_run[8] = next_run[12] = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
-			next_run[9] = next_run[13] = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
-
-			next_run[16] = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
-			next_run[17] = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
+			position_x(2) = position_x(3) = (kCRTFixedPointOffset + _rasterPosition.x - width[0]) >> 16;
+			position_y(2) = position_y(3) = (kCRTFixedPointOffset + _rasterPosition.y - width[1]) >> 16;
+			position_x(5) = (kCRTFixedPointOffset + _rasterPosition.x + width[0]) >> 16;
+			position_y(5) = (kCRTFixedPointOffset + _rasterPosition.y + width[1]) >> 16;
 
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;
 
 			// if this is a data or level run then store the end point
-			next_run[10] = next_run[14] = next_run[18] = tex_x;
-			next_run[11] = next_run[15] = tex_y + 1;
-			next_run[19] = tex_y;
+			tex_x(2) = tex_x(3) = tex_x(5) = tex_x;
+			tex_y(2) = tex_y(3) = tex_y+1;
+			tex_y(5) = tex_y;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -419,13 +424,16 @@ void CRTFrameBuilder::complete()
 
 uint16_t *CRTFrameBuilder::get_next_run()
 {
+	const size_t vertices_per_run = 6;
+	const size_t size_of_run = kCRTSizeOfVertex * vertices_per_run;
+
 	// get a run from the allocated list, allocating more if we're about to overrun
-	if(frame.number_of_runs * 24 >= _all_runs.size())
+	if(frame.number_of_runs * size_of_run >= _all_runs.size())
 	{
-		_all_runs.resize(_all_runs.size() + 2400);
+		_all_runs.resize(_all_runs.size() + size_of_run * 200);
 	}
 
-	uint16_t *next_run = &_all_runs[frame.number_of_runs * 24];
+	uint16_t *next_run = &_all_runs[frame.number_of_runs * size_of_run];
 	frame.number_of_runs++;
 
 	return next_run;
