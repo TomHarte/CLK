@@ -135,6 +135,9 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 void Machine::output_pixels(int count)
 {
+	const int32_t start_of_sync = 214;
+	const int32_t end_of_sync = 188;
+
 	_timestamp += count;
 	while(count--)
 	{
@@ -143,7 +146,7 @@ void Machine::output_pixels(int count)
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
 		// otherwise output a pixel
 		if(_vSyncEnabled) {
-			state = (_horizontalTimer < 212) ? OutputState::Sync : OutputState::Blank;
+			state = (_horizontalTimer < start_of_sync) ? OutputState::Sync : OutputState::Blank;
 		} else {
 
 			// blank is decoded as 68 counts; sync and colour burst as 16 counts
@@ -155,8 +158,8 @@ void Machine::output_pixels(int count)
 
 			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if(_horizontalTimer >= 212) state = OutputState::Blank;
-			else if (_horizontalTimer >= 196) state = OutputState::Sync;
+			if(_horizontalTimer >= start_of_sync) state = OutputState::Blank;
+			else if (_horizontalTimer >= end_of_sync) state = OutputState::Sync;
 			else if (_horizontalTimer >= 160) state = OutputState::Blank;
 			else {
 				if(_vBlankEnabled) {
@@ -259,11 +262,11 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x0e: _playfield[1] = *value;			break;
 					case 0x0f: _playfield[2] = *value;			break;
 
-					case 0x10: _playerPosition[0] = _horizontalTimer;	break;
-					case 0x11: _playerPosition[1] = _horizontalTimer;	break;
-					case 0x12: _missilePosition[0] = _horizontalTimer;	break;
-					case 0x13: _missilePosition[1] = _horizontalTimer;	break;
-					case 0x14: _ballPosition = _horizontalTimer;		break;
+					case 0x10: _playerPosition[0] = _horizontalTimer - 5;	break;
+					case 0x11: _playerPosition[1] = _horizontalTimer - 5;	break;
+					case 0x12: _missilePosition[0] = _horizontalTimer - 4;	break;
+					case 0x13: _missilePosition[1] = _horizontalTimer - 4;	break;
+					case 0x14: _ballPosition = _horizontalTimer - 4;		break;
 
 					case 0x1c:
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;

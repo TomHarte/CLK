@@ -31,7 +31,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 
 	if(!didDetectVSync)
 	{
-		_failedVSyncCount++;
+		_failedVSyncCount+=2;
 
 		if(_failedVSyncCount == 60)
 		{
@@ -40,7 +40,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	}
 	else
 	{
-		_failedVSyncCount = MAX(_failedVSyncCount - 2, 0);
+		_failedVSyncCount = MAX(_failedVSyncCount - 1, 0);
 	}
 
 	dispatch_async(dispatch_get_main_queue(), ^{

@@ -176,6 +176,7 @@ const char *fragmentShader =
 	"in float lateralVarying;"
 	"out vec4 fragColour;\n"
 	"uniform sampler2D texID;\n"
+	"uniform float alpha;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"

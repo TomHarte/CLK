@@ -20,9 +20,9 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 {
-	const int syncCapacityLineChargeThreshold = 4;
-	const int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
-	const int scanlinesVerticalRetraceTime = 7;			// source: ibid
+	const int syncCapacityLineChargeThreshold = 5;
+	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
+	const int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
 	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
@@ -299,7 +299,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, const bool 
 					{
 						_current_frame_builder->complete();
 						_frames_with_delegate++;
-						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_hsync);
+						_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
 					}
 
 					if(_frames_with_delegate < kCRTNumberOfFrames)
