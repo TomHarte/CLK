@@ -110,7 +110,7 @@ class CRT {
 		enum Type {
 			Sync, Level, Data, Blank
 		} type;
-		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_charging, Type type, const char *data_type);
+		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type, const char *data_type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
@@ -119,7 +119,7 @@ class CRT {
 			StartHSync, EndHSync,
 			StartVSync, EndVSync
 		};
-		SyncEvent get_next_vertical_sync_event(bool vsync_is_charging, int cycles_to_run_for, int *cycles_advanced);
+		SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 		SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 };
 
