@@ -37,7 +37,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
 	const int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
-	const float halfLineWidth = (float)_height_of_display * 1.0f;
+	const float halfLineWidth = (float)_height_of_display * 1.85f;
 
 	for(int c = 0; c < 4; c++)
 	{

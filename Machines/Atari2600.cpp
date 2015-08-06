@@ -136,7 +136,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 void Machine::output_pixels(int count)
 {
 	const int32_t start_of_sync = 214;
-	const int32_t end_of_sync = 188;
+	const int32_t end_of_sync = 198;
 
 	_timestamp += count;
 	while(count--)
