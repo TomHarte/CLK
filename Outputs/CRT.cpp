@@ -185,18 +185,16 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		// set it to false for the next run through this loop (if any)
 		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
-//		if(next_run_length) {
-			hsync_requested = false;
-			vsync_requested = false;
-//		}
+		hsync_requested = false;
+		vsync_requested = false;
 
-		uint16_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
+		uint8_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
 		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | (_is_in_vsync ? kRetraceXMask : 0);
 
-#define position_x(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0]
-#define position_y(v)	next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 1]
-#define tex_x(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 0]
-#define tex_y(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 1]
+#define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
+#define position_y(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 2])
+#define tex_x(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 0])
+#define tex_y(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 2])
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
 
 		if(next_run)
@@ -417,7 +415,7 @@ void CRTFrameBuilder::complete()
 	frame.runs = &_all_runs[0];
 }
 
-uint16_t *CRTFrameBuilder::get_next_run()
+uint8_t *CRTFrameBuilder::get_next_run()
 {
 	const size_t vertices_per_run = 6;
 	const size_t size_of_run = kCRTSizeOfVertex * vertices_per_run;
@@ -428,7 +426,7 @@ uint16_t *CRTFrameBuilder::get_next_run()
 		_all_runs.resize(_all_runs.size() + size_of_run * 200);
 	}
 
-	uint16_t *next_run = &_all_runs[frame.number_of_runs * size_of_run];
+	uint8_t *next_run = &_all_runs[frame.number_of_runs * size_of_run];
 	frame.number_of_runs++;
 
 	return next_run;

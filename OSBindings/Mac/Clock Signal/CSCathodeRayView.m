@@ -130,7 +130,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	if(crtFrame)
 	{
 		[self.openGLContext makeCurrentContext];
-		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * sizeof(GLushort) * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
 
 		glBindTexture(GL_TEXTURE_2D, _textureName);
 
@@ -239,10 +239,10 @@ const char *fragmentShader =
 	glEnableVertexAttribArray(_textureCoordinatesAttribute);
 	glEnableVertexAttribArray(_lateralAttribute);
 
-	const GLsizei vertexStride = kCRTSizeOfVertex * sizeof(GLushort);
-	glVertexAttribPointer(_positionAttribute,			2, GL_UNSIGNED_SHORT, GL_TRUE,	vertexStride, (void *)(kCRTVertexOffsetOfPosition * sizeof(GLushort)));
-	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)(kCRTVertexOffsetOfTexCoord * sizeof(GLushort)));
-	glVertexAttribPointer(_lateralAttribute,			1, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)(kCRTVertexOffsetOfLateral * sizeof(GLushort)));
+	const GLsizei vertexStride = kCRTSizeOfVertex;
+	glVertexAttribPointer(_positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
+	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
+	glVertexAttribPointer(_lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
 
 	glGenTextures(1, &_textureName);
 	glBindTexture(GL_TEXTURE_2D, _textureName);

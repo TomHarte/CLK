@@ -26,12 +26,12 @@ struct CRTFrameBuilder {
 	~CRTFrameBuilder();
 
 	private:
-		std::vector<uint16_t> _all_runs;
+		std::vector<uint8_t> _all_runs;
 
 		void reset();
 		void complete();
 
-		uint16_t *get_next_run();
+		uint8_t *get_next_run();
 		friend CRT;
 
 		void allocate_write_area(int required_length);

@@ -29,16 +29,24 @@ typedef struct {
 	CRTBuffer *buffers;
 
 	int number_of_runs;
-	uint16_t *runs;
+	uint8_t *runs;
 } CRTFrame;
 
 #ifdef __cplusplus
 }
 #endif
 
-static const int kCRTSizeOfVertex = 5;
-static const int kCRTVertexOffsetOfPosition = 0;
-static const int kCRTVertexOffsetOfTexCoord = 2;
-static const int kCRTVertexOffsetOfLateral = 4;
+
+typedef uint16_t	kCRTPositionType;
+typedef uint16_t	kCRTTexCoordType;
+typedef uint8_t		kCRTLateralType;
+typedef uint8_t		kCRTPhaseType;
+
+static const size_t kCRTVertexOffsetOfPosition = 0;
+static const size_t kCRTVertexOffsetOfTexCoord = 4;
+static const size_t kCRTVertexOffsetOfLateral = 8;
+static const size_t kCRTVertexOffsetOfPhase = 9;
+
+static const int kCRTSizeOfVertex = 10;
 
 #endif /* CRTFrame_h */
