@@ -124,6 +124,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.wantsBestResolutionOpenGLSurface = YES;
 }
 
+- (GLint)formatForDepth:(int)depth
+{
+	switch(depth)
+	{
+		default: return -1;
+		case 1: return GL_RED;
+		case 2: return GL_RG;
+		case 3: return GL_RGB;
+		case 4: return GL_RGBA;
+	}
+}
 
 - (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame
 {
@@ -140,11 +151,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 		if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _crtFrame->size.width, _crtFrame->size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+			GLint format = [self formatForDepth:_crtFrame->buffers[0].depth];
+			glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 			_textureSize = _crtFrame->size;
 		}
 		else
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, GL_RGBA, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, [self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 	}
 
 	return hadFrame;
