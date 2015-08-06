@@ -22,6 +22,10 @@
 	GLint _textureCoordinatesAttribute;
 	GLint _lateralAttribute;
 
+	GLint _texIDUniform;
+	GLint _textureSizeUniform;
+	GLint _alphaUniform;
+
 	GLuint _textureName;
 	CRTSize _textureSize;
 
@@ -161,11 +165,13 @@ const char *vertexShader =
 	"out vec2 srcCoordinatesVarying;\n"
 	"out float lateralVarying;\n"
 	"\n"
+	"uniform vec2 textureSize;\n"
+	"\n"
 	"void main (void)\n"
 	"{\n"
-		"srcCoordinatesVarying = vec2(srcCoordinates.x / 512.0, (srcCoordinates.y + 0.5) / 512.0);\n"
+		"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
 		"lateralVarying = lateral + 1.0707963267949;\n"
-		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
+		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 , 0.0, 1.0);\n" // + position.x / 131.0
 	"}\n";
 
 // TODO: this should be factored out and be per project
@@ -175,6 +181,7 @@ const char *fragmentShader =
 	"in vec2 srcCoordinatesVarying;\n"
 	"in float lateralVarying;"
 	"out vec4 fragColour;\n"
+	"\n"
 	"uniform sampler2D texID;\n"
 	"uniform float alpha;\n"
 	"\n"
@@ -231,9 +238,12 @@ const char *fragmentShader =
 
 	glUseProgram(_shaderProgram);
 
-	_positionAttribute = glGetAttribLocation(_shaderProgram, "position");
-	_textureCoordinatesAttribute = glGetAttribLocation(_shaderProgram, "srcCoordinates");
-	_lateralAttribute = glGetAttribLocation(_shaderProgram, "lateral");
+	_positionAttribute				= glGetAttribLocation(_shaderProgram, "position");
+	_textureCoordinatesAttribute	= glGetAttribLocation(_shaderProgram, "srcCoordinates");
+	_lateralAttribute				= glGetAttribLocation(_shaderProgram, "lateral");
+	_texIDUniform					= glGetUniformLocation(_shaderProgram, "texID");
+	_alphaUniform					= glGetUniformLocation(_shaderProgram, "alpha");
+	_textureSizeUniform				= glGetUniformLocation(_shaderProgram, "textureSize");
 
 	glEnableVertexAttribArray(_positionAttribute);
 	glEnableVertexAttribArray(_textureCoordinatesAttribute);
@@ -260,6 +270,7 @@ const char *fragmentShader =
 
 	if (_crtFrame)
 	{
+		glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
 		glDrawArrays(GL_TRIANGLES, 0, _crtFrame->number_of_runs*6);
 	}
 

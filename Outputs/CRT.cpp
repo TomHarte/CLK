@@ -57,8 +57,8 @@ CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
-	const int bufferWidth = 512;
-	const int bufferHeight = 512;
+	const int bufferWidth = 2048;
+	const int bufferHeight = 2048;
 	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
 	{
 		va_list va;

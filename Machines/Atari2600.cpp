@@ -20,7 +20,7 @@ Machine::Machine()
 	_horizontalTimer = horizontalTimerReload;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 262, 1, 4);
+	_crt = new Outputs::CRT(456, 262, 1, 4);
 	_piaTimerStatus = 0xff;
 
 	setup6502();
@@ -33,7 +33,7 @@ Machine::~Machine()
 
 void Machine::switch_region()
 {
-	_crt->set_new_timing(228, 312);
+	_crt->set_new_timing(456, 312);
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
@@ -127,10 +127,10 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	}
 
 	// map that colour to an RGBA
-	pixel[0] = palette[outputColour >> 4][0];
-	pixel[1] = palette[outputColour >> 4][1];
-	pixel[2] = palette[outputColour >> 4][2];
-	pixel[3] = alphaValues[(outputColour >> 1)&7];
+	pixel[0] = pixel[4] = palette[outputColour >> 4][0];
+	pixel[1] = pixel[5] = palette[outputColour >> 4][1];
+	pixel[2] = pixel[6] = palette[outputColour >> 4][2];
+	pixel[3] = pixel[7] = alphaValues[(outputColour >> 1)&7];
 }
 
 void Machine::output_pixels(int count)
@@ -175,22 +175,22 @@ void Machine::output_pixels(int count)
 		{
 			switch(_lastOutputState)
 			{
-				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);					break;
-				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
-				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
+				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration*2);					break;
+				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration*2);					break;
+				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration*2, atari2600DataType);	break;
 			}
 			_lastOutputStateDuration = 0;
 			_lastOutputState = state;
 
 			if(state == OutputState::Pixel)
 			{
-				_crt->allocate_write_area(160);
+				_crt->allocate_write_area(320);
 				_outputBuffer = _crt->get_write_target_for_buffer(0);
 			}
 		}
 
 		if(state == OutputState::Pixel && _outputBuffer)
-			get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
+			get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 8], 159 - _horizontalTimer);
 
 		// assumption here: signed shifts right; otherwise it's just
 		// an attempt to avoid both the % operator and a conditional
