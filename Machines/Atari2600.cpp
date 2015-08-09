@@ -71,7 +71,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		// figure out player colour
 		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
-		int relativeTimer = _playerPosition[c] - _horizontalTimer;
+		int relativeTimer = _playerCounter[c] - 5;//_playerPosition[c] - _horizontalTimer;
 		switch (_playerAndMissileSize[c]&7)
 		{
 			case 0: break;
@@ -106,14 +106,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			playerPixels[c] = 0;
 
 		// figure out missile colour
-		int missileIndex = _missilePosition[c] - _horizontalTimer;
+		int missileIndex = _missileCounter[c] - 4;
 		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
 	// get the ball proposed colour
 	uint8_t ballPixel;
-	int ballIndex = _ballPosition - _horizontalTimer;
+	int ballIndex = _ballCounter - 4;
 	int ballSize = 1 << ((_playfieldControl >> 4)&3);
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
@@ -190,13 +190,24 @@ void Machine::output_pixels(int count)
 		}
 
 		if(state == OutputState::Pixel && _outputBuffer)
+		{
 			get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
+
+			// incrmeent all graphics counters
+			_playerCounter[0] = (_playerCounter[0]+1)%160;
+			_playerCounter[1] = (_playerCounter[1]+1)%160;
+			_missileCounter[0] = (_missileCounter[0]+1)%160;
+			_missileCounter[1] = (_missileCounter[1]+1)%160;
+			_ballCounter = (_ballCounter+1)%160;
+		}
 
 		// assumption here: signed shifts right; otherwise it's just
 		// an attempt to avoid both the % operator and a conditional
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
+
+
 	}
 }
 
@@ -272,11 +283,11 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x0e: _playfield[1] = *value;			break;
 					case 0x0f: _playfield[2] = *value;			break;
 
-					case 0x10: _playerPosition[0] = _horizontalTimer - 5;	break;
-					case 0x11: _playerPosition[1] = _horizontalTimer - 5;	break;
-					case 0x12: _missilePosition[0] = _horizontalTimer - 4;	break;
-					case 0x13: _missilePosition[1] = _horizontalTimer - 4;	break;
-					case 0x14: _ballPosition = _horizontalTimer - 4;		break;
+					case 0x10: _playerCounter[0] = 0;		break;
+					case 0x11: _playerCounter[1] = 0;		break;
+					case 0x12: _missileCounter[0] = 0;		break;
+					case 0x13: _missileCounter[1] = 0;		break;
+					case 0x14: _ballCounter = 0;			break;
 
 					case 0x1c:
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;
@@ -308,11 +319,11 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
 
 					case 0x2a:
-						_playerPosition[0] += (int8_t)_playerMotion[0] >> 4;
-						_playerPosition[1] += (int8_t)_playerMotion[1] >> 4;
-						_missilePosition[0] += (int8_t)_missileMotion[0] >> 4;
-						_missilePosition[1] += (int8_t)_missileMotion[1] >> 4;
-						_ballPosition += (int8_t)_ballMotion >> 4;
+						_playerCounter[0] = (_playerCounter[0] + 160 + ((int8_t)_playerMotion[0] >> 4))%160;
+						_playerCounter[1] = (_playerCounter[1] + 160 + ((int8_t)_playerMotion[1] >> 4))%160;
+						_missileCounter[0] = (_missileCounter[0] + 160 + ((int8_t)_missileMotion[0] >> 4))%160;
+						_missileCounter[1] = (_missileCounter[1] + 160 + ((int8_t)_missileMotion[1] >> 4))%160;
+						_ballCounter = (_ballCounter + 160 + ((int8_t)_ballMotion >> 4))%160;
 					break;
 					case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
 				}
