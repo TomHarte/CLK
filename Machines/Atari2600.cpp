@@ -106,14 +106,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			playerPixels[c] = 0;
 
 		// figure out missile colour
-		int missileIndex = _missileCounter[c] - 4;
+		int missileIndex = _missileCounter[c];
 		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
 	// get the ball proposed colour
 	uint8_t ballPixel;
-	int ballIndex = _ballCounter;
+	int ballIndex = _ballCounter - 2;
 	int ballSize = 1 << ((_playfieldControl >> 4)&3);
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
@@ -151,22 +151,14 @@ void Machine::output_pixels(int count)
 			if (_hMoveFlags&8) _missileCounter[1] = (_missileCounter[1]+1)%160;
 			if (_hMoveFlags&16) _ballCounter = (_ballCounter+1)%160;
 
+			_hMoveCounter --;
+
 			if ((_hMoveCounter^8^(_playerMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~1;
 			if ((_hMoveCounter^8^(_playerMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~2;
 			if ((_hMoveCounter^8^(_missileMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~4;
 			if ((_hMoveCounter^8^(_missileMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~8;
 			if ((_hMoveCounter^8^(_ballMotion >> 4)) == 0xf) _hMoveFlags &= ~16;
-
-			_hMoveCounter ++;
-
-//						_playerCounter[0] = (_playerCounter[0] + 160 - 8^(_playerMotion[0] >> 4))%160;
-//						_playerCounter[1] = (_playerCounter[1] + 160 - 8^(_playerMotion[1] >> 4))%160;
-//						_missileCounter[0] = (_missileCounter[0] + 160 - 8^(_missileMotion[0] >> 4))%160;
-//						_missileCounter[1] = (_missileCounter[1] + 160 - 8^(_missileMotion[1] >> 4))%160;
-//						_ballCounter = (_ballCounter + 160 + 8^(_ballMotion >> 4))%160;
-		} /*else {
-		_hMoveCounter				--;
-		}*/
+		}
 
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
 		// otherwise output a pixel
@@ -233,8 +225,6 @@ void Machine::output_pixels(int count)
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
-
-
 	}
 }
 
@@ -242,16 +232,16 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 {
 	uint8_t returnValue = 0xff;
 	int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = horizontalTimerReload-3;
+	const int32_t ready_line_disable_time = horizontalTimerReload;
 
 	if(operation == CPU6502::BusOperation::Ready) {
 		int32_t distance_to_end_of_ready = _horizontalTimer - ready_line_disable_time + horizontalTimerReload;
-		cycles_run_for += distance_to_end_of_ready / 3;
+		cycles_run_for = distance_to_end_of_ready / 3;
 		output_pixels(distance_to_end_of_ready);
 		set_ready_line(false);
 	} else {
 		output_pixels(3);
-		if(_horizontalTimer == horizontalTimerReload-3)
+		if(_horizontalTimer == ready_line_disable_time)
 			set_ready_line(false);
 	}
 
@@ -347,7 +337,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 
 					case 0x2a:
 						_vBlankExtend = true;
-						_hMoveCounter = 0;
+						_hMoveCounter = 15;
 						_hMoveFlags = 0x1f;
 					break;
 					case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
