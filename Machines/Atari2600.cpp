@@ -113,7 +113,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	// get the ball proposed colour
 	uint8_t ballPixel;
-	int ballIndex = _ballCounter - 4;
+	int ballIndex = _ballCounter;
 	int ballSize = 1 << ((_playfieldControl >> 4)&3);
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
@@ -143,6 +143,31 @@ void Machine::output_pixels(int count)
 	{
 		OutputState state;
 
+		// update hmove
+		if (_hMoveFlags) {
+			if (_hMoveFlags&1) _playerCounter[0] = (_playerCounter[0]+1)%160;
+			if (_hMoveFlags&2) _playerCounter[1] = (_playerCounter[1]+1)%160;
+			if (_hMoveFlags&4) _missileCounter[0] = (_missileCounter[0]+1)%160;
+			if (_hMoveFlags&8) _missileCounter[1] = (_missileCounter[1]+1)%160;
+			if (_hMoveFlags&16) _ballCounter = (_ballCounter+1)%160;
+
+			if ((_hMoveCounter^8^(_playerMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~1;
+			if ((_hMoveCounter^8^(_playerMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~2;
+			if ((_hMoveCounter^8^(_missileMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~4;
+			if ((_hMoveCounter^8^(_missileMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~8;
+			if ((_hMoveCounter^8^(_ballMotion >> 4)) == 0xf) _hMoveFlags &= ~16;
+
+			_hMoveCounter ++;
+
+//						_playerCounter[0] = (_playerCounter[0] + 160 - 8^(_playerMotion[0] >> 4))%160;
+//						_playerCounter[1] = (_playerCounter[1] + 160 - 8^(_playerMotion[1] >> 4))%160;
+//						_missileCounter[0] = (_missileCounter[0] + 160 - 8^(_missileMotion[0] >> 4))%160;
+//						_missileCounter[1] = (_missileCounter[1] + 160 - 8^(_missileMotion[1] >> 4))%160;
+//						_ballCounter = (_ballCounter + 160 + 8^(_ballMotion >> 4))%160;
+		} /*else {
+		_hMoveCounter				--;
+		}*/
+
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
 		// otherwise output a pixel
 		if(_vSyncEnabled) {
@@ -160,7 +185,7 @@ void Machine::output_pixels(int count)
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
 			if(_horizontalTimer >= start_of_sync) state = OutputState::Blank;
 			else if (_horizontalTimer >= end_of_sync) state = OutputState::Sync;
-			else if (_horizontalTimer >= 160) state = OutputState::Blank;
+			else if (_horizontalTimer >= (_vBlankExtend ? 152 : 160)) state = OutputState::Blank;
 			else {
 				if(_vBlankEnabled) {
 					state = OutputState::Blank;
@@ -184,16 +209,18 @@ void Machine::output_pixels(int count)
 
 			if(state == OutputState::Pixel)
 			{
+				_vBlankExtend = false;
 				_crt->allocate_write_area(160);
 				_outputBuffer = _crt->get_write_target_for_buffer(0);
 			}
 		}
 
-		if(state == OutputState::Pixel && _outputBuffer)
+		if(state == OutputState::Pixel)
 		{
-			get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
+			if(_outputBuffer)
+				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
 
-			// incrmeent all graphics counters
+			// increment all graphics counters
 			_playerCounter[0] = (_playerCounter[0]+1)%160;
 			_playerCounter[1] = (_playerCounter[1]+1)%160;
 			_missileCounter[0] = (_missileCounter[0]+1)%160;
@@ -319,11 +346,9 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
 
 					case 0x2a:
-						_playerCounter[0] = (_playerCounter[0] + 160 + ((int8_t)_playerMotion[0] >> 4))%160;
-						_playerCounter[1] = (_playerCounter[1] + 160 + ((int8_t)_playerMotion[1] >> 4))%160;
-						_missileCounter[0] = (_missileCounter[0] + 160 + ((int8_t)_missileMotion[0] >> 4))%160;
-						_missileCounter[1] = (_missileCounter[1] + 160 + ((int8_t)_missileMotion[1] >> 4))%160;
-						_ballCounter = (_ballCounter + 160 + ((int8_t)_ballMotion >> 4))%160;
+						_vBlankExtend = true;
+						_hMoveCounter = 0;
+						_hMoveFlags = 0x1f;
 					break;
 					case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
 				}

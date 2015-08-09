@@ -71,6 +71,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		// graphics output
 		int32_t _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
+		bool _vBlankExtend;
+		uint8_t _hMoveCounter, _hMoveFlags;
 
 		enum OutputState {
 			Sync,
