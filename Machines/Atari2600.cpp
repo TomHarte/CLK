@@ -203,12 +203,22 @@ void Machine::output_pixels(int count)
 int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	uint8_t returnValue = 0xff;
+	int cycles_run_for = 1;
+	const int32_t ready_line_disable_time = horizontalTimerReload-3;
 
-	output_pixels(3);
-	if(_horizontalTimer == horizontalTimerReload-3)
+	if(operation == CPU6502::BusOperation::Ready) {
+		int32_t distance_to_end_of_ready = _horizontalTimer - ready_line_disable_time + horizontalTimerReload;
+		cycles_run_for += distance_to_end_of_ready / 3;
+		output_pixels(distance_to_end_of_ready);
 		set_ready_line(false);
+	} else {
+		output_pixels(3);
+		if(_horizontalTimer == horizontalTimerReload-3)
+			set_ready_line(false);
+	}
 
 	if(operation != CPU6502::BusOperation::Ready) {
+
 		// check for a ROM access
 		if ((address&0x1000) && isReadOperation(operation)) {
 			returnValue &= _rom[address&_romMask];
@@ -333,15 +343,15 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 		}
 	}
 
-	if(_piaTimerValue) {
-		_piaTimerValue --;
+	if(_piaTimerValue >= cycles_run_for) {
+		_piaTimerValue -= cycles_run_for;
 	} else {
-		_piaTimerValue = 0xff;
+		_piaTimerValue += 0xff - cycles_run_for;
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
 
-	return 1;
+	return  cycles_run_for;
 }
 
 void Machine::set_rom(size_t length, const uint8_t *data)
