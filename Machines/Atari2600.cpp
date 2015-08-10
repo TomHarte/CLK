@@ -106,14 +106,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			playerPixels[c] = 0;
 
 		// figure out missile colour
-		int missileIndex = _missileCounter[c];
+		int missileIndex = _missileCounter[c] - 4;
 		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
 	// get the ball proposed colour
 	uint8_t ballPixel;
-	int ballIndex = _ballCounter - 2;
+	int ballIndex = _ballCounter - 4;
 	int ballSize = 1 << ((_playfieldControl >> 4)&3);
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
@@ -144,7 +144,7 @@ void Machine::output_pixels(int count)
 		OutputState state;
 
 		// update hmove
-		if (_hMoveFlags) {
+		if (!(_horizontalTimer&3) && _hMoveFlags) {
 			if (_hMoveFlags&1) _playerCounter[0] = (_playerCounter[0]+1)%160;
 			if (_hMoveFlags&2) _playerCounter[1] = (_playerCounter[1]+1)%160;
 			if (_hMoveFlags&4) _missileCounter[0] = (_missileCounter[0]+1)%160;
@@ -232,7 +232,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 {
 	uint8_t returnValue = 0xff;
 	int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = horizontalTimerReload;
+	const int32_t ready_line_disable_time = horizontalTimerReload - 3;
 
 	if(operation == CPU6502::BusOperation::Ready) {
 		int32_t distance_to_end_of_ready = _horizontalTimer - ready_line_disable_time + horizontalTimerReload;
