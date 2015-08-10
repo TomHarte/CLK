@@ -56,7 +56,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playerAndMissileSize[2];
 
 		// missile registers
-		uint8_t _missileGraphicsEnable[2];
+		uint8_t _missileGraphicsEnable[2], _missileGraphicsReset[2];
 
 		// ball registers
 		uint8_t _ballGraphicsEnable, _ballGraphicsEnableLatch;

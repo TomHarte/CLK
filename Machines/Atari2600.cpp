@@ -108,7 +108,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		// figure out missile colour
 		int missileIndex = _objectCounter[2+c] - 4;
 		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
+		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) ? 1 : 0;
 	}
 
 	// get the ball proposed colour
@@ -146,11 +146,11 @@ void Machine::output_pixels(int count)
 		// update hmove
 		if (!(_horizontalTimer&3) && _hMoveFlags) {
             for(int c = 0; c < 5; c++) {
-                if ((_hMoveCounter^8^(_objectMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
+                if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
                 if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
             }
 
-			_hMoveCounter --;
+			_hMoveCounter = (_hMoveCounter-1)&0xf;
 		}
 
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
@@ -224,14 +224,11 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 	int cycles_run_for = 1;
 	const int32_t ready_line_disable_time = 0;//horizontalTimerReload;
 
-//	printf("[%d]%d ", _horizontalTimer, _horizontalTimer%3);
-
 	if(operation == CPU6502::BusOperation::Ready) {
 		int32_t distance_to_end_of_ready = _horizontalTimer;// - ready_line_disable_time + horizontalTimerReload + 1;
 		cycles_run_for = distance_to_end_of_ready / 3;
 		output_pixels(distance_to_end_of_ready);
 		set_ready_line(false);
-//		printf("- ");
 	} else {
 		output_pixels(3);
 		if(_horizontalTimer == ready_line_disable_time)
@@ -269,14 +266,14 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x07:	returnValue &= 0x3f;	break;	// player / player, missile / missile collisions
 				}
 			} else {
-				switch(address & 0x3f) {
+                const uint16_t decodedAddress = address & 0x3f;
+				switch(decodedAddress) {
 					case 0x00:	_vSyncEnabled = !!(*value & 0x02);	break;
 					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
-					case 0x02: {
-//						printf("W ");
+					case 0x02:
 						set_ready_line(true);
-					} break;
+					break;
 					case 0x03:
 						_horizontalTimer = 0;
 					break;
@@ -329,9 +326,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
 					case 0x27: _ballGraphicsEnableDelay = *value;		break;
 
-                    // TODO: this should lock, not
-					case 0x28: _objectCounter[2] = _objectCounter[0];	break;
-					case 0x29: _objectCounter[3] = _objectCounter[1];	break;
+					case 0x28:
+					case 0x29:
+                        if (!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
+                            _objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
+                        _missileGraphicsReset[decodedAddress - 0x28] = *value;
+                    break;
 
 					case 0x2a:
 						_vBlankExtend = true;
