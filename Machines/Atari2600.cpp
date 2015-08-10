@@ -145,10 +145,10 @@ void Machine::output_pixels(int count)
 
 		// update hmove
 		if (!(_horizontalTimer&3) && _hMoveFlags) {
-            for(int c = 0; c < 5; c++) {
-                if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
-                if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
-            }
+			for(int c = 0; c < 5; c++) {
+				if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
+				if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
+			}
 
 			_hMoveCounter = (_hMoveCounter-1)&0xf;
 		}
@@ -206,8 +206,8 @@ void Machine::output_pixels(int count)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
 
 			// increment all graphics counters
-            for(int c = 0; c < 5; c++)
-                _objectCounter[c] = (_objectCounter[c]+1)%160;
+			for(int c = 0; c < 5; c++)
+				_objectCounter[c] = (_objectCounter[c]+1)%160;
 		}
 
 		// assumption here: signed shifts right; otherwise it's just
@@ -266,7 +266,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x07:	returnValue &= 0x3f;	break;	// player / player, missile / missile collisions
 				}
 			} else {
-                const uint16_t decodedAddress = address & 0x3f;
+				const uint16_t decodedAddress = address & 0x3f;
 				switch(decodedAddress) {
 					case 0x00:	_vSyncEnabled = !!(*value & 0x02);	break;
 					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
@@ -328,10 +328,10 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 
 					case 0x28:
 					case 0x29:
-                        if (!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
-                            _objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
-                        _missileGraphicsReset[decodedAddress - 0x28] = *value;
-                    break;
+						if (!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
+							_objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
+						_missileGraphicsReset[decodedAddress - 0x28] = *value;
+					break;
 
 					case 0x2a:
 						_vBlankExtend = true;
@@ -339,12 +339,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 						_hMoveFlags = 0x1f;
 					break;
 					case 0x2b:
-                        _objectMotion[0] =
-                        _objectMotion[1] =
-                        _objectMotion[2] =
-                        _objectMotion[3] =
-                        _objectMotion[4] = 0;
-                    break;
+						_objectMotion[0] =
+						_objectMotion[1] =
+						_objectMotion[2] =
+						_objectMotion[3] =
+						_objectMotion[4] = 0;
+					break;
 				}
 			}
 	//		printf("Uncaught TIA %04x\n", address);
@@ -354,15 +354,25 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 		if ((address&0x1280) == 0x280) {
 			if(isReadOperation(operation)) {
 				switch(address & 0xf) {
-					case 0x04: returnValue &= _piaTimerValue >> _piaTimerShift;				break;
-					case 0x05: returnValue &= _piaTimerStatus; _piaTimerStatus &= ~0x40;	break;
+					case 0x04:
+						returnValue &= _piaTimerValue >> _piaTimerShift;
+
+						if(_writtenPiaTimerShift != _piaTimerShift) {
+							_piaTimerShift = _writtenPiaTimerShift;
+							_piaTimerValue <<= _writtenPiaTimerShift;
+						}
+					break;
+					case 0x05:
+						returnValue &= _piaTimerStatus;
+						_piaTimerStatus &= ~0x40;
+					break;
 				}
 			} else {
 				switch(address & 0x0f) {
-					case 0x04:	_piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x05:	_piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x06:	_piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x07:	_piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
+					case 0x04:	_writtenPiaTimerShift = _piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x05:	_writtenPiaTimerShift = _piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x06:	_writtenPiaTimerShift = _piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
+					case 0x07:	_writtenPiaTimerShift = _piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
 				}
 			}
 	//		printf("Uncaught PIA %04x\n", address);

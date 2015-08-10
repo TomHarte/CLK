@@ -37,7 +37,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// the timer
 		unsigned int _piaTimerValue;
-		unsigned int _piaTimerShift;
+		unsigned int _piaTimerShift, _writtenPiaTimerShift;
 		uint8_t _piaTimerStatus;
 
 		// playfield registers
@@ -67,7 +67,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		bool _vSyncEnabled, _vBlankEnabled;
 		bool _vBlankExtend;
 		uint8_t _hMoveCounter, _hMoveFlags;
-        uint8_t _objectCounter[5], _objectMotion[5];
+		uint8_t _objectCounter[5], _objectMotion[5];
 
 		enum OutputState {
 			Sync,

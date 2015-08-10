@@ -101,14 +101,14 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cy
 	SyncEvent proposedEvent = SyncEvent::None;
 	int proposedSyncTime = cycles_to_run_for;
 
-    // will an acceptable vertical sync be triggered?
-    if (vsync_is_requested && !_is_in_vsync) {
+	// will an acceptable vertical sync be triggered?
+	if (vsync_is_requested && !_is_in_vsync) {
 		if (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold) {// && _rasterPosition.y >= (kCRTFixedPointRange * 7) >> 3) {
 			proposedSyncTime = 0;
 			proposedEvent = SyncEvent::StartVSync;
 			_did_detect_vsync = true;
 		}
-    }
+	}
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
 	if (!_is_in_vsync) {
@@ -346,21 +346,21 @@ void CRT::output_sync(int number_of_cycles)
 
 void CRT::output_blank(int number_of_cycles)
 {
-    bool _vsync_requested = _is_receiving_sync;
+	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
 	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Blank, nullptr);
 }
 
 void CRT::output_level(int number_of_cycles, const char *type)
 {
-    bool _vsync_requested = _is_receiving_sync;
+	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
 	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Level, type);
 }
 
 void CRT::output_data(int number_of_cycles, const char *type)
 {
-    bool _vsync_requested = _is_receiving_sync;
+	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
 	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Data, type);
 }
