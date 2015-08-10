@@ -17,7 +17,7 @@ static const int horizontalTimerReload = 227;
 Machine::Machine()
 {
 	_timestamp = 0;
-	_horizontalTimer = horizontalTimerReload;
+	_horizontalTimer = 0;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228, 262, 1, 4);
@@ -71,7 +71,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		// figure out player colour
 		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
-		int relativeTimer = _playerCounter[c] - 5;//_playerPosition[c] - _horizontalTimer;
+		int relativeTimer = _objectCounter[c] - 5;
 		switch (_playerAndMissileSize[c]&7)
 		{
 			case 0: break;
@@ -106,14 +106,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			playerPixels[c] = 0;
 
 		// figure out missile colour
-		int missileIndex = _missileCounter[c] - 4;
+		int missileIndex = _objectCounter[2+c] - 4;
 		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2)) ? 1 : 0;
 	}
 
 	// get the ball proposed colour
 	uint8_t ballPixel;
-	int ballIndex = _ballCounter - 4;
+	int ballIndex = _objectCounter[4] - 4;
 	int ballSize = 1 << ((_playfieldControl >> 4)&3);
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
@@ -145,19 +145,12 @@ void Machine::output_pixels(int count)
 
 		// update hmove
 		if (!(_horizontalTimer&3) && _hMoveFlags) {
-			if (_hMoveFlags&1) _playerCounter[0] = (_playerCounter[0]+1)%160;
-			if (_hMoveFlags&2) _playerCounter[1] = (_playerCounter[1]+1)%160;
-			if (_hMoveFlags&4) _missileCounter[0] = (_missileCounter[0]+1)%160;
-			if (_hMoveFlags&8) _missileCounter[1] = (_missileCounter[1]+1)%160;
-			if (_hMoveFlags&16) _ballCounter = (_ballCounter+1)%160;
+            for(int c = 0; c < 5; c++) {
+                if ((_hMoveCounter^8^(_objectMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
+                if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
+            }
 
 			_hMoveCounter --;
-
-			if ((_hMoveCounter^8^(_playerMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~1;
-			if ((_hMoveCounter^8^(_playerMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~2;
-			if ((_hMoveCounter^8^(_missileMotion[0] >> 4)) == 0xf) _hMoveFlags &= ~4;
-			if ((_hMoveCounter^8^(_missileMotion[1] >> 4)) == 0xf) _hMoveFlags &= ~8;
-			if ((_hMoveCounter^8^(_ballMotion >> 4)) == 0xf) _hMoveFlags &= ~16;
 		}
 
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
@@ -213,11 +206,8 @@ void Machine::output_pixels(int count)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
 
 			// increment all graphics counters
-			_playerCounter[0] = (_playerCounter[0]+1)%160;
-			_playerCounter[1] = (_playerCounter[1]+1)%160;
-			_missileCounter[0] = (_missileCounter[0]+1)%160;
-			_missileCounter[1] = (_missileCounter[1]+1)%160;
-			_ballCounter = (_ballCounter+1)%160;
+            for(int c = 0; c < 5; c++)
+                _objectCounter[c] = (_objectCounter[c]+1)%160;
 		}
 
 		// assumption here: signed shifts right; otherwise it's just
@@ -232,13 +222,16 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 {
 	uint8_t returnValue = 0xff;
 	int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = horizontalTimerReload - 3;
+	const int32_t ready_line_disable_time = 0;//horizontalTimerReload;
+
+//	printf("[%d]%d ", _horizontalTimer, _horizontalTimer%3);
 
 	if(operation == CPU6502::BusOperation::Ready) {
-		int32_t distance_to_end_of_ready = _horizontalTimer - ready_line_disable_time + horizontalTimerReload;
+		int32_t distance_to_end_of_ready = _horizontalTimer;// - ready_line_disable_time + horizontalTimerReload + 1;
 		cycles_run_for = distance_to_end_of_ready / 3;
 		output_pixels(distance_to_end_of_ready);
 		set_ready_line(false);
+//		printf("- ");
 	} else {
 		output_pixels(3);
 		if(_horizontalTimer == ready_line_disable_time)
@@ -281,9 +274,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 					case 0x02: {
+//						printf("W ");
 						set_ready_line(true);
 					} break;
-					case 0x03: _horizontalTimer = horizontalTimerReload; break;
+					case 0x03:
+						_horizontalTimer = 0;
+					break;
 
 					case 0x04: _playerAndMissileSize[0] = *value;	break;
 					case 0x05: _playerAndMissileSize[1] = *value;	break;
@@ -300,11 +296,11 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x0e: _playfield[1] = *value;			break;
 					case 0x0f: _playfield[2] = *value;			break;
 
-					case 0x10: _playerCounter[0] = 0;		break;
-					case 0x11: _playerCounter[1] = 0;		break;
-					case 0x12: _missileCounter[0] = 0;		break;
-					case 0x13: _missileCounter[1] = 0;		break;
-					case 0x14: _ballCounter = 0;			break;
+					case 0x10: _objectCounter[0] = 0;		break;
+					case 0x11: _objectCounter[1] = 0;		break;
+					case 0x12: _objectCounter[2] = 0;		break;
+					case 0x13: _objectCounter[3] = 0;		break;
+					case 0x14: _objectCounter[4] = 0;		break;
 
 					case 0x1c:
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;
@@ -323,24 +319,32 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 							_ballGraphicsEnable = _ballGraphicsEnableLatch;
 					break;
 
-					case 0x20: _playerMotion[0] = *value;			break;
-					case 0x21: _playerMotion[1] = *value;			break;
-					case 0x22: _missileMotion[0] = *value;			break;
-					case 0x23: _missileMotion[1] = *value;			break;
-					case 0x24: _ballMotion = *value;				break;
+					case 0x20: _objectMotion[0] = *value;			break;
+					case 0x21: _objectMotion[1] = *value;			break;
+					case 0x22: _objectMotion[2] = *value;			break;
+					case 0x23: _objectMotion[3] = *value;			break;
+					case 0x24: _objectMotion[4] = *value;			break;
 
 					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
 					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
 					case 0x27: _ballGraphicsEnableDelay = *value;		break;
 
-	//				case 0x28: _missilePosition[0] = _playerPosition[0];	break;
+                    // TODO: this should lock, not
+					case 0x28: _objectCounter[2] = _objectCounter[0];	break;
+					case 0x29: _objectCounter[3] = _objectCounter[1];	break;
 
 					case 0x2a:
 						_vBlankExtend = true;
 						_hMoveCounter = 15;
 						_hMoveFlags = 0x1f;
 					break;
-					case 0x2b: _playerMotion[0] = _playerMotion[1] = _missileMotion[0] = _missileMotion[1] = _ballMotion = 0; break;
+					case 0x2b:
+                        _objectMotion[0] =
+                        _objectMotion[1] =
+                        _objectMotion[2] =
+                        _objectMotion[3] =
+                        _objectMotion[4] = 0;
+                    break;
 				}
 			}
 	//		printf("Uncaught TIA %04x\n", address);

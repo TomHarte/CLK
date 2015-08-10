@@ -49,8 +49,6 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playerColour[2];
 		uint8_t _playerReflection[2];
 		uint8_t _playerGraphicsLatch[2], _playerGraphics[2];
-		uint8_t _playerCounter[2];
-		uint8_t _playerMotion[2];
 		uint8_t _playerGraphicsLatchEnable[2];
 		bool _playerStart[2];
 
@@ -59,13 +57,9 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// missile registers
 		uint8_t _missileGraphicsEnable[2];
-		uint8_t _missileCounter[2];
-		uint8_t _missileMotion[2];
 
 		// ball registers
 		uint8_t _ballGraphicsEnable, _ballGraphicsEnableLatch;
-		uint8_t _ballCounter;
-		uint8_t _ballMotion;
 		uint8_t _ballGraphicsEnableDelay;
 
 		// graphics output
@@ -73,6 +67,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		bool _vSyncEnabled, _vBlankEnabled;
 		bool _vBlankExtend;
 		uint8_t _hMoveCounter, _hMoveFlags;
+        uint8_t _objectCounter[5], _objectMotion[5];
 
 		enum OutputState {
 			Sync,
