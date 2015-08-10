@@ -10,11 +10,6 @@ import Cocoa
 
 class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 
-	override init() {
-		super.init()
-		// Add your subclass-specific initialization here.
-	}
-
 	@IBOutlet weak var openGLView: CSCathodeRayView?
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -73,11 +68,5 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
 		}
 		lastCycleCount = cycleCount
-	}
-
-	// MARK: CSAtari2600Delegate
-
-	func atari2600NeedsRedraw(atari2600: CSAtari2600!) {
-		openGLView?.needsDisplay = true
 	}
 }
