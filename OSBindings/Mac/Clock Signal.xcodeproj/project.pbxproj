@@ -16,6 +16,7 @@
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
 		4B366DFC1B5C165A0026627B /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B366DFA1B5C165A0026627B /* CRT.cpp */; };
+		4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* TimingTests.swift */; };
 		4BB298EE1B587D8400A49093 /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E01B587D8300A49093 /* 6502_functional_test.bin */; };
 		4BB298EF1B587D8400A49093 /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E11B587D8300A49093 /* AllSuiteA.bin */; };
 		4BB298F01B587D8400A49093 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BB297E31B587D8300A49093 /* TestMachine.mm */; };
@@ -327,6 +328,7 @@
 		4B366DFB1B5C165A0026627B /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRT.hpp; path = ../../Outputs/CRT.hpp; sourceTree = "<group>"; };
 		4B6D7F921B58822000787C9A /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
 		4B6D7F931B58822000787C9A /* Atari2600.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Atari2600.hpp; sourceTree = "<group>"; };
+		4B92EAC91B7C112B00246143 /* TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimingTests.swift; sourceTree = "<group>"; };
 		4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Clock SignalTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		4BB297E01B587D8300A49093 /* 6502_functional_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = 6502_functional_test.bin; sourceTree = "<group>"; };
 		4BB297E11B587D8300A49093 /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = AllSuiteA.bin; sourceTree = "<group>"; };
@@ -994,6 +996,7 @@
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
+				4B92EAC91B7C112B00246143 /* TimingTests.swift */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -1445,6 +1448,7 @@
 			files = (
 				4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */,
 				4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */,
+				4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4BB298F01B587D8400A49093 /* TestMachine.mm in Sources */,

@@ -14,11 +14,14 @@ using namespace CPU6502;
 
 AllRAMProcessor::AllRAMProcessor()
 {
+	_timestamp = 0;
 	setup6502();
 }
 
 int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	_timestamp++;
+
 	if(isReadOperation(operation)) {
 		*value = _memory[address];
 	} else {
@@ -32,4 +35,9 @@ void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, 
 {
 	size_t endAddress = std::min(startAddress + length, (size_t)65536);
 	memcpy(&_memory[startAddress], data, endAddress - startAddress);
+}
+
+uint32_t AllRAMProcessor::get_timestamp()
+{
+	return _timestamp;
 }

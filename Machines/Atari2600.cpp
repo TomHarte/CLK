@@ -25,6 +25,7 @@ Machine::Machine()
 	memset(_collisions, 0xff, sizeof(_collisions));
 
 	setup6502();
+	set_reset_line(true);
 }
 
 Machine::~Machine()
@@ -245,6 +246,8 @@ void Machine::output_pixels(int count)
 
 int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	set_reset_line(false);
+
 	uint8_t returnValue = 0xff;
 	int cycles_run_for = 1;
 	const int32_t ready_line_disable_time = 225;//horizontalTimerReload;

@@ -371,6 +371,7 @@ template <class T> class Processor {
 		int _cycles_left_to_run;
 
 		bool _ready_line_is_enabled;
+		bool _reset_line_is_enabled;
 		bool _ready_is_active;
 
 	public:
@@ -418,7 +419,10 @@ template <class T> class Processor {
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[_scheduleProgramsReadPointer]) {\
 		_scheduleProgramsReadPointer = _scheduleProgramsWritePointer = _scheduleProgramProgramCounter = 0;\
-		schedule_program(fetch_decode_execute);\
+		if(_reset_line_is_enabled)\
+			schedule_program(get_reset_program());\
+		else\
+			schedule_program(fetch_decode_execute);\
 		op;\
 	}
 
@@ -910,7 +914,6 @@ template <class T> class Processor {
 			_decimalFlag &= Flag::Decimal;
 			_overflowFlag &= Flag::Overflow;
 			_s = 0;
-			schedule_program(get_reset_program());
 			_nextBusOperation = BusOperation::None;
 		}
 
@@ -935,6 +938,11 @@ template <class T> class Processor {
 				_ready_line_is_enabled = false;
 				_ready_is_active = false;
 			}
+		}
+
+		void set_reset_line(bool active)
+		{
+			_reset_line_is_enabled = active;
 		}
 
 		bool is_jammed()
