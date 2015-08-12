@@ -69,6 +69,9 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _hMoveCounter, _hMoveFlags;
 		uint8_t _objectCounter[5], _objectMotion[5];
 
+		// collisions
+		uint8_t _collisions[8];
+
 		enum OutputState {
 			Sync,
 			Blank,
