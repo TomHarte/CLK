@@ -63,7 +63,8 @@ template <class T> class Processor {
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
-			CycleAddYToAddressLow,						OperationCorrectAddressHigh,		OperationMoveToNextProgram,				OperationIncrementPC,
+			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
+			OperationMoveToNextProgram,					OperationIncrementPC,
 			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
 			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
 			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
@@ -137,26 +138,29 @@ template <class T> class Processor {
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
 
 #define Absolute							CycleLoadAddressAbsolute
-#define AbsoluteX							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					OperationCorrectAddressHigh
-#define AbsoluteY							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					OperationCorrectAddressHigh
+#define AbsoluteXr							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					OperationCorrectAddressHigh
+#define AbsoluteYr							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					OperationCorrectAddressHigh
+#define AbsoluteX							CycleLoadAddressAbsolute,					CycleAddXToAddressLowRead,				OperationCorrectAddressHigh
+#define AbsoluteY							CycleLoadAddressAbsolute,					CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
 #define ZeroY								CycleLoadAddessZeroY
 #define IndexedIndirect						CycleIncrementPCFetchAddressLowFromOperand, CycleAddXToOperandFetchAddressLow,		CycleIncrementOperandFetchAddressHigh
-#define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
+#define IndirectIndexedr					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
+#define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 
 #define Read(op)							CycleFetchOperandFromAddress,	op
 #define Write(op)							op,								CycleWriteOperandToAddress
 #define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
-#define AbsoluteXRead(op)					Program(AbsoluteX,			Read(op))
-#define AbsoluteYRead(op)					Program(AbsoluteY,			Read(op))
+#define AbsoluteXRead(op)					Program(AbsoluteXr,			Read(op))
+#define AbsoluteYRead(op)					Program(AbsoluteYr,			Read(op))
 #define ZeroRead(op)						Program(Zero,				Read(op))
 #define ZeroXRead(op)						Program(ZeroX,				Read(op))
 #define ZeroYRead(op)						Program(ZeroY,				Read(op))
 #define IndexedIndirectRead(op)				Program(IndexedIndirect,	Read(op))
-#define IndirectIndexedRead(op)				Program(IndirectIndexed,	Read(op))
+#define IndirectIndexedRead(op)				Program(IndirectIndexedr,	Read(op))
 
 #define AbsoluteWrite(op)					Program(Absolute,			Write(op))
 #define AbsoluteXWrite(op)					Program(AbsoluteX,			Write(op))
@@ -745,12 +749,22 @@ template <class T> class Processor {
 								throwaway_read(_address.full);
 							}
 						break;
+						case CycleAddXToAddressLowRead:
+							_nextAddress.full = _address.full + _x;
+							_address.bytes.low = _nextAddress.bytes.low;
+							throwaway_read(_address.full);
+						break;
 						case CycleAddYToAddressLow:
 							_nextAddress.full = _address.full + _y;
 							_address.bytes.low = _nextAddress.bytes.low;
 							if (_address.bytes.high != _nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
+						break;
+						case CycleAddYToAddressLowRead:
+							_nextAddress.full = _address.full + _y;
+							_address.bytes.low = _nextAddress.bytes.low;
+							throwaway_read(_address.full);
 						break;
 						case OperationCorrectAddressHigh:
 							_address.full = _nextAddress.full;

@@ -13,9 +13,9 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 
 	private var endTime: UInt32 = 0
 
-	func testImpliedNOP() {
-		let code: [UInt8] = [0xea, CSTestMachineJamOpcode]
-		self.runTest(code, expectedRunLength: 2)
+	func testImplied() {
+		let code: [UInt8] = [0xea, 0x88, 0xca, CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 6)
 	}
 
 	func testLDA() {
@@ -33,6 +33,33 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xb1, 0x02,			// [6] LDA ($01), y (wrap)
 			CSTestMachineJamOpcode]
 		self.runTest(code, expectedRunLength: 48)
+	}
+
+	func testSTA() {
+		let code: [UInt8] = [
+			0x85, 0x00,			// [3] STA $00
+			0x95, 0x00,			// [4] STA $00,X
+			0x8d, 0x00, 0x00,	// [4] STA $0000
+			0x9d, 0x00, 0x00,	// [5] STA $0000, x (no wrap)
+			0x9d, 0x02, 0x00,	// [5] STA $0002, x (wrap)
+			0x99, 0x00, 0x00,	// [5] STA $0000, y (no wrap)
+			0x99, 0x10, 0x00,	// [5] STA $0010, y (wrap)
+			0x81, 0x44,			// [6] STA ($44, x)
+			0x91, 0x00,			// [6] STA ($00), y (no wrap)
+			0x91, 0x02,			// [6] STA ($01), y (wrap)
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 49)
+	}
+
+	func testINC() {
+		let code: [UInt8] = [
+			0xe6, 0x00,			// [5] INC $00
+			0xf6, 0x00,			// [6] INC $00,X
+			0xee, 0x00, 0x00,	// [6] INC $0000
+			0xfe, 0x00, 0x00,	// [7] INC $0000, x (no wrap)
+			0xfe, 0x02, 0x00,	// [7] INC $0002, x (wrap)
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 31)
 	}
 
 	func testBCS() {
@@ -68,6 +95,14 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xc6, 0xb4,			// [5] DEC $B4
 			CSTestMachineJamOpcode]
 		self.runTest(code, expectedRunLength: 9)
+	}
+
+	func testSnippet2() {
+		let code: [UInt8] = [
+			0x16, 0x16,			// [6] ASL $16, x
+			0x46, 0x46,			// [5] LSR $46
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 11)
 	}
 
 	func runTest(code: [UInt8], expectedRunLength: UInt32) {
