@@ -269,29 +269,29 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
-		// check for a ROM or paging access
-		if ((address&0x1000) && isReadOperation(operation)) {
+		// check for a paging access
+		if(_rom_size > 4096 && ((address & 0x1f00) == 0x1f00)) {
+			uint8_t *base_ptr = _romPages[0];
+			uint8_t first_paging_register = 0xf8 - (_rom_size >> 14)*2;
 
-			if(_rom_size > 4096 && ((address & 0x1f00) == 0x1f00)) {
-				uint8_t *base_ptr = _romPages[0];
-				uint8_t first_paging_register = 0xf8 - (_rom_size >> 14)*2;
-
-				const uint8_t paging_register = address&0xff;
-				if(paging_register >= first_paging_register) {
-					const uint16_t selected_page = paging_register - first_paging_register;
-					if(selected_page * 4096 < _rom_size) {
-						base_ptr = &_rom[selected_page * 4096];
-					}
-				}
-
-				if(base_ptr != _romPages[0]) {
-					_romPages[0] = base_ptr;
-					_romPages[1] = base_ptr + 1024;
-					_romPages[2] = base_ptr + 2048;
-					_romPages[3] = base_ptr + 3072;
+			const uint8_t paging_register = address&0xff;
+			if(paging_register >= first_paging_register) {
+				const uint16_t selected_page = paging_register - first_paging_register;
+				if(selected_page * 4096 < _rom_size) {
+					base_ptr = &_rom[selected_page * 4096];
 				}
 			}
 
+			if(base_ptr != _romPages[0]) {
+				_romPages[0] = base_ptr;
+				_romPages[1] = base_ptr + 1024;
+				_romPages[2] = base_ptr + 2048;
+				_romPages[3] = base_ptr + 3072;
+			}
+		}
+
+		// check for a ROM read
+		if ((address&0x1000) && isReadOperation(operation)) {
 			returnValue &= _romPages[(address >> 10)&3][address&1023];
 		}
 
