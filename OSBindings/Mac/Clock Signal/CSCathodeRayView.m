@@ -91,9 +91,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[super reshape];
 
 	[self.openGLContext makeCurrentContext];
+	CGLLockContext([[self openGLContext] CGLContextObj]);
+
 	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
 	NSPoint viewSize = [self convertPointToBacking:backingSize];
 	glViewport(0, 0, viewSize.x, viewSize.y);
+
+	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
 - (void) awakeFromNib
@@ -138,26 +142,27 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame
 {
+	[[self openGLContext] makeCurrentContext];
+	CGLLockContext([[self openGLContext] CGLContextObj]);
+
 	BOOL hadFrame = _crtFrame ? YES : NO;
 	_crtFrame = crtFrame;
-	[self setNeedsDisplay:YES];
 
-	if(crtFrame)
+	glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
+
+	glBindTexture(GL_TEXTURE_2D, _textureName);
+	if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
 	{
-		[self.openGLContext makeCurrentContext];
-		glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
-
-		glBindTexture(GL_TEXTURE_2D, _textureName);
-
-		if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
-		{
-			GLint format = [self formatForDepth:_crtFrame->buffers[0].depth];
-			glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
-			_textureSize = _crtFrame->size;
-		}
-		else
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, [self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+		GLint format = [self formatForDepth:_crtFrame->buffers[0].depth];
+		glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+		_textureSize = _crtFrame->size;
 	}
+	else
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, [self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+
+	[self drawView];
+
+	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 
 	return hadFrame;
 }
@@ -276,7 +281,13 @@ const char *fragmentShader =
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+	[self drawView];
+}
+
+- (void)drawView
+{
 	[self.openGLContext makeCurrentContext];
+	CGLLockContext([[self openGLContext] CGLContextObj]);
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -287,6 +298,9 @@ const char *fragmentShader =
 	}
 
 	glSwapAPPLE();
+
+	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
 @end

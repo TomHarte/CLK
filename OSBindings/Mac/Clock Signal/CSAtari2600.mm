@@ -43,14 +43,10 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 		_failedVSyncCount = MAX(_failedVSyncCount - 1, 0);
 	}
 
-	dispatch_async(dispatch_get_main_queue(), ^{
-		BOOL hasReturn = [self.view pushFrame:frame];
+	BOOL hasReturn = [self.view pushFrame:frame];
 
-		if(hasReturn)
-			dispatch_async(_serialDispatchQueue, ^{
-				_atari2600.get_crt()->return_frame();
-			});
-	});
+	if(hasReturn)
+		_atari2600.get_crt()->return_frame();
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
