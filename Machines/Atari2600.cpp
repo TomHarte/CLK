@@ -43,14 +43,14 @@ void Machine::switch_region()
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
-	const uint8_t palette[16][3] =
+	static const uint8_t palette[16][3] =
 	{
 		{255, 255, 255},	{253, 250, 115},	{236, 199, 125},	{252, 187, 151},
 		{252, 180, 181},	{235, 177, 223},	{211, 178, 250},	{187, 182, 250},
 		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
 		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
 	};
-	const uint8_t alphaValues[8] =
+	static const uint8_t alphaValues[8] =
 	{
 		//		0, 64, 108, 144, 176, 200, 220, 255
 		//	};
@@ -60,12 +60,8 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	};
 
 	// get the playfield pixel and hence a proposed colour
-	const int x = offset >> 2;
-	const int mirrored = (x / 20) & (_playfieldControl&1);
-	const int index = mirrored ? 39 - x : (x%20);
-	uint8_t playfieldPixel = _playfield[index];
-
-	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[x / 20] : _playfieldColour;
+	uint8_t playfieldPixel = _playfield[offset >> 2];
+	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get player and missile proposed pixels
 	uint8_t playerPixels[2], missilePixels[2];
@@ -367,7 +363,19 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x08: _playfieldColour = *value;	break;
 					case 0x09: _backgroundColour = *value;	break;
 
-					case 0x0a: _playfieldControl = *value;		break;
+					case 0x0a: {
+						uint8_t old_playfield_control = _playfieldControl;
+						_playfieldControl = *value;
+
+						// did the mirroring bit change?
+						if((_playfieldControl^old_playfield_control)&1) {
+							if(_playfieldControl&1) {
+								for(int c = 0; c < 20; c++) _playfield[c+20] = _playfield[19-c];
+							} else {
+								memcpy(&_playfield[20], _playfield, 20);
+							}
+						}
+					} break;
 					case 0x0b:
 					case 0x0c: _playerReflection[decodedAddress - 0x0b] = *value;	break;
 
@@ -376,6 +384,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 						_playfield[1] = ((*value) >> 5)&1;
 						_playfield[2] = ((*value) >> 6)&1;
 						_playfield[3] = (*value) >> 7;
+
+						if(_playfieldControl&1) {
+							for(int c = 0; c < 4; c++) _playfield[39-c] = _playfield[c];
+						} else {
+							memcpy(&_playfield[20], _playfield, 4);
+						}
 					break;
 					case 0x0e:
 						_playfield[4] = (*value) >> 7;
@@ -386,6 +400,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 						_playfield[9] = ((*value) >> 2)&1;
 						_playfield[10] = ((*value) >> 1)&1;
 						_playfield[11] = (*value)&1;
+
+						if(_playfieldControl&1) {
+							for(int c = 0; c < 8; c++) _playfield[35-c] = _playfield[c+4];
+						} else {
+							memcpy(&_playfield[24], &_playfield[4], 8);
+						}
 					break;
 					case 0x0f:
 						_playfield[19] = (*value) >> 7;
@@ -396,6 +416,12 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 						_playfield[14] = ((*value) >> 2)&1;
 						_playfield[13] = ((*value) >> 1)&1;
 						_playfield[12] = (*value)&1;
+
+						if(_playfieldControl&1) {
+							for(int c = 0; c < 8; c++) _playfield[27-c] = _playfield[c+12];
+						} else {
+							memcpy(&_playfield[32], &_playfield[12], 8);
+						}
 					break;
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
