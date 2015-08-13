@@ -41,9 +41,10 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _piaTimerStatus;
 
 		// playfield registers
-		uint8_t _playfield[3], _playfieldControl;
+		uint8_t _playfieldControl;
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
+		uint8_t _playfield[40];
 
 		// player registers
 		uint8_t _playerColour[2];

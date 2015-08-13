@@ -62,11 +62,9 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	// get the playfield pixel and hence a proposed colour
 	const int x = offset >> 2;
 	const int mirrored = (x / 20) & (_playfieldControl&1);
-	const int index = mirrored ? x - 20 : 19 - (x%20);
-	const int byte = 2 - (index >> 3);
-	const int lowestBit = (byte&1)^1;
-	const int bit = (index & 7)^(lowestBit | (lowestBit << 1) | (lowestBit << 2));
-	uint8_t playfieldPixel = (_playfield[byte] >> bit)&1;
+	const int index = mirrored ? 39 - x : (x%20);
+	uint8_t playfieldPixel = _playfield[index];
+
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[x / 20] : _playfieldColour;
 
 	// get player and missile proposed pixels
@@ -123,25 +121,18 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
 	// accumulate collisions
-	_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7);
-	_collisions[0] |= ((missilePixels[0] & playerPixels[0]) << 6);
-	_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7);
-	_collisions[1] |= ((missilePixels[1] & playerPixels[1]) << 6);
+	_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
+	_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
 
-	_collisions[2] |= ((playfieldPixel & playerPixels[0]) << 7);
-	_collisions[2] |= ((ballPixel & playerPixels[0]) << 6);
-	_collisions[3] |= ((playfieldPixel & playerPixels[1]) << 7);
-	_collisions[3] |= ((ballPixel & playerPixels[1]) << 6);
+	_collisions[2] |= ((playfieldPixel & playerPixels[0]) << 7)		| ((ballPixel & playerPixels[0]) << 6);
+	_collisions[3] |= ((playfieldPixel & playerPixels[1]) << 7)		| ((ballPixel & playerPixels[1]) << 6);
 
-	_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7);
-	_collisions[4] |= ((ballPixel & missilePixels[0]) << 6);
-	_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7);
-	_collisions[5] |= ((ballPixel & missilePixels[1]) << 6);
+	_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
+	_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
 
 	_collisions[6] |= ((playfieldPixel & ballPixel) << 7);
 
-	_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7);
-	_collisions[7] |= ((missilePixels[0] & missilePixels[1]) << 6);
+	_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & missilePixels[1]) << 6);
 
 	// apply appropriate priority to pick a colour
 	playfieldPixel |= ballPixel;
@@ -171,12 +162,12 @@ void Machine::output_pixels(int count)
 		// update hmove
 		if (!(_horizontalTimer&3)) {
 
-			const uint8_t counterValue = _hMoveCounter ^ 0x7;
-			for(int c = 0; c < 5; c++) {
-				if (counterValue == (_objectMotion[c] >> 4))
-					_hMoveFlags &= ~(1 << c);
-				if (_hMoveFlags&(1 << c))
-					_objectCounter[c] = (_objectCounter[c]+1)%160;
+			if(_hMoveFlags) {
+				const uint8_t counterValue = _hMoveCounter ^ 0x7;
+				for(int c = 0; c < 5; c++) {
+					if (counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
+					if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
+				}
 			}
 
 			if(_hMoveIsCounting) {
@@ -200,16 +191,16 @@ void Machine::output_pixels(int count)
 
 			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if(_horizontalTimer >= start_of_sync) state = OutputState::Blank;
-			else if (_horizontalTimer >= end_of_sync) state = OutputState::Sync;
-			else if (_horizontalTimer >= (_vBlankExtend ? 152 : 160)) state = OutputState::Blank;
-			else {
+			if (_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 				if(_vBlankEnabled) {
 					state = OutputState::Blank;
 				} else {
 					state = OutputState::Pixel;
 				}
 			}
+			else if (_horizontalTimer < end_of_sync) state = OutputState::Blank;
+			else if (_horizontalTimer < start_of_sync) state = OutputState::Sync;
+			else state = OutputState::Blank;
 		}
 
 		_lastOutputStateDuration++;
@@ -373,9 +364,33 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x0a: _playfieldControl = *value;		break;
 					case 0x0b:
 					case 0x0c: _playerReflection[decodedAddress - 0x0b] = *value;	break;
+
 					case 0x0d:
+						_playfield[0] = ((*value) >> 4)&1;
+						_playfield[1] = ((*value) >> 5)&1;
+						_playfield[2] = ((*value) >> 6)&1;
+						_playfield[3] = (*value) >> 7;
+					break;
 					case 0x0e:
-					case 0x0f: _playfield[decodedAddress - 0x0d] = *value;			break;
+						_playfield[4] = (*value) >> 7;
+						_playfield[5] = ((*value) >> 6)&1;
+						_playfield[6] = ((*value) >> 5)&1;
+						_playfield[7] = ((*value) >> 4)&1;
+						_playfield[8] = ((*value) >> 3)&1;
+						_playfield[9] = ((*value) >> 2)&1;
+						_playfield[10] = ((*value) >> 1)&1;
+						_playfield[11] = (*value)&1;
+					break;
+					case 0x0f:
+						_playfield[19] = (*value) >> 7;
+						_playfield[18] = ((*value) >> 6)&1;
+						_playfield[17] = ((*value) >> 5)&1;
+						_playfield[16] = ((*value) >> 4)&1;
+						_playfield[15] = ((*value) >> 3)&1;
+						_playfield[14] = ((*value) >> 2)&1;
+						_playfield[13] = ((*value) >> 1)&1;
+						_playfield[12] = (*value)&1;
+					break;
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
 					case 0x14: _objectCounter[decodedAddress - 0x10] = 0;		break;
