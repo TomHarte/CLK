@@ -147,7 +147,7 @@ template <class T> class Processor {
 
 #define Read(op)							CycleFetchOperandFromAddress,	op
 #define Write(op)							op,								CycleWriteOperandToAddress
-#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	__VA_ARGS__,							CycleWriteOperandToAddress
+#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
 #define AbsoluteXRead(op)					Program(AbsoluteX,			Read(op))
@@ -186,7 +186,7 @@ template <class T> class Processor {
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
 
-			static const MicroOp operations[256][9] = {
+			static const MicroOp operations[256][10] = {
 
 			/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, CycleSetIReadBRKLow, CycleReadBRKHigh),
 			/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
@@ -503,11 +503,11 @@ template <class T> class Processor {
 						case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
 						case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										break;
 						case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
-						case OperationSetFlagsFromOperand:	set_flags(_operand);											break;
-						case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;					break;
-						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;								break;
+						case OperationSetFlagsFromOperand:	set_flags(_operand);												break;
+						case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;						break;
+						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									break;
 
-						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);							break;
+						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
 						case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
 						case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
 

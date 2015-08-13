@@ -62,6 +62,14 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 		self.runTest(code, expectedRunLength: 14)
 	}
 
+	func testSnippet1() {
+		let code: [UInt8] = [
+			0x8d, 0x08, 0x00,	// [4] STA $0008
+			0xc6, 0xb4,			// [5] DEC $B4
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 9)
+	}
+
 	func runTest(code: [UInt8], expectedRunLength: UInt32) {
 		let machine = CSTestMachine()
 
