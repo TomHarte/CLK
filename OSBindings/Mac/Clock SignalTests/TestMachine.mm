@@ -51,6 +51,8 @@ class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 		case CSTestMachineRegisterLastOperationAddress:	return CPU6502::Register::LastOperationAddress;
 		case CSTestMachineRegisterFlags:				return CPU6502::Register::Flags;
 		case CSTestMachineRegisterA:					return CPU6502::Register::A;
+		case CSTestMachineRegisterX:					return CPU6502::Register::X;
+		case CSTestMachineRegisterY:					return CPU6502::Register::Y;
 		case CSTestMachineRegisterStackPointer:			return CPU6502::Register::S;
 		default: break;
 	}

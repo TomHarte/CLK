@@ -56,6 +56,5 @@ class KlausDormannTests: XCTestCase {
 				}
 			}
 		}
-
 	}
 }

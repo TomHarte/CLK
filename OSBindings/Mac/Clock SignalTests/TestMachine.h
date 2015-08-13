@@ -13,7 +13,9 @@ typedef NS_ENUM(NSInteger, CSTestMachineRegister) {
 	CSTestMachineRegisterProgramCounter,
 	CSTestMachineRegisterStackPointer,
 	CSTestMachineRegisterFlags,
-	CSTestMachineRegisterA
+	CSTestMachineRegisterA,
+	CSTestMachineRegisterX,
+	CSTestMachineRegisterY,
 };
 
 extern const uint8_t CSTestMachineJamOpcode;

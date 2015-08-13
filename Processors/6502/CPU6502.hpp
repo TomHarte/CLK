@@ -20,6 +20,8 @@ enum class Register {
 	StackPointer,
 	Flags,
 	A,
+	X,
+	Y,
 	S
 };
 
@@ -61,7 +63,7 @@ template <class T> class Processor {
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
-			CycleAddYToAddressLow,						CycleCorrectAddressHigh,			OperationMoveToNextProgram,				OperationIncrementPC,
+			CycleAddYToAddressLow,						OperationCorrectAddressHigh,		OperationMoveToNextProgram,				OperationIncrementPC,
 			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
 			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
 			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
@@ -135,13 +137,13 @@ template <class T> class Processor {
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
 
 #define Absolute							CycleLoadAddressAbsolute
-#define AbsoluteX							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					CycleCorrectAddressHigh
-#define AbsoluteY							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					CycleCorrectAddressHigh
+#define AbsoluteX							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					OperationCorrectAddressHigh
+#define AbsoluteY							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					OperationCorrectAddressHigh
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
 #define ZeroY								CycleLoadAddessZeroY
 #define IndexedIndirect						CycleIncrementPCFetchAddressLowFromOperand, CycleAddXToOperandFetchAddressLow,		CycleIncrementOperandFetchAddressHigh
-#define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					CycleCorrectAddressHigh
+#define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
 
 #define Read(op)							CycleFetchOperandFromAddress,	op
 #define Write(op)							op,								CycleWriteOperandToAddress
@@ -750,7 +752,7 @@ template <class T> class Processor {
 								throwaway_read(_address.full);
 							}
 						break;
-						case CycleCorrectAddressHigh:
+						case OperationCorrectAddressHigh:
 							_address.full = _nextAddress.full;
 						break;
 						case CycleIncrementPCFetchAddressLowFromOperand:
@@ -888,6 +890,8 @@ template <class T> class Processor {
 				case Register::StackPointer:			return _s;
 				case Register::Flags:					return get_flags();
 				case Register::A:						return _a;
+				case Register::X:						return _x;
+				case Register::Y:						return _y;
 				case Register::S:						return _s;
 				default: break;
 			}
@@ -900,6 +904,8 @@ template <class T> class Processor {
 				case Register::StackPointer:	_s = value;			break;
 				case Register::Flags:			set_flags(value);	break;
 				case Register::A:				_a = value;			break;
+				case Register::X:				_x = value;			break;
+				case Register::Y:				_y = value;			break;
 				case Register::S:				_s = value;			break;
 				default: break;
 			}
