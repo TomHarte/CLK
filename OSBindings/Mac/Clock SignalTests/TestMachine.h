@@ -37,6 +37,7 @@ extern const uint8_t CSTestMachineJamOpcode;
 - (void)returnFromSubroutine;
 
 @property (nonatomic, readonly) BOOL isJammed;
+@property (nonatomic, readonly) uint32_t timestamp;
 @property (nonatomic, weak) id <CSTestMachineJamHandler> jamHandler;
 
 @end

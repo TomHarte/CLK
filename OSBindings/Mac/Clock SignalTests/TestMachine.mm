@@ -95,4 +95,8 @@ class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 	delete _cppJamHandler;
 }
 
+- (uint32_t)timestamp {
+	return _processor.get_timestamp();
+}
+
 @end
