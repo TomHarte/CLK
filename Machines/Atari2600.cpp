@@ -169,8 +169,10 @@ void Machine::output_pixels(int count)
 		// update hmove
 		if (!(_horizontalTimer&3) && _hMoveFlags) {
 			for(int c = 0; c < 5; c++) {
-				if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf) _hMoveFlags &= ~(1 << c);
-				if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
+				if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf)
+					_hMoveFlags &= ~(1 << c);
+				if (_hMoveFlags&(1 << c))
+					_objectCounter[c] = (_objectCounter[c]+1)%160;
 			}
 
 			_hMoveCounter = (_hMoveCounter-1)&0xf;

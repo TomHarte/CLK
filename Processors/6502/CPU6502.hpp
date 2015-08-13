@@ -466,10 +466,14 @@ template <class T> class Processor {
 							read_op(_operation, _lastOperationPC.full);
 
 //							static int last_cycles_left_to_run = 0;
-//							if(last_cycles_left_to_run > _cycles_left_to_run)
-//								printf("%02x %d\n", _operation, last_cycles_left_to_run - _cycles_left_to_run);
-//							else
-//								printf("%02x\n", _operation);
+//							static bool printed_map[256] = {false};
+//							if(!printed_map[_operation]) {
+//								printed_map[_operation] = true;
+//								if(last_cycles_left_to_run > _cycles_left_to_run)
+//									printf("%02x %d\n", _operation, last_cycles_left_to_run - _cycles_left_to_run);
+//								else
+//									printf("%02x\n", _operation);
+//							}
 //							last_cycles_left_to_run = _cycles_left_to_run;
 						} break;
 
