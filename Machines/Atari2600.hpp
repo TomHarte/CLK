@@ -30,8 +30,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		Outputs::CRT *get_crt() { return _crt; }
 
 	private:
-		uint8_t _rom[4096], _ram[128];
-		uint16_t _romMask;
+		uint8_t *_rom, *_romPages[4], _ram[128];
+		size_t _rom_size;
 
 		uint64_t _timestamp;
 
