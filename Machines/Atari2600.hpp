@@ -66,8 +66,10 @@ class Machine: public CPU6502::Processor<Machine> {
 		int32_t _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
 		bool _vBlankExtend;
-		uint8_t _hMoveCounter, _hMoveFlags;
+		uint8_t _hMoveCounter;
+		bool _hMoveIsCounting, _hMoveWillCount;
 		uint8_t _objectCounter[5], _objectMotion[5];
+		uint8_t _hMoveFlags;
 
 		// collisions
 		uint8_t _collisions[8];

@@ -24,6 +24,7 @@ Machine::Machine()
 	_piaTimerStatus = 0xff;
 	memset(_collisions, 0xff, sizeof(_collisions));
 	_rom = nullptr;
+	_hMoveWillCount = false;
 
 	setup6502();
 	set_reset_line(true);
@@ -163,21 +164,25 @@ void Machine::output_pixels(int count)
 	const int32_t start_of_sync = 214;
 	const int32_t end_of_sync = 198;
 
-	_timestamp += count;
 	while(count--)
 	{
 		OutputState state;
 
 		// update hmove
-		if (!(_horizontalTimer&3) && _hMoveFlags) {
+		if (!(_horizontalTimer&3)) {
+
+			const uint8_t counterValue = _hMoveCounter ^ 0x7;
 			for(int c = 0; c < 5; c++) {
-				if ((_hMoveCounter^8^(_objectMotion[c] >> 4)) == 0xf)
+				if (counterValue == (_objectMotion[c] >> 4))
 					_hMoveFlags &= ~(1 << c);
 				if (_hMoveFlags&(1 << c))
 					_objectCounter[c] = (_objectCounter[c]+1)%160;
 			}
 
-			_hMoveCounter = (_hMoveCounter-1)&0xf;
+			if(_hMoveIsCounting) {
+				_hMoveIsCounting = !!_hMoveCounter;
+				_hMoveCounter = (_hMoveCounter-1)&0xf;
+			}
 		}
 
 		// logic: if in vsync, output that; otherwise if in vblank then output that;
@@ -245,6 +250,8 @@ void Machine::output_pixels(int count)
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
+
+		_timestamp ++;
 	}
 }
 
@@ -254,7 +261,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 
 	uint8_t returnValue = 0xff;
 	int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = 225;//horizontalTimerReload;
+	const int32_t ready_line_disable_time = 227;//horizontalTimerReload;
 
 	if(operation == CPU6502::BusOperation::Ready) {
 		int32_t distance_to_end_of_ready = (_horizontalTimer - ready_line_disable_time + horizontalTimerReload + 1)%(horizontalTimerReload + 1);
@@ -262,6 +269,13 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 		output_pixels(distance_to_end_of_ready);
 	} else {
 		output_pixels(3);
+	}
+
+	if(_hMoveWillCount) {
+		_hMoveCounter = 0x0f;
+		_hMoveFlags = 0x1f;
+		_hMoveIsCounting = true;
+		_hMoveWillCount = false;
 	}
 
 	if(_horizontalTimer == ready_line_disable_time)
@@ -387,7 +401,9 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x21:
 					case 0x22:
 					case 0x23:
-					case 0x24: _objectMotion[decodedAddress - 0x20] = *value;	break;
+					case 0x24:
+						_objectMotion[decodedAddress - 0x20] = *value;
+					break;
 
 					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
 					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
@@ -402,8 +418,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 
 					case 0x2a:
 						_vBlankExtend = true;
-						_hMoveCounter = 15;
-						_hMoveFlags = 0x1f;
+						_hMoveWillCount = true;
 					break;
 					case 0x2b:
 						_objectMotion[0] =
