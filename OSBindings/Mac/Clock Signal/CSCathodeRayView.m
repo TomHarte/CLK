@@ -100,7 +100,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
-- (void) awakeFromNib
+- (void)awakeFromNib
 {
 	NSOpenGLPixelFormatAttribute attributes[] =
 	{
