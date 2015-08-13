@@ -41,6 +41,14 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 		self.runTest(code, expectedRunLength: 48)
 	}
 
+	func testBIT() {
+		let code: [UInt8] = [
+			0x24, 0x2a,			// [3] BIT $2a
+			0x2c, 0x2a, 0x2b,	// [4] BIT $2b2a
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 7)
+	}
+
 	func testSTA() {
 		let code: [UInt8] = [
 			0x85, 0x00,			// [3] STA $00
@@ -138,6 +146,53 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x46, 0x46,			// [5] LSR $46
 			CSTestMachineJamOpcode]
 		self.runTest(code, expectedRunLength: 11)
+	}
+
+	func testSnippet3() {
+		let code: [UInt8] = [
+			0x20, 0x04, 0x02,	// [6] JSR $0204
+			CSTestMachineJamOpcode,
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x85, 0x09,			// [3] STA $09
+			0x85, 0x09,			// [3] STA $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x85, 0x09,			// [3] STA $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x85, 0x09,			// [3] STA $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x86, 0x09,			// [3] STX $09
+			0x87, 0x09,			// [3] SAX $09
+			0x60,				// [6] RTS
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 66)
+	}
+
+	func testNOP() {
+		let code: [UInt8] = [
+			0x04, 0x00,	// [3] NOP zpg
+			0x14, 0x00,	// [4] NOP zpg, x
+			0x34, 0x00,	// [4] NOP zpg, x
+			0x44, 0x00,	// [3] NOP zpg
+			0x54, 0x00,	// [4] NOP zpg, x
+			0x64, 0x00,	// [3] NOP zpg
+			0x74, 0x00,	// [4] NOP zpg, x
+			0x80, 0x00,	// [2] NOP #
+			0x82, 0x00,	// [2] NOP #
+			0x89, 0x00,	// [2] NOP #
+			0xc2, 0x00,	// [2] NOP #
+			0xd4, 0x00,	// [4] NOP zpg, x
+			0xe2, 0x00,	// [2] NOP #
+			0xf4, 0x00,	// [4] NOP zpg, x
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 43)
 	}
 
 	func runTest(code: [UInt8], expectedRunLength: UInt32) {

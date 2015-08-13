@@ -149,14 +149,14 @@ template <class T> class Processor {
 #define IndirectIndexedr					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
 #define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 
-#define Read(op)							CycleFetchOperandFromAddress,	op
-#define Write(op)							op,								CycleWriteOperandToAddress
+#define Read(...)							CycleFetchOperandFromAddress,	__VA_ARGS__
+#define Write(...)							__VA_ARGS__,					CycleWriteOperandToAddress
 #define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
 #define AbsoluteXRead(op)					Program(AbsoluteXr,			Read(op))
 #define AbsoluteYRead(op)					Program(AbsoluteYr,			Read(op))
-#define ZeroRead(op)						Program(Zero,				Read(op))
+#define ZeroRead(...)						Program(Zero,				Read(__VA_ARGS__))
 #define ZeroXRead(op)						Program(ZeroX,				Read(op))
 #define ZeroYRead(op)						Program(ZeroY,				Read(op))
 #define IndexedIndirectRead(op)				Program(IndexedIndirect,	Read(op))
@@ -183,8 +183,8 @@ template <class T> class Processor {
 #define Immediate(op)						Program(OperationIncrementPC,		op)
 #define Implied(op)							Program(OperationCopyOperandFromA,	op,	OperationCopyOperandToA)
 
-#define ZeroNop()							Program(Zero)
-#define ZeroXNop()							Program(ZeroX)
+#define ZeroNop()							Program(Zero, CycleFetchOperandFromAddress)
+#define ZeroXNop()							Program(ZeroX, CycleFetchOperandFromAddress)
 #define AbsoluteNop()						Program(Absolute)
 #define AbsoluteXNop()						Program(AbsoluteX)
 #define ImpliedNop()						{OperationMoveToNextProgram}
@@ -460,11 +460,18 @@ template <class T> class Processor {
 
 #pragma mark - Fetch/Decode
 
-						case CycleFetchOperation:
+						case CycleFetchOperation: {
 							_lastOperationPC = _pc;
 							_pc.full++;
 							read_op(_operation, _lastOperationPC.full);
-						break;
+
+//							static int last_cycles_left_to_run = 0;
+//							if(last_cycles_left_to_run > _cycles_left_to_run)
+//								printf("%02x %d\n", _operation, last_cycles_left_to_run - _cycles_left_to_run);
+//							else
+//								printf("%02x\n", _operation);
+//							last_cycles_left_to_run = _cycles_left_to_run;
+						} break;
 
 						case CycleFetchOperand:
 							read_mem(_operand, _pc.full);
