@@ -189,7 +189,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		vsync_requested = false;
 
 		uint8_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
-		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | (_is_in_vsync ? kRetraceXMask : 0);
+		int lengthMask = (_is_in_hsync ? kRetraceXMask : 0) | (_is_in_vsync ? kRetraceYMask : 0);
 
 #define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
 #define position_y(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 2])
@@ -224,7 +224,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			_rasterPosition.x = (uint32_t)std::min((int64_t)kCRTFixedPointRange, end_position[0]);
 
 		if (_is_in_vsync)
-			_rasterPosition.y = (uint32_t)std::max((int64_t)0, end_position[0]);
+			_rasterPosition.y = (uint32_t)std::max((int64_t)0, end_position[1]);
 		else
 			_rasterPosition.y = (uint32_t)std::min((int64_t)kCRTFixedPointRange, end_position[1]);
 
