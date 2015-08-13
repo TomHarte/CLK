@@ -150,6 +150,10 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	pixel[3] = alphaValues[(outputColour >> 1)&7];
 }
 
+// in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
+// this is faster than the straightforward +1)%160 per profiling
+#define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
+
 void Machine::output_pixels(int count)
 {
 	const int32_t start_of_sync = 214;
@@ -166,7 +170,7 @@ void Machine::output_pixels(int count)
 				const uint8_t counterValue = _hMoveCounter ^ 0x7;
 				for(int c = 0; c < 5; c++) {
 					if (counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
-					if (_hMoveFlags&(1 << c)) _objectCounter[c] = (_objectCounter[c]+1)%160;
+					if (_hMoveFlags&(1 << c)) increment_object_counter(c);
 				}
 			}
 
@@ -217,7 +221,6 @@ void Machine::output_pixels(int count)
 
 			if(state == OutputState::Pixel)
 			{
-//				printf("%d %d\n", _objectCounter[0], _objectCounter[1]);
 				_vBlankExtend = false;
 				_crt->allocate_write_area(160);
 				_outputBuffer = _crt->get_write_target_for_buffer(0);
@@ -232,8 +235,11 @@ void Machine::output_pixels(int count)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
 
 			// increment all graphics counters
-			for(int c = 0; c < 5; c++)
-				_objectCounter[c] = (_objectCounter[c]+1)%160;
+			increment_object_counter(0);
+			increment_object_counter(1);
+			increment_object_counter(2);
+			increment_object_counter(3);
+			increment_object_counter(4);
 		}
 
 		// assumption here: signed shifts right; otherwise it's just
@@ -450,7 +456,6 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					break;
 				}
 			}
-	//		printf("Uncaught TIA %04x\n", address);
 		}
 
 		// check for a PIA access
@@ -490,7 +495,6 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					case 0x07:	_writtenPiaTimerShift = _piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
 				}
 			}
-	//		printf("Uncaught PIA %04x\n", address);
 		}
 
 		if(isReadOperation(operation)) {
