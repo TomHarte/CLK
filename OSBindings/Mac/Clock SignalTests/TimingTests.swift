@@ -14,8 +14,14 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 	private var endTime: UInt32 = 0
 
 	func testImplied() {
-		let code: [UInt8] = [0xea, 0x88, 0xca, CSTestMachineJamOpcode]
-		self.runTest(code, expectedRunLength: 6)
+		let code: [UInt8] = [
+			0xea,		// [2] NOP
+			0x88,		// [2] DEY
+			0xca,		// [2] DEX
+			0x18,		// [2] CLC
+			0x2a,		// [2] ROL A
+			CSTestMachineJamOpcode]
+		self.runTest(code, expectedRunLength: 10)
 	}
 
 	func testLDA() {
@@ -60,6 +66,35 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xfe, 0x02, 0x00,	// [7] INC $0002, x (wrap)
 			CSTestMachineJamOpcode]
 		self.runTest(code, expectedRunLength: 31)
+	}
+
+	func testJSR() {
+		let code: [UInt8] = [
+			0x20, 0x04, 0x02,	// [6] JSR $0204
+			CSTestMachineJamOpcode,
+			0x60,				// [6] RTS
+			]
+		self.runTest(code, expectedRunLength: 12)
+	}
+
+	func testJMP() {
+		let code: [UInt8] = [
+			0x6c, 0x04, 0x00,	// [5] JMP ($0004)
+			0x00, 0x00, 0x00, 0x00, 0x00,
+			0x4c, 0x0b, 0x02,	// [3] JMP 020b
+			CSTestMachineJamOpcode,
+			]
+		self.runTest(code, expectedRunLength: 8)
+	}
+
+	func testPHAPLA() {
+		let code: [UInt8] = [
+			0x48, // [3] PHA
+			0x48, // [3] PHA
+			0x68, // [4] PLA
+			CSTestMachineJamOpcode,
+			]
+		self.runTest(code, expectedRunLength: 10)
 	}
 
 	func testBCS() {
@@ -116,6 +151,8 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 		machine.setValue(0x00, forAddress: 0x0001)
 		machine.setValue(0xff, forAddress: 0x0002)
 		machine.setValue(0x00, forAddress: 0x0003)
+		machine.setValue(0x08, forAddress: 0x0004)
+		machine.setValue(0x02, forAddress: 0x0005)
 		machine.setValue(0x200, forRegister: CSTestMachineRegister.ProgramCounter)
 		machine.setValue(0xff, forRegister: CSTestMachineRegister.X)
 		machine.setValue(0xfe, forRegister: CSTestMachineRegister.Y)
@@ -130,7 +167,7 @@ class TimingTests: XCTestCase, CSTestMachineJamHandler {
 
 	func testMachine(machine: CSTestMachine!, didJamAtAddress address: UInt16) {
 		if self.endTime == 0 {
-			self.endTime = machine.timestamp - 7
+			self.endTime = machine.timestamp - 9
 		}
 	}
 }

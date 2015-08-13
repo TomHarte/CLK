@@ -120,25 +120,25 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
 
 	// accumulate collisions
-	_collisions[0] |= ((missilePixels[0] | playerPixels[0]) << 6);
-	_collisions[0] |= ((missilePixels[0] | playerPixels[1]) << 7);
-	_collisions[1] |= ((missilePixels[1] | playerPixels[0]) << 6);
-	_collisions[1] |= ((missilePixels[1] | playerPixels[1]) << 7);
+	_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7);
+	_collisions[0] |= ((missilePixels[0] & playerPixels[0]) << 6);
+	_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7);
+	_collisions[1] |= ((missilePixels[1] & playerPixels[1]) << 6);
 
-	_collisions[2] |= ((ballPixel | playerPixels[0]) << 6);
-	_collisions[2] |= ((playfieldPixel | playerPixels[0]) << 7);
-	_collisions[3] |= ((ballPixel | playerPixels[1]) << 6);
-	_collisions[3] |= ((playfieldPixel | playerPixels[1]) << 7);
+	_collisions[2] |= ((playfieldPixel & playerPixels[0]) << 7);
+	_collisions[2] |= ((ballPixel & playerPixels[0]) << 6);
+	_collisions[3] |= ((playfieldPixel & playerPixels[1]) << 7);
+	_collisions[3] |= ((ballPixel & playerPixels[1]) << 6);
 
-	_collisions[4] |= ((ballPixel | missilePixels[0]) << 6);
-	_collisions[4] |= ((playfieldPixel | missilePixels[0]) << 7);
-	_collisions[5] |= ((ballPixel | missilePixels[1]) << 6);
-	_collisions[5] |= ((playfieldPixel | missilePixels[1]) << 7);
+	_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7);
+	_collisions[4] |= ((ballPixel & missilePixels[0]) << 6);
+	_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7);
+	_collisions[5] |= ((ballPixel & missilePixels[1]) << 6);
 
-	_collisions[6] |= ((playfieldPixel | ballPixel) << 7);
+	_collisions[6] |= ((playfieldPixel & ballPixel) << 7);
 
-	_collisions[7] |= ((playerPixels[0] | playerPixels[1]) << 7);
-	_collisions[7] |= ((missilePixels[0] | missilePixels[1]) << 6);
+	_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7);
+	_collisions[7] |= ((missilePixels[0] & missilePixels[1]) << 6);
 
 	// apply appropriate priority to pick a colour
 	playfieldPixel |= ballPixel;
@@ -226,7 +226,7 @@ void Machine::output_pixels(int count)
 			}
 		}
 
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
+		if(state == OutputState::Pixel)//_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
 			if(_outputBuffer)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
