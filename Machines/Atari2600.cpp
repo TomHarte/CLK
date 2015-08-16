@@ -64,50 +64,54 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get player and missile proposed pixels
-	uint8_t playerPixels[2], missilePixels[2];
+	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
 	for(int c = 0; c < 2; c++)
 	{
-		// figure out player colour
-		int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
-
-		int relativeTimer = _objectCounter[c] - 5;
-		switch (_playerAndMissileSize[c]&7)
+		if(_playerGraphics[c])
 		{
-			case 0: break;
-			case 1:
-				if (relativeTimer >= 16) relativeTimer -= 16;
-			break;
-			case 2:
-				if (relativeTimer >= 32) relativeTimer -= 32;
-			break;
-			case 3:
-				if (relativeTimer >= 32) relativeTimer -= 32;
-				else if (relativeTimer >= 16) relativeTimer -= 16;
-			break;
-			case 4:
-				if (relativeTimer >= 64) relativeTimer -= 64;
-			break;
-			case 5:
-				relativeTimer >>= 1;
-			break;
-			case 6:
-				if (relativeTimer >= 64) relativeTimer -= 64;
-				else if (relativeTimer >= 32) relativeTimer -= 32;
-			break;
-			case 7:
-				relativeTimer >>= 2;
-			break;
+			// figure out player colour
+			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
+
+			int relativeTimer = _objectCounter[c] - 5;
+			switch (_playerAndMissileSize[c]&7)
+			{
+				case 0: break;
+				case 1:
+					if (relativeTimer >= 16) relativeTimer -= 16;
+				break;
+				case 2:
+					if (relativeTimer >= 32) relativeTimer -= 32;
+				break;
+				case 3:
+					if (relativeTimer >= 32) relativeTimer -= 32;
+					else if (relativeTimer >= 16) relativeTimer -= 16;
+				break;
+				case 4:
+					if (relativeTimer >= 64) relativeTimer -= 64;
+				break;
+				case 5:
+					relativeTimer >>= 1;
+				break;
+				case 6:
+					if (relativeTimer >= 64) relativeTimer -= 64;
+					else if (relativeTimer >= 32) relativeTimer -= 32;
+				break;
+				case 7:
+					relativeTimer >>= 2;
+				break;
+			}
+
+			if(relativeTimer >= 0 && relativeTimer < 8)
+				playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
 		}
 
-		if(relativeTimer >= 0 && relativeTimer < 8)
-			playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
-		else
-			playerPixels[c] = 0;
-
 		// figure out missile colour
-		int missileIndex = _objectCounter[2+c] - 4;
-		int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-		missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize && (_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) ? 1 : 0;
+		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2))
+		{
+			int missileIndex = _objectCounter[2+c] - 4;
+			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
+			missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize) ? 1 : 0;
+		}
 	}
 
 	// get the ball proposed colour
