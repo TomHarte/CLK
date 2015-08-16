@@ -197,13 +197,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 #define tex_y(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 2])
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
 
+#define InternalToUInt16(v) ((v) + 32768) >> 16
+
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
-			position_x(0) = position_x(4) = (kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x) >> 16;
-			position_y(0) = position_y(4) = (kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y) >> 16;
-			position_x(1) = (kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x) >> 16;
-			position_y(1) = (kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y) >> 16;
+			position_x(0) = position_x(4) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x);
+			position_y(0) = position_y(4) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y);
+			position_x(1) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x);
+			position_y(1) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y);
 
 			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
 
@@ -231,10 +233,10 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		if(next_run)
 		{
 			// store the final raster position
-			position_x(2) = position_x(3) = (kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x) >> 16;
-			position_y(2) = position_y(3) = (kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y) >> 16;
-			position_x(5) = (kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x) >> 16;
-			position_y(5) = (kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y) >> 16;
+			position_x(2) = position_x(3) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.x - _beamWidth[lengthMask].x);
+			position_y(2) = position_y(3) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y - _beamWidth[lengthMask].y);
+			position_x(5) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.x + _beamWidth[lengthMask].x);
+			position_y(5) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y);
 
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;
