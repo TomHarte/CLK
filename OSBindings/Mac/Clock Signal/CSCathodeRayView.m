@@ -297,8 +297,6 @@ const char *fragmentShader =
 		glDrawArrays(GL_TRIANGLES, 0, _crtFrame->number_of_runs*6);
 	}
 
-	glSwapAPPLE();
-
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
