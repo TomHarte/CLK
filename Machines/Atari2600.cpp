@@ -241,7 +241,7 @@ void Machine::output_pixels(unsigned int count)
 			}
 		}
 
-		if(state == OutputState::Pixel)//_horizontalTimer < (_vBlankExtend ? 152 : 160))
+		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
 			if(_outputBuffer)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
