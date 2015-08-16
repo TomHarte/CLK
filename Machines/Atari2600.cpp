@@ -115,10 +115,13 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	}
 
 	// get the ball proposed colour
-	uint8_t ballPixel;
-	int ballIndex = _objectCounter[4] - 4;
-	int ballSize = 1 << ((_playfieldControl >> 4)&3);
-	ballPixel = (ballIndex >= 0 && ballIndex < ballSize && (_ballGraphicsEnable&2)) ? 1 : 0;
+	uint8_t ballPixel = 0;
+	if(_ballGraphicsEnable&2)
+	{
+		int ballIndex = _objectCounter[4] - 4;
+		int ballSize = 1 << ((_playfieldControl >> 4)&3);
+		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
+	}
 
 	// accumulate collisions
 	_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
