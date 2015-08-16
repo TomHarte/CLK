@@ -18,11 +18,11 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
 
-void CRT::set_new_timing(int cycles_per_line, int height_of_display)
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display)
 {
-	const int syncCapacityLineChargeThreshold = 3;
-	const int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
-	const int scanlinesVerticalRetraceTime = 7;			// source: ibid
+	const unsigned int syncCapacityLineChargeThreshold = 3;
+	const unsigned int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
+	const unsigned int scanlinesVerticalRetraceTime = 7;		// source: ibid
 
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
 	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
@@ -36,7 +36,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
-	const int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
+	const unsigned int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
 	const float halfLineWidth = (float)_height_of_display * 1.85f;
 
 	for(int c = 0; c < 4; c++)
@@ -46,19 +46,19 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display)
 
 		// width should be 1.0 / _height_of_display, rotated to match the direction
 		float angle = atan2f(_scanSpeed[c].y, _scanSpeed[c].x);
-		_beamWidth[c].x = (sinf(angle) / halfLineWidth) * kCRTFixedPointRange;
-		_beamWidth[c].y = (cosf(angle) / halfLineWidth) * kCRTFixedPointRange;
+		_beamWidth[c].x = (uint32_t)((sinf(angle) / halfLineWidth) * kCRTFixedPointRange);
+		_beamWidth[c].y = (uint32_t)((cosf(angle) / halfLineWidth) * kCRTFixedPointRange);
 	}
 }
 
-CRT::CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...)
+CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...)
 {
 	set_new_timing(cycles_per_line, height_of_display);
 
 	// generate buffers for signal storage as requested — format is
 	// number of buffers, size of buffer 1, size of buffer 2...
-	const int bufferWidth = 2048;
-	const int bufferHeight = 2048;
+	const uint16_t bufferWidth = 2048;
+	const uint16_t bufferHeight = 2048;
 	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
 	{
 		va_list va;
@@ -96,14 +96,14 @@ CRT::~CRT()
 
 #pragma mark - Sync loop
 
-CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
+CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced)
 {
 	SyncEvent proposedEvent = SyncEvent::None;
-	int proposedSyncTime = cycles_to_run_for;
+	unsigned int proposedSyncTime = cycles_to_run_for;
 
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_requested && !_is_in_vsync) {
-		if (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold && _rasterPosition.y >= (kCRTFixedPointRange * 7) >> 3) {
+		if (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold){// && _rasterPosition.y >= (kCRTFixedPointRange * 7) >> 3) {
 			proposedSyncTime = 0;
 			proposedEvent = SyncEvent::StartVSync;
 			_did_detect_vsync = true;
@@ -112,14 +112,14 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cy
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
 	if (!_is_in_vsync) {
-		int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed[0].y;
+		unsigned int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed[0].y;
 
 		if(time_until_end_of_frame < proposedSyncTime) {
 			proposedSyncTime = time_until_end_of_frame;
 			proposedEvent = SyncEvent::StartVSync;
 		}
 	} else {
-		uint32_t time_until_start_of_frame = _rasterPosition.y / (uint32_t)(-_scanSpeed[kRetraceYMask].y);
+		unsigned int time_until_start_of_frame = _rasterPosition.y / (uint32_t)(-_scanSpeed[kRetraceYMask].y);
 
 		if(time_until_start_of_frame < proposedSyncTime) {
 			proposedSyncTime = time_until_start_of_frame;
@@ -131,20 +131,20 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cy
 	return proposedEvent;
 }
 
-CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced)
+CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced)
 {
 	// do we recognise this hsync, thereby adjusting future time expectations?
 	if(hsync_is_requested) {
 		if (_horizontal_counter < _hsync_error_window || _horizontal_counter >= _expected_next_hsync - _hsync_error_window) {
 			_did_detect_hsync = true;
 
-			int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
+			unsigned int time_now = (_horizontal_counter < _hsync_error_window) ? _expected_next_hsync + _horizontal_counter : _horizontal_counter;
 			_expected_next_hsync = (_expected_next_hsync + _expected_next_hsync + _expected_next_hsync + time_now) >> 2;
 		}
 	}
 
 	SyncEvent proposedEvent = SyncEvent::None;
-	int proposedSyncTime = cycles_to_run_for;
+	unsigned int proposedSyncTime = cycles_to_run_for;
 
 	// will we end an ongoing hsync?
 	if (_horizontal_counter < _horizontal_retrace_time && _horizontal_counter+proposedSyncTime >= _horizontal_retrace_time) {
@@ -162,7 +162,7 @@ CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int 
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, const char *data_type)
+void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, const char *data_type)
 {
 	number_of_cycles *= _time_multiplier;
 
@@ -177,13 +177,13 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 	while(number_of_cycles) {
 
-		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
+		unsigned int time_until_vertical_sync_event, time_until_horizontal_sync_event;
 		SyncEvent next_vertical_sync_event = this->get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
 		SyncEvent next_horizontal_sync_event = this->get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 
 		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
 		// set it to false for the next run through this loop (if any)
-		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
+		unsigned int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		hsync_requested = false;
 		vsync_requested = false;
@@ -252,7 +252,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		if (vsync_charging && !_is_in_vsync)
 			_sync_capacitor_charge_level += next_run_length;
 		else
-			_sync_capacitor_charge_level = std::max(_sync_capacitor_charge_level - next_run_length, 0);
+			_sync_capacitor_charge_level = std::max(_sync_capacitor_charge_level - (int)next_run_length, 0);
 
 		// react to the incoming event...
 		if(next_run_length == time_until_horizontal_sync_event)
@@ -337,28 +337,28 @@ void CRT::set_delegate(CRTDelegate *delegate)
 /*
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
-void CRT::output_sync(int number_of_cycles)
+void CRT::output_sync(unsigned int number_of_cycles)
 {
 	bool _hsync_requested = !_is_receiving_sync;	// ensure this really is edge triggered; someone calling output_sync twice in succession shouldn't trigger it twice
 	_is_receiving_sync = true;
 	advance_cycles(number_of_cycles, _hsync_requested, false, true, Type::Sync, nullptr);
 }
 
-void CRT::output_blank(int number_of_cycles)
+void CRT::output_blank(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
 	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Blank, nullptr);
 }
 
-void CRT::output_level(int number_of_cycles, const char *type)
+void CRT::output_level(unsigned int number_of_cycles, const char *type)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
 	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Level, type);
 }
 
-void CRT::output_data(int number_of_cycles, const char *type)
+void CRT::output_data(unsigned int number_of_cycles, const char *type)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
@@ -380,7 +380,7 @@ uint8_t *CRT::get_write_target_for_buffer(int buffer)
 
 #pragma mark - CRTFrame
 
-CRTFrameBuilder::CRTFrameBuilder(int width, int height, int number_of_buffers, va_list buffer_sizes)
+CRTFrameBuilder::CRTFrameBuilder(uint16_t width, uint16_t height, unsigned int number_of_buffers, va_list buffer_sizes)
 {
 	frame.size.width = width;
 	frame.size.height = height;
@@ -389,7 +389,7 @@ CRTFrameBuilder::CRTFrameBuilder(int width, int height, int number_of_buffers, v
 
 	for(int buffer = 0; buffer < number_of_buffers; buffer++)
 	{
-		frame.buffers[buffer].depth = va_arg(buffer_sizes, int);
+		frame.buffers[buffer].depth = va_arg(buffer_sizes, unsigned int);
 		frame.buffers[buffer].data = new uint8_t[width * height * frame.buffers[buffer].depth];
 	}
 

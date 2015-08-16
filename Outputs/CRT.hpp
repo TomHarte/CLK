@@ -22,7 +22,7 @@ class CRT;
 struct CRTFrameBuilder {
 	CRTFrame frame;
 
-	CRTFrameBuilder(int width, int height, int number_of_buffers, va_list buffer_sizes);
+	CRTFrameBuilder(uint16_t width, uint16_t height, unsigned int number_of_buffers, va_list buffer_sizes);
 	~CRTFrameBuilder();
 
 	private:
@@ -39,24 +39,24 @@ struct CRTFrameBuilder {
 
 		// a pointer to the section of content buffer currently being
 		// returned and to where the next section will begin
-		int _next_write_x_position, _next_write_y_position;
-		int _write_x_position, _write_y_position;
-		int _write_target_pointer;
+		uint16_t _next_write_x_position, _next_write_y_position;
+		uint16_t _write_x_position, _write_y_position;
+		unsigned int _write_target_pointer;
 };
 
 static const int kCRTNumberOfFrames = 4;
 
 class CRT {
 	public:
-		CRT(int cycles_per_line, int height_of_display, int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...);
 		~CRT();
 
-		void set_new_timing(int cycles_per_line, int height_of_display);
+		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display);
 
-		void output_sync(int number_of_cycles);
-		void output_blank(int number_of_cycles);
-		void output_level(int number_of_cycles, const char *type);
-		void output_data(int number_of_cycles, const char *type);
+		void output_sync(unsigned int number_of_cycles);
+		void output_blank(unsigned int number_of_cycles);
+		void output_level(unsigned int number_of_cycles, const char *type);
+		void output_data(unsigned int number_of_cycles, const char *type);
 
 		class CRTDelegate {
 			public:
@@ -71,14 +71,14 @@ class CRT {
 	private:
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
-		int _time_multiplier;
+		unsigned int _time_multiplier;
 
 		// fundamental creator-specified properties
-		int _cycles_per_line;
-		int _height_of_display;
+		unsigned int _cycles_per_line;
+		unsigned int _height_of_display;
 
 		// properties directly derived from there
-		int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init
+		unsigned int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init
 
 		// the current scanning position
 		struct Vector {
@@ -100,9 +100,9 @@ class CRT {
 		int _is_in_vsync;
 
 		// components of the flywheel sync
-		int _horizontal_counter;			// time run since the _start_ of the last horizontal sync
-		int _expected_next_hsync;			// our current expection of when the next horizontal sync will be encountered (which implies current flywheel velocity)
-		int _horizontal_retrace_time;
+		unsigned int _horizontal_counter;			// time run since the _start_ of the last horizontal sync
+		unsigned int _expected_next_hsync;			// our current expection of when the next horizontal sync will be encountered (which implies current flywheel velocity)
+		unsigned int _horizontal_retrace_time;
 		bool _is_in_hsync;					// true for the duration of a horizontal sync — used to determine beam running direction and speed
 		bool _did_detect_vsync;				// true if vertical sync was detected in the input stream rather than forced by emergency measure
 
@@ -110,7 +110,7 @@ class CRT {
 		enum Type {
 			Sync, Level, Data, Blank
 		} type;
-		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type, const char *data_type);
+		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type, const char *data_type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
@@ -119,8 +119,8 @@ class CRT {
 			StartHSync, EndHSync,
 			StartVSync, EndVSync
 		};
-		SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
-		SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
+		SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+		SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
 };
 
 }

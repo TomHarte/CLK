@@ -95,7 +95,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
 	NSPoint viewSize = [self convertPointToBacking:backingSize];
-	glViewport(0, 0, viewSize.x, viewSize.y);
+	glViewport(0, 0, (GLsizei)viewSize.x, (GLsizei)viewSize.y);
 
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
@@ -128,7 +128,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.wantsBestResolutionOpenGLSurface = YES;
 }
 
-- (GLint)formatForDepth:(int)depth
+- (GLint)formatForDepth:(unsigned int)depth
 {
 	switch(depth)
 	{
@@ -154,11 +154,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
 	{
 		GLint format = [self formatForDepth:_crtFrame->buffers[0].depth];
-		glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, (GLenum)format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 		_textureSize = _crtFrame->size;
 	}
 	else
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, [self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, (GLenum)[self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
 
 	[self drawView];
 
@@ -213,7 +213,7 @@ const char *fragmentShader =
 	GLint logLength;
 	glGetShaderiv(object, GL_INFO_LOG_LENGTH, &logLength);
 	if (logLength > 0) {
-		GLchar *log = (GLchar *)malloc(logLength);
+		GLchar *log = (GLchar *)malloc((size_t)logLength);
 		glGetShaderInfoLog(object, logLength, &logLength, log);
 		NSLog(@"Compile log:\n%s", log);
 		free(log);
@@ -262,14 +262,14 @@ const char *fragmentShader =
 	_alphaUniform					= glGetUniformLocation(_shaderProgram, "alpha");
 	_textureSizeUniform				= glGetUniformLocation(_shaderProgram, "textureSize");
 
-	glEnableVertexAttribArray(_positionAttribute);
-	glEnableVertexAttribArray(_textureCoordinatesAttribute);
-	glEnableVertexAttribArray(_lateralAttribute);
+	glEnableVertexAttribArray((GLuint)_positionAttribute);
+	glEnableVertexAttribArray((GLuint)_textureCoordinatesAttribute);
+	glEnableVertexAttribArray((GLuint)_lateralAttribute);
 
 	const GLsizei vertexStride = kCRTSizeOfVertex;
-	glVertexAttribPointer(_positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
-	glVertexAttribPointer(_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
-	glVertexAttribPointer(_lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
+	glVertexAttribPointer((GLuint)_positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
+	glVertexAttribPointer((GLuint)_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
+	glVertexAttribPointer((GLuint)_lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
 
 	glGenTextures(1, &_textureName);
 	glBindTexture(GL_TEXTURE_2D, _textureName);
@@ -294,7 +294,7 @@ const char *fragmentShader =
 	if (_crtFrame)
 	{
 		glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
-		glDrawArrays(GL_TRIANGLES, 0, _crtFrame->number_of_runs*6);
+		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(_crtFrame->number_of_runs*6));
 	}
 
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);

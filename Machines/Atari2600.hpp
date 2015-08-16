@@ -22,7 +22,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		Machine();
 		~Machine();
 
-		int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(size_t length, const uint8_t *data);
 		void switch_region();
@@ -81,12 +81,12 @@ class Machine: public CPU6502::Processor<Machine> {
 			Pixel
 		};
 
-		void output_pixels(int count);
+		void output_pixels(unsigned int count);
 		void get_output_pixel(uint8_t *pixel, int offset);
 		Outputs::CRT *_crt;
 
 		// latched output state
-		int _lastOutputStateDuration;
+		unsigned int _lastOutputStateDuration;
 		OutputState _lastOutputState;
 		uint8_t *_outputBuffer;
 };

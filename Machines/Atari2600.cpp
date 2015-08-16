@@ -166,7 +166,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 // this is faster than the straightforward +1)%160 per profiling
 #define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
 
-void Machine::output_pixels(int count)
+void Machine::output_pixels(unsigned int count)
 {
 	const int32_t start_of_sync = 214;
 	const int32_t end_of_sync = 198;
@@ -264,16 +264,16 @@ void Machine::output_pixels(int count)
 	}
 }
 
-int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
+unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	set_reset_line(false);
 
 	uint8_t returnValue = 0xff;
-	int cycles_run_for = 1;
+	unsigned int cycles_run_for = 1;
 	const int32_t ready_line_disable_time = 227;//horizontalTimerReload;
 
 	if(operation == CPU6502::BusOperation::Ready) {
-		int32_t distance_to_end_of_ready = (_horizontalTimer - ready_line_disable_time + horizontalTimerReload + 1)%(horizontalTimerReload + 1);
+		unsigned int distance_to_end_of_ready = (_horizontalTimer - ready_line_disable_time + horizontalTimerReload + 1)%(horizontalTimerReload + 1);
 		cycles_run_for = distance_to_end_of_ready / 3;
 		output_pixels(distance_to_end_of_ready);
 	} else {
@@ -295,7 +295,7 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 		// check for a paging access
 		if(_rom_size > 4096 && ((address & 0x1f00) == 0x1f00)) {
 			uint8_t *base_ptr = _romPages[0];
-			uint8_t first_paging_register = 0xf8 - (_rom_size >> 14)*2;
+			uint8_t first_paging_register = (uint8_t)(0xf8 - (_rom_size >> 14)*2);
 
 			const uint8_t paging_register = address&0xff;
 			if(paging_register >= first_paging_register) {
@@ -530,11 +530,16 @@ int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t add
 					break;
 				}
 			} else {
-				switch(address & 0x0f) {
-					case 0x04:	_writtenPiaTimerShift = _piaTimerShift = 0;		_piaTimerValue = *value << 0;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x05:	_writtenPiaTimerShift = _piaTimerShift = 3;		_piaTimerValue = *value << 3;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x06:	_writtenPiaTimerShift = _piaTimerShift = 6;		_piaTimerValue = *value << 6;   _piaTimerStatus &= ~0xc0;   break;
-					case 0x07:	_writtenPiaTimerShift = _piaTimerShift = 10;	_piaTimerValue = *value << 10;  _piaTimerStatus &= ~0xc0;   break;
+				const uint8_t decodedAddress = address & 0x0f;
+				switch(decodedAddress) {
+					case 0x04:
+					case 0x05:
+					case 0x06:
+					case 0x07:
+						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);
+						_piaTimerValue = (unsigned int)(*value << _piaTimerShift);
+						_piaTimerStatus &= ~0xc0;
+					break;
 				}
 			}
 		}

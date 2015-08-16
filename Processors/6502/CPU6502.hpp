@@ -576,17 +576,17 @@ template <class T> class Processor {
 
 						case OperationCMP: {
 							const uint16_t temp16 = _a - _operand;
-							_negativeResult = _zeroResult = temp16;
+							_negativeResult = _zeroResult = (uint8_t)temp16;
 							_carryFlag = ((~temp16) >> 8)&1;
 						} break;
 						case OperationCPX: {
 							const uint16_t temp16 = _x - _operand;
-							_negativeResult = _zeroResult = temp16;
+							_negativeResult = _zeroResult = (uint8_t)temp16;
 							_carryFlag = ((~temp16) >> 8)&1;
 						} break;
 						case OperationCPY: {
 							const uint16_t temp16 = _y - _operand;
-							_negativeResult = _zeroResult = temp16;
+							_negativeResult = _zeroResult = (uint8_t)temp16;
 							_carryFlag = ((~temp16) >> 8)&1;
 						} break;
 
@@ -614,13 +614,13 @@ template <class T> class Processor {
 								temp16 += (_a&0xf0) - (_operand&0xf0);
 
 								_overflowFlag = ( ( (decimalResult^_a)&(~decimalResult^_operand) )&0x80) >> 1;
-								_negativeResult = temp16;
-								_zeroResult = decimalResult;
+								_negativeResult = (uint8_t)temp16;
+								_zeroResult = (uint8_t)decimalResult;
 
 								if(temp16 > 0xff) temp16 -= 0x60;
 
 								_carryFlag = (temp16 > 0xff) ? 0 : Flag::Carry;
-								_a = temp16;
+								_a = (uint8_t)temp16;
 								break;
 							} else {
 								_operand = ~_operand;
@@ -637,17 +637,17 @@ template <class T> class Processor {
 								temp16 = (temp16&0x0f) + ((temp16 > 0x0f) ? 0x10 : 0x00) + (_a&0xf0) + (_operand&0xf0);
 
 								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-								_negativeResult = temp16;
-								_zeroResult = decimalResult;
+								_negativeResult = (uint8_t)temp16;
+								_zeroResult = (uint8_t)decimalResult;
 
 								if(temp16 > 0x9f) temp16 += 0x60;
 
 								_carryFlag = (temp16 > 0xff) ? Flag::Carry : 0;
-								_a = temp16;
+								_a = (uint8_t)temp16;
 							} else {
 								const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
 								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-								_negativeResult = _zeroResult = _a = decimalResult;
+								_negativeResult = _zeroResult = _a = (uint8_t)decimalResult;
 								_carryFlag = (decimalResult >> 8)&1;
 							}
 
@@ -671,13 +671,13 @@ template <class T> class Processor {
 						break;
 
 						case OperationROL: {
-							const uint8_t temp8 = (_operand << 1) | _carryFlag;\
-							_carryFlag = _operand >> 7;\
+							const uint8_t temp8 = (uint8_t)((_operand << 1) | _carryFlag);
+							_carryFlag = _operand >> 7;
 							_operand = _negativeResult = _zeroResult = temp8;
 						} break;
 
 						case OperationRLA: {
-							const uint8_t temp8 = (_operand << 1) | _carryFlag;
+							const uint8_t temp8 = (uint8_t)((_operand << 1) | _carryFlag);
 							_carryFlag = _operand >> 7;
 							_operand = temp8;
 							_a &= _operand;
@@ -705,13 +705,13 @@ template <class T> class Processor {
 						break;
 
 						case OperationROR: {
-							const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
+							const uint8_t temp8 = (uint8_t)((_operand >> 1) | (_carryFlag << 7));
 							_carryFlag = _operand & 1;
 							_operand = _negativeResult = _zeroResult = temp8;
 						} break;
 
 						case OperationRRA: {
-							const uint8_t temp8 = (_operand >> 1) | (_carryFlag << 7);
+							const uint8_t temp8 = (uint8_t)((_operand >> 1) | (_carryFlag << 7));
 							_carryFlag = _operand & 1;
 							_operand = temp8;
 						} break;
@@ -849,7 +849,7 @@ template <class T> class Processor {
 						case OperationBEQ: BRA(!_zeroResult);							break;
 
 						case CycleAddSignedOperandToPC:
-							_nextAddress.full = _pc.full + (int8_t)_operand;
+							_nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
 							_pc.bytes.low = _nextAddress.bytes.low;
 							if(_nextAddress.bytes.high != _pc.bytes.high) {
 								uint16_t halfUpdatedPc = _pc.full;
@@ -873,7 +873,7 @@ template <class T> class Processor {
 							if(_decimalFlag) {
 								_a &= _operand;
 								uint8_t unshiftedA = _a;
-								_a = (_a >> 1) | (_carryFlag << 7);
+								_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
 								_zeroResult = _negativeResult = _a;
 								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
 
@@ -884,7 +884,7 @@ template <class T> class Processor {
 
 							} else {
 								_a &= _operand;
-								_a = (_a >> 1) | (_carryFlag << 7);
+								_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
 								_negativeResult = _zeroResult = _a;
 								_carryFlag = (_a >> 6)&1;
 								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;

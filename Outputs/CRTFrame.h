@@ -15,20 +15,20 @@ extern "C" {
 
 typedef struct {
 	uint8_t *data;
-	int depth;
+	unsigned int depth;
 } CRTBuffer;
 
 typedef struct {
-	int width, height;
+	uint16_t width, height;
 } CRTSize;
 
 typedef struct {
 	CRTSize size, dirty_size;
 
-	int number_of_buffers;
+	unsigned int number_of_buffers;
 	CRTBuffer *buffers;
 
-	int number_of_runs;
+	unsigned int number_of_runs;
 	uint8_t *runs;
 } CRTFrame;
 
