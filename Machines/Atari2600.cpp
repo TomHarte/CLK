@@ -233,13 +233,15 @@ void Machine::output_pixels(unsigned int count)
 
 			if(state == OutputState::Pixel)
 			{
-				_vBlankExtend = false;
 				_crt->allocate_write_area(160);
 				_outputBuffer = _crt->get_write_target_for_buffer(0);
 			} else {
 				_outputBuffer = nullptr;
 			}
 		}
+
+		if(_vBlankExtend && _horizontalTimer == 151)
+			_vBlankExtend = false;
 
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
