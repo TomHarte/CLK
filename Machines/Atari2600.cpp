@@ -568,8 +568,17 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 	while(_rom_size < length && _rom_size < 32768) _rom_size <<= 1;
 
 	delete[] _rom;
+
 	_rom = new uint8_t[_rom_size];
-	memcpy(_rom, data, std::min(_rom_size, length));
+
+	size_t offset = 0;
+	const size_t copy_step = std::min(_rom_size, length);
+	while(offset < _rom_size)
+	{
+		size_t copy_length = std::min(copy_step, _rom_size - offset);
+		memcpy(&_rom[offset], data, copy_length);
+		offset += copy_length;
+	}
 
 	size_t romMask = _rom_size - 1;
 	_romPages[0] = _rom;
