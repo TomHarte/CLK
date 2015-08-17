@@ -409,7 +409,8 @@ void CRTFrameBuilder::reset()
 {
 	frame.number_of_runs = 0;
 	_next_write_x_position = _next_write_y_position = 0;
-	frame.dirty_size.width = frame.dirty_size.height = 0;
+	frame.dirty_size.width = 0;
+	frame.dirty_size.height = 1;
 }
 
 void CRTFrameBuilder::complete()

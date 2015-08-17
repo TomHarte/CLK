@@ -41,7 +41,7 @@ struct CRTFrameBuilder {
 		// returned and to where the next section will begin
 		uint16_t _next_write_x_position, _next_write_y_position;
 		uint16_t _write_x_position, _write_y_position;
-		unsigned int _write_target_pointer;
+		size_t _write_target_pointer;
 };
 
 static const int kCRTNumberOfFrames = 4;
