@@ -240,9 +240,6 @@ void Machine::output_pixels(unsigned int count)
 			}
 		}
 
-		if(_vBlankExtend && _horizontalTimer == 151)
-			_vBlankExtend = false;
-
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
 			if(_outputBuffer)
@@ -261,6 +258,9 @@ void Machine::output_pixels(unsigned int count)
 		_horizontalTimer--;
 		const int32_t sign_extension = _horizontalTimer >> 31;
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
+
+		if(!_horizontalTimer)
+			_vBlankExtend = false;
 
 		_timestamp ++;
 	}
