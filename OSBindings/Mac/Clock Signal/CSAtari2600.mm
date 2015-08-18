@@ -24,23 +24,39 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 
 	dispatch_queue_t _serialDispatchQueue;
 
-	int _failedVSyncCount;
+	int _frameCount;
+	NSTimeInterval _startTimeInterval;
+	BOOL _didDecideRegion;
 }
 
 - (void)crtDidEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
 
-	if(!didDetectVSync)
+	if(!_didDecideRegion)
 	{
-		_failedVSyncCount+=2;
-
-		if(_failedVSyncCount == 60)
+		if(_startTimeInterval < 1.0)
 		{
-			_atari2600.switch_region();
+			_startTimeInterval = [NSDate timeIntervalSinceReferenceDate];
 		}
-	}
-	else
-	{
-		_failedVSyncCount = MAX(_failedVSyncCount - 1, 0);
+		else
+		{
+			_frameCount++;
+
+			if(_frameCount > 30)
+			{
+				float fps = (float)_frameCount / (float)([NSDate timeIntervalSinceReferenceDate] - _startTimeInterval);
+
+				if(fabsf(fps - 50.0f) < 5.0f)
+				{
+					_atari2600.switch_region();
+					_didDecideRegion = YES;
+				}
+
+				if(fabsf(fps - 60.0f) < 5.0f)
+				{
+					_didDecideRegion = YES;
+				}
+			}
+		}
 	}
 
 	BOOL hasReturn = [self.view pushFrame:frame];
