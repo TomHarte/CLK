@@ -12,6 +12,7 @@
 #include "../Processors/6502/CPU6502.hpp"
 #include "../Outputs/CRT.hpp"
 #include <stdint.h>
+#include "Atari2600Inputs.h"
 
 namespace Atari2600 {
 
@@ -26,6 +27,8 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void set_rom(size_t length, const uint8_t *data);
 		void switch_region();
+
+		void set_digital_input(Atari2600DigitalInput input, bool state);
 
 		Outputs::CRT *get_crt() { return _crt; }
 
@@ -71,6 +74,11 @@ class Machine: public CPU6502::Processor<Machine> {
 		bool _hMoveIsCounting, _hMoveWillCount;
 		uint8_t _objectCounter[5], _objectMotion[5];
 		uint8_t _hMoveFlags;
+
+		// joystick state
+		uint8_t _piaDataDirection[2];
+		uint8_t _piaDataValue[2];
+		uint8_t _piaInputValue[2];
 
 		// collisions
 		uint8_t _collisions[8];

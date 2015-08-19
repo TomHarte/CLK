@@ -301,4 +301,26 @@ const char *fragmentShader =
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
+#pragma mark - NSResponder
+
+- (BOOL)acceptsFirstResponder
+{
+	return YES;
+}
+
+- (void)keyDown:(NSEvent *)theEvent
+{
+	[self.responderDelegate keyDown:theEvent];
+}
+
+- (void)keyUp:(NSEvent *)theEvent
+{
+	[self.responderDelegate keyUp:theEvent];
+}
+
+- (void)flagsChanged:(NSEvent *)theEvent
+{
+	[self.responderDelegate flagsChanged:theEvent];
+}
+
 @end

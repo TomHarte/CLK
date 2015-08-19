@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "CSCathodeRayView.h"
+#include "Atari2600Inputs.h"
 
 @interface CSAtari2600 : NSObject
 
@@ -15,5 +16,6 @@
 
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)setROM:(NSData *)rom;
+- (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 
 @end

@@ -77,6 +77,12 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	});
 }
 
+- (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput {
+	dispatch_async(_serialDispatchQueue, ^{
+		_atari2600.set_digital_input(digitalInput, state ? true : false);
+	});
+}
+
 - (instancetype)init {
 	self = [super init];
 

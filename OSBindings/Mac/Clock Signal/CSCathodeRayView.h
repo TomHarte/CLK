@@ -16,9 +16,16 @@
 - (void)openGLView:(CSCathodeRayView * __nonnull)view didUpdateToTime:(CVTimeStamp)time;
 @end
 
+@protocol CSCathodeRayViewResponderDelegate <NSObject>
+- (void)keyDown:(NSEvent * __nonnull)event;
+- (void)keyUp:(NSEvent * __nonnull)event;
+- (void)flagsChanged:(NSEvent * __nonnull)newModifiers;
+@end
+
 @interface CSCathodeRayView : NSOpenGLView
 
 @property (nonatomic, weak) id <CSCathodeRayViewDelegate> delegate;
+@property (nonatomic, weak) id <CSCathodeRayViewResponderDelegate> responderDelegate;
 
 - (void)invalidate;
 

@@ -329,6 +329,7 @@
 		4B6D7F921B58822000787C9A /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
 		4B6D7F931B58822000787C9A /* Atari2600.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Atari2600.hpp; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimingTests.swift; sourceTree = "<group>"; };
+		4BA3921C1B8402B3007FBF0E /* Atari2600Inputs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Atari2600Inputs.h; sourceTree = "<group>"; };
 		4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Clock SignalTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		4BB297E01B587D8300A49093 /* 6502_functional_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = 6502_functional_test.bin; sourceTree = "<group>"; };
 		4BB297E11B587D8300A49093 /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = AllSuiteA.bin; sourceTree = "<group>"; };
@@ -1015,6 +1016,7 @@
 			children = (
 				4B6D7F921B58822000787C9A /* Atari2600.cpp */,
 				4B6D7F931B58822000787C9A /* Atari2600.hpp */,
+				4BA3921C1B8402B3007FBF0E /* Atari2600Inputs.h */,
 			);
 			name = Machines;
 			path = ../../Machines;

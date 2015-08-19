@@ -8,13 +8,14 @@
 
 import Cocoa
 
-class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
+class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewResponderDelegate {
 
-	@IBOutlet weak var openGLView: CSCathodeRayView?
+	@IBOutlet weak var openGLView: CSCathodeRayView!
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		openGLView!.delegate = self
+		openGLView.delegate = self
+		openGLView.responderDelegate = self
 		atari2600!.view = openGLView!
 
 		// bind the content aspect ratio to remain 4:3 from now on
@@ -45,7 +46,7 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 
 	override func close() {
 		super.close()
-		openGLView!.invalidate()
+		openGLView.invalidate()
 	}
 
 	// MARK: CSOpenGLViewDelegate
@@ -68,5 +69,33 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate {
 			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
 		}
 		lastCycleCount = cycleCount
+	}
+
+	// MARK: CSOpenGLViewResponderDelegate
+
+	func inputForKey(event: NSEvent) -> Atari2600DigitalInput? {
+		switch event.keyCode {
+			case 123:	return Atari2600DigitalInputJoy1Left
+			case 126:	return Atari2600DigitalInputJoy1Up
+			case 124:	return Atari2600DigitalInputJoy1Right
+			case 125:	return Atari2600DigitalInputJoy1Down
+			case 0:		return Atari2600DigitalInputJoy1Fire
+			default: print("\(event.keyCode)"); return nil
+		}
+	}
+
+	func keyDown(event: NSEvent) {
+		if let input = inputForKey(event) {
+			atari2600!.setState(true, forDigitalInput: input)
+		}
+	}
+
+	func keyUp(event: NSEvent) {
+		if let input = inputForKey(event) {
+			atari2600!.setState(false, forDigitalInput: input)
+		}
+	}
+
+	func flagsChanged(newModifiers: NSEvent) {
 	}
 }

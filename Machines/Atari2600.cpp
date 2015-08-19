@@ -26,6 +26,9 @@ Machine::Machine()
 	_rom = nullptr;
 	_hMoveWillCount = false;
 
+	_piaDataValue[0] = _piaDataValue[1] = 0xff;
+	_piaInputValue[0] = _piaInputValue[1] = 0xff;
+
 	setup6502();
 	set_reset_line(true);
 }
@@ -505,18 +508,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// check for a PIA access
 		if ((address&0x1280) == 0x280) {
 			if(isReadOperation(operation)) {
+				const uint8_t decodedAddress = address & 0xf;
 				switch(address & 0xf) {
 					case 0x00:
-						// TODO: port A read
+					case 0x02:
+						returnValue &= _piaDataValue[decodedAddress / 2];
 					break;
 					case 0x01:
-						// TODO: port A DDR
-					break;
-					case 0x02:
-						// TODO: port B read
-					break;
 					case 0x03:
-						// TODO: port B DDR
+						// TODO: port DDR
 					break;
 					case 0x04:
 						returnValue &= _piaTimerValue >> _piaTimerShift;
@@ -529,6 +529,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x05:
 						returnValue &= _piaTimerStatus;
 						_piaTimerStatus &= ~0x40;
+					break;
+
+					case 0x0c:
+					case 0x0d:
+						returnValue &= _piaInputValue[decodedAddress - 0x0c];
 					break;
 				}
 			} else {
@@ -560,6 +565,23 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	return cycles_run_for;
+}
+
+void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
+{
+	switch (input) {
+		case Atari2600DigitalInputJoy1Up:		if(state) _piaDataValue[0] &= 0x10; else _piaDataValue[0] |= 0x10; break;
+		case Atari2600DigitalInputJoy1Down:		if(state) _piaDataValue[0] &= 0x20; else _piaDataValue[0] |= 0x20; break;
+		case Atari2600DigitalInputJoy1Left:		if(state) _piaDataValue[0] &= 0x40; else _piaDataValue[0] |= 0x40; break;
+		case Atari2600DigitalInputJoy1Right:	if(state) _piaDataValue[0] &= 0x80; else _piaDataValue[0] |= 0x80; break;
+
+		case Atari2600DigitalInputJoy2Up:		if(state) _piaDataValue[0] &= 0x01; else _piaDataValue[0] |= 0x01; break;
+		case Atari2600DigitalInputJoy2Down:		if(state) _piaDataValue[0] &= 0x02; else _piaDataValue[0] |= 0x02; break;
+		case Atari2600DigitalInputJoy2Left:		if(state) _piaDataValue[0] &= 0x04; else _piaDataValue[0] |= 0x04; break;
+		case Atari2600DigitalInputJoy2Right:	if(state) _piaDataValue[0] &= 0x08; else _piaDataValue[0] |= 0x08; break;
+
+		default: break;
+	}
 }
 
 void Machine::set_rom(size_t length, const uint8_t *data)
