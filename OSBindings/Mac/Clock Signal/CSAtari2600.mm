@@ -18,6 +18,11 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame, bool did_detect_vsync) { [atari crtDidEndFrame:frame didDetectVSync:did_detect_vsync]; }
 };
 
+typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
+	CSAtari2600RunningStateRunning,
+	CSAtari2600RunningStateStopped
+};
+
 @implementation CSAtari2600 {
 	Atari2600::Machine _atari2600;
 	Atari2600CRTDelegate _crtDelegate;
@@ -27,6 +32,8 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	int _frameCount;
 	NSTimeInterval _startTimeInterval;
 	BOOL _didDecideRegion;
+
+	NSConditionLock *_runningLock;
 }
 
 - (void)crtDidEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
@@ -66,9 +73,14 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
-	dispatch_async(_serialDispatchQueue, ^{
-		_atari2600.run_for_cycles(cycles);
-	});
+	if([_runningLock tryLockWhenCondition:CSAtari2600RunningStateStopped]) {
+		[_runningLock unlockWithCondition:CSAtari2600RunningStateRunning];
+		dispatch_async(_serialDispatchQueue, ^{
+			[_runningLock lockWhenCondition:CSAtari2600RunningStateRunning];
+			_atari2600.run_for_cycles(cycles);
+			[_runningLock unlockWithCondition:CSAtari2600RunningStateStopped];
+		});
+	}
 }
 
 - (void)setROM:(NSData *)rom {
@@ -96,6 +108,7 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 		_crtDelegate.atari = self;
 		_atari2600.get_crt()->set_delegate(&_crtDelegate);
 		_serialDispatchQueue = dispatch_queue_create("Atari 2600 queue", DISPATCH_QUEUE_SERIAL);
+		_runningLock = [[NSConditionLock alloc] initWithCondition:CSAtari2600RunningStateStopped];
 	}
 
 	return self;
