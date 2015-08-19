@@ -24,6 +24,12 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	const unsigned int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
 	const unsigned int scanlinesVerticalRetraceTime = 7;		// source: ibid
 
+																// To quote:
+																//
+																//	"retrace interval; The interval of time for the return of the blanked scanning beam of
+																//	a TV picture tube or camera tube to the starting point of a line or field. It is about 7 µs
+																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
+
 	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
 	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
 
