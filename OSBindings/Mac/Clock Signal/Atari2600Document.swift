@@ -88,11 +88,19 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 		if let input = inputForKey(event) {
 			atari2600!.setState(true, forDigitalInput: input)
 		}
+
+		if event.keyCode == 36 {
+			atari2600!.setResetLineEnabled(true)
+		}
 	}
 
 	func keyUp(event: NSEvent) {
 		if let input = inputForKey(event) {
 			atari2600!.setState(false, forDigitalInput: input)
+		}
+
+		if event.keyCode == 36 {
+			atari2600!.setResetLineEnabled(false)
 		}
 	}
 

@@ -78,7 +78,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		// joystick state
 		uint8_t _piaDataDirection[2];
 		uint8_t _piaDataValue[2];
-		uint8_t _piaInputValue[2];
+		uint8_t _tiaInputValue[2];
 
 		// collisions
 		uint8_t _collisions[8];

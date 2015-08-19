@@ -16,6 +16,8 @@
 
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)setROM:(NSData *)rom;
+
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
+- (void)setResetLineEnabled:(BOOL)enabled;
 
 @end

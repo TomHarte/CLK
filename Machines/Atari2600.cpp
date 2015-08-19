@@ -27,7 +27,7 @@ Machine::Machine()
 	_hMoveWillCount = false;
 
 	_piaDataValue[0] = _piaDataValue[1] = 0xff;
-	_piaInputValue[0] = _piaInputValue[1] = 0xff;
+	_tiaInputValue[0] = _tiaInputValue[1] = 0xff;
 
 	setup6502();
 	set_reset_line(true);
@@ -358,7 +358,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x0c:
 					case 0x0d:
-						// TODO: inputs
+						returnValue &= _tiaInputValue[decodedAddress - 0x0c];
 					break;
 				}
 			} else {
@@ -530,11 +530,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						returnValue &= _piaTimerStatus;
 						_piaTimerStatus &= ~0x40;
 					break;
-
-					case 0x0c:
-					case 0x0d:
-						returnValue &= _piaInputValue[decodedAddress - 0x0c];
-					break;
 				}
 			} else {
 				const uint8_t decodedAddress = address & 0x0f;
@@ -570,15 +565,19 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
 {
 	switch (input) {
-		case Atari2600DigitalInputJoy1Up:		if(state) _piaDataValue[0] &= 0x10; else _piaDataValue[0] |= 0x10; break;
-		case Atari2600DigitalInputJoy1Down:		if(state) _piaDataValue[0] &= 0x20; else _piaDataValue[0] |= 0x20; break;
-		case Atari2600DigitalInputJoy1Left:		if(state) _piaDataValue[0] &= 0x40; else _piaDataValue[0] |= 0x40; break;
-		case Atari2600DigitalInputJoy1Right:	if(state) _piaDataValue[0] &= 0x80; else _piaDataValue[0] |= 0x80; break;
+		case Atari2600DigitalInputJoy1Up:		if(state) _piaDataValue[0] &= ~0x10; else _piaDataValue[0] |= 0x10; break;
+		case Atari2600DigitalInputJoy1Down:		if(state) _piaDataValue[0] &= ~0x20; else _piaDataValue[0] |= 0x20; break;
+		case Atari2600DigitalInputJoy1Left:		if(state) _piaDataValue[0] &= ~0x40; else _piaDataValue[0] |= 0x40; break;
+		case Atari2600DigitalInputJoy1Right:	if(state) _piaDataValue[0] &= ~0x80; else _piaDataValue[0] |= 0x80; break;
 
-		case Atari2600DigitalInputJoy2Up:		if(state) _piaDataValue[0] &= 0x01; else _piaDataValue[0] |= 0x01; break;
-		case Atari2600DigitalInputJoy2Down:		if(state) _piaDataValue[0] &= 0x02; else _piaDataValue[0] |= 0x02; break;
-		case Atari2600DigitalInputJoy2Left:		if(state) _piaDataValue[0] &= 0x04; else _piaDataValue[0] |= 0x04; break;
-		case Atari2600DigitalInputJoy2Right:	if(state) _piaDataValue[0] &= 0x08; else _piaDataValue[0] |= 0x08; break;
+		case Atari2600DigitalInputJoy2Up:		if(state) _piaDataValue[0] &= ~0x01; else _piaDataValue[0] |= 0x01; break;
+		case Atari2600DigitalInputJoy2Down:		if(state) _piaDataValue[0] &= ~0x02; else _piaDataValue[0] |= 0x02; break;
+		case Atari2600DigitalInputJoy2Left:		if(state) _piaDataValue[0] &= ~0x04; else _piaDataValue[0] |= 0x04; break;
+		case Atari2600DigitalInputJoy2Right:	if(state) _piaDataValue[0] &= ~0x08; else _piaDataValue[0] |= 0x08; break;
+
+		// TODO: latching
+		case Atari2600DigitalInputJoy1Fire:		if(state) _tiaInputValue[0] &= ~0x80; else _tiaInputValue[0] |= 0x80; break;
+		case Atari2600DigitalInputJoy2Fire:		if(state) _tiaInputValue[1] &= ~0x80; else _tiaInputValue[1] |= 0x80; break;
 
 		default: break;
 	}

@@ -83,6 +83,12 @@ struct Atari2600CRTDelegate: public Outputs::CRT::CRTDelegate {
 	});
 }
 
+- (void)setResetLineEnabled:(BOOL)enabled {
+	dispatch_async(_serialDispatchQueue, ^{
+		_atari2600.set_reset_line(enabled ? true : false);
+	});
+}
+
 - (instancetype)init {
 	self = [super init];
 
