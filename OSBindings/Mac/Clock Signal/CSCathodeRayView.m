@@ -204,7 +204,7 @@ const char *fragmentShader =
 	"\n"
 	"void main(void)\n"
 	"{\n"
-		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, sin(lateralVarying));\n" //
+		"fragColour = texture(texID, srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, 1.0);\n" // .a = sin(lateralVarying)
 	"}\n";
 
 #if defined(DEBUG)

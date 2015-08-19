@@ -28,7 +28,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	height_of_display += (height_of_display / 20);  // this is the overrun area we'll use to
 
 	// store fundamental display configuration properties
-	_height_of_display = height_of_display;
+	_height_of_display = height_of_display + 5;
 	_cycles_per_line = cycles_per_line * _time_multiplier;
 
 	// generate timing values implied by the given arbuments
@@ -37,7 +37,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
 	_horizontal_retrace_time = (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6;
 	const unsigned int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
-	const float halfLineWidth = (float)_height_of_display * 1.85f;
+	const float halfLineWidth = (float)_height_of_display * 2.0f;
 
 	for(int c = 0; c < 4; c++)
 	{
@@ -103,7 +103,7 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, unsign
 
 	// will an acceptable vertical sync be triggered?
 	if (vsync_is_requested && !_is_in_vsync) {
-		if (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold && _rasterPosition.y >= (kCRTFixedPointRange >> 1)) {
+		if (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold && _rasterPosition.y >= 3*(kCRTFixedPointRange >> 2)) {
 			proposedSyncTime = 0;
 			proposedEvent = SyncEvent::StartVSync;
 			_did_detect_vsync = true;
@@ -112,12 +112,12 @@ CRT::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, unsign
 
 	// have we overrun the maximum permitted number of horizontal syncs for this frame?
 	if (!_is_in_vsync) {
-//		unsigned int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed[0].y;
-//
-//		if(time_until_end_of_frame < proposedSyncTime) {
-//			proposedSyncTime = time_until_end_of_frame;
-//			proposedEvent = SyncEvent::StartVSync;
-//		}
+		unsigned int time_until_end_of_frame = (kCRTFixedPointRange - _rasterPosition.y) / _scanSpeed[0].y;
+
+		if(time_until_end_of_frame < proposedSyncTime) {
+			proposedSyncTime = time_until_end_of_frame;
+			proposedEvent = SyncEvent::StartVSync;
+		}
 	} else {
 		unsigned int time_until_start_of_frame = _rasterPosition.y / (uint32_t)(-_scanSpeed[kRetraceYMask].y);
 
@@ -217,8 +217,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 
 		// advance the raster position as dictated by current sync status
 		int64_t end_position[2];
-		end_position[0] = (int64_t)_rasterPosition.x + (int64_t)number_of_cycles * (int32_t)_scanSpeed[lengthMask].x;
-		end_position[1] = (int64_t)_rasterPosition.y + (int64_t)number_of_cycles * (int32_t)_scanSpeed[lengthMask].y;
+		end_position[0] = (int64_t)_rasterPosition.x + (int64_t)next_run_length * (int32_t)_scanSpeed[lengthMask].x;
+		end_position[1] = (int64_t)_rasterPosition.y + (int64_t)next_run_length * (int32_t)_scanSpeed[lengthMask].y;
 
 		if (_is_in_hsync)
 			_rasterPosition.x = (uint32_t)std::max((int64_t)0, end_position[0]);

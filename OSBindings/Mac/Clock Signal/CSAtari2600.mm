@@ -30,7 +30,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	dispatch_queue_t _serialDispatchQueue;
 
 	int _frameCount;
-	NSTimeInterval _startTimeInterval;
+	int _hitCount;
 	BOOL _didDecideRegion;
 
 	NSConditionLock *_runningLock;
@@ -40,28 +40,20 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 	if(!_didDecideRegion)
 	{
-		if(_startTimeInterval < 1.0)
-		{
-			_startTimeInterval = [NSDate timeIntervalSinceReferenceDate];
-		}
-		else
-		{
-			_frameCount++;
+		_frameCount++;
+		_hitCount += didDetectVSync ? 1 : 0;
 
-			if(_frameCount > 30)
+		if(_frameCount > 30)
+		{
+			if(_hitCount < _frameCount >> 1)
 			{
-				float fps = (float)_frameCount / (float)([NSDate timeIntervalSinceReferenceDate] - _startTimeInterval);
+				_atari2600.switch_region();
+				_didDecideRegion = YES;
+			}
 
-				if(fabsf(fps - 50.0f) < 5.0f)
-				{
-					_atari2600.switch_region();
-					_didDecideRegion = YES;
-				}
-
-				if(fabsf(fps - 60.0f) < 5.0f)
-				{
-					_didDecideRegion = YES;
-				}
+			if(_hitCount > (_frameCount * 7) >> 3)
+			{
+				_didDecideRegion = YES;
 			}
 		}
 	}
