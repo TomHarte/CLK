@@ -21,8 +21,8 @@ static const uint32_t kCRTFixedPointOffset	= 0x08000000;
 void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display)
 {
 	const unsigned int syncCapacityLineChargeThreshold = 3;
-	const unsigned int millisecondsHorizontalRetraceTime = 10;	// source: Dictionary of Video and Television Technology, p. 234
-	const unsigned int scanlinesVerticalRetraceTime = 7;		// source: ibid
+	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
+	const unsigned int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
 																// To quote:
 																//
