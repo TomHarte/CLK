@@ -70,34 +70,23 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
 	for(int c = 0; c < 2; c++)
 	{
+		const uint8_t repeatMask = _playerAndMissileSize[c]&7;
 		if(_playerGraphics[c])
 		{
 			// figure out player colour
 			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
 			int relativeTimer = _objectCounter[c] - 5;
-			switch (_playerAndMissileSize[c]&7)
+			switch (repeatMask)
 			{
 				case 0: break;
-				case 1:
-					if (relativeTimer >= 16) relativeTimer -= 16;
-				break;
-				case 2:
-					if (relativeTimer >= 32) relativeTimer -= 32;
-				break;
-				case 3:
-					if (relativeTimer >= 32) relativeTimer -= 32;
-					else if (relativeTimer >= 16) relativeTimer -= 16;
-				break;
-				case 4:
-					if (relativeTimer >= 64) relativeTimer -= 64;
+				default:
+					if (repeatMask&4 && relativeTimer >= 64) relativeTimer -= 64;
+					else if (repeatMask&2 && relativeTimer >= 32) relativeTimer -= 32;
+					else if (repeatMask&1 && relativeTimer >= 16) relativeTimer -= 16;
 				break;
 				case 5:
 					relativeTimer >>= 1;
-				break;
-				case 6:
-					if (relativeTimer >= 64) relativeTimer -= 64;
-					else if (relativeTimer >= 32) relativeTimer -= 32;
 				break;
 				case 7:
 					relativeTimer >>= 2;
@@ -112,6 +101,21 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2))
 		{
 			int missileIndex = _objectCounter[2+c] - 4;
+			switch (repeatMask)
+			{
+				case 0: break;
+				default:
+					if (repeatMask&4 && missileIndex >= 64) missileIndex -= 64;
+					else if (repeatMask&2 && missileIndex >= 32) missileIndex -= 32;
+					else if (repeatMask&1 && missileIndex >= 16) missileIndex -= 16;
+				break;
+				case 5:
+					missileIndex >>= 1;
+				break;
+				case 7:
+					missileIndex >>= 2;
+				break;
+			}
 			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 			missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize) ? 1 : 0;
 		}
