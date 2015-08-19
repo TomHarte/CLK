@@ -32,11 +32,6 @@ typedef struct {
 	uint8_t *runs;
 } CRTFrame;
 
-#ifdef __cplusplus
-}
-#endif
-
-
 typedef uint16_t	kCRTPositionType;
 typedef uint16_t	kCRTTexCoordType;
 typedef uint8_t		kCRTLateralType;
@@ -48,5 +43,9 @@ static const size_t kCRTVertexOffsetOfLateral = 8;
 static const size_t kCRTVertexOffsetOfPhase = 9;
 
 static const int kCRTSizeOfVertex = 10;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CRTFrame_h */
