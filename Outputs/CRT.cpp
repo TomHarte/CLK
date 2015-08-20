@@ -12,8 +12,8 @@
 
 using namespace Outputs;
 
-static const uint32_t kCRTFixedPointRange	= 0xefffffff;
-static const uint32_t kCRTFixedPointOffset	= 0x08000000;
+static const uint32_t kCRTFixedPointRange	= 0xf7ffffff;
+static const uint32_t kCRTFixedPointOffset	= 0x04000000;
 
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
