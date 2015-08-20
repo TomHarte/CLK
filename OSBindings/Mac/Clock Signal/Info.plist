@@ -10,6 +10,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>a26</string>
+				<string>bin</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string></string>
