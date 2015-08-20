@@ -199,31 +199,30 @@ void Machine::output_pixels(unsigned int count)
 			}
 		}
 
-		// logic: if in vsync, output that; otherwise if in vblank then output that;
-		// otherwise output a pixel
-		if(_vSyncEnabled) {
-			state = (_horizontalTimer < start_of_sync) ? OutputState::Sync : OutputState::Blank;
-		} else {
 
-			// blank is decoded as 68 counts; sync and colour burst as 16 counts
+		// blank is decoded as 68 counts; sync and colour burst as 16 counts
 
-			// 4 blank
-			// 4 sync
-			// 9 'blank'; colour burst after 4
-			// 40 pixels
+		// 4 blank
+		// 4 sync
+		// 9 'blank'; colour burst after 4
+		// 40 pixels
 
-			// it'll be about 43 cycles from start of hsync to start of visible frame, so...
-			// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-			if (_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-				if(_vBlankEnabled) {
-					state = OutputState::Blank;
-				} else {
-					state = OutputState::Pixel;
-				}
+		// it'll be about 43 cycles from start of hsync to start of visible frame, so...
+		// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
+		if (_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
+			if(_vBlankEnabled) {
+				state = OutputState::Blank;
+			} else {
+				state = OutputState::Pixel;
 			}
-			else if (_horizontalTimer < end_of_sync) state = OutputState::Blank;
-			else if (_horizontalTimer < start_of_sync) state = OutputState::Sync;
-			else state = OutputState::Blank;
+		}
+		else if (_horizontalTimer < end_of_sync) state = OutputState::Blank;
+		else if (_horizontalTimer < start_of_sync) state = OutputState::Sync;
+		else state = OutputState::Blank;
+
+		// logic: if vsync is enabled, output the opposite of the automatic hsync output
+		if(_vSyncEnabled) {
+			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
 		}
 
 		_lastOutputStateDuration++;
