@@ -200,9 +200,7 @@ const char *vertexShader =
 	"}\n";
 
 // TODO: this should be factored out and be per project
-//
-// TODO: this is _horribly_ written. It parallelises nothing. It's an embarassment. Same as for the above.
-// This will be fixed. But, for now, it works.
+
 const char *fragmentShader =
 	"#version 150\n"
 	"\n"
