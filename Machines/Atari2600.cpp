@@ -20,7 +20,7 @@ Machine::Machine()
 	_horizontalTimer = 0;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 262, 1, 4);
+	_crt = new Outputs::CRT(228, 262, 1, 1);
 	_piaTimerStatus = 0xff;
 	memset(_collisions, 0xff, sizeof(_collisions));
 	_rom = nullptr;
@@ -46,22 +46,6 @@ void Machine::switch_region()
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
 {
-	static const uint8_t palette[16][3] =
-	{
-		{255, 255, 255},	{253, 250, 115},	{236, 199, 125},	{252, 187, 151},
-		{252, 180, 181},	{235, 177, 223},	{211, 178, 250},	{187, 182, 250},
-		{164, 186, 250},	{166, 201, 250},	{164, 224, 251},	{165, 251, 213},
-		{185, 251, 187},	{201, 250, 168},	{225, 235, 160},	{252, 223, 145}
-	};
-	static const uint8_t alphaValues[8] =
-	{
-		//		0, 64, 108, 144, 176, 200, 220, 255
-		//	};
-		//
-		//	{
-		69, 134, 108, 161, 186, 210, 235, 255
-	};
-
 	// get the playfield pixel and hence a proposed colour
 	uint8_t playfieldPixel = _playfield[offset >> 2];
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
@@ -163,10 +147,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	}
 
 	// map that colour to an RGBA
-	pixel[0] = palette[outputColour >> 4][0];
-	pixel[1] = palette[outputColour >> 4][1];
-	pixel[2] = palette[outputColour >> 4][2];
-	pixel[3] = alphaValues[(outputColour >> 1)&7];
+	*pixel = outputColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -249,7 +230,7 @@ void Machine::output_pixels(unsigned int count)
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
 			if(_outputBuffer)
-				get_output_pixel(&_outputBuffer[_lastOutputStateDuration * 4], 159 - _horizontalTimer);
+				get_output_pixel(&_outputBuffer[_lastOutputStateDuration], 159 - _horizontalTimer);
 
 			// increment all graphics counters
 			increment_object_counter(0);
