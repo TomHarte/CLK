@@ -20,7 +20,7 @@ Machine::Machine()
 	_horizontalTimer = 0;
 	_lastOutputStateDuration = 0;
 	_lastOutputState = OutputState::Sync;
-	_crt = new Outputs::CRT(228, 262, 1, 1);
+	_crt = new Outputs::CRT(228, 262, 1, 2);
 	_piaTimerStatus = 0xff;
 	memset(_collisions, 0xff, sizeof(_collisions));
 	_rom = nullptr;
@@ -146,8 +146,9 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if (playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
-	// map that colour to an RGBA
-	*pixel = outputColour;
+	// map that colour to separate Y and phase components
+	pixel[0] = (outputColour << 4)&0xe0;
+    pixel[1] = outputColour&0xf0;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -230,7 +231,7 @@ void Machine::output_pixels(unsigned int count)
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
 		{
 			if(_outputBuffer)
-				get_output_pixel(&_outputBuffer[_lastOutputStateDuration], 159 - _horizontalTimer);
+				get_output_pixel(&_outputBuffer[_lastOutputStateDuration << 1], 159 - _horizontalTimer);
 
 			// increment all graphics counters
 			increment_object_counter(0);
