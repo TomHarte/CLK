@@ -32,6 +32,8 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		Outputs::CRT *get_crt() { return _crt; }
 
+		const char *get_signal_decoder();
+
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];
 		size_t _rom_size;

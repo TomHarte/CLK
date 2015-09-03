@@ -30,5 +30,6 @@
 - (void)invalidate;
 
 - (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame;
+- (void)setSignalDecoder:(NSString * __nonnull)signalDecoder;
 
 @end

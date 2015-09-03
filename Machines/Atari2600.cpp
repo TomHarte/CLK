@@ -148,8 +148,21 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	// map that colour to separate Y and phase components
 	pixel[0] = (outputColour << 4)&0xe0;
-    pixel[1] = outputColour&0xf0;
+	pixel[1] = outputColour&0xf0;
 }
+
+const char *Machine::get_signal_decoder()
+{
+	return
+		"float sample(vec2 coordinate, float phase)\n"
+		"{\n"
+			"vec2 c = texture(texID, coordinate).rg;"
+			"float y = 0.1 + c.x * 0.91071428571429;\n"
+			"float aOffset = 6.283185308 * c.y;\n"
+			"return y + step(0.0625, c.y) * 0.1 * sin(phase + aOffset);\n"
+		"}";
+}
+
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
 // this is faster than the straightforward +1)%160 per profiling

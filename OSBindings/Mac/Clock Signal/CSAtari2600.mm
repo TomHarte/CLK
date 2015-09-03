@@ -93,6 +93,11 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	});
 }
 
+- (void)setView:(CSCathodeRayView *)view {
+	_view = view;
+	_view.signalDecoder = [NSString stringWithUTF8String:_atari2600.get_signal_decoder()];
+}
+
 - (instancetype)init {
 	self = [super init];
 

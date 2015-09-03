@@ -10,6 +10,7 @@
 @import CoreVideo;
 #import <OpenGL/gl3.h>
 #import <OpenGL/gl3ext.h>
+#import <libkern/OSAtomic.h>
 
 
 @implementation CSCathodeRayView {
@@ -30,6 +31,10 @@
 	CRTSize _textureSize;
 
 	CRTFrame *_crtFrame;
+
+	NSString *_signalDecoder;
+	int32_t _signalDecoderGeneration;
+	int32_t _compiledSignalDecoderGeneration;
 }
 
 - (void)prepareOpenGL
@@ -52,7 +57,6 @@
 	// get the shader ready, set the clear colour
 	[self.openGLContext makeCurrentContext];
 	glClearColor(0.0, 0.0, 0.0, 1.0);
-	[self prepareShader];
 
 	// Activate the display link
 	CVDisplayLinkStart(displayLink);
@@ -172,8 +176,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 // the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
 // top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
 // from integral to floating point.
-const char *vertexShader =
-	"#version 150\n"
+static NSString *const vertexShader =
+	@"#version 150\n"
 	"\n"
 	"in vec2 position;\n"
 	"in vec2 srcCoordinates;\n"
@@ -201,8 +205,8 @@ const char *vertexShader =
 
 // TODO: this should be factored out and be per project
 
-const char *fragmentShader =
-	"#version 150\n"
+static NSString *const fragmentShader =
+	@"#version 150\n"
 	"\n"
 	"in vec2 srcCoordinatesVarying[7];\n"
 	"in float lateralVarying;\n"
@@ -212,13 +216,7 @@ const char *fragmentShader =
 	"uniform sampler2D texID;\n"
 	"uniform float alpha;\n"
 	"\n"
-	"float sample(vec2 coordinate, float angle)\n"
-	"{\n"
-        "vec2 c = texture(texID, coordinate).rg;"
-		"float y = 0.1 + c.x * 0.91071428571429;\n"
-		"float aOffset = 6.283185308 * c.y;\n"
-		"return y + step(0.0625, c.y) * 0.1 * sin(angle + aOffset);\n"
-	"}\n"
+	"%@"
 	"\n"
 	"void main(void)\n"
 	"{\n"
@@ -230,12 +228,12 @@ const char *fragmentShader =
 		"angles[1] = angle + vec4(2.5132741232, 5.6548667772, 0.6283185308, 0.0);\n"
 		"\n"
 		"samples[0] = vec4("
-        "   sample(srcCoordinatesVarying[0], angles[0].x),"
+		"   sample(srcCoordinatesVarying[0], angles[0].x),"
 		"	sample(srcCoordinatesVarying[1], angles[0].y),"
 		"	sample(srcCoordinatesVarying[2], angles[0].z),"
 		"	sample(srcCoordinatesVarying[3], angles[0].w));\n"
 		"samples[1] = vec4("
-        "   sample(srcCoordinatesVarying[4], angles[1].x),"
+		"   sample(srcCoordinatesVarying[4], angles[1].x),"
 		"	sample(srcCoordinatesVarying[5], angles[1].y),"
 		"	sample(srcCoordinatesVarying[6], angles[1].z),"
 		"	1.0);\n"
@@ -279,11 +277,27 @@ const char *fragmentShader =
 	return shader;
 }
 
+- (void)setSignalDecoder:(NSString * __nonnull)signalDecoder
+{
+	_signalDecoder = [signalDecoder copy];
+	OSAtomicIncrement32(&_signalDecoderGeneration);
+}
+
 - (void)prepareShader
 {
+	if(_shaderProgram)
+	{
+		glDeleteProgram(_shaderProgram);
+		glDeleteShader(_vertexShader);
+		glDeleteShader(_fragmentShader);
+	}
+
+	if(!_signalDecoder)
+		return;
+
 	_shaderProgram = glCreateProgram();
-	_vertexShader = [self compileShader:vertexShader type:GL_VERTEX_SHADER];
-	_fragmentShader = [self compileShader:fragmentShader type:GL_FRAGMENT_SHADER];
+	_vertexShader = [self compileShader:[vertexShader UTF8String] type:GL_VERTEX_SHADER];
+	_fragmentShader = [self compileShader:[[NSString stringWithFormat:fragmentShader, _signalDecoder] UTF8String] type:GL_FRAGMENT_SHADER];
 
 	glAttachShader(_shaderProgram, _vertexShader);
 	glAttachShader(_shaderProgram, _fragmentShader);
@@ -333,6 +347,11 @@ const char *fragmentShader =
 {
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
+
+	while(!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) {
+		_compiledSignalDecoderGeneration = _signalDecoderGeneration;
+		[self prepareShader];
+	}
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
