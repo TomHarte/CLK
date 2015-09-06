@@ -168,7 +168,7 @@ CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, unsi
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, const char *data_type)
+void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type)
 {
 	number_of_cycles *= _time_multiplier;
 
@@ -349,28 +349,28 @@ void CRT::output_sync(unsigned int number_of_cycles)
 {
 	bool _hsync_requested = !_is_receiving_sync;	// ensure this really is edge triggered; someone calling output_sync twice in succession shouldn't trigger it twice
 	_is_receiving_sync = true;
-	advance_cycles(number_of_cycles, _hsync_requested, false, true, Type::Sync, nullptr);
+	advance_cycles(number_of_cycles, _hsync_requested, false, true, Type::Sync);
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Blank, nullptr);
+	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Blank);
 }
 
-void CRT::output_level(unsigned int number_of_cycles, const char *type)
+void CRT::output_level(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Level, type);
+	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Level);
 }
 
-void CRT::output_data(unsigned int number_of_cycles, const char *type)
+void CRT::output_data(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Data, type);
+	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Data);
 }
 
 #pragma mark - Buffer supply

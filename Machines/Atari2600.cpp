@@ -11,7 +11,6 @@
 #include <stdio.h>
 
 using namespace Atari2600;
-static const char atari2600DataType[] = "Atari2600";
 static const int horizontalTimerReload = 227;
 
 Machine::Machine()
@@ -225,9 +224,9 @@ void Machine::output_pixels(unsigned int count)
 		{
 			switch(_lastOutputState)
 			{
-				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);					break;
-				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);					break;
-				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration, atari2600DataType);	break;
+				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);	break;
+				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);	break;
+				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration);	break;
 			}
 			_lastOutputStateDuration = 0;
 			_lastOutputState = state;

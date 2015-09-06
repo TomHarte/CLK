@@ -55,8 +55,8 @@ class CRT {
 
 		void output_sync(unsigned int number_of_cycles);
 		void output_blank(unsigned int number_of_cycles);
-		void output_level(unsigned int number_of_cycles, const char *type);
-		void output_data(unsigned int number_of_cycles, const char *type);
+		void output_level(unsigned int number_of_cycles);
+		void output_data(unsigned int number_of_cycles);
 
 		class CRTDelegate {
 			public:
@@ -110,7 +110,7 @@ class CRT {
 		enum Type {
 			Sync, Level, Data, Blank
 		} type;
-		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type, const char *data_type);
+		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
