@@ -158,7 +158,7 @@ const char *Machine::get_signal_decoder()
 			"vec2 c = texture(texID, coordinate).rg;"
 			"float y = 0.1 + c.x * 0.91071428571429;\n"
 			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
-			"return y + step(0.03125, c.y) * 0.1 * sin(phase + aOffset);\n"
+			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
 		"}";
 }
 

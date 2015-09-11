@@ -110,8 +110,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	{
 		NSOpenGLPFADoubleBuffer,
 		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
-//		NSOpenGLPFASampleBuffers,	1,
-//		NSOpenGLPFASamples,			2,
+		NSOpenGLPFASampleBuffers,	1,
+		NSOpenGLPFASamples,			2,
 		0
 	};
 
@@ -246,12 +246,12 @@ static NSString *const fragmentShader =
 		"samples[0] -= vec4(y);\n"
 		"samples[1] -= vec4(y);\n"
 		"\n"
-		"float i = dot(vec4(0.0, sin(angles[0].y), sin(angles[0].z), sin(angles[0].w)), samples[0]) + dot(vec4(sin(angles[1].x), sin(angles[1].y), 0.0, 0.0), samples[1]);\n"
-		"float q = dot(vec4(0.0, cos(angles[0].y), cos(angles[0].z), cos(angles[0].w)), samples[0]) + dot(vec4(cos(angles[1].x), cos(angles[1].y), 0.0, 0.0), samples[1]);\n"
+		"float i = dot(vec4(0.0, cos(angles[0].y), cos(angles[0].z), cos(angles[0].w)), samples[0]) + dot(vec4(cos(angles[1].x), cos(angles[1].y), 0.0, 0.0), samples[1]);\n"
+		"float q = dot(vec4(0.0, sin(angles[0].y), sin(angles[0].z), sin(angles[0].w)), samples[0]) + dot(vec4(sin(angles[1].x), sin(angles[1].y), 0.0, 0.0), samples[1]);\n"
 		"\n"
 		"// now i and q are in the range [-0.5, 0.5], so i needs to be multiplied by 1.1914 and q by 1.0452\n"
 		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
-		"fragColour = vec4(	yiqToRGB * vec3(y, i, q), 1.0);\n"
+		"fragColour = vec4(	yiqToRGB * vec3(y, i, q), sin(lateralVarying));\n"
 	"}\n";
 
 #if defined(DEBUG)
