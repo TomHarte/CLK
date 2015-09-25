@@ -8,6 +8,7 @@
 
 #import "CSCathodeRayView.h"
 @import CoreVideo;
+@import GLKit;
 #import <OpenGL/gl3.h>
 #import <OpenGL/gl3ext.h>
 #import <libkern/OSAtomic.h>
@@ -23,11 +24,10 @@
 	GLint _textureCoordinatesAttribute;
 	GLint _lateralAttribute;
 
-	GLint _texIDUniform;
-	GLint _textureSizeUniform;
+	GLint _textureSizeUniform, _windowSizeUniform;
 	GLint _alphaUniform;
 
-	GLuint _textureName;
+	GLuint _textureName, _shadowMaskTextureName;
 	CRTSize _textureSize;
 
 	CRTFrame *_crtFrame;
@@ -35,6 +35,24 @@
 	NSString *_signalDecoder;
 	int32_t _signalDecoderGeneration;
 	int32_t _compiledSignalDecoderGeneration;
+}
+
+- (GLuint)textureForImageNamed:(NSString *)name
+{
+	NSImage *const image = [NSImage imageNamed:name];
+	NSBitmapImageRep *bitmapRepresentation = [[NSBitmapImageRep alloc] initWithData: [image TIFFRepresentation]];
+
+	GLuint textureName;
+	glGenTextures(1, &textureName);
+	glBindTexture(GL_TEXTURE_2D, textureName);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)image.size.width, (GLsizei)image.size.height, 0, GL_RGB, GL_UNSIGNED_BYTE, bitmapRepresentation.bitmapData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	return textureName;
 }
 
 - (void)prepareOpenGL
@@ -53,6 +71,13 @@
 	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
+
+	// install the shadow mask texture as the second texture
+	glActiveTexture(GL_TEXTURE1);
+	_shadowMaskTextureName = [self textureForImageNamed:@"ShadowMask"];
+
+	// otherwise, we'll be working on the first texture
+	glActiveTexture(GL_TEXTURE0);
 
 	// get the shader ready, set the clear colour
 	[self.openGLContext makeCurrentContext];
@@ -87,6 +112,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	glDeleteBuffers(1, &_arrayBuffer);
 	glDeleteVertexArrays(1, &_vertexArray);
 	glDeleteTextures(1, &_textureName);
+	glDeleteTextures(1, &_shadowMaskTextureName);
 	glDeleteProgram(_shaderProgram);
 }
 
@@ -100,6 +126,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
 	NSPoint viewSize = [self convertPointToBacking:backingSize];
 	glViewport(0, 0, (GLsizei)viewSize.x, (GLsizei)viewSize.y);
+
+	glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
 
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
@@ -186,8 +214,11 @@ static NSString *const vertexShader =
 	"out vec2 srcCoordinatesVarying[4];\n"
 	"out float lateralVarying;\n"
 	"out float phase;\n"
+	"out vec2 shadowMaskCoordinates;\n"
 	"\n"
 	"uniform vec2 textureSize;\n"
+	"\n"
+	"const float shadowMaskMultiple = 300;\n"
 	"\n"
 	"void main (void)\n"
 	"{\n"
@@ -200,6 +231,8 @@ static NSString *const vertexShader =
 		"lateralVarying = lateral + 1.0707963267949;\n"
 		"phase = srcCoordinates.x * 6.283185308;\n"
 		"\n"
+		"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);\n"
+		"\n"
 		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
 	"}\n";
 
@@ -211,12 +244,17 @@ static NSString *const fragmentShader =
 	"in vec2 srcCoordinatesVarying[4];\n"
 	"in float lateralVarying;\n"
 	"in float phase;\n"
+	"in vec2 shadowMaskCoordinates;\n"
 	"out vec4 fragColour;\n"
 	"\n"
 	"uniform sampler2D texID;\n"
+	"uniform sampler2D shadowMaskTexID;\n"
 	"uniform float alpha;\n"
 	"\n"
 	"%@"
+	"\n"
+	"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
+	"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
@@ -234,9 +272,7 @@ static NSString *const fragmentShader =
 		"float i = dot(cos(angles), samples);\n"
 		"float q = dot(sin(angles), samples);\n"
 		"\n"
-		"// now i and q are in the range [-0.5, 0.5], so i needs to be multiplied by 1.1914 and q by 1.0452\n"
-		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
-		"fragColour = vec4(	yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n"
+		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n"
 	"}\n";
 
 #if defined(DEBUG)
@@ -306,9 +342,15 @@ static NSString *const fragmentShader =
 	_positionAttribute				= glGetAttribLocation(_shaderProgram, "position");
 	_textureCoordinatesAttribute	= glGetAttribLocation(_shaderProgram, "srcCoordinates");
 	_lateralAttribute				= glGetAttribLocation(_shaderProgram, "lateral");
-	_texIDUniform					= glGetUniformLocation(_shaderProgram, "texID");
 	_alphaUniform					= glGetUniformLocation(_shaderProgram, "alpha");
 	_textureSizeUniform				= glGetUniformLocation(_shaderProgram, "textureSize");
+	_windowSizeUniform				= glGetUniformLocation(_shaderProgram, "windowSize");
+
+	GLint texIDUniform				= glGetUniformLocation(_shaderProgram, "texID");
+	GLint shadowMaskTexIDUniform	= glGetUniformLocation(_shaderProgram, "shadowMaskTexID");
+
+	glUniform1i(texIDUniform, 0);
+	glUniform1i(shadowMaskTexIDUniform, 1);
 
 	glEnableVertexAttribArray((GLuint)_positionAttribute);
 	glEnableVertexAttribArray((GLuint)_textureCoordinatesAttribute);
