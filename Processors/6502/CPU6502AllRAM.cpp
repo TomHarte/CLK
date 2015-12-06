@@ -12,9 +12,8 @@
 
 using namespace CPU6502;
 
-AllRAMProcessor::AllRAMProcessor()
+AllRAMProcessor::AllRAMProcessor() : _timestamp(0)
 {
-	_timestamp = 0;
 	setup6502();
 }
 

@@ -14,9 +14,7 @@ const uint8_t CSTestMachineJamOpcode = CPU6502::JamOpcode;
 
 class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 	public:
-		MachineJamHandler(CSTestMachine *targetMachine) {
-			_targetMachine = targetMachine;
-		}
+		MachineJamHandler(CSTestMachine *targetMachine) : _targetMachine(targetMachine) {}
 
 		void processor_did_jam(CPU6502::AllRAMProcessor::Processor *processor, uint16_t address) override {
 			[_targetMachine.jamHandler testMachine:_targetMachine didJamAtAddress:address];

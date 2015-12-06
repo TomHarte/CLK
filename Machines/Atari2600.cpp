@@ -13,21 +13,19 @@
 using namespace Atari2600;
 static const int horizontalTimerReload = 227;
 
-Machine::Machine()
+Machine::Machine() :
+	_timestamp(0),
+	_horizontalTimer(0),
+	_lastOutputStateDuration(0),
+	_lastOutputState(OutputState::Sync),
+	_piaTimerStatus(0xff),
+	_rom(nullptr),
+	_hMoveWillCount(false),
+	_piaDataValue{0xff, 0xff},
+	_tiaInputValue{0xff, 0xff}
 {
-	_timestamp = 0;
-	_horizontalTimer = 0;
-	_lastOutputStateDuration = 0;
-	_lastOutputState = OutputState::Sync;
 	_crt = new Outputs::CRT(228, 262, 1, 2);
-	_piaTimerStatus = 0xff;
 	memset(_collisions, 0xff, sizeof(_collisions));
-	_rom = nullptr;
-	_hMoveWillCount = false;
-
-	_piaDataValue[0] = _piaDataValue[1] = 0xff;
-	_tiaInputValue[0] = _tiaInputValue[1] = 0xff;
-
 	setup6502();
 	set_reset_line(true);
 }

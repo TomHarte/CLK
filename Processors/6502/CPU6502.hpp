@@ -14,7 +14,7 @@
 
 namespace CPU6502 {
 
-enum class Register {
+enum Register {
 	LastOperationAddress,
 	ProgramCounter,
 	StackPointer,
@@ -381,16 +381,16 @@ template <class T> class Processor {
 		bool _ready_is_active;
 
 	public:
-		Processor()
-		{
-			_scheduleProgramsWritePointer = _scheduleProgramsReadPointer = 0;
-			_scheduledPrograms[0] = _scheduledPrograms[1] = _scheduledPrograms[2] = _scheduledPrograms[3] = nullptr;
-			_is_jammed = false;
-			_jam_handler = nullptr;
-			_cycles_left_to_run = 0;
-			_ready_line_is_enabled = false;
-			_ready_is_active = false;
-		}
+		Processor() :
+			_scheduleProgramsReadPointer(0),
+			_scheduleProgramsWritePointer(0),
+			_is_jammed(false),
+			_jam_handler(nullptr),
+			_cycles_left_to_run(0),
+			_ready_line_is_enabled(false),
+			_ready_is_active(false),
+			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr}
+		{}
 
 		const MicroOp *get_reset_program() {
 			static const MicroOp reset[] = {
