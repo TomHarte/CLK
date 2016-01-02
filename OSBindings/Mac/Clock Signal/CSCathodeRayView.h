@@ -13,13 +13,13 @@
 @class CSCathodeRayView;
 
 @protocol CSCathodeRayViewDelegate
-- (void)openGLView:(CSCathodeRayView * __nonnull)view didUpdateToTime:(CVTimeStamp)time;
+- (void)openGLView:(nonnull CSCathodeRayView *)view didUpdateToTime:(CVTimeStamp)time;
 @end
 
 @protocol CSCathodeRayViewResponderDelegate <NSObject>
-- (void)keyDown:(NSEvent * __nonnull)event;
-- (void)keyUp:(NSEvent * __nonnull)event;
-- (void)flagsChanged:(NSEvent * __nonnull)newModifiers;
+- (void)keyDown:(nonnull NSEvent *)event;
+- (void)keyUp:(nonnull NSEvent *)event;
+- (void)flagsChanged:(nonnull NSEvent *)newModifiers;
 @end
 
 @interface CSCathodeRayView : NSOpenGLView
@@ -29,7 +29,7 @@
 
 - (void)invalidate;
 
-- (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame;
-- (void)setSignalDecoder:(NSString * __nonnull)signalDecoder;
+- (BOOL)pushFrame:(nonnull CRTFrame *)crtFrame;
+- (void)setSignalDecoder:(nonnull NSString *)signalDecoder;
 
 @end

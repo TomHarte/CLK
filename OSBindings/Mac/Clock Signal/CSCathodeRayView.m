@@ -172,7 +172,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	}
 }
 
-- (BOOL)pushFrame:(CRTFrame * __nonnull)crtFrame
+- (BOOL)pushFrame:(nonnull CRTFrame *)crtFrame
 {
 	[[self openGLContext] makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
@@ -302,7 +302,7 @@ static NSString *const fragmentShader =
 	return shader;
 }
 
-- (void)setSignalDecoder:(NSString * __nonnull)signalDecoder
+- (void)setSignalDecoder:(nonnull NSString *)signalDecoder
 {
 	_signalDecoder = [signalDecoder copy];
 	OSAtomicIncrement32(&_signalDecoderGeneration);

@@ -15,7 +15,7 @@
 @property (nonatomic, weak) CSCathodeRayView *view;
 
 - (void)runForNumberOfCycles:(int)cycles;
-- (void)setROM:(NSData * __nonnull)rom;
+- (void)setROM:(nonnull NSData *)rom;
 
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 - (void)setResetLineEnabled:(BOOL)enabled;
