@@ -15,6 +15,8 @@
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
+		4B2E2D921C399B9900138695 /* ElectronDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D911C399B9900138695 /* ElectronDocument.swift */; };
+		4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2E2D931C399D1200138695 /* ElectronDocument.xib */; };
 		4B366DFC1B5C165A0026627B /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B366DFA1B5C165A0026627B /* CRT.cpp */; };
 		4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* TimingTests.swift */; };
 		4BB298EE1B587D8400A49093 /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E01B587D8300A49093 /* 6502_functional_test.bin */; };
@@ -324,6 +326,8 @@
 		4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WolfgangLorenzTests.swift; sourceTree = "<group>"; };
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
 		4B2632551B631A510082A461 /* CRTFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CRTFrame.h; path = ../../Outputs/CRTFrame.h; sourceTree = "<group>"; };
+		4B2E2D911C399B9900138695 /* ElectronDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ElectronDocument.swift; sourceTree = "<group>"; };
+		4B2E2D941C399D1200138695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ElectronDocument.xib; sourceTree = "<group>"; };
 		4B366DFA1B5C165A0026627B /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CRT.cpp; path = ../../Outputs/CRT.cpp; sourceTree = "<group>"; };
 		4B366DFB1B5C165A0026627B /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRT.hpp; path = ../../Outputs/CRT.hpp; sourceTree = "<group>"; };
 		4B6D7F921B58822000787C9A /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
@@ -970,6 +974,7 @@
 		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXGroup;
 			children = (
+				4B2E2D931C399D1200138695 /* ElectronDocument.xib */,
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
 				4B14144A1B5883E500E04248 /* CSAtari2600.h */,
 				4B14144B1B5883E500E04248 /* CSAtari2600.mm */,
@@ -982,6 +987,7 @@
 				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
 				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BB73EAD1B587A5100552FC2 /* Info.plist */,
+				4B2E2D911C399B9900138695 /* ElectronDocument.swift */,
 			);
 			path = "Clock Signal";
 			sourceTree = "<group>";
@@ -1140,6 +1146,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */,
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
@@ -1438,6 +1445,7 @@
 				4B366DFC1B5C165A0026627B /* CRT.cpp in Sources */,
 				4BB73EA41B587A5100552FC2 /* Atari2600Document.swift in Sources */,
 				4B14144E1B5883E500E04248 /* CSAtari2600.mm in Sources */,
+				4B2E2D921C399B9900138695 /* ElectronDocument.swift in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 				4B14144F1B5883E500E04248 /* CSCathodeRayView.m in Sources */,
@@ -1482,6 +1490,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		4B2E2D931C399D1200138695 /* ElectronDocument.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B2E2D941C399D1200138695 /* Base */,
+			);
+			name = ElectronDocument.xib;
+			sourceTree = "<group>";
+		};
 		4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */ = {
 			isa = PBXVariantGroup;
 			children = (

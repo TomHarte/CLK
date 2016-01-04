@@ -22,6 +22,11 @@
 - (void)flagsChanged:(nonnull NSEvent *)newModifiers;
 @end
 
+typedef NS_ENUM(NSInteger, CSCathodeRayViewSignalType) {
+	CSCathodeRayViewSignalTypeNTSC,
+	CSCathodeRayViewSignalTypeRGB
+};
+
 @interface CSCathodeRayView : NSOpenGLView
 
 @property (nonatomic, weak) id <CSCathodeRayViewDelegate> delegate;
@@ -30,6 +35,6 @@
 - (void)invalidate;
 
 - (BOOL)pushFrame:(nonnull CRTFrame *)crtFrame;
-- (void)setSignalDecoder:(nonnull NSString *)signalDecoder;
+- (void)setSignalDecoder:(nonnull NSString *)decoder type:(CSCathodeRayViewSignalType)type;
 
 @end

@@ -33,6 +33,7 @@
 	CRTFrame *_crtFrame;
 
 	NSString *_signalDecoder;
+	CSCathodeRayViewSignalType _signalType;
 	int32_t _signalDecoderGeneration;
 	int32_t _compiledSignalDecoderGeneration;
 }
@@ -201,80 +202,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 #pragma mark - Frame output
 
-// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
-// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
-// from integral to floating point.
-static NSString *const vertexShader =
-	@"#version 150\n"
-	"\n"
-	"in vec2 position;\n"
-	"in vec2 srcCoordinates;\n"
-	"in float lateral;\n"
-	"\n"
-	"out vec2 srcCoordinatesVarying[4];\n"
-	"out float lateralVarying;\n"
-	"out float phase;\n"
-	"out vec2 shadowMaskCoordinates;\n"
-	"\n"
-	"uniform vec2 textureSize;\n"
-	"\n"
-	"const float shadowMaskMultiple = 300;\n"
-	"\n"
-	"void main (void)\n"
-	"{\n"
-		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n"
-		"\n"
-		"lateralVarying = lateral + 1.0707963267949;\n"
-		"phase = srcCoordinates.x * 6.283185308;\n"
-		"\n"
-		"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);\n"
-		"\n"
-		"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
-	"}\n";
-
-// TODO: this should be factored out and be per project
-
-static NSString *const fragmentShader =
-	@"#version 150\n"
-	"\n"
-	"in vec2 srcCoordinatesVarying[4];\n"
-	"in float lateralVarying;\n"
-	"in float phase;\n"
-	"in vec2 shadowMaskCoordinates;\n"
-	"out vec4 fragColour;\n"
-	"\n"
-	"uniform sampler2D texID;\n"
-	"uniform sampler2D shadowMaskTexID;\n"
-	"uniform float alpha;\n"
-	"\n"
-	"%@"
-	"\n"
-	"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
-	"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
-	"\n"
-	"void main(void)\n"
-	"{\n"
-		"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
-		"vec4 samples = vec4("
-		"   sample(srcCoordinatesVarying[0], angles.x),"
-		"	sample(srcCoordinatesVarying[1], angles.y),"
-		"	sample(srcCoordinatesVarying[2], angles.z),"
-		"	sample(srcCoordinatesVarying[3], angles.w)"
-		");\n"
-		"\n"
-		"float y = dot(vec4(0.25), samples);\n"
-		"samples -= vec4(y);\n"
-		"\n"
-		"float i = dot(cos(angles), samples);\n"
-		"float q = dot(sin(angles), samples);\n"
-		"\n"
-		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n"
-	"}\n";
-
 #if defined(DEBUG)
 - (void)logErrorForObject:(GLuint)object
 {
@@ -302,10 +229,128 @@ static NSString *const fragmentShader =
 	return shader;
 }
 
-- (void)setSignalDecoder:(nonnull NSString *)signalDecoder
+- (void)setSignalDecoder:(nonnull NSString *)signalDecoder type:(CSCathodeRayViewSignalType)type
 {
 	_signalDecoder = [signalDecoder copy];
 	OSAtomicIncrement32(&_signalDecoderGeneration);
+}
+
+- (nonnull NSString *)vertexShaderForType:(CSCathodeRayViewSignalType)type
+{
+	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
+	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
+	// from integral to floating point; there's also some setup for NTSC, PAL or whatever.
+
+	NSString *const ntscVertexShaderGlobals =
+		@"out vec2 srcCoordinatesVarying[4];\n"
+		"out float phase;\n";
+
+	NSString *const ntscVertexShaderBody =
+		@"phase = srcCoordinates.x * 6.283185308;\n"
+		"\n"
+		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+
+	NSString *const rgbVertexShaderGlobals =
+		@"out vec2 srcCoordinatesVarying;\n";
+
+	NSString *const rgbVertexShaderBody =
+		@"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n";
+
+	NSString *const vertexShader =
+		@"#version 150\n"
+		"\n"
+		"in vec2 position;\n"
+		"in vec2 srcCoordinates;\n"
+		"in float lateral;\n"
+		"\n"
+		"out float lateralVarying;\n"
+		"out vec2 shadowMaskCoordinates;\n"
+		"\n"
+		"uniform vec2 textureSize;\n"
+		"\n"
+		"const float shadowMaskMultiple = 600;\n"
+		"\n"
+		"%@\n"
+		"void main (void)\n"
+		"{\n"
+			"lateralVarying = lateral + 1.0707963267949;\n"
+			"\n"
+			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);\n"
+			"\n"
+			"%@\n"
+			"\n"
+			"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
+		"}\n";
+
+	switch(_signalType)
+	{
+		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:vertexShader, ntscVertexShaderGlobals, ntscVertexShaderBody];
+		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:vertexShader, rgbVertexShaderGlobals, rgbVertexShaderBody];
+	}
+}
+
+- (nonnull NSString *)fragmentShaderForType:(CSCathodeRayViewSignalType)type
+{
+
+	NSString *const fragmentShader =
+		@"#version 150\n"
+		"\n"
+		"in float lateralVarying;\n"
+		"in vec2 shadowMaskCoordinates;\n"
+		"out vec4 fragColour;\n"
+		"\n"
+		"uniform sampler2D texID;\n"
+		"uniform sampler2D shadowMaskTexID;\n"
+		"uniform float alpha;\n"
+		"\n"
+		"%@\n"
+		"\n"
+		"void main(void)\n"
+		"{\n"
+			"%@\n"
+		"}\n";
+
+	NSString *const ntscFragmentShaderGlobals =
+		@"in vec2 srcCoordinatesVarying[4];\n"
+		"in float phase;\n"
+		"\n"
+		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
+		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
+		"\n"
+		"\%@\n";
+
+	NSString *const ntscFragmentShaderBody =
+		@"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
+		"vec4 samples = vec4("
+		"   sample(srcCoordinatesVarying[0], angles.x),"
+		"	sample(srcCoordinatesVarying[1], angles.y),"
+		"	sample(srcCoordinatesVarying[2], angles.z),"
+		"	sample(srcCoordinatesVarying[3], angles.w)"
+		");\n"
+		"\n"
+		"float y = dot(vec4(0.25), samples);\n"
+		"samples -= vec4(y);\n"
+		"\n"
+		"float i = dot(cos(angles), samples);\n"
+		"float q = dot(sin(angles), samples);\n"
+		"\n"
+		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
+
+	NSString *const rgbFragmentShaderGlobals =
+		@"";
+
+	NSString *const rgbFragmentShaderBody =
+		@"fragColour = texture(srcCoordinatesVarying, srcCoordinatesVarying);//sin(lateralVarying));\n";
+
+	switch(_signalType)
+	{
+		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:fragmentShader, ntscFragmentShaderGlobals, ntscFragmentShaderBody];
+		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:fragmentShader, rgbFragmentShaderGlobals, rgbFragmentShaderBody];
+	}
 }
 
 - (void)prepareShader
@@ -320,9 +365,15 @@ static NSString *const fragmentShader =
 	if(!_signalDecoder)
 		return;
 
+	NSString *const vertexShader = [self vertexShaderForType:_signalType];
+	NSString *const fragmentShader = [self fragmentShaderForType:_signalType];
+
 	_shaderProgram = glCreateProgram();
 	_vertexShader = [self compileShader:[vertexShader UTF8String] type:GL_VERTEX_SHADER];
-	_fragmentShader = [self compileShader:[[NSString stringWithFormat:fragmentShader, _signalDecoder] UTF8String] type:GL_FRAGMENT_SHADER];
+	_fragmentShader = [self compileShader:_signalDecoder ?
+							[[NSString stringWithFormat:fragmentShader, _signalDecoder] UTF8String] :
+							[fragmentShader UTF8String]
+						type:GL_FRAGMENT_SHADER];
 
 	glAttachShader(_shaderProgram, _vertexShader);
 	glAttachShader(_shaderProgram, _fragmentShader);
@@ -379,7 +430,7 @@ static NSString *const fragmentShader =
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	while(!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) {
+	while((!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) && _signalDecoder) {
 		_compiledSignalDecoderGeneration = _signalDecoderGeneration;
 		[self prepareShader];
 	}
