@@ -60,4 +60,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	return self;
 }
 
+- (void)setCRTDelegate:(Outputs::CRT::CRTDelegate *)delegate {}
+- (void)doRunForNumberOfCycles:(int)numberOfCycles {}
+
 @end
