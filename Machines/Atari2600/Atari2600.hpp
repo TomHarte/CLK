@@ -9,8 +9,8 @@
 #ifndef Atari2600_cpp
 #define Atari2600_cpp
 
-#include "../Processors/6502/CPU6502.hpp"
-#include "../Outputs/CRT.hpp"
+#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Outputs/CRT.hpp"
 #include <stdint.h>
 #include "Atari2600Inputs.h"
 

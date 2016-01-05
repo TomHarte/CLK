@@ -10,6 +10,10 @@ import Foundation
 
 class ElectronDocument: NSDocument, CSCathodeRayViewResponderDelegate, CSCathodeRayViewDelegate {
 
+	override init() {
+		super.init()
+	}
+
 	@IBOutlet weak var openGLView: CSCathodeRayView!
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -27,6 +31,7 @@ class ElectronDocument: NSDocument, CSCathodeRayViewResponderDelegate, CSCathode
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
+		print("H")
 	}
 
 	override func close() {

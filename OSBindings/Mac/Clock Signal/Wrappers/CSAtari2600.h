@@ -9,14 +9,11 @@
 #import <Foundation/Foundation.h>
 #import "CSCathodeRayView.h"
 #include "Atari2600Inputs.h"
+#include "CSMachine.h"
 
-@interface CSAtari2600 : NSObject
+@interface CSAtari2600 : CSMachine
 
-@property (nonatomic, weak) CSCathodeRayView *view;
-
-- (void)runForNumberOfCycles:(int)cycles;
 - (void)setROM:(nonnull NSData *)rom;
-
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 - (void)setResetLineEnabled:(BOOL)enabled;
 

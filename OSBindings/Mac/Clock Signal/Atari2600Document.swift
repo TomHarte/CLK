@@ -16,10 +16,10 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 
 		openGLView.delegate = self
 		openGLView.responderDelegate = self
-		atari2600!.view = openGLView!
+		atari2600.view = openGLView
 
 		// bind the content aspect ratio to remain 4:3 from now on
-		aController.window!.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
+		aController.window?.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
 	}
 
 	override class func autosavesInPlace() -> Bool {
@@ -32,7 +32,7 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 		return "Atari2600Document"
 	}
 
-	private var atari2600: CSAtari2600? = nil
+	private var atari2600: CSAtari2600! = nil
 	override func dataOfType(typeName: String) throws -> NSData {
 		// Insert code here to write your document to data of the specified type. If outError != nil, ensure that you create and set an appropriate error when returning nil.
 		// You can also choose to override fileWrapperOfType:error:, writeToURL:ofType:error:, or writeToURL:ofType:forSaveOperation:originalContentsURL:error: instead.
@@ -41,7 +41,7 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
 		atari2600 = CSAtari2600()
-		atari2600!.setROM(data)
+		atari2600.setROM(data)
 	}
 
 	override func close() {
@@ -66,7 +66,7 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 		let cycleCount = cycleCountLow + cycleCountHigh
 		if let lastCycleCount = lastCycleCount {
 			let elapsedTime = cycleCount - lastCycleCount
-			atari2600!.runForNumberOfCycles(Int32(elapsedTime))
+			atari2600.runForNumberOfCycles(Int32(elapsedTime))
 		}
 		lastCycleCount = cycleCount
 	}
@@ -86,21 +86,21 @@ class Atari2600Document: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewR
 
 	func keyDown(event: NSEvent) {
 		if let input = inputForKey(event) {
-			atari2600!.setState(true, forDigitalInput: input)
+			atari2600.setState(true, forDigitalInput: input)
 		}
 
 		if event.keyCode == 36 {
-			atari2600!.setResetLineEnabled(true)
+			atari2600.setResetLineEnabled(true)
 		}
 	}
 
 	func keyUp(event: NSEvent) {
 		if let input = inputForKey(event) {
-			atari2600!.setState(false, forDigitalInput: input)
+			atari2600.setState(false, forDigitalInput: input)
 		}
 
 		if event.keyCode == 36 {
-			atari2600!.setResetLineEnabled(false)
+			atari2600.setResetLineEnabled(false)
 		}
 	}
 
