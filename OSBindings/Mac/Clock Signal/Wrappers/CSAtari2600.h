@@ -6,10 +6,8 @@
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import "CSCathodeRayView.h"
-#include "Atari2600Inputs.h"
 #include "CSMachine.h"
+#include "Atari2600Inputs.h"
 
 @interface CSAtari2600 : CSMachine
 
