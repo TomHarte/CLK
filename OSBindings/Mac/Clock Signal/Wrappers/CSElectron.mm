@@ -19,4 +19,12 @@
 	_electron.run_for_cycles(numberOfCycles);
 }
 
+- (void)setOSROM:(nonnull NSData *)rom {
+	_electron.set_rom(Electron::ROMTypeOS, rom.length, (const uint8_t *)rom.bytes);
+}
+
+- (void)setBASICROM:(nonnull NSData *)rom {
+	_electron.set_rom(Electron::ROMTypeBASIC, rom.length, (const uint8_t *)rom.bytes);
+}
+
 @end

@@ -14,6 +14,13 @@ class ElectronDocument: MachineDocument {
 	override init() {
 		super.init()
 		self.intendedCyclesPerSecond = 2000000
+
+		if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
+			electron.setOSROM(NSData(contentsOfFile: osPath)!)
+		}
+		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
+			electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
+		}
 	}
 
 //	override func windowControllerDidLoadNib(aController: NSWindowController) {

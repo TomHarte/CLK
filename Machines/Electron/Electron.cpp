@@ -23,6 +23,8 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	printf("%04x\n", address);
+
 	if(address < 32768)
 	{
 		if(isReadOperation(operation))

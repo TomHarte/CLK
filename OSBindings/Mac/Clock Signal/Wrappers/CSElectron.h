@@ -10,4 +10,7 @@
 
 @interface CSElectron : CSMachine
 
+- (void)setOSROM:(nonnull NSData *)rom;
+- (void)setBASICROM:(nonnull NSData *)rom;
+
 @end

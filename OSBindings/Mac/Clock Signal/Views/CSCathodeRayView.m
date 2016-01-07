@@ -25,6 +25,7 @@
 	GLint _lateralAttribute;
 
 	GLint _textureSizeUniform, _windowSizeUniform;
+	GLint _boundsOriginUniform, _boundsSizeUniform;
 	GLint _alphaUniform;
 
 	GLuint _textureName, _shadowMaskTextureName;
@@ -117,6 +118,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	glDeleteProgram(_shaderProgram);
 }
 
+- (NSPoint)backingViewSize
+{
+	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
+	return [self convertPointToBacking:backingSize];
+}
+
 - (void)reshape
 {
 	[super reshape];
@@ -124,13 +131,33 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
-	NSPoint viewSize = [self convertPointToBacking:backingSize];
+	NSPoint viewSize = [self backingViewSize];
 	glViewport(0, 0, (GLsizei)viewSize.x, (GLsizei)viewSize.y);
 
-	glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
+	[self pushSizeUniforms];
 
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+}
+
+- (void)setFrameBounds:(CGRect)frameBounds
+{
+	_frameBounds = frameBounds;
+
+	[self.openGLContext makeCurrentContext];
+	CGLLockContext([[self openGLContext] CGLContextObj]);
+
+	[self pushSizeUniforms];
+
+	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+}
+
+- (void)pushSizeUniforms
+{
+	NSPoint viewSize = [self backingViewSize];
+	glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
+
+	glUniform2f(_boundsOriginUniform, (GLfloat)_frameBounds.origin.x, (GLfloat)_frameBounds.origin.y);
+	glUniform2f(_boundsSizeUniform, (GLfloat)_frameBounds.size.width, (GLfloat)_frameBounds.size.height);
 }
 
 - (void)awakeFromNib
@@ -159,6 +186,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.pixelFormat = pixelFormat;
 	self.openGLContext = context;
 	self.wantsBestResolutionOpenGLSurface = YES;
+
+	// establish default instance variable values
+	self.frameBounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
 }
 
 - (GLint)formatForDepth:(unsigned int)depth
@@ -267,6 +297,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"in vec2 srcCoordinates;\n"
 		"in float lateral;\n"
 		"\n"
+		"uniform vec2 boundsOrigin;\n"
+		"uniform vec2 boundsSize;\n"
+		"\n"
 		"out float lateralVarying;\n"
 		"out vec2 shadowMaskCoordinates;\n"
 		"\n"
@@ -283,8 +316,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			"\n"
 			"%@\n"
 			"\n"
-			"gl_Position = vec4(position.x * 2.0 - 1.0, 1.0 - position.y * 2.0 + position.x / 131.0, 0.0, 1.0);\n"
+			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
+			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);\n"
 		"}\n";
+
+// + mappedPosition.x / 131.0
 
 	switch(_signalType)
 	{
@@ -295,7 +331,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (nonnull NSString *)fragmentShaderForType:(CSCathodeRayViewSignalType)type
 {
-
 	NSString *const fragmentShader =
 		@"#version 150\n"
 		"\n"
@@ -396,9 +431,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	_alphaUniform					= glGetUniformLocation(_shaderProgram, "alpha");
 	_textureSizeUniform				= glGetUniformLocation(_shaderProgram, "textureSize");
 	_windowSizeUniform				= glGetUniformLocation(_shaderProgram, "windowSize");
+	_boundsSizeUniform				= glGetUniformLocation(_shaderProgram, "boundsSize");
+	_boundsOriginUniform			= glGetUniformLocation(_shaderProgram, "boundsOrigin");
 
 	GLint texIDUniform				= glGetUniformLocation(_shaderProgram, "texID");
 	GLint shadowMaskTexIDUniform	= glGetUniformLocation(_shaderProgram, "shadowMaskTexID");
+
+	[self pushSizeUniforms];
 
 	glUniform1i(texIDUniform, 0);
 	glUniform1i(shadowMaskTexIDUniform, 1);

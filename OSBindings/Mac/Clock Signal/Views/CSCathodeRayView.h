@@ -37,4 +37,8 @@ typedef NS_ENUM(NSInteger, CSCathodeRayViewSignalType) {
 - (BOOL)pushFrame:(nonnull CRTFrame *)crtFrame;
 - (void)setSignalDecoder:(nonnull NSString *)decoder type:(CSCathodeRayViewSignalType)type;
 
+// these are relative to a [0, 1] range in both width and height;
+// default is .origin = (0, 0), .size = (1, 1)
+@property (nonatomic, assign) CGRect frameBounds;
+
 @end
