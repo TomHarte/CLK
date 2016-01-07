@@ -16,6 +16,11 @@
 
 namespace Electron {
 
+enum ROMSlot: int {
+	ROMTypeBASIC = 12,
+	ROMTypeOS = 16,
+};
+
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:
@@ -25,6 +30,10 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
+		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+
+	private:
+		uint8_t os[16384], basic[16384], ram[32768];
 };
 
 }

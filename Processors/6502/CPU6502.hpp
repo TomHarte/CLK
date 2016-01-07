@@ -946,6 +946,11 @@ template <class T> class Processor {
 			_overflowFlag &= Flag::Overflow;
 			_s = 0;
 			_nextBusOperation = BusOperation::None;
+
+			// TODO: is this accurate? It feels more likely that a CPU would need to wait
+			// on an explicit reset command, since the relative startup times of different
+			// components from power on would be a bit unpredictable.
+			schedule_program(get_reset_program());
 		}
 
 		void return_from_subroutine()
