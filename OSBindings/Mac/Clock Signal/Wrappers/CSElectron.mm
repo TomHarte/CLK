@@ -27,4 +27,8 @@
 	_electron.set_rom(Electron::ROMSlotBASIC, rom.length, (const uint8_t *)rom.bytes);
 }
 
+- (void)setCRTDelegate:(Outputs::CRT::CRTDelegate *)delegate{
+	_electron.get_crt()->set_delegate(delegate);
+}
+
 @end

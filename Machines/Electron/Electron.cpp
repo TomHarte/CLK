@@ -14,8 +14,9 @@ using namespace Electron;
 
 Machine::Machine()
 {
-	setup6502();
+	_crt = new Outputs::CRT(128, 312, 1, 1);
 	_interruptStatus = 0x02;
+	setup6502();
 }
 
 Machine::~Machine()
@@ -28,12 +29,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		if(isReadOperation(operation))
 		{
-			*value = ram[address];
+			*value = _ram[address];
 		}
 		else
 		{
-			ram[address] = *value;
+			_ram[address] = *value;
 		}
+
+		// TODO: RAM timing
 	}
 	else
 	{
@@ -95,7 +98,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			else
 			{
 				if(isReadOperation(operation))
-					*value = os[address - 49152];
+					*value = _os[address - 49152];
 			}
 		}
 		else
@@ -106,7 +109,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					case ROMSlotBASIC:
 					case ROMSlotBASIC+1:
-						*value = basic[address - 32768];
+						*value = _basic[address - 32768];
 					break;
 					case ROMSlotKeyboard:
 					case ROMSlotKeyboard+1:
@@ -126,8 +129,8 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	uint8_t *target = nullptr;
 	switch(slot)
 	{
-		case ROMSlotBASIC:	target = basic;	break;
-		case ROMSlotOS:		target = os;	break;
+		case ROMSlotBASIC:	target = _basic;	break;
+		case ROMSlotOS:		target = _os;		break;
 		default: return;
 	}
 
