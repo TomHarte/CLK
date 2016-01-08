@@ -20,11 +20,11 @@
 }
 
 - (void)setOSROM:(nonnull NSData *)rom {
-	_electron.set_rom(Electron::ROMTypeOS, rom.length, (const uint8_t *)rom.bytes);
+	_electron.set_rom(Electron::ROMSlotOS, rom.length, (const uint8_t *)rom.bytes);
 }
 
 - (void)setBASICROM:(nonnull NSData *)rom {
-	_electron.set_rom(Electron::ROMTypeBASIC, rom.length, (const uint8_t *)rom.bytes);
+	_electron.set_rom(Electron::ROMSlotBASIC, rom.length, (const uint8_t *)rom.bytes);
 }
 
 @end
