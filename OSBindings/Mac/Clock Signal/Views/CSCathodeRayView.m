@@ -153,11 +153,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)pushSizeUniforms
 {
-	NSPoint viewSize = [self backingViewSize];
-	glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
+	if(_shaderProgram)
+	{
+		if(_windowSizeUniform >= 0)
+		{
+			NSPoint viewSize = [self backingViewSize];
+			glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
+		}
 
-	glUniform2f(_boundsOriginUniform, (GLfloat)_frameBounds.origin.x, (GLfloat)_frameBounds.origin.y);
-	glUniform2f(_boundsSizeUniform, (GLfloat)_frameBounds.size.width, (GLfloat)_frameBounds.size.height);
+		if(_boundsOriginUniform >= 0) glUniform2f(_boundsOriginUniform, (GLfloat)_frameBounds.origin.x, (GLfloat)_frameBounds.origin.y);
+		if(_boundsSizeUniform >= 0) glUniform2f(_boundsSizeUniform, (GLfloat)_frameBounds.size.width, (GLfloat)_frameBounds.size.height);
+	}
 }
 
 - (void)awakeFromNib
@@ -235,13 +241,18 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 #if defined(DEBUG)
 - (void)logErrorForObject:(GLuint)object
 {
-	GLint logLength;
-	glGetShaderiv(object, GL_INFO_LOG_LENGTH, &logLength);
-	if (logLength > 0) {
-		GLchar *log = (GLchar *)malloc((size_t)logLength);
-		glGetShaderInfoLog(object, logLength, &logLength, log);
-		NSLog(@"Compile log:\n%s", log);
-		free(log);
+	GLint isCompiled = 0;
+	glGetShaderiv(object, GL_COMPILE_STATUS, &isCompiled);
+	if(isCompiled == GL_FALSE)
+	{
+		GLint logLength;
+		glGetShaderiv(object, GL_INFO_LOG_LENGTH, &logLength);
+		if (logLength > 0) {
+			GLchar *log = (GLchar *)malloc((size_t)logLength);
+			glGetShaderInfoLog(object, logLength, &logLength, log);
+			NSLog(@"Compile log:\n%s", log);
+			free(log);
+		}
 	}
 }
 #endif
@@ -289,7 +300,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		@"out vec2 srcCoordinatesVarying;\n";
 
 	NSString *const rgbVertexShaderBody =
-		@"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n";
+		@"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n";
 
 	NSString *const vertexShader =
 		@"#version 150\n"
@@ -376,7 +387,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
 
 	NSString *const rgbFragmentShaderGlobals =
-		@"";
+		@"in vec2 srcCoordinatesVarying;\n";
 
 	NSString *const rgbFragmentShaderBody =
 		@"fragColour = texture(shadowMaskTexID, shadowMaskCoordinates) * sample(srcCoordinatesVarying);//sin(lateralVarying));\n";
@@ -415,7 +426,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	glLinkProgram(_shaderProgram);
 
 #ifdef DEBUG
-	[self logErrorForObject:_shaderProgram];
+//	[self logErrorForObject:_shaderProgram];
 #endif
 
 	glGenVertexArrays(1, &_vertexArray);
@@ -478,7 +489,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 	if (_crtFrame)
 	{
-		glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
+		if(_textureSizeUniform >= 0) glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
 		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(_crtFrame->number_of_runs*6));
 	}
 
