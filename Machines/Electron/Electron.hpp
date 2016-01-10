@@ -30,11 +30,11 @@ enum ROMSlot: uint8_t {
 };
 
 enum Interrupt: uint8_t {
-	InterruptRealTimeClock		= 0x01,
-	InterruptDisplayEnd			= 0x02,
-	InterruptTransmitDataEmpty	= 0x04,
-	InterruptReceiveDataFull	= 0x08,
-	InterruptHighToneDetect		= 0x10
+	InterruptRealTimeClock		= 0x04,
+	InterruptDisplayEnd			= 0x08,
+	InterruptTransmitDataEmpty	= 0x10,
+	InterruptReceiveDataFull	= 0x20,
+	InterruptHighToneDetect		= 0x40
 };
 
 class Machine: public CPU6502::Processor<Machine> {

@@ -108,7 +108,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //									_activeRom = (Electron::ROMSlot)(nextROM&0x0e);
 //									printf("%d -> Paged %d\n", nextROM, _activeRom);
 //								}
-								if((_activeRom&12) != 8 || nextROM&8)
+								if(((_activeRom&12) != 8) || (nextROM&8))
 								{
 									_activeRom = (Electron::ROMSlot)nextROM;
 								}
@@ -187,7 +187,7 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 
 inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
 {
-	_interruptStatus |= (interrupt << 2);
+	_interruptStatus |= interrupt;
 	evaluate_interrupts();
 }
 
