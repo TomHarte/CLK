@@ -35,7 +35,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	unsigned int cycles = 1;
 
-	if(address < 32768)
+	if(address < 0x8000)
 	{
 		if(isReadOperation(operation))
 		{
@@ -56,7 +56,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
-		if(address > 49152)
+		if(address >= 0xc000)
 		{
 			if((address & 0xff00) == 0xfe00)
 			{
@@ -90,18 +90,34 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x5:
 						if(!isReadOperation(operation))
 						{
-							uint8_t nextROM = (*value)&0xf;
-							if((_activeRom&0x12) != 0x8 || nextROM >= 8)
+							const uint8_t interruptDisable = (*value)&0xf0;
+							if( interruptDisable )
 							{
-								_activeRom = (Electron::ROMSlot)nextROM;
+								if( interruptDisable&0x10 ) _interruptStatus &= ~InterruptDisplayEnd;
+								if( interruptDisable&0x20 ) _interruptStatus &= ~InterruptRealTimeClock;
+								if( interruptDisable&0x40 ) _interruptStatus &= ~InterruptHighToneDetect;
+								evaluate_interrupts();
+								// TODO: NMI (?)
 							}
+//							else
+							{
+								uint8_t nextROM = (*value)&0xf;
 
-							if( (*value)&0x10 ) _interruptStatus &= ~InterruptDisplayEnd;
-							if( (*value)&0x20 ) _interruptStatus &= InterruptRealTimeClock;
-							if( (*value)&0x40 ) _interruptStatus &= InterruptHighToneDetect;
-							evaluate_interrupts();
-
-							// TODO: NMI (?)
+//								if(nextROM&0x08)
+//								{
+//									_activeRom = (Electron::ROMSlot)(nextROM&0x0e);
+//									printf("%d -> Paged %d\n", nextROM, _activeRom);
+//								}
+								if((_activeRom&12) != 8 || nextROM&8)
+								{
+									_activeRom = (Electron::ROMSlot)nextROM;
+								}
+//								else
+//								{
+//									printf("Ignored!");
+//								}
+//								printf("%d -> Paged %d\n", nextROM, _activeRom);
+							}
 						}
 					break;
 					case 0x6:
@@ -119,7 +135,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			else
 			{
 				if(isReadOperation(operation))
-					*value = _os[address - 49152];
+					*value = _os[address & 16383];
 			}
 		}
 		else
@@ -130,13 +146,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					case ROMSlotBASIC:
 					case ROMSlotBASIC+1:
-						*value = _basic[address - 32768];
+						*value = _basic[address & 16383];
 					break;
 					case ROMSlotKeyboard:
 					case ROMSlotKeyboard+1:
-						*value = 0;
+						*value = 0xf0;
 					break;
-					default: break;
+					default:
+						*value = 0xff;
+					break;
 				}
 			}
 		}
