@@ -188,10 +188,15 @@ inline void Machine::update_display()
 
 	if(_frameCycles >= end_of_hsync)
 	{
-		// assert sync for the first three lines of the display
+		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
 		if(_outputPosition < end_of_hsync)
 		{
-			_crt->output_sync(end_of_hsync * crt_cycles_multiplier);
+			for(int c = 0; c < 3; c++)
+			{
+				_crt->output_sync(9 * crt_cycles_multiplier);
+				_crt->output_blank(9 * crt_cycles_multiplier);
+				_crt->output_sync(110 * crt_cycles_multiplier);
+			}
 			_outputPosition = end_of_hsync;
 		}
 

@@ -387,10 +387,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
 
 	NSString *const rgbFragmentShaderGlobals =
-		@"in vec2 srcCoordinatesVarying;\n";
+		@"in vec2 srcCoordinatesVarying;\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
 
 	NSString *const rgbFragmentShaderBody =
-		@"fragColour = texture(shadowMaskTexID, shadowMaskCoordinates) * sample(srcCoordinatesVarying);//sin(lateralVarying));\n";
+		@"fragColour = sample(srcCoordinatesVarying);//sin(lateralVarying));\n";
 
 	switch(_signalType)
 	{
