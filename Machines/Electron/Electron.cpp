@@ -230,6 +230,12 @@ inline void Machine::update_display()
 						_crt->output_blank(15 * crt_cycles_multiplier);
 						_outputPosition += 15;
 						_crt->output_data(80 * crt_cycles_multiplier);
+
+						uint8_t *output = (uint8_t *)_crt->get_write_target_for_buffer(0);
+						for(int c = 0; c < 80 * crt_cycles_multiplier; c++)
+						{
+							output[c] = (uint8_t)(c&7);
+						}
 					}
 
 					if(line_position >= 24 && line_position < 104)
@@ -254,6 +260,7 @@ const char *Machine::get_signal_decoder()
 	return
 		"vec4 sample(vec2 coordinate)\n"
 		"{\n"
-			"return vec4(1.0, 1.0, 0.0, 1.0);\n"
+			"float texValue = texture(texID, srcCoordinatesVarying).r;" // step(mod(texValue, 4.0), 2.0)
+			"return vec4( step(mod(texValue, 8.0/256.0), 4.0/256.0), step(mod(texValue, 4.0/256.0), 2.0/256.0), step(mod(texValue, 2.0/256.0), 1.0/256.0), 1.0);\n"
 		"}";
 }
