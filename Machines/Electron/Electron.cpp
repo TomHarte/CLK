@@ -79,10 +79,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1:
 					break;
 					case 0x2:
-						_startScreenAddress = (_startScreenAddress & 0xff00) | ((*value) & 0xe0);
+						_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
 					break;
 					case 0x3:
-						_startScreenAddress = (_startScreenAddress & 0x00ff) | (uint16_t)(((*value) & 0x3f) << 8);
+						_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
 					break;
 					case 0x4:
 						printf("Cassette\n");
@@ -250,8 +250,7 @@ inline void Machine::update_display()
 
 								for(int c = 0; c < 16; c+=2)
 								{
-									_currentLine[output_ptr + c] = (pixels&0x80) ? 0 : 7;
-									_currentLine[output_ptr + c + 1] = (pixels&0x80) ? 0 : 7;
+									_currentLine[output_ptr + c] = _currentLine[output_ptr + c + 1] = (pixels&0x80) ? 0 : 7;
 									pixels <<= 1;
 								}
 							}
