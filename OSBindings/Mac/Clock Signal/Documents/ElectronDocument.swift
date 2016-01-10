@@ -23,9 +23,11 @@ class ElectronDocument: MachineDocument {
 		}
 	}
 
-//	override func windowControllerDidLoadNib(aController: NSWindowController) {
-//		super.windowControllerDidLoadNib(aController)
-//	}
+	override func windowControllerDidLoadNib(aController: NSWindowController) {
+		super.windowControllerDidLoadNib(aController)
+		electron.view = openGLView
+//		openGLView.frameBounds = CGRectMake(0.1, 0.1, 0.8, 0.8)
+	}
 
 	override var windowNibName: String? {
 		return "ElectronDocument"

@@ -195,7 +195,7 @@ inline void Machine::update_display()
 			_outputPosition = end_of_hsync;
 		}
 
-		while(_outputPosition < _frameCycles)
+		while(_outputPosition >= end_of_hsync && _outputPosition < _frameCycles)
 		{
 			const int current_line = _outputPosition >> 7;
 			const int line_position = _outputPosition & 127;
@@ -215,7 +215,7 @@ inline void Machine::update_display()
 					if(line_position == 9)
 					{
 						_crt->output_blank(119 * crt_cycles_multiplier);
-						_outputPosition += 119;
+						_outputPosition = (_outputPosition + 119) % cycles_per_frame;;
 					}
 				}
 				else
