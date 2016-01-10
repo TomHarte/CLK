@@ -49,6 +49,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 
 		Outputs::CRT *get_crt() { return _crt; }
+		const char *get_signal_decoder();
 
 	private:
 		uint8_t _os[16384], _basic[16384], _ram[32768];

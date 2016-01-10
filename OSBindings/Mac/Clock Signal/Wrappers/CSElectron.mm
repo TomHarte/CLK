@@ -31,4 +31,9 @@
 	_electron.get_crt()->set_delegate(delegate);
 }
 
+- (void)setView:(CSCathodeRayView *)view {
+	[super setView:view];
+	[view setSignalDecoder:[NSString stringWithUTF8String:_electron.get_signal_decoder()] type:CSCathodeRayViewSignalTypeRGB];
+}
+
 @end

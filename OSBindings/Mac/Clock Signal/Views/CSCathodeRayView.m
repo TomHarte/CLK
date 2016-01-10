@@ -261,6 +261,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)setSignalDecoder:(nonnull NSString *)signalDecoder type:(CSCathodeRayViewSignalType)type
 {
+	_signalType	= type;
 	_signalDecoder = [signalDecoder copy];
 	OSAtomicIncrement32(&_signalDecoderGeneration);
 }
@@ -343,6 +344,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"uniform float alpha;\n"
 		"\n"
 		"%@\n"
+		"%%@\n"
 		"\n"
 		"void main(void)\n"
 		"{\n"
@@ -354,9 +356,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"in float phase;\n"
 		"\n"
 		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
-		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n"
-		"\n"
-		"\%@\n";
+		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
 
 	NSString *const ntscFragmentShaderBody =
 		@"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
@@ -379,7 +379,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		@"";
 
 	NSString *const rgbFragmentShaderBody =
-		@"fragColour = texture(srcCoordinatesVarying, srcCoordinatesVarying);//sin(lateralVarying));\n";
+		@"fragColour = texture(shadowMaskTexID, shadowMaskCoordinates) * sample(srcCoordinatesVarying);//sin(lateralVarying));\n";
 
 	switch(_signalType)
 	{

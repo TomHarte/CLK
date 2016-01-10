@@ -244,3 +244,12 @@ inline void Machine::update_display()
 		}
 	}
 }
+
+const char *Machine::get_signal_decoder()
+{
+	return
+		"vec4 sample(vec2 coordinate)\n"
+		"{\n"
+			"return vec4(1.0, 1.0, 0.0, 1.0);\n"
+		"}";
+}
