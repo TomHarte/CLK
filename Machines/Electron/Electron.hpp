@@ -29,6 +29,14 @@ enum ROMSlot: uint8_t {
 	ROMSlotOS
 };
 
+enum Interrupt: uint8_t {
+	InterruptRealTimeClock		= 0x01,
+	InterruptDisplayEnd			= 0x02,
+	InterruptTransmitDataEmpty	= 0x04,
+	InterruptReceiveDataFull	= 0x08,
+	InterruptHighToneDetect		= 0x10
+};
+
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:
@@ -45,10 +53,16 @@ class Machine: public CPU6502::Processor<Machine> {
 	private:
 		uint8_t _os[16384], _basic[16384], _ram[32768];
 		uint8_t _interruptStatus, _interruptControl;
-		uint16_t _screenStartAddress;
 		ROMSlot _activeRom;
 
 		Outputs::CRT *_crt;
+
+		int _frameCycles, _outputPosition;
+		uint16_t _startScreenAddress, _currentScreenAddress;
+
+		inline void update_display();
+		inline void signal_interrupt(Interrupt interrupt);
+		inline void evaluate_interrupts();
 };
 
 }

@@ -981,6 +981,16 @@ template <class T> class Processor {
 			_reset_line_is_enabled = active;
 		}
 
+		void set_irq_line(bool active)
+		{
+			// TODO
+		}
+
+		void set_nmi_line(bool active)
+		{
+			// TODO
+		}
+
 		bool is_jammed()
 		{
 			return _is_jammed;
