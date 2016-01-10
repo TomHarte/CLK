@@ -229,23 +229,47 @@ inline void Machine::update_display()
 					{
 						_crt->output_blank(15 * crt_cycles_multiplier);
 						_outputPosition += 15;
-						_crt->output_data(80 * crt_cycles_multiplier);
 
-						uint8_t *output = (uint8_t *)_crt->get_write_target_for_buffer(0);
-						for(int c = 0; c < 80 * crt_cycles_multiplier; c++)
-						{
-							output[c] = (uint8_t)(c&7);
-						}
+						_crt->allocate_write_area(80 * crt_cycles_multiplier);
+						_currentLine = (uint8_t *)_crt->get_write_target_for_buffer(0);
+
+						if(current_line == 28)
+							_startLineAddress = _startScreenAddress;
+						_currentScreenAddress = _startLineAddress;
 					}
 
 					if(line_position >= 24 && line_position < 104)
 					{
-						// TODO: actually output some pixels, why not?
+						if(_currentLine)
+						{
+							if(!(line_position&1))
+							{
+								uint8_t pixels = _ram[_currentScreenAddress];
+								_currentScreenAddress += 8;
+								int output_ptr = (line_position - 24) << 3;
+
+								for(int c = 0; c < 16; c+=2)
+								{
+									_currentLine[output_ptr + c] = (pixels&0x80) ? 0 : 7;
+									_currentLine[output_ptr + c + 1] = (pixels&0x80) ? 0 : 7;
+									pixels <<= 1;
+								}
+							}
+						}
 						_outputPosition++;
 					}
 
 					if(line_position == 104)
 					{
+						if(!((current_line - 27)&7))
+						{
+							_startLineAddress += 40*8 - 7;
+						}
+						else
+							_startLineAddress++;
+
+						_currentLine = nullptr;
+						_crt->output_data(80 * crt_cycles_multiplier);
 						_crt->output_blank(24 * crt_cycles_multiplier);
 						_outputPosition += 24;
 					}

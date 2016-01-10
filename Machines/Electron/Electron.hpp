@@ -54,12 +54,14 @@ class Machine: public CPU6502::Processor<Machine> {
 	private:
 		uint8_t _os[16384], _basic[16384], _ram[32768];
 		uint8_t _interruptStatus, _interruptControl;
+		uint8_t palette[16];
 		ROMSlot _activeRom;
 
 		Outputs::CRT *_crt;
 
 		int _frameCycles, _outputPosition;
-		uint16_t _startScreenAddress, _currentScreenAddress;
+		uint16_t _startScreenAddress, _startLineAddress, _currentScreenAddress;
+		uint8_t *_currentLine;
 
 		inline void update_display();
 		inline void signal_interrupt(Interrupt interrupt);
