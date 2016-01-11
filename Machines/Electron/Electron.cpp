@@ -170,6 +170,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		update_display();
 		_frameCycles = 0;
+		_outputPosition = 0;
 	}
 	if(_frameCycles == 128*128) signal_interrupt(InterruptRealTimeClock);
 	if(_frameCycles == 284*128) signal_interrupt(InterruptDisplayEnd);
@@ -249,7 +250,7 @@ inline void Machine::update_display()
 					if(line_position == 9)
 					{
 						_crt->output_blank(119 * crt_cycles_multiplier);
-						_outputPosition = (_outputPosition + 119) % cycles_per_frame;;
+						_outputPosition += 119;
 					}
 				}
 				else
@@ -290,8 +291,7 @@ inline void Machine::update_display()
 
 					if(line_position == 104)
 					{
-						if(!((current_line - 27)%8))
-//						if(!((current_line - 27)&7))
+						if(!((current_line - 27)&7))
 						{
 							_startLineAddress += 40*8 - 7;
 						}
@@ -314,7 +314,7 @@ const char *Machine::get_signal_decoder()
 	return
 		"vec4 sample(vec2 coordinate)\n"
 		"{\n"
-			"float texValue = texture(texID, srcCoordinatesVarying).r;" // step(mod(texValue, 4.0), 2.0)
+			"float texValue = texture(texID, srcCoordinatesVarying).r;\n"
 			"return vec4( step(mod(texValue, 8.0/256.0), 4.0/256.0), step(mod(texValue, 4.0/256.0), 2.0/256.0), step(mod(texValue, 2.0/256.0), 1.0/256.0), 1.0);\n"
 		"}";
 }
