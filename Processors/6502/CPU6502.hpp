@@ -380,7 +380,7 @@ template <class T> class Processor {
 
 		bool _ready_line_is_enabled;
 		bool _reset_line_is_enabled;
-		bool _irq_line_is_enabled, _irq_line_history[2];
+		bool _irq_line_is_enabled, _irq_request_history[2];
 		bool _nmi_line_is_enabled;
 		bool _ready_is_active;
 
@@ -446,7 +446,7 @@ template <class T> class Processor {
 			schedule_program(get_reset_program());\
 		else\
 		{\
-			if(_irq_line_history[1] && !_interruptFlag)\
+			if(_irq_request_history[0])\
 				schedule_program(get_irq_program());\
 			else\
 				schedule_program(fetch_decode_execute);\
@@ -466,8 +466,8 @@ template <class T> class Processor {
 				while (!_ready_is_active && _cycles_left_to_run > 0) {
 
 					if (_nextBusOperation != BusOperation::None) {
-						_irq_line_history[0] = _irq_line_history[1];
-						_irq_line_history[1] = _irq_line_is_enabled;
+						_irq_request_history[0] = _irq_request_history[1];
+						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
 						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
 						_nextBusOperation = BusOperation::None;
 					}
