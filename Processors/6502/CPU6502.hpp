@@ -58,7 +58,8 @@ template <class T> class Processor {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			CycleSetIReadBRKLow,						CycleReadBRKHigh,					CycleReadFromS,							CycleReadFromPC,
+			CycleSetIReadBRKLow,						CycleReadBRKHigh,
+			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
@@ -84,6 +85,7 @@ template <class T> class Processor {
 			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+			OperationSetOperandFromFlags,
 			OperationSetFlagsFromA,						CycleReadRSTLow,					CycleReadRSTHigh,						CycleScheduleJam
 		};
 
@@ -378,6 +380,8 @@ template <class T> class Processor {
 
 		bool _ready_line_is_enabled;
 		bool _reset_line_is_enabled;
+		bool _irq_line_is_enabled, _irq_line_history[2];
+		bool _nmi_line_is_enabled;
 		bool _ready_is_active;
 
 	public:
@@ -406,6 +410,19 @@ template <class T> class Processor {
 			return reset;
 		}
 
+		const MicroOp *get_irq_program() {
+			static const MicroOp reset[] = {
+				CyclePushPCH,
+				CyclePushPCL,
+				OperationSetOperandFromFlags,
+				CyclePushOperand,
+				CycleSetIReadBRKLow,
+				CycleReadBRKHigh,
+				OperationMoveToNextProgram
+			};
+			return reset;
+		}
+
 		void run_for_cycles(int number_of_cycles)
 		{
 			static const MicroOp doBranch[] = {
@@ -428,7 +445,12 @@ template <class T> class Processor {
 		if(_reset_line_is_enabled)\
 			schedule_program(get_reset_program());\
 		else\
-			schedule_program(fetch_decode_execute);\
+		{\
+			if(_irq_line_history[1] && !_interruptFlag)\
+				schedule_program(get_irq_program());\
+			else\
+				schedule_program(fetch_decode_execute);\
+		}\
 		op;\
 	}
 
@@ -444,6 +466,8 @@ template <class T> class Processor {
 				while (!_ready_is_active && _cycles_left_to_run > 0) {
 
 					if (_nextBusOperation != BusOperation::None) {
+						_irq_line_history[0] = _irq_line_history[1];
+						_irq_line_history[1] = _irq_line_is_enabled;
 						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
 						_nextBusOperation = BusOperation::None;
 					}
@@ -520,6 +544,7 @@ template <class T> class Processor {
 						case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
 						case OperationSetFlagsFromOperand:	set_flags(_operand);												break;
 						case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;						break;
+						case OperationSetOperandFromFlags:  _operand = get_flags();												break;
 						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									break;
 
 						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
@@ -983,12 +1008,12 @@ template <class T> class Processor {
 
 		void set_irq_line(bool active)
 		{
-			// TODO
+			_irq_line_is_enabled = active;
 		}
 
 		void set_nmi_line(bool active)
 		{
-			// TODO
+			_nmi_line_is_enabled = active;
 		}
 
 		bool is_jammed()

@@ -160,6 +160,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
+//	if(operation == CPU6502::BusOperation::ReadOpcode)
+//	{
+//		printf("%04x: %02x (%d)\n", address, *value, _frameCycles);
+//	}
+
 	_frameCycles += cycles;
 	if(_frameCycles == cycles_per_frame)
 	{
@@ -197,6 +202,10 @@ inline void Machine::evaluate_interrupts()
 	{
 		_interruptStatus |= 1;
 	}
+	else
+	{
+		_interruptStatus &= ~1;
+	}
 	set_irq_line(_interruptStatus & 1);
 }
 
@@ -232,7 +241,10 @@ inline void Machine::update_display()
 			{
 				// on lines prior to 28 or after or equal to 284, or on a line that is equal to 8 or 9 modulo 10 in a line-spaced mode,
 				// the line is then definitely blank.
-				if(current_line < 28 || current_line >= 284)
+				if(
+					(current_line < 28 || current_line >= 284)
+//					|| (((current_line - 28)%10) > 7)
+				)
 				{
 					if(line_position == 9)
 					{
@@ -278,7 +290,8 @@ inline void Machine::update_display()
 
 					if(line_position == 104)
 					{
-						if(!((current_line - 27)&7))
+						if(!((current_line - 27)%8))
+//						if(!((current_line - 27)&7))
 						{
 							_startLineAddress += 40*8 - 7;
 						}

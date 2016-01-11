@@ -30,8 +30,8 @@ enum ROMSlot: uint8_t {
 };
 
 enum Interrupt: uint8_t {
-	InterruptRealTimeClock		= 0x04,
-	InterruptDisplayEnd			= 0x08,
+	InterruptDisplayEnd			= 0x04,
+	InterruptRealTimeClock		= 0x08,
 	InterruptTransmitDataEmpty	= 0x10,
 	InterruptReceiveDataFull	= 0x20,
 	InterruptHighToneDetect		= 0x40
