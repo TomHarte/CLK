@@ -265,14 +265,16 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_display()
 {
-	const int end_of_hsync = 3 * cycles_per_line;
+	const int lines_of_hsync = 3;
+	const int end_of_hsync = lines_of_hsync * cycles_per_line;
+	const int first_graphics_line = 28;
 
 	if(_frameCycles >= end_of_hsync)
 	{
 		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
 		if(_outputPosition < end_of_hsync)
 		{
-			for(int c = 0; c < 3; c++)
+			for(int c = 0; c < lines_of_hsync; c++)
 			{
 				_crt->output_sync(119 * crt_cycles_multiplier);
 				_crt->output_blank(9 * crt_cycles_multiplier);
@@ -293,12 +295,10 @@ inline void Machine::update_display()
 			}
 			else
 			{
-				// on lines prior to 28 or after or equal to 284, or on a line that is equal to 8 or 9 modulo 10 in a line-spaced mode,
-				// the line is then definitely blank.
 				bool isBlankLine =
 					((_screenMode == 3) || (_screenMode == 6)) ?
-						((current_line < 28 || current_line >= 277) || (((current_line - 28)%10) > 7)) :
-						((current_line < 28 || current_line >= 284));
+						((current_line < first_graphics_line || current_line >= first_graphics_line+248) || (((current_line - first_graphics_line)%10) > 7)) :
+						((current_line < first_graphics_line || current_line >= first_graphics_line+256));
 
 				if(isBlankLine)
 				{
@@ -319,7 +319,7 @@ inline void Machine::update_display()
 						_crt->allocate_write_area(80 * crt_cycles_multiplier);
 						_currentLine = (uint8_t *)_crt->get_write_target_for_buffer(0);
 
-						if(current_line == 28)
+						if(current_line == first_graphics_line)
 							_startLineAddress = _startScreenAddress;
 						_currentScreenAddress = _startLineAddress;
 					}
