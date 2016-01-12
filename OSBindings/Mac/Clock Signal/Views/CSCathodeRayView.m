@@ -297,12 +297,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
 
 	NSString *const rgbVertexShaderGlobals =
-		@"out vec2 srcCoordinatesVarying[3];\n";
+		@"out vec2 srcCoordinatesVarying[5];\n";
 
 	NSString *const rgbVertexShaderBody =
-		@"srcCoordinatesVarying[1] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[2] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n";
+		@"srcCoordinatesVarying[2] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(1.0 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[1] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[3] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[4] = srcCoordinatesVarying[1] + vec2(1.0 / textureSize.x, 0.0);\n";
 
 	NSString *const vertexShader =
 		@"#version 150\n"
@@ -389,10 +391,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
 
 	NSString *const rgbFragmentShaderGlobals =
-		@"in vec2 srcCoordinatesVarying[3];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
+		@"in vec2 srcCoordinatesVarying[5];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
 
 	NSString *const rgbFragmentShaderBody =
-		@"fragColour = (sample(srcCoordinatesVarying[0]) + (sample(srcCoordinatesVarying[1]) * 2.0) + sample(srcCoordinatesVarying[2])) / 4.0;";
+		@"fragColour =	sample(srcCoordinatesVarying[2]);";
+//		@"fragColour =	(sample(srcCoordinatesVarying[0]) * -0.1) + \
+//						(sample(srcCoordinatesVarying[1]) * 0.3) + \
+//						(sample(srcCoordinatesVarying[2]) * 0.6) + \
+//						(sample(srcCoordinatesVarying[3]) * 0.3) + \
+//						(sample(srcCoordinatesVarying[4]) * -0.1);";
 
 //		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
 
