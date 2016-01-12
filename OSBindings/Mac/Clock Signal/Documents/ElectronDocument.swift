@@ -42,8 +42,18 @@ class ElectronDocument: MachineDocument {
 	}
 
 	// MARK: CSOpenGLViewResponderDelegate
-//	func keyDown(event: NSEvent) {}
-//	func keyUp(event: NSEvent) {}
-//	func flagsChanged(newModifiers: NSEvent) {}
+	override func keyDown(event: NSEvent) {
+		electron.setKey(event.keyCode, isPressed: true)
+	}
+
+	override func keyUp(event: NSEvent) {
+		electron.setKey(event.keyCode, isPressed: false)
+	}
+
+	override func flagsChanged(newModifiers: NSEvent) {
+		electron.setKey(kVK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
+		electron.setKey(kVK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
+		electron.setKey(kVK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
+	}
 
 }

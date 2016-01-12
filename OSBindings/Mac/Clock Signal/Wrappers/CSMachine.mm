@@ -26,9 +26,6 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 	dispatch_queue_t _serialDispatchQueue;
 	NSConditionLock *_runningLock;
-
-	int _frameCount;
-	NSTimeInterval _firstFrame;
 }
 
 - (void)perform:(dispatch_block_t)action {
@@ -37,17 +34,6 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 - (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
 	if([self.view pushFrame:frame]) crt->return_frame();
-
-	if(!_frameCount) _firstFrame = [NSDate timeIntervalSinceReferenceDate];
-	_frameCount++;
-
-//	NSLog(@"!-!");
-
-	if(!(_frameCount%50))
-	{
-		NSTimeInterval timeSinceFirstFrame = [NSDate timeIntervalSinceReferenceDate] - _firstFrame;
-		NSLog(@"%d in %0.2f: %0.2f", _frameCount, timeSinceFirstFrame, (double)_frameCount / timeSinceFirstFrame);
-	}
 }
 
 - (void)runForNumberOfCycles:(int)cycles {

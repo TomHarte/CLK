@@ -22,6 +22,7 @@ Machine::Machine() :
 	_frameCycles(0),
 	_outputPosition(0)
 {
+	memset(_keyStates, 0, sizeof(_keyStates));
 	_crt = new Outputs::CRT(crt_cycles_per_line, 312, 1, 1);
 	_interruptStatus = 0x02;
 	setup6502();
@@ -151,6 +152,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case ROMSlotKeyboard:
 					case ROMSlotKeyboard+1:
 						*value = 0xf0;
+						for(int address_line = 0; address_line < 14; address_line++)
+						{
+							if(!(address&(1 << address_line))) *value |= _keyStates[address_line];
+						}
 					break;
 					default:
 						*value = 0xff;
@@ -317,4 +322,19 @@ const char *Machine::get_signal_decoder()
 			"float texValue = texture(texID, srcCoordinatesVarying).r;\n"
 			"return vec4( step(mod(texValue, 8.0/256.0), 4.0/256.0), step(mod(texValue, 4.0/256.0), 2.0/256.0), step(mod(texValue, 2.0/256.0), 1.0/256.0), 1.0);\n"
 		"}";
+}
+
+void Machine::set_key_state(Key key, bool isPressed)
+{
+	if(key == KeyBreak)
+	{
+		set_reset_line(isPressed);
+	}
+	else
+	{
+		if(isPressed)
+			_keyStates[key >> 4] |= key&0xf;
+		else
+			_keyStates[key >> 4] &= ~(key&0xf);
+	}
 }
