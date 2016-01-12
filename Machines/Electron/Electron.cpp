@@ -417,7 +417,7 @@ const char *Machine::get_signal_decoder()
 	return
 		"vec4 sample(vec2 coordinate)\n"
 		"{\n"
-			"float texValue = texture(texID, srcCoordinatesVarying).r;\n"
+			"float texValue = texture(texID, coordinate).r;\n"
 			"return vec4( step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);\n"
 		"}";
 }

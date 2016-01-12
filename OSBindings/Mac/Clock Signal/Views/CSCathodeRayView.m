@@ -297,10 +297,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
 
 	NSString *const rgbVertexShaderGlobals =
-		@"out vec2 srcCoordinatesVarying;\n";
+		@"out vec2 srcCoordinatesVarying[3];\n";
 
 	NSString *const rgbVertexShaderBody =
-		@"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n";
+		@"srcCoordinatesVarying[1] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[2] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n";
 
 	NSString *const vertexShader =
 		@"#version 150\n"
@@ -387,10 +389,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
 
 	NSString *const rgbFragmentShaderGlobals =
-		@"in vec2 srcCoordinatesVarying;\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
+		@"in vec2 srcCoordinatesVarying[3];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
 
 	NSString *const rgbFragmentShaderBody =
-		@"fragColour = sample(srcCoordinatesVarying);//sin(lateralVarying));\n";
+		@"fragColour = (sample(srcCoordinatesVarying[0]) + (sample(srcCoordinatesVarying[1]) * 2.0) + sample(srcCoordinatesVarying[2])) / 4.0;";
+
+//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
 
 	switch(_signalType)
 	{
