@@ -105,7 +105,10 @@
 		case kVK_Control:		_electron.set_key_state(Electron::Key::KeyControl, isPressed);		break;
 		case kVK_Command:		_electron.set_key_state(Electron::Key::KeyFunc, isPressed);			break;
 
+		case kVK_F12:			_electron.set_key_state(Electron::Key::KeyBreak, isPressed);		break;
+
 		default:
+//			printf("%02x\n", key);
 		break;
 	}
 }
