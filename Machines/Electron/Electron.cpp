@@ -46,12 +46,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else
 		{
-			_ram[address] = *value;
-
-// TODO: range check on address; a lot of the time the machine will be running code outside of
-// the screen area, meaning that no update is required.
-//			if (address
+			// TODO: range check on address; a lot of the time the machine will be running code outside of
+			// the screen area, meaning that no update is required.
 			update_display();
+
+			_ram[address] = *value;
 		}
 
 		// TODO: RAM timing for Modes 0–3
