@@ -58,11 +58,11 @@ class CRT {
 		void output_level(unsigned int number_of_cycles);
 		void output_data(unsigned int number_of_cycles);
 
-		class CRTDelegate {
+		class Delegate {
 			public:
 				virtual void crt_did_end_frame(CRT *crt, CRTFrame *frame, bool did_detect_vsync) = 0;
 		};
-		void set_delegate(CRTDelegate *delegate);
+		void set_delegate(Delegate *delegate);
 		void return_frame();
 
 		void allocate_write_area(int required_length);
@@ -90,7 +90,7 @@ class CRT {
 		CRTFrameBuilder *_current_frame_builder;
 		int _frames_with_delegate;
 		int _frame_read_pointer;
-		CRTDelegate *_delegate;
+		Delegate *_delegate;
 
 		// outer elements of sync separation
 		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)

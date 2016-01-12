@@ -11,7 +11,7 @@
 
 @interface CSMachine (Subclassing)
 
-- (void)setCRTDelegate:(Outputs::CRT::CRTDelegate *)delegate;
+- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate;
 - (void)doRunForNumberOfCycles:(int)numberOfCycles;
 - (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
 

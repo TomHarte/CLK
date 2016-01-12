@@ -70,7 +70,7 @@
 	[view setSignalDecoder:[NSString stringWithUTF8String:_atari2600.get_signal_decoder()] type:CSCathodeRayViewSignalTypeNTSC];
 }
 
-- (void)setCRTDelegate:(Outputs::CRT::CRTDelegate *)delegate{
+- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate{
 	_atari2600.get_crt()->set_delegate(delegate);
 }
 

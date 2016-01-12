@@ -335,7 +335,7 @@ void CRT::return_frame()
 
 #pragma mark - delegate
 
-void CRT::set_delegate(CRTDelegate *delegate)
+void CRT::set_delegate(Delegate *delegate)
 {
 	_delegate = delegate;
 }

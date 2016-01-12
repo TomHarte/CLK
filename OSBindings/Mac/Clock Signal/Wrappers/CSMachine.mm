@@ -9,7 +9,7 @@
 #import "CSMachine.h"
 #import "CSMachine+Subclassing.h"
 
-struct CRTDelegate: public Outputs::CRT::CRTDelegate {
+struct CRTDelegate: public Outputs::CRT::Delegate {
 	__weak CSMachine *machine;
 	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame, bool did_detect_vsync) {
 		[machine crt:crt didEndFrame:frame didDetectVSync:did_detect_vsync];
@@ -60,7 +60,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	return self;
 }
 
-- (void)setCRTDelegate:(Outputs::CRT::CRTDelegate *)delegate {}
+- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {}
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {}
 
 @end
