@@ -20,9 +20,11 @@ static const int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 Machine::Machine() :
 	_interruptControl(0),
 	_frameCycles(0),
-	_outputPosition(0)
+	_outputPosition(0),
+	_currentOutputLine(0)
 {
 	memset(_keyStates, 0, sizeof(_keyStates));
+	memset(_palette, 0xf, sizeof(_palette));
 	_crt = new Outputs::CRT(crt_cycles_per_line, 312, 1, 1);
 	_interruptStatus = 0x02;
 	setup6502();
@@ -125,11 +127,56 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						printf("Counter\n");
 					break;
 					case 0x7:
-						printf("Misc. control\n");
+						if(!isReadOperation(operation))
+						{
+							_screenMode = ((*value) >> 3)&7;
+							if(_screenMode == 7) _screenMode = 4;
+							switch(_screenMode)
+							{
+								case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
+								case 3: _screenModeBaseAddress = 0x4000; break;
+								case 4: case 5: _screenModeBaseAddress = 0x5800; break;
+								case 6: _screenModeBaseAddress = 0x6000; break;
+							}
+							printf("Misc. control\n");
+						}
 					break;
 					default:
-						update_display();
-//						printf("Palette\n");
+					{
+						if(!isReadOperation(operation))
+						{
+							update_display();
+
+							static const int registers[4][4] = {
+								{10, 8, 2, 0},
+								{14, 12, 6, 4},
+								{15, 13, 7, 5},
+								{11, 9, 3, 1},
+							};
+							const int index = (address >> 1)&3;
+							const uint8_t colour = ~(*value);
+							if(address&1)
+							{
+								_palette[registers[index][0]]	= (_palette[registers[index][0]]&3)	| ((colour >> 1)&4);
+								_palette[registers[index][1]]	= (_palette[registers[index][1]]&3)	| ((colour >> 0)&4);
+								_palette[registers[index][2]]	= (_palette[registers[index][2]]&3)	| ((colour << 1)&4);
+								_palette[registers[index][3]]	= (_palette[registers[index][3]]&3)	| ((colour << 2)&4);
+
+								_palette[registers[index][2]]	= (_palette[registers[index][2]]&5)	| ((colour >> 4)&2);
+								_palette[registers[index][3]]	= (_palette[registers[index][3]]&5)	| ((colour >> 3)&2);
+							}
+							else
+							{
+								_palette[registers[index][0]]	= (_palette[registers[index][0]]&6)	| ((colour >> 7)&1);
+								_palette[registers[index][1]]	= (_palette[registers[index][1]]&6)	| ((colour >> 6)&1);
+								_palette[registers[index][2]]	= (_palette[registers[index][2]]&6)	| ((colour >> 5)&1);
+								_palette[registers[index][3]]	= (_palette[registers[index][3]]&6)	| ((colour >> 4)&1);
+
+								_palette[registers[index][0]]	= (_palette[registers[index][0]]&5)	| ((colour >> 2)&2);
+								_palette[registers[index][1]]	= (_palette[registers[index][1]]&5)	| ((colour >> 1)&2);
+							}
+						}
+					}
 					break;
 				}
 			}
@@ -176,6 +223,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		update_display();
 		_frameCycles = 0;
 		_outputPosition = 0;
+		_currentOutputLine = 0;
 	}
 	if(_frameCycles == 128*128) signal_interrupt(InterruptRealTimeClock);
 	if(_frameCycles == 284*128) signal_interrupt(InterruptDisplayEnd);
@@ -247,10 +295,12 @@ inline void Machine::update_display()
 			{
 				// on lines prior to 28 or after or equal to 284, or on a line that is equal to 8 or 9 modulo 10 in a line-spaced mode,
 				// the line is then definitely blank.
-				if(
-					(current_line < 28 || current_line >= 284)
-//					|| (((current_line - 28)%10) > 7)
-				)
+				bool isBlankLine =
+					((_screenMode == 3) || (_screenMode == 6)) ?
+						((current_line < 28 || current_line >= 277) || (((current_line - 28)%10) > 7)) :
+						((current_line < 28 || current_line >= 284));
+
+				if(isBlankLine)
 				{
 					if(line_position == 9)
 					{
@@ -276,19 +326,67 @@ inline void Machine::update_display()
 
 					if(line_position >= 24 && line_position < 104)
 					{
-						if(_currentLine)
+						if(_currentLine && ((_screenMode < 4) || !(line_position&1)))
 						{
-							if(!(line_position&1))
+							if(_currentScreenAddress&32768)
 							{
-								uint8_t pixels = _ram[_currentScreenAddress];
-								_currentScreenAddress += 8;
-								int output_ptr = (line_position - 24) << 3;
+								_currentScreenAddress = _screenModeBaseAddress + (_currentScreenAddress&32767);
+							}
+							uint8_t pixels = _ram[_currentScreenAddress];
+							_currentScreenAddress = _currentScreenAddress+8;
+							int output_ptr = (line_position - 24) << 3;
 
-								for(int c = 0; c < 16; c+=2)
-								{
-									_currentLine[output_ptr + c] = _currentLine[output_ptr + c + 1] = (pixels&0x80) ? 0 : 7;
-									pixels <<= 1;
-								}
+							switch(_screenMode)
+							{
+								case 0:
+								case 3:
+									for(int c = 0; c < 8; c++)
+									{
+										uint8_t colour = (pixels&0x80) >> 4;
+										_currentLine[output_ptr + c] = _palette[colour];
+										pixels <<= 1;
+									}
+								break;
+
+								case 1:
+									for(int c = 0; c < 8; c += 2)
+									{
+										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
+										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] = _palette[colour];
+										pixels <<= 1;
+									}
+								break;
+
+								case 2:
+									for(int c = 0; c < 8; c += 4)
+									{
+										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1);
+										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] =
+										_currentLine[output_ptr + c + 2] = _currentLine[output_ptr + c + 3] = _palette[colour];
+										pixels <<= 1;
+									}
+								break;
+
+								case 5:
+									for(int c = 0; c < 16; c += 4)
+									{
+										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
+										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] =
+										_currentLine[output_ptr + c + 2] = _currentLine[output_ptr + c + 3] = _palette[colour];
+										pixels <<= 1;
+									}
+								break;
+
+								default:
+								case 4:
+								case 6:
+									for(int c = 0; c < 16; c += 2)
+									{
+										uint8_t colour = (pixels&0x80) >> 4;
+										_currentLine[output_ptr + c] = _currentLine[output_ptr + c + 1] = _palette[colour];
+										pixels <<= 1;
+									}
+								break;
 							}
 						}
 						_outputPosition++;
@@ -296,9 +394,10 @@ inline void Machine::update_display()
 
 					if(line_position == 104)
 					{
-						if(!((current_line - 27)&7))
+						_currentOutputLine++;
+						if(!(_currentOutputLine&7))
 						{
-							_startLineAddress += 40*8 - 7;
+							_startLineAddress += ((_screenMode < 4) ? 80 : 40)*8 - 7;
 						}
 						else
 							_startLineAddress++;
@@ -320,7 +419,7 @@ const char *Machine::get_signal_decoder()
 		"vec4 sample(vec2 coordinate)\n"
 		"{\n"
 			"float texValue = texture(texID, srcCoordinatesVarying).r;\n"
-			"return vec4( step(mod(texValue, 8.0/256.0), 4.0/256.0), step(mod(texValue, 4.0/256.0), 2.0/256.0), step(mod(texValue, 2.0/256.0), 1.0/256.0), 1.0);\n"
+			"return vec4( step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);\n"
 		"}";
 }
 

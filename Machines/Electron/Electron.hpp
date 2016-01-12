@@ -130,11 +130,14 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _palette[16];
 		uint8_t _keyStates[14];
 		ROMSlot _activeRom;
+		uint8_t _screenMode;
+		uint16_t _screenModeBaseAddress;
 
 		Outputs::CRT *_crt;
 
 		int _frameCycles, _outputPosition;
 		uint16_t _startScreenAddress, _startLineAddress, _currentScreenAddress;
+		int _currentOutputLine;
 		uint8_t *_currentLine;
 
 		inline void update_display();
