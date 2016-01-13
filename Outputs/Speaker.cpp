@@ -7,3 +7,6 @@
 //
 
 #include "Speaker.hpp"
+
+using namespace Speaker;
+

@@ -330,6 +330,7 @@
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
 		4B2409531C45AB05004DA684 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Speaker.cpp; path = ../../Outputs/Speaker.cpp; sourceTree = "<group>"; };
 		4B2409541C45AB05004DA684 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = ../../Outputs/Speaker.hpp; sourceTree = "<group>"; };
+		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2632551B631A510082A461 /* CRTFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CRTFrame.h; path = ../../Outputs/CRTFrame.h; sourceTree = "<group>"; };
 		4B2E2D941C399D1200138695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ElectronDocument.xib; sourceTree = "<group>"; };
 		4B2E2D971C3A06EC00138695 /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
@@ -686,6 +687,15 @@
 			name = "Test Binaries";
 			sourceTree = "<group>";
 		};
+		4B2409591C45DF85004DA684 /* SignalProcessing */ = {
+			isa = PBXGroup;
+			children = (
+				4B24095A1C45DF85004DA684 /* Stepper.hpp */,
+			);
+			name = SignalProcessing;
+			path = ../../SignalProcessing;
+			sourceTree = "<group>";
+		};
 		4B2E2D961C3A06EC00138695 /* Atari2600 */ = {
 			isa = PBXGroup;
 			children = (
@@ -1028,12 +1038,13 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4B366DFD1B5C165F0026627B /* Outputs */,
-				4BB73EDC1B587CA500552FC2 /* Machines */,
-				4BB73EDD1B587CA500552FC2 /* Processors */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
 				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
 				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
+				4BB73EDC1B587CA500552FC2 /* Machines */,
+				4B366DFD1B5C165F0026627B /* Outputs */,
+				4BB73EDD1B587CA500552FC2 /* Processors */,
+				4B2409591C45DF85004DA684 /* SignalProcessing */,
 				4BB73E9F1B587A5100552FC2 /* Products */,
 			);
 			sourceTree = "<group>";
