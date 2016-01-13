@@ -27,6 +27,8 @@ Machine::Machine() :
 	memset(_palette, 0xf, sizeof(_palette));
 	_crt = new Outputs::CRT(crt_cycles_per_line, 312, 1, 1);
 	_interruptStatus = 0x02;
+	for(int c = 0; c < 16; c++)
+		memset(_roms[c], 0xff, 16384);
 	setup6502();
 }
 
@@ -55,6 +57,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// TODO: RAM timing for Modes 0–3
 		cycles += (_frameCycles&1)^1;
+		if(_screenMode < 4)
+		{
+			const int current_line = _frameCycles >> 7;
+			const int line_position = _frameCycles & 127;
+			if(current_line >= 28 && current_line < 28+256 && line_position >= 24 && line_position < 104)
+				cycles = (unsigned int)(104 - line_position);
+		}
 	}
 	else
 	{
@@ -191,10 +200,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			{
 				switch(_activeRom)
 				{
-					case ROMSlotBASIC:
-					case ROMSlotBASIC+1:
-						*value = _basic[address & 16383];
-					break;
 					case ROMSlotKeyboard:
 					case ROMSlotKeyboard+1:
 						*value = 0xf0;
@@ -204,7 +209,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 					break;
 					default:
-						*value = 0xff;
+						*value = _roms[_activeRom][address & 16383];
 					break;
 				}
 			}
@@ -235,9 +240,8 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	uint8_t *target = nullptr;
 	switch(slot)
 	{
-		case ROMSlotBASIC:	target = _basic;	break;
-		case ROMSlotOS:		target = _os;		break;
-		default: return;
+		case ROMSlotOS:		target = _os;			break;
+		default:			target = _roms[slot];	break;
 	}
 
 	memcpy(target, data, std::min((size_t)16384, length));

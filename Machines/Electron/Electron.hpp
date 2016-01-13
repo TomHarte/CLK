@@ -73,7 +73,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		const char *get_signal_decoder();
 
 	private:
-		uint8_t _os[16384], _basic[16384], _ram[32768];
+		uint8_t _roms[16][16384];
+		uint8_t _os[16384], _ram[32768];
 		uint8_t _interruptStatus, _interruptControl;
 		uint8_t _palette[16];
 		uint8_t _keyStates[14];

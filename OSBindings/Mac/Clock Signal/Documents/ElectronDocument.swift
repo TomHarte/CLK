@@ -34,6 +34,7 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
+		electron.setROM(data, slot: 15)
 	}
 
 	// MARK: CSOpenGLViewDelegate

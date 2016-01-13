@@ -13,6 +13,7 @@
 
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
+- (void)setROM:(nonnull NSData *)rom slot:(int)slot;
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
 
