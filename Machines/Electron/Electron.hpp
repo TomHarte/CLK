@@ -70,6 +70,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		void set_key_state(Key key, bool isPressed);
 
 		Outputs::CRT *get_crt() { return _crt; }
+		Outputs::Speaker *get_speaker() { return &_speaker; }
 		const char *get_signal_decoder();
 
 	private:
@@ -84,17 +85,22 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		Outputs::CRT *_crt;
 
-		int _frameCycles, _outputPosition;
+		int _frameCycles, _displayOutputPosition, _audioOutputPosition, _audioOutputPositionError;
+
 		uint16_t _startScreenAddress, _startLineAddress, _currentScreenAddress;
 		int _currentOutputLine;
 		uint8_t *_currentLine;
 
 		inline void update_display();
+		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
 
-		class Speaker: public ::Speaker::Filter<Speaker> {
-		};
+		class Speaker: public ::Outputs::Filter<Speaker> {
+			public:
+				uint8_t divider;
+				bool is_enabled;
+		} _speaker;
 };
 
 }

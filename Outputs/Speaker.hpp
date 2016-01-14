@@ -10,17 +10,18 @@
 #define Speaker_hpp
 
 #include <stdint.h>
+#include <stdio.h>
 #include "../SignalProcessing/Stepper.hpp"
 
-namespace Speaker {
+namespace Outputs {
 
-class Delegate {
+class Speaker {
 	public:
-		virtual void speaker_did_complete_samples(uint8_t *buffer);
-};
+		class Delegate {
+			public:
+				virtual void speaker_did_complete_samples(uint8_t *buffer);
+		};
 
-template <class T> class Filter {
-	public:
 		void set_output_rate(int cycles_per_second, int buffer_size)
 		{
 			_output_cycles_per_second = cycles_per_second;
@@ -50,18 +51,7 @@ template <class T> class Filter {
 			set_needs_updated_filter_coefficients();
 		}
 
-		void run_for_cycles(int input_cycles)
-		{
-			if(_coefficients_are_dirty) update_filter_coefficients();
-
-			// point sample for now, as a temporary measure
-			while(input_cycles--)
-			{
-				static_cast<T *>(this)->perform_bus_operation();
-			}
-		}
-
-	private:
+	protected:
 		uint16_t *_buffer_in_progress;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
@@ -76,14 +66,31 @@ template <class T> class Filter {
 		{
 			_coefficients_are_dirty = true;
 		}
+};
+
+template <class T> class Filter: public Speaker {
+	public:
+		void run_for_cycles(int input_cycles)
+		{
+			if(_coefficients_are_dirty) update_filter_coefficients();
+
+			// point sample for now, as a temporary measure
+			while(input_cycles--)
+			{
+//				static_cast<T *>(this)->perform_bus_operation();
+			}
+		}
+
+	private:
+		SignalProcessing::Stepper *_stepper;
 
 		void update_filter_coefficients()
 		{
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
 
-			delete[] _stepper;
-			_stepper = Stepper(_input_cycles_per_second, _output_cycles_per_second);
+			delete _stepper;
+			_stepper = new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second);
 		}
 };
 

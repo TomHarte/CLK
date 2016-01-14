@@ -7,14 +7,17 @@
 //
 
 #import "CSMachine.h"
-#include "../../../../Outputs/CRT.hpp"
+#include "CRT.hpp"
+#include "Speaker.hpp"
 
 @interface CSMachine (Subclassing)
 
+- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate;
 - (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate;
-- (void)doRunForNumberOfCycles:(int)numberOfCycles;
-- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
 
+- (void)doRunForNumberOfCycles:(int)numberOfCycles;
 - (void)perform:(dispatch_block_t)action;
+
+- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
 
 @end

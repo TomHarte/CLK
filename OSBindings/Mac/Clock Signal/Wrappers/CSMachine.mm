@@ -53,6 +53,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	if (self) {
 		_crtDelegate.machine = self;
 		[self setCRTDelegate:&_crtDelegate];
+		[self setSpeakerDelegate:nil];
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
 		_runningLock = [[NSConditionLock alloc] initWithCondition:CSMachineRunningStateStopped];
 	}
@@ -61,6 +62,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 }
 
 - (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {}
+- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate {}
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {}
 
 @end

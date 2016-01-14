@@ -20,7 +20,9 @@ static const int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 Machine::Machine() :
 	_interruptControl(0),
 	_frameCycles(0),
-	_outputPosition(0),
+	_displayOutputPosition(0),
+	_audioOutputPosition(0),
+	_audioOutputPositionError(0),
 	_currentOutputLine(0)
 {
 	memset(_keyStates, 0, sizeof(_keyStates));
@@ -29,6 +31,8 @@ Machine::Machine() :
 	_interruptStatus = 0x02;
 	for(int c = 0; c < 16; c++)
 		memset(_roms[c], 0xff, 16384);
+
+	_speaker.set_input_rate(62500);
 	setup6502();
 }
 
@@ -132,21 +136,41 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 					break;
 					case 0x6:
-						printf("Counter\n");
+						if(!isReadOperation(operation))
+						{
+							if(_speaker.is_enabled)
+								update_audio();
+							_speaker.divider = *value;
+						}
 					break;
 					case 0x7:
 						if(!isReadOperation(operation))
 						{
-							_screenMode = ((*value) >> 3)&7;
-							if(_screenMode == 7) _screenMode = 4;
-							switch(_screenMode)
+							// update screen mode
+							uint8_t new_screen_mode = ((*value) >> 3)&7;
+							if(new_screen_mode == 7) new_screen_mode = 4;
+							if(new_screen_mode != _screenMode)
 							{
-								case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
-								case 3: _screenModeBaseAddress = 0x4000; break;
-								case 4: case 5: _screenModeBaseAddress = 0x5800; break;
-								case 6: _screenModeBaseAddress = 0x6000; break;
+								update_display();
+								_screenMode = new_screen_mode;
+								switch(_screenMode)
+								{
+									case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
+									case 3: _screenModeBaseAddress = 0x4000; break;
+									case 4: case 5: _screenModeBaseAddress = 0x5800; break;
+									case 6: _screenModeBaseAddress = 0x6000; break;
+								}
 							}
-							printf("Misc. control\n");
+
+							// update speaker mode
+							bool new_speaker_is_enabled = (*value & 6) == 2;
+							if(new_speaker_is_enabled != _speaker.is_enabled)
+							{
+								update_audio();
+								_speaker.is_enabled = new_speaker_is_enabled;
+							}
+
+							// TODO: tape mode, tape motor, caps lock LED
 						}
 					break;
 					default:
@@ -222,15 +246,36 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	_frameCycles += cycles;
-	if(_frameCycles == cycles_per_frame)
+	switch(_frameCycles)
 	{
-		update_display();
-		_frameCycles = 0;
-		_outputPosition = 0;
-		_currentOutputLine = 0;
+		case 64*128:
+			update_audio();
+		break;
+
+		case 128*128:
+			update_audio();
+			signal_interrupt(InterruptRealTimeClock);
+		break;
+
+		case 196*128:
+			update_audio();
+		break;
+
+		case 284*128:
+			update_audio();
+			signal_interrupt(InterruptDisplayEnd);
+		break;
+
+		case cycles_per_frame:
+			update_display();
+			update_audio();
+			_frameCycles = 0;
+			_displayOutputPosition = 0;
+			_audioOutputPosition = 0;
+			_currentOutputLine = 0;
+		break;
+
 	}
-	if(_frameCycles == 128*128) signal_interrupt(InterruptRealTimeClock);
-	if(_frameCycles == 284*128) signal_interrupt(InterruptDisplayEnd);
 
 	return cycles;
 }
@@ -266,6 +311,14 @@ inline void Machine::evaluate_interrupts()
 	set_irq_line(_interruptStatus & 1);
 }
 
+inline void Machine::update_audio()
+{
+	int difference = _frameCycles - _audioOutputPosition;
+	_audioOutputPosition = _frameCycles;
+	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 5);
+	_audioOutputPositionError = (_audioOutputPositionError + difference)&31;
+}
+
 inline void Machine::update_display()
 {
 	const int lines_of_hsync = 3;
@@ -275,26 +328,26 @@ inline void Machine::update_display()
 	if(_frameCycles >= end_of_hsync)
 	{
 		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
-		if(_outputPosition < end_of_hsync)
+		if(_displayOutputPosition < end_of_hsync)
 		{
 			for(int c = 0; c < lines_of_hsync; c++)
 			{
 				_crt->output_sync(119 * crt_cycles_multiplier);
 				_crt->output_blank(9 * crt_cycles_multiplier);
 			}
-			_outputPosition = end_of_hsync;
+			_displayOutputPosition = end_of_hsync;
 		}
 
-		while(_outputPosition >= end_of_hsync && _outputPosition < _frameCycles)
+		while(_displayOutputPosition >= end_of_hsync && _displayOutputPosition < _frameCycles)
 		{
-			const int current_line = _outputPosition >> 7;
-			const int line_position = _outputPosition & 127;
+			const int current_line = _displayOutputPosition >> 7;
+			const int line_position = _displayOutputPosition & 127;
 
 			// all lines then start with 9 cycles of sync
 			if(!line_position)
 			{
 				_crt->output_sync(9 * crt_cycles_multiplier);
-				_outputPosition += 9;
+				_displayOutputPosition += 9;
 			}
 			else
 			{
@@ -308,7 +361,7 @@ inline void Machine::update_display()
 					if(line_position == 9)
 					{
 						_crt->output_blank(119 * crt_cycles_multiplier);
-						_outputPosition += 119;
+						_displayOutputPosition += 119;
 					}
 				}
 				else
@@ -317,7 +370,7 @@ inline void Machine::update_display()
 					if(line_position == 9)
 					{
 						_crt->output_blank(15 * crt_cycles_multiplier);
-						_outputPosition += 15;
+						_displayOutputPosition += 15;
 
 						_crt->allocate_write_area(80 * crt_cycles_multiplier);
 						_currentLine = (uint8_t *)_crt->get_write_target_for_buffer(0);
@@ -392,7 +445,7 @@ inline void Machine::update_display()
 								break;
 							}
 						}
-						_outputPosition++;
+						_displayOutputPosition++;
 					}
 
 					if(line_position == 104)
@@ -408,7 +461,7 @@ inline void Machine::update_display()
 						_currentLine = nullptr;
 						_crt->output_data(80 * crt_cycles_multiplier);
 						_crt->output_blank(24 * crt_cycles_multiplier);
-						_outputPosition += 24;
+						_displayOutputPosition += 24;
 					}
 				}
 			}

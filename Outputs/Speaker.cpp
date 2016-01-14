@@ -8,5 +8,5 @@
 
 #include "Speaker.hpp"
 
-using namespace Speaker;
+using namespace Outputs;
 

@@ -35,6 +35,11 @@
 	_electron.get_crt()->set_delegate(delegate);
 }
 
+- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate {
+	_electron.get_speaker()->set_output_rate(44100, 512);
+	_electron.get_speaker()->set_output_quality(15);
+}
+
 - (void)setView:(CSCathodeRayView *)view {
 	[super setView:view];
 	[view setSignalDecoder:[NSString stringWithUTF8String:_electron.get_signal_decoder()] type:CSCathodeRayViewSignalTypeRGB];
