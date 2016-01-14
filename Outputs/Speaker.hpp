@@ -19,7 +19,7 @@ class Speaker {
 	public:
 		class Delegate {
 			public:
-				virtual void speaker_did_complete_samples(Speaker *speaker, const uint16_t *buffer, int buffer_size);
+				virtual void speaker_did_complete_samples(Speaker *speaker, const uint16_t *buffer, int buffer_size) = 0;
 		};
 
 		void set_output_rate(int cycles_per_second, int buffer_size)

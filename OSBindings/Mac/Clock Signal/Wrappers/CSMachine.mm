@@ -16,6 +16,13 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	}
 };
 
+struct SpeakerDelegate: public Outputs::Speaker::Delegate {
+	__weak CSMachine *machine;
+	void speaker_did_complete_samples(Outputs::Speaker *speaker, const uint16_t *buffer, int buffer_size) {
+		[machine speaker:speaker didCompleteSamples:buffer length:buffer_size];
+	}
+};
+
 typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	CSMachineRunningStateRunning,
 	CSMachineRunningStateStopped
@@ -23,6 +30,7 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 @implementation CSMachine {
 	CRTDelegate _crtDelegate;
+	SpeakerDelegate _speakerDelegate;
 
 	dispatch_queue_t _serialDispatchQueue;
 	NSConditionLock *_runningLock;
@@ -34,6 +42,9 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 - (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
 	if([self.view pushFrame:frame]) crt->return_frame();
+}
+
+- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const uint16_t *)samples length:(int)length {
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
@@ -51,18 +62,22 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	self = [super init];
 
 	if (self) {
-		_crtDelegate.machine = self;
-		[self setCRTDelegate:&_crtDelegate];
-		[self setSpeakerDelegate:nil];
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
 		_runningLock = [[NSConditionLock alloc] initWithCondition:CSMachineRunningStateStopped];
+
+		_crtDelegate.machine = self;
+		_speakerDelegate.machine = self;
+		[self setCRTDelegate:&_crtDelegate];
+		[self setSpeakerDelegate:&_speakerDelegate sampleRate:44100];
 	}
 
 	return self;
 }
 
 - (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {}
-- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate {}
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
+	return NO;
+}
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {}
 
 @end

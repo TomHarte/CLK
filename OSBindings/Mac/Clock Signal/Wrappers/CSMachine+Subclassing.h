@@ -12,12 +12,13 @@
 
 @interface CSMachine (Subclassing)
 
-- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate;
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate;
 - (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate;
 
 - (void)doRunForNumberOfCycles:(int)numberOfCycles;
 - (void)perform:(dispatch_block_t)action;
 
 - (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
+- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const uint16_t *)samples length:(int)length;
 
 @end

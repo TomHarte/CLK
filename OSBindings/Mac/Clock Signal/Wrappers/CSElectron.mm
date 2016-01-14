@@ -35,9 +35,11 @@
 	_electron.get_crt()->set_delegate(delegate);
 }
 
-- (void)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate {
-	_electron.get_speaker()->set_output_rate(44100, 512);
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
+	_electron.get_speaker()->set_output_rate(sampleRate, 512);
 	_electron.get_speaker()->set_output_quality(15);
+	_electron.get_speaker()->set_delegate(delegate);
+	return YES;
 }
 
 - (void)setView:(CSCathodeRayView *)view {
