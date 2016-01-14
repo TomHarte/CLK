@@ -32,7 +32,7 @@ Machine::Machine() :
 	for(int c = 0; c < 16; c++)
 		memset(_roms[c], 0xff, 16384);
 
-	_speaker.set_input_rate(62500);
+	_speaker.set_input_rate(125000);
 	setup6502();
 }
 
@@ -315,8 +315,8 @@ inline void Machine::update_audio()
 {
 	int difference = _frameCycles - _audioOutputPosition;
 	_audioOutputPosition = _frameCycles;
-	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 5);
-	_audioOutputPositionError = (_audioOutputPositionError + difference)&31;
+	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 4);
+	_audioOutputPositionError = (_audioOutputPositionError + difference)&15;
 }
 
 inline void Machine::update_display()
@@ -492,4 +492,9 @@ void Machine::set_key_state(Key key, bool isPressed)
 		else
 			_keyStates[key >> 4] &= ~(key&0xf);
 	}
+}
+
+void Machine::Speaker::get_sample_range(uint64_t start_time, int number_of_samples, uint16_t *target)
+{
+	*target = 0;
 }

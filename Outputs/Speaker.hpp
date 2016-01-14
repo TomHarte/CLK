@@ -19,7 +19,7 @@ class Speaker {
 	public:
 		class Delegate {
 			public:
-				virtual void speaker_did_complete_samples(uint8_t *buffer);
+				virtual void speaker_did_complete_samples(Speaker *speaker, const uint16_t *buffer, int buffer_size);
 		};
 
 		void set_output_rate(int cycles_per_second, int buffer_size)
@@ -77,9 +77,27 @@ template <class T> class Filter: public Speaker {
 			// point sample for now, as a temporary measure
 			while(input_cycles--)
 			{
-//				static_cast<T *>(this)->perform_bus_operation();
+				// get a sample for the current location
+				static_cast<T *>(this)->get_sample_range(time_base, 1, &_buffer_in_progress[_buffer_in_progress_pointer]);
+				_buffer_in_progress_pointer++;
+
+				// announce to delegate if full
+				if(_buffer_in_progress_pointer == _buffer_size)
+				{
+					_buffer_in_progress_pointer = 0;
+					if(_delegate)
+					{
+						_delegate->speaker_did_complete_samples(this, _buffer_in_progress, _buffer_size);
+					}
+				}
+
+				// determine how many source samples to step
+				time_base += _stepper->update();
 			}
 		}
+
+	protected:
+		uint64_t time_base;
 
 	private:
 		SignalProcessing::Stepper *_stepper;

@@ -100,6 +100,8 @@ class Machine: public CPU6502::Processor<Machine> {
 			public:
 				uint8_t divider;
 				bool is_enabled;
+
+				void get_sample_range(uint64_t start_time, int number_of_samples, uint16_t *target);
 		} _speaker;
 };
 

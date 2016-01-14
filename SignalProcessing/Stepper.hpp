@@ -16,11 +16,11 @@ namespace SignalProcessing {
 class Stepper
 {
 	public:
-		Stepper(uint64_t input_rate, uint64_t output_rate)
+		Stepper(uint64_t output_rate, uint64_t update_rate)
 		{
-			whole_step_ = output_rate / input_rate;
-			adjustment_up_ = (int64_t)(output_rate % input_rate) << 1;
-			adjustment_down_ = (int64_t)input_rate << 1;
+			whole_step_ = output_rate / update_rate;
+			adjustment_up_ = (int64_t)(output_rate % update_rate) << 1;
+			adjustment_down_ = (int64_t)update_rate << 1;
 		}
 
 		inline uint64_t update()
