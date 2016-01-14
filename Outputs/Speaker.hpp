@@ -78,7 +78,7 @@ template <class T> class Filter: public Speaker {
 			while(input_cycles--)
 			{
 				// get a sample for the current location
-				static_cast<T *>(this)->get_sample_range(time_base, 1, &_buffer_in_progress[_buffer_in_progress_pointer]);
+				static_cast<T *>(this)->get_sample_range(_time_base, 1, &_buffer_in_progress[_buffer_in_progress_pointer]);
 				_buffer_in_progress_pointer++;
 
 				// announce to delegate if full
@@ -92,12 +92,12 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// determine how many source samples to step
-				time_base += _stepper->update();
+				_time_base += _stepper->update();
 			}
 		}
 
 	protected:
-		uint64_t time_base;
+		uint64_t _time_base;
 
 	private:
 		SignalProcessing::Stepper *_stepper;

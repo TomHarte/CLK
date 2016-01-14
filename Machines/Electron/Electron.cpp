@@ -138,9 +138,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x6:
 						if(!isReadOperation(operation))
 						{
-							if(_speaker.is_enabled)
-								update_audio();
-							_speaker.divider = *value;
+							update_audio();
+							_speaker.set_divider(*value);
 						}
 					break;
 					case 0x7:
@@ -164,10 +163,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 							// update speaker mode
 							bool new_speaker_is_enabled = (*value & 6) == 2;
-							if(new_speaker_is_enabled != _speaker.is_enabled)
+							if(new_speaker_is_enabled != _speaker.get_is_enabled())
 							{
 								update_audio();
-								_speaker.is_enabled = new_speaker_is_enabled;
+								_speaker.set_is_enabled(new_speaker_is_enabled);
 							}
 
 							// TODO: tape mode, tape motor, caps lock LED
@@ -496,5 +495,23 @@ void Machine::set_key_state(Key key, bool isPressed)
 
 void Machine::Speaker::get_sample_range(uint64_t start_time, int number_of_samples, uint16_t *target)
 {
-	*target = 0;
+	if(!_is_enabled)
+	{
+		*target = 0;
+	}
+	else
+	{
+		*target = ((start_time / _divider)&1) ? 255 : 0;
+	}
+}
+
+void Machine::Speaker::set_divider(uint8_t divider)
+{
+	_divider = divider;
+	_time_base = 0;
+}
+
+void Machine::Speaker::set_is_enabled(bool is_enabled)
+{
+	_is_enabled = false;
 }
