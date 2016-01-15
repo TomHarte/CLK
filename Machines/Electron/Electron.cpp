@@ -495,18 +495,13 @@ void Machine::set_key_state(Key key, bool isPressed)
 
 void Machine::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
-//	if(!_is_enabled)
-//	{
-//		*target = 0;
-//	}
-//	else
+	if(!_is_enabled)
+	{
+		*target = 0;
+	}
+	else
 	{
 		*target = _output_level;
-		_output_level++;
-		if(_output_level&64)
-		{
-			_output_level ^= (8192 | 64);
-		}
 	}
 	skip_samples(number_of_samples);
 }
@@ -519,18 +514,18 @@ void Machine::Speaker::skip_samples(unsigned int number_of_samples)
 		if(_counter > _divider)
 		{
 			_counter = 0;
-//			_output_level ^= 8192;
+			_output_level ^= 8192;
 		}
 	}
 }
 
 void Machine::Speaker::set_divider(uint8_t divider)
 {
-//	_divider = divider;
-//	_time_base = 0;
+	_divider = divider;
 }
 
 void Machine::Speaker::set_is_enabled(bool is_enabled)
 {
-//	_is_enabled = is_enabled;
+	_is_enabled = is_enabled;
+	_counter = 0;
 }

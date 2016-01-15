@@ -81,7 +81,6 @@ template <class T> class Filter: public Speaker {
 			{
 				// get a sample for the current location
 				static_cast<T *>(this)->get_samples(1, &_buffer_in_progress[_buffer_in_progress_pointer]);
-//				_buffer_in_progress[_buffer_in_progress_pointer] = (_buffer_in_progress_pointer&64) ? 8192 : 0;
 				_buffer_in_progress_pointer++;
 
 				// announce to delegate if full
@@ -95,7 +94,9 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// determine how many source samples to step
-				static_cast<T *>(this)->skip_samples((unsigned int)_stepper->update());
+				uint64_t steps = _stepper->update();
+				if(steps > 1)
+					static_cast<T *>(this)->skip_samples((unsigned int)(steps-1));
 			}
 		}
 
