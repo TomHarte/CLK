@@ -77,7 +77,8 @@ template <class T> class Filter: public Speaker {
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
 			// point sample for now, as a temporary measure
-			while(input_cycles--)
+			input_cycles += _input_cycles_carry;
+			while(input_cycles > 0)
 			{
 				// get a sample for the current location
 				static_cast<T *>(this)->get_samples(1, &_buffer_in_progress[_buffer_in_progress_pointer]);
@@ -97,11 +98,14 @@ template <class T> class Filter: public Speaker {
 				uint64_t steps = _stepper->update();
 				if(steps > 1)
 					static_cast<T *>(this)->skip_samples((unsigned int)(steps-1));
+				input_cycles -= steps;
 			}
+			_input_cycles_carry = input_cycles;
 		}
 
 	private:
 		SignalProcessing::Stepper *_stepper;
+		int _input_cycles_carry;
 
 		void update_filter_coefficients()
 		{
