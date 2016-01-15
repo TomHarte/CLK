@@ -110,6 +110,11 @@ static void audioOutputCallback(
 	return self;
 }
 
+- (void)dealloc
+{
+	if(_audioQueue) AudioQueueDispose(_audioQueue, NO);
+}
+
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(unsigned int)lengthInSamples
 {
 	@synchronized(self)
