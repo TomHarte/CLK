@@ -51,6 +51,8 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
+		Speaker() : _buffer_in_progress_pointer(0) {}
+
 	protected:
 		int16_t *_buffer_in_progress;
 		int _buffer_size;
@@ -78,7 +80,8 @@ template <class T> class Filter: public Speaker {
 			while(input_cycles--)
 			{
 				// get a sample for the current location
-				static_cast<T *>(this)->get_sample_range(_time_base, 1, &_buffer_in_progress[_buffer_in_progress_pointer]);
+				static_cast<T *>(this)->get_samples(1, &_buffer_in_progress[_buffer_in_progress_pointer]);
+//				_buffer_in_progress[_buffer_in_progress_pointer] = (_buffer_in_progress_pointer&64) ? 8192 : 0;
 				_buffer_in_progress_pointer++;
 
 				// announce to delegate if full
@@ -92,12 +95,9 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// determine how many source samples to step
-				_time_base += _stepper->update();
+				static_cast<T *>(this)->skip_samples((unsigned int)_stepper->update());
 			}
 		}
-
-	protected:
-		uint64_t _time_base;
 
 	private:
 		SignalProcessing::Stepper *_stepper;
