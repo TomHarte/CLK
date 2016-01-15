@@ -502,6 +502,7 @@ void Machine::Speaker::get_samples(unsigned int number_of_samples, int16_t *targ
 	else
 	{
 		*target = _output_level;
+//		fwrite(target, sizeof(int16_t), 1, rawStream);
 	}
 	skip_samples(number_of_samples);
 }
@@ -528,4 +529,14 @@ void Machine::Speaker::set_is_enabled(bool is_enabled)
 {
 	_is_enabled = is_enabled;
 	_counter = 0;
+}
+
+Machine::Speaker::Speaker() : _counter(0), _divider(0x32), _is_enabled(false), _output_level(0)
+{
+//	rawStream = fopen("/Users/thomasharte/Desktop/sound.rom", "wb");
+}
+
+Machine::Speaker::~Speaker()
+{
+//	fclose(rawStream);
 }

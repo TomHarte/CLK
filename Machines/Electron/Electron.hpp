@@ -106,13 +106,16 @@ class Machine: public CPU6502::Processor<Machine> {
 				void get_samples(unsigned int number_of_samples, int16_t *target);
 				void skip_samples(unsigned int number_of_samples);
 
-				Speaker() : _counter(0), _divider(0x32), _is_enabled(false), _output_level(0) {}
+				Speaker();
+				~Speaker();
 
 			private:
 				unsigned int _counter;
 				uint8_t _divider;
 				bool _is_enabled;
 				int16_t _output_level;
+
+//				FILE *rawStream;
 
 		} _speaker;
 };
