@@ -8,11 +8,13 @@
 
 #import <Foundation/Foundation.h>
 #import "CSCathodeRayView.h"
+#import "AudioQueue.h"
 
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
 
 @property (nonatomic, weak) CSCathodeRayView *view;
+@property (nonatomic, weak) AudioQueue *audioQueue;
 
 @end

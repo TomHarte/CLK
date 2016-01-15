@@ -18,7 +18,7 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	__weak CSMachine *machine;
-	void speaker_did_complete_samples(Outputs::Speaker *speaker, const uint16_t *buffer, int buffer_size) {
+	void speaker_did_complete_samples(Outputs::Speaker *speaker, const int16_t *buffer, int buffer_size) {
 		[machine speaker:speaker didCompleteSamples:buffer length:buffer_size];
 	}
 };
@@ -44,7 +44,8 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	if([self.view pushFrame:frame]) crt->return_frame();
 }
 
-- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const uint16_t *)samples length:(int)length {
+- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
+	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
 }
 
 - (void)runForNumberOfCycles:(int)cycles {

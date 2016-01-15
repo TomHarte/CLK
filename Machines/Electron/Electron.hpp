@@ -103,7 +103,7 @@ class Machine: public CPU6502::Processor<Machine> {
 				void set_is_enabled(bool is_enabled);
 				inline bool get_is_enabled() { return _is_enabled; }
 
-				void get_sample_range(uint64_t start_time, int number_of_samples, uint16_t *target);
+				void get_sample_range(uint64_t start_time, int number_of_samples, int16_t *target);
 
 			private:
 				uint8_t _divider;

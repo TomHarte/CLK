@@ -19,6 +19,6 @@
 - (void)perform:(dispatch_block_t)action;
 
 - (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync;
-- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const uint16_t *)samples length:(int)length;
+- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 
 @end

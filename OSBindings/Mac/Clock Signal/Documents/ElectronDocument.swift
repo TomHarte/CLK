@@ -27,6 +27,7 @@ class ElectronDocument: MachineDocument {
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		electron.view = openGLView
+		electron.audioQueue = self.audioQueue
 		openGLView.frameBounds = CGRectMake(0.0225, 0.0625, 0.75, 0.75)
 	}
 

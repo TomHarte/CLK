@@ -493,7 +493,7 @@ void Machine::set_key_state(Key key, bool isPressed)
 	}
 }
 
-void Machine::Speaker::get_sample_range(uint64_t start_time, int number_of_samples, uint16_t *target)
+void Machine::Speaker::get_sample_range(uint64_t start_time, int number_of_samples, int16_t *target)
 {
 	if(!_is_enabled)
 	{
@@ -501,7 +501,7 @@ void Machine::Speaker::get_sample_range(uint64_t start_time, int number_of_sampl
 	}
 	else
 	{
-		*target = ((start_time / _divider)&1) ? 255 : 0;
+		*target = ((start_time / (_divider+1))&1) ? 255 : 0;
 	}
 }
 
@@ -513,5 +513,5 @@ void Machine::Speaker::set_divider(uint8_t divider)
 
 void Machine::Speaker::set_is_enabled(bool is_enabled)
 {
-	_is_enabled = false;
+	_is_enabled = is_enabled;
 }

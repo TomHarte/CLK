@@ -19,7 +19,7 @@ class Speaker {
 	public:
 		class Delegate {
 			public:
-				virtual void speaker_did_complete_samples(Speaker *speaker, const uint16_t *buffer, int buffer_size) = 0;
+				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
 		};
 
 		void set_output_rate(int cycles_per_second, int buffer_size)
@@ -28,7 +28,7 @@ class Speaker {
 			if(_buffer_size != buffer_size)
 			{
 				delete[] _buffer_in_progress;
-				_buffer_in_progress = new uint16_t[buffer_size];
+				_buffer_in_progress = new int16_t[buffer_size];
 				_buffer_size = buffer_size;
 			}
 			set_needs_updated_filter_coefficients();
@@ -52,7 +52,7 @@ class Speaker {
 		}
 
 	protected:
-		uint16_t *_buffer_in_progress;
+		int16_t *_buffer_in_progress;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
 		int _number_of_taps;

@@ -7,6 +7,7 @@
 //
 
 import Cocoa
+import AudioToolbox
 
 class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewResponderDelegate {
 
@@ -16,6 +17,8 @@ class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewRes
 			openGLView.responderDelegate = self
 		}
 	}
+
+	lazy var audioQueue = AudioQueue()
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)

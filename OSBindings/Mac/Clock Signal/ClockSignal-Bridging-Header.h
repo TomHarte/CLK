@@ -6,3 +6,4 @@
 #import "CSAtari2600.h"
 #import "CSElectron.h"
 #import	"CSCathodeRayView.h"
+#import "AudioQueue.h"
