@@ -10,7 +10,7 @@
 @import AudioToolbox;
 
 #define AudioQueueNumAudioBuffers	3
-#define AudioQueueStreamLength		2048
+#define AudioQueueStreamLength		32768
 #define AudioQueueBufferLength		512
 
 enum {
@@ -25,6 +25,10 @@ enum {
 	unsigned int _audioStreamReadPosition, _audioStreamWritePosition;
 	int16_t _audioStream[AudioQueueStreamLength];
 	NSConditionLock *_writeLock;
+
+#ifdef DEBUG_INPUT
+	NSFileHandle *
+#endif
 }
 
 
@@ -37,7 +41,9 @@ enum {
 
 	const unsigned int writeLead = _audioStreamWritePosition - _audioStreamReadPosition;
 	const size_t audioDataSampleSize = buffer->mAudioDataByteSize / sizeof(int16_t);
-	if(writeLead >= audioDataSampleSize*2)
+
+	// TODO: if write lead is too great, skip some audio
+	if(writeLead >= audioDataSampleSize)
 	{
 		size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamReadPosition % AudioQueueStreamLength);
 		if(audioDataSampleSize <= samplesBeforeOverflow)
@@ -125,6 +131,10 @@ static void audioOutputCallback(
 
 - (void)dealloc
 {
+	int c = AudioQueueNumAudioBuffers;
+	while(c--)
+		AudioQueueFreeBuffer(_audioQueue, _audioBuffers[c]);
+
 	if(_audioQueue) AudioQueueDispose(_audioQueue, NO);
 }
 
@@ -149,7 +159,7 @@ static void audioOutputCallback(
 
 - (NSInteger)writeLockCondition
 {
-	return ((_audioStreamWritePosition - _audioStreamReadPosition) < AudioQueueStreamLength) ? AudioQueueCanWrite : AudioQueueWait;
+	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanWrite : AudioQueueWait;
 }
 
 @end

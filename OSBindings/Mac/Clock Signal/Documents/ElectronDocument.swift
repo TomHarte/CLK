@@ -35,6 +35,17 @@ class ElectronDocument: MachineDocument {
 		return "ElectronDocument"
 	}
 
+	override func readFromURL(url: NSURL, ofType typeName: String) throws {
+		print(url)
+		print(typeName)
+		switch typeName {
+			default:
+				let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
+				try self.readFromFileWrapper(fileWrapper, ofType: typeName)
+			break;
+		}
+	}
+
 	override func readFromData(data: NSData, ofType typeName: String) throws {
 		electron.setROM(data, slot: 15)
 	}
