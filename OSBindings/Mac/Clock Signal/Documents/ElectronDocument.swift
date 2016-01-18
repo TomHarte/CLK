@@ -39,10 +39,11 @@ class ElectronDocument: MachineDocument {
 		print(url)
 		print(typeName)
 		switch typeName {
+			case "Electron/BBC Tape Image": // this somewhat implies I've misunderstood the info.plist, doesn't it?
+				electron.openUEFAtURL(url)
 			default:
 				let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
 				try self.readFromFileWrapper(fileWrapper, ofType: typeName)
-			break;
 		}
 	}
 

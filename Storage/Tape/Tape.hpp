@@ -20,14 +20,14 @@ class Tape {
 			unsigned int length, clock_rate;
 		};
 
-		struct Cycle {
+		struct Pulse {
 			enum {
 				High, Low, Zero
 			} type;
 			Time length;
 		};
 
-		virtual Cycle get_next_cycle() = 0;
+		virtual Pulse get_next_pulse() = 0;
 		virtual void reset() = 0;
 
 		virtual void seek(Time seek_time);

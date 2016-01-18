@@ -10,13 +10,30 @@
 #define TapeUEF_hpp
 
 #include "../Tape.hpp"
+#include <zlib.h>
+#include <stdint.h>
 
-class UEF : public Storage::Tape {
+namespace Storage {
+
+class UEF : public Tape {
 	public:
 		UEF(const char *file_name);
-		Cycle get_next_cycle();
+		~UEF();
+
+		Pulse get_next_pulse();
+		void reset();
 
 	private:
+		gzFile _file;
+		unsigned int _time_base;
+
+		uint16_t _chunk_id;
+		uint32_t _chunk_length;
+		uint32_t _chunk_position;
+
+		void find_next_tape_chunk();
 };
+
+}
 
 #endif /* TapeUEF_hpp */

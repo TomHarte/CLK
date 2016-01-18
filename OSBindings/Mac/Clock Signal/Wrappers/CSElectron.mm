@@ -10,6 +10,7 @@
 
 #import "Electron.hpp"
 #import "CSMachine+Subclassing.h"
+#import "TapeUEF.hpp"
 
 @implementation CSElectron {
 	Electron::Machine _electron;
@@ -45,6 +46,11 @@
 
 - (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {
 	_electron.get_crt()->set_delegate(delegate);
+}
+
+- (void)openUEFAtURL:(NSURL *)URL {
+	Storage::UEF tape([URL fileSystemRepresentation]);
+//	_electron.
 }
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
