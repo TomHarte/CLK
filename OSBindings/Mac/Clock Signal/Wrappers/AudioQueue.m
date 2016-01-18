@@ -17,9 +17,8 @@
 {
 	AudioQueueRef _audioQueue;
 	AudioQueueBufferRef _audioBuffers[AudioQueueNumAudioBuffers];
-	unsigned int _audioStreamReadPosition, _audioStreamWritePosition, _queuedAudioStreamSegments;
+	unsigned int _audioStreamReadPosition, _audioStreamWritePosition;
 	int16_t _audioStream[AudioQueueStreamLength];
-	BOOL _isOutputtingAudio;
 }
 
 
@@ -30,18 +29,26 @@
 {
 	@synchronized(self)
 	{
-		if(_queuedAudioStreamSegments > AudioQueueNumAudioBuffers-1) _isOutputtingAudio = YES;
-
-		if(_isOutputtingAudio && _queuedAudioStreamSegments)
+		const unsigned int writeLead = _audioStreamWritePosition - _audioStreamReadPosition;
+		const size_t audioDataSampleSize = buffer->mAudioDataByteSize / sizeof(int16_t);
+		if(writeLead >= audioDataSampleSize)
 		{
-			_queuedAudioStreamSegments--;
-			memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition], buffer->mAudioDataByteSize);
-			_audioStreamReadPosition = (_audioStreamReadPosition + AudioQueueBufferLength)%AudioQueueStreamLength;
+			size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamReadPosition % AudioQueueStreamLength);
+			if(audioDataSampleSize <= samplesBeforeOverflow)
+			{
+				memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % AudioQueueStreamLength], buffer->mAudioDataByteSize);
+			}
+			else
+			{
+				const size_t bytesRemaining = samplesBeforeOverflow * sizeof(int16_t);
+				memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % AudioQueueStreamLength], bytesRemaining);
+				memcpy(buffer->mAudioData, &_audioStream[0], buffer->mAudioDataByteSize - bytesRemaining);
+			}
+			_audioStreamReadPosition += audioDataSampleSize;
 		}
 		else
 		{
 			memset(buffer->mAudioData, 0, buffer->mAudioDataByteSize);
-			_isOutputtingAudio = NO;
 		}
 		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
 	}
@@ -91,7 +98,6 @@ static void audioOutputCallback(
 			0,
 			&_audioQueue))
 		{
-			_audioStreamWritePosition = AudioQueueBufferLength;
 			UInt32 bufferBytes = AudioQueueBufferLength * sizeof(int16_t);
 
 			int c = AudioQueueNumAudioBuffers;
@@ -115,21 +121,23 @@ static void audioOutputCallback(
 	if(_audioQueue) AudioQueueDispose(_audioQueue, NO);
 }
 
-- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(unsigned int)lengthInSamples
+- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples
 {
 	@synchronized(self)
 	{
-		memcpy(&_audioStream[_audioStreamWritePosition], buffer, lengthInSamples * sizeof(int16_t));
-		_audioStreamWritePosition = (_audioStreamWritePosition + lengthInSamples)%AudioQueueStreamLength;
+		size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamWritePosition % AudioQueueStreamLength);
 
-		if(_queuedAudioStreamSegments == (AudioQueueStreamLength/AudioQueueBufferLength))
+		if(samplesBeforeOverflow < lengthInSamples)
 		{
-			_audioStreamReadPosition = (_audioStreamReadPosition + lengthInSamples)%AudioQueueStreamLength;
+			memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, samplesBeforeOverflow * sizeof(int16_t));
+			memcpy(&_audioStream[0], &buffer[samplesBeforeOverflow], (lengthInSamples - samplesBeforeOverflow) * sizeof(int16_t));
 		}
 		else
 		{
-			_queuedAudioStreamSegments++;
+			memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, lengthInSamples * sizeof(int16_t));
 		}
+
+		_audioStreamWritePosition += lengthInSamples;
 	}
 }
 

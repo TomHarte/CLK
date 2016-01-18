@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 #include "../SignalProcessing/Stepper.hpp"
 
 namespace Outputs {
@@ -76,6 +77,17 @@ template <class T> class Filter: public Speaker {
 		{
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
+			_periodic_cycles += input_cycles;
+			time_t time_now = time(nullptr);
+			if(time_now > _periodic_start)
+			{
+				printf("input audio samples: %d\n", _periodic_cycles);
+				printf("output audio samples: %d\n", _periodic_output);
+				_periodic_cycles = 0;
+				_periodic_output = 0;
+				_periodic_start = time_now;
+			}
+
 			// point sample for now, as a temporary measure
 			input_cycles += _input_cycles_carry;
 			while(input_cycles > 0)
@@ -99,11 +111,17 @@ template <class T> class Filter: public Speaker {
 				if(steps > 1)
 					static_cast<T *>(this)->skip_samples((unsigned int)(steps-1));
 				input_cycles -= steps;
+				_periodic_output ++;
 			}
 			_input_cycles_carry = input_cycles;
 		}
 
+		Filter() : _periodic_cycles(0), _periodic_start(0) {}
+
 	private:
+				time_t _periodic_start;
+				int _periodic_cycles;
+				int _periodic_output;
 		SignalProcessing::Stepper *_stepper;
 		int _input_cycles_carry;
 

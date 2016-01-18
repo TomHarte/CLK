@@ -10,6 +10,6 @@
 
 @interface AudioQueue : NSObject
 
-- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(unsigned int)lengthInSamples;
+- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
 
 @end

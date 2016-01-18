@@ -13,9 +13,21 @@
 
 @implementation CSElectron {
 	Electron::Machine _electron;
+
+	NSTimeInterval _periodicStart;
+	int _numberOfCycles;
 }
 
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {
+	_numberOfCycles += numberOfCycles;
+	NSTimeInterval timeNow = [NSDate timeIntervalSinceReferenceDate];
+	NSTimeInterval difference = timeNow - _periodicStart;
+	if(difference > 1.0)
+	{
+		NSLog(@"cycles: %0.0f", (double)_numberOfCycles / difference);
+		_periodicStart = timeNow;
+		_numberOfCycles = 0;
+	}
 	_electron.run_for_cycles(numberOfCycles);
 }
 
