@@ -75,7 +75,7 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-			next_pulse.length.length = 2;
+			next_pulse.length.length = 1;
 			_bit_position ^= 1;
 
 			if(!_bit_position) _chunk_position++;
@@ -151,7 +151,7 @@ bool Storage::UEF::chunk_is_finished()
 	{
 		case 0x0100: return (_chunk_position / 10) == _chunk_length;
 		case 0x0102: return (_chunk_position / 8) == _chunk_length;
-		case 0x0111: return _chunk_position == _tone_length;
+		case 0x0110: return _chunk_position == _tone_length;
 
 		case 0x0112:
 		case 0x0116: return _chunk_position ? true : false;
