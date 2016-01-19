@@ -9,9 +9,9 @@
 #import "AudioQueue.h"
 @import AudioToolbox;
 
-#define AudioQueueNumAudioBuffers	3
-#define AudioQueueStreamLength		32768
-#define AudioQueueBufferLength		512
+#define AudioQueueNumAudioBuffers	4
+#define AudioQueueStreamLength		1024
+#define AudioQueueBufferLength		256
 
 enum {
 	AudioQueueCanWrite,
