@@ -29,9 +29,16 @@ class UEF : public Tape {
 
 		uint16_t _chunk_id;
 		uint32_t _chunk_length;
+
+		uint8_t _current_byte;
 		uint32_t _chunk_position;
 
+		bool _current_bit;
+		uint32_t _bit_position;
+
 		void find_next_tape_chunk();
+		bool get_next_bit();
+		bool chunk_is_finished();
 };
 
 }

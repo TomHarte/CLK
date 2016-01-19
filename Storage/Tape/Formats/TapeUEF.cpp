@@ -48,12 +48,40 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 {
 	Pulse next_pulse;
 
+	if(!_bit_position && chunk_is_finished())
+	{
+		find_next_tape_chunk();
+	}
+
+	next_pulse.length.clock_rate = _time_base;
+
+	switch(_chunk_id)
+	{
+		case 0x0100: case 0x0102: case 0x0110: case 0x0111: case 0x0114:
+		{
+			// In the ordinary ("1200 baud") data encoding format,
+			// a zero bit is encoded as one complete cycle at the base frequency.
+			// A one bit is two complete cycles at twice the base frequency.
+
+			if(!_bit_position)
+			{
+				_current_bit = get_next_bit();
+			}
+
+			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
+			next_pulse.length.length = _current_bit ? 1 : 2;
+			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
+		} break;
+	}
+
 	return next_pulse;
 }
 
 void Storage::UEF::find_next_tape_chunk()
 {
 	int reset_count = 0;
+	_chunk_position = 0;
+	_bit_position = 0;
 
 	while(1)
 	{
@@ -66,9 +94,7 @@ void Storage::UEF::find_next_tape_chunk()
 		_chunk_length |= (uint32_t)(gzgetc(_file) << 16);
 		_chunk_length |= (uint32_t)(gzgetc(_file) << 24);
 
-		printf("%04x: %d\n", _chunk_id, _chunk_length);
-
-		if (gzeof(_file))
+		if(gzeof(_file))
 		{
 			reset_count++;
 			if(reset_count == 2) break;
@@ -99,5 +125,54 @@ void Storage::UEF::find_next_tape_chunk()
 				gzseek(_file, _chunk_length, SEEK_CUR);
 			break;
 		}
+	}
+}
+
+bool Storage::UEF::chunk_is_finished()
+{
+	switch(_chunk_id)
+	{
+		case 0x0100: return (_chunk_position / 10) == _chunk_length;
+		case 0x0102: return (_chunk_position / 8) == _chunk_length;
+
+		default: return true;
+	}
+}
+
+bool Storage::UEF::get_next_bit()
+{
+	switch(_chunk_id)
+	{
+		case 0x0100:
+		{
+			uint32_t bit_position = _chunk_position%10;
+			_chunk_position++;
+			if(!bit_position)
+			{
+				_current_byte = (uint8_t)gzgetc(_file);
+			}
+			if(bit_position == 0) return false;
+			if(bit_position == 9) return true;
+			bool result = (_current_byte&1) ? true : false;
+			_current_byte >>= 1;
+			return result;
+		}
+		break;
+
+		case 0x0102:
+		{
+			uint32_t bit_position = _chunk_position%8;
+			_chunk_position++;
+			if(!bit_position)
+			{
+				_current_byte = (uint8_t)gzgetc(_file);
+			}
+			bool result = (_current_byte&1) ? true : false;
+			_current_byte >>= 1;
+			return result;
+		}
+		break;
+
+		default: return true;
 	}
 }
