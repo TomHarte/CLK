@@ -140,21 +140,32 @@ static void audioOutputCallback(
 
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples
 {
-	[_writeLock lockWhenCondition:AudioQueueCanWrite];
-	size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamWritePosition % AudioQueueStreamLength);
-
-	if(samplesBeforeOverflow < lengthInSamples)
+	while(1)
 	{
-		memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, samplesBeforeOverflow * sizeof(int16_t));
-		memcpy(&_audioStream[0], &buffer[samplesBeforeOverflow], (lengthInSamples - samplesBeforeOverflow) * sizeof(int16_t));
-	}
-	else
-	{
-		memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, lengthInSamples * sizeof(int16_t));
-	}
+		[_writeLock lockWhenCondition:AudioQueueCanWrite];
+		if((_audioStreamReadPosition + AudioQueueStreamLength) - _audioStreamWritePosition >= lengthInSamples)
+		{
+			size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamWritePosition % AudioQueueStreamLength);
 
-	_audioStreamWritePosition += lengthInSamples;
-	[_writeLock unlockWithCondition:[self writeLockCondition]];
+			if(samplesBeforeOverflow < lengthInSamples)
+			{
+				memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, samplesBeforeOverflow * sizeof(int16_t));
+				memcpy(&_audioStream[0], &buffer[samplesBeforeOverflow], (lengthInSamples - samplesBeforeOverflow) * sizeof(int16_t));
+			}
+			else
+			{
+				memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, lengthInSamples * sizeof(int16_t));
+			}
+
+			_audioStreamWritePosition += lengthInSamples;
+			[_writeLock unlockWithCondition:[self writeLockCondition]];
+			break;
+		}
+		else
+		{
+			[_writeLock unlockWithCondition:AudioQueueWait];
+		}
+	}
 }
 
 - (NSInteger)writeLockCondition
