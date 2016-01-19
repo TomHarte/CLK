@@ -248,16 +248,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	switch(_frameCycles)
 	{
 		case 64*128:
+		case 196*128:
 			update_audio();
 		break;
 
 		case 128*128:
 			update_audio();
 			signal_interrupt(InterruptRealTimeClock);
-		break;
-
-		case 196*128:
-			update_audio();
 		break;
 
 		case 284*128:

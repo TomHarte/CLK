@@ -37,6 +37,8 @@
 	CSCathodeRayViewSignalType _signalType;
 	int32_t _signalDecoderGeneration;
 	int32_t _compiledSignalDecoderGeneration;
+
+	CGRect _aspectRatioCorrectedBounds;
 }
 
 - (GLuint)textureForImageNamed:(NSString *)name
@@ -155,14 +157,23 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	if(_shaderProgram)
 	{
+		NSPoint viewSize = [self backingViewSize];
 		if(_windowSizeUniform >= 0)
 		{
-			NSPoint viewSize = [self backingViewSize];
 			glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
 		}
 
-		if(_boundsOriginUniform >= 0) glUniform2f(_boundsOriginUniform, (GLfloat)_frameBounds.origin.x, (GLfloat)_frameBounds.origin.y);
-		if(_boundsSizeUniform >= 0) glUniform2f(_boundsSizeUniform, (GLfloat)_frameBounds.size.width, (GLfloat)_frameBounds.size.height);
+		CGFloat outputAspectRatioMultiplier = (viewSize.x / viewSize.y) / (4.0 / 3.0);
+
+//		NSLog(@"%0.2f v %0.2f", outputAspectRatio, desiredOutputAspectRatio);
+		_aspectRatioCorrectedBounds = _frameBounds;
+
+		CGFloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _frameBounds.size.width;
+		_aspectRatioCorrectedBounds.origin.x -= bonusWidth * 0.5f * _aspectRatioCorrectedBounds.size.width;
+		_aspectRatioCorrectedBounds.size.width *= outputAspectRatioMultiplier;
+
+		if(_boundsOriginUniform >= 0) glUniform2f(_boundsOriginUniform, (GLfloat)_aspectRatioCorrectedBounds.origin.x, (GLfloat)_aspectRatioCorrectedBounds.origin.y);
+		if(_boundsSizeUniform >= 0) glUniform2f(_boundsSizeUniform, (GLfloat)_aspectRatioCorrectedBounds.size.width, (GLfloat)_aspectRatioCorrectedBounds.size.height);
 	}
 }
 
