@@ -53,11 +53,11 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 		find_next_tape_chunk();
 	}
 
-	next_pulse.length.clock_rate = _time_base;
+	next_pulse.length.clock_rate = _time_base * 2;
 
 	switch(_chunk_id)
 	{
-		case 0x0100: case 0x0102: case 0x0110: case 0x0111: case 0x0114:
+		case 0x0100: case 0x0102:
 		{
 			// In the ordinary ("1200 baud") data encoding format,
 			// a zero bit is encoded as one complete cycle at the base frequency.
@@ -72,6 +72,21 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 			next_pulse.length.length = _current_bit ? 1 : 2;
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
 		} break;
+
+		case 0x0110:
+			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
+			next_pulse.length.length = 2;
+			_bit_position ^= 1;
+
+			if(!_bit_position) _chunk_position++;
+		break;
+
+		case 0x0112:
+		case 0x0116:
+			next_pulse.type = Pulse::Zero;
+			next_pulse.length.length = _tone_length;
+			_chunk_position++;
+		break;
 	}
 
 	return next_pulse;
@@ -109,7 +124,9 @@ void Storage::UEF::find_next_tape_chunk()
 			return;
 
 			case 0x0110: // carrier tone
-				// TODO: read length
+				_tone_length = (uint16_t)gzgetc(_file);
+				_tone_length |= (uint16_t)(gzgetc(_file) << 8);
+				gzseek(_file, _chunk_length - 2, SEEK_CUR);
 			return;
 			case 0x0111: // carrier tone with dummy byte
 				// TODO: read length
@@ -134,6 +151,10 @@ bool Storage::UEF::chunk_is_finished()
 	{
 		case 0x0100: return (_chunk_position / 10) == _chunk_length;
 		case 0x0102: return (_chunk_position / 8) == _chunk_length;
+		case 0x0111: return _chunk_position == _tone_length;
+
+		case 0x0112:
+		case 0x0116: return _chunk_position ? true : false;
 
 		default: return true;
 	}
@@ -172,6 +193,10 @@ bool Storage::UEF::get_next_bit()
 			return result;
 		}
 		break;
+
+		case 0x0110:
+			_chunk_position++;
+		return true;
 
 		default: return true;
 	}

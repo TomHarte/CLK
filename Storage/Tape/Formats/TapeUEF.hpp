@@ -36,6 +36,8 @@ class UEF : public Tape {
 		bool _current_bit;
 		uint32_t _bit_position;
 
+		uint16_t _tone_length;
+
 		void find_next_tape_chunk();
 		bool get_next_bit();
 		bool chunk_is_finished();
