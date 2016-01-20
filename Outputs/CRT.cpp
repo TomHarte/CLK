@@ -15,6 +15,18 @@ using namespace Outputs;
 static const uint32_t kCRTFixedPointRange	= 0xf7ffffff;
 static const uint32_t kCRTFixedPointOffset	= 0x04000000;
 
+typedef uint16_t	kCRTPositionType;
+typedef uint16_t	kCRTTexCoordType;
+typedef uint8_t		kCRTLateralType;
+typedef uint8_t		kCRTPhaseType;
+
+//static const size_t kCRTVertexOffsetOfPosition = 0;
+//static const size_t kCRTVertexOffsetOfTexCoord = 4;
+//static const size_t kCRTVertexOffsetOfLateral = 8;
+//static const size_t kCRTVertexOffsetOfPhase = 9;
+//
+//static const int kCRTSizeOfVertex = 10;
+
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
 
@@ -394,6 +406,8 @@ CRTFrameBuilder::CRTFrameBuilder(uint16_t width, uint16_t height, unsigned int n
 	frame.size.height = height;
 	frame.number_of_buffers = number_of_buffers;
 	frame.buffers = new CRTBuffer[number_of_buffers];
+	frame.size_per_vertex = kCRTSizeOfVertex;
+	frame.geometry_mode = CRTGeometryModeTriangles;
 
 	for(int buffer = 0; buffer < number_of_buffers; buffer++)
 	{
@@ -413,7 +427,7 @@ CRTFrameBuilder::~CRTFrameBuilder()
 
 void CRTFrameBuilder::reset()
 {
-	frame.number_of_runs = 0;
+	frame.number_of_vertices = 0;
 	_next_write_x_position = _next_write_y_position = 0;
 	frame.dirty_size.width = 0;
 	frame.dirty_size.height = 1;
@@ -421,22 +435,21 @@ void CRTFrameBuilder::reset()
 
 void CRTFrameBuilder::complete()
 {
-	frame.runs = &_all_runs[0];
+	frame.vertices = &_all_runs[0];
 }
 
 uint8_t *CRTFrameBuilder::get_next_run()
 {
 	const size_t vertices_per_run = 6;
-	const size_t size_of_run = kCRTSizeOfVertex * vertices_per_run;
 
 	// get a run from the allocated list, allocating more if we're about to overrun
-	if(frame.number_of_runs * size_of_run >= _all_runs.size())
+	if((frame.number_of_vertices + vertices_per_run) * frame.size_per_vertex >= _all_runs.size())
 	{
-		_all_runs.resize(_all_runs.size() + size_of_run * 200);
+		_all_runs.resize(_all_runs.size() + frame.size_per_vertex * vertices_per_run * 100);
 	}
 
-	uint8_t *next_run = &_all_runs[frame.number_of_runs * size_of_run];
-	frame.number_of_runs++;
+	uint8_t *next_run = &_all_runs[frame.number_of_vertices * frame.size_per_vertex];
+	frame.number_of_vertices += vertices_per_run;
 
 	return next_run;
 }

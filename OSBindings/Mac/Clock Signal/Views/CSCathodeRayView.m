@@ -228,7 +228,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	BOOL hadFrame = _crtFrame ? YES : NO;
 	_crtFrame = crtFrame;
 
-	glBufferData(GL_ARRAY_BUFFER, _crtFrame->number_of_runs * kCRTSizeOfVertex * 6, _crtFrame->runs, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_crtFrame->number_of_vertices * _crtFrame->size_per_vertex), _crtFrame->vertices, GL_DYNAMIC_DRAW);
 
 	glBindTexture(GL_TEXTURE_2D, _textureName);
 	if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
@@ -512,7 +512,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	if (_crtFrame)
 	{
 		if(_textureSizeUniform >= 0) glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
-		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(_crtFrame->number_of_runs*6));
+		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_crtFrame->number_of_vertices);
 	}
 
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
