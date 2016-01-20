@@ -23,6 +23,10 @@ class UEF : public Tape {
 		Pulse get_next_pulse();
 		void reset();
 
+		enum {
+			ErrorNotUEF
+		};
+
 	private:
 		gzFile _file;
 		unsigned int _time_base;
@@ -36,7 +40,7 @@ class UEF : public Tape {
 		bool _current_bit;
 		uint32_t _bit_position;
 
-		uint16_t _tone_length;
+		Time _chunk_duration;
 
 		void find_next_tape_chunk();
 		bool get_next_bit();

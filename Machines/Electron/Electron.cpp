@@ -23,7 +23,8 @@ Machine::Machine() :
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
-	_currentOutputLine(0)
+	_currentOutputLine(0),
+	_tape({.is_running = false, .dataRegister = 0})
 {
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -100,6 +101,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
 					break;
 					case 0x4:
+						if(isReadOperation(operation))
+						{
+							*value = (uint8_t)_tape.dataRegister;
+						}
 						printf("Cassette\n");
 					break;
 					case 0x5:
@@ -170,6 +175,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							}
 
 							// TODO: tape mode, tape motor, caps lock LED
+							_tape.is_running = ((*value)&0x40) ? true : false;
 						}
 					break;
 					default:
@@ -270,10 +276,84 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			_audioOutputPosition = 0;
 			_currentOutputLine = 0;
 		break;
+	}
 
+	if(_tape.is_running && _tape.media != nullptr)
+	{
+		_tape.time_into_pulse += (unsigned int)_tape.pulseStepper->step();
+		if(_tape.time_into_pulse == _tape.currentPulse.length.length)
+		{
+			get_next_tape_pulse();
+
+			_tape.crossings[0] = _tape.crossings[1];
+			_tape.crossings[1] = _tape.crossings[2];
+			_tape.crossings[2] = _tape.crossings[3];
+
+			_tape.crossings[3] = Tape::Unrecognised;
+			if(_tape.currentPulse.type != Storage::Tape::Pulse::Zero)
+			{
+				float pulse_length = (float)_tape.currentPulse.length.length / (float)_tape.currentPulse.length.clock_rate;
+				if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _tape.crossings[3] = Tape::Short;
+				if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _tape.crossings[3] = Tape::Long;
+			}
+
+			if(_tape.crossings[0] == Tape::Long && _tape.crossings[1] == Tape::Long)
+			{
+				push_tape_bit(0);
+				_tape.crossings[1] = Tape::Unrecognised;
+			}
+			else
+			{
+				if(_tape.crossings[0] == Tape::Short && _tape.crossings[1] == Tape::Short && _tape.crossings[2] == Tape::Short && _tape.crossings[3] == Tape::Short)
+				{
+					push_tape_bit(1);
+					_tape.crossings[3] = Tape::Unrecognised;
+				}
+			}
+		}
 	}
 
 	return cycles;
+}
+
+inline void Machine::get_next_tape_pulse()
+{
+	_tape.time_into_pulse = 0;
+	_tape.currentPulse = _tape.media->get_next_pulse();
+	if(_tape.pulseStepper == nullptr || _tape.currentPulse.length.clock_rate != _tape.pulseStepper->get_output_rate())
+	{
+		_tape.pulseStepper = std::shared_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_tape.currentPulse.length.clock_rate, 2000000));
+	}
+}
+
+inline void Machine::push_tape_bit(uint16_t bit)
+{
+	_tape.dataRegister = (uint16_t)((_tape.dataRegister >> 1) | (bit << 9));
+
+	if(_tape.dataRegister == 0x3ff)
+		_interruptStatus |= InterruptHighToneDetect;
+	else
+		_interruptStatus &= !InterruptHighToneDetect;
+
+	if(_tape.bits_since_start > 0)
+	{
+		_tape.bits_since_start--;
+
+		if(_tape.bits_since_start == 0)
+		{
+			printf("%02x [%c]\n", _tape.dataRegister&0xff, _tape.dataRegister&0x7f);
+			_interruptStatus |= InterruptTransmitDataEmpty;
+		}
+	}
+
+	if(!bit && !_tape.bits_since_start)
+	{
+		_tape.bits_since_start = 10;
+	}
+
+	printf(".");
+
+	evaluate_interrupts();
 }
 
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)

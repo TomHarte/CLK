@@ -12,6 +12,7 @@
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Outputs/CRT.hpp"
 #include "../../Outputs/Speaker.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 #include <stdint.h>
 #include "Atari2600Inputs.h"
 
@@ -67,6 +68,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+		void set_tape(std::shared_ptr<Storage::Tape> tape) { _tape.media = tape; get_next_tape_pulse(); }
+
 		void set_key_state(Key key, bool isPressed);
 
 		Outputs::CRT *get_crt() { return _crt; }
@@ -74,27 +77,53 @@ class Machine: public CPU6502::Processor<Machine> {
 		const char *get_signal_decoder();
 
 	private:
+
+		inline void update_display();
+		inline void update_audio();
+		inline void signal_interrupt(Interrupt interrupt);
+		inline void evaluate_interrupts();
+
+		inline void get_next_tape_pulse();
+		inline void push_tape_bit(uint16_t bit);
+
+		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
 		uint8_t _os[16384], _ram[32768];
+
+		// Things affected by registers, explicitly or otherwise.
 		uint8_t _interruptStatus, _interruptControl;
 		uint8_t _palette[16];
 		uint8_t _keyStates[14];
 		ROMSlot _activeRom;
 		uint8_t _screenMode;
 		uint16_t _screenModeBaseAddress;
+		uint16_t _startScreenAddress;
 
-		Outputs::CRT *_crt;
-
+		// Counters related to simultaneous subsystems;
 		int _frameCycles, _displayOutputPosition, _audioOutputPosition, _audioOutputPositionError;
 
-		uint16_t _startScreenAddress, _startLineAddress, _currentScreenAddress;
+		// Display generation.
+		uint16_t _startLineAddress, _currentScreenAddress;
 		int _currentOutputLine;
 		uint8_t *_currentLine;
 
-		inline void update_display();
-		inline void update_audio();
-		inline void signal_interrupt(Interrupt interrupt);
-		inline void evaluate_interrupts();
+		// Tape.
+		struct Tape {
+			std::shared_ptr<Storage::Tape> media;
+			Storage::Tape::Pulse currentPulse;
+			std::shared_ptr<SignalProcessing::Stepper> pulseStepper;
+			uint32_t time_into_pulse;
+			bool is_running;
+			uint16_t dataRegister;
+			int bits_since_start;
+
+			enum {
+				Long, Short, Unrecognised
+			} crossings[4];
+		} _tape;
+
+		// Outputs.
+		Outputs::CRT *_crt;
 
 		class Speaker: public ::Outputs::Filter<Speaker> {
 			public:
@@ -114,8 +143,6 @@ class Machine: public CPU6502::Processor<Machine> {
 				uint8_t _divider;
 				bool _is_enabled;
 				int16_t _output_level;
-
-//				FILE *rawStream;
 
 		} _speaker;
 };

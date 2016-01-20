@@ -48,9 +48,14 @@
 	_electron.get_crt()->set_delegate(delegate);
 }
 
-- (void)openUEFAtURL:(NSURL *)URL {
-	Storage::UEF tape([URL fileSystemRepresentation]);
-//	_electron.
+- (BOOL)openUEFAtURL:(NSURL *)URL {
+	try {
+		std::shared_ptr<Storage::UEF> tape(new Storage::UEF([URL fileSystemRepresentation]));
+		_electron.set_tape(tape);
+		return YES;
+	} catch(int exception) {
+		return NO;
+	}
 }
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {

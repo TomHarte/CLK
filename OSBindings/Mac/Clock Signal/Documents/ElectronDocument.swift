@@ -38,13 +38,18 @@ class ElectronDocument: MachineDocument {
 	override func readFromURL(url: NSURL, ofType typeName: String) throws {
 		print(url)
 		print(typeName)
-		switch typeName {
-			case "Electron/BBC Tape Image": // this somewhat implies I've misunderstood the info.plist, doesn't it?
-				electron.openUEFAtURL(url)
-			default:
-				let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
-				try self.readFromFileWrapper(fileWrapper, ofType: typeName)
+
+		if let pathExtension = url.pathExtension {
+			switch pathExtension.lowercaseString {
+				case "uef":
+					electron.openUEFAtURL(url)
+					return
+				default: break;
+			}
 		}
+
+		let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
+		try self.readFromFileWrapper(fileWrapper, ofType: typeName)
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {

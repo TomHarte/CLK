@@ -19,7 +19,7 @@ Storage::UEF::UEF(const char *file_name) :
 	int bytes_read = gzread(_file, identifier, 10);
 	if(bytes_read < 10 || strcmp(identifier, "UEF File!"))
 	{
-		// exception?
+		throw ErrorNotUEF;
 	}
 
 	int minor, major;
@@ -28,7 +28,7 @@ Storage::UEF::UEF(const char *file_name) :
 
 	if(major > 0 || minor > 10 || major < 0 || minor < 0)
 	{
-		// exception?
+		throw ErrorNotUEF;
 	}
 
 	find_next_tape_chunk();
@@ -53,8 +53,6 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 		find_next_tape_chunk();
 	}
 
-	next_pulse.length.clock_rate = _time_base * 2;
-
 	switch(_chunk_id)
 	{
 		case 0x0100: case 0x0102:
@@ -70,12 +68,14 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = _current_bit ? 1 : 2;
+			next_pulse.length.clock_rate = _time_base * 4;
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
 		} break;
 
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = 1;
+			next_pulse.length.clock_rate = _time_base * 4;
 			_bit_position ^= 1;
 
 			if(!_bit_position) _chunk_position++;
@@ -84,7 +84,7 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 		case 0x0112:
 		case 0x0116:
 			next_pulse.type = Pulse::Zero;
-			next_pulse.length.length = _tone_length;
+			next_pulse.length = _chunk_duration;
 			_chunk_position++;
 		break;
 	}
@@ -120,16 +120,24 @@ void Storage::UEF::find_next_tape_chunk()
 		switch(_chunk_id)
 		{
 			case 0x0100: case 0x0102: // implicit and explicit bit patterns
-			case 0x0112: case 0x0116: // gaps
+			return;
+
+			case 0x0112:
+				_chunk_duration.length = (uint16_t)gzgetc(_file);
+				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
+				_chunk_duration.clock_rate = _time_base;
+			return;
+
+			case 0x0116: // gaps
 			return;
 
 			case 0x0110: // carrier tone
-				_tone_length = (uint16_t)gzgetc(_file);
-				_tone_length |= (uint16_t)(gzgetc(_file) << 8);
+				_chunk_duration.length = (uint16_t)gzgetc(_file);
+				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
 				gzseek(_file, _chunk_length - 2, SEEK_CUR);
 			return;
 			case 0x0111: // carrier tone with dummy byte
-				// TODO: read length
+				// TODO: read lengths
 			return;
 			case 0x0114: // security cycles
 				// TODO: read number, Ps and Ws
@@ -151,7 +159,7 @@ bool Storage::UEF::chunk_is_finished()
 	{
 		case 0x0100: return (_chunk_position / 10) == _chunk_length;
 		case 0x0102: return (_chunk_position / 8) == _chunk_length;
-		case 0x0110: return _chunk_position == _tone_length;
+		case 0x0110: return _chunk_position == _chunk_duration.length;
 
 		case 0x0112:
 		case 0x0116: return _chunk_position ? true : false;

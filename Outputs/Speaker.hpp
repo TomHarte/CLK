@@ -107,7 +107,7 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// determine how many source samples to step
-				uint64_t steps = _stepper->update();
+				uint64_t steps = _stepper->step();
 				if(steps > 1)
 					static_cast<T *>(this)->skip_samples((unsigned int)(steps-1));
 				input_cycles -= steps;
