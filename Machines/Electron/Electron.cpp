@@ -103,7 +103,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x4:
 						if(isReadOperation(operation))
 						{
-							*value = (uint8_t)_tape.dataRegister;
+							*value = (uint8_t)(_tape.dataRegister >> 2);
+							_interruptStatus &= ~InterruptTransmitDataEmpty;
+							evaluate_interrupts();
 						}
 						printf("Cassette\n");
 					break;
@@ -328,29 +330,30 @@ inline void Machine::get_next_tape_pulse()
 
 inline void Machine::push_tape_bit(uint16_t bit)
 {
-	_tape.dataRegister = (uint16_t)((_tape.dataRegister >> 1) | (bit << 9));
+	_tape.dataRegister = (uint16_t)((_tape.dataRegister >> 1) | (bit << 10));
 
-	if(_tape.dataRegister == 0x3ff)
-		_interruptStatus |= InterruptHighToneDetect;
-	else
-		_interruptStatus &= !InterruptHighToneDetect;
-
-	if(_tape.bits_since_start > 0)
+	if(_tape.bits_since_start)
 	{
 		_tape.bits_since_start--;
 
-		if(_tape.bits_since_start == 0)
+		if(_tape.bits_since_start == 7)
 		{
-			printf("%02x [%c]\n", _tape.dataRegister&0xff, _tape.dataRegister&0x7f);
-			_interruptStatus |= InterruptTransmitDataEmpty;
+			_interruptStatus &= ~InterruptTransmitDataEmpty;
 		}
 	}
-
-	if(!bit && !_tape.bits_since_start)
+	else
 	{
-		_tape.bits_since_start = 10;
-	}
+		if((_tape.dataRegister&0x3) == 0x1)
+		{
+			_interruptStatus |= InterruptTransmitDataEmpty;
+			_tape.bits_since_start = 9;
+		}
 
+		if(_tape.dataRegister == 0x3ff)
+			_interruptStatus |= InterruptHighToneDetect;
+		else
+			_interruptStatus &= ~InterruptHighToneDetect;
+	}
 	printf(".");
 
 	evaluate_interrupts();

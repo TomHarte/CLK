@@ -114,8 +114,9 @@ class Machine: public CPU6502::Processor<Machine> {
 			std::shared_ptr<SignalProcessing::Stepper> pulseStepper;
 			uint32_t time_into_pulse;
 			bool is_running;
-			uint16_t dataRegister;
 			int bits_since_start;
+
+			uint16_t dataRegister;
 
 			enum {
 				Long, Short, Unrecognised
