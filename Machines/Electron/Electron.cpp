@@ -107,7 +107,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							_interruptStatus &= ~InterruptTransmitDataEmpty;
 							evaluate_interrupts();
 						}
-						printf("Cassette\n");
+						else
+						{
+						}
+//						printf("Cassette\n");
 					break;
 					case 0x5:
 						if(!isReadOperation(operation))
@@ -354,7 +357,7 @@ inline void Machine::push_tape_bit(uint16_t bit)
 		else
 			_interruptStatus &= ~InterruptHighToneDetect;
 	}
-	printf(".");
+//	printf(".");
 
 	evaluate_interrupts();
 }
