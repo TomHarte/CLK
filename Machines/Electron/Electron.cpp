@@ -321,6 +321,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return cycles;
 }
 
+void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+{
+	_tape.media = tape;
+	get_next_tape_pulse();
+}
+
 inline void Machine::get_next_tape_pulse()
 {
 	_tape.time_into_pulse = 0;

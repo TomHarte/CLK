@@ -68,7 +68,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape> tape) { _tape.media = tape; get_next_tape_pulse(); }
+		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
 		void set_key_state(Key key, bool isPressed);
 

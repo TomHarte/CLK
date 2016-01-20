@@ -15,11 +15,6 @@ using namespace Outputs;
 static const uint32_t kCRTFixedPointRange	= 0xf7ffffff;
 static const uint32_t kCRTFixedPointOffset	= 0x04000000;
 
-typedef uint16_t	kCRTPositionType;
-typedef uint16_t	kCRTTexCoordType;
-typedef uint8_t		kCRTLateralType;
-typedef uint8_t		kCRTPhaseType;
-
 //static const size_t kCRTVertexOffsetOfPosition = 0;
 //static const size_t kCRTVertexOffsetOfTexCoord = 4;
 //static const size_t kCRTVertexOffsetOfLateral = 8;
