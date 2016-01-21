@@ -14,7 +14,6 @@
 #include "../../Outputs/Speaker.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include <stdint.h>
-#include "Atari2600Inputs.h"
 
 namespace Electron {
 
@@ -32,11 +31,11 @@ enum ROMSlot: uint8_t {
 };
 
 enum Interrupt: uint8_t {
-	InterruptDisplayEnd			= 0x04,
-	InterruptRealTimeClock		= 0x08,
-	InterruptTransmitDataEmpty	= 0x10,
-	InterruptReceiveDataFull	= 0x20,
-	InterruptHighToneDetect		= 0x40
+	DisplayEnd			= 0x04,
+	RealTimeClock		= 0x08,
+	TransmitDataEmpty	= 0x10,
+	ReceiveDataFull		= 0x20,
+	HighToneDetect		= 0x40
 };
 
 enum Key: uint16_t {
@@ -58,6 +57,12 @@ enum Key: uint16_t {
 	KeyBreak		= 0xffff
 };
 
+/*! 
+	@abstract Represents an Acorn Electron.
+	
+	@discussion An instance of Electron::Machine represents the current state of an
+	Acorn Electron.
+*/
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:

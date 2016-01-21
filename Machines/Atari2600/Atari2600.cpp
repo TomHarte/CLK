@@ -26,7 +26,6 @@ Machine::Machine() :
 {
 	_crt = new Outputs::CRT(228, 262, 1, 2);
 	memset(_collisions, 0xff, sizeof(_collisions));
-	setup6502();
 	set_reset_line(true);
 }
 

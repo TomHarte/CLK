@@ -25,7 +25,6 @@ enum Register {
 	S
 };
 
-
 enum Flag {
 	Sign		= 0x80,
 	Overflow	= 0x40,
@@ -41,10 +40,24 @@ enum BusOperation {
 	Read, ReadOpcode, Write, Ready, None
 };
 
+/*!
+	Evaluates to `true` if the operation is a read; `false` if it is a write.
+*/
 #define isReadOperation(v)	(v == CPU6502::BusOperation::Read || v == CPU6502::BusOperation::ReadOpcode)
 
+/*!
+	An opcode that is guaranteed to cause the CPU to jam.
+*/
 extern const uint8_t JamOpcode;
 
+/*!
+	@abstact An abstract base class for emulation of a 6502 processor.
+	
+	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
+	order to provde the bus on which the 6502 operates. Additional functionality can be provided by the host machine by providing
+	a jam handler and inserting jam opcodes where appropriate; that will cause call outs when the program counter reaches those
+	addresses. @c return_from_subroutine can be used to exit from a jammed state.
+*/
 template <class T> class Processor {
 	public:
 
@@ -384,18 +397,6 @@ template <class T> class Processor {
 		bool _nmi_line_is_enabled;
 		bool _ready_is_active;
 
-	public:
-		Processor() :
-			_scheduleProgramsReadPointer(0),
-			_scheduleProgramsWritePointer(0),
-			_is_jammed(false),
-			_jam_handler(nullptr),
-			_cycles_left_to_run(0),
-			_ready_line_is_enabled(false),
-			_ready_is_active(false),
-			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr}
-		{}
-
 		const MicroOp *get_reset_program() {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
@@ -423,6 +424,41 @@ template <class T> class Processor {
 			return reset;
 		}
 
+	public:
+		Processor() :
+			_scheduleProgramsReadPointer(0),
+			_scheduleProgramsWritePointer(0),
+			_is_jammed(false),
+			_jam_handler(nullptr),
+			_cycles_left_to_run(0),
+			_ready_line_is_enabled(false),
+			_ready_is_active(false),
+			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
+			_interruptFlag(Flag::Interrupt),
+			_s(0),
+			_nextBusOperation(BusOperation::None)
+
+		{
+			// only the interrupt flag is defined upon reset but get_flags isn't going to
+			// mask the other flags so we need to do that, at least
+			_carryFlag &= Flag::Carry;
+			_decimalFlag &= Flag::Decimal;
+			_overflowFlag &= Flag::Overflow;
+
+			// TODO: is this accurate? It feels more likely that a CPU would need to wait
+			// on an explicit reset command, since the relative startup times of different
+			// components from power on would be a bit unpredictable.
+			schedule_program(get_reset_program());
+		}
+
+		/*!
+			Runs the 6502 for a supplied number of cycles.
+			
+			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
+			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
+			
+			@param number_of_cycles The number of cycles to run the 6502 for.
+		*/
 		void run_for_cycles(int number_of_cycles)
 		{
 			static const MicroOp doBranch[] = {
@@ -932,6 +968,14 @@ template <class T> class Processor {
 			}
 		}
 
+		/*!
+			Gets the value of a register.
+			
+			@see set_value_of_register
+			
+			@param r The register to set.
+			@returns The value of the register. 8-bit registers will be returned as unsigned.
+		*/
 		uint16_t get_value_of_register(Register r)
 		{
 			switch (r) {
@@ -947,6 +991,14 @@ template <class T> class Processor {
 			}
 		}
 
+		/*!
+			Sets the value of a register.
+			
+			@see get_value_of_register
+			
+			@param r The register to set.
+			@param value The value to set. If the register is only 8 bit, the value will be truncated.
+		*/
 		void set_value_of_register(Register r, uint16_t value)
 		{
 			switch (r) {
@@ -961,23 +1013,10 @@ template <class T> class Processor {
 			}
 		}
 
-		void setup6502()
-		{
-			// only the interrupt flag is defined upon reset but get_flags isn't going to
-			// mask the other flags so we need to do that, at least
-			_interruptFlag = Flag::Interrupt;
-			_carryFlag &= Flag::Carry;
-			_decimalFlag &= Flag::Decimal;
-			_overflowFlag &= Flag::Overflow;
-			_s = 0;
-			_nextBusOperation = BusOperation::None;
-
-			// TODO: is this accurate? It feels more likely that a CPU would need to wait
-			// on an explicit reset command, since the relative startup times of different
-			// components from power on would be a bit unpredictable.
-			schedule_program(get_reset_program());
-		}
-
+		/*!
+			Interrupts current execution flow to perform an RTS and, if the 6502 is currently jammed,
+			to unjam it.
+		*/
 		void return_from_subroutine()
 		{
 			_s++;
@@ -990,6 +1029,11 @@ template <class T> class Processor {
 			}
 		}
 
+		/*!
+			Sets the current level of the RDY line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
 		void set_ready_line(bool active)
 		{
 			if(active)
@@ -1001,26 +1045,54 @@ template <class T> class Processor {
 			}
 		}
 
+		/*!
+			Sets the current level of the RST line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
 		void set_reset_line(bool active)
 		{
 			_reset_line_is_enabled = active;
 		}
 
+		/*!
+			Sets the current level of the IRQ line.
+			
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
 		void set_irq_line(bool active)
 		{
 			_irq_line_is_enabled = active;
 		}
 
+		/*!
+			Sets the current level of the NMI line.
+
+			@param active `true` if the line is logically active; `false` otherwise.
+		*/
 		void set_nmi_line(bool active)
 		{
+			// TODO: NMI is edge triggered, not level, and in any case _nmi_line_is_enabled
+			// is not honoured elsewhere. So NMI is yet to be implemented.
 			_nmi_line_is_enabled = active;
 		}
 
+		/*!
+			Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
+			such that it will not of itself perform any more meaningful processing.
+
+			@returns @c true if the 6502 is jammed; @c false otherwise.
+		*/
 		bool is_jammed()
 		{
 			return _is_jammed;
 		}
 
+		/*!
+			Installs a jam handler. Jam handlers are notified if a running 6502 jams.
+
+			@param handler The class instance that will be this 6502's jam handler from now on.
+		*/
 		void set_jam_handler(JamHandler *handler)
 		{
 			_jam_handler = handler;

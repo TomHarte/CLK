@@ -34,7 +34,6 @@ Machine::Machine() :
 		memset(_roms[c], 0xff, 16384);
 
 	_speaker.set_input_rate(125000);
-	setup6502();
 }
 
 Machine::~Machine()
@@ -104,7 +103,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(isReadOperation(operation))
 						{
 							*value = (uint8_t)(_tape.dataRegister >> 2);
-							_interruptStatus &= ~InterruptTransmitDataEmpty;
+							_interruptStatus &= ~Interrupt::TransmitDataEmpty;
 							evaluate_interrupts();
 						}
 						else
@@ -118,9 +117,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							const uint8_t interruptDisable = (*value)&0xf0;
 							if( interruptDisable )
 							{
-								if( interruptDisable&0x10 ) _interruptStatus &= ~InterruptDisplayEnd;
-								if( interruptDisable&0x20 ) _interruptStatus &= ~InterruptRealTimeClock;
-								if( interruptDisable&0x40 ) _interruptStatus &= ~InterruptHighToneDetect;
+								if( interruptDisable&0x10 ) _interruptStatus &= ~Interrupt::DisplayEnd;
+								if( interruptDisable&0x20 ) _interruptStatus &= ~Interrupt::RealTimeClock;
+								if( interruptDisable&0x40 ) _interruptStatus &= ~Interrupt::HighToneDetect;
 								evaluate_interrupts();
 								// TODO: NMI (?)
 							}
@@ -265,12 +264,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		case 128*128:
 			update_audio();
-			signal_interrupt(InterruptRealTimeClock);
+			signal_interrupt(Interrupt::RealTimeClock);
 		break;
 
 		case 284*128:
 			update_audio();
-			signal_interrupt(InterruptDisplayEnd);
+			signal_interrupt(Interrupt::DisplayEnd);
 		break;
 
 		case cycles_per_frame:
@@ -347,21 +346,21 @@ inline void Machine::push_tape_bit(uint16_t bit)
 
 		if(_tape.bits_since_start == 7)
 		{
-			_interruptStatus &= ~InterruptTransmitDataEmpty;
+			_interruptStatus &= ~Interrupt::TransmitDataEmpty;
 		}
 	}
 	else
 	{
 		if((_tape.dataRegister&0x3) == 0x1)
 		{
-			_interruptStatus |= InterruptTransmitDataEmpty;
+			_interruptStatus |= Interrupt::TransmitDataEmpty;
 			_tape.bits_since_start = 9;
 		}
 
 		if(_tape.dataRegister == 0x3ff)
-			_interruptStatus |= InterruptHighToneDetect;
+			_interruptStatus |= Interrupt::HighToneDetect;
 		else
-			_interruptStatus &= ~InterruptHighToneDetect;
+			_interruptStatus &= ~Interrupt::HighToneDetect;
 	}
 //	printf(".");
 
