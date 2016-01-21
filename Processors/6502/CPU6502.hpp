@@ -14,6 +14,9 @@
 
 namespace CPU6502 {
 
+/*
+	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
+*/
 enum Register {
 	LastOperationAddress,
 	ProgramCounter,
@@ -25,6 +28,9 @@ enum Register {
 	S
 };
 
+/*
+	Flags as defined on the 6502; can be used to decode the result of @c get_flags or to form a value for @c set_flags.
+*/
 enum Flag {
 	Sign		= 0x80,
 	Overflow	= 0x40,
@@ -36,6 +42,13 @@ enum Flag {
 	Carry		= 0x01
 };
 
+/*!
+	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
+	between a 6502 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
+
+	@c None is reserved for internal use. It will never be requested from a subclass. It is safe always to use the
+	isReadOperation macro to make a binary choice between reading and writing.
+*/
 enum BusOperation {
 	Read, ReadOpcode, Write, Ready, None
 };
@@ -51,8 +64,8 @@ enum BusOperation {
 extern const uint8_t JamOpcode;
 
 /*!
-	@abstact An abstract base class for emulation of a 6502 processor.
-	
+	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
+
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
 	order to provde the bus on which the 6502 operates. Additional functionality can be provided by the host machine by providing
 	a jam handler and inserting jam opcodes where appropriate; that will cause call outs when the program counter reaches those
@@ -68,6 +81,11 @@ template <class T> class Processor {
 
 	private:
 
+		/*
+			This emulation funcitons by decomposing instructions into micro programs, consisting of the micro operations
+			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+		*/
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
@@ -111,33 +129,69 @@ template <class T> class Processor {
 			} bytes;
 		};
 
+		/*
+			Storage for the 6502 registers; F is stored as individual flags.
+		*/
 		RegisterPair _pc, _lastOperationPC;
 		uint8_t _a, _x, _y, _s;
 		uint8_t _carryFlag, _negativeResult, _zeroResult, _decimalFlag, _overflowFlag, _interruptFlag;
 
+		/*
+			Temporary state for the micro programs.
+		*/
 		uint8_t _operation, _operand;
 		RegisterPair _address, _nextAddress;
 
+		/*
+			Up to four programs can be scheduled; each will be carried out in turn. This
+			storage maintains pointers to the scheduled list of programs.
+
+			Programs should be terminated by an OperationMoveToNextProgram, causing this
+			queue to take that step.
+		*/
 		const MicroOp *_scheduledPrograms[4];
 		unsigned int _scheduleProgramsWritePointer, _scheduleProgramsReadPointer, _scheduleProgramProgramCounter;
 
+		/*
+			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
+			possibly deferring is no longer of value.
+		*/
 		BusOperation _nextBusOperation;
 		uint16_t _busAddress;
 		uint8_t *_busValue;
 
-		uint64_t _externalBus;
+		/*!
+			Schedules a new program, adding it to the end of the queue. Programs should be
+			terminated with a OperationMoveToNextProgram. No attempt to copy the program
+			is made; a non-owning reference is kept.
 
+			@param program The program to schedule.
+		*/
 		void schedule_program(const MicroOp *program)
 		{
 			_scheduledPrograms[_scheduleProgramsWritePointer] = program;
 			_scheduleProgramsWritePointer = (_scheduleProgramsWritePointer+1)&3;
 		}
 
+		/*!
+			Gets the flags register.
+
+			@see set_flags
+
+			@returns The current value of the flags register.
+		*/
 		uint8_t get_flags()
 		{
 			return _carryFlag | _overflowFlag | _interruptFlag | (_negativeResult & 0x80) | (_zeroResult ? 0 : Flag::Zero) | Flag::Always | _decimalFlag;
 		}
 
+		/*!
+			Sets the flags register.
+
+			@see set_flags
+
+			@param flags The new value of the flags register.
+		*/
 		void set_flags(uint8_t flags)
 		{
 			_carryFlag		= flags		& Flag::Carry;
@@ -148,6 +202,11 @@ template <class T> class Processor {
 			_decimalFlag	= flags		& Flag::Decimal;
 		}
 
+		/*!
+			Schedules the program corresponding to the specified operation.
+
+			@param operation The operation code for which to schedule a program.
+		*/
 		void decode_operation(uint8_t operation)
 		{
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
@@ -397,6 +456,11 @@ template <class T> class Processor {
 		bool _nmi_line_is_enabled;
 		bool _ready_is_active;
 
+		/*!
+			Gets the program representing an RST response.
+
+			@returns The program representing an RST response.
+		*/
 		const MicroOp *get_reset_program() {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
@@ -411,6 +475,11 @@ template <class T> class Processor {
 			return reset;
 		}
 
+		/*!
+			Gets the program representing an IRQ response.
+
+			@returns The program representing an IRQ response.
+		*/
 		const MicroOp *get_irq_program() {
 			static const MicroOp reset[] = {
 				CyclePushPCH,
@@ -424,7 +493,7 @@ template <class T> class Processor {
 			return reset;
 		}
 
-	public:
+	protected:
 		Processor() :
 			_scheduleProgramsReadPointer(0),
 			_scheduleProgramsWritePointer(0),
@@ -451,6 +520,7 @@ template <class T> class Processor {
 			schedule_program(get_reset_program());
 		}
 
+	public:
 		/*!
 			Runs the 6502 for a supplied number of cycles.
 
