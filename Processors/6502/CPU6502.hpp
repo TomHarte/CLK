@@ -453,10 +453,10 @@ template <class T> class Processor {
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
-			
+
 			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
 			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
-			
+
 			@param number_of_cycles The number of cycles to run the 6502 for.
 		*/
 		void run_for_cycles(int number_of_cycles)
@@ -970,9 +970,9 @@ template <class T> class Processor {
 
 		/*!
 			Gets the value of a register.
-			
+
 			@see set_value_of_register
-			
+
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
@@ -993,9 +993,9 @@ template <class T> class Processor {
 
 		/*!
 			Sets the value of a register.
-			
+
 			@see get_value_of_register
-			
+
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
@@ -1057,7 +1057,7 @@ template <class T> class Processor {
 
 		/*!
 			Sets the current level of the IRQ line.
-			
+
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
 		void set_irq_line(bool active)
