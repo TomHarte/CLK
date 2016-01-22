@@ -520,12 +520,16 @@ inline void Machine::update_display()
 									while(pixels_to_output--)
 									{
 										GetNextPixels();
-										for(int c = 0; c < 8; c++)
-										{
-											uint8_t colour = (pixels&0x80) >> 4;
-											_writePointer[c] = _palette[colour];
-											pixels <<= 1;
-										}
+
+										_writePointer[0] = _palette[(pixels&0x80) >> 4];
+										_writePointer[1] = _palette[(pixels&0x40) >> 3];
+										_writePointer[2] = _palette[(pixels&0x20) >> 2];
+										_writePointer[3] = _palette[(pixels&0x10) >> 1];
+										_writePointer[4] = _palette[(pixels&0x08) >> 0];
+										_writePointer[5] = _palette[(pixels&0x04) << 1];
+										_writePointer[6] = _palette[(pixels&0x02) << 2];
+										_writePointer[7] = _palette[(pixels&0x01) << 3];
+
 										_writePointer += 8;
 									}
 								break;
@@ -535,12 +539,12 @@ inline void Machine::update_display()
 									while(pixels_to_output--)
 									{
 										GetNextPixels();
-										for(int c = 0; c < 4; c ++)
-										{
-											uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
-											_writePointer[c] = _palette[colour];
-											pixels <<= 1;
-										}
+
+										_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x08) >> 2)];
+										_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x04) >> 1)];
+										_writePointer[2] = _palette[((pixels&0x20) >> 2) | ((pixels&0x02) >> 0)];
+										_writePointer[3] = _palette[((pixels&0x10) >> 1) | ((pixels&0x01) << 1)];
+
 										_writePointer += 4;
 									}
 								break;
@@ -549,12 +553,8 @@ inline void Machine::update_display()
 									while(pixels_to_output--)
 									{
 										GetNextPixels();
-										for(int c = 0; c < 2; c ++)
-										{
-											uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1);
-											_writePointer[c] = _palette[colour];
-											pixels <<= 1;
-										}
+										_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1)];
+										_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x10) >> 2) | ((pixels&0x04) >> 1) | ((pixels&0x01) >> 0)];
 										_writePointer += 2;
 									}
 								break;
