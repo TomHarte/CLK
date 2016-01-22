@@ -17,6 +17,8 @@ static const unsigned int cycles_per_frame = 312*cycles_per_line;
 static const unsigned int crt_cycles_multiplier = 8;
 static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
+const int first_graphics_line = 28;
+
 Machine::Machine() :
 	_interruptControl(0),
 	_frameCycles(0),
@@ -52,20 +54,28 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else
 		{
-			// TODO: range check on address; a lot of the time the machine will be running code outside of
-			// the screen area, meaning that no update is required.
-			update_display();
+			// If we're still before the display will start to be painted, or the address is
+			// less than both the current line address and 0x3000, (the minimum screen mode
+			// base address) then there's no way this write can affect the current frame. Sp
+			// no need to flush the display. Otherwise, output up until now so that any
+			// write doesn't have retroactive effect on the video output.
+			if(!(
+				(_frameCycles < first_graphics_line * cycles_per_line) ||
+				(address < _startLineAddress && address < 0x3000)
+			))
+				update_display();
 
 			_ram[address] = *value;
 		}
 
-		// TODO: RAM timing for Modes 0–3
+		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
+		// it's also accessible only outside of the pixel regions
 		cycles += (_frameCycles&1)^1;
 		if(_screenMode < 4)
 		{
 			const int current_line = _frameCycles >> 7;
 			const int line_position = _frameCycles & 127;
-			if(current_line >= 28 && current_line < 28+256 && line_position >= 24 && line_position < 104)
+			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= 24 && line_position < 104)
 				cycles = (unsigned int)(104 - line_position);
 		}
 	}
@@ -410,7 +420,6 @@ inline void Machine::update_display()
 {
 	const int lines_of_hsync = 3;
 	const int end_of_hsync = lines_of_hsync * cycles_per_line;
-	const int first_graphics_line = 28;
 
 	if(_frameCycles >= end_of_hsync)
 	{
