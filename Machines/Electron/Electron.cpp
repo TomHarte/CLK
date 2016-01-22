@@ -12,10 +12,10 @@
 
 using namespace Electron;
 
-static const int cycles_per_line = 128;
-static const int cycles_per_frame = 312*cycles_per_line;
-static const int crt_cycles_multiplier = 8;
-static const int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
+static const unsigned int cycles_per_line = 128;
+static const unsigned int cycles_per_frame = 312*cycles_per_line;
+static const unsigned int crt_cycles_multiplier = 8;
+static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
 Machine::Machine() :
 	_interruptControl(0),
@@ -459,8 +459,15 @@ inline void Machine::update_display()
 						_crt->output_blank(15 * crt_cycles_multiplier);
 						_displayOutputPosition += 15;
 
-						_crt->allocate_write_area(80 * crt_cycles_multiplier);
-						_currentLine = (uint8_t *)_crt->get_write_target_for_buffer(0);
+						switch(_screenMode)
+						{
+							case 0: case 3:				_currentOutputDivider = 1; break;
+							case 1:	case 4: case 6:		_currentOutputDivider = 2; break;
+							case 2: case 5:				_currentOutputDivider = 4; break;
+						}
+
+						_crt->allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
+						_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 
 						if(current_line == first_graphics_line)
 							_startLineAddress = _startScreenAddress;
@@ -469,6 +476,32 @@ inline void Machine::update_display()
 
 					if(line_position >= 24 && line_position < 104)
 					{
+						unsigned int newDivider = 0;
+						switch(_screenMode)
+						{
+							case 0: case 3:				newDivider = 1; break;
+							case 1:	case 4: case 6:		newDivider = 2; break;
+							case 2: case 5:				newDivider = 4; break;
+						}
+						if(newDivider != _currentOutputDivider)
+						{
+							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
+							_currentOutputDivider = newDivider;
+							_crt->allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
+						}
+
+						// TODO: determine whether we need to change divider
+//						int pixels_to_output = std::max(_frameCycles - _displayOutputPosition, 104 - line_position);
+//						if(_screenMode >= 4)
+//						{
+//							// just shifting wouldn't be enough if both
+//							if(_displayOutputPosition&1) pixels_to_output++;
+//							pixels_to_output >>= 1;
+//						}
+//
+//						swi
+
 						if(_currentLine && ((_screenMode < 4) || !(line_position&1)))
 						{
 							if(_currentScreenAddress&32768)
@@ -477,7 +510,6 @@ inline void Machine::update_display()
 							}
 							uint8_t pixels = _ram[_currentScreenAddress];
 							_currentScreenAddress = _currentScreenAddress+8;
-							int output_ptr = (line_position - 24) << 3;
 
 							switch(_screenMode)
 							{
@@ -486,49 +518,52 @@ inline void Machine::update_display()
 									for(int c = 0; c < 8; c++)
 									{
 										uint8_t colour = (pixels&0x80) >> 4;
-										_currentLine[output_ptr + c] = _palette[colour];
+										_writePointer[c] = _palette[colour];
 										pixels <<= 1;
 									}
+									_writePointer += 8;
 								break;
 
 								case 1:
-									for(int c = 0; c < 8; c += 2)
+									for(int c = 0; c < 4; c ++)
 									{
 										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
-										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] = _palette[colour];
+										_writePointer[c] = _palette[colour];
 										pixels <<= 1;
 									}
+									_writePointer += 4;
 								break;
 
 								case 2:
-									for(int c = 0; c < 8; c += 4)
+									for(int c = 0; c < 2; c ++)
 									{
 										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1);
-										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] =
-										_currentLine[output_ptr + c + 2] = _currentLine[output_ptr + c + 3] = _palette[colour];
+										_writePointer[c] = _palette[colour];
 										pixels <<= 1;
 									}
+									_writePointer += 2;
 								break;
 
 								case 5:
-									for(int c = 0; c < 16; c += 4)
+									for(int c = 0; c < 4; c ++)
 									{
 										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
-										_currentLine[output_ptr + c + 0] = _currentLine[output_ptr + c + 1] =
-										_currentLine[output_ptr + c + 2] = _currentLine[output_ptr + c + 3] = _palette[colour];
+										_writePointer[c] = _palette[colour];
 										pixels <<= 1;
 									}
+									_writePointer += 4;
 								break;
 
 								default:
 								case 4:
 								case 6:
-									for(int c = 0; c < 16; c += 2)
+									for(int c = 0; c < 8; c ++)
 									{
 										uint8_t colour = (pixels&0x80) >> 4;
-										_currentLine[output_ptr + c] = _currentLine[output_ptr + c + 1] = _palette[colour];
+										_writePointer[c] = _palette[colour];
 										pixels <<= 1;
 									}
+									_writePointer += 8;
 								break;
 							}
 						}
@@ -545,10 +580,10 @@ inline void Machine::update_display()
 						else
 							_startLineAddress++;
 
-						_currentLine = nullptr;
-						_crt->output_data(80 * crt_cycles_multiplier);
+						_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
 						_crt->output_blank(24 * crt_cycles_multiplier);
 						_displayOutputPosition += 24;
+						_currentLine = nullptr;
 					}
 				}
 			}

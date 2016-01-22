@@ -175,7 +175,7 @@ CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, unsi
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type)
+void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type)
 {
 	number_of_cycles *= _time_multiplier;
 
@@ -252,7 +252,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			position_y(5) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y);
 
 			// if this is a data run then advance the buffer pointer
-			if(type == Type::Data) tex_x += next_run_length / _time_multiplier;
+			if(type == Type::Data) tex_x += next_run_length / (_time_multiplier * source_divider);
 
 			// if this is a data or level run then store the end point
 			tex_x(2) = tex_x(3) = tex_x(5) = tex_x;
@@ -356,28 +356,28 @@ void CRT::output_sync(unsigned int number_of_cycles)
 {
 	bool _hsync_requested = !_is_receiving_sync;	// ensure this really is edge triggered; someone calling output_sync twice in succession shouldn't trigger it twice
 	_is_receiving_sync = true;
-	advance_cycles(number_of_cycles, _hsync_requested, false, true, Type::Sync);
+	advance_cycles(number_of_cycles, 1, _hsync_requested, false, true, Type::Sync);
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Blank);
+	advance_cycles(number_of_cycles, 1, false, _vsync_requested, false, Type::Blank);
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Level);
+	advance_cycles(number_of_cycles, 1, false, _vsync_requested, false, Type::Level);
 }
 
-void CRT::output_data(unsigned int number_of_cycles)
+void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
 	bool _vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, false, _vsync_requested, false, Type::Data);
+	advance_cycles(number_of_cycles, source_divider, false, _vsync_requested, false, Type::Data);
 }
 
 #pragma mark - Buffer supply

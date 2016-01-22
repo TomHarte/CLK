@@ -53,10 +53,46 @@ class CRT {
 
 		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display);
 
+		/*! Output at the sync level.
+
+			@param number_of_cycles The amount of time to putput sync for.
+		*/
 		void output_sync(unsigned int number_of_cycles);
+
+		/*! Output at the blanking level.
+
+			@param number_of_cycles The amount of time to putput the blanking level for.
+		*/
 		void output_blank(unsigned int number_of_cycles);
+
+		/*! Outputs the first written to the most-recently created run of data repeatedly for a prolonged period.
+
+			@param number_of_cycles The number of cycles to repeat the output for.
+		*/
 		void output_level(unsigned int number_of_cycles);
-		void output_data(unsigned int number_of_cycles);
+
+		/*! Declares that the caller has created a run of data via @c allocate_write_area and @c get_write_target_for_buffer
+			that is at least @c number_of_cycles long, and that the first @c number_of_cycles/source_divider should be spread
+			over that amount of time.
+
+			@param number_of_cycles The amount of data to output.
+
+			@param source_divider A divider for source data; if the divider is 1 then one source pixel is output every cycle,
+			if it is 2 then one source pixel covers two cycles; if it is n then one source pixel covers n cycles.
+		*/
+		void output_data(unsigned int number_of_cycles, unsigned int source_divider);
+
+		/*! Outputs a colour burst.
+
+			@param number_of_cycles The length of the colour burst.
+
+			@param phase The initial phase of the colour burst in a measuring system with 256 units
+			per circle, e.g. 0 = 0 degrees, 128 = 180 degrees, 256 = 360 degree.
+
+			@param magnitude The magnitude of the colour burst in 1/256ths of the magnitude of the
+			positive portion of the wave.
+		*/
+		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude);
 
 		class Delegate {
 			public:
@@ -110,7 +146,7 @@ class CRT {
 		enum Type {
 			Sync, Level, Data, Blank
 		} type;
-		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type);
+		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window

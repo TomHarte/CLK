@@ -223,7 +223,7 @@ void Machine::output_pixels(unsigned int count)
 			{
 				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);	break;
 				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);	break;
-				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration);	break;
+				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration,	1);	break;
 			}
 			_lastOutputStateDuration = 0;
 			_lastOutputState = state;

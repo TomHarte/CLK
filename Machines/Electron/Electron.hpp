@@ -110,7 +110,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
 		int _currentOutputLine;
-		uint8_t *_currentLine;
+		unsigned int _currentOutputDivider;
+		uint8_t *_currentLine, *_writePointer;
 
 		// Tape.
 		struct Tape {
