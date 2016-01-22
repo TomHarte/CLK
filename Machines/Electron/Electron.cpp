@@ -476,6 +476,8 @@ inline void Machine::update_display()
 
 					if(line_position >= 24 && line_position < 104)
 					{
+						// determine whether the pixel clock divider has changed; if so write out the old
+						// data and start a new run
 						unsigned int newDivider = 0;
 						switch(_screenMode)
 						{
@@ -491,83 +493,73 @@ inline void Machine::update_display()
 							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 						}
 
-						// TODO: determine whether we need to change divider
-//						int pixels_to_output = std::max(_frameCycles - _displayOutputPosition, 104 - line_position);
-//						if(_screenMode >= 4)
-//						{
-//							// just shifting wouldn't be enough if both
-//							if(_displayOutputPosition&1) pixels_to_output++;
-//							pixels_to_output >>= 1;
-//						}
-//
-//						swi
 
-						if(_currentLine && ((_screenMode < 4) || !(line_position&1)))
+						int pixels_to_output = std::min(_frameCycles - _displayOutputPosition, 104 - line_position);
+						_displayOutputPosition += pixels_to_output;
+						if(_screenMode >= 4)
 						{
-							if(_currentScreenAddress&32768)
-							{
-								_currentScreenAddress = _screenModeBaseAddress + (_currentScreenAddress&32767);
-							}
-							uint8_t pixels = _ram[_currentScreenAddress];
-							_currentScreenAddress = _currentScreenAddress+8;
+							// just shifting wouldn't be enough if both
+							if(_displayOutputPosition&1) pixels_to_output++;
+							pixels_to_output >>= 1;
+						}
 
+#define GetNextPixels() \
+	if(_currentScreenAddress&32768)\
+	{\
+		_currentScreenAddress = _screenModeBaseAddress + (_currentScreenAddress&32767);\
+	}\
+	uint8_t pixels = _ram[_currentScreenAddress];\
+	_currentScreenAddress = _currentScreenAddress+8
+
+						if(pixels_to_output)
+						{
 							switch(_screenMode)
 							{
-								case 0:
-								case 3:
-									for(int c = 0; c < 8; c++)
+								default:
+								case 0: case 3: case 4: case 6:
+									while(pixels_to_output--)
 									{
-										uint8_t colour = (pixels&0x80) >> 4;
-										_writePointer[c] = _palette[colour];
-										pixels <<= 1;
+										GetNextPixels();
+										for(int c = 0; c < 8; c++)
+										{
+											uint8_t colour = (pixels&0x80) >> 4;
+											_writePointer[c] = _palette[colour];
+											pixels <<= 1;
+										}
+										_writePointer += 8;
 									}
-									_writePointer += 8;
 								break;
 
 								case 1:
-									for(int c = 0; c < 4; c ++)
+								case 5:
+									while(pixels_to_output--)
 									{
-										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
-										_writePointer[c] = _palette[colour];
-										pixels <<= 1;
+										GetNextPixels();
+										for(int c = 0; c < 4; c ++)
+										{
+											uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
+											_writePointer[c] = _palette[colour];
+											pixels <<= 1;
+										}
+										_writePointer += 4;
 									}
-									_writePointer += 4;
 								break;
 
 								case 2:
-									for(int c = 0; c < 2; c ++)
+									while(pixels_to_output--)
 									{
-										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1);
-										_writePointer[c] = _palette[colour];
-										pixels <<= 1;
+										GetNextPixels();
+										for(int c = 0; c < 2; c ++)
+										{
+											uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1);
+											_writePointer[c] = _palette[colour];
+											pixels <<= 1;
+										}
+										_writePointer += 2;
 									}
-									_writePointer += 2;
-								break;
-
-								case 5:
-									for(int c = 0; c < 4; c ++)
-									{
-										uint8_t colour = ((pixels&0x80) >> 4) | ((pixels&0x08) >> 2);
-										_writePointer[c] = _palette[colour];
-										pixels <<= 1;
-									}
-									_writePointer += 4;
-								break;
-
-								default:
-								case 4:
-								case 6:
-									for(int c = 0; c < 8; c ++)
-									{
-										uint8_t colour = (pixels&0x80) >> 4;
-										_writePointer[c] = _palette[colour];
-										pixels <<= 1;
-									}
-									_writePointer += 8;
 								break;
 							}
 						}
-						_displayOutputPosition++;
 					}
 
 					if(line_position == 104)
