@@ -146,7 +146,7 @@ class CRT {
 		enum Type {
 			Sync, Level, Data, Blank, ColourBurst
 		} type;
-		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type);
+		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
@@ -173,7 +173,7 @@ class CRT {
 			};
 		} _scans[2];
 		int _next_scan;
-		void output_scan(Scan *scan);
+		void output_scan();
 };
 
 }

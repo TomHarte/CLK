@@ -170,18 +170,11 @@ CRT::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, unsi
 	return proposedEvent;
 }
 
-void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type)
+void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y)
 {
 	number_of_cycles *= _time_multiplier;
 
 	bool is_output_run = ((type == Type::Level) || (type == Type::Data));
-	uint16_t tex_x = 0;
-	uint16_t tex_y = 0;
-
-	if(is_output_run && _current_frame_builder) {
-		tex_x = _current_frame_builder->_write_x_position;
-		tex_y = _current_frame_builder->_write_y_position;
-	}
 
 	while(number_of_cycles) {
 
@@ -344,16 +337,17 @@ void CRT::set_delegate(Delegate *delegate)
 
 #pragma mark - stream feeding methods
 
-void CRT::output_scan(Scan *scan)
+void CRT::output_scan()
 {
+	_next_scan ^= 1;
+	Scan *scan = &_scans[_next_scan];
+
 	bool this_is_sync = (scan->type == Type::Sync);
 	bool hsync_requested = !_is_receiving_sync && this_is_sync;
 	bool vsync_requested = _is_receiving_sync;
 	_is_receiving_sync = this_is_sync;
 
-	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type);
-
-	_next_scan ^= 1;
+	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type, scan->tex_x, scan->tex_y);
 }
 
 /*
@@ -363,14 +357,14 @@ void CRT::output_sync(unsigned int number_of_cycles)
 {
 	_scans[_next_scan].type = Type::Sync;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	output_scan(&_scans[_next_scan]);
+	output_scan();
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
 	_scans[_next_scan].type = Type::Blank;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	output_scan(&_scans[_next_scan]);
+	output_scan();
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
@@ -379,7 +373,7 @@ void CRT::output_level(unsigned int number_of_cycles)
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
 	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
-	output_scan(&_scans[_next_scan]);
+	output_scan();
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude)
@@ -388,7 +382,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	_scans[_next_scan].phase = phase;
 	_scans[_next_scan].magnitude = magnitude;
-	output_scan(&_scans[_next_scan]);
+	output_scan();
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
@@ -398,7 +392,7 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
 	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
 	_scans[_next_scan].source_divider = source_divider;
-	output_scan(&_scans[_next_scan]);
+	output_scan();
 }
 
 #pragma mark - Buffer supply
