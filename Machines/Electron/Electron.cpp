@@ -35,6 +35,7 @@ Machine::Machine() :
 		memset(_roms[c], 0xff, 16384);
 
 	_speaker.set_input_rate(125000);
+	_tape.set_delegate(this);
 }
 
 Machine::~Machine()
@@ -290,7 +291,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		break;
 	}
 
-	_tape.run_for_cycle();
+	_tape.run_for_cycles(cycles);
 
 	return cycles;
 }
@@ -657,38 +658,41 @@ inline void Tape::clear_interrupts(uint8_t interrupts)
 	}
 }
 
-inline void Tape::run_for_cycle()
+inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 {
 	if(_is_running && _tape != nullptr)
 	{
-		_time_into_pulse += (unsigned int)_pulse_stepper->step();
-		if(_time_into_pulse == _current_pulse.length.length)
+		while(number_of_cycles--)
 		{
-			get_next_tape_pulse();
-
-			_crossings[0] = _crossings[1];
-			_crossings[1] = _crossings[2];
-			_crossings[2] = _crossings[3];
-
-			_crossings[3] = Tape::Unrecognised;
-			if(_current_pulse.type != Storage::Tape::Pulse::Zero)
+			_time_into_pulse += (unsigned int)_pulse_stepper->step();
+			if(_time_into_pulse == _current_pulse.length.length)
 			{
-				float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
-				if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _crossings[3] = Tape::Short;
-				if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _crossings[3] = Tape::Long;
-			}
+				get_next_tape_pulse();
 
-			if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
-			{
-				push_tape_bit(0);
-				_crossings[1] = Tape::Unrecognised;
-			}
-			else
-			{
-				if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
+				_crossings[0] = _crossings[1];
+				_crossings[1] = _crossings[2];
+				_crossings[2] = _crossings[3];
+
+				_crossings[3] = Tape::Unrecognised;
+				if(_current_pulse.type != Storage::Tape::Pulse::Zero)
 				{
-					push_tape_bit(1);
-					_crossings[3] = Tape::Unrecognised;
+					float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
+					if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _crossings[3] = Tape::Short;
+					if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _crossings[3] = Tape::Long;
+				}
+
+				if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
+				{
+					push_tape_bit(0);
+					_crossings[1] = Tape::Unrecognised;
+				}
+				else
+				{
+					if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
+					{
+						push_tape_bit(1);
+						_crossings[3] = Tape::Unrecognised;
+					}
 				}
 			}
 		}

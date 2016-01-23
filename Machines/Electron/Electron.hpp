@@ -74,7 +74,7 @@ class Tape {
 		};
 		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
 
-		inline void run_for_cycle();
+		inline void run_for_cycles(unsigned int number_of_cycles);
 
 		void set_is_running(bool is_running) { _is_running = is_running; }
 
