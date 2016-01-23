@@ -106,6 +106,23 @@ class Tape {
 		} _crossings[4];
 };
 
+class Speaker: public ::Outputs::Filter<Speaker> {
+	public:
+		void set_divider(uint8_t divider);
+
+		void set_is_enabled(bool is_enabled);
+		inline bool get_is_enabled() { return _is_enabled; }
+
+		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void skip_samples(unsigned int number_of_samples);
+
+	private:
+		unsigned int _counter;
+		uint8_t _divider;
+		bool _is_enabled;
+		int16_t _output_level;
+};
+
 /*!
 	@abstract Represents an Acorn Electron.
 	
@@ -126,7 +143,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		void set_key_state(Key key, bool isPressed);
 
-		Outputs::CRT *get_crt() { return _crt; }
+		Outputs::CRT *get_crt() { return &_crt; }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 		const char *get_signal_decoder();
 
@@ -165,28 +182,8 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		Tape _tape;
 
 		// Outputs.
-		Outputs::CRT *_crt;
-
-		class Speaker: public ::Outputs::Filter<Speaker> {
-			public:
-				void set_divider(uint8_t divider);
-
-				void set_is_enabled(bool is_enabled);
-				inline bool get_is_enabled() { return _is_enabled; }
-
-				void get_samples(unsigned int number_of_samples, int16_t *target);
-				void skip_samples(unsigned int number_of_samples);
-
-				Speaker();
-				~Speaker();
-
-			private:
-				unsigned int _counter;
-				uint8_t _divider;
-				bool _is_enabled;
-				int16_t _output_level;
-
-		} _speaker;
+		Outputs::CRT _crt;
+		Speaker _speaker;
 };
 
 }

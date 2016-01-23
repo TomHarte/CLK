@@ -25,11 +25,11 @@ Machine::Machine() :
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
-	_currentOutputLine(0)
+	_currentOutputLine(0),
+	_crt(Outputs::CRT(crt_cycles_per_line, 312, 1, 1))
 {
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
-	_crt = new Outputs::CRT(crt_cycles_per_line, 312, 1, 1);
 	_interruptStatus = 0x02;
 	for(int c = 0; c < 16; c++)
 		memset(_roms[c], 0xff, 16384);
@@ -367,8 +367,8 @@ inline void Machine::update_display()
 		{
 			for(int c = 0; c < lines_of_hsync; c++)
 			{
-				_crt->output_sync(119 * crt_cycles_multiplier);
-				_crt->output_blank(9 * crt_cycles_multiplier);
+				_crt.output_sync(119 * crt_cycles_multiplier);
+				_crt.output_blank(9 * crt_cycles_multiplier);
 			}
 			_displayOutputPosition = end_of_hsync;
 		}
@@ -381,7 +381,7 @@ inline void Machine::update_display()
 			// all lines then start with 9 cycles of sync
 			if(!line_position)
 			{
-				_crt->output_sync(9 * crt_cycles_multiplier);
+				_crt.output_sync(9 * crt_cycles_multiplier);
 				_displayOutputPosition += 9;
 			}
 			else
@@ -395,7 +395,7 @@ inline void Machine::update_display()
 				{
 					if(line_position == 9)
 					{
-						_crt->output_blank(119 * crt_cycles_multiplier);
+						_crt.output_blank(119 * crt_cycles_multiplier);
 						_displayOutputPosition += 119;
 					}
 				}
@@ -404,7 +404,7 @@ inline void Machine::update_display()
 					// there are then 15 cycles of blank, 80 cycles of pixels, and 24 further cycles of blank
 					if(line_position == 9)
 					{
-						_crt->output_blank(15 * crt_cycles_multiplier);
+						_crt.output_blank(15 * crt_cycles_multiplier);
 						_displayOutputPosition += 15;
 
 						switch(_screenMode)
@@ -414,8 +414,8 @@ inline void Machine::update_display()
 							case 2: case 5:				_currentOutputDivider = 4; break;
 						}
 
-						_crt->allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
-						_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
+						_crt.allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
+						_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
 
 						if(current_line == first_graphics_line)
 							_startLineAddress = _startScreenAddress;
@@ -435,10 +435,10 @@ inline void Machine::update_display()
 						}
 						if(newDivider != _currentOutputDivider)
 						{
-							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
+							_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
 							_currentOutputDivider = newDivider;
-							_crt->allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
-							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
+							_crt.allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+							_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
 						}
 
 
@@ -510,6 +510,8 @@ inline void Machine::update_display()
 						}
 					}
 
+#undef GetNextPixels
+
 					if(line_position == 104)
 					{
 						_currentOutputLine++;
@@ -521,10 +523,10 @@ inline void Machine::update_display()
 							_startLineAddress++;
 
 						if(_writePointer)
-							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+							_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
 						else
-							_crt->output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
-						_crt->output_blank(24 * crt_cycles_multiplier);
+							_crt.output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
+						_crt.output_blank(24 * crt_cycles_multiplier);
 						_displayOutputPosition += 24;
 						_currentLine = nullptr;
 					}
@@ -559,7 +561,11 @@ void Machine::set_key_state(Key key, bool isPressed)
 	}
 }
 
-void Machine::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+/*
+	Speaker
+*/
+
+void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
 	if(!_is_enabled)
 	{
@@ -568,12 +574,11 @@ void Machine::Speaker::get_samples(unsigned int number_of_samples, int16_t *targ
 	else
 	{
 		*target = _output_level;
-//		fwrite(target, sizeof(int16_t), 1, rawStream);
 	}
 	skip_samples(number_of_samples);
 }
 
-void Machine::Speaker::skip_samples(unsigned int number_of_samples)
+void Speaker::skip_samples(unsigned int number_of_samples)
 {
 	while(number_of_samples--)
 	{
@@ -586,25 +591,15 @@ void Machine::Speaker::skip_samples(unsigned int number_of_samples)
 	}
 }
 
-void Machine::Speaker::set_divider(uint8_t divider)
+void Speaker::set_divider(uint8_t divider)
 {
 	_divider = divider;
 }
 
-void Machine::Speaker::set_is_enabled(bool is_enabled)
+void Speaker::set_is_enabled(bool is_enabled)
 {
 	_is_enabled = is_enabled;
 	_counter = 0;
-}
-
-Machine::Speaker::Speaker() : _counter(0), _divider(0x32), _is_enabled(false), _output_level(0)
-{
-//	rawStream = fopen("/Users/thomasharte/Desktop/sound.rom", "wb");
-}
-
-Machine::Speaker::~Speaker()
-{
-//	fclose(rawStream);
 }
 
 /*
