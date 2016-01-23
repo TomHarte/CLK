@@ -104,10 +104,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1:
 					break;
 					case 0x2:
+						printf("%02x to [2] mutates %04x ", *value, _startScreenAddress);
 						_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
+						printf("into %04x\n", _startScreenAddress);
 					break;
 					case 0x3:
+						printf("%02x to [3] mutates %04x ", *value, _startScreenAddress);
 						_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
+						printf("into %04x\n", _startScreenAddress);
 					break;
 					case 0x4:
 						if(isReadOperation(operation))
@@ -117,8 +121,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 						else
 						{
+							_tape.set_data_register(*value);
+							_tape.clear_interrupts(Interrupt::ReceiveDataFull);
 						}
-//						printf("Cassette\n");
 					break;
 					case 0x5:
 						if(!isReadOperation(operation))
@@ -158,6 +163,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						{
 							update_audio();
 							_speaker.set_divider(*value);
+							_tape.set_counter(*value);
 						}
 					break;
 					case 0x7:
@@ -185,10 +191,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							{
 								update_audio();
 								_speaker.set_is_enabled(new_speaker_is_enabled);
+								_tape.set_is_enabled(!new_speaker_is_enabled);
 							}
 
 							_tape.set_is_running(((*value)&0x40) ? true : false);
-							// TODO: tape mode, caps lock LED
+							_tape.set_is_in_input_mode(((*value)&0x04) ? false : true);
+
+							// TODO: caps lock LED
 						}
 					break;
 					default:
@@ -450,7 +459,7 @@ inline void Machine::update_display()
 	uint8_t pixels = _ram[_currentScreenAddress];\
 	_currentScreenAddress = _currentScreenAddress+8
 
-						if(pixels_to_output)
+						if(pixels_to_output && _writePointer)
 						{
 							switch(_screenMode)
 							{
@@ -511,7 +520,10 @@ inline void Machine::update_display()
 						else
 							_startLineAddress++;
 
-						_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+						if(_writePointer)
+							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+						else
+							_crt->output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
 						_crt->output_blank(24 * crt_cycles_multiplier);
 						_displayOutputPosition += 24;
 						_currentLine = nullptr;
@@ -660,7 +672,7 @@ inline void Tape::clear_interrupts(uint8_t interrupts)
 
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 {
-	if(_is_running && _tape != nullptr)
+	if(_is_running && _is_enabled && _tape != nullptr)
 	{
 		while(number_of_cycles--)
 		{

@@ -64,6 +64,8 @@ class Tape {
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
 		inline uint8_t get_data_register() { return (uint8_t)(_data_register >> 2); }
+		inline void set_data_register(uint8_t value) {}
+		inline void set_counter(uint8_t value) {}
 
 		inline uint8_t get_interrupt_status() { return _interrupt_status; }
 		inline void clear_interrupts(uint8_t interrupts);
@@ -76,7 +78,9 @@ class Tape {
 
 		inline void run_for_cycles(unsigned int number_of_cycles);
 
-		void set_is_running(bool is_running) { _is_running = is_running; }
+		inline void set_is_running(bool is_running) { _is_running = is_running; }
+		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
+		inline void set_is_in_input_mode(bool is_in_input_mode) {}
 
 	private:
 		inline void push_tape_bit(uint16_t bit);
@@ -89,6 +93,7 @@ class Tape {
 		uint32_t _time_into_pulse;
 
 		bool _is_running;
+		bool _is_enabled;
 
 		int _bits_since_start;
 		uint16_t _data_register;
