@@ -24,7 +24,7 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff}
 {
-	_crt = new Outputs::CRT(228, 262, 1, 2);
+	_crt = new Outputs::CRT(228, Outputs::CRT::DisplayType::NTSC60, 1, 2);
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
 }
@@ -37,7 +37,7 @@ Machine::~Machine()
 
 void Machine::switch_region()
 {
-	_crt->set_new_timing(228, 312);
+	_crt->set_new_display_type(228, Outputs::CRT::DisplayType::PAL50);
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)

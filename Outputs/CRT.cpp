@@ -25,7 +25,7 @@ static const uint32_t kCRTFixedPointOffset	= 0x04000000;
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display)
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 {
 	const unsigned int syncCapacityLineChargeThreshold = 3;
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
@@ -62,9 +62,42 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 		_beamWidth[c].x = (uint32_t)((sinf(angle) / halfLineWidth) * kCRTFixedPointRange);
 		_beamWidth[c].y = (uint32_t)((cosf(angle) / halfLineWidth) * kCRTFixedPointRange);
 	}
+
+	// reset flywheel sync
+	_expected_next_hsync = _cycles_per_line;
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...) :
+void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType)
+{
+	switch(displayType)
+	{
+		case DisplayType::PAL50:
+			set_new_timing(cycles_per_line, 312, 1135, 4);
+		break;
+
+		case DisplayType::NTSC60:
+			set_new_timing(cycles_per_line, 262, 545, 2);
+		break;
+	}
+}
+
+void CRT::allocate_buffers(unsigned int number, va_list sizes)
+{
+	// generate buffers for signal storage as requested — format is
+	// number of buffers, size of buffer 1, size of buffer 2...
+	const uint16_t bufferWidth = 2048;
+	const uint16_t bufferHeight = 2048;
+	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
+	{
+		va_list va;
+		va_copy(va, sizes);
+		_frame_builders[frame] = new CRTFrameBuilder(bufferWidth, bufferHeight, number, va);
+		va_end(va);
+	}
+	_current_frame_builder = _frame_builders[0];
+}
+
+CRT::CRT() :
 	_next_scan(0),
 	_frames_with_delegate(0),
 	_frame_read_pointer(0),
@@ -74,24 +107,26 @@ CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned 
 	_is_in_hsync(false),
 	_is_in_vsync(false),
 	_rasterPosition({.x = 0, .y = 0})
+{}
+
+CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT()
 {
-	set_new_timing(cycles_per_line, height_of_display);
+	set_new_timing(cycles_per_line, height_of_display, colour_cycle_numerator, colour_cycle_denominator);
 
-	// generate buffers for signal storage as requested — format is
-	// number of buffers, size of buffer 1, size of buffer 2...
-	const uint16_t bufferWidth = 2048;
-	const uint16_t bufferHeight = 2048;
-	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
-	{
-		va_list va;
-		va_start(va, number_of_buffers);
-		_frame_builders[frame] = new CRTFrameBuilder(bufferWidth, bufferHeight, number_of_buffers, va);
-		va_end(va);
-	}
-	_current_frame_builder = _frame_builders[0];
+	va_list buffer_sizes;
+	va_start(buffer_sizes, number_of_buffers);
+	allocate_buffers(number_of_buffers, buffer_sizes);
+	va_end(buffer_sizes);
+}
 
-	// reset flywheel sync
-	_expected_next_hsync = _cycles_per_line;
+CRT::CRT(unsigned int cycles_per_line, DisplayType displayType, unsigned int number_of_buffers, ...) : CRT()
+{
+	set_new_display_type(cycles_per_line, displayType);
+
+	va_list buffer_sizes;
+	va_start(buffer_sizes, number_of_buffers);
+	allocate_buffers(number_of_buffers, buffer_sizes);
+	va_end(buffer_sizes);
 }
 
 CRT::~CRT()

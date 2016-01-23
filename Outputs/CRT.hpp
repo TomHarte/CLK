@@ -48,10 +48,17 @@ static const int kCRTNumberOfFrames = 4;
 
 class CRT {
 	public:
-		CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...);
+		enum DisplayType {
+			PAL50,
+			NTSC60
+		};
+
+		CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, DisplayType displayType, unsigned int number_of_buffers, ...);
 		~CRT();
 
-		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display);
+		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator);
+		void set_new_display_type(unsigned int cycles_per_line, DisplayType displayType);
 
 		/*! Output at the sync level.
 
@@ -105,6 +112,9 @@ class CRT {
 		uint8_t *get_write_target_for_buffer(int buffer);
 
 	private:
+		CRT();
+		void allocate_buffers(unsigned int number, va_list sizes);
+
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
 		unsigned int _time_multiplier;

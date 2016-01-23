@@ -26,7 +26,7 @@ Machine::Machine() :
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
 	_currentOutputLine(0),
-	_crt(Outputs::CRT(crt_cycles_per_line, 312, 1, 1))
+	_crt(Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1))
 {
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
