@@ -57,13 +57,57 @@ enum Key: uint16_t {
 	KeyBreak		= 0xffff
 };
 
-/*! 
+class Tape {
+	public:
+		Tape();
+
+		void set_tape(std::shared_ptr<Storage::Tape> tape);
+
+		inline uint8_t get_data_register() { return (uint8_t)(_data_register >> 2); }
+
+		inline uint8_t get_interrupt_status() { return _interrupt_status; }
+		inline void clear_interrupts(uint8_t interrupts);
+
+		class Delegate {
+			public:
+				virtual void tape_did_change_interrupt_status(Tape *tape) = 0;
+		};
+		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
+
+		inline void run_for_cycle();
+
+		void set_is_running(bool is_running) { _is_running = is_running; }
+
+	private:
+		inline void push_tape_bit(uint16_t bit);
+		inline void get_next_tape_pulse();
+
+		std::shared_ptr<Storage::Tape> _tape;
+
+		Storage::Tape::Pulse _current_pulse;
+		std::shared_ptr<SignalProcessing::Stepper> _pulse_stepper;
+		uint32_t _time_into_pulse;
+
+		bool _is_running;
+
+		int _bits_since_start;
+		uint16_t _data_register;
+
+		uint8_t _interrupt_status;
+		Delegate *_delegate;
+
+		enum {
+			Long, Short, Unrecognised
+		} _crossings[4];
+};
+
+/*!
 	@abstract Represents an Acorn Electron.
 	
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine: public CPU6502::Processor<Machine> {
+class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 	public:
 
@@ -81,15 +125,14 @@ class Machine: public CPU6502::Processor<Machine> {
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 		const char *get_signal_decoder();
 
+		virtual void tape_did_change_interrupt_status(Tape *tape);
+
 	private:
 
 		inline void update_display();
 		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
-
-		inline void get_next_tape_pulse();
-		inline void push_tape_bit(uint16_t bit);
 
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
@@ -114,20 +157,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t *_currentLine, *_writePointer;
 
 		// Tape.
-		struct Tape {
-			std::shared_ptr<Storage::Tape> media;
-			Storage::Tape::Pulse currentPulse;
-			std::shared_ptr<SignalProcessing::Stepper> pulseStepper;
-			uint32_t time_into_pulse;
-			bool is_running;
-			int bits_since_start;
-
-			uint16_t dataRegister;
-
-			enum {
-				Long, Short, Unrecognised
-			} crossings[4];
-		} _tape;
+		Tape _tape;
 
 		// Outputs.
 		Outputs::CRT *_crt;
