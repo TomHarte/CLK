@@ -64,7 +64,16 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	}
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...)
+CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int number_of_buffers, ...) :
+	_next_scan(0),
+	_frames_with_delegate(0),
+	_frame_read_pointer(0),
+	_horizontal_counter(0),
+	_sync_capacitor_charge_level(0),
+	_is_receiving_sync(false),
+	_is_in_hsync(false),
+	_is_in_vsync(false),
+	_rasterPosition({.x = 0, .y = 0})
 {
 	set_new_timing(cycles_per_line, height_of_display);
 
@@ -79,24 +88,10 @@ CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned 
 		_frame_builders[frame] = new CRTFrameBuilder(bufferWidth, bufferHeight, number_of_buffers, va);
 		va_end(va);
 	}
-	_frames_with_delegate = 0;
-	_frame_read_pointer = 0;
 	_current_frame_builder = _frame_builders[0];
-
-	// reset raster position
-	_rasterPosition.x = _rasterPosition.y = 0;
 
 	// reset flywheel sync
 	_expected_next_hsync = _cycles_per_line;
-	_horizontal_counter = 0;
-
-	// reset the vertical charge capacitor
-	_sync_capacitor_charge_level = 0;
-
-	// start off not in horizontal sync, not receiving a sync signal
-	_is_receiving_sync = false;
-	_is_in_hsync = false;
-	_is_in_vsync = false;
 }
 
 CRT::~CRT()
@@ -349,35 +344,61 @@ void CRT::set_delegate(Delegate *delegate)
 
 #pragma mark - stream feeding methods
 
+void CRT::output_scan(Scan *scan)
+{
+	bool this_is_sync = (scan->type == Type::Sync);
+	bool hsync_requested = !_is_receiving_sync && this_is_sync;
+	bool vsync_requested = _is_receiving_sync;
+	_is_receiving_sync = this_is_sync;
+
+	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type);
+
+	_next_scan ^= 1;
+}
+
 /*
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
 void CRT::output_sync(unsigned int number_of_cycles)
 {
-	bool _hsync_requested = !_is_receiving_sync;	// ensure this really is edge triggered; someone calling output_sync twice in succession shouldn't trigger it twice
-	_is_receiving_sync = true;
-	advance_cycles(number_of_cycles, 1, _hsync_requested, false, true, Type::Sync);
+	_scans[_next_scan].type = Type::Sync;
+	_scans[_next_scan].number_of_cycles = number_of_cycles;
+	output_scan(&_scans[_next_scan]);
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
-	bool _vsync_requested = _is_receiving_sync;
-	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, 1, false, _vsync_requested, false, Type::Blank);
+	_scans[_next_scan].type = Type::Blank;
+	_scans[_next_scan].number_of_cycles = number_of_cycles;
+	output_scan(&_scans[_next_scan]);
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	bool _vsync_requested = _is_receiving_sync;
-	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, 1, false, _vsync_requested, false, Type::Level);
+	_scans[_next_scan].type = Type::Level;
+	_scans[_next_scan].number_of_cycles = number_of_cycles;
+	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
+	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
+	output_scan(&_scans[_next_scan]);
+}
+
+void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude)
+{
+	_scans[_next_scan].type = Type::ColourBurst;
+	_scans[_next_scan].number_of_cycles = number_of_cycles;
+	_scans[_next_scan].phase = phase;
+	_scans[_next_scan].magnitude = magnitude;
+	output_scan(&_scans[_next_scan]);
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	bool _vsync_requested = _is_receiving_sync;
-	_is_receiving_sync = false;
-	advance_cycles(number_of_cycles, source_divider, false, _vsync_requested, false, Type::Data);
+	_scans[_next_scan].type = Type::Data;
+	_scans[_next_scan].number_of_cycles = number_of_cycles;
+	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
+	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
+	_scans[_next_scan].source_divider = source_divider;
+	output_scan(&_scans[_next_scan]);
 }
 
 #pragma mark - Buffer supply

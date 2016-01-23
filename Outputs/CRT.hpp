@@ -144,7 +144,7 @@ class CRT {
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		enum Type {
-			Sync, Level, Data, Blank
+			Sync, Level, Data, Blank, ColourBurst
 		} type;
 		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, bool vsync_charging, Type type);
 
@@ -157,6 +157,23 @@ class CRT {
 		};
 		SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
 		SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+
+		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
+		struct Scan {
+			Type type;
+			unsigned int number_of_cycles;
+			union {
+				struct {
+					unsigned int source_divider;
+					uint16_t tex_x, tex_y;
+				};
+				struct {
+					uint8_t phase, magnitude;
+				};
+			};
+		} _scans[2];
+		int _next_scan;
+		void output_scan(Scan *scan);
 };
 
 }
