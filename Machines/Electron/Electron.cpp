@@ -117,12 +117,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(isReadOperation(operation))
 						{
 							*value = _tape.get_data_register();
-							_tape.clear_interrupts(Interrupt::TransmitDataEmpty);
+							_tape.clear_interrupts(Interrupt::ReceiveDataFull);
 						}
 						else
 						{
 							_tape.set_data_register(*value);
-							_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+							_tape.clear_interrupts(Interrupt::TransmitDataEmpty);
 						}
 					break;
 					case 0x5:
@@ -606,7 +606,7 @@ void Speaker::set_is_enabled(bool is_enabled)
 	Tape
 */
 
-Tape::Tape() : _is_running(false), _data_register(0), _delegate(nullptr) {}
+Tape::Tape() : _is_running(false), _data_register(0), _delegate(nullptr), _output_bits_remaining(0), _last_posted_interrupt_status(0), _interrupt_status(0) {}
 
 void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
@@ -627,33 +627,36 @@ inline void Tape::get_next_tape_pulse()
 inline void Tape::push_tape_bit(uint16_t bit)
 {
 	_data_register = (uint16_t)((_data_register >> 1) | (bit << 10));
-
-	uint8_t old_interrupt_status = _interrupt_status;
-
 	if(_bits_since_start)
 	{
 		_bits_since_start--;
 
 		if(_bits_since_start == 7)
 		{
-			_interrupt_status &= ~Interrupt::TransmitDataEmpty;
+			_interrupt_status &= ~Interrupt::ReceiveDataFull;
 		}
 	}
-	else
+	evaluate_interrupts();
+}
+
+inline void Tape::evaluate_interrupts()
+{
+	if((_data_register&0x3) == 0x1)
 	{
-		if((_data_register&0x3) == 0x1)
-		{
-			_interrupt_status |= Interrupt::TransmitDataEmpty;
-			_bits_since_start = 9;
-		}
-
-		if(_data_register == 0x3ff)
-			_interrupt_status |= Interrupt::HighToneDetect;
-		else
-			_interrupt_status &= ~Interrupt::HighToneDetect;
+		_interrupt_status |= Interrupt::ReceiveDataFull;
+		_bits_since_start = 9;
 	}
 
-	if(old_interrupt_status != _interrupt_status && _delegate) _delegate->tape_did_change_interrupt_status(this);
+	if(_data_register == 0x3ff)
+		_interrupt_status |= Interrupt::HighToneDetect;
+	else
+		_interrupt_status &= ~Interrupt::HighToneDetect;
+
+	if(_last_posted_interrupt_status != _interrupt_status)
+	{
+		_last_posted_interrupt_status = _interrupt_status;
+		if(_delegate) _delegate->tape_did_change_interrupt_status(this);
+	}
 }
 
 inline void Tape::clear_interrupts(uint8_t interrupts)
@@ -665,41 +668,82 @@ inline void Tape::clear_interrupts(uint8_t interrupts)
 	}
 }
 
+inline void Tape::set_is_in_input_mode(bool is_in_input_mode)
+{
+	_is_in_input_mode = is_in_input_mode;
+}
+
+inline void Tape::set_counter(uint8_t value)
+{
+	_pulse_stepper = std::shared_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
+}
+
+inline void Tape::set_data_register(uint8_t value)
+{
+	_data_register = (uint16_t)((value << 2) | 1);
+	_output_bits_remaining = 9;
+}
+
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 {
-	if(_is_running && _is_enabled && _tape != nullptr)
+	if(_is_enabled)
 	{
-		while(number_of_cycles--)
+		if(_is_in_input_mode)
 		{
-			_time_into_pulse += (unsigned int)_pulse_stepper->step();
-			if(_time_into_pulse == _current_pulse.length.length)
+			if(_is_running && _tape != nullptr)
 			{
-				get_next_tape_pulse();
-
-				_crossings[0] = _crossings[1];
-				_crossings[1] = _crossings[2];
-				_crossings[2] = _crossings[3];
-
-				_crossings[3] = Tape::Unrecognised;
-				if(_current_pulse.type != Storage::Tape::Pulse::Zero)
+				while(number_of_cycles--)
 				{
-					float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
-					if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _crossings[3] = Tape::Short;
-					if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _crossings[3] = Tape::Long;
-				}
-
-				if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
-				{
-					push_tape_bit(0);
-					_crossings[1] = Tape::Unrecognised;
-				}
-				else
-				{
-					if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
+					_time_into_pulse += (unsigned int)_pulse_stepper->step();
+					if(_time_into_pulse == _current_pulse.length.length)
 					{
-						push_tape_bit(1);
+						get_next_tape_pulse();
+
+						_crossings[0] = _crossings[1];
+						_crossings[1] = _crossings[2];
+						_crossings[2] = _crossings[3];
+
 						_crossings[3] = Tape::Unrecognised;
+						if(_current_pulse.type != Storage::Tape::Pulse::Zero)
+						{
+							float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
+							if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _crossings[3] = Tape::Short;
+							if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _crossings[3] = Tape::Long;
+						}
+
+						if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
+						{
+							push_tape_bit(0);
+							_crossings[1] = Tape::Unrecognised;
+						}
+						else
+						{
+							if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
+							{
+								push_tape_bit(1);
+								_crossings[3] = Tape::Unrecognised;
+							}
+						}
 					}
+				}
+			}
+		}
+		else
+		{
+			while(number_of_cycles--)
+			{
+				if(_pulse_stepper->step())
+				{
+					_output_bits_remaining--;
+					if(!_output_bits_remaining)
+					{
+						_output_bits_remaining = 9;
+						_interrupt_status |= Interrupt::TransmitDataEmpty;
+					}
+
+					evaluate_interrupts();
+
+					_data_register = (_data_register >> 1) | 0x200;
 				}
 			}
 		}

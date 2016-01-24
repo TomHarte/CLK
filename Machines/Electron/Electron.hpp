@@ -33,8 +33,8 @@ enum ROMSlot: uint8_t {
 enum Interrupt: uint8_t {
 	DisplayEnd			= 0x04,
 	RealTimeClock		= 0x08,
-	TransmitDataEmpty	= 0x10,
-	ReceiveDataFull		= 0x20,
+	ReceiveDataFull		= 0x10,
+	TransmitDataEmpty	= 0x20,
 	HighToneDetect		= 0x40
 };
 
@@ -64,8 +64,8 @@ class Tape {
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
 		inline uint8_t get_data_register() { return (uint8_t)(_data_register >> 2); }
-		inline void set_data_register(uint8_t value) {}
-		inline void set_counter(uint8_t value) {}
+		inline void set_data_register(uint8_t value);
+		inline void set_counter(uint8_t value);
 
 		inline uint8_t get_interrupt_status() { return _interrupt_status; }
 		inline void clear_interrupts(uint8_t interrupts);
@@ -80,7 +80,7 @@ class Tape {
 
 		inline void set_is_running(bool is_running) { _is_running = is_running; }
 		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
-		inline void set_is_in_input_mode(bool is_in_input_mode) {}
+		inline void set_is_in_input_mode(bool is_in_input_mode);
 
 	private:
 		inline void push_tape_bit(uint16_t bit);
@@ -94,11 +94,13 @@ class Tape {
 
 		bool _is_running;
 		bool _is_enabled;
+		bool _is_in_input_mode;
 
-		int _bits_since_start;
+		inline void evaluate_interrupts();
+		int _bits_since_start, _output_bits_remaining;
 		uint16_t _data_register;
 
-		uint8_t _interrupt_status;
+		uint8_t _interrupt_status, _last_posted_interrupt_status;
 		Delegate *_delegate;
 
 		enum {
