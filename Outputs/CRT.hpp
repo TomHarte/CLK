@@ -111,6 +111,34 @@ class CRT {
 		void allocate_write_area(int required_length);
 		uint8_t *get_write_target_for_buffer(int buffer);
 
+		/*! Gets the vertex shader for display of vended CRTFrames.
+
+			@returns A vertex shader, allocated using a C function. The caller then owns the memory
+			and is responsible for free'ing it.
+		*/
+		char *get_vertex_shader();
+
+		/*! Gets a fragment shader for display of vended CRTFrames based on the supplied sampling function.
+
+			@param sample_function A GLSL fragment including a function with the signature 
+			`float sample(vec2 coordinate, float phase)` that evaluates to the composite signal level
+			as a function of a source buffer sampling location and the current colour carrier phase.
+
+			@returns A complete fragment shader.
+		*/
+		char *get_fragment_shader(const char *sample_function);
+
+		/*! Gets a fragment shader for composite display of vended CRTFrames based on a default encoding
+			of the supplied sampling function.
+
+			@param sample_function A GLSL fragent including a function with the signature
+			`vec3 sample(vec2 coordinate)` that evaluates to an RGB colour as a function of
+			the source buffer sampling location.
+
+			@returns A complete fragment shader.
+		*/
+		char *get_rgb_encoding_fragment_shader(const char *sample_function);
+
 	private:
 		CRT();
 		void allocate_buffers(unsigned int number, va_list sizes);

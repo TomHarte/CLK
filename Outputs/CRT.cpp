@@ -519,3 +519,72 @@ uint8_t *CRTFrameBuilder::get_write_target_for_buffer(int buffer)
 {
 	return &frame.buffers[buffer].data[_write_target_pointer * frame.buffers[buffer].depth];
 }
+
+char *CRT::get_vertex_shader()
+{
+	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
+	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
+	// from integral to floating point; there's also some setup for NTSC, PAL or whatever.
+
+	const char *const ntscVertexShaderGlobals =
+		"out vec2 srcCoordinatesVarying[4];\n"
+		"out float phase;\n";
+
+	const char *const ntscVertexShaderBody =
+		"phase = srcCoordinates.x * 6.283185308;\n"
+		"\n"
+		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+
+	const char *const rgbVertexShaderGlobals =
+		"out vec2 srcCoordinatesVarying[5];\n";
+
+	const char *const rgbVertexShaderBody =
+		"srcCoordinatesVarying[2] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(1.0 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[1] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[3] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[4] = srcCoordinatesVarying[1] + vec2(1.0 / textureSize.x, 0.0);\n";
+
+	const char *const vertexShader =
+		"#version 150\n"
+		"\n"
+		"in vec2 position;\n"
+		"in vec2 srcCoordinates;\n"
+		"in float lateral;\n"
+		"\n"
+		"uniform vec2 boundsOrigin;\n"
+		"uniform vec2 boundsSize;\n"
+		"\n"
+		"out float lateralVarying;\n"
+		"out vec2 shadowMaskCoordinates;\n"
+		"\n"
+		"uniform vec2 textureSize;\n"
+		"\n"
+		"const float shadowMaskMultiple = 600;\n"
+		"\n"
+		"%@\n"
+		"void main (void)\n"
+		"{\n"
+			"lateralVarying = lateral + 1.0707963267949;\n"
+			"\n"
+			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);\n"
+			"\n"
+			"%@\n"
+			"\n"
+			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
+			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);\n"
+		"}\n";
+
+	return nullptr;
+// + mappedPosition.x / 131.0
+
+//	switch(_signalType)
+//	{
+//		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:vertexShader, ntscVertexShaderGlobals, ntscVertexShaderBody];
+//		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:vertexShader, rgbVertexShaderGlobals, rgbVertexShaderBody];
+//	}
+}
