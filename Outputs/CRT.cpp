@@ -539,15 +539,15 @@ char *CRT::get_vertex_shader()
 		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
 		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
 
-	const char *const rgbVertexShaderGlobals =
-		"out vec2 srcCoordinatesVarying[5];\n";
+//	const char *const rgbVertexShaderGlobals =
+//		"out vec2 srcCoordinatesVarying[5];\n";
 
-	const char *const rgbVertexShaderBody =
-		"srcCoordinatesVarying[2] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(1.0 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[1] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[3] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[4] = srcCoordinatesVarying[1] + vec2(1.0 / textureSize.x, 0.0);\n";
+//	const char *const rgbVertexShaderBody =
+//		"srcCoordinatesVarying[2] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(1.0 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[4] = srcCoordinatesVarying[1] + vec2(1.0 / textureSize.x, 0.0);\n";
 
 	const char *const vertexShader =
 		"#version 150\n"
@@ -586,5 +586,80 @@ char *CRT::get_vertex_shader()
 //	{
 //		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:vertexShader, ntscVertexShaderGlobals, ntscVertexShaderBody];
 //		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:vertexShader, rgbVertexShaderGlobals, rgbVertexShaderBody];
+//	}
+}
+
+char *CRT::get_fragment_shader(const char *sample_function)
+{
+	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
+	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
+
+	// assumes y = [0,1], u and v = [-0.5, 0.5]; therefore u components are multiplied by 1.14678899082569, v by 0.8130081300813
+	const char *const yuvToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.75213899082569, 2.33040137614679, 0.92669105691057, -0.4720325203252, 0.0);";
+
+	const char *const fragmentShader =
+		"#version 150\n"
+		"\n"
+		"in float lateralVarying;\n"
+		"in vec2 shadowMaskCoordinates;\n"
+		"out vec4 fragColour;\n"
+		"\n"
+		"uniform sampler2D texID;\n"
+		"uniform sampler2D shadowMaskTexID;\n"
+		"uniform float alpha;\n"
+		"\n"
+		"in vec2 srcCoordinatesVarying[4];\n"
+		"in float phase;\n"
+		"%@\n"
+		"%@\n"
+		"\n"
+		"void main(void)\n"
+		"{\n"
+			"%@\n"
+		"}\n";
+
+	const char *const ntscFragmentShaderGlobals =
+		"in vec2 srcCoordinatesVarying[4];\n"
+		"in float phase;\n"
+		"\n"
+		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
+		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
+
+	const char *const ntscFragmentShaderBody =
+		"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
+		"vec4 samples = vec4("
+		"   sample(srcCoordinatesVarying[0], angles.x),"
+		"	sample(srcCoordinatesVarying[1], angles.y),"
+		"	sample(srcCoordinatesVarying[2], angles.z),"
+		"	sample(srcCoordinatesVarying[3], angles.w)"
+		");\n"
+		"\n"
+		"float y = dot(vec4(0.25), samples);\n"
+		"samples -= vec4(y);\n"
+		"\n"
+		"float i = dot(cos(angles), samples);\n"
+		"float q = dot(sin(angles), samples);\n"
+		"\n"
+		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
+
+//	const char *const rgbFragmentShaderGlobals =
+//		"in vec2 srcCoordinatesVarying[5];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
+
+//	const char *const rgbFragmentShaderBody =
+//		"fragColour =	sample(srcCoordinatesVarying[2]);";
+//		@"fragColour =	(sample(srcCoordinatesVarying[0]) * -0.1) + \
+//						(sample(srcCoordinatesVarying[1]) * 0.3) + \
+//						(sample(srcCoordinatesVarying[2]) * 0.6) + \
+//						(sample(srcCoordinatesVarying[3]) * 0.3) + \
+//						(sample(srcCoordinatesVarying[4]) * -0.1);";
+
+//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
+
+	return nullptr;
+
+//	switch(_signalType)
+//	{
+//		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:fragmentShader, ntscFragmentShaderGlobals, ntscFragmentShaderBody];
+//		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:fragmentShader, rgbFragmentShaderGlobals, rgbFragmentShaderBody];
 //	}
 }

@@ -132,7 +132,7 @@ class CRT {
 			of the supplied sampling function.
 
 			@param sample_function A GLSL fragent including a function with the signature
-			`vec3 sample(vec2 coordinate)` that evaluates to an RGB colour as a function of
+			`vec3 rgb_sample(vec2 coordinate)` that evaluates to an RGB colour as a function of
 			the source buffer sampling location.
 
 			@returns A complete fragment shader.

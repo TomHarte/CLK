@@ -84,6 +84,7 @@ class Tape {
 
 	private:
 		inline void push_tape_bit(uint16_t bit);
+		inline void reset_tape_input(void);
 		inline void get_next_tape_pulse();
 
 		std::shared_ptr<Storage::Tape> _tape;
@@ -104,7 +105,7 @@ class Tape {
 		Delegate *_delegate;
 
 		enum {
-			Long, Short, Unrecognised
+			Long, Short, Unrecognised, Recognised
 		} _crossings[4];
 };
 

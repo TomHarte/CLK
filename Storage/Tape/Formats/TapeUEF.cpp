@@ -9,6 +9,8 @@
 #include "TapeUEF.hpp"
 #include <string.h>
 
+uint8_t dr;
+
 Storage::UEF::UEF(const char *file_name) :
 	_chunk_id(0), _chunk_length(0), _chunk_position(0),
 	_time_base(1200)
@@ -178,7 +180,7 @@ bool Storage::UEF::get_next_bit()
 			_chunk_position++;
 			if(!bit_position)
 			{
-				_current_byte = (uint8_t)gzgetc(_file);
+				dr = _current_byte = (uint8_t)gzgetc(_file);
 			}
 			if(bit_position == 0) return false;
 			if(bit_position == 9) return true;

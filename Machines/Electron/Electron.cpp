@@ -7,6 +7,7 @@
 //
 
 #include "Electron.hpp"
+#include "TapeUEF.hpp"
 
 #include <algorithm>
 
@@ -85,6 +86,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			if((address & 0xff00) == 0xfe00)
 			{
+				cycles += (_frameCycles&1)^1;
 //				printf("%c: %02x: ", isReadOperation(operation) ? 'r' : 'w', *value);
 
 				switch(address&0xf)
@@ -639,12 +641,34 @@ inline void Tape::push_tape_bit(uint16_t bit)
 	evaluate_interrupts();
 }
 
+inline void Tape::reset_tape_input()
+{
+	_bits_since_start = 0;
+//	_interrupt_status &= ~(Interrupt::ReceiveDataFull | Interrupt::TransmitDataEmpty | Interrupt::HighToneDetect);
+//
+//	if(_last_posted_interrupt_status != _interrupt_status)
+//	{
+//		_last_posted_interrupt_status = _interrupt_status;
+//		if(_delegate) _delegate->tape_did_change_interrupt_status(this);
+//	}
+}
+
+extern uint8_t dr;
+
 inline void Tape::evaluate_interrupts()
 {
-	if((_data_register&0x3) == 0x1)
+	if(!_bits_since_start)
 	{
-		_interrupt_status |= Interrupt::ReceiveDataFull;
-		_bits_since_start = 9;
+		if((_data_register&0x3) == 0x1)
+		{
+			if(dr != ((_data_register >> 2)&0xff))
+			{
+				printf("Mismatch\n");
+			}
+
+			_interrupt_status |= Interrupt::ReceiveDataFull;
+			if(_is_in_input_mode) _bits_since_start = 9;
+		}
 	}
 
 	if(_data_register == 0x3ff)
@@ -699,6 +723,11 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 					{
 						get_next_tape_pulse();
 
+//						if(_crossings[0] != Tape::Recognised)
+//						{
+//							reset_tape_input();
+//						}
+
 						_crossings[0] = _crossings[1];
 						_crossings[1] = _crossings[2];
 						_crossings[2] = _crossings[3];
@@ -707,23 +736,30 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 						if(_current_pulse.type != Storage::Tape::Pulse::Zero)
 						{
 							float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
-							if(pulse_length > 0.4 / 2400.0 && pulse_length < 0.6 / 2400.0) _crossings[3] = Tape::Short;
-							if(pulse_length > 0.4 / 1200.0 && pulse_length < 0.6 / 1200.0) _crossings[3] = Tape::Long;
+							if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
+							if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
+
+							if(_crossings[3] == Tape::Unrecognised)
+							{
+								printf("Wah wah?\n");
+							}
 						}
 
 						if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
 						{
 							push_tape_bit(0);
-							_crossings[1] = Tape::Unrecognised;
+							_crossings[0] = _crossings[1] = Tape::Recognised;
 						}
 						else
 						{
 							if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
 							{
 								push_tape_bit(1);
-								_crossings[3] = Tape::Unrecognised;
+								_crossings[0] = _crossings[1] =
+								_crossings[2] = _crossings[3] = Tape::Recognised;
 							}
 						}
+
 					}
 				}
 			}
