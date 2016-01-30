@@ -63,7 +63,7 @@ class Tape {
 
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
-		inline uint8_t get_data_register() { return (uint8_t)(_data_register >> 2); }
+		inline uint8_t get_data_register();
 		inline void set_data_register(uint8_t value);
 		inline void set_counter(uint8_t value);
 

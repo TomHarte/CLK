@@ -275,7 +275,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			position_y(5) = InternalToUInt16(kCRTFixedPointOffset + _rasterPosition.y + _beamWidth[lengthMask].y);
 
 			// if this is a data run then advance the buffer pointer
-			if(type == Type::Data) tex_x += next_run_length / (_time_multiplier * source_divider);
+			if(type == Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
 			// if this is a data or level run then store the end point
 			tex_x(2) = tex_x(3) = tex_x(5) = tex_x;

@@ -379,12 +379,19 @@ inline void Machine::update_display()
 		{
 			const int current_line = _displayOutputPosition >> 7;
 			const int line_position = _displayOutputPosition & 127;
+			const int cycles_left = _frameCycles - _displayOutputPosition;
 
 			// all lines then start with 9 cycles of sync
-			if(!line_position)
+			if(line_position < 9)
 			{
-				_crt.output_sync(9 * crt_cycles_multiplier);
-				_displayOutputPosition += 9;
+				int remaining_period = std::min(9 - line_position, cycles_left);
+				_displayOutputPosition += remaining_period;
+
+				if(line_position + remaining_period == 9)
+				{
+//					printf("!%d!", 9);
+					_crt.output_sync(9 * crt_cycles_multiplier);
+				}
 			}
 			else
 			{
@@ -395,33 +402,37 @@ inline void Machine::update_display()
 
 				if(isBlankLine)
 				{
-					if(line_position == 9)
-					{
-						_crt.output_blank(119 * crt_cycles_multiplier);
-						_displayOutputPosition += 119;
-					}
+					int remaining_period = std::min(128 - line_position, cycles_left);
+					_crt.output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
+//					printf(".[%d]", remaining_period);
+					_displayOutputPosition += remaining_period;
 				}
 				else
 				{
 					// there are then 15 cycles of blank, 80 cycles of pixels, and 24 further cycles of blank
-					if(line_position == 9)
+					if(line_position < 24)
 					{
-						_crt.output_blank(15 * crt_cycles_multiplier);
-						_displayOutputPosition += 15;
+						int remaining_period = std::min(24 - line_position, cycles_left);
+						_crt.output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
+//						printf("/(%d)(%d)[%d]", 24 - line_position, cycles_left, remaining_period);
+						_displayOutputPosition += remaining_period;
 
-						switch(_screenMode)
+						if(line_position + remaining_period == 24)
 						{
-							case 0: case 3:				_currentOutputDivider = 1; break;
-							case 1:	case 4: case 6:		_currentOutputDivider = 2; break;
-							case 2: case 5:				_currentOutputDivider = 4; break;
+							switch(_screenMode)
+							{
+								case 0: case 3:				_currentOutputDivider = 1; break;
+								case 1:	case 4: case 6:		_currentOutputDivider = 2; break;
+								case 2: case 5:				_currentOutputDivider = 4; break;
+							}
+
+							_crt.allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
+							_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
+
+							if(current_line == first_graphics_line)
+								_startLineAddress = _startScreenAddress;
+							_currentScreenAddress = _startLineAddress;
 						}
-
-						_crt.allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
-						_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
-
-						if(current_line == first_graphics_line)
-							_startLineAddress = _startScreenAddress;
-						_currentScreenAddress = _startLineAddress;
 					}
 
 					if(line_position >= 24 && line_position < 104)
@@ -446,6 +457,7 @@ inline void Machine::update_display()
 
 						int pixels_to_output = std::min(_frameCycles - _displayOutputPosition, 104 - line_position);
 						_displayOutputPosition += pixels_to_output;
+//						printf("<- %d ->", pixels_to_output);
 						if(_screenMode >= 4)
 						{
 							// just shifting wouldn't be enough if both
@@ -514,23 +526,29 @@ inline void Machine::update_display()
 
 #undef GetNextPixels
 
-					if(line_position == 104)
+					if(line_position >= 104)
 					{
-						_currentOutputLine++;
-						if(!(_currentOutputLine&7))
-						{
-							_startLineAddress += ((_screenMode < 4) ? 80 : 40)*8 - 7;
-						}
-						else
-							_startLineAddress++;
+						int pixels_to_output = std::min(_frameCycles - _displayOutputPosition, 128 - line_position);
+						_crt.output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
+						_displayOutputPosition += pixels_to_output;
 
-						if(_writePointer)
-							_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
-						else
-							_crt.output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
-						_crt.output_blank(24 * crt_cycles_multiplier);
-						_displayOutputPosition += 24;
-						_currentLine = nullptr;
+						if(line_position + pixels_to_output == 128)
+						{
+							_currentOutputLine++;
+//							printf("\n%d: ", _currentOutputLine);
+							if(!(_currentOutputLine&7))
+							{
+								_startLineAddress += ((_screenMode < 4) ? 80 : 40)*8 - 7;
+							}
+							else
+								_startLineAddress++;
+
+							if(_writePointer)
+								_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+							else
+								_crt.output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
+							_currentLine = nullptr;
+						}
 					}
 				}
 			}
@@ -706,6 +724,12 @@ inline void Tape::set_data_register(uint8_t value)
 {
 	_data_register = (uint16_t)((value << 2) | 1);
 	_output_bits_remaining = 9;
+}
+
+inline uint8_t Tape::get_data_register()
+{
+	int shift = std::max(_bits_since_start - 7, 0);
+	return (uint8_t)(_data_register >> shift);
 }
 
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)

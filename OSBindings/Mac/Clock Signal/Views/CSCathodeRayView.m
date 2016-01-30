@@ -302,10 +302,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		@"phase = srcCoordinates.x * 6.283185308;\n"
 		"\n"
 		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.5 / textureSize.x, 0.0);\n"
+		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] - vec2(0.25 / textureSize.x, 0.0);\n";
 
 	NSString *const rgbVertexShaderGlobals =
 		@"out vec2 srcCoordinatesVarying[5];\n";
@@ -385,21 +383,22 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
 
 	NSString *const ntscFragmentShaderBody =
-		@"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
-		"vec4 samples = vec4("
+		@"vec3 angles = vec3(phase) + vec3(0.0, -3.141592654, -1.570796327);\n"
+		"vec3 samples = vec3("
 		"   sample(srcCoordinatesVarying[0], angles.x),"
 		"	sample(srcCoordinatesVarying[1], angles.y),"
-		"	sample(srcCoordinatesVarying[2], angles.z),"
-		"	sample(srcCoordinatesVarying[3], angles.w)"
+		"	sample(srcCoordinatesVarying[2], angles.z)"
 		");\n"
 		"\n"
-		"float y = dot(vec4(0.25), samples);\n"
-		"samples -= vec4(y);\n"
+		"float y = dot(vec2(0.5), samples.xy);\n"
+		"samples -= vec3(y);\n"
 		"\n"
-		"float i = dot(cos(angles), samples);\n"
-		"float q = dot(sin(angles), samples);\n"
+		"float i = dot(vec3(0.75), cos(angles) * samples);\n"
+		"float q = dot(vec3(0.75), sin(angles) * samples);\n"
 		"\n"
-		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
+		"fragColour = vec4(yiqToRGB * vec3(y, i, q), 1.0);\n"; //sin(lateralVarying));
+		// 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) *
+//		"float y2 = dot(vec2(0.5), samples.zw);\n"
 
 	NSString *const rgbFragmentShaderGlobals =
 		@"in vec2 srcCoordinatesVarying[5];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
