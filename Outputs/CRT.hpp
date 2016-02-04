@@ -137,38 +137,11 @@ class CRT {
 		uint8_t *get_write_target_for_buffer(int buffer);
 
 		// MARK: Binding
-		class Delegate {
-			public:
-				/*!	Notifies the delegate that a new frame is complete, providing an ID for it.
 
-					The delegate then owns that frame. It can draw it by issuing an @c draw_frame
-					call to the CRT. It should call @c return_frame to return the oldest frame it
-					is currently holding.
-
-					@param crt The CRT that produced the new frame.
-					@param frame_id An identifier for the finished frame, used for calls to @c draw_frame.
-					@param did_detect_vsync @c true if this frame ended due to a vsync signal detected in
-					the incoming signal; @c false otherwise.
-				*/
-				virtual void crt_did_end_frame(CRT *crt, int frame_id, bool did_detect_vsync) = 0;
-		};
-
-		/*!	Sets the CRT frame delegate. The delegate will be notified as frames are completed; it is
-			responsible for requesting that they be drawn and returning them when they are no longer needed.
-
-			@param delegate The delegate.
+		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
+			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
 		*/
-		void set_delegate(std::weak_ptr<Delegate> delegate);
-
-		/*!	Causes appropriate OpenGL or OpenGL ES calls to be made in order to draw a frame. The caller
-			is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
-
-			@param frame_id The frame to draw.
-		*/
-		void draw_frame(int frame_id);
-
-		/*!	Indicates that the delegate has no further interest in the oldest frame posted to it. */
-		void return_frame();
+		void draw_frame();
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
