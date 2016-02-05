@@ -10,7 +10,7 @@
 #define Atari2600_cpp
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Outputs/CRT.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 #include <stdint.h>
 #include "Atari2600Inputs.h"
 
@@ -19,7 +19,6 @@ namespace Atari2600 {
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:
-
 		Machine();
 		~Machine();
 
@@ -31,8 +30,6 @@ class Machine: public CPU6502::Processor<Machine> {
 		void set_digital_input(Atari2600DigitalInput input, bool state);
 
 		Outputs::CRT *get_crt() { return _crt; }
-
-		const char *get_signal_decoder();
 
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];

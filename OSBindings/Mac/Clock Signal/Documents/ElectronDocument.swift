@@ -61,6 +61,10 @@ class ElectronDocument: MachineDocument {
 		electron.runForNumberOfCycles(numberOfCycles)
 	}
 
+	override func openGLViewDrawView(view: CSCathodeRayView) {
+		electron.drawViewForPixelSize(view.backingSize)
+	}
+
 	// MARK: CSOpenGLViewResponderDelegate
 	override func keyDown(event: NSEvent) {
 		electron.setKey(event.keyCode, isPressed: true)

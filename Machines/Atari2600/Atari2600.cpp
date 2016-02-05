@@ -25,6 +25,14 @@ Machine::Machine() :
 	_tiaInputValue{0xff, 0xff}
 {
 	_crt = new Outputs::CRT(228, Outputs::CRT::DisplayType::NTSC60, 1, 2);
+	_crt->set_composite_sampling_function(
+		"float sample(vec2 coordinate, float phase)\n"
+		"{\n"
+			"vec2 c = texture(texID, coordinate).rg;"
+			"float y = 0.1 + c.x * 0.91071428571429;\n"
+			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
+			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
+		"}");
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
 }
@@ -146,19 +154,6 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	pixel[0] = (outputColour << 4)&0xe0;
 	pixel[1] = outputColour&0xf0;
 }
-
-const char *Machine::get_signal_decoder()
-{
-	return
-		"float sample(vec2 coordinate, float phase)\n"
-		"{\n"
-			"vec2 c = texture(texID, coordinate).rg;"
-			"float y = 0.1 + c.x * 0.91071428571429;\n"
-			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
-			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
-		"}";
-}
-
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
 // this is faster than the straightforward +1)%160 per profiling

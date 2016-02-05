@@ -10,38 +10,16 @@
 @import CoreVideo;
 @import GLKit;
 #import <OpenGL/gl3.h>
-#import <OpenGL/gl3ext.h>
-#import <libkern/OSAtomic.h>
+//#import <OpenGL/gl3ext.h>
+//#import <libkern/OSAtomic.h>
 
 
 @implementation CSCathodeRayView {
-	CVDisplayLinkRef displayLink;
-
-	GLuint _vertexShader, _fragmentShader;
-	GLuint _shaderProgram;
-	GLuint _arrayBuffer, _vertexArray;
-	GLint _positionAttribute;
-	GLint _textureCoordinatesAttribute;
-	GLint _lateralAttribute;
-
-	GLint _textureSizeUniform, _windowSizeUniform;
-	GLint _boundsOriginUniform, _boundsSizeUniform;
-	GLint _alphaUniform;
-
-	GLuint _textureName, _shadowMaskTextureName;
-	CRTSize _textureSize;
-
-	CRTFrame *_crtFrame;
-
-	NSString *_signalDecoder;
-	CSCathodeRayViewSignalType _signalType;
-	int32_t _signalDecoderGeneration;
-	int32_t _compiledSignalDecoderGeneration;
-
+	CVDisplayLinkRef _displayLink;
 	CGRect _aspectRatioCorrectedBounds;
 }
 
-- (GLuint)textureForImageNamed:(NSString *)name
+/*- (GLuint)textureForImageNamed:(NSString *)name
 {
 	NSImage *const image = [NSImage imageNamed:name];
 	NSBitmapImageRep *bitmapRepresentation = [[NSBitmapImageRep alloc] initWithData: [image TIFFRepresentation]];
@@ -57,7 +35,7 @@
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	return textureName;
-}
+}*/
 
 - (void)prepareOpenGL
 {
@@ -66,29 +44,29 @@
 	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 
 	// Create a display link capable of being used with all active displays
-	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+	CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
  
 	// Set the renderer output callback function
-	CVDisplayLinkSetOutputCallback(displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
+	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
  
 	// Set the display link for the current renderer
 	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
+	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
 
 	// install the shadow mask texture as the second texture
-	glActiveTexture(GL_TEXTURE1);
+/*	glActiveTexture(GL_TEXTURE1);
 	_shadowMaskTextureName = [self textureForImageNamed:@"ShadowMask"];
 
 	// otherwise, we'll be working on the first texture
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);*/
 
 	// get the shader ready, set the clear colour
 	[self.openGLContext makeCurrentContext];
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	// Activate the display link
-	CVDisplayLinkStart(displayLink);
+	CVDisplayLinkStart(_displayLink);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -103,27 +81,26 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)invalidate
 {
-	CVDisplayLinkStop(displayLink);
+	CVDisplayLinkStop(_displayLink);
 }
 
 - (void)dealloc
 {
 	// Release the display link
-	CVDisplayLinkRelease(displayLink);
+	CVDisplayLinkRelease(_displayLink);
 
 	// Release OpenGL buffers
-	[self.openGLContext makeCurrentContext];
-	glDeleteBuffers(1, &_arrayBuffer);
-	glDeleteVertexArrays(1, &_vertexArray);
-	glDeleteTextures(1, &_textureName);
-	glDeleteTextures(1, &_shadowMaskTextureName);
-	glDeleteProgram(_shaderProgram);
+//	[self.openGLContext makeCurrentContext];
+//	glDeleteBuffers(1, &_arrayBuffer);
+//	glDeleteVertexArrays(1, &_vertexArray);
+//	glDeleteTextures(1, &_textureName);
+//	glDeleteTextures(1, &_shadowMaskTextureName);
+//	glDeleteProgram(_shaderProgram);
 }
 
-- (NSPoint)backingViewSize
+- (CGSize)backingSize
 {
-	NSPoint backingSize = {.x = self.bounds.size.width, .y = self.bounds.size.height};
-	return [self convertPointToBacking:backingSize];
+	return [self convertSizeToBacking:self.bounds.size];
 }
 
 - (void)reshape
@@ -133,49 +110,49 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	NSPoint viewSize = [self backingViewSize];
-	glViewport(0, 0, (GLsizei)viewSize.x, (GLsizei)viewSize.y);
+	CGSize viewSize = [self backingSize];
+	glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
 
-	[self pushSizeUniforms];
-
-	CGLUnlockContext([[self openGLContext] CGLContextObj]);
-}
-
-- (void)setFrameBounds:(CGRect)frameBounds
-{
-	_frameBounds = frameBounds;
-
-	[self.openGLContext makeCurrentContext];
-	CGLLockContext([[self openGLContext] CGLContextObj]);
-
-	[self pushSizeUniforms];
+//	[self pushSizeUniforms];
 
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
-- (void)pushSizeUniforms
-{
-	if(_shaderProgram)
-	{
-		NSPoint viewSize = [self backingViewSize];
-		if(_windowSizeUniform >= 0)
-		{
-			glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
-		}
-
-		CGFloat outputAspectRatioMultiplier = (viewSize.x / viewSize.y) / (4.0 / 3.0);
-
-//		NSLog(@"%0.2f v %0.2f", outputAspectRatio, desiredOutputAspectRatio);
-		_aspectRatioCorrectedBounds = _frameBounds;
-
-		CGFloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _frameBounds.size.width;
-		_aspectRatioCorrectedBounds.origin.x -= bonusWidth * 0.5f * _aspectRatioCorrectedBounds.size.width;
-		_aspectRatioCorrectedBounds.size.width *= outputAspectRatioMultiplier;
-
-		if(_boundsOriginUniform >= 0) glUniform2f(_boundsOriginUniform, (GLfloat)_aspectRatioCorrectedBounds.origin.x, (GLfloat)_aspectRatioCorrectedBounds.origin.y);
-		if(_boundsSizeUniform >= 0) glUniform2f(_boundsSizeUniform, (GLfloat)_aspectRatioCorrectedBounds.size.width, (GLfloat)_aspectRatioCorrectedBounds.size.height);
-	}
-}
+//- (void)setFrameBounds:(CGRect)frameBounds
+//{
+//	_frameBounds = frameBounds;
+//
+//	[self.openGLContext makeCurrentContext];
+//	CGLLockContext([[self openGLContext] CGLContextObj]);
+//
+//	[self pushSizeUniforms];
+//
+//	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+//}
+//
+//- (void)pushSizeUniforms
+//{
+//	if(_shaderProgram)
+//	{
+//		NSPoint viewSize = [self backingViewSize];
+//		if(_windowSizeUniform >= 0)
+//		{
+//			glUniform2f(_windowSizeUniform, (GLfloat)viewSize.x, (GLfloat)viewSize.y);
+//		}
+//
+//		CGFloat outputAspectRatioMultiplier = (viewSize.x / viewSize.y) / (4.0 / 3.0);
+//
+////		NSLog(@"%0.2f v %0.2f", outputAspectRatio, desiredOutputAspectRatio);
+//		_aspectRatioCorrectedBounds = _frameBounds;
+//
+//		CGFloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _frameBounds.size.width;
+//		_aspectRatioCorrectedBounds.origin.x -= bonusWidth * 0.5f * _aspectRatioCorrectedBounds.size.width;
+//		_aspectRatioCorrectedBounds.size.width *= outputAspectRatioMultiplier;
+//
+//		if(_boundsOriginUniform >= 0) glUniform2f(_boundsOriginUniform, (GLfloat)_aspectRatioCorrectedBounds.origin.x, (GLfloat)_aspectRatioCorrectedBounds.origin.y);
+//		if(_boundsSizeUniform >= 0) glUniform2f(_boundsSizeUniform, (GLfloat)_aspectRatioCorrectedBounds.size.width, (GLfloat)_aspectRatioCorrectedBounds.size.height);
+//	}
+//}
 
 - (void)awakeFromNib
 {
@@ -205,10 +182,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.wantsBestResolutionOpenGLSurface = YES;
 
 	// establish default instance variable values
-	self.frameBounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
+//	self.frameBounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
 }
 
-- (GLint)formatForDepth:(unsigned int)depth
+/*- (GLint)formatForDepth:(unsigned int)depth
 {
 	switch(depth)
 	{
@@ -489,7 +466,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-}
+}*/
 
 - (void)drawRect:(NSRect)dirtyRect
 {
@@ -501,18 +478,20 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	while((!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) && _signalDecoder) {
-		_compiledSignalDecoderGeneration = _signalDecoderGeneration;
-		[self prepareShader];
-	}
-
 	glClear(GL_COLOR_BUFFER_BIT);
-
-	if (_crtFrame)
-	{
-		if(_textureSizeUniform >= 0) glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
-		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_crtFrame->number_of_vertices);
-	}
+	[self.delegate openGLViewDrawView:self];
+//	while((!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) && _signalDecoder) {
+//		_compiledSignalDecoderGeneration = _signalDecoderGeneration;
+//		[self prepareShader];
+//	}
+//
+//	glClear(GL_COLOR_BUFFER_BIT);
+//
+//	if (_crtFrame)
+//	{
+//		if(_textureSizeUniform >= 0) glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
+//		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_crtFrame->number_of_vertices);
+//	}
 
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);

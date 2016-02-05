@@ -10,7 +10,7 @@
 #define Electron_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Outputs/CRT.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include <stdint.h>
@@ -148,7 +148,6 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		Outputs::CRT *get_crt() { return &_crt; }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
-		const char *get_signal_decoder();
 
 		virtual void tape_did_change_interrupt_status(Tape *tape);
 

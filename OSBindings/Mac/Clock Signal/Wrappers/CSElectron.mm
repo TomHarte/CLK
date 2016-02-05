@@ -14,21 +14,9 @@
 
 @implementation CSElectron {
 	Electron::Machine _electron;
-
-//	NSTimeInterval _periodicStart;
-//	int _numberOfCycles;
 }
 
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {
-/*	_numberOfCycles += numberOfCycles;
-	NSTimeInterval timeNow = [NSDate timeIntervalSinceReferenceDate];
-	NSTimeInterval difference = timeNow - _periodicStart;
-	if(difference > 1.0)
-	{
-		NSLog(@"cycles: %0.0f", (double)_numberOfCycles / difference);
-		_periodicStart = timeNow;
-		_numberOfCycles = 0;
-	}*/
 	_electron.run_for_cycles(numberOfCycles);
 }
 
@@ -44,8 +32,8 @@
 	_electron.set_rom((Electron::ROMSlot)slot, rom.length, (const uint8_t *)rom.bytes);
 }
 
-- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {
-	_electron.get_crt()->set_delegate(delegate);
+- (void)drawViewForPixelSize:(CGSize)pixelSize {
+	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height);
 }
 
 - (BOOL)openUEFAtURL:(NSURL *)URL {
@@ -67,7 +55,6 @@
 
 - (void)setView:(CSCathodeRayView *)view {
 	[super setView:view];
-	[view setSignalDecoder:[NSString stringWithUTF8String:_electron.get_signal_decoder()] type:CSCathodeRayViewSignalTypeRGB];
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {

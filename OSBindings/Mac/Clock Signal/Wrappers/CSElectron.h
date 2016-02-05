@@ -18,4 +18,6 @@
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
 
+- (void)drawViewForPixelSize:(CGSize)pixelSize;
+
 @end

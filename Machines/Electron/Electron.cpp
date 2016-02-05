@@ -29,6 +29,13 @@ Machine::Machine() :
 	_currentOutputLine(0),
 	_crt(Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1))
 {
+	_crt.set_rgb_sampling_function(
+		"vec4 sample(vec2 coordinate)\n"
+		"{\n"
+			"float texValue = texture(texID, coordinate).r;\n"
+			"return vec4( step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);\n"
+		"}");
+
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
 	_interruptStatus = 0x02;
@@ -455,7 +462,7 @@ inline void Machine::update_display()
 						}
 
 
-						int pixels_to_output = std::min(_frameCycles - _displayOutputPosition, 104 - line_position);
+						int pixels_to_output = std::min(104 - line_position, cycles_left);
 						_displayOutputPosition += pixels_to_output;
 //						printf("<- %d ->", pixels_to_output);
 						if(_screenMode >= 4)
@@ -528,7 +535,7 @@ inline void Machine::update_display()
 
 					if(line_position >= 104)
 					{
-						int pixels_to_output = std::min(_frameCycles - _displayOutputPosition, 128 - line_position);
+						int pixels_to_output = std::min(128 - line_position, cycles_left);
 						_crt.output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
 						_displayOutputPosition += pixels_to_output;
 
@@ -554,16 +561,6 @@ inline void Machine::update_display()
 			}
 		}
 	}
-}
-
-const char *Machine::get_signal_decoder()
-{
-	return
-		"vec4 sample(vec2 coordinate)\n"
-		"{\n"
-			"float texValue = texture(texID, coordinate).r;\n"
-			"return vec4( step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);\n"
-		"}";
 }
 
 void Machine::set_key_state(Key key, bool isPressed)

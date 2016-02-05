@@ -9,13 +9,6 @@
 #import "CSMachine.h"
 #import "CSMachine+Subclassing.h"
 
-struct CRTDelegate: public Outputs::CRT::Delegate {
-	__weak CSMachine *machine;
-	void crt_did_end_frame(Outputs::CRT *crt, CRTFrame *frame, bool did_detect_vsync) {
-		[machine crt:crt didEndFrame:frame didDetectVSync:did_detect_vsync];
-	}
-};
-
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	__weak CSMachine *machine;
 	void speaker_did_complete_samples(Outputs::Speaker *speaker, const int16_t *buffer, int buffer_size) {
@@ -29,7 +22,6 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 };
 
 @implementation CSMachine {
-	CRTDelegate _crtDelegate;
 	SpeakerDelegate _speakerDelegate;
 
 	dispatch_queue_t _serialDispatchQueue;
@@ -38,10 +30,6 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 - (void)perform:(dispatch_block_t)action {
 	dispatch_async(_serialDispatchQueue, action);
-}
-
-- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
-	if([self.view pushFrame:frame]) crt->return_frame();
 }
 
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
@@ -66,16 +54,13 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
 		_runningLock = [[NSConditionLock alloc] initWithCondition:CSMachineRunningStateStopped];
 
-		_crtDelegate.machine = self;
 		_speakerDelegate.machine = self;
-		[self setCRTDelegate:&_crtDelegate];
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:44100];
 	}
 
 	return self;
 }
 
-- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate {}
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
 	return NO;
 }

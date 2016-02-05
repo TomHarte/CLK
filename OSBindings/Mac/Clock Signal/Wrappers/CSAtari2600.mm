@@ -19,7 +19,7 @@
 	BOOL _didDecideRegion;
 }
 
-- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
+/*- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
 	if(!_didDecideRegion)
 	{
 		_frameCount++;
@@ -41,7 +41,7 @@
 	}
 
 	[super crt:crt didEndFrame:frame didDetectVSync:didDetectVSync];
-}
+}*/
 
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {
 	_atari2600.run_for_cycles(numberOfCycles);
@@ -63,15 +63,6 @@
 	[self perform:^{
 		_atari2600.set_reset_line(enabled ? true : false);
 	}];
-}
-
-- (void)setView:(CSCathodeRayView *)view {
-	[super setView:view];
-	[view setSignalDecoder:[NSString stringWithUTF8String:_atari2600.get_signal_decoder()] type:CSCathodeRayViewSignalTypeNTSC];
-}
-
-- (void)setCRTDelegate:(Outputs::CRT::Delegate *)delegate{
-	_atari2600.get_crt()->set_delegate(delegate);
 }
 
 @end

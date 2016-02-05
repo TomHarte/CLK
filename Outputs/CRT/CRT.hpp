@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "CRTFrame.h"
 
@@ -136,12 +137,10 @@ class CRT {
 		*/
 		uint8_t *get_write_target_for_buffer(int buffer);
 
-		// MARK: Binding
-
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
 			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
 		*/
-		void draw_frame();
+		void draw_frame(int output_width, int output_height);
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
@@ -308,12 +307,13 @@ class CRT {
 
 		static const int kCRTNumberOfFrames = 4;
 
-		// the run delegate and the triple buffer
+		// the triple buffer and OpenGL state
 		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];
 		CRTFrameBuilder *_current_frame_builder;
-		int _frames_with_delegate;
+		CRTFrame *_current_frame;
+		std::shared_ptr<std::mutex> _current_frame_mutex;
 		int _frame_read_pointer;
-		Delegate *_delegate;
+		void *openGLState;
 };
 
 }
