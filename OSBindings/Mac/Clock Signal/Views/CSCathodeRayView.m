@@ -185,44 +185,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 //	self.frameBounds = CGRectMake(0.0, 0.0, 1.0, 1.0);
 }
 
-/*- (GLint)formatForDepth:(unsigned int)depth
-{
-	switch(depth)
-	{
-		default: return -1;
-		case 1: return GL_RED;
-		case 2: return GL_RG;
-		case 3: return GL_RGB;
-		case 4: return GL_RGBA;
-	}
-}
-
-- (BOOL)pushFrame:(nonnull CRTFrame *)crtFrame
-{
-	[[self openGLContext] makeCurrentContext];
-	CGLLockContext([[self openGLContext] CGLContextObj]);
-
-	BOOL hadFrame = _crtFrame ? YES : NO;
-	_crtFrame = crtFrame;
-
-	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_crtFrame->number_of_vertices * _crtFrame->size_per_vertex), _crtFrame->vertices, GL_DYNAMIC_DRAW);
-
-	glBindTexture(GL_TEXTURE_2D, _textureName);
-	if(_textureSize.width != _crtFrame->size.width || _textureSize.height != _crtFrame->size.height)
-	{
-		GLint format = [self formatForDepth:_crtFrame->buffers[0].depth];
-		glTexImage2D(GL_TEXTURE_2D, 0, format, _crtFrame->size.width, _crtFrame->size.height, 0, (GLenum)format, GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
-		_textureSize = _crtFrame->size;
-	}
-	else
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _crtFrame->size.width, _crtFrame->dirty_size.height, (GLenum)[self formatForDepth:_crtFrame->buffers[0].depth], GL_UNSIGNED_BYTE, _crtFrame->buffers[0].data);
-
-	[self drawView];
-
-	CGLUnlockContext([[self openGLContext] CGLContextObj]);
-
-	return hadFrame;
-}
+/*
 
 #pragma mark - Frame output
 
@@ -265,138 +228,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	OSAtomicIncrement32(&_signalDecoderGeneration);
 }
 
-- (nonnull NSString *)vertexShaderForType:(CSCathodeRayViewSignalType)type
-{
-	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
-	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
-	// from integral to floating point; there's also some setup for NTSC, PAL or whatever.
-
-	NSString *const ntscVertexShaderGlobals =
-		@"out vec2 srcCoordinatesVarying[4];\n"
-		"out float phase;\n";
-
-	NSString *const ntscVertexShaderBody =
-		@"phase = srcCoordinates.x * 6.283185308;\n"
-		"\n"
-		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] - vec2(0.25 / textureSize.x, 0.0);\n";
-
-	NSString *const rgbVertexShaderGlobals =
-		@"out vec2 srcCoordinatesVarying[5];\n";
-
-	NSString *const rgbVertexShaderBody =
-		@"srcCoordinatesVarying[2] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-		"srcCoordinatesVarying[0] = srcCoordinatesVarying[1] - vec2(1.0 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[1] = srcCoordinatesVarying[1] - vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[3] = srcCoordinatesVarying[1] + vec2(0.5 / textureSize.x, 0.0);\n"
-		"srcCoordinatesVarying[4] = srcCoordinatesVarying[1] + vec2(1.0 / textureSize.x, 0.0);\n";
-
-	NSString *const vertexShader =
-		@"#version 150\n"
-		"\n"
-		"in vec2 position;\n"
-		"in vec2 srcCoordinates;\n"
-		"in float lateral;\n"
-		"\n"
-		"uniform vec2 boundsOrigin;\n"
-		"uniform vec2 boundsSize;\n"
-		"\n"
-		"out float lateralVarying;\n"
-		"out vec2 shadowMaskCoordinates;\n"
-		"\n"
-		"uniform vec2 textureSize;\n"
-		"\n"
-		"const float shadowMaskMultiple = 600;\n"
-		"\n"
-		"%@\n"
-		"void main (void)\n"
-		"{\n"
-			"lateralVarying = lateral + 1.0707963267949;\n"
-			"\n"
-			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);\n"
-			"\n"
-			"%@\n"
-			"\n"
-			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
-			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);\n"
-		"}\n";
-
-// + mappedPosition.x / 131.0
-
-	switch(_signalType)
-	{
-		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:vertexShader, ntscVertexShaderGlobals, ntscVertexShaderBody];
-		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:vertexShader, rgbVertexShaderGlobals, rgbVertexShaderBody];
-	}
-}
-
-- (nonnull NSString *)fragmentShaderForType:(CSCathodeRayViewSignalType)type
-{
-	NSString *const fragmentShader =
-		@"#version 150\n"
-		"\n"
-		"in float lateralVarying;\n"
-		"in vec2 shadowMaskCoordinates;\n"
-		"out vec4 fragColour;\n"
-		"\n"
-		"uniform sampler2D texID;\n"
-		"uniform sampler2D shadowMaskTexID;\n"
-		"uniform float alpha;\n"
-		"\n"
-		"%@\n"
-		"%%@\n"
-		"\n"
-		"void main(void)\n"
-		"{\n"
-			"%@\n"
-		"}\n";
-
-	NSString *const ntscFragmentShaderGlobals =
-		@"in vec2 srcCoordinatesVarying[4];\n"
-		"in float phase;\n"
-		"\n"
-		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
-		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
-
-	NSString *const ntscFragmentShaderBody =
-		@"vec3 angles = vec3(phase) + vec3(0.0, -3.141592654, -1.570796327);\n"
-		"vec3 samples = vec3("
-		"   sample(srcCoordinatesVarying[0], angles.x),"
-		"	sample(srcCoordinatesVarying[1], angles.y),"
-		"	sample(srcCoordinatesVarying[2], angles.z)"
-		");\n"
-		"\n"
-		"float y = dot(vec2(0.5), samples.xy);\n"
-		"samples -= vec3(y);\n"
-		"\n"
-		"float i = dot(vec3(0.75), cos(angles) * samples);\n"
-		"float q = dot(vec3(0.75), sin(angles) * samples);\n"
-		"\n"
-		"fragColour = vec4(yiqToRGB * vec3(y, i, q), 1.0);\n"; //sin(lateralVarying));
-		// 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) *
-//		"float y2 = dot(vec2(0.5), samples.zw);\n"
-
-	NSString *const rgbFragmentShaderGlobals =
-		@"in vec2 srcCoordinatesVarying[5];\n"; // texture(shadowMaskTexID, shadowMaskCoordinates) *
-
-	NSString *const rgbFragmentShaderBody =
-		@"fragColour =	sample(srcCoordinatesVarying[2]);";
-//		@"fragColour =	(sample(srcCoordinatesVarying[0]) * -0.1) + \
-//						(sample(srcCoordinatesVarying[1]) * 0.3) + \
-//						(sample(srcCoordinatesVarying[2]) * 0.6) + \
-//						(sample(srcCoordinatesVarying[3]) * 0.3) + \
-//						(sample(srcCoordinatesVarying[4]) * -0.1);";
-
-//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
-
-	switch(_signalType)
-	{
-		case CSCathodeRayViewSignalTypeNTSC: return [NSString stringWithFormat:fragmentShader, ntscFragmentShaderGlobals, ntscFragmentShaderBody];
-		case CSCathodeRayViewSignalTypeRGB:	 return [NSString stringWithFormat:fragmentShader, rgbFragmentShaderGlobals, rgbFragmentShaderBody];
-	}
-}
-
 - (void)prepareShader
 {
 	if(_shaderProgram)
@@ -427,10 +258,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 //	[self logErrorForObject:_shaderProgram];
 #endif
 
-	glGenVertexArrays(1, &_vertexArray);
-	glBindVertexArray(_vertexArray);
-	glGenBuffers(1, &_arrayBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, _arrayBuffer);
 
 	glUseProgram(_shaderProgram);
 
@@ -460,12 +287,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	glVertexAttribPointer((GLuint)_textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
 	glVertexAttribPointer((GLuint)_lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
 
-	glGenTextures(1, &_textureName);
-	glBindTexture(GL_TEXTURE_2D, _textureName);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }*/
 
 - (void)drawRect:(NSRect)dirtyRect
@@ -478,20 +299,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	glClear(GL_COLOR_BUFFER_BIT);
 	[self.delegate openGLViewDrawView:self];
-//	while((!_shaderProgram || (_signalDecoderGeneration != _compiledSignalDecoderGeneration)) && _signalDecoder) {
-//		_compiledSignalDecoderGeneration = _signalDecoderGeneration;
-//		[self prepareShader];
-//	}
-//
-//	glClear(GL_COLOR_BUFFER_BIT);
-//
-//	if (_crtFrame)
-//	{
-//		if(_textureSizeUniform >= 0) glUniform2f(_textureSizeUniform, _crtFrame->size.width, _crtFrame->size.height);
-//		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_crtFrame->number_of_vertices);
-//	}
 
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);

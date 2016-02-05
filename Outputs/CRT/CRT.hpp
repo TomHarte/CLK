@@ -140,7 +140,7 @@ class CRT {
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
 			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
 		*/
-		void draw_frame(int output_width, int output_height);
+		void draw_frame(int output_width, int output_height, bool only_if_dirty);
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
@@ -251,34 +251,6 @@ class CRT {
 		int _next_scan;
 		void output_scan();
 
-		// MARK: shader storage and information.
-		/*!	Gets the vertex shader for display of vended CRTFrames.
-
-			@returns A vertex shader, allocated using a C function. The caller then owns the memory
-			and is responsible for free'ing it.
-		*/
-		char *get_vertex_shader();
-
-		/*!	Gets a fragment shader for display of vended CRTFrames based on the supplied sampling function.
-
-			@param sample_function A GLSL fragment including a function with the signature 
-			`float sample(vec2 coordinate, float phase)` that evaluates to the composite signal level
-			as a function of a source buffer sampling location and the current colour carrier phase.
-
-			@returns A complete fragment shader.
-		*/
-		char *get_fragment_shader(const char *sample_function);
-
-		/*!	Gets a fragment shader for composite display of vended CRTFrames based on a default encoding
-			of the supplied sampling function.
-
-			@param sample_function A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(vec2 coordinate)` that evaluates to an RGB colour as a function of
-			the source buffer sampling location.
-
-			@returns A complete fragment shader.
-		*/
-		char *get_rgb_encoding_fragment_shader(const char *sample_function);
 
 		struct CRTFrameBuilder {
 			CRTFrame frame;
@@ -310,10 +282,21 @@ class CRT {
 		// the triple buffer and OpenGL state
 		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];
 		CRTFrameBuilder *_current_frame_builder;
-		CRTFrame *_current_frame;
+		CRTFrame *_current_frame, *_last_drawn_frame;
 		std::shared_ptr<std::mutex> _current_frame_mutex;
 		int _frame_read_pointer;
-		void *openGLState;
+
+		struct OpenGLState;
+		OpenGLState *_openGL_state;
+
+		char *_composite_shader;
+		char *_rgb_shader;
+
+		void construct_openGL();
+		void destruct_openGL();
+
+		char *get_vertex_shader();
+		char *get_fragment_shader();
 };
 
 }

@@ -33,7 +33,7 @@
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize {
-	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height);
+	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height, false);
 }
 
 - (BOOL)openUEFAtURL:(NSURL *)URL {
