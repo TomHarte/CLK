@@ -46,7 +46,7 @@ class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewRes
 		lastCycleCount = cycleCount
 	}
 
-	func openGLViewDrawView(view: CSCathodeRayView) {}
+	func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {}
 	func runForNumberOfCycles(numberOfCycles: Int32) {}
 
 	// MARK: CSOpenGLViewResponderDelegate

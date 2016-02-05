@@ -18,6 +18,6 @@
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
 
-- (void)drawViewForPixelSize:(CGSize)pixelSize;
+- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
 @end

@@ -37,7 +37,7 @@ static GLenum formatForDepth(unsigned int depth)
 {
 	switch(depth)
 	{
-		default: return -1;
+		default: return GL_FALSE;
 		case 1: return GL_RED;
 		case 2: return GL_RG;
 		case 3: return GL_RGB;
@@ -64,50 +64,44 @@ void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 {
 	_current_frame_mutex->lock();
 
-	if(!_current_frame)
+	if(!_current_frame || !only_if_dirty)
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-	else
+
+	if(_current_frame && _current_frame != _last_drawn_frame)
 	{
-		if(_current_frame != _last_drawn_frame)
+		if(!_openGL_state)
 		{
-			if(!_openGL_state)
-			{
-				_openGL_state = new OpenGLState;
+			_openGL_state = new OpenGLState;
 
-				glGenTextures(1, &_openGL_state->textureName);
-				glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-				glGenVertexArrays(1, &_openGL_state->vertexArray);
-				glBindVertexArray(_openGL_state->vertexArray);
-				glGenBuffers(1, &_openGL_state->arrayBuffer);
-				glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
-			}
-
-			glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);
-
+			glGenTextures(1, &_openGL_state->textureName);
 			glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-			if(_openGL_state->textureSize.width != _current_frame->size.width || _openGL_state->textureSize.height != _current_frame->size.height)
-			{
-				GLenum format = formatForDepth(_current_frame->buffers[0].depth);
-				glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
-				_openGL_state->textureSize = _current_frame->size;
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-				if(_openGL_state->textureSizeUniform >= 0) glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
-			}
-			else
-				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->dirty_size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
+			glGenVertexArrays(1, &_openGL_state->vertexArray);
+			glBindVertexArray(_openGL_state->vertexArray);
+			glGenBuffers(1, &_openGL_state->arrayBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
 		}
-	}
 
-	if(_current_frame != _last_drawn_frame || only_if_dirty)
-	{
-		glClear(GL_COLOR_BUFFER_BIT);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);
+
+		glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+		if(_openGL_state->textureSize.width != _current_frame->size.width || _openGL_state->textureSize.height != _current_frame->size.height)
+		{
+			GLenum format = formatForDepth(_current_frame->buffers[0].depth);
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
+			_openGL_state->textureSize = _current_frame->size;
+
+			if(_openGL_state->textureSizeUniform >= 0) glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
+		}
+		else
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->dirty_size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
+
 		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_current_frame->number_of_vertices);
 	}
 

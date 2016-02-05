@@ -32,8 +32,8 @@
 	_electron.set_rom((Electron::ROMSlot)slot, rom.length, (const uint8_t *)rom.bytes);
 }
 
-- (void)drawViewForPixelSize:(CGSize)pixelSize {
-	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height, false);
+- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
+	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (BOOL)openUEFAtURL:(NSURL *)URL {

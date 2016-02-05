@@ -76,6 +76,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	CSCathodeRayView *view = (__bridge CSCathodeRayView *)displayLinkContext;
 	[view.delegate openGLView:view didUpdateToTime:*now];
+	[view drawViewOnlyIfDirty:YES];
 	return kCVReturnSuccess;
 }
 
@@ -291,15 +292,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	[self drawView];
+	[self drawViewOnlyIfDirty:NO];
 }
 
-- (void)drawView
+- (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty
 {
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 
-	[self.delegate openGLViewDrawView:self];
+	[self.delegate openGLView:self drawViewOnlyIfDirty:onlyIfDirty];
 
 	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);

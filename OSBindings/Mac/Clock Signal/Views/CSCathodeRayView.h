@@ -13,7 +13,7 @@
 
 @protocol CSCathodeRayViewDelegate
 - (void)openGLView:(nonnull CSCathodeRayView *)view didUpdateToTime:(CVTimeStamp)time;
-- (void)openGLViewDrawView:(nonnull CSCathodeRayView *)view;
+- (void)openGLView:(nonnull CSCathodeRayView *)view drawViewOnlyIfDirty:(BOOL)onlyIfDirty;
 @end
 
 @protocol CSCathodeRayViewResponderDelegate <NSObject>

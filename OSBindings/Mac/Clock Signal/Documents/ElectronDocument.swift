@@ -61,8 +61,8 @@ class ElectronDocument: MachineDocument {
 		electron.runForNumberOfCycles(numberOfCycles)
 	}
 
-	override func openGLViewDrawView(view: CSCathodeRayView) {
-		electron.drawViewForPixelSize(view.backingSize)
+	override func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		electron.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
 	}
 
 	// MARK: CSOpenGLViewResponderDelegate
