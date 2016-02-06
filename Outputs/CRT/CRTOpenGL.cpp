@@ -90,13 +90,15 @@ void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 {
 	_current_frame_mutex->lock();
 
-	if(!_current_frame || !only_if_dirty)
+	if(!_current_frame && !only_if_dirty)
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
-	if(_current_frame && _current_frame != _last_drawn_frame)
+	if(_current_frame && (_current_frame != _last_drawn_frame || !only_if_dirty))
 	{
+		glClear(GL_COLOR_BUFFER_BIT);
+
 		if(!_openGL_state)
 		{
 			_openGL_state = new OpenGLState;
@@ -127,10 +129,11 @@ void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
 			_openGL_state->textureSize = _current_frame->size;
 
-			if(_openGL_state->textureSizeUniform >= 0) glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
+			if(_openGL_state->textureSizeUniform >= 0)
+				glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
 		}
 		else
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->dirty_size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
 
 		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_current_frame->number_of_vertices);
 	}
