@@ -294,9 +294,12 @@ class CRT {
 
 		void construct_openGL();
 		void destruct_openGL();
+		void prepare_shader();
+		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		char *get_vertex_shader();
 		char *get_fragment_shader();
+		char *get_compound_shader(const char *base, const char *insert);
 };
 
 }

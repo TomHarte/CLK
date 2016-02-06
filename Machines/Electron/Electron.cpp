@@ -30,10 +30,10 @@ Machine::Machine() :
 	_crt(Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1))
 {
 	_crt.set_rgb_sampling_function(
-		"vec4 sample(vec2 coordinate)\n"
-		"{\n"
-			"float texValue = texture(texID, coordinate).r;\n"
-			"return vec4( step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);\n"
+		"vec3 rgb_sample(vec2 coordinate)"
+		"{"
+			"float texValue = texture(texID, coordinate).r;"
+			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
 
 	memset(_keyStates, 0, sizeof(_keyStates));
