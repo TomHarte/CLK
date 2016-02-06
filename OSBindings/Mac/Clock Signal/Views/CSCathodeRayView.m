@@ -9,7 +9,7 @@
 #import "CSCathodeRayView.h"
 @import CoreVideo;
 @import GLKit;
-#import <OpenGL/gl3.h>
+//#import <OpenGL/gl3.h>
 //#import <OpenGL/gl3ext.h>
 //#import <libkern/OSAtomic.h>
 
