@@ -416,6 +416,8 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
+	if(_current_frame_builder) _current_frame_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
+
 	_scans[_next_scan].type = Type::Data;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;

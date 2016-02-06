@@ -66,6 +66,8 @@ uint8_t *CRT::CRTFrameBuilder::get_next_run()
 
 void CRT::CRTFrameBuilder::allocate_write_area(int required_length)
 {
+	_last_allocation_amount = required_length;
+
 	if (_next_write_x_position + required_length > frame.size.width)
 	{
 		_next_write_x_position = 0;
@@ -79,6 +81,12 @@ void CRT::CRTFrameBuilder::allocate_write_area(int required_length)
 	_next_write_x_position += required_length;
 	frame.dirty_size.width = std::max(frame.dirty_size.width, _next_write_x_position);
 }
+
+void CRT::CRTFrameBuilder::reduce_previous_allocation_to(int actual_length)
+{
+	_next_write_x_position -= (_last_allocation_amount - actual_length);
+}
+
 
 uint8_t *CRT::CRTFrameBuilder::get_write_target_for_buffer(int buffer)
 {

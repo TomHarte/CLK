@@ -258,23 +258,23 @@ class CRT {
 			CRTFrameBuilder(uint16_t width, uint16_t height, unsigned int number_of_buffers, va_list buffer_sizes);
 			~CRTFrameBuilder();
 
-			private:
-				std::vector<uint8_t> _all_runs;
+			std::vector<uint8_t> _all_runs;
 
-				void reset();
-				void complete();
+			void reset();
+			void complete();
 
-				uint8_t *get_next_run();
-				friend CRT;
+			uint8_t *get_next_run();
 
-				void allocate_write_area(int required_length);
-				uint8_t *get_write_target_for_buffer(int buffer);
+			void allocate_write_area(int required_length);
+			void reduce_previous_allocation_to(int actual_length);
+			uint8_t *get_write_target_for_buffer(int buffer);
 
-				// a pointer to the section of content buffer currently being
-				// returned and to where the next section will begin
-				uint16_t _next_write_x_position, _next_write_y_position;
-				uint16_t _write_x_position, _write_y_position;
-				size_t _write_target_pointer;
+			// a pointer to the section of content buffer currently being
+			// returned and to where the next section will begin
+			uint16_t _next_write_x_position, _next_write_y_position;
+			uint16_t _write_x_position, _write_y_position;
+			size_t _write_target_pointer;
+			int _last_allocation_amount;
 		};
 
 		static const int kCRTNumberOfFrames = 4;
