@@ -25,8 +25,12 @@ static const uint32_t kCRTFixedPointOffset	= 0x04000000;
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 {
+	_colour_space = colour_space;
+	_colour_cycle_numerator = colour_cycle_numerator;
+	_colour_cycle_denominator = colour_cycle_denominator;
+
 	const unsigned int syncCapacityLineChargeThreshold = 3;
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const unsigned int scanlinesVerticalRetraceTime = 10;		// source: ibid
@@ -72,11 +76,11 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	switch(displayType)
 	{
 		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, 1135, 4);
+			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 1135, 4);
 		break;
 
 		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, 545, 2);
+			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 545, 2);
 		break;
 	}
 }
@@ -111,9 +115,9 @@ CRT::CRT() :
 	construct_openGL();
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT()
+CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT()
 {
-	set_new_timing(cycles_per_line, height_of_display, colour_cycle_numerator, colour_cycle_denominator);
+	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
 	va_list buffer_sizes;
 	va_start(buffer_sizes, number_of_buffers);

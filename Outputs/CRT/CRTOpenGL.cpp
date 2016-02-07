@@ -9,7 +9,8 @@
 #include "CRT.hpp"
 #include <stdlib.h>
 
-#include "OpenGL.h"
+#include "OpenGL.hpp"
+#include "TextureTarget.hpp"
 
 using namespace Outputs;
 
@@ -29,6 +30,10 @@ struct CRT::OpenGLState {
 	GLuint textureName, shadowMaskTextureName;
 
 	CRTSize textureSize;
+
+	OpenGL::TextureTarget *compositeTexture;
+	OpenGL::TextureTarget *colourTexture;
+	OpenGL::TextureTarget *filteredTexture;
 
 	GLuint compile_shader(const char *source, GLenum type)
 	{

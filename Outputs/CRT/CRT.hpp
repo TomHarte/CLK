@@ -28,6 +28,16 @@ class CRT {
 			NTSC60
 		};
 
+		enum ColourSpace {
+			YIQ,
+			YUV
+		};
+
+		enum OutputDevice {
+			Monitor,
+			Television
+		};
+
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 			The requested number of buffers, each with the requested number of bytes per pixel,
 			is created for the machine to write raw pixel data to.
@@ -55,7 +65,7 @@ class CRT {
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -68,7 +78,7 @@ class CRT {
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
-		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator);
+		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator);
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
@@ -182,7 +192,9 @@ class CRT {
 			`float phase_for_clock_cycle(int cycle)` that returns the colour phase at the beginning of
 			the supplied cycle.
 		*/
-		void set_phase_function(const char *shader);
+//		void set_phase_function(const char *shader);
+
+		void set_output_device(OutputDevice output_device);
 
 	private:
 		CRT();
@@ -195,6 +207,11 @@ class CRT {
 		// fundamental creator-specified properties
 		unsigned int _cycles_per_line;
 		unsigned int _height_of_display;
+
+		// colour invormation
+		ColourSpace _colour_space;
+		unsigned int _colour_cycle_numerator;
+		unsigned int _colour_cycle_denominator;
 
 		// properties directly derived from there
 		unsigned int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init

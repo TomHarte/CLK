@@ -9,7 +9,7 @@
 #ifndef TextureTarget_hpp
 #define TextureTarget_hpp
 
-#include "OpenGL.h"
+#include "OpenGL.hpp"
 
 namespace OpenGL {
 

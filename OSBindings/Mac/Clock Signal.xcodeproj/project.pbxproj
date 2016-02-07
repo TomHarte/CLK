@@ -16,6 +16,7 @@
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
 		4B2039941C67E20B001375C3 /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2039921C67E20B001375C3 /* TextureTarget.cpp */; };
+		4B2039991C67FA92001375C3 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2039971C67FA92001375C3 /* Shader.cpp */; };
 		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
 		4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2E2D931C399D1200138695 /* ElectronDocument.xib */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
@@ -343,7 +344,9 @@
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
 		4B2039921C67E20B001375C3 /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4B2039931C67E20B001375C3 /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
-		4B2039951C67E2A3001375C3 /* OpenGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OpenGL.h; sourceTree = "<group>"; };
+		4B2039951C67E2A3001375C3 /* OpenGL.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OpenGL.hpp; sourceTree = "<group>"; };
+		4B2039971C67FA92001375C3 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
+		4B2039981C67FA92001375C3 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4B2409531C45AB05004DA684 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Speaker.cpp; path = ../../Outputs/Speaker.cpp; sourceTree = "<group>"; };
 		4B2409541C45AB05004DA684 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = ../../Outputs/Speaker.hpp; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
@@ -696,7 +699,9 @@
 				4B7BFEFD1C6446EF00089C1C /* CRTFrameBuilder.cpp */,
 				4B2039921C67E20B001375C3 /* TextureTarget.cpp */,
 				4B2039931C67E20B001375C3 /* TextureTarget.hpp */,
-				4B2039951C67E2A3001375C3 /* OpenGL.h */,
+				4B2039951C67E2A3001375C3 /* OpenGL.hpp */,
+				4B2039971C67FA92001375C3 /* Shader.cpp */,
+				4B2039981C67FA92001375C3 /* Shader.hpp */,
 			);
 			name = CRT;
 			path = ../../Outputs/CRT;
@@ -1623,6 +1628,7 @@
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
 				4B55CE4E1C3B3BDA0093A61B /* CSMachine.mm in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
+				4B2039991C67FA92001375C3 /* Shader.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSCathodeRayView.m in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
