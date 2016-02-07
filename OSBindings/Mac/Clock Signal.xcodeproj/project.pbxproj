@@ -15,6 +15,7 @@
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
+		4B2039941C67E20B001375C3 /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2039921C67E20B001375C3 /* TextureTarget.cpp */; };
 		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
 		4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2E2D931C399D1200138695 /* ElectronDocument.xib */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
@@ -340,6 +341,9 @@
 		4B14145A1B58879D00E04248 /* CPU6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502AllRAM.hpp; sourceTree = "<group>"; };
 		4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WolfgangLorenzTests.swift; sourceTree = "<group>"; };
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
+		4B2039921C67E20B001375C3 /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
+		4B2039931C67E20B001375C3 /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
+		4B2039951C67E2A3001375C3 /* OpenGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OpenGL.h; sourceTree = "<group>"; };
 		4B2409531C45AB05004DA684 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Speaker.cpp; path = ../../Outputs/Speaker.cpp; sourceTree = "<group>"; };
 		4B2409541C45AB05004DA684 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = ../../Outputs/Speaker.hpp; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
@@ -690,6 +694,9 @@
 				4B0CCC441C62D0B3001CAC5F /* CRTFrame.h */,
 				4B0CCC461C62D1A8001CAC5F /* CRTOpenGL.cpp */,
 				4B7BFEFD1C6446EF00089C1C /* CRTFrameBuilder.cpp */,
+				4B2039921C67E20B001375C3 /* TextureTarget.cpp */,
+				4B2039931C67E20B001375C3 /* TextureTarget.hpp */,
+				4B2039951C67E2A3001375C3 /* OpenGL.h */,
 			);
 			name = CRT;
 			path = ../../Outputs/CRT;
@@ -1608,6 +1615,7 @@
 				4B55CE4B1C3B3B0C0093A61B /* CSAtari2600.mm in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
 				4B0CCC471C62D1A8001CAC5F /* CRTOpenGL.cpp in Sources */,
+				4B2039941C67E20B001375C3 /* TextureTarget.cpp in Sources */,
 				4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */,
 				4B7BFEFE1C6446EF00089C1C /* CRTFrameBuilder.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,

@@ -9,9 +9,7 @@
 #include "CRT.hpp"
 #include <stdlib.h>
 
-// TODO: figure out correct include paths for other platforms.
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl3.h>
+#include "OpenGL.h"
 
 using namespace Outputs;
 
@@ -89,6 +87,9 @@ void CRT::destruct_openGL()
 void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 {
 	_current_frame_mutex->lock();
+
+	GLint defaultFramebuffer;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
 	if(!_current_frame && !only_if_dirty)
 	{
