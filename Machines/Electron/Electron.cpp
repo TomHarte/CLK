@@ -144,6 +144,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 								if( interruptDisable&0x20 ) _interruptStatus &= ~Interrupt::RealTimeClock;
 								if( interruptDisable&0x40 ) _interruptStatus &= ~Interrupt::HighToneDetect;
 								evaluate_interrupts();
+
 								// TODO: NMI (?)
 							}
 //							else
@@ -668,19 +669,12 @@ inline void Tape::reset_tape_input()
 //	}
 }
 
-extern uint8_t dr;
-
 inline void Tape::evaluate_interrupts()
 {
 	if(!_bits_since_start)
 	{
 		if((_data_register&0x3) == 0x1)
 		{
-			if(dr != ((_data_register >> 2)&0xff))
-			{
-				printf("Mismatch\n");
-			}
-
 			_interrupt_status |= Interrupt::ReceiveDataFull;
 			if(_is_in_input_mode) _bits_since_start = 9;
 		}
@@ -725,8 +719,7 @@ inline void Tape::set_data_register(uint8_t value)
 
 inline uint8_t Tape::get_data_register()
 {
-	int shift = std::max(_bits_since_start - 7, 0);
-	return (uint8_t)(_data_register >> shift);
+	return (uint8_t)(_data_register >> 2);
 }
 
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)
@@ -759,11 +752,6 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 							float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
 							if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
 							if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
-
-							if(_crossings[3] == Tape::Unrecognised)
-							{
-								printf("Wah wah?\n");
-							}
 						}
 
 						if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
