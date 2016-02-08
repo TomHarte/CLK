@@ -312,4 +312,5 @@ void CRT::prepare_shader()
 
 void CRT::set_output_device(OutputDevice output_device)
 {
+	_output_device = output_device;
 }

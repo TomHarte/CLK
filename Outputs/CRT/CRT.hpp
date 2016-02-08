@@ -283,8 +283,8 @@ class CRT {
 
 			uint8_t *get_next_run();
 
-			void allocate_write_area(int required_length);
-			void reduce_previous_allocation_to(int actual_length);
+			void allocate_write_area(size_t required_length);
+			void reduce_previous_allocation_to(size_t actual_length);
 			uint8_t *get_write_target_for_buffer(int buffer);
 
 			// a pointer to the section of content buffer currently being
@@ -292,7 +292,7 @@ class CRT {
 			uint16_t _next_write_x_position, _next_write_y_position;
 			uint16_t _write_x_position, _write_y_position;
 			size_t _write_target_pointer;
-			int _last_allocation_amount;
+			size_t _last_allocation_amount;
 		};
 
 		static const int kCRTNumberOfFrames = 4;

@@ -64,26 +64,37 @@ uint8_t *CRT::CRTFrameBuilder::get_next_run()
 	return next_run;
 }
 
-void CRT::CRTFrameBuilder::allocate_write_area(int required_length)
+void CRT::CRTFrameBuilder::allocate_write_area(size_t required_length)
 {
 	_last_allocation_amount = required_length;
 
-	if (_next_write_x_position + required_length > frame.size.width)
+	if(_next_write_x_position + required_length + 2 > frame.size.width)
 	{
 		_next_write_x_position = 0;
 		_next_write_y_position = (_next_write_y_position+1)&(frame.size.height-1);
 		frame.dirty_size.height++;
 	}
 
-	_write_x_position = _next_write_x_position;
+	_write_x_position = _next_write_x_position + 1;
 	_write_y_position = _next_write_y_position;
 	_write_target_pointer = (_write_y_position * frame.size.width) + _write_x_position;
-	_next_write_x_position += required_length;
+	_next_write_x_position += required_length + 2;
 	frame.dirty_size.width = std::max(frame.dirty_size.width, _next_write_x_position);
 }
 
-void CRT::CRTFrameBuilder::reduce_previous_allocation_to(int actual_length)
+void CRT::CRTFrameBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
+	for(int c = 0; c < frame.number_of_buffers; c++)
+	{
+		memcpy(	&frame.buffers[c].data[(_write_target_pointer - 1) * frame.buffers[c].depth],
+				&frame.buffers[c].data[_write_target_pointer * frame.buffers[c].depth],
+				frame.buffers[c].depth);
+
+		memcpy(	&frame.buffers[c].data[(_write_target_pointer + actual_length) * frame.buffers[c].depth],
+				&frame.buffers[c].data[(_write_target_pointer + actual_length - 1) * frame.buffers[c].depth],
+				frame.buffers[c].depth);
+	}
+
 	_next_write_x_position -= (_last_allocation_amount - actual_length);
 }
 
