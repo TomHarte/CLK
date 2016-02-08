@@ -19,6 +19,20 @@
 
 namespace Outputs {
 
+struct Rect {
+	struct {
+		float x, y;
+	} origin;
+
+	struct {
+		float width, height;
+	} size;
+
+	Rect() {}
+	Rect(float x, float y, float width, float height) :
+		origin({.x = x, .y = y}), size({.width = width, .height =height}) {}
+};
+
 class CRT {
 	public:
 		~CRT();
@@ -195,6 +209,10 @@ class CRT {
 //		void set_phase_function(const char *shader);
 
 		void set_output_device(OutputDevice output_device);
+		void set_visible_area(Rect visible_area)
+		{
+			_visible_area = visible_area;
+		}
 
 	private:
 		CRT();
@@ -303,6 +321,7 @@ class CRT {
 		CRTFrame *_current_frame, *_last_drawn_frame;
 		std::shared_ptr<std::mutex> _current_frame_mutex;
 		int _frame_read_pointer;
+		Rect _visible_area;
 
 		struct OpenGLState;
 		OpenGLState *_openGL_state;

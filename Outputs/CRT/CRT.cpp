@@ -110,6 +110,7 @@ CRT::CRT() :
 	_is_in_hsync(false),
 	_is_in_vsync(false),
 	_current_frame_mutex(new std::mutex),
+	_visible_area(Rect(0, 0, 1, 1)),
 	_rasterPosition({.x = 0, .y = 0})
 {
 	construct_openGL();

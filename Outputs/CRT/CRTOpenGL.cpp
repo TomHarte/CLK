@@ -137,19 +137,19 @@ void CRT::push_size_uniforms(unsigned int output_width, unsigned int output_heig
 		glUniform2f(_openGL_state->windowSizeUniform, output_width, output_height);
 	}
 
-//	GLfloat outputAspectRatioMultiplier = 1.0;//(viewSize.x / viewSize.y) / (4.0 / 3.0);
+	GLfloat outputAspectRatioMultiplier = ((float)output_width / (float)output_height) / (4.0f / 3.0f);
 
-//	_aspectRatioCorrectedBounds = _frameBounds;
+	Rect _aspect_ratio_corrected_bounds = _visible_area;
 
-//	CGFloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _frameBounds.size.width;
-//	_aspectRatioCorrectedBounds.origin.x -= bonusWidth * 0.5f * _aspectRatioCorrectedBounds.size.width;
-//	_aspectRatioCorrectedBounds.size.width *= outputAspectRatioMultiplier;
+	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _visible_area.size.width;
+	_aspect_ratio_corrected_bounds.origin.x -= bonusWidth * 0.5f * _aspect_ratio_corrected_bounds.size.width;
+	_aspect_ratio_corrected_bounds.size.width *= outputAspectRatioMultiplier;
 
 	if(_openGL_state->boundsOriginUniform >= 0)
-		glUniform2f(_openGL_state->boundsOriginUniform, 0.0, 0.0); //(GLfloat)_aspectRatioCorrectedBounds.origin.x, (GLfloat)_aspectRatioCorrectedBounds.origin.y);
+		glUniform2f(_openGL_state->boundsOriginUniform, (GLfloat)_aspect_ratio_corrected_bounds.origin.x, (GLfloat)_aspect_ratio_corrected_bounds.origin.y);
 
 	if(_openGL_state->boundsSizeUniform >= 0)
-		glUniform2f(_openGL_state->boundsSizeUniform, 1.0, 1.0);//(GLfloat)_aspectRatioCorrectedBounds.size.width, (GLfloat)_aspectRatioCorrectedBounds.size.height);
+		glUniform2f(_openGL_state->boundsSizeUniform, (GLfloat)_aspect_ratio_corrected_bounds.size.width, (GLfloat)_aspect_ratio_corrected_bounds.size.height);
 }
 
 void CRT::set_composite_sampling_function(const char *shader)
