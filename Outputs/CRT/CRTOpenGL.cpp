@@ -11,12 +11,12 @@
 
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
+#include "Shader.hpp"
 
 using namespace Outputs;
 
 struct CRT::OpenGLState {
-	GLuint vertexShader, fragmentShader;
-	GLuint shaderProgram;
+	OpenGL::Shader *shaderProgram;
 	GLuint arrayBuffer, vertexArray;
 
 	GLint positionAttribute;
@@ -35,31 +35,11 @@ struct CRT::OpenGLState {
 	OpenGL::TextureTarget *colourTexture;
 	OpenGL::TextureTarget *filteredTexture;
 
-	GLuint compile_shader(const char *source, GLenum type)
+	OpenGLState() : shaderProgram(nullptr) {}
+	~OpenGLState()
 	{
-		GLuint shader = glCreateShader(type);
-		glShaderSource(shader, 1, &source, NULL);
-		glCompileShader(shader);
-
-#if defined(DEBUG)
-		GLint isCompiled = 0;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
-		if(isCompiled == GL_FALSE)
-		{
-			GLint logLength;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-			if (logLength > 0) {
-				GLchar *log = (GLchar *)malloc((size_t)logLength);
-				glGetShaderInfoLog(shader, logLength, &logLength, log);
-				printf("Compile log:\n%s\n", log);
-				free(log);
-			}
-		}
-#endif
-
-		return shader;
+		delete shaderProgram;
 	}
-
 };
 
 static GLenum formatForDepth(unsigned int depth)
@@ -73,7 +53,6 @@ static GLenum formatForDepth(unsigned int depth)
 		case 4: return GL_RGBA;
 	}
 }
-
 
 void CRT::construct_openGL()
 {
@@ -303,32 +282,20 @@ void CRT::prepare_shader()
 	char *vertex_shader = get_vertex_shader();
 	char *fragment_shader = get_fragment_shader();
 
-	_openGL_state->shaderProgram = glCreateProgram();
-	_openGL_state->vertexShader = _openGL_state->compile_shader(vertex_shader, GL_VERTEX_SHADER);
-	_openGL_state->fragmentShader = _openGL_state->compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
+	_openGL_state->shaderProgram = new OpenGL::Shader(vertex_shader, fragment_shader);
+	_openGL_state->shaderProgram->bind();
 
-	delete vertex_shader;
-	delete fragment_shader;
+	_openGL_state->positionAttribute			= _openGL_state->shaderProgram->get_attrib_location("position");
+	_openGL_state->textureCoordinatesAttribute	= _openGL_state->shaderProgram->get_attrib_location("srcCoordinates");
+	_openGL_state->lateralAttribute				= _openGL_state->shaderProgram->get_attrib_location("lateral");
+	_openGL_state->alphaUniform					= _openGL_state->shaderProgram->get_uniform_location("alpha");
+	_openGL_state->textureSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("textureSize");
+	_openGL_state->windowSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("windowSize");
+	_openGL_state->boundsSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("boundsSize");
+	_openGL_state->boundsOriginUniform			= _openGL_state->shaderProgram->get_uniform_location("boundsOrigin");
 
-	glAttachShader(_openGL_state->shaderProgram, _openGL_state->vertexShader);
-	glAttachShader(_openGL_state->shaderProgram, _openGL_state->fragmentShader);
-	glLinkProgram(_openGL_state->shaderProgram);
-
-	glUseProgram(_openGL_state->shaderProgram);
-
-	_openGL_state->positionAttribute			= glGetAttribLocation(_openGL_state->shaderProgram, "position");
-	_openGL_state->textureCoordinatesAttribute	= glGetAttribLocation(_openGL_state->shaderProgram, "srcCoordinates");
-	_openGL_state->lateralAttribute				= glGetAttribLocation(_openGL_state->shaderProgram, "lateral");
-	_openGL_state->alphaUniform					= glGetUniformLocation(_openGL_state->shaderProgram, "alpha");
-	_openGL_state->textureSizeUniform			= glGetUniformLocation(_openGL_state->shaderProgram, "textureSize");
-	_openGL_state->windowSizeUniform			= glGetUniformLocation(_openGL_state->shaderProgram, "windowSize");
-	_openGL_state->boundsSizeUniform			= glGetUniformLocation(_openGL_state->shaderProgram, "boundsSize");
-	_openGL_state->boundsOriginUniform			= glGetUniformLocation(_openGL_state->shaderProgram, "boundsOrigin");
-
-	GLint texIDUniform				= glGetUniformLocation(_openGL_state->shaderProgram, "texID");
-	GLint shadowMaskTexIDUniform	= glGetUniformLocation(_openGL_state->shaderProgram, "shadowMaskTexID");
-
-//	[self pushSizeUniforms];
+	GLint texIDUniform				= _openGL_state->shaderProgram->get_uniform_location("texID");
+	GLint shadowMaskTexIDUniform	= _openGL_state->shaderProgram->get_uniform_location("shadowMaskTexID");
 
 	glUniform1i(texIDUniform, 0);
 	glUniform1i(shadowMaskTexIDUniform, 1);
@@ -341,4 +308,8 @@ void CRT::prepare_shader()
 	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
 	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
 	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
+}
+
+void CRT::set_output_device(OutputDevice output_device)
+{
 }

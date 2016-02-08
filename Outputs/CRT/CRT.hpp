@@ -212,6 +212,7 @@ class CRT {
 		ColourSpace _colour_space;
 		unsigned int _colour_cycle_numerator;
 		unsigned int _colour_cycle_denominator;
+		OutputDevice _output_device;
 
 		// properties directly derived from there
 		unsigned int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init
