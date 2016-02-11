@@ -68,7 +68,7 @@ void CRT::destruct_openGL()
 	if(_rgb_shader) free(_rgb_shader);
 }
 
-void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
+void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
 	_current_frame_mutex->lock();
 
@@ -105,6 +105,13 @@ void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 
 		push_size_uniforms(output_width, output_height);
 
+		if(_last_drawn_frame != nullptr)
+		{
+			glUniform1f(_openGL_state->alphaUniform, 0.4f);
+			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_last_drawn_frame->number_of_vertices);
+		}
+		glUniform1f(_openGL_state->alphaUniform, 1.0f);
+
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);
 
 		glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
@@ -121,6 +128,7 @@ void CRT::draw_frame(int output_width, int output_height, bool only_if_dirty)
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
 
 		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_current_frame->number_of_vertices);
+		_last_drawn_frame = _current_frame;
 	}
 
 	_current_frame_mutex->unlock();
@@ -264,7 +272,7 @@ char *CRT::get_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 1.0);"
+			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, alpha);"
 		"}"
 	, _rgb_shader);
 }

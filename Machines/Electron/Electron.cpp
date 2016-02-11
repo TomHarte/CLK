@@ -19,6 +19,7 @@ static const unsigned int crt_cycles_multiplier = 8;
 static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
 const int first_graphics_line = 28;
+const int first_graphics_cycle = 33;
 
 Machine::Machine() :
 	_interruptControl(0),
@@ -27,6 +28,7 @@ Machine::Machine() :
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
 	_currentOutputLine(0),
+	_is_odd_field(false),
 	_crt(Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1))
 {
 	_crt.set_rgb_sampling_function(
@@ -84,8 +86,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			const int current_line = _frameCycles >> 7;
 			const int line_position = _frameCycles & 127;
-			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= 24 && line_position < 104)
-				cycles = (unsigned int)(104 - line_position);
+			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= first_graphics_cycle && line_position < first_graphics_cycle + 80)
+				cycles = (unsigned int)(80 + first_graphics_cycle - line_position);
 		}
 	}
 	else
@@ -376,19 +378,30 @@ inline void Machine::update_display()
 		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
 		if(_displayOutputPosition < end_of_hsync)
 		{
-			for(int c = 0; c < lines_of_hsync; c++)
-			{
-				_crt.output_sync(119 * crt_cycles_multiplier);
-				_crt.output_blank(9 * crt_cycles_multiplier);
-			}
+			// on an odd field, output a half line of level data, then 2.5 lines of sync; on an even field
+			// output 2.5 lines of sync, then half a line of level.
+//			if (_is_odd_field)
+//			{
+				_crt.output_blank(64 * crt_cycles_multiplier);
+				_crt.output_sync(320 * crt_cycles_multiplier);
+//			}
+//			else
+//			{
+//				_crt.output_sync(320 * crt_cycles_multiplier);
+//				_crt.output_blank(64 * crt_cycles_multiplier);
+//			}
+
+			_is_odd_field ^= true;
 			_displayOutputPosition = end_of_hsync;
 		}
 
 		while(_displayOutputPosition >= end_of_hsync && _displayOutputPosition < _frameCycles)
 		{
-			const int current_line = _displayOutputPosition >> 7;
-			const int line_position = _displayOutputPosition & 127;
 			const int cycles_left = _frameCycles - _displayOutputPosition;
+
+			const int fieldOutputPosition = _displayOutputPosition + (_is_odd_field ? 64 : 0);
+			const int current_line = fieldOutputPosition >> 7;
+			const int line_position = fieldOutputPosition & 127;
 
 			// all lines then start with 9 cycles of sync
 			if(line_position < 9)

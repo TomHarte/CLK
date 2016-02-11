@@ -179,6 +179,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		int _currentOutputLine;
 		unsigned int _currentOutputDivider;
 		uint8_t *_currentLine, *_writePointer;
+		bool _is_odd_field;
 
 		// Tape.
 		Tape _tape;

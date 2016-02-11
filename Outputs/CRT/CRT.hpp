@@ -164,7 +164,7 @@ class CRT {
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
 			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
 		*/
-		void draw_frame(int output_width, int output_height, bool only_if_dirty);
+		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
