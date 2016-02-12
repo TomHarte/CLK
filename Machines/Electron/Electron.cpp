@@ -14,7 +14,7 @@
 using namespace Electron;
 
 static const unsigned int cycles_per_line = 128;
-static const unsigned int cycles_per_frame = 312*cycles_per_line;
+static const unsigned int cycles_per_frame = 312*cycles_per_line + 64;
 static const unsigned int crt_cycles_multiplier = 8;
 static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
@@ -468,7 +468,7 @@ inline void Machine::update_display()
 							case 1:	case 4: case 6:		newDivider = 2; break;
 							case 2: case 5:				newDivider = 4; break;
 						}
-						if(newDivider != _currentOutputDivider)
+						if(newDivider != _currentOutputDivider && _currentLine)
 						{
 							_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
 							_currentOutputDivider = newDivider;
@@ -570,6 +570,7 @@ inline void Machine::update_display()
 							else
 								_crt.output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
 							_currentLine = nullptr;
+							_writePointer = nullptr;
 						}
 					}
 				}
