@@ -29,15 +29,15 @@ Machine::Machine() :
 	_audioOutputPositionError(0),
 	_currentOutputLine(0),
 	_is_odd_field(false),
-	_crt(Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1))
+	_crt(std::unique_ptr<Outputs::CRT>(new Outputs::CRT(crt_cycles_per_line, Outputs::CRT::DisplayType::PAL50, 1, 1)))
 {
-	_crt.set_rgb_sampling_function(
+	_crt->set_rgb_sampling_function(
 		"vec3 rgb_sample(vec2 coordinate)"
 		"{"
 			"float texValue = texture(texID, coordinate).r;"
 			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
-	_crt.set_visible_area(Outputs::Rect(0.2f, 0.0625f, 0.75f, 0.75f));
+	_crt->set_visible_area(Outputs::Rect(0.2f, 0.062f, 0.82f, 0.82f));
 
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -382,8 +382,8 @@ inline void Machine::update_display()
 			// output 2.5 lines of sync, then half a line of level.
 //			if (_is_odd_field)
 //			{
-				_crt.output_blank(64 * crt_cycles_multiplier);
-				_crt.output_sync(320 * crt_cycles_multiplier);
+				_crt->output_blank(64 * crt_cycles_multiplier);
+				_crt->output_sync(320 * crt_cycles_multiplier);
 //			}
 //			else
 //			{
@@ -412,7 +412,7 @@ inline void Machine::update_display()
 				if(line_position + remaining_period == 9)
 				{
 //					printf("!%d!", 9);
-					_crt.output_sync(9 * crt_cycles_multiplier);
+					_crt->output_sync(9 * crt_cycles_multiplier);
 				}
 			}
 			else
@@ -425,7 +425,7 @@ inline void Machine::update_display()
 				if(isBlankLine)
 				{
 					int remaining_period = std::min(128 - line_position, cycles_left);
-					_crt.output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
+					_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
 //					printf(".[%d]", remaining_period);
 					_displayOutputPosition += remaining_period;
 				}
@@ -435,7 +435,7 @@ inline void Machine::update_display()
 					if(line_position < 24)
 					{
 						int remaining_period = std::min(24 - line_position, cycles_left);
-						_crt.output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
+						_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
 //						printf("/(%d)(%d)[%d]", 24 - line_position, cycles_left, remaining_period);
 						_displayOutputPosition += remaining_period;
 
@@ -448,8 +448,8 @@ inline void Machine::update_display()
 								case 2: case 5:				_currentOutputDivider = 4; break;
 							}
 
-							_crt.allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
-							_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
+							_crt->allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
+							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 
 							if(current_line == first_graphics_line)
 								_startLineAddress = _startScreenAddress;
@@ -470,10 +470,10 @@ inline void Machine::update_display()
 						}
 						if(newDivider != _currentOutputDivider && _currentLine)
 						{
-							_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
+							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
 							_currentOutputDivider = newDivider;
-							_crt.allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
-							_currentLine = _writePointer = (uint8_t *)_crt.get_write_target_for_buffer(0);
+							_crt->allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 						}
 
 
@@ -551,7 +551,7 @@ inline void Machine::update_display()
 					if(line_position >= 104)
 					{
 						int pixels_to_output = std::min(128 - line_position, cycles_left);
-						_crt.output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
+						_crt->output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
 						_displayOutputPosition += pixels_to_output;
 
 						if(line_position + pixels_to_output == 128)
@@ -566,9 +566,9 @@ inline void Machine::update_display()
 								_startLineAddress++;
 
 							if(_writePointer)
-								_crt.output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+								_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
 							else
-								_crt.output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
+								_crt->output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
 							_currentLine = nullptr;
 							_writePointer = nullptr;
 						}

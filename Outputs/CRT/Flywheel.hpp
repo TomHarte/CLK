@@ -61,12 +61,23 @@ struct Flywheel
 		// do we recognise this hsync, thereby adjusting future time expectations?
 		if(sync_is_requested)
 		{
+			_did_detect_sync = true;
+
 			if(_counter < _sync_error_window || _counter > _expected_next_sync - _sync_error_window)
 			{
-				_did_detect_sync = true;
-
 				unsigned int time_now = (_counter < _sync_error_window) ? _expected_next_sync + _counter : _counter;
 				_expected_next_sync = (_expected_next_sync + _expected_next_sync + _expected_next_sync + time_now) >> 2;
+			}
+			else
+			{
+				if(_counter < _retrace_time + (_expected_next_sync >> 1))
+				{
+					_expected_next_sync = (_expected_next_sync + _standard_period + _sync_error_window) >> 1;
+				}
+				else
+				{
+					_expected_next_sync = (_expected_next_sync + _standard_period - _sync_error_window) >> 1;
+				}
 			}
 		}
 
@@ -139,11 +150,19 @@ struct Flywheel
 	}
 
 	/*!
-		Returns the amount of time since retrace last began. Time then counts monotonically up from zero.
+		@returns the amount of time since retrace last began. Time then counts monotonically up from zero.
 	*/
 	inline unsigned int get_current_time()
 	{
 		return _counter;
+	}
+
+	/*!
+		@returns whether the output is currently retracing.
+	*/
+	inline bool is_in_retrace()
+	{
+		return _counter < _retrace_time;
 	}
 
 	private:

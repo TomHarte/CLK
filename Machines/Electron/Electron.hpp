@@ -146,7 +146,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		void set_key_state(Key key, bool isPressed);
 
-		Outputs::CRT *get_crt() { return &_crt; }
+		Outputs::CRT *get_crt() { return _crt.get(); }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 
 		virtual void tape_did_change_interrupt_status(Tape *tape);
@@ -185,7 +185,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		Tape _tape;
 
 		// Outputs.
-		Outputs::CRT _crt;
+		std::unique_ptr<Outputs::CRT> _crt;
 		Speaker _speaker;
 };
 

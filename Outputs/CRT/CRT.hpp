@@ -233,27 +233,18 @@ class CRT {
 		unsigned int _colour_cycle_denominator;
 		OutputDevice _output_device;
 
-		// properties directly derived from there
-		unsigned int _hsync_error_window;			// the permitted window around the expected sync position in which a sync pulse will be recognised; calculated once at init
-
-		// the current scanning position
+		// the current scanning position (TODO: can I eliminate this in favour of just using the flywheels?)
 		struct Vector {
 			uint32_t x, y;
 		} _rasterPosition, _scanSpeed[4], _beamWidth[4];
 
-		// outer elements of sync separation
+		// the two flywheels regulating scanning
+		std::unique_ptr<Outputs::Flywheel> _horizontal_flywheel, _vertical_flywheel;
+
+		// elements of sync separation
 		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		bool _did_detect_hsync;					// true if horizontal sync was detected during this scanline (so, this affects flywheel adjustments)
 		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
 		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int _is_in_vsync;
-
-		// components of the flywheel sync
-		unsigned int _horizontal_counter;			// time run since the _start_ of the last horizontal sync
-		unsigned int _expected_next_hsync;			// our current expection of when the next horizontal sync will be encountered (which implies current flywheel velocity)
-		unsigned int _horizontal_retrace_time;
-		bool _is_in_hsync;					// true for the duration of a horizontal sync — used to determine beam running direction and speed
-		bool _did_detect_vsync;				// true if vertical sync was detected in the input stream rather than forced by emergency measure
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		enum Type {
@@ -263,13 +254,8 @@ class CRT {
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
-		enum SyncEvent {
-			None,
-			StartHSync, EndHSync,
-			StartVSync, EndVSync
-		};
-		SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
-		SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
 
 		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
 		struct Scan {
