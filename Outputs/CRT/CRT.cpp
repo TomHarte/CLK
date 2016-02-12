@@ -222,8 +222,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 	while(number_of_cycles) {
 
 		unsigned int time_until_vertical_sync_event, time_until_horizontal_sync_event;
-		SyncEvent next_vertical_sync_event = this->get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
-		SyncEvent next_horizontal_sync_event = this->get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
+		SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
+		SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 
 		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
 		// set it to false for the next run through this loop (if any)
@@ -316,7 +316,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				// in horizontal sync
 				case SyncEvent::EndHSync:
 					if (!_did_detect_hsync) {
-						_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 1) + _cycles_per_line) >> 1;
+						_expected_next_hsync = (_expected_next_hsync + (_hsync_error_window >> 4) + _cycles_per_line) >> 1;
 					}
 					_did_detect_hsync = false;
 					_is_in_hsync = false;

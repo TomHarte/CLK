@@ -16,6 +16,7 @@
 #include <mutex>
 
 #include "CRTFrame.h"
+#include "Flywheel.hpp"
 
 namespace Outputs {
 
