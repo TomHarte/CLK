@@ -661,6 +661,7 @@
 		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
+		4BEDD0F41C6D70B800F6257C /* Flywheel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Flywheel.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -702,6 +703,7 @@
 				4B2039951C67E2A3001375C3 /* OpenGL.hpp */,
 				4B2039971C67FA92001375C3 /* Shader.cpp */,
 				4B2039981C67FA92001375C3 /* Shader.hpp */,
+				4BEDD0F41C6D70B800F6257C /* Flywheel.hpp */,
 			);
 			name = CRT;
 			path = ../../Outputs/CRT;
