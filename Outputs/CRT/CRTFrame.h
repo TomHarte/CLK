@@ -52,11 +52,12 @@ typedef struct {
 	uint8_t *vertices;
 } CRTFrame;
 
-// TODO: these should be private to whomever builds the shaders
+// The height of the intermediate buffers.
+static const int kCRTFrameIntermediateBufferHeight = 2048;
+
 static const size_t kCRTVertexOffsetOfPosition = 0;
 static const size_t kCRTVertexOffsetOfTexCoord = 4;
 static const size_t kCRTVertexOffsetOfLateral = 8;
-static const size_t kCRTVertexOffsetOfPhase = 9;
 
 static const int kCRTSizeOfVertex = 10;
 

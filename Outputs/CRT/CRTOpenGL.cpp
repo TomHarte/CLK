@@ -1,4 +1,3 @@
-
 //  CRTOpenGL.cpp
 //  Clock Signal
 //
@@ -16,7 +15,7 @@
 using namespace Outputs;
 
 struct CRT::OpenGLState {
-	OpenGL::Shader *shaderProgram;
+	std::unique_ptr<OpenGL::Shader> shaderProgram;
 	GLuint arrayBuffer, vertexArray;
 
 	GLint positionAttribute;
@@ -29,17 +28,13 @@ struct CRT::OpenGLState {
 
 	GLuint textureName, shadowMaskTextureName;
 
+	GLuint defaultFramebuffer;
+
 	CRTSize textureSize;
 
-	OpenGL::TextureTarget *compositeTexture;
-	OpenGL::TextureTarget *colourTexture;
-	OpenGL::TextureTarget *filteredTexture;
-
-	OpenGLState() : shaderProgram(nullptr) {}
-	~OpenGLState()
-	{
-		delete shaderProgram;
-	}
+	std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
+	std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
+	std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 };
 
 static GLenum formatForDepth(unsigned int depth)
@@ -63,17 +58,42 @@ void CRT::construct_openGL()
 
 void CRT::destruct_openGL()
 {
-	delete (OpenGLState *)_openGL_state;
+	delete _openGL_state;
+	_openGL_state = nullptr;
 	if(_composite_shader) free(_composite_shader);
 	if(_rgb_shader) free(_rgb_shader);
 }
 
 void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
-	_current_frame_mutex->lock();
+	// establish essentials
+	if(!_openGL_state)
+	{
+		_openGL_state = new OpenGLState;
 
-	GLint defaultFramebuffer;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
+		glGenTextures(1, &_openGL_state->textureName);
+		glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+		glGenVertexArrays(1, &_openGL_state->vertexArray);
+		glBindVertexArray(_openGL_state->vertexArray);
+		glGenBuffers(1, &_openGL_state->arrayBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
+
+		prepare_shader();
+
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
+
+		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
+		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
+		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
+	}
+
+	// lock down any further work on the current frame
+	_current_frame_mutex->lock();
 
 	if(!_current_frame && !only_if_dirty)
 	{
@@ -82,52 +102,37 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 	if(_current_frame && (_current_frame != _last_drawn_frame || !only_if_dirty))
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		if(!_openGL_state)
-		{
-			_openGL_state = new OpenGLState;
-
-			glGenTextures(1, &_openGL_state->textureName);
-			glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-			glGenVertexArrays(1, &_openGL_state->vertexArray);
-			glBindVertexArray(_openGL_state->vertexArray);
-			glGenBuffers(1, &_openGL_state->arrayBuffer);
-			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
-
-			prepare_shader();
-		}
-
+		// update uniforms
 		push_size_uniforms(output_width, output_height);
-
-		if(_last_drawn_frame != nullptr)
-		{
-			glUniform1f(_openGL_state->alphaUniform, 0.4f);
-			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_last_drawn_frame->number_of_vertices);
-		}
 		glUniform1f(_openGL_state->alphaUniform, 1.0f);
 
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);
-
-		glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-		if(_openGL_state->textureSize.width != _current_frame->size.width || _openGL_state->textureSize.height != _current_frame->size.height)
+		// submit new frame data if required
+		if (_current_frame != _last_drawn_frame)
 		{
-			GLenum format = formatForDepth(_current_frame->buffers[0].depth);
-			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
-			_openGL_state->textureSize = _current_frame->size;
+			glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);
 
-			if(_openGL_state->textureSizeUniform >= 0)
-				glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
+			glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+			if(_openGL_state->textureSize.width != _current_frame->size.width || _openGL_state->textureSize.height != _current_frame->size.height)
+			{
+				GLenum format = formatForDepth(_current_frame->buffers[0].depth);
+				glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
+				_openGL_state->textureSize = _current_frame->size;
+
+				if(_openGL_state->textureSizeUniform >= 0)
+					glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
+			}
+			else
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
 		}
-		else
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
 
+		// draw
+		_openGL_state->compositeTexture->bind_framebuffer();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
+		glClear(GL_COLOR_BUFFER_BIT);
 		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_current_frame->number_of_vertices);
+
+
 		_last_drawn_frame = _current_frame;
 	}
 
@@ -136,6 +141,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 void CRT::set_openGL_context_will_change(bool should_delete_resources)
 {
+	_openGL_state = nullptr;
 }
 
 void CRT::push_size_uniforms(unsigned int output_width, unsigned int output_height)
@@ -290,7 +296,7 @@ void CRT::prepare_shader()
 	char *vertex_shader = get_vertex_shader();
 	char *fragment_shader = get_fragment_shader();
 
-	_openGL_state->shaderProgram = new OpenGL::Shader(vertex_shader, fragment_shader);
+	_openGL_state->shaderProgram = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 	_openGL_state->shaderProgram->bind();
 
 	_openGL_state->positionAttribute			= _openGL_state->shaderProgram->get_attrib_location("position");
