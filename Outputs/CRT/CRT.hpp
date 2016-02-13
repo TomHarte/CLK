@@ -153,7 +153,7 @@ class CRT {
 
 			@param required_length The number of samples to allocate.
 		*/
-		void allocate_write_area(int required_length);
+		void allocate_write_area(size_t required_length);
 
 		/*!	Gets a pointer for writing to the area created by the most recent call to @c allocate_write_area
 			for the nominated buffer.

@@ -181,12 +181,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #define tex_y(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 2])
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
 
-#define InternalToUInt16(v) ((v) + 32768) >> 16
+#define InternalToUInt16(v)		((v) + 32768) >> 16
+#define CounterToInternal(c)	(unsigned int)(((uint64_t)c->get_current_output_position() * kCRTFixedPointRange) / c->get_scan_period())
 
 		if(next_run)
 		{
-			unsigned int x_position = _horizontal_flywheel->get_current_output_position() * (kCRTFixedPointRange / 1024);
-			unsigned int y_position = (_vertical_flywheel->get_current_output_position() / 312) * (kCRTFixedPointRange / 1024);
+			unsigned int x_position = CounterToInternal(_horizontal_flywheel);
+			unsigned int y_position = CounterToInternal(_vertical_flywheel);
 
 			// set the type, initial raster position and type of this run
 			position_x(0) = position_x(4) = InternalToUInt16(kCRTFixedPointOffset + x_position + _beamWidth[lengthMask].x);
@@ -218,8 +219,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			unsigned int x_position = _horizontal_flywheel->get_current_output_position() * (kCRTFixedPointRange / 1024);
-			unsigned int y_position = (_vertical_flywheel->get_current_output_position() / 312) * (kCRTFixedPointRange / 1024);
+			unsigned int x_position = CounterToInternal(_horizontal_flywheel);
+			unsigned int y_position = CounterToInternal(_vertical_flywheel);
 
 			// store the final raster position
 			position_x(2) = position_x(3) = InternalToUInt16(kCRTFixedPointOffset + x_position - _beamWidth[lengthMask].x);
@@ -323,7 +324,7 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 
 #pragma mark - Buffer supply
 
-void CRT::allocate_write_area(int required_length)
+void CRT::allocate_write_area(size_t required_length)
 {
 	if(_current_frame_builder) _current_frame_builder->allocate_write_area(required_length);
 }

@@ -105,11 +105,11 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 		push_size_uniforms(output_width, output_height);
 
-//		if(_last_drawn_frame != nullptr)
-//		{
-//			glUniform1f(_openGL_state->alphaUniform, 0.4f);
-//			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_last_drawn_frame->number_of_vertices);
-//		}
+		if(_last_drawn_frame != nullptr)
+		{
+			glUniform1f(_openGL_state->alphaUniform, 0.4f);
+			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_last_drawn_frame->number_of_vertices);
+		}
 		glUniform1f(_openGL_state->alphaUniform, 1.0f);
 
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_current_frame->number_of_vertices * _current_frame->size_per_vertex), _current_frame->vertices, GL_DYNAMIC_DRAW);

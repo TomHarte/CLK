@@ -12,20 +12,14 @@
 namespace Outputs {
 
 /*!
-	Provides timing for a two-phase signal consisting of a retrace phase and a scan phase,
-	announcing the start and end of retrace.
+	Provides timing for a two-phase signal consisting of a retrace phase followed by a scan phase,
+	announcing the start and end of retrace and providing the abiliy to read the current
+	scanning position.
 
-	The flywheel will attempt gradually to converge with the timing implied by
-	synchronisation requests.
+	The @c Flywheel will attempt to converge with timing implied by synchronisation pulses.
 */
 struct Flywheel
 {
-	enum SyncEvent {
-		None,
-		StartRetrace,
-		EndRetrace
-	};
-
 	/*!
 		Constructs an instance of @c Flywheel.
 
@@ -36,12 +30,19 @@ struct Flywheel
 	Flywheel(unsigned int standard_period, unsigned int retrace_time) :
 		_standard_period(standard_period),
 		_retrace_time(retrace_time),
-		_sync_error_window(standard_period >> 6),
+		_sync_error_window(standard_period >> 7),
 		_counter(0),
 		_expected_next_sync(standard_period),
-		_counter_before_retrace(standard_period - retrace_time),
-		_did_detect_sync(false) {}
+		_counter_before_retrace(standard_period - retrace_time) {}
 
+	enum SyncEvent {
+		/// Indicates that no synchronisation events will occur in the queried window.
+		None,
+		/// Indicates that the next synchronisation event will be a transition into retrce.
+		StartRetrace,
+		/// Indicates that the next synchronisation event will be a transition out of retrace.
+		EndRetrace
+	};
 	/*!
 		Asks the flywheel for the first synchronisation event that will occur in a given time period,
 		indicating whether a synchronisation request occurred at the start of the query window.
@@ -61,8 +62,6 @@ struct Flywheel
 		// do we recognise this hsync, thereby adjusting future time expectations?
 		if(sync_is_requested)
 		{
-			_did_detect_sync = true;
-
 			if(_counter < _sync_error_window || _counter > _expected_next_sync - _sync_error_window)
 			{
 				unsigned int time_now = (_counter < _sync_error_window) ? _expected_next_sync + _counter : _counter;
@@ -112,13 +111,6 @@ struct Flywheel
 	*/
 	inline void apply_event(unsigned int cycles_advanced, SyncEvent event)
 	{
-		if(_counter <= _sync_error_window && _counter + cycles_advanced > _sync_error_window)
-		{
-			if(!_did_detect_sync)
-				_expected_next_sync = (_expected_next_sync + _standard_period + (_sync_error_window >> 1)) >> 1;
-			_did_detect_sync = false;
-		}
-
 		_counter += cycles_advanced;
 
 		switch(event)
@@ -165,6 +157,14 @@ struct Flywheel
 		return _counter < _retrace_time;
 	}
 
+	/*!
+		@returns the expected length of the scan period.
+	*/
+	inline unsigned int get_scan_period()
+	{
+		return _standard_period - _retrace_time;
+	}
+
 	private:
 		unsigned int _standard_period;			// the normal length of time between syncs
 		const unsigned int _retrace_time;		// a constant indicating the amount of time it takes to perform a retrace
@@ -173,8 +173,6 @@ struct Flywheel
 		unsigned int _counter;					// time since the _start_ of the last sync
 		unsigned int _counter_before_retrace;	// the value of _counter immediately before retrace began
 		unsigned int _expected_next_sync;		// our current expection of when the next sync will be encountered (which implies velocity)
-
-		bool _did_detect_sync;					// stores whether sync was detected at all during the current iteration
 
 		/*
 			Implementation notes:
@@ -185,10 +183,8 @@ struct Flywheel
 			retrace begins and the internal counter is reset.
 
 			All synchronisation events that occur within (-_sync_error_window, _sync_error_window) of the
-			expected synchronisation time will cause an adjustment in the expected time for the next synchronisation.
-
-			If no synchronisation event is detected within that window then the amount of time spent in scan
-			will edge towards a period slightly longer than the standard period.
+			expected synchronisation time will cause a proportional adjustment in the expected time for the next
+			synchronisation. Other synchronisation events are clamped as though they occurred in that range.
 		*/
 };
 
