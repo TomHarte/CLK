@@ -16,19 +16,15 @@ namespace SignalProcessing {
 class Stepper
 {
 	public:
-		Stepper()
-		{
-			Stepper(1, 1);
-		}
+		Stepper() : Stepper(1,1) {}
 
-		Stepper(uint64_t output_rate, uint64_t input_rate)
-		{
-			input_rate_ = input_rate;
-			output_rate_ = output_rate;
-			whole_step_ = output_rate / input_rate;
-			adjustment_up_ = (int64_t)(output_rate % input_rate) << 1;
-			adjustment_down_ = (int64_t)input_rate << 1;
-		}
+		Stepper(uint64_t output_rate, uint64_t input_rate) :
+			accumulated_error_(0),
+			input_rate_(input_rate),
+			output_rate_(output_rate),
+			whole_step_(output_rate / input_rate),
+			adjustment_up_((int64_t)(output_rate % input_rate) << 1),
+			adjustment_down_((int64_t)input_rate << 1) {}
 
 		inline uint64_t step()
 		{
