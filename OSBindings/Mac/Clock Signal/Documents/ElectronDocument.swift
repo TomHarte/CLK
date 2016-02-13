@@ -11,7 +11,7 @@ import AudioToolbox
 
 class ElectronDocument: MachineDocument {
 
-	private var electron = CSElectron()
+	private var electron: CSElectron! = CSElectron()
 	override init() {
 		super.init()
 		self.intendedCyclesPerSecond = 2000000
@@ -55,9 +55,21 @@ class ElectronDocument: MachineDocument {
 		electron.setROM(data, slot: 15)
 	}
 
+	override func close() {
+		objc_sync_enter(self)
+		electron.sync()
+		openGLView.invalidate()
+		openGLView.openGLContext!.makeCurrentContext()
+		electron = nil
+		super.close()
+		objc_sync_exit(self)
+	}
+
 	// MARK: CSOpenGLViewDelegate
 	override func runForNumberOfCycles(numberOfCycles: Int32) {
-		electron.runForNumberOfCycles(numberOfCycles)
+		objc_sync_enter(self)
+		electron?.runForNumberOfCycles(numberOfCycles)
+		objc_sync_exit(self)
 	}
 
 	override func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
@@ -78,5 +90,4 @@ class ElectronDocument: MachineDocument {
 		electron.setKey(kVK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
 		electron.setKey(kVK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
 	}
-
 }

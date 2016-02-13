@@ -13,6 +13,7 @@
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
+- (void)sync;
 
 @property (nonatomic, weak) CSCathodeRayView *view;
 @property (nonatomic, weak) AudioQueue *audioQueue;

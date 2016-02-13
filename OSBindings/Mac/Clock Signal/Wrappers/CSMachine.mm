@@ -47,6 +47,10 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 	}
 }
 
+- (void)sync {
+	dispatch_sync(_serialDispatchQueue, ^{});
+}
+
 - (instancetype)init {
 	self = [super init];
 
