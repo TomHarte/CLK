@@ -33,7 +33,7 @@
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_electron.get_crt()->draw_frame((int)pixelSize.width, (int)pixelSize.height, onlyIfDirty ? true : false);
+	_electron.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (BOOL)openUEFAtURL:(NSURL *)URL {
