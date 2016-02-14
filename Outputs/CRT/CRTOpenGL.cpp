@@ -110,16 +110,25 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
 	GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
-//	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
-//	{
-//		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (GLint)_buffer_builder->last_uploaded_line, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, format, GL_UNSIGNED_BYTE, &_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
-//		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
-//	}
-//	else
-//	{
-	glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[0].data);
-	_buffer_builder->last_uploaded_line = 0;
-//	}
+	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
+	{
+		glTexSubImage2D(GL_TEXTURE_2D, 0,
+							0, (GLint)_buffer_builder->last_uploaded_line,
+							CRTInputBufferBuilderWidth, (GLint)(CRTInputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
+							format, GL_UNSIGNED_BYTE,
+							&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+		_buffer_builder->last_uploaded_line = 0;
+	}
+
+	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
+	{
+		glTexSubImage2D(GL_TEXTURE_2D, 0,
+							0, (GLint)_buffer_builder->last_uploaded_line,
+							CRTInputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
+							format, GL_UNSIGNED_BYTE,
+							&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+	}
 
 	// draw all sitting frames
 	int run = _run_write_pointer;
