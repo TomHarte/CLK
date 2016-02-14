@@ -15,7 +15,6 @@
 #include <vector>
 #include <mutex>
 
-#include "CRTFrame.h"
 #include "Flywheel.hpp"
 
 namespace Outputs {
@@ -233,6 +232,9 @@ class CRT {
 		unsigned int _colour_cycle_denominator;
 		OutputDevice _output_device;
 
+		// The user-supplied visible area
+		Rect _visible_area;
+
 		// the current scanning position (TODO: can I eliminate this in favour of just using the flywheels?)
 		struct Vector {
 			uint32_t x, y;
@@ -274,19 +276,32 @@ class CRT {
 		int _next_scan;
 		void output_scan();
 
-
-		struct CRTFrameBuilder {
-			CRTFrame frame;
-
-			CRTFrameBuilder(uint16_t width, uint16_t height, unsigned int number_of_buffers, va_list buffer_sizes);
-			~CRTFrameBuilder();
-
-			std::vector<uint8_t> _all_runs;
-
+		struct CRTRunBuilder {
+			// Resets the run builder.
 			void reset();
-			void complete();
 
-			uint8_t *get_next_run();
+			// Getter for new storage plus backing storage; in RGB mode input runs will map directly
+			// from the input buffer to the screen. In composite mode input runs will map from the
+			// input buffer to the processing buffer, and output runs will map from the processing
+			// buffer to the screen.
+			uint8_t *get_next_input_run();
+			std::vector<uint8_t> _input_runs;
+
+			uint8_t *get_next_output_run();
+			std::vector<uint8_t> _output_runs;
+
+			// Container for total length in cycles of all contained runs.
+			uint32_t duration;
+
+			// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
+			// entrusted to the CRT to update.
+			size_t uploaded_run_data;
+			size_t number_of_vertices;
+		};
+
+		struct CRTInputBufferBuilder {
+			CRTInputBufferBuilder(unsigned int number_of_buffers, va_list buffer_sizes);
+			~CRTInputBufferBuilder();
 
 			void allocate_write_area(size_t required_length);
 			void reduce_previous_allocation_to(size_t actual_length);
@@ -298,26 +313,38 @@ class CRT {
 			uint16_t _write_x_position, _write_y_position;
 			size_t _write_target_pointer;
 			size_t _last_allocation_amount;
+
+			struct Buffer {
+				uint8_t *data;
+				size_t bytes_per_pixel;
+			} *buffers;
+			unsigned int number_of_buffers;
+
+			// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
+			// builder but otherwise entrusted to the CRT to update.
+			unsigned int last_uploaded_line;
 		};
 
+		// the run and input data buffers
 		static const int kCRTNumberOfFrames = 4;
+		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
+		CRTRunBuilder *_run_builders[kCRTNumberOfFrames];
+		int _run_write_pointer;
+		std::shared_ptr<std::mutex> _output_mutex;
 
-		// the triple buffer and OpenGL state
-		CRTFrameBuilder *_frame_builders[kCRTNumberOfFrames];
-		CRTFrameBuilder *_current_frame_builder;
-		CRTFrame *_current_frame, *_last_drawn_frame;
-		std::shared_ptr<std::mutex> _current_frame_mutex;
-		int _frame_read_pointer;
-		Rect _visible_area;
-
+		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		struct OpenGLState;
 		OpenGLState *_openGL_state;
 
+		// Other things the caller may have provided.
 		char *_composite_shader;
 		char *_rgb_shader;
 
+		// Setup and teardown for the OpenGL code
 		void construct_openGL();
 		void destruct_openGL();
+
+		// Methods used by the OpenGL code
 		void prepare_shader();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 

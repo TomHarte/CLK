@@ -7,6 +7,7 @@
 //
 
 #include "CRT.hpp"
+#include "CRTOpenGL.hpp"
 #include <stdarg.h>
 #include <math.h>
 
@@ -14,13 +15,6 @@ using namespace Outputs;
 
 static const uint32_t kCRTFixedPointRange	= 0xf7ffffff;
 static const uint32_t kCRTFixedPointOffset	= 0x04000000;
-
-//static const size_t kCRTVertexOffsetOfPosition = 0;
-//static const size_t kCRTVertexOffsetOfTexCoord = 4;
-//static const size_t kCRTVertexOffsetOfLateral = 8;
-//static const size_t kCRTVertexOffsetOfPhase = 9;
-//
-//static const int kCRTSizeOfVertex = 10;
 
 #define kRetraceXMask	0x01
 #define kRetraceYMask	0x02
@@ -41,7 +35,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																//	a TV picture tube or camera tube to the starting point of a line or field. It is about 7 µs
 																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
 
-	_time_multiplier = (1000 + cycles_per_line - 1) / cycles_per_line;
+	_time_multiplier = (2000 + cycles_per_line - 1) / cycles_per_line;
 
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;
@@ -85,30 +79,36 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 
 void CRT::allocate_buffers(unsigned int number, va_list sizes)
 {
-	// generate buffers for signal storage as requested — format is
-	// number of buffers, size of buffer 1, size of buffer 2...
-	const uint16_t bufferWidth = 2048;
-	const uint16_t bufferHeight = 2048;
-	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
+	for(int builder = 0; builder < sizeof(_run_builders) / sizeof(*_run_builders); builder++)
 	{
-		va_list va;
-		va_copy(va, sizes);
-		_frame_builders[frame] = new CRTFrameBuilder(bufferWidth, bufferHeight, number, va);
-		va_end(va);
+		_run_builders[builder] = new CRTRunBuilder();
 	}
-	_current_frame_builder = _frame_builders[0];
+
+	va_list va;
+	va_copy(va, sizes);
+	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(number, va));
+	va_end(va);
 }
 
 CRT::CRT() :
 	_next_scan(0),
-	_frame_read_pointer(0),
+	_run_write_pointer(0),
 	_sync_capacitor_charge_level(0),
 	_is_receiving_sync(false),
-	_current_frame_mutex(new std::mutex),
+	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
 	_rasterPosition({.x = 0, .y = 0})
 {
 	construct_openGL();
+}
+
+CRT::~CRT()
+{
+	for(int builder = 0; builder < sizeof(_run_builders) / sizeof(*_run_builders); builder++)
+	{
+		delete _run_builders[builder];
+	}
+	destruct_openGL();
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT()
@@ -129,15 +129,6 @@ CRT::CRT(unsigned int cycles_per_line, DisplayType displayType, unsigned int num
 	va_start(buffer_sizes, number_of_buffers);
 	allocate_buffers(number_of_buffers, buffer_sizes);
 	va_end(buffer_sizes);
-}
-
-CRT::~CRT()
-{
-	for(int frame = 0; frame < sizeof(_frame_builders) / sizeof(*_frame_builders); frame++)
-	{
-		delete _frame_builders[frame];
-	}
-	destruct_openGL();
 }
 
 #pragma mark - Sync loop
@@ -172,7 +163,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		hsync_requested = false;
 		vsync_requested = false;
 
-		uint8_t *next_run = (is_output_run && _current_frame_builder && next_run_length) ? _current_frame_builder->get_next_run() : nullptr;
+		uint8_t *next_run = (is_output_run && next_run_length) ? _run_builders[_run_write_pointer]->get_next_input_run() : nullptr;
 		int lengthMask = (_horizontal_flywheel->is_in_retrace() ? kRetraceXMask : 0) | (_vertical_flywheel->is_in_retrace() ? kRetraceYMask : 0);
 
 #define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
@@ -237,25 +228,11 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace)
 		{
-			if(_current_frame_builder)
-			{
-				_current_frame_builder->complete();
-				_current_frame_mutex->lock();
-				_current_frame = &_current_frame_builder->frame;
-				_current_frame_mutex->unlock();
-				// TODO: how to communicate did_detect_vsync? Bring the delegate back?
-//				_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
-			}
+			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
+//			_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
 
-//			if(_frames_with_delegate < kCRTNumberOfFrames)
-//			{
-			_frame_read_pointer = (_frame_read_pointer + 1)%kCRTNumberOfFrames;
-			_current_frame_builder = _frame_builders[_frame_read_pointer];
-			_current_frame_builder->reset();
-//			}
-//			else
-//				_current_frame_builder = nullptr;
-
+			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFrames;
+			_run_builders[_run_write_pointer]->reset();
 		}
 	}
 }
@@ -280,57 +257,69 @@ void CRT::output_scan()
 */
 void CRT::output_sync(unsigned int number_of_cycles)
 {
+	_output_mutex->lock();
 	_scans[_next_scan].type = Type::Sync;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	output_scan();
+	_output_mutex->unlock();
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
+	_output_mutex->lock();
 	_scans[_next_scan].type = Type::Blank;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	output_scan();
+	_output_mutex->unlock();
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
+	_output_mutex->lock();
 	_scans[_next_scan].type = Type::Level;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
-	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
+	_scans[_next_scan].tex_x = _buffer_builder->_write_x_position;
+	_scans[_next_scan].tex_y = _buffer_builder->_write_y_position;
 	output_scan();
+	_output_mutex->unlock();
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude)
 {
+	_output_mutex->lock();
 	_scans[_next_scan].type = Type::ColourBurst;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
 	_scans[_next_scan].phase = phase;
 	_scans[_next_scan].magnitude = magnitude;
 	output_scan();
+	_output_mutex->unlock();
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	if(_current_frame_builder) _current_frame_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
+	_output_mutex->lock();
 
+	_buffer_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
 	_scans[_next_scan].type = Type::Data;
 	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	_scans[_next_scan].tex_x = _current_frame_builder ? _current_frame_builder->_write_x_position : 0;
-	_scans[_next_scan].tex_y = _current_frame_builder ? _current_frame_builder->_write_y_position : 0;
+	_scans[_next_scan].tex_x = _buffer_builder->_write_x_position;
+	_scans[_next_scan].tex_y = _buffer_builder->_write_y_position;
 	_scans[_next_scan].source_divider = source_divider;
 	output_scan();
+
+	_output_mutex->unlock();
 }
 
 #pragma mark - Buffer supply
 
 void CRT::allocate_write_area(size_t required_length)
 {
-	if(_current_frame_builder) _current_frame_builder->allocate_write_area(required_length);
+	_output_mutex->lock();
+	_buffer_builder->allocate_write_area(required_length);
+	_output_mutex->unlock();
 }
 
 uint8_t *CRT::get_write_target_for_buffer(int buffer)
 {
-	if (!_current_frame_builder) return nullptr;
-	return _current_frame_builder->get_write_target_for_buffer(buffer);
+	return _buffer_builder->get_write_target_for_buffer(buffer);
 }

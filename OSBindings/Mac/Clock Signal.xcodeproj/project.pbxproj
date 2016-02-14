@@ -31,7 +31,7 @@
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
-		4B7BFEFE1C6446EF00089C1C /* CRTFrameBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BFEFD1C6446EF00089C1C /* CRTFrameBuilder.cpp */; };
+		4B7BFEFE1C6446EF00089C1C /* CRTBuilders.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BFEFD1C6446EF00089C1C /* CRTBuilders.cpp */; };
 		4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* TimingTests.swift */; };
 		4BB298EE1B587D8400A49093 /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E01B587D8300A49093 /* 6502_functional_test.bin */; };
 		4BB298EF1B587D8400A49093 /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E11B587D8300A49093 /* AllSuiteA.bin */; };
@@ -331,7 +331,6 @@
 /* Begin PBXFileReference section */
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
-		4B0CCC441C62D0B3001CAC5F /* CRTFrame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CRTFrame.h; sourceTree = "<group>"; };
 		4B0CCC461C62D1A8001CAC5F /* CRTOpenGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTOpenGL.cpp; sourceTree = "<group>"; };
 		4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioQueue.h; sourceTree = "<group>"; };
 		4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AudioQueue.m; sourceTree = "<group>"; };
@@ -373,7 +372,7 @@
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
 		4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TapeUEF.hpp; sourceTree = "<group>"; };
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		4B7BFEFD1C6446EF00089C1C /* CRTFrameBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTFrameBuilder.cpp; sourceTree = "<group>"; };
+		4B7BFEFD1C6446EF00089C1C /* CRTBuilders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTBuilders.cpp; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimingTests.swift; sourceTree = "<group>"; };
 		4BAE587D1C447B7A005B9AF0 /* KeyCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeyCodes.h; sourceTree = "<group>"; };
 		4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Clock SignalTests-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -659,6 +658,7 @@
 		4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock_SignalUITests.swift; sourceTree = "<group>"; };
 		4BB73EC31B587A5100552FC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
+		4BCC142A1C6FFD6F0033C621 /* CRTOpenGL.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTOpenGL.hpp; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
 		4BEDD0F41C6D70B800F6257C /* Flywheel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Flywheel.hpp; sourceTree = "<group>"; };
@@ -695,15 +695,15 @@
 			children = (
 				4B0CCC421C62D0B3001CAC5F /* CRT.cpp */,
 				4B0CCC431C62D0B3001CAC5F /* CRT.hpp */,
-				4B0CCC441C62D0B3001CAC5F /* CRTFrame.h */,
 				4B0CCC461C62D1A8001CAC5F /* CRTOpenGL.cpp */,
-				4B7BFEFD1C6446EF00089C1C /* CRTFrameBuilder.cpp */,
+				4B7BFEFD1C6446EF00089C1C /* CRTBuilders.cpp */,
 				4B2039921C67E20B001375C3 /* TextureTarget.cpp */,
 				4B2039931C67E20B001375C3 /* TextureTarget.hpp */,
 				4B2039951C67E2A3001375C3 /* OpenGL.hpp */,
 				4B2039971C67FA92001375C3 /* Shader.cpp */,
 				4B2039981C67FA92001375C3 /* Shader.hpp */,
 				4BEDD0F41C6D70B800F6257C /* Flywheel.hpp */,
+				4BCC142A1C6FFD6F0033C621 /* CRTOpenGL.hpp */,
 			);
 			name = CRT;
 			path = ../../Outputs/CRT;
@@ -1624,7 +1624,7 @@
 				4B0CCC471C62D1A8001CAC5F /* CRTOpenGL.cpp in Sources */,
 				4B2039941C67E20B001375C3 /* TextureTarget.cpp in Sources */,
 				4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */,
-				4B7BFEFE1C6446EF00089C1C /* CRTFrameBuilder.cpp in Sources */,
+				4B7BFEFE1C6446EF00089C1C /* CRTBuilders.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
