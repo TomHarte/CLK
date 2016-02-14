@@ -18,8 +18,8 @@ static const unsigned int cycles_per_frame = 312*cycles_per_line + 64;
 static const unsigned int crt_cycles_multiplier = 8;
 static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
-const int first_graphics_line = 28;
-const int first_graphics_cycle = 33;
+static const int first_graphics_line = 38;
+static const int first_graphics_cycle = 33;
 
 Machine::Machine() :
 	_interruptControl(0),
@@ -37,7 +37,7 @@ Machine::Machine() :
 			"float texValue = texture(texID, coordinate).r;"
 			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
-	_crt->set_visible_area(Outputs::Rect(0.2f, 0.05f, 0.82f, 0.82f));
+//	_crt->set_visible_area(Outputs::Rect(0.2f, 0.05f, 0.82f, 0.82f));
 
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -293,12 +293,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			update_audio();
 		break;
 
-		case 128*128:
+		case (first_graphics_line + 100)*128:
 			update_audio();
 			signal_interrupt(Interrupt::RealTimeClock);
 		break;
 
-		case 284*128:
+		case (first_graphics_line + 256)*128:
 			update_audio();
 			signal_interrupt(Interrupt::DisplayEnd);
 		break;
@@ -472,7 +472,7 @@ inline void Machine::update_display()
 						{
 							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
 							_currentOutputDivider = newDivider;
-							_crt->allocate_write_area((int)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+							_crt->allocate_write_area((size_t)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
 							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 						}
 
@@ -653,7 +653,7 @@ inline void Tape::get_next_tape_pulse()
 	_current_pulse = _tape->get_next_pulse();
 	if(_pulse_stepper == nullptr || _current_pulse.length.clock_rate != _pulse_stepper->get_output_rate())
 	{
-		_pulse_stepper = std::shared_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_current_pulse.length.clock_rate, 2000000));
+		_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_current_pulse.length.clock_rate, 2000000));
 	}
 }
 
@@ -723,7 +723,7 @@ inline void Tape::set_is_in_input_mode(bool is_in_input_mode)
 
 inline void Tape::set_counter(uint8_t value)
 {
-	_pulse_stepper = std::shared_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
+	_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
 }
 
 inline void Tape::set_data_register(uint8_t value)
