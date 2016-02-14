@@ -45,7 +45,7 @@ void CRT::CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	if(_next_write_x_position + required_length + 2 > CRTInputBufferBuilderWidth)
 	{
 		_next_write_x_position = 0;
-		_next_write_y_position = (_next_write_y_position+1)%CRTInputBufferBuilderWidth;
+		_next_write_y_position = (_next_write_y_position+1)%CRTInputBufferBuilderHeight;
 	}
 
 	_write_x_position = _next_write_x_position + 1;
