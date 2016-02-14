@@ -17,15 +17,15 @@ using namespace Outputs;
 
 struct CRT::OpenGLState {
 	std::unique_ptr<OpenGL::Shader> shaderProgram;
-	GLuint arrayBuffer, vertexArray;
+	GLuint arrayBuffers[kCRTNumberOfFrames], vertexArrays[kCRTNumberOfFrames];
 
 	GLint positionAttribute;
 	GLint textureCoordinatesAttribute;
 	GLint lateralAttribute;
+	GLint timestampAttribute;
 
-	GLint textureSizeUniform, windowSizeUniform;
+	GLint windowSizeUniform, timestampBaseUniform;
 	GLint boundsOriginUniform, boundsSizeUniform;
-	GLint alphaUniform;
 
 	GLuint textureName, shadowMaskTextureName;
 
@@ -36,7 +36,7 @@ struct CRT::OpenGLState {
 	std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 };
 
-static GLenum formatForDepth(unsigned int depth)
+static GLenum formatForDepth(size_t depth)
 {
 	switch(depth)
 	{
@@ -76,12 +76,20 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-		glGenVertexArrays(1, &_openGL_state->vertexArray);
-		glBindVertexArray(_openGL_state->vertexArray);
-		glGenBuffers(1, &_openGL_state->arrayBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
+		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[0].data);
+
+		glGenVertexArrays(kCRTNumberOfFrames, _openGL_state->vertexArrays);
+		glGenBuffers(kCRTNumberOfFrames, _openGL_state->arrayBuffers);
 
 		prepare_shader();
+
+		for(int c = 0; c < kCRTNumberOfFrames; c++)
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffers[c]);
+			glBindVertexArray(_openGL_state->vertexArrays[c]);
+			prepare_vertex_array();
+		}
 
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
 
@@ -95,28 +103,56 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 	// update uniforms
 	push_size_uniforms(output_width, output_height);
-	glUniform1f(_openGL_state->alphaUniform, 1.0f);
 
-	// submit latest frame data if required
-/*	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(current_frame->number_of_vertices * current_frame->size_per_vertex), current_frame->vertices, GL_DYNAMIC_DRAW);
-
-	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-	if(_openGL_state->textureSize.width != _current_frame->size.width || _openGL_state->textureSize.height != _current_frame->size.height)
-	{
-		GLenum format = formatForDepth(_current_frame->buffers[0].depth);
-		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, _current_frame->size.width, _current_frame->size.height, 0, format, GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
-		_openGL_state->textureSize = _current_frame->size;
-
-		if(_openGL_state->textureSizeUniform >= 0)
-			glUniform2f(_openGL_state->textureSizeUniform, _current_frame->size.width, _current_frame->size.height);
-	}
-	else
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _current_frame->size.width, _current_frame->dirty_size.height, formatForDepth(_current_frame->buffers[0].depth), GL_UNSIGNED_BYTE, _current_frame->buffers[0].data);
-
-	// draw
-	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
+	// clear the buffer
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_current_frame->number_of_vertices);*/
+
+	// upload more source pixel data if any; we'll always resubmit the last line submitted last
+	// time as it may have had extra data appended to it
+	GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
+//	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
+//	{
+//		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (GLint)_buffer_builder->last_uploaded_line, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, format, GL_UNSIGNED_BYTE, &_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+//		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+//	}
+//	else
+//	{
+	glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[0].data);
+	_buffer_builder->last_uploaded_line = 0;
+//	}
+
+	// draw all sitting frames
+	int run = _run_write_pointer;
+//	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
+	GLint total_age = 0;
+	for(int c = 0; c < kCRTNumberOfFrames; c++)
+	{
+		// update the total age at the start of this set of runs
+		total_age += _run_builders[run]->duration;
+
+		if(_run_builders[run]->number_of_vertices > 0)
+		{
+			glUniform1f(_openGL_state->timestampBaseUniform, (GLfloat)total_age);
+
+			// bind the vertex array
+			glBindVertexArray(_openGL_state->vertexArrays[run]);
+
+			// bind this frame's array buffer
+			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffers[run]);
+			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
+			{
+				// buffersubdata can only replace existing data, not grow the pool, so we'll just have to take this hit
+				glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_run_builders[run]->number_of_vertices * kCRTSizeOfVertex), &_run_builders[run]->_input_runs[0], GL_DYNAMIC_DRAW);
+				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
+			}
+
+			// draw this frame
+			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_run_builders[run]->number_of_vertices);
+		}
+
+		// advance back in time
+		run = (run - 1 + kCRTNumberOfFrames) % kCRTNumberOfFrames;
+	}
 
 	_output_mutex->unlock();
 }
@@ -183,14 +219,18 @@ char *CRT::get_vertex_shader()
 		"in vec2 position;"
 		"in vec2 srcCoordinates;"
 		"in float lateral;"
+		"in float timestamp;"
 
 		"uniform vec2 boundsOrigin;"
 		"uniform vec2 boundsSize;"
 
 		"out float lateralVarying;"
 		"out vec2 shadowMaskCoordinates;"
+		"out float age;"
 
 		"uniform vec2 textureSize;"
+		"uniform float timestampBase;"
+		"uniform float ticksPerFrame;"
 
 		"const float shadowMaskMultiple = 600;"
 
@@ -202,7 +242,8 @@ char *CRT::get_vertex_shader()
 
 			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
 
-			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
+			"age = (timestampBase - timestamp) / ticksPerFrame;"
 
 			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
@@ -247,20 +288,19 @@ char *CRT::get_fragment_shader()
 		"#version 150\n"
 
 		"in float lateralVarying;"
+		"in float age;"
 		"in vec2 shadowMaskCoordinates;"
 		"out vec4 fragColour;"
 
 		"uniform sampler2D texID;"
 		"uniform sampler2D shadowMaskTexID;"
-		"uniform float alpha;"
 
 		"in vec2 srcCoordinatesVarying;"
-		"in float phase;\n"
-		"%s\n"
+		"\n%s\n"
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, alpha);"
+			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 1.3 - age);"
 		"}"
 	, _rgb_shader);
 }
@@ -284,26 +324,36 @@ void CRT::prepare_shader()
 	_openGL_state->positionAttribute			= _openGL_state->shaderProgram->get_attrib_location("position");
 	_openGL_state->textureCoordinatesAttribute	= _openGL_state->shaderProgram->get_attrib_location("srcCoordinates");
 	_openGL_state->lateralAttribute				= _openGL_state->shaderProgram->get_attrib_location("lateral");
-	_openGL_state->alphaUniform					= _openGL_state->shaderProgram->get_uniform_location("alpha");
-	_openGL_state->textureSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("textureSize");
+	_openGL_state->timestampAttribute			= _openGL_state->shaderProgram->get_attrib_location("timestamp");
+
 	_openGL_state->windowSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("windowSize");
 	_openGL_state->boundsSizeUniform			= _openGL_state->shaderProgram->get_uniform_location("boundsSize");
 	_openGL_state->boundsOriginUniform			= _openGL_state->shaderProgram->get_uniform_location("boundsOrigin");
+	_openGL_state->timestampBaseUniform			= _openGL_state->shaderProgram->get_uniform_location("timestampBase");
 
 	GLint texIDUniform				= _openGL_state->shaderProgram->get_uniform_location("texID");
 	GLint shadowMaskTexIDUniform	= _openGL_state->shaderProgram->get_uniform_location("shadowMaskTexID");
+	GLint textureSizeUniform		= _openGL_state->shaderProgram->get_uniform_location("textureSize");
+	GLint ticksPerFrameUniform		= _openGL_state->shaderProgram->get_uniform_location("ticksPerFrame");
 
 	glUniform1i(texIDUniform, 0);
 	glUniform1i(shadowMaskTexIDUniform, 1);
+	glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
+	glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display * _time_multiplier));
+}
 
+void CRT::prepare_vertex_array()
+{
 	glEnableVertexAttribArray((GLuint)_openGL_state->positionAttribute);
 	glEnableVertexAttribArray((GLuint)_openGL_state->textureCoordinatesAttribute);
 	glEnableVertexAttribArray((GLuint)_openGL_state->lateralAttribute);
+	glEnableVertexAttribArray((GLuint)_openGL_state->timestampBaseUniform);
 
 	const GLsizei vertexStride = kCRTSizeOfVertex;
-	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
-	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute, 2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
-	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
+	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
+	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
+	glVertexAttribPointer((GLuint)_openGL_state->timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTimestamp);
+	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
 }
 
 void CRT::set_output_device(OutputDevice output_device)

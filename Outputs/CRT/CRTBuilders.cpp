@@ -82,6 +82,8 @@ uint8_t *CRT::CRTInputBufferBuilder::get_write_target_for_buffer(int buffer)
 void CRT::CRTRunBuilder::reset()
 {
 	number_of_vertices = 0;
+	uploaded_vertices = 0;
+	duration = 0;
 }
 
 uint8_t *CRT::CRTRunBuilder::get_next_input_run()

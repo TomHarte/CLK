@@ -295,7 +295,7 @@ class CRT {
 
 			// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
 			// entrusted to the CRT to update.
-			size_t uploaded_run_data;
+			size_t uploaded_vertices;
 			size_t number_of_vertices;
 		};
 
@@ -326,9 +326,8 @@ class CRT {
 		};
 
 		// the run and input data buffers
-		static const int kCRTNumberOfFrames = 4;
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		CRTRunBuilder *_run_builders[kCRTNumberOfFrames];
+		CRTRunBuilder **_run_builders;
 		int _run_write_pointer;
 		std::shared_ptr<std::mutex> _output_mutex;
 
@@ -346,6 +345,7 @@ class CRT {
 
 		// Methods used by the OpenGL code
 		void prepare_shader();
+		void prepare_vertex_array();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		char *get_vertex_shader();

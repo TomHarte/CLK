@@ -10,16 +10,18 @@
 #define CRTOpenGL_h
 
 const size_t kCRTVertexOffsetOfPosition = 0;
-const size_t kCRTVertexOffsetOfTexCoord = 2;
-const size_t kCRTVertexOffsetOfTimestamp = 4;
-const size_t kCRTVertexOffsetOfLateral = 8;
+const size_t kCRTVertexOffsetOfTexCoord = 4;
+const size_t kCRTVertexOffsetOfTimestamp = 8;
+const size_t kCRTVertexOffsetOfLateral = 12;
 
-const size_t kCRTSizeOfVertex = 10;
+const size_t kCRTSizeOfVertex = 16;
 
 const int CRTInputBufferBuilderWidth = 2048;
 const int CRTInputBufferBuilderHeight = 1024;
 
 const int CRTIntermediateBufferWidth = 2048;
 const int CRTIntermediateBufferHeight = 2048;
+
+const int kCRTNumberOfFrames = 3;
 
 #endif /* CRTOpenGL_h */

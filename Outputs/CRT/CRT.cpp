@@ -79,7 +79,8 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 
 void CRT::allocate_buffers(unsigned int number, va_list sizes)
 {
-	for(int builder = 0; builder < sizeof(_run_builders) / sizeof(*_run_builders); builder++)
+	_run_builders = new CRTRunBuilder *[kCRTNumberOfFrames];
+	for(int builder = 0; builder < kCRTNumberOfFrames; builder++)
 	{
 		_run_builders[builder] = new CRTRunBuilder();
 	}
@@ -104,10 +105,11 @@ CRT::CRT() :
 
 CRT::~CRT()
 {
-	for(int builder = 0; builder < sizeof(_run_builders) / sizeof(*_run_builders); builder++)
+	for(int builder = 0; builder < kCRTNumberOfFrames; builder++)
 	{
 		delete _run_builders[builder];
 	}
+	delete[] _run_builders;
 	destruct_openGL();
 }
 
@@ -171,6 +173,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #define tex_x(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 0])
 #define tex_y(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 2])
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
+#define timestamp(v)	(*(uint32_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTimestamp])
 
 #define InternalToUInt16(v)		((v) + 32768) >> 16
 #define CounterToInternal(c)	(unsigned int)(((uint64_t)c->get_current_output_position() * kCRTFixedPointRange) / c->get_scan_period())
@@ -186,6 +189,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			position_x(1) = InternalToUInt16(kCRTFixedPointOffset + x_position - _beamWidth[lengthMask].x);
 			position_y(1) = InternalToUInt16(kCRTFixedPointOffset + y_position - _beamWidth[lengthMask].y);
 
+			timestamp(0) = timestamp(1) = timestamp(4) = _run_builders[_run_write_pointer]->duration;
+
 			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
 
 			// these things are constants across the line so just throw them out now
@@ -197,6 +202,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// decrement the number of cycles left to run for and increment the
 		// horizontal counter appropriately
 		number_of_cycles -= next_run_length;
+		_run_builders[_run_write_pointer]->duration += next_run_length;
 
 		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
 		if (vsync_charging && !_vertical_flywheel->is_in_retrace())
@@ -218,6 +224,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			position_y(2) = position_y(3) = InternalToUInt16(kCRTFixedPointOffset + y_position - _beamWidth[lengthMask].y);
 			position_x(5) = InternalToUInt16(kCRTFixedPointOffset + x_position + _beamWidth[lengthMask].x);
 			position_y(5) = InternalToUInt16(kCRTFixedPointOffset + y_position + _beamWidth[lengthMask].y);
+
+			timestamp(2) = timestamp(3) = timestamp(5) = _run_builders[_run_write_pointer]->duration;
 
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
