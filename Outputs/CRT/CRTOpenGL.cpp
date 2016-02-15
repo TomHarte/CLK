@@ -311,7 +311,7 @@ char *CRT::get_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 2.0 - age);"
+			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 10.0 * exp(-age * 2.0));"
 		"}"
 	, _rgb_shader);
 }

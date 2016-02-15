@@ -37,7 +37,7 @@ Machine::Machine() :
 			"float texValue = texture(texID, coordinate).r;"
 			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
-//	_crt->set_visible_area(Outputs::Rect(0.2f, 0.05f, 0.82f, 0.82f));
+	_crt->set_visible_area(Outputs::Rect(0.1875f, 0.0f, 0.8125f, 0.98f));
 
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
