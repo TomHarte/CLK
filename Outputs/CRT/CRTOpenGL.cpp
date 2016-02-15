@@ -150,8 +150,9 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffers[run]);
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
-				// buffersubdata can only replace existing data, not grow the pool, so we'll just have to take this hit
-				glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_run_builders[run]->number_of_vertices * kCRTSizeOfVertex), &_run_builders[run]->_input_runs[0], GL_DYNAMIC_DRAW);
+				// glBufferSubData can only replace existing data, not grow the pool, so for now we'll just take this hit
+				uint8_t *data =  &_run_builders[run]->_input_runs[0];
+				glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_run_builders[run]->number_of_vertices * kCRTSizeOfVertex), data, GL_DYNAMIC_DRAW);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
@@ -299,17 +300,18 @@ char *CRT::get_fragment_shader()
 		"in float lateralVarying;"
 		"in float age;"
 		"in vec2 shadowMaskCoordinates;"
+		"in vec2 srcCoordinatesVarying;"
+
 		"out vec4 fragColour;"
 
 		"uniform sampler2D texID;"
 		"uniform sampler2D shadowMaskTexID;"
 
-		"in vec2 srcCoordinatesVarying;"
 		"\n%s\n"
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 1.3 - age);"
+			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 2.0 - age);"
 		"}"
 	, _rgb_shader);
 }
@@ -348,7 +350,7 @@ void CRT::prepare_shader()
 	glUniform1i(texIDUniform, 0);
 	glUniform1i(shadowMaskTexIDUniform, 1);
 	glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
-	glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display * _time_multiplier));
+	glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 }
 
 void CRT::prepare_vertex_array()
@@ -356,7 +358,7 @@ void CRT::prepare_vertex_array()
 	glEnableVertexAttribArray((GLuint)_openGL_state->positionAttribute);
 	glEnableVertexAttribArray((GLuint)_openGL_state->textureCoordinatesAttribute);
 	glEnableVertexAttribArray((GLuint)_openGL_state->lateralAttribute);
-	glEnableVertexAttribArray((GLuint)_openGL_state->timestampBaseUniform);
+	glEnableVertexAttribArray((GLuint)_openGL_state->timestampAttribute);
 
 	const GLsizei vertexStride = kCRTSizeOfVertex;
 	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);

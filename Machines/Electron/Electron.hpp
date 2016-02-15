@@ -151,6 +151,8 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		virtual void tape_did_change_interrupt_status(Tape *tape);
 
+		void update_output();
+
 	private:
 
 		inline void update_display();

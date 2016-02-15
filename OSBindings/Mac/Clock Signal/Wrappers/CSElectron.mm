@@ -18,6 +18,7 @@
 
 - (void)doRunForNumberOfCycles:(int)numberOfCycles {
 	_electron.run_for_cycles(numberOfCycles);
+	_electron.update_output();
 }
 
 - (void)setOSROM:(nonnull NSData *)rom {

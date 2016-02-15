@@ -318,6 +318,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return cycles;
 }
 
+void Machine::update_output()
+{
+	update_display();
+	update_audio();
+}
+
 void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
 	_tape.set_tape(tape);
