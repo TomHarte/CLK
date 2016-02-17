@@ -22,6 +22,6 @@ const int CRTInputBufferBuilderHeight = 1024;
 const int CRTIntermediateBufferWidth = 2048;
 const int CRTIntermediateBufferHeight = 2048;
 
-const int kCRTNumberOfFrames = 3;
+const int kCRTNumberOfFrames = 4;
 
 #endif /* CRTOpenGL_h */
