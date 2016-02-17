@@ -14,8 +14,9 @@
 #define AudioQueueBufferLength		256
 
 enum {
-	AudioQueueCanWrite,
-	AudioQueueWait
+	AudioQueueCanProceed,
+	AudioQueueWait,
+	AudioQueueIsInvalidated
 };
 
 @implementation AudioQueue
@@ -25,10 +26,8 @@ enum {
 	unsigned int _audioStreamReadPosition, _audioStreamWritePosition;
 	int16_t _audioStream[AudioQueueStreamLength];
 	NSConditionLock *_writeLock;
-
-#ifdef DEBUG_INPUT
-	NSFileHandle *
-#endif
+	BOOL _isInvalidated;
+	int _dequeuedCount;
 }
 
 
@@ -62,9 +61,20 @@ enum {
 	{
 		memset(buffer->mAudioData, 0, buffer->mAudioDataByteSize);
 	}
-	AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
 
-	[_writeLock unlockWithCondition:AudioQueueCanWrite];
+	if(!_isInvalidated)
+	{
+		[_writeLock unlockWithCondition:AudioQueueCanProceed];
+		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
+	}
+	else
+	{
+		_dequeuedCount++;
+		if(_dequeuedCount == AudioQueueNumAudioBuffers)
+			[_writeLock unlockWithCondition:AudioQueueIsInvalidated];
+		else
+			[_writeLock unlockWithCondition:AudioQueueCanProceed];
+	}
 }
 
 static void audioOutputCallback(
@@ -81,7 +91,7 @@ static void audioOutputCallback(
 
 	if(self)
 	{
-		_writeLock = [[NSConditionLock alloc] initWithCondition:AudioQueueCanWrite];
+		_writeLock = [[NSConditionLock alloc] initWithCondition:AudioQueueCanProceed];
 
 		/*
 			Describe a mono, 16bit, 44.1Khz audio format
@@ -131,6 +141,13 @@ static void audioOutputCallback(
 
 - (void)dealloc
 {
+	[_writeLock lock];
+	_isInvalidated = YES;
+	[_writeLock unlock];
+
+	[_writeLock lockWhenCondition:AudioQueueIsInvalidated];
+	[_writeLock unlock];
+
 	int c = AudioQueueNumAudioBuffers;
 	while(c--)
 		AudioQueueFreeBuffer(_audioQueue, _audioBuffers[c]);
@@ -142,7 +159,7 @@ static void audioOutputCallback(
 {
 	while(1)
 	{
-		[_writeLock lockWhenCondition:AudioQueueCanWrite];
+		[_writeLock lockWhenCondition:AudioQueueCanProceed];
 		if((_audioStreamReadPosition + AudioQueueStreamLength) - _audioStreamWritePosition >= lengthInSamples)
 		{
 			size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamWritePosition % AudioQueueStreamLength);
@@ -170,7 +187,7 @@ static void audioOutputCallback(
 
 - (NSInteger)writeLockCondition
 {
-	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanWrite : AudioQueueWait;
+	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanProceed : AudioQueueWait;
 }
 
 @end
