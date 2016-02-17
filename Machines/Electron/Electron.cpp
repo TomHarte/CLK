@@ -23,7 +23,7 @@ static const int first_graphics_cycle = 33;
 
 Machine::Machine() :
 	_interruptControl(0),
-	_frameCycles(0),
+	_fieldCycles(0),
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
@@ -37,7 +37,7 @@ Machine::Machine() :
 			"float texValue = texture(texID, coordinate).r;"
 			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
-	_crt->set_visible_area(Outputs::Rect(0.1875f, 0.0f, 0.8125f, 0.98f));
+	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
 
 	memset(_keyStates, 0, sizeof(_keyStates));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -71,7 +71,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			// no need to flush the display. Otherwise, output up until now so that any
 			// write doesn't have retroactive effect on the video output.
 			if(!(
-				(_frameCycles < first_graphics_line * cycles_per_line) ||
+				(_fieldCycles < first_graphics_line * cycles_per_line) ||
 				(address < _startLineAddress && address < 0x3000)
 			))
 				update_display();
@@ -81,11 +81,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += (_frameCycles&1)^1;
+		cycles += (_fieldCycles&1)^1;
 		if(_screenMode < 4)
 		{
-			const int current_line = _frameCycles >> 7;
-			const int line_position = _frameCycles & 127;
+			const int current_line = _fieldCycles >> 7;
+			const int line_position = _fieldCycles & 127;
 			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= first_graphics_cycle && line_position < first_graphics_cycle + 80)
 				cycles = (unsigned int)(80 + first_graphics_cycle - line_position);
 		}
@@ -96,7 +96,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			if((address & 0xff00) == 0xfe00)
 			{
-				cycles += (_frameCycles&1)^1;
+				cycles += (_fieldCycles&1)^1;
 //				printf("%c: %02x: ", isReadOperation(operation) ? 'r' : 'w', *value);
 
 				switch(address&0xf)
@@ -282,31 +282,37 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 //	if(operation == CPU6502::BusOperation::ReadOpcode)
 //	{
-//		printf("%04x: %02x (%d)\n", address, *value, _frameCycles);
+//		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
-	_frameCycles += cycles;
-	switch(_frameCycles)
+	unsigned int line_position = (unsigned int)get_line_output_position(_fieldCycles);
+	const unsigned int real_time_clock_interrupt_time = (first_graphics_line + 99)*128 + first_graphics_cycle + 80;
+	const unsigned int display_end_interrupt_time = (first_graphics_line + 255)*128 + first_graphics_cycle + 80;
+
+	if(line_position < real_time_clock_interrupt_time && line_position + cycles >= real_time_clock_interrupt_time)
+	{
+		update_audio();
+		signal_interrupt(Interrupt::RealTimeClock);
+	}
+	else if(line_position < display_end_interrupt_time && line_position + cycles >= display_end_interrupt_time)
+	{
+		update_audio();
+		signal_interrupt(Interrupt::DisplayEnd);
+	}
+
+	_fieldCycles += cycles;
+
+	switch(_fieldCycles)
 	{
 		case 64*128:
 		case 196*128:
 			update_audio();
 		break;
 
-		case (first_graphics_line + 100)*128:
-			update_audio();
-			signal_interrupt(Interrupt::RealTimeClock);
-		break;
-
-		case (first_graphics_line + 256)*128:
-			update_audio();
-			signal_interrupt(Interrupt::DisplayEnd);
-		break;
-
 		case cycles_per_frame:
 			update_display();
 			update_audio();
-			_frameCycles = 0;
+			_fieldCycles = 0;
 			_displayOutputPosition = 0;
 			_audioOutputPosition = 0;
 			_currentOutputLine = 0;
@@ -368,10 +374,15 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_audio()
 {
-	int difference = _frameCycles - _audioOutputPosition;
-	_audioOutputPosition = _frameCycles;
+	int difference = _fieldCycles - _audioOutputPosition;
+	_audioOutputPosition = _fieldCycles;
 	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 4);
 	_audioOutputPositionError = (_audioOutputPositionError + difference)&15;
+}
+
+inline int Machine::get_line_output_position(int field_address)
+{
+	return field_address + (_is_odd_field ? 64 : 0);
 }
 
 inline void Machine::update_display()
@@ -379,33 +390,23 @@ inline void Machine::update_display()
 	const int lines_of_hsync = 3;
 	const int end_of_hsync = lines_of_hsync * cycles_per_line;
 
-	if(_frameCycles >= end_of_hsync)
+	if(_fieldCycles >= end_of_hsync)
 	{
 		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
 		if(_displayOutputPosition < end_of_hsync)
 		{
-			// on an odd field, output a half line of level data, then 2.5 lines of sync; on an even field
-			// output 2.5 lines of sync, then half a line of level.
-//			if (_is_odd_field)
-//			{
-				_crt->output_blank(64 * crt_cycles_multiplier);
-				_crt->output_sync(320 * crt_cycles_multiplier);
-//			}
-//			else
-//			{
-//				_crt.output_sync(320 * crt_cycles_multiplier);
-//				_crt.output_blank(64 * crt_cycles_multiplier);
-//			}
+			_crt->output_blank(64 * crt_cycles_multiplier);
+			_crt->output_sync(320 * crt_cycles_multiplier);
 
 			_is_odd_field ^= true;
 			_displayOutputPosition = end_of_hsync;
 		}
 
-		while(_displayOutputPosition >= end_of_hsync && _displayOutputPosition < _frameCycles)
+		while(_displayOutputPosition >= end_of_hsync && _displayOutputPosition < _fieldCycles)
 		{
-			const int cycles_left = _frameCycles - _displayOutputPosition;
+			const int cycles_left = _fieldCycles - _displayOutputPosition;
 
-			const int fieldOutputPosition = _displayOutputPosition + (_is_odd_field ? 64 : 0);
+			const int fieldOutputPosition = get_line_output_position(_displayOutputPosition);
 			const int current_line = fieldOutputPosition >> 7;
 			const int line_position = fieldOutputPosition & 127;
 
@@ -417,35 +418,33 @@ inline void Machine::update_display()
 
 				if(line_position + remaining_period == 9)
 				{
-//					printf("!%d!", 9);
 					_crt->output_sync(9 * crt_cycles_multiplier);
 				}
 			}
 			else
 			{
 				bool isBlankLine =
-					((_screenMode == 3) || (_screenMode == 6)) ?
-						((current_line < first_graphics_line || current_line >= first_graphics_line+248) || (((current_line - first_graphics_line)%10) > 7)) :
-						((current_line < first_graphics_line || current_line >= first_graphics_line+256));
+					(current_line < first_graphics_line) ||
+						(((_screenMode == 3) || (_screenMode == 6)) ?
+							((current_line >= first_graphics_line+248) || (((current_line - first_graphics_line)%10) > 7)) :
+							((current_line >= first_graphics_line+256)));
 
 				if(isBlankLine)
 				{
 					int remaining_period = std::min(128 - line_position, cycles_left);
 					_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
-//					printf(".[%d]", remaining_period);
 					_displayOutputPosition += remaining_period;
 				}
 				else
 				{
-					// there are then 15 cycles of blank, 80 cycles of pixels, and 24 further cycles of blank
-					if(line_position < 24)
+					// graphics then assume at first_graphics_cycle
+					if(line_position < first_graphics_cycle)
 					{
-						int remaining_period = std::min(24 - line_position, cycles_left);
+						int remaining_period = std::min(first_graphics_cycle - line_position, cycles_left);
 						_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
-//						printf("/(%d)(%d)[%d]", 24 - line_position, cycles_left, remaining_period);
 						_displayOutputPosition += remaining_period;
 
-						if(line_position + remaining_period == 24)
+						if(line_position + remaining_period == first_graphics_cycle)
 						{
 							switch(_screenMode)
 							{
@@ -457,13 +456,12 @@ inline void Machine::update_display()
 							_crt->allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
 							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 
-							if(current_line == first_graphics_line)
-								_startLineAddress = _startScreenAddress;
+							if(current_line == first_graphics_line) _startLineAddress = _startScreenAddress;
 							_currentScreenAddress = _startLineAddress;
 						}
 					}
 
-					if(line_position >= 24 && line_position < 104)
+					if(line_position >= first_graphics_cycle && line_position < 80+first_graphics_cycle)
 					{
 						// determine whether the pixel clock divider has changed; if so write out the old
 						// data and start a new run
@@ -478,17 +476,14 @@ inline void Machine::update_display()
 						{
 							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
 							_currentOutputDivider = newDivider;
-							_crt->allocate_write_area((size_t)((104 - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+							_crt->allocate_write_area((size_t)((80 + first_graphics_cycle - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
 							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 						}
 
-
-						int pixels_to_output = std::min(104 - line_position, cycles_left);
+						int pixels_to_output = std::min(80 + first_graphics_cycle - line_position, cycles_left);
 						_displayOutputPosition += pixels_to_output;
-//						printf("<- %d ->", pixels_to_output);
 						if(_screenMode >= 4)
 						{
-							// just shifting wouldn't be enough if both
 							if(_displayOutputPosition&1) pixels_to_output++;
 							pixels_to_output >>= 1;
 						}
@@ -554,7 +549,7 @@ inline void Machine::update_display()
 
 #undef GetNextPixels
 
-					if(line_position >= 104)
+					if(line_position >= 80+first_graphics_cycle)
 					{
 						int pixels_to_output = std::min(128 - line_position, cycles_left);
 						_crt->output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
@@ -563,7 +558,6 @@ inline void Machine::update_display()
 						if(line_position + pixels_to_output == 128)
 						{
 							_currentOutputLine++;
-//							printf("\n%d: ", _currentOutputLine);
 							if(!(_currentOutputLine&7))
 							{
 								_startLineAddress += ((_screenMode < 4) ? 80 : 40)*8 - 7;
@@ -757,11 +751,6 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 					if(_time_into_pulse == _current_pulse.length.length)
 					{
 						get_next_tape_pulse();
-
-//						if(_crossings[0] != Tape::Recognised)
-//						{
-//							reset_tape_input();
-//						}
 
 						_crossings[0] = _crossings[1];
 						_crossings[1] = _crossings[2];

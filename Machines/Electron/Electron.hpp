@@ -156,6 +156,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 	private:
 
 		inline void update_display();
+		inline int get_line_output_position(int field_address);
 		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
@@ -174,7 +175,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint16_t _startScreenAddress;
 
 		// Counters related to simultaneous subsystems;
-		int _frameCycles, _displayOutputPosition, _audioOutputPosition, _audioOutputPositionError;
+		int _fieldCycles, _displayOutputPosition, _audioOutputPosition, _audioOutputPositionError;
 
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
