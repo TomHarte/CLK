@@ -55,21 +55,24 @@ class ElectronDocument: MachineDocument {
 		electron.setROM(data, slot: 15)
 	}
 
+	lazy var actionLock = NSLock()
 	override func close() {
-		objc_sync_enter(self)
+		actionLock.lock()
 		electron.sync()
 		openGLView.invalidate()
 		openGLView.openGLContext!.makeCurrentContext()
 		electron = nil
+		actionLock.unlock()
+
 		super.close()
-		objc_sync_exit(self)
 	}
 
 	// MARK: CSOpenGLViewDelegate
 	override func runForNumberOfCycles(numberOfCycles: Int32) {
-		objc_sync_enter(self)
-		electron?.runForNumberOfCycles(numberOfCycles)
-		objc_sync_exit(self)
+		if actionLock.tryLock() {
+			electron?.runForNumberOfCycles(numberOfCycles)
+			actionLock.unlock()
+		}
 	}
 
 	override func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
