@@ -236,7 +236,7 @@ char *CRT::get_vertex_shader()
 
 		"out float lateralVarying;"
 		"out vec2 shadowMaskCoordinates;"
-		"out float age;"
+		"out float alpha;"
 
 		"uniform vec2 textureSize;"
 		"uniform float timestampBase;"
@@ -253,7 +253,8 @@ char *CRT::get_vertex_shader()
 			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
 
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
-			"age = (timestampBase - timestamp) / ticksPerFrame;"
+			"float age = (timestampBase - timestamp) / ticksPerFrame;"
+			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
 
 			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
@@ -298,7 +299,7 @@ char *CRT::get_fragment_shader()
 		"#version 150\n"
 
 		"in float lateralVarying;"
-		"in float age;"
+		"in float alpha;"
 		"in vec2 shadowMaskCoordinates;"
 		"in vec2 srcCoordinatesVarying;"
 
@@ -311,7 +312,7 @@ char *CRT::get_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, 10.0 * exp(-age * 2.0) * sin(lateralVarying));"
+			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, alpha * sin(lateralVarying));" //
 		"}"
 	, _rgb_shader);
 }

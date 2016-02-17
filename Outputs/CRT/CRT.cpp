@@ -44,7 +44,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	// generate timing values implied by the given arbuments
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
 	const unsigned int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
-	const float halfLineWidth = (float)_height_of_display * 2.5f;
+	const float halfLineWidth = (float)_height_of_display * 1.94f;
 
 	// creat the two flywheels
 	unsigned int horizontal_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
