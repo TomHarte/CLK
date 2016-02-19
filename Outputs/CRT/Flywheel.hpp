@@ -69,6 +69,8 @@ struct Flywheel
 			}
 			else
 			{
+				_number_of_surprises++;
+
 				if(_counter < _retrace_time + (_expected_next_sync >> 1))
 				{
 					_expected_next_sync = (_expected_next_sync + _standard_period + _sync_error_window) >> 1;
@@ -165,6 +167,17 @@ struct Flywheel
 		return _standard_period - _retrace_time;
 	}
 
+	/*!
+		@returns the number of synchronisation events that have seemed surprising since the last time this method was called;
+		a low number indicates good synchronisation.
+	*/
+	inline unsigned int get_and_reset_number_of_surprises()
+	{
+		unsigned int result = _number_of_surprises;
+		_number_of_surprises = 0;
+		return result;
+	}
+
 	private:
 		unsigned int _standard_period;			// the normal length of time between syncs
 		const unsigned int _retrace_time;		// a constant indicating the amount of time it takes to perform a retrace
@@ -173,6 +186,8 @@ struct Flywheel
 		unsigned int _counter;					// time since the _start_ of the last sync
 		unsigned int _counter_before_retrace;	// the value of _counter immediately before retrace began
 		unsigned int _expected_next_sync;		// our current expection of when the next sync will be encountered (which implies velocity)
+
+		unsigned int _number_of_surprises;		// a count of the surprising syncs
 
 		/*
 			Implementation notes:
