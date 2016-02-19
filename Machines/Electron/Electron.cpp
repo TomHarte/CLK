@@ -22,7 +22,8 @@ static const int first_graphics_line = 38;
 static const int first_graphics_cycle = 33;
 
 Machine::Machine() :
-	_interruptControl(0),
+	_interrupt_control(0),
+	_interrupt_status(Interrupt::PowerOnReset),
 	_fieldCycles(0),
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
@@ -39,18 +40,13 @@ Machine::Machine() :
 		"}");
 	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
 
-	memset(_keyStates, 0, sizeof(_keyStates));
+	memset(_key_states, 0, sizeof(_key_states));
 	memset(_palette, 0xf, sizeof(_palette));
-	_interruptStatus = 0x02;
 	for(int c = 0; c < 16; c++)
 		memset(_roms[c], 0xff, 16384);
 
 	_speaker.set_input_rate(125000);
 	_tape.set_delegate(this);
-}
-
-Machine::~Machine()
-{
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -82,7 +78,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
 		cycles += (_fieldCycles&1)^1;
-		if(_screenMode < 4)
+		if(_screen_mode < 4)
 		{
 			const int current_line = _fieldCycles >> 7;
 			const int line_position = _fieldCycles & 127;
@@ -104,12 +100,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x0:
 						if(isReadOperation(operation))
 						{
-							*value = _interruptStatus;
-							_interruptStatus &= ~0x02;
+							*value = _interrupt_status;
+							_interrupt_status &= ~0x02;
 						}
 						else
 						{
-							_interruptControl = *value;
+							_interrupt_control = *value;
 							evaluate_interrupts();
 						}
 					break;
@@ -143,9 +139,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							const uint8_t interruptDisable = (*value)&0xf0;
 							if( interruptDisable )
 							{
-								if( interruptDisable&0x10 ) _interruptStatus &= ~Interrupt::DisplayEnd;
-								if( interruptDisable&0x20 ) _interruptStatus &= ~Interrupt::RealTimeClock;
-								if( interruptDisable&0x40 ) _interruptStatus &= ~Interrupt::HighToneDetect;
+								if( interruptDisable&0x10 ) _interrupt_status &= ~Interrupt::DisplayEnd;
+								if( interruptDisable&0x20 ) _interrupt_status &= ~Interrupt::RealTimeClock;
+								if( interruptDisable&0x40 ) _interrupt_status &= ~Interrupt::HighToneDetect;
 								evaluate_interrupts();
 
 								// TODO: NMI (?)
@@ -159,9 +155,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //									_activeRom = (Electron::ROMSlot)(nextROM&0x0e);
 //									printf("%d -> Paged %d\n", nextROM, _activeRom);
 //								}
-								if(((_activeRom&12) != 8) || (nextROM&8))
+								if(((_active_rom&12) != 8) || (nextROM&8))
 								{
-									_activeRom = (Electron::ROMSlot)nextROM;
+									_active_rom = (Electron::ROMSlot)nextROM;
 								}
 //								else
 //								{
@@ -185,11 +181,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							// update screen mode
 							uint8_t new_screen_mode = ((*value) >> 3)&7;
 							if(new_screen_mode == 7) new_screen_mode = 4;
-							if(new_screen_mode != _screenMode)
+							if(new_screen_mode != _screen_mode)
 							{
 								update_display();
-								_screenMode = new_screen_mode;
-								switch(_screenMode)
+								_screen_mode = new_screen_mode;
+								switch(_screen_mode)
 								{
 									case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
 									case 3: _screenModeBaseAddress = 0x4000; break;
@@ -262,18 +258,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			if(isReadOperation(operation))
 			{
-				switch(_activeRom)
+				switch(_active_rom)
 				{
 					case ROMSlotKeyboard:
 					case ROMSlotKeyboard+1:
 						*value = 0xf0;
 						for(int address_line = 0; address_line < 14; address_line++)
 						{
-							if(!(address&(1 << address_line))) *value |= _keyStates[address_line];
+							if(!(address&(1 << address_line))) *value |= _key_states[address_line];
 						}
 					break;
 					default:
-						*value = _roms[_activeRom][address & 16383];
+						*value = _roms[_active_rom][address & 16383];
 					break;
 				}
 			}
@@ -349,27 +345,27 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 
 inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
 {
-	_interruptStatus |= interrupt;
+	_interrupt_status |= interrupt;
 	evaluate_interrupts();
 }
 
 void Machine::tape_did_change_interrupt_status(Tape *tape)
 {
-	_interruptStatus = (_interruptStatus & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | _tape.get_interrupt_status();
+	_interrupt_status = (_interrupt_status & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | _tape.get_interrupt_status();
 	evaluate_interrupts();
 }
 
 inline void Machine::evaluate_interrupts()
 {
-	if(_interruptStatus & _interruptControl)
+	if(_interrupt_status & _interrupt_control)
 	{
-		_interruptStatus |= 1;
+		_interrupt_status |= 1;
 	}
 	else
 	{
-		_interruptStatus &= ~1;
+		_interrupt_status &= ~1;
 	}
-	set_irq_line(_interruptStatus & 1);
+	set_irq_line(_interrupt_status & 1);
 }
 
 inline void Machine::update_audio()
@@ -385,17 +381,182 @@ inline int Machine::get_line_output_position(int field_address)
 	return field_address + (_is_odd_field ? 64 : 0);
 }
 
+inline void Machine::reset_pixel_output()
+{
+	display_x = 0;
+	display_y = 0;
+	_startLineAddress = _startScreenAddress;
+}
+
+inline void Machine::output_pixels(int number_of_pixels)
+{
+	if(number_of_pixels)
+	{
+		_crt->output_blank((unsigned int)number_of_pixels * crt_cycles_multiplier);
+	}
+}
+
+inline void Machine::end_pixel_output()
+{
+}
+
+inline void Machine::update_pixels_to_position(int x, int y)
+{
+	while((display_x < x) || (display_y < y))
+	{
+		if(display_x < first_graphics_cycle)
+		{
+			display_x++;
+
+			if(display_x == first_graphics_cycle)
+			{
+				_crt->output_sync(9 * crt_cycles_multiplier);
+				_crt->output_blank((first_graphics_cycle - 9) * crt_cycles_multiplier);
+			}
+			continue;
+		}
+
+		if(display_x < first_graphics_cycle+80)
+		{
+			int cycles_to_output = (display_y < y) ? 80 + first_graphics_cycle - display_x : std::min(80, x - display_x);
+			output_pixels(cycles_to_output);
+			display_x += cycles_to_output;
+
+			if(display_x == first_graphics_cycle+80)
+				end_pixel_output();
+			continue;
+		}
+
+		display_x++;
+		if(display_x == 128)
+		{
+			_crt->output_blank((128 - 80 - first_graphics_cycle) * crt_cycles_multiplier);
+			display_x = 0;
+			display_y++;
+		}
+	}
+
+/*		while(_displayOutputPosition < end_of_graphics && _displayOutputPosition)
+		{
+
+			int displayOffset = _displayOutputPosition - end_of_graphics;
+			int cyclesRemaining = _fieldCycles - _displayOutputPosition;
+//			int current_line = displayOffset >> 7;
+			int current_pixel = displayOffset & 127;
+
+			if(current_pixel < 9)
+			{
+				if(cyclesRemaining > 9)
+				{
+					_crt->output_sync(9 * crt_cycles_multiplier);
+					cyclesRemaining -= 9;
+					_displayOutputPosition += 9;
+				}
+				else return;
+			}
+
+			int line_remainder = std::min(119, cyclesRemaining);
+			_crt->output_blank((unsigned int)line_remainder * crt_cycles_multiplier);
+			_displayOutputPosition += line_remainder;
+			current_pixel += line_remainder;
+			if(current_pixel < 128) return;
+		}*/
+}
+
 inline void Machine::update_display()
 {
-	const int lines_of_hsync = 3;
-	const int end_of_hsync = lines_of_hsync * cycles_per_line;
+	/*
 
-	if(_fieldCycles >= end_of_hsync)
+		Odd field:
+
+		|--S--|
+		|--S--|
+		|-S-B-|
+		|--B--|
+		|--P--|
+		|--B--|
+		|-B-
+
+		(2.5 lines of sync; half a line of blank; full blanks; pixels; full blanks; half blank)
+
+		Even field:
+
+		   -S-|
+		|--S--|
+		|--S--|
+		|--B--|
+		|--P--|
+		|--B--|
+
+		(2.5 lines of sync; full blanks; pixels; full blanks)
+
+		So:
+
+			Top:
+				2.5 lines of sync
+				if odd then half a line of blank
+				full blanks
+			Pixels
+			Bottom:
+				full blanks
+				if odd then half a line of blank
+
+	*/
+
+	const int end_of_top = (first_graphics_line * cycles_per_line) + (_is_odd_field ? 64 : 0);
+	const int end_of_graphics = ((first_graphics_line + 256) * cycles_per_line) + (_is_odd_field ? 64 : 0);
+
+	// does the top region need to be output?
+	if(_displayOutputPosition < end_of_top && _fieldCycles >= end_of_top)
+	{
+		_crt->output_sync(320 * crt_cycles_multiplier);
+		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
+
+		for(int y = 3; y < first_graphics_line; y++)
+		{
+			_crt->output_sync(9 * crt_cycles_multiplier);
+			_crt->output_blank(119 * crt_cycles_multiplier);
+		}
+
+		_displayOutputPosition = end_of_top;
+
+		reset_pixel_output();
+	}
+
+	// is this the pixel region?
+	if(_displayOutputPosition >= end_of_top && _displayOutputPosition < end_of_graphics)
+	{
+		int final_position = std::min(_fieldCycles, end_of_top + 256 * 128) - end_of_top;
+		int final_line = final_position >> 7;
+		int final_pixel = final_position & 127;
+		update_pixels_to_position(final_pixel, final_line);
+		_displayOutputPosition = final_position + end_of_top;
+	}
+
+	// is this the bottom region?
+	if(_displayOutputPosition < end_of_graphics && _fieldCycles > end_of_graphics)
+	{
+		for(int y = first_graphics_line+256; y < 312; y++)
+		{
+			_crt->output_sync(9 * crt_cycles_multiplier);
+			_crt->output_blank(119 * crt_cycles_multiplier);
+		}
+		_displayOutputPosition = end_of_graphics;
+
+		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
+
+		_is_odd_field ^= true;
+	}
+
+	// no? Then let's do some pixels
+
+/*	if(_fieldCycles >= end_of_hsync)
 	{
 		// assert sync for the first three lines of the display, with a break at the end for horizontal alignment
 		if(_displayOutputPosition < end_of_hsync)
 		{
-			_crt->output_blank(64 * crt_cycles_multiplier);
+			_crt->output_sync(9 * crt_cycles_multiplier);
+			_crt->output_blank(55 * crt_cycles_multiplier);
 			_crt->output_sync(320 * crt_cycles_multiplier);
 
 			_is_odd_field ^= true;
@@ -425,158 +586,137 @@ inline void Machine::update_display()
 			{
 				bool isBlankLine =
 					(current_line < first_graphics_line) ||
-						(((_screenMode == 3) || (_screenMode == 6)) ?
+						(((_screen_mode == 3) || (_screen_mode == 6)) ?
 							((current_line >= first_graphics_line+248) || (((current_line - first_graphics_line)%10) > 7)) :
 							((current_line >= first_graphics_line+256)));
+				bool isBlankPeriod =
+					(line_position < first_graphics_cycle) || (line_position >= 80+first_graphics_cycle);
 
-				if(isBlankLine)
+				if(isBlankLine || isBlankPeriod)
 				{
-					int remaining_period = std::min(128 - line_position, cycles_left);
+					if(_currentLine)
+					{
+						_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
+						_currentLine = _writePointer = nullptr;
+					}
+
+					int target = (isBlankLine || (line_position > first_graphics_cycle)) ? 128 : first_graphics_cycle;
+					int remaining_period = std::min(target - line_position, cycles_left);
 					_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
 					_displayOutputPosition += remaining_period;
+
+					if(line_position + remaining_period == 128)
+					{
+						_currentOutputLine++;
+						if(!(_currentOutputLine&7))
+						{
+							_startLineAddress += ((_screen_mode < 4) ? 80 : 40)*8 - 7;
+						}
+						else
+							_startLineAddress++;
+					}
 				}
 				else
 				{
-					// graphics then assume at first_graphics_cycle
-					if(line_position < first_graphics_cycle)
+					if(line_position == first_graphics_cycle)
 					{
-						int remaining_period = std::min(first_graphics_cycle - line_position, cycles_left);
-						_crt->output_blank((unsigned int)remaining_period * crt_cycles_multiplier);
-						_displayOutputPosition += remaining_period;
-
-						if(line_position + remaining_period == first_graphics_cycle)
-						{
-							switch(_screenMode)
-							{
-								case 0: case 3:				_currentOutputDivider = 1; break;
-								case 1:	case 4: case 6:		_currentOutputDivider = 2; break;
-								case 2: case 5:				_currentOutputDivider = 4; break;
-							}
-
-							_crt->allocate_write_area(80 * crt_cycles_multiplier / _currentOutputDivider);
-							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
-
-							if(current_line == first_graphics_line) _startLineAddress = _startScreenAddress;
-							_currentScreenAddress = _startLineAddress;
-						}
+						if(current_line == first_graphics_line) _startLineAddress = _startScreenAddress;
+						_currentScreenAddress = _startLineAddress;
 					}
 
-					if(line_position >= first_graphics_cycle && line_position < 80+first_graphics_cycle)
+					// determine the pixel clock
+					unsigned int newDivider = 0;
+					switch(_screen_mode)
 					{
-						// determine whether the pixel clock divider has changed; if so write out the old
-						// data and start a new run
-						unsigned int newDivider = 0;
-						switch(_screenMode)
-						{
-							case 0: case 3:				newDivider = 1; break;
-							case 1:	case 4: case 6:		newDivider = 2; break;
-							case 2: case 5:				newDivider = 4; break;
-						}
-						if(newDivider != _currentOutputDivider && _currentLine)
+						case 0: case 3:				newDivider = 1; break;
+						case 1:	case 4: case 6:		newDivider = 2; break;
+						case 2: case 5:				newDivider = 4; break;
+					}
+
+					// if the clock has changed or we don't yet have a write pointer, get one
+					if((newDivider != _currentOutputDivider) || !_currentLine)
+					{
+						if(_currentLine)
 						{
 							_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider * crt_cycles_multiplier), _currentOutputDivider);
-							_currentOutputDivider = newDivider;
-							_crt->allocate_write_area((size_t)((80 + first_graphics_cycle - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
-							_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
 						}
 
-						int pixels_to_output = std::min(80 + first_graphics_cycle - line_position, cycles_left);
-						_displayOutputPosition += pixels_to_output;
-						if(_screenMode >= 4)
-						{
-							if(_displayOutputPosition&1) pixels_to_output++;
-							pixels_to_output >>= 1;
-						}
+						_currentOutputDivider = newDivider;
+						_crt->allocate_write_area((size_t)((80 + first_graphics_cycle - (unsigned int)line_position) * crt_cycles_multiplier / _currentOutputDivider));
+						_currentLine = _writePointer = (uint8_t *)_crt->get_write_target_for_buffer(0);
+					}
+
+					// determine how many pixels to write
+					int pixels_to_output = std::min(80 + first_graphics_cycle - line_position, cycles_left);
+					_displayOutputPosition += pixels_to_output;
+					if(_screen_mode >= 4)
+					{
+						if(_displayOutputPosition&1) pixels_to_output++;
+						pixels_to_output >>= 1;
+					}
 
 #define GetNextPixels() \
 	if(_currentScreenAddress&32768)\
 	{\
-		_currentScreenAddress = _screenModeBaseAddress + (_currentScreenAddress&32767);\
+		_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;\
 	}\
 	uint8_t pixels = _ram[_currentScreenAddress];\
 	_currentScreenAddress = _currentScreenAddress+8
 
-						if(pixels_to_output && _writePointer)
-						{
-							switch(_screenMode)
-							{
-								default:
-								case 0: case 3: case 4: case 6:
-									while(pixels_to_output--)
-									{
-										GetNextPixels();
-
-										_writePointer[0] = _palette[(pixels&0x80) >> 4];
-										_writePointer[1] = _palette[(pixels&0x40) >> 3];
-										_writePointer[2] = _palette[(pixels&0x20) >> 2];
-										_writePointer[3] = _palette[(pixels&0x10) >> 1];
-										_writePointer[4] = _palette[(pixels&0x08) >> 0];
-										_writePointer[5] = _palette[(pixels&0x04) << 1];
-										_writePointer[6] = _palette[(pixels&0x02) << 2];
-										_writePointer[7] = _palette[(pixels&0x01) << 3];
-
-										_writePointer += 8;
-									}
-								break;
-
-								case 1:
-								case 5:
-									while(pixels_to_output--)
-									{
-										GetNextPixels();
-
-										_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x08) >> 2)];
-										_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x04) >> 1)];
-										_writePointer[2] = _palette[((pixels&0x20) >> 2) | ((pixels&0x02) >> 0)];
-										_writePointer[3] = _palette[((pixels&0x10) >> 1) | ((pixels&0x01) << 1)];
-
-										_writePointer += 4;
-									}
-								break;
-
-								case 2:
-									while(pixels_to_output--)
-									{
-										GetNextPixels();
-										_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1)];
-										_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x10) >> 2) | ((pixels&0x04) >> 1) | ((pixels&0x01) >> 0)];
-										_writePointer += 2;
-									}
-								break;
-							}
-						}
-					}
-
-#undef GetNextPixels
-
-					if(line_position >= 80+first_graphics_cycle)
+					if(pixels_to_output)
 					{
-						int pixels_to_output = std::min(128 - line_position, cycles_left);
-						_crt->output_blank((unsigned int)pixels_to_output * crt_cycles_multiplier);
-						_displayOutputPosition += pixels_to_output;
-
-						if(line_position + pixels_to_output == 128)
+						switch(_screen_mode)
 						{
-							_currentOutputLine++;
-							if(!(_currentOutputLine&7))
-							{
-								_startLineAddress += ((_screenMode < 4) ? 80 : 40)*8 - 7;
-							}
-							else
-								_startLineAddress++;
+							default:
+							case 0: case 3: case 4: case 6:
+								while(pixels_to_output--)
+								{
+									GetNextPixels();
 
-							if(_writePointer)
-								_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
-							else
-								_crt->output_data(80 * crt_cycles_multiplier, _currentOutputDivider);
-							_currentLine = nullptr;
-							_writePointer = nullptr;
+									_writePointer[0] = _palette[(pixels&0x80) >> 4];
+									_writePointer[1] = _palette[(pixels&0x40) >> 3];
+									_writePointer[2] = _palette[(pixels&0x20) >> 2];
+									_writePointer[3] = _palette[(pixels&0x10) >> 1];
+									_writePointer[4] = _palette[(pixels&0x08) >> 0];
+									_writePointer[5] = _palette[(pixels&0x04) << 1];
+									_writePointer[6] = _palette[(pixels&0x02) << 2];
+									_writePointer[7] = _palette[(pixels&0x01) << 3];
+
+									_writePointer += 8;
+								}
+							break;
+
+							case 1:
+							case 5:
+								while(pixels_to_output--)
+								{
+									GetNextPixels();
+
+									_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x08) >> 2)];
+									_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x04) >> 1)];
+									_writePointer[2] = _palette[((pixels&0x20) >> 2) | ((pixels&0x02) >> 0)];
+									_writePointer[3] = _palette[((pixels&0x10) >> 1) | ((pixels&0x01) << 1)];
+
+									_writePointer += 4;
+								}
+							break;
+
+							case 2:
+								while(pixels_to_output--)
+								{
+									GetNextPixels();
+									_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1)];
+									_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x10) >> 2) | ((pixels&0x04) >> 1) | ((pixels&0x01) >> 0)];
+									_writePointer += 2;
+								}
+							break;
 						}
 					}
+#undef GetNextPixels
 				}
 			}
 		}
-	}
+	}*/
 }
 
 void Machine::set_key_state(Key key, bool isPressed)
@@ -588,9 +728,9 @@ void Machine::set_key_state(Key key, bool isPressed)
 	else
 	{
 		if(isPressed)
-			_keyStates[key >> 4] |= key&0xf;
+			_key_states[key >> 4] |= key&0xf;
 		else
-			_keyStates[key >> 4] &= ~(key&0xf);
+			_key_states[key >> 4] &= ~(key&0xf);
 	}
 }
 

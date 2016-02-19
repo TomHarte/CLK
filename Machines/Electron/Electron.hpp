@@ -31,6 +31,7 @@ enum ROMSlot: uint8_t {
 };
 
 enum Interrupt: uint8_t {
+	PowerOnReset		= 0x02,
 	DisplayEnd			= 0x04,
 	RealTimeClock		= 0x08,
 	ReceiveDataFull		= 0x10,
@@ -137,7 +138,6 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 	public:
 
 		Machine();
-		~Machine();
 
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
@@ -156,26 +156,35 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 	private:
 
 		inline void update_display();
+		inline void update_pixels_to_position(int x, int y);
+		inline void output_pixels(int number_of_pixels);
+		inline void end_pixel_output();
+		inline void reset_pixel_output();
+
 		inline int get_line_output_position(int field_address);
 		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
+
+		// Pixel tracker;
+		int display_x, display_y;
 
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
 		uint8_t _os[16384], _ram[32768];
 
 		// Things affected by registers, explicitly or otherwise.
-		uint8_t _interruptStatus, _interruptControl;
+		uint8_t _interrupt_status, _interrupt_control;
 		uint8_t _palette[16];
-		uint8_t _keyStates[14];
-		ROMSlot _activeRom;
-		uint8_t _screenMode;
+		uint8_t _key_states[14];
+		ROMSlot _active_rom;
+		uint8_t _screen_mode;
 		uint16_t _screenModeBaseAddress;
 		uint16_t _startScreenAddress;
 
 		// Counters related to simultaneous subsystems;
-		int _fieldCycles, _displayOutputPosition, _audioOutputPosition, _audioOutputPositionError;
+		int _fieldCycles, _displayOutputPosition;
+		int _audioOutputPosition, _audioOutputPositionError;
 
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
