@@ -162,7 +162,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		NSOpenGLPFADoubleBuffer,
 		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
 		NSOpenGLPFASampleBuffers,	1,
-		NSOpenGLPFASamples,			16,
+		NSOpenGLPFASamples,			2,
 		0
 	};
 
