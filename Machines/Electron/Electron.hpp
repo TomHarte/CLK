@@ -193,6 +193,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		// CRT output
 		unsigned int _currentOutputDivider;
+		bool _isOutputting40Columns;
 		uint8_t *_currentLine, *_writePointer;
 
 		// Tape.

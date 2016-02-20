@@ -20,6 +20,7 @@ static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_p
 
 static const int first_graphics_line = 38;
 static const int first_graphics_cycle = 33;
+static const int last_graphics_cycle = 80 + first_graphics_cycle;
 
 Machine::Machine() :
 	_interrupt_control(0),
@@ -401,10 +402,11 @@ inline void Machine::output_pixels(int start_x, int number_of_pixels)
 		}
 		bool is40Column = (_screen_mode > 3);
 
-		if(!_writePointer || newDivider != _currentOutputDivider)
+		if(!_writePointer || newDivider != _currentOutputDivider || _isOutputting40Columns != is40Column)
 		{
-			_currentOutputDivider = newDivider;
 			end_pixel_output();
+			_currentOutputDivider = newDivider;
+			_isOutputting40Columns = is40Column;
 			_crt->allocate_write_area(640 / newDivider);
 			_currentLine = _writePointer = _crt->get_write_target_for_buffer(0);
 		}
@@ -453,6 +455,7 @@ inline void Machine::end_pixel_output()
 
 inline void Machine::update_pixels_to_position(int x, int y)
 {
+	static unsigned int end;
 	while((display_x < x) || (display_y < y))
 	{
 		if(display_x < first_graphics_cycle)
@@ -463,19 +466,25 @@ inline void Machine::update_pixels_to_position(int x, int y)
 			{
 				_crt->output_sync(9 * crt_cycles_multiplier);
 				_crt->output_blank((first_graphics_cycle - 9) * crt_cycles_multiplier);
+				end = _crt->get_field_cycle();
 			}
 			continue;
 		}
 
-		if(display_x < first_graphics_cycle+80)
+		if(display_x < last_graphics_cycle)
 		{
-			int cycles_to_output = (display_y < y) ? 80 + first_graphics_cycle - display_x : std::min(80, x - display_x);
+			int cycles_to_output = (display_y < y) ? last_graphics_cycle - display_x : std::min(last_graphics_cycle - display_x, x - display_x);
 			output_pixels(display_x, cycles_to_output);
 			display_x += cycles_to_output;
 
-			if(display_x == first_graphics_cycle+80)
+			if(display_x == last_graphics_cycle)
 			{
 				end_pixel_output();
+
+				if(_crt->get_field_cycle() - end != 640)
+				{
+					printf("!!!\n");
+				}
 			}
 			continue;
 		}
