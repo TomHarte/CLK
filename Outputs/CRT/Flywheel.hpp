@@ -73,11 +73,11 @@ struct Flywheel
 
 				if(_counter < _retrace_time + (_expected_next_sync >> 1))
 				{
-					_expected_next_sync = (_expected_next_sync + _standard_period + _sync_error_window) >> 1;
+					_expected_next_sync++;
 				}
 				else
 				{
-					_expected_next_sync = (_expected_next_sync + _standard_period - _sync_error_window) >> 1;
+					_expected_next_sync--;
 				}
 			}
 		}
