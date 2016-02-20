@@ -386,7 +386,8 @@ inline void Machine::reset_pixel_output()
 {
 	display_x = 0;
 	display_y = 0;
-	_startLineAddress = _startScreenAddress;
+	_currentScreenAddress = _startLineAddress = _startScreenAddress;
+	_currentOutputLine = 0;
 }
 
 inline void Machine::output_pixels(int start_x, int number_of_pixels)
@@ -416,13 +417,30 @@ inline void Machine::output_pixels(int start_x, int number_of_pixels)
 			number_of_pixels = ((start_x + number_of_pixels) >> 1) - (start_x >> 1);
 		}
 
+#define GetNextPixels() \
+	if(_currentScreenAddress&32768)\
+	{\
+		_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;\
+	}\
+	uint8_t pixels = _ram[_currentScreenAddress];\
+	_currentScreenAddress = _currentScreenAddress+8
 		switch(_screen_mode)
 		{
 			default:
 			case 0: case 3: case 4: case 6:
 				while(number_of_pixels--)
 				{
-					_writePointer[0] = 7;
+					GetNextPixels();
+
+					_writePointer[0] = _palette[(pixels&0x80) >> 4];
+					_writePointer[1] = _palette[(pixels&0x40) >> 3];
+					_writePointer[2] = _palette[(pixels&0x20) >> 2];
+					_writePointer[3] = _palette[(pixels&0x10) >> 1];
+					_writePointer[4] = _palette[(pixels&0x08) >> 0];
+					_writePointer[5] = _palette[(pixels&0x04) << 1];
+					_writePointer[6] = _palette[(pixels&0x02) << 2];
+					_writePointer[7] = _palette[(pixels&0x01) << 3];
+
 					_writePointer += 8;
 				}
 			break;
@@ -430,6 +448,13 @@ inline void Machine::output_pixels(int start_x, int number_of_pixels)
 			case 1: case 5:
 				while(number_of_pixels--)
 				{
+					GetNextPixels();
+
+					_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x08) >> 2)];
+					_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x04) >> 1)];
+					_writePointer[2] = _palette[((pixels&0x20) >> 2) | ((pixels&0x02) >> 0)];
+					_writePointer[3] = _palette[((pixels&0x10) >> 1) | ((pixels&0x01) << 1)];
+
 					_writePointer += 4;
 				}
 			break;
@@ -437,11 +462,17 @@ inline void Machine::output_pixels(int start_x, int number_of_pixels)
 			case 2:
 				while(number_of_pixels--)
 				{
+					GetNextPixels();
+
+					_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1)];
+					_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x10) >> 2) | ((pixels&0x04) >> 1) | ((pixels&0x01) >> 0)];
+
 					_writePointer += 2;
 				}
 			break;
 		}
 	}
+#undef GetNextPixels
 }
 
 inline void Machine::end_pixel_output()
@@ -467,6 +498,7 @@ inline void Machine::update_pixels_to_position(int x, int y)
 				_crt->output_sync(9 * crt_cycles_multiplier);
 				_crt->output_blank((first_graphics_cycle - 9) * crt_cycles_multiplier);
 				end = _crt->get_field_cycle();
+				_currentScreenAddress = _startLineAddress;
 			}
 			continue;
 		}
@@ -481,10 +513,10 @@ inline void Machine::update_pixels_to_position(int x, int y)
 			{
 				end_pixel_output();
 
-				if(_crt->get_field_cycle() - end != 640)
-				{
-					printf("!!!\n");
-				}
+//				if(_crt->get_field_cycle() - end != 640)
+//				{
+//					printf("!!!\n");
+//				}
 			}
 			continue;
 		}
@@ -495,6 +527,14 @@ inline void Machine::update_pixels_to_position(int x, int y)
 			_crt->output_blank((128 - 80 - first_graphics_cycle) * crt_cycles_multiplier);
 			display_x = 0;
 			display_y++;
+
+			_startLineAddress++;
+			_currentOutputLine++;
+			if(_currentOutputLine == 8)
+			{
+				_currentOutputLine = 0;
+				_startLineAddress += ((_screen_mode > 3) ? 40 : 80) * 8 - 8;
+			}
 		}
 	}
 
@@ -572,7 +612,11 @@ inline void Machine::update_display()
 	if(_displayOutputPosition < end_of_top && _fieldCycles >= end_of_top)
 	{
 //		printf("[1] %d / %d\n", _crt->get_field_cycle() >> 10, (_crt->get_field_cycle() >> 3)&127);
-		if(!_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
+		if(!_is_odd_field)
+		{
+			_crt->output_sync(9 * crt_cycles_multiplier);
+			_crt->output_blank(55 * crt_cycles_multiplier);
+		}
 		_crt->output_sync(320 * crt_cycles_multiplier);
 		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
 
