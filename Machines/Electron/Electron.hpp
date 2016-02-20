@@ -157,7 +157,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		inline void update_display();
 		inline void update_pixels_to_position(int x, int y);
-		inline void output_pixels(int number_of_pixels);
+		inline void output_pixels(int start_x, int number_of_pixels);
 		inline void end_pixel_output();
 		inline void reset_pixel_output();
 
@@ -189,9 +189,11 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
 		int _currentOutputLine;
+		bool _is_odd_field;
+
+		// CRT output
 		unsigned int _currentOutputDivider;
 		uint8_t *_currentLine, *_writePointer;
-		bool _is_odd_field;
 
 		// Tape.
 		Tape _tape;

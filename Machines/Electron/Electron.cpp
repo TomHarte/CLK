@@ -38,7 +38,7 @@ Machine::Machine() :
 			"float texValue = texture(texID, coordinate).r;"
 			"return vec3(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)));"
 		"}");
-	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
+//	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
 
 	memset(_key_states, 0, sizeof(_key_states));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -388,16 +388,67 @@ inline void Machine::reset_pixel_output()
 	_startLineAddress = _startScreenAddress;
 }
 
-inline void Machine::output_pixels(int number_of_pixels)
+inline void Machine::output_pixels(int start_x, int number_of_pixels)
 {
 	if(number_of_pixels)
 	{
-		_crt->output_blank((unsigned int)number_of_pixels * crt_cycles_multiplier);
+		unsigned int newDivider = 0;
+		switch(_screen_mode)
+		{
+			case 0: case 3:				newDivider = 1; break;
+			case 1:	case 4: case 6:		newDivider = 2; break;
+			case 2: case 5:				newDivider = 4; break;
+		}
+		bool is40Column = (_screen_mode > 3);
+
+		if(!_writePointer || newDivider != _currentOutputDivider)
+		{
+			_currentOutputDivider = newDivider;
+			end_pixel_output();
+			_crt->allocate_write_area(640 / newDivider);
+			_currentLine = _writePointer = _crt->get_write_target_for_buffer(0);
+		}
+
+		if(is40Column)
+		{
+			number_of_pixels = ((start_x + number_of_pixels) >> 1) - (start_x >> 1);
+		}
+
+		switch(_screen_mode)
+		{
+			default:
+			case 0: case 3: case 4: case 6:
+				while(number_of_pixels--)
+				{
+					_writePointer[0] = 7;
+					_writePointer += 8;
+				}
+			break;
+
+			case 1: case 5:
+				while(number_of_pixels--)
+				{
+					_writePointer += 4;
+				}
+			break;
+
+			case 2:
+				while(number_of_pixels--)
+				{
+					_writePointer += 2;
+				}
+			break;
+		}
 	}
 }
 
 inline void Machine::end_pixel_output()
 {
+	if(_currentLine != nullptr)
+	{
+		_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
+		_writePointer = _currentLine = nullptr;
+	}
 }
 
 inline void Machine::update_pixels_to_position(int x, int y)
@@ -419,11 +470,13 @@ inline void Machine::update_pixels_to_position(int x, int y)
 		if(display_x < first_graphics_cycle+80)
 		{
 			int cycles_to_output = (display_y < y) ? 80 + first_graphics_cycle - display_x : std::min(80, x - display_x);
-			output_pixels(cycles_to_output);
+			output_pixels(display_x, cycles_to_output);
 			display_x += cycles_to_output;
 
 			if(display_x == first_graphics_cycle+80)
+			{
 				end_pixel_output();
+			}
 			continue;
 		}
 
@@ -475,13 +528,13 @@ inline void Machine::update_display()
 		|--B--|
 		|--P--|
 		|--B--|
-		|-B-
+
 
 		(2.5 lines of sync; half a line of blank; full blanks; pixels; full blanks; half blank)
 
 		Even field:
 
-		   -S-|
+		|-B-S-|
 		|--S--|
 		|--S--|
 		|--B--|
@@ -493,13 +546,13 @@ inline void Machine::update_display()
 		So:
 
 			Top:
+				if even then half a line of blank
 				2.5 lines of sync
 				if odd then half a line of blank
 				full blanks
 			Pixels
 			Bottom:
 				full blanks
-				if odd then half a line of blank
 
 	*/
 
@@ -509,6 +562,8 @@ inline void Machine::update_display()
 	// does the top region need to be output?
 	if(_displayOutputPosition < end_of_top && _fieldCycles >= end_of_top)
 	{
+//		printf("[1] %d / %d\n", _crt->get_field_cycle() >> 10, (_crt->get_field_cycle() >> 3)&127);
+		if(!_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
 		_crt->output_sync(320 * crt_cycles_multiplier);
 		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
 
@@ -517,6 +572,7 @@ inline void Machine::update_display()
 			_crt->output_sync(9 * crt_cycles_multiplier);
 			_crt->output_blank(119 * crt_cycles_multiplier);
 		}
+//		printf("[2] %d / %d\n", _crt->get_field_cycle() >> 10, (_crt->get_field_cycle() >> 3)&127);
 
 		_displayOutputPosition = end_of_top;
 
@@ -534,17 +590,17 @@ inline void Machine::update_display()
 	}
 
 	// is this the bottom region?
-	if(_displayOutputPosition < end_of_graphics && _fieldCycles > end_of_graphics)
+	if(_displayOutputPosition >= end_of_graphics && _displayOutputPosition < cycles_per_frame)
 	{
+//		printf("[3] %d / %d\n", _crt->get_field_cycle() >> 10, (_crt->get_field_cycle() >> 3)&127);
 		for(int y = first_graphics_line+256; y < 312; y++)
 		{
 			_crt->output_sync(9 * crt_cycles_multiplier);
 			_crt->output_blank(119 * crt_cycles_multiplier);
 		}
-		_displayOutputPosition = end_of_graphics;
+		_displayOutputPosition = cycles_per_frame;
 
-		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
-
+//		printf("[4] %d / %d\n", _crt->get_field_cycle() >> 10, (_crt->get_field_cycle() >> 3)&127);
 		_is_odd_field ^= true;
 	}
 

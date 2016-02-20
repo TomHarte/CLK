@@ -165,7 +165,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		hsync_requested = false;
 		vsync_requested = false;
 
-		uint8_t *next_run = (is_output_run && next_run_length) ? _run_builders[_run_write_pointer]->get_next_input_run() : nullptr;
+		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_input_run() : nullptr;
 		int lengthMask = (_horizontal_flywheel->is_in_retrace() ? kRetraceXMask : 0) | (_vertical_flywheel->is_in_retrace() ? kRetraceYMask : 0);
 
 #define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
@@ -241,6 +241,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFrames;
 			_run_builders[_run_write_pointer]->reset();
+
+			static int fc = 0;
+			fc++;
+			if(!(fc&15))
+			{
+				printf("H misses %d; v misses %d\n", _horizontal_flywheel->get_and_reset_number_of_surprises(), _vertical_flywheel->get_and_reset_number_of_surprises());
+			}
 		}
 	}
 }
@@ -249,7 +256,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 void CRT::output_scan()
 {
-	_next_scan ^= 1;
+//	_next_scan ^= 1;
 	Scan *scan = &_scans[_next_scan];
 
 	bool this_is_sync = (scan->type == Type::Sync);

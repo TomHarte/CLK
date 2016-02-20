@@ -214,6 +214,13 @@ class CRT {
 			_visible_area = visible_area;
 		}
 
+#ifdef DEBUG
+		inline uint32_t get_field_cycle()
+		{
+			return _run_builders[_run_write_pointer]->duration / _time_multiplier;
+		}
+#endif
+
 	private:
 		CRT();
 		void allocate_buffers(unsigned int number, va_list sizes);
