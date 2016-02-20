@@ -533,7 +533,7 @@ inline void Machine::update_pixels_to_position(int x, int y)
 			if(_currentOutputLine == 8)
 			{
 				_currentOutputLine = 0;
-				_startLineAddress += ((_screen_mode > 3) ? 40 : 80) * 8 - 8;
+				_startLineAddress = _currentScreenAddress - 7;
 			}
 		}
 	}
