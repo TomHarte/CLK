@@ -183,7 +183,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint16_t _startScreenAddress;
 
 		// Counters related to simultaneous subsystems;
-		int _fieldCycles, _displayOutputPosition;
+		unsigned int _fieldCycles, _displayOutputPosition;
 		int _audioOutputPosition, _audioOutputPositionError;
 
 		// Display generation.

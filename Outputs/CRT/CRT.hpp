@@ -219,6 +219,16 @@ class CRT {
 		{
 			return _run_builders[_run_write_pointer]->duration / _time_multiplier;
 		}
+
+		inline uint32_t get_line_cycle()
+		{
+			return _horizontal_flywheel->get_current_time()  / _time_multiplier;
+		}
+
+		inline float get_raster_x()
+		{
+			return (float)_horizontal_flywheel->get_current_output_position() / (float)_horizontal_flywheel->get_scan_period();
+		}
 #endif
 
 	private:
