@@ -65,7 +65,7 @@ struct Flywheel
 			if(_counter < _sync_error_window || _counter > _expected_next_sync - _sync_error_window)
 			{
 				unsigned int time_now = (_counter < _sync_error_window) ? _expected_next_sync + _counter : _counter;
-				_expected_next_sync = (_expected_next_sync + _expected_next_sync + _expected_next_sync + time_now) >> 2;
+				_expected_next_sync = (3*_expected_next_sync + time_now) >> 2;
 			}
 			else
 			{
@@ -73,13 +73,11 @@ struct Flywheel
 
 				if(_counter < _retrace_time + (_expected_next_sync >> 1))
 				{
-					_expected_next_sync = (_expected_next_sync + _standard_period + _sync_error_window) >> 1;
-//					_expected_next_sync+=;
+					_expected_next_sync = (3*_expected_next_sync + _standard_period + _sync_error_window) >> 2;
 				}
 				else
 				{
-					_expected_next_sync = (_expected_next_sync + _standard_period - _sync_error_window) >> 1;
-//					_expected_next_sync--;
+					_expected_next_sync = (3*_expected_next_sync + _standard_period - _sync_error_window) >> 2;
 				}
 			}
 		}

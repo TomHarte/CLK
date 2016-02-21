@@ -565,7 +565,7 @@ inline void Machine::update_display()
 
 	*/
 
-	const unsigned int end_of_top = (first_graphics_line * cycles_per_line) + (_is_odd_field ? 64 : 0);
+	const unsigned int end_of_top = (first_graphics_line * cycles_per_line) - (_is_odd_field ? 0 : 64);
 	const unsigned int end_of_graphics = end_of_top + 256 * cycles_per_line;
 
 	// does the top region need to be output?

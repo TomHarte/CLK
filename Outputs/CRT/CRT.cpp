@@ -98,7 +98,8 @@ CRT::CRT() :
 	_is_receiving_sync(false),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
-	_rasterPosition({.x = 0, .y = 0})
+	_rasterPosition({.x = 0, .y = 0}),
+	_sync_period(0)
 {
 	construct_openGL();
 }
@@ -150,7 +151,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 	number_of_cycles *= _time_multiplier;
 
 	bool is_output_run = ((type == Type::Level) || (type == Type::Data));
-	vsync_requested &= (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 
 	while(number_of_cycles) {
 
@@ -241,13 +241,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFrames;
 			_run_builders[_run_write_pointer]->reset();
-
-			static int fc = 0;
-			fc++;
-			if(!(fc&15))
-			{
-				printf("H misses %d; v misses %d\n", _horizontal_flywheel->get_and_reset_number_of_surprises(), _vertical_flywheel->get_and_reset_number_of_surprises());
-			}
 		}
 	}
 }
@@ -260,10 +253,12 @@ void CRT::output_scan()
 	Scan *scan = &_scans[_next_scan];
 
 	bool this_is_sync = (scan->type == Type::Sync);
-	bool hsync_requested = !_is_receiving_sync && this_is_sync;
-	bool vsync_requested = _is_receiving_sync && !this_is_sync;
+	bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
+	bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
+	bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 	_is_receiving_sync = this_is_sync;
 
+	_sync_period = _is_receiving_sync ? (_sync_period + scan->number_of_cycles) : 0;
 	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type, scan->tex_x, scan->tex_y);
 }
 

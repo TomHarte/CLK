@@ -264,6 +264,7 @@ class CRT {
 		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
 		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
 		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		unsigned int _sync_period;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		enum Type {
