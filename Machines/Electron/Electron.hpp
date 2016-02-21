@@ -160,8 +160,8 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		inline void output_pixels(int start_x, int number_of_pixels);
 		inline void end_pixel_output();
 		inline void reset_pixel_output();
+		inline unsigned int get_first_graphics_cycle();
 
-		inline int get_line_output_position(int field_address);
 		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();

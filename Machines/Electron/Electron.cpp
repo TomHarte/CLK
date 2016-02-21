@@ -282,16 +282,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
-	unsigned int line_position = (unsigned int)get_line_output_position(_fieldCycles);
-	const unsigned int real_time_clock_interrupt_time = (first_graphics_line + 99)*128 + first_graphics_cycle + 80;
-	const unsigned int display_end_interrupt_time = (first_graphics_line + 255)*128 + first_graphics_cycle + 80;
+	unsigned int start_of_graphics = get_first_graphics_cycle();
+	const unsigned int real_time_clock_interrupt_time = start_of_graphics + 99*128;
+	const unsigned int display_end_interrupt_time = start_of_graphics + 256*128;
 
-	if(line_position < real_time_clock_interrupt_time && line_position + cycles >= real_time_clock_interrupt_time)
+	if(_fieldCycles < real_time_clock_interrupt_time && _fieldCycles + cycles >= real_time_clock_interrupt_time)
 	{
 		update_audio();
 		signal_interrupt(Interrupt::RealTimeClock);
 	}
-	else if(line_position < display_end_interrupt_time && line_position + cycles >= display_end_interrupt_time)
+	else if(_fieldCycles < display_end_interrupt_time && _fieldCycles + cycles >= display_end_interrupt_time)
 	{
 		update_audio();
 		signal_interrupt(Interrupt::DisplayEnd);
@@ -371,15 +371,10 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_audio()
 {
-	int difference = _fieldCycles - _audioOutputPosition;
-	_audioOutputPosition = _fieldCycles;
+	int difference = (int)_fieldCycles - _audioOutputPosition;
+	_audioOutputPosition = (int)_fieldCycles;
 	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 4);
 	_audioOutputPositionError = (_audioOutputPositionError + difference)&15;
-}
-
-inline int Machine::get_line_output_position(int field_address)
-{
-	return field_address + (_is_odd_field ? 64 : 0);
 }
 
 inline void Machine::reset_pixel_output()
@@ -549,6 +544,11 @@ inline void Machine::update_pixels_to_position(int x, int y)
 	}
 }
 
+inline unsigned int Machine::get_first_graphics_cycle()
+{
+	return (first_graphics_line * cycles_per_line) - (_is_odd_field ? 0 : 64);
+}
+
 inline void Machine::update_display()
 {
 	/*
@@ -565,7 +565,7 @@ inline void Machine::update_display()
 
 	*/
 
-	const unsigned int end_of_top = (first_graphics_line * cycles_per_line) - (_is_odd_field ? 0 : 64);
+	const unsigned int end_of_top = get_first_graphics_cycle();
 	const unsigned int end_of_graphics = end_of_top + 256 * cycles_per_line;
 
 	// does the top region need to be output?
