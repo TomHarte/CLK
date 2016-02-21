@@ -89,7 +89,6 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 	switch(_chunk_id)
 	{
 		case 0x0100: case 0x0102:
-		{
 			// In the ordinary ("1200 baud") data encoding format,
 			// a zero bit is encoded as one complete cycle at the base frequency.
 			// A one bit is two complete cycles at twice the base frequency.
@@ -103,9 +102,8 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 			next_pulse.length.length = _current_bit ? 1 : 2;
 			next_pulse.length.clock_rate = _time_base * 4;
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
-		} break;
+		break;
 
-		case 0x0114:
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = 1;
@@ -113,6 +111,27 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 			_bit_position ^= 1;
 
 			if(!_bit_position) _chunk_position++;
+		break;
+
+		case 0x0114:
+			if(!_bit_position)
+			{
+				_current_bit = get_next_bit();
+				if(_first_is_pulse && !_chunk_position)
+				{
+					_bit_position++;
+				}
+			}
+
+			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
+			next_pulse.length.length = _current_bit ? 1 : 2;
+			next_pulse.length.clock_rate = _time_base * 4;
+			_bit_position ^= 1;
+
+			if((_chunk_id == 0x0114) && (_chunk_position == _chunk_duration.length-1) && _last_is_pulse)
+			{
+				_chunk_position++;
+			}
 		break;
 
 		case 0x0112:
@@ -131,7 +150,6 @@ void Storage::UEF::find_next_tape_chunk()
 	int reset_count = 0;
 	_chunk_position = 0;
 	_bit_position = 0;
-
 
 	while(1)
 	{
@@ -156,7 +174,6 @@ void Storage::UEF::find_next_tape_chunk()
 			continue;
 		}
 
-		printf("Deal with %04x?\n", _chunk_id);
 		switch(_chunk_id)
 		{
 			case 0x0100: case 0x0102: // implicit and explicit bit patterns
@@ -185,6 +202,7 @@ void Storage::UEF::find_next_tape_chunk()
 				// TODO: read lengths
 //			return;
 			case 0x0114: // security cycles
+			{
 				// read number of cycles
 				_chunk_duration.length = (uint32_t)gzgetc(_file);
 				_chunk_duration.length |= (uint32_t)gzgetc(_file) << 8;
@@ -193,11 +211,7 @@ void Storage::UEF::find_next_tape_chunk()
 				// Ps and Ws
 				_first_is_pulse = gzgetc(_file) == 'P';
 				_last_is_pulse = gzgetc(_file) == 'P';
-
-				if(_first_is_pulse)
-					_bit_position ^= 1;
-
-				// TODO: last is pulse
+			}
 			break;
 
 			case 0x113: // change of base rate
@@ -251,12 +265,14 @@ bool Storage::UEF::get_next_bit()
 		}
 		break;
 
+		// TODO: 0x0104, 0x0111
+
 		case 0x0114:
 		case 0x0102:
 		{
 			uint32_t bit_position = _chunk_position%8;
 			_chunk_position++;
-			if(!bit_position)
+			if(!bit_position && _chunk_position < _chunk_duration.length)
 			{
 				_current_byte = (uint8_t)gzgetc(_file);
 			}
