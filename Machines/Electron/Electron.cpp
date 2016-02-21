@@ -690,9 +690,9 @@ inline void Tape::get_next_tape_pulse()
 {
 	_time_into_pulse = 0;
 	_current_pulse = _tape->get_next_pulse();
-	if(_pulse_stepper == nullptr || _current_pulse.length.clock_rate != _pulse_stepper->get_output_rate())
+	if(_input_pulse_stepper == nullptr || _current_pulse.length.clock_rate != _input_pulse_stepper->get_output_rate())
 	{
-		_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_current_pulse.length.clock_rate, 2000000));
+		_input_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_current_pulse.length.clock_rate, 2000000));
 	}
 }
 
@@ -762,7 +762,7 @@ inline void Tape::set_is_in_input_mode(bool is_in_input_mode)
 
 inline void Tape::set_counter(uint8_t value)
 {
-	_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
+	_output_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
 }
 
 inline void Tape::set_data_register(uint8_t value)
@@ -786,7 +786,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 			{
 				while(number_of_cycles--)
 				{
-					_time_into_pulse += (unsigned int)_pulse_stepper->step();
+					_time_into_pulse += (unsigned int)_input_pulse_stepper->step();
 					if(_time_into_pulse == _current_pulse.length.length)
 					{
 						get_next_tape_pulse();
@@ -826,7 +826,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 		{
 			while(number_of_cycles--)
 			{
-				if(_pulse_stepper->step())
+				if(_output_pulse_stepper->step())
 				{
 					_output_bits_remaining--;
 					if(!_output_bits_remaining)

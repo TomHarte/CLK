@@ -8,6 +8,38 @@
 
 #include "TapeUEF.hpp"
 #include <string.h>
+#include <math.h>
+
+static float gzgetfloat(gzFile file)
+{
+	uint8_t bytes[4];
+	bytes[0] = (uint8_t)gzgetc(file);
+	bytes[1] = (uint8_t)gzgetc(file);
+	bytes[2] = (uint8_t)gzgetc(file);
+	bytes[3] = (uint8_t)gzgetc(file);
+
+	/* assume a four byte array named Float exists, where Float[0]
+	was the first byte read from the UEF, Float[1] the second, etc */
+
+	/* decode mantissa */
+	int mantissa;
+	mantissa = bytes[0] | (bytes[1] << 8) | ((bytes[2]&0x7f)|0x80) << 16;
+
+	float result = (float)mantissa;
+	result = (float)ldexp(result, -23);
+
+	/* decode exponent */
+	int exponent;
+	exponent = ((bytes[2]&0x80) >> 7) | (bytes[3]&0x7f) << 1;
+	exponent -= 127;
+	result = (float)ldexp(result, exponent);
+
+	/* flip sign if necessary */
+	if(bytes[3]&0x80)
+		result = -result;
+
+	return result;
+}
 
 Storage::UEF::UEF(const char *file_name) :
 	_chunk_id(0), _chunk_length(0), _chunk_position(0),
@@ -117,18 +149,24 @@ void Storage::UEF::find_next_tape_chunk()
 			continue;
 		}
 
+		printf("Deal with %04x?\n", _chunk_id);
 		switch(_chunk_id)
 		{
 			case 0x0100: case 0x0102: // implicit and explicit bit patterns
 			return;
 
-			case 0x0112:
+			case 0x0112: // integer gap
 				_chunk_duration.length = (uint16_t)gzgetc(_file);
 				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
 				_chunk_duration.clock_rate = _time_base;
 			return;
 
-			case 0x0116: // gaps
+			case 0x0116: // floating point gap
+			{
+				float length = gzgetfloat(_file);
+				_chunk_duration.length = (unsigned int)(length * 4000000);
+				_chunk_duration.clock_rate = 4000000;
+			}
 			return;
 
 			case 0x0110: // carrier tone
@@ -144,6 +182,11 @@ void Storage::UEF::find_next_tape_chunk()
 			break;
 
 			case 0x113: // change of base rate
+			{
+				// TODO: something smarter than just converting this to an int
+				float new_time_base = gzgetfloat(_file);
+				_time_base = (unsigned int)roundf(new_time_base);
+			}
 			break;
 
 			default:

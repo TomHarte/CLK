@@ -91,7 +91,8 @@ class Tape {
 		std::shared_ptr<Storage::Tape> _tape;
 
 		Storage::Tape::Pulse _current_pulse;
-		std::unique_ptr<SignalProcessing::Stepper> _pulse_stepper;
+		std::unique_ptr<SignalProcessing::Stepper> _input_pulse_stepper;
+		std::unique_ptr<SignalProcessing::Stepper> _output_pulse_stepper;
 		uint32_t _time_into_pulse;
 
 		bool _is_running;
