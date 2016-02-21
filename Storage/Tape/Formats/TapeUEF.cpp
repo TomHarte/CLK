@@ -63,6 +63,7 @@ Storage::UEF::UEF(const char *file_name) :
 		throw ErrorNotUEF;
 	}
 
+	_start_of_next_chunk = gztell(_file);
 	find_next_tape_chunk();
 }
 
@@ -104,6 +105,7 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
 		} break;
 
+		case 0x0114:
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = 1;
@@ -130,8 +132,11 @@ void Storage::UEF::find_next_tape_chunk()
 	_chunk_position = 0;
 	_bit_position = 0;
 
+
 	while(1)
 	{
+		gzseek(_file, _start_of_next_chunk, SEEK_SET);
+
 		// read chunk ID
 		_chunk_id = (uint16_t)gzgetc(_file);
 		_chunk_id |= (uint16_t)(gzgetc(_file) << 8);
@@ -140,6 +145,8 @@ void Storage::UEF::find_next_tape_chunk()
 		_chunk_length |= (uint32_t)(gzgetc(_file) << 8);
 		_chunk_length |= (uint32_t)(gzgetc(_file) << 16);
 		_chunk_length |= (uint32_t)(gzgetc(_file) << 24);
+
+		_start_of_next_chunk = gztell(_file) + _chunk_length;
 
 		if(gzeof(_file))
 		{
@@ -174,11 +181,23 @@ void Storage::UEF::find_next_tape_chunk()
 				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
 				gzseek(_file, _chunk_length - 2, SEEK_CUR);
 			return;
-			case 0x0111: // carrier tone with dummy byte
+//			case 0x0111: // carrier tone with dummy byte
 				// TODO: read lengths
-			return;
+//			return;
 			case 0x0114: // security cycles
-				// TODO: read number, Ps and Ws
+				// read number of cycles
+				_chunk_duration.length = (uint32_t)gzgetc(_file);
+				_chunk_duration.length |= (uint32_t)gzgetc(_file) << 8;
+				_chunk_duration.length |= (uint32_t)gzgetc(_file) << 16;
+
+				// Ps and Ws
+				_first_is_pulse = gzgetc(_file) == 'P';
+				_last_is_pulse = gzgetc(_file) == 'P';
+
+				if(_first_is_pulse)
+					_bit_position ^= 1;
+
+				// TODO: last is pulse
 			break;
 
 			case 0x113: // change of base rate
@@ -202,6 +221,7 @@ bool Storage::UEF::chunk_is_finished()
 	{
 		case 0x0100: return (_chunk_position / 10) == _chunk_length;
 		case 0x0102: return (_chunk_position / 8) == _chunk_length;
+		case 0x0114:
 		case 0x0110: return _chunk_position == _chunk_duration.length;
 
 		case 0x0112:
@@ -231,6 +251,7 @@ bool Storage::UEF::get_next_bit()
 		}
 		break;
 
+		case 0x0114:
 		case 0x0102:
 		{
 			uint32_t bit_position = _chunk_position%8;

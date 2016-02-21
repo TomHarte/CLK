@@ -30,6 +30,7 @@ class UEF : public Tape {
 	private:
 		gzFile _file;
 		unsigned int _time_base;
+		z_off_t _start_of_next_chunk;
 
 		uint16_t _chunk_id;
 		uint32_t _chunk_length;
@@ -41,6 +42,9 @@ class UEF : public Tape {
 		uint32_t _bit_position;
 
 		Time _chunk_duration;
+
+		bool _first_is_pulse;
+		bool _last_is_pulse;
 
 		void find_next_tape_chunk();
 		bool get_next_bit();
