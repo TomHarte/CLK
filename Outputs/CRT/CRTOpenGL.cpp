@@ -17,7 +17,8 @@ using namespace Outputs;
 
 struct CRT::OpenGLState {
 	std::unique_ptr<OpenGL::Shader> shaderProgram;
-	GLuint arrayBuffers[kCRTNumberOfFrames], vertexArrays[kCRTNumberOfFrames];
+	GLuint arrayBuffer, vertexArray;
+	size_t verticesPerSlice;
 
 	GLint positionAttribute;
 	GLint textureCoordinatesAttribute;
@@ -79,17 +80,15 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
 		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[0].data);
 
-		glGenVertexArrays(kCRTNumberOfFrames, _openGL_state->vertexArrays);
-		glGenBuffers(kCRTNumberOfFrames, _openGL_state->arrayBuffers);
+		glGenVertexArrays(1, &_openGL_state->vertexArray);
+		glGenBuffers(1, &_openGL_state->arrayBuffer);
+		_openGL_state->verticesPerSlice = 0;
 
 		prepare_shader();
 
-		for(int c = 0; c < kCRTNumberOfFrames; c++)
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffers[c]);
-			glBindVertexArray(_openGL_state->vertexArrays[c]);
-			prepare_vertex_array();
-		}
+		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
+		glBindVertexArray(_openGL_state->vertexArray);
+		prepare_vertex_array();
 
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
 
@@ -130,8 +129,27 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 	}
 
+	// ensure array buffer is up to date
+	size_t max_number_of_vertices = 0;
+	for(int c = 0; c < kCRTNumberOfFrames; c++)
+	{
+		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
+	}
+	if(_openGL_state->verticesPerSlice < max_number_of_vertices)
+	{
+		_openGL_state->verticesPerSlice = max_number_of_vertices;
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTSizeOfVertex * kCRTNumberOfFrames), NULL, GL_DYNAMIC_DRAW);
+
+		for(unsigned int c = 0; c < kCRTNumberOfFrames; c++)
+		{
+			uint8_t *data = &_run_builders[c]->_input_runs[0];
+			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->verticesPerSlice * kCRTSizeOfVertex), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTSizeOfVertex), data);
+			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
+		}
+	}
+
 	// draw all sitting frames
-	int run = _run_write_pointer;
+	unsigned int run = (unsigned int)_run_write_pointer;
 //	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
 	GLint total_age = 0;
 	for(int c = 0; c < kCRTNumberOfFrames; c++)
@@ -143,21 +161,17 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		{
 			glUniform1f(_openGL_state->timestampBaseUniform, (GLfloat)total_age);
 
-			// bind the vertex array
-			glBindVertexArray(_openGL_state->vertexArrays[run]);
-
-			// bind this frame's array buffer
-			glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffers[run]);
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
-				// glBufferSubData can only replace existing data, not grow the pool, so for now we'll just take this hit
-				uint8_t *data =  &_run_builders[run]->_input_runs[0];
-				glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(_run_builders[run]->number_of_vertices * kCRTSizeOfVertex), data, GL_DYNAMIC_DRAW);
+				uint8_t *data =  &_run_builders[run]->_input_runs[_run_builders[run]->uploaded_vertices * kCRTSizeOfVertex];
+				glBufferSubData(GL_ARRAY_BUFFER,
+								(GLsizeiptr)(((run * _openGL_state->verticesPerSlice) + _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex),
+								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex), data);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
 			// draw this frame
-			glDrawArrays(GL_TRIANGLES, 0, (GLsizei)_run_builders[run]->number_of_vertices);
+			glDrawArrays(GL_TRIANGLES, (GLint)(run * _openGL_state->verticesPerSlice), (GLsizei)_run_builders[run]->number_of_vertices);
 		}
 
 		// advance back in time
