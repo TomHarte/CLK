@@ -167,7 +167,7 @@ template <class T> class Processor {
 
 			@param program The program to schedule.
 		*/
-		void schedule_program(const MicroOp *program)
+		inline void schedule_program(const MicroOp *program)
 		{
 			_scheduledPrograms[_scheduleProgramsWritePointer] = program;
 			_scheduleProgramsWritePointer = (_scheduleProgramsWritePointer+1)&3;
@@ -207,7 +207,7 @@ template <class T> class Processor {
 
 			@param operation The operation code for which to schedule a program.
 		*/
-		void decode_operation(uint8_t operation)
+		inline void decode_operation(uint8_t operation)
 		{
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
 
@@ -461,7 +461,7 @@ template <class T> class Processor {
 
 			@returns The program representing an RST response.
 		*/
-		const MicroOp *get_reset_program() {
+		inline const MicroOp *get_reset_program() {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
 				CycleFetchOperand,
@@ -480,7 +480,7 @@ template <class T> class Processor {
 
 			@returns The program representing an IRQ response.
 		*/
-		const MicroOp *get_irq_program() {
+		inline const MicroOp *get_irq_program() {
 			static const MicroOp reset[] = {
 				CyclePushPCH,
 				CyclePushPCL,
@@ -1104,7 +1104,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		void set_ready_line(bool active)
+		inline void set_ready_line(bool active)
 		{
 			if(active)
 				_ready_line_is_enabled = true;
@@ -1120,7 +1120,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		void set_reset_line(bool active)
+		inline void set_reset_line(bool active)
 		{
 			_reset_line_is_enabled = active;
 		}
@@ -1130,7 +1130,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		void set_irq_line(bool active)
+		inline void set_irq_line(bool active)
 		{
 			_irq_line_is_enabled = active;
 		}
@@ -1140,7 +1140,7 @@ template <class T> class Processor {
 
 			@param active `true` if the line is logically active; `false` otherwise.
 		*/
-		void set_nmi_line(bool active)
+		inline void set_nmi_line(bool active)
 		{
 			// TODO: NMI is edge triggered, not level, and in any case _nmi_line_is_enabled
 			// is not honoured elsewhere. So NMI is yet to be implemented.
@@ -1153,7 +1153,7 @@ template <class T> class Processor {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed()
+		inline bool is_jammed()
 		{
 			return _is_jammed;
 		}
@@ -1163,7 +1163,7 @@ template <class T> class Processor {
 
 			@param handler The class instance that will be this 6502's jam handler from now on.
 		*/
-		void set_jam_handler(JamHandler *handler)
+		inline void set_jam_handler(JamHandler *handler)
 		{
 			_jam_handler = handler;
 		}

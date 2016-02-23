@@ -138,7 +138,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	if(_openGL_state->verticesPerSlice < max_number_of_vertices)
 	{
 		_openGL_state->verticesPerSlice = max_number_of_vertices;
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTSizeOfVertex * kCRTNumberOfFrames), NULL, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTSizeOfVertex * kCRTNumberOfFrames), NULL, GL_STREAM_DRAW);
 
 		for(unsigned int c = 0; c < kCRTNumberOfFrames; c++)
 		{

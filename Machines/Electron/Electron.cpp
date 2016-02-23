@@ -184,6 +184,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							if(new_screen_mode == 7) new_screen_mode = 4;
 							if(new_screen_mode != _screen_mode)
 							{
+								printf("To mode %d, %d cycles into field (%d)\n", new_screen_mode, _fieldCycles, _fieldCycles >> 7);
 								update_display();
 								_screen_mode = new_screen_mode;
 								switch(_screen_mode)
@@ -491,7 +492,6 @@ inline void Machine::end_pixel_output()
 
 inline void Machine::update_pixels_to_position(int x, int y)
 {
-	static unsigned int end;
 	while((display_x < x) || (display_y < y))
 	{
 		if(display_x < first_graphics_cycle)
@@ -502,7 +502,6 @@ inline void Machine::update_pixels_to_position(int x, int y)
 			{
 				_crt->output_sync(9 * crt_cycles_multiplier);
 				_crt->output_blank((first_graphics_cycle - 9) * crt_cycles_multiplier);
-				end = _crt->get_field_cycle();
 				_currentScreenAddress = _startLineAddress;
 			}
 			continue;
