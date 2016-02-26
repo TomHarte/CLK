@@ -10,6 +10,7 @@
 #include "TapeUEF.hpp"
 
 #include <algorithm>
+#include <cassert>
 
 using namespace Electron;
 
@@ -285,7 +286,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	unsigned int start_of_graphics = get_first_graphics_cycle();
 	const unsigned int real_time_clock_interrupt_time = start_of_graphics + 99*128;
-	const unsigned int display_end_interrupt_time = start_of_graphics + 256*128;
+	const unsigned int display_end_interrupt_time = start_of_graphics + 257*128 + 64;
 
 	if(_fieldCycles < real_time_clock_interrupt_time && _fieldCycles + cycles >= real_time_clock_interrupt_time)
 	{
@@ -572,14 +573,16 @@ inline void Machine::update_display()
 	{
 		_crt->output_sync(320 * crt_cycles_multiplier);
 		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
+		_displayOutputPosition += 320 + (_is_odd_field ? 64 : 0);
 
-		for(int y = 3; y < first_graphics_line; y++)
+		while(_displayOutputPosition < end_of_top)
 		{
+			_displayOutputPosition += 128;
 			_crt->output_sync(9 * crt_cycles_multiplier);
 			_crt->output_blank(119 * crt_cycles_multiplier);
 		}
 
-		_displayOutputPosition = end_of_top;
+		assert(_displayOutputPosition == end_of_top);
 
 		reset_pixel_output();
 	}

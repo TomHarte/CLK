@@ -142,7 +142,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 		for(unsigned int c = 0; c < kCRTNumberOfFrames; c++)
 		{
-			uint8_t *data = &_run_builders[c]->_input_runs[0];
+			uint8_t *data = &_run_builders[c]->_runs[0];
 			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->verticesPerSlice * kCRTSizeOfVertex), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTSizeOfVertex), data);
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
@@ -163,7 +163,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
-				uint8_t *data =  &_run_builders[run]->_input_runs[_run_builders[run]->uploaded_vertices * kCRTSizeOfVertex];
+				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * kCRTSizeOfVertex];
 				glBufferSubData(GL_ARRAY_BUFFER,
 								(GLsizeiptr)(((run * _openGL_state->verticesPerSlice) + _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex),
 								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex), data);

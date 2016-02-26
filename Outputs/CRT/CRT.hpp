@@ -295,6 +295,8 @@ class CRT {
 		void output_scan();
 
 		struct CRTRunBuilder {
+			CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
+
 			// Resets the run builder.
 			void reset();
 
@@ -302,11 +304,8 @@ class CRT {
 			// from the input buffer to the screen. In composite mode input runs will map from the
 			// input buffer to the processing buffer, and output runs will map from the processing
 			// buffer to the screen.
-			uint8_t *get_next_input_run();
-			std::vector<uint8_t> _input_runs;
-
-			uint8_t *get_next_output_run();
-			std::vector<uint8_t> _output_runs;
+			uint8_t *get_next_run();
+			std::vector<uint8_t> _runs;
 
 			// Container for total length in cycles of all contained runs.
 			uint32_t duration;
@@ -315,6 +314,9 @@ class CRT {
 			// entrusted to the CRT to update.
 			size_t uploaded_vertices;
 			size_t number_of_vertices;
+
+			private:
+				size_t _vertex_size;
 		};
 
 		struct CRTInputBufferBuilder {

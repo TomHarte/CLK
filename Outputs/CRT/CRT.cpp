@@ -82,7 +82,7 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 	_run_builders = new CRTRunBuilder *[kCRTNumberOfFrames];
 	for(int builder = 0; builder < kCRTNumberOfFrames; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder();
+		_run_builders[builder] = new CRTRunBuilder(kCRTSizeOfVertex);
 	}
 
 	va_list va;
@@ -165,7 +165,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		hsync_requested = false;
 		vsync_requested = false;
 
-		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_input_run() : nullptr;
+		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_run() : nullptr;
 		int lengthMask = (_horizontal_flywheel->is_in_retrace() ? kRetraceXMask : 0) | (_vertical_flywheel->is_in_retrace() ? kRetraceYMask : 0);
 
 #define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
