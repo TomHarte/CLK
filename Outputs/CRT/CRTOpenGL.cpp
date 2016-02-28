@@ -7,6 +7,7 @@
 
 #include "CRT.hpp"
 #include <stdlib.h>
+#include <math.h>
 
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
@@ -255,6 +256,8 @@ char *CRT::get_vertex_shader()
 		"uniform vec2 textureSize;"
 		"uniform float timestampBase;"
 		"uniform float ticksPerFrame;"
+		"uniform vec2 positionConversion;"
+		"uniform vec2 scanNormal;"
 
 		"const float shadowMaskMultiple = 600;"
 
@@ -270,7 +273,8 @@ char *CRT::get_vertex_shader()
 			"float age = (timestampBase - timestamp) / ticksPerFrame;"
 			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
 
-			"vec2 mappedPosition = (position - boundsOrigin) / boundsSize;"
+			"vec2 floatingPosition = (position / positionConversion) + lateral*scanNormal;"
+			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
 		"}");
 }
@@ -361,11 +365,20 @@ void CRT::prepare_shader()
 	GLint shadowMaskTexIDUniform	= _openGL_state->shaderProgram->get_uniform_location("shadowMaskTexID");
 	GLint textureSizeUniform		= _openGL_state->shaderProgram->get_uniform_location("textureSize");
 	GLint ticksPerFrameUniform		= _openGL_state->shaderProgram->get_uniform_location("ticksPerFrame");
+	GLint scanNormalUniform			= _openGL_state->shaderProgram->get_uniform_location("scanNormal");
+	GLint positionConversionUniform	= _openGL_state->shaderProgram->get_uniform_location("positionConversion");
 
 	glUniform1i(texIDUniform, 0);
 	glUniform1i(shadowMaskTexIDUniform, 1);
 	glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
 	glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
+	glUniform2f(positionConversionUniform, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period() / (unsigned int)_vertical_flywheel_output_divider);
+
+	float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
+	float scan_normal[] = { sinf(scan_angle), cosf(scan_angle)};
+	scan_normal[0] /= (float)_height_of_display;
+	scan_normal[1] /= (float)_height_of_display;
+	glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
 }
 
 void CRT::prepare_vertex_array()
@@ -376,7 +389,7 @@ void CRT::prepare_vertex_array()
 	glEnableVertexAttribArray((GLuint)_openGL_state->timestampAttribute);
 
 	const GLsizei vertexStride = kCRTSizeOfVertex;
-	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_TRUE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
+	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
 	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
 	glVertexAttribPointer((GLuint)_openGL_state->timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTimestamp);
 	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);

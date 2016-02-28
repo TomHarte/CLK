@@ -770,7 +770,8 @@ inline void Tape::set_counter(uint8_t value)
 inline void Tape::set_data_register(uint8_t value)
 {
 	_data_register = (uint16_t)((value << 2) | 1);
-	_output_bits_remaining = 9;
+	printf("Loaded — %03x\n", _data_register);
+	_bits_since_start = _output_bits_remaining = 9;
 }
 
 inline uint8_t Tape::get_data_register()
@@ -831,6 +832,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 				if(_output_pulse_stepper->step())
 				{
 					_output_bits_remaining--;
+					_bits_since_start--;
 					if(!_output_bits_remaining)
 					{
 						_output_bits_remaining = 9;
@@ -840,6 +842,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 					evaluate_interrupts();
 
 					_data_register = (_data_register >> 1) | 0x200;
+					printf("Shifted — %03x\n", _data_register);
 				}
 			}
 		}

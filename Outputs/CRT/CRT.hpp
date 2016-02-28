@@ -252,13 +252,9 @@ class CRT {
 		// The user-supplied visible area
 		Rect _visible_area;
 
-		// the current scanning position (TODO: can I eliminate this in favour of just using the flywheels?)
-		struct Vector {
-			uint32_t x, y;
-		} _rasterPosition, _scanSpeed[4], _beamWidth[4];
-
 		// the two flywheels regulating scanning
 		std::unique_ptr<Outputs::Flywheel> _horizontal_flywheel, _vertical_flywheel;
+		uint16_t _vertical_flywheel_output_divider;
 
 		// elements of sync separation
 		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)

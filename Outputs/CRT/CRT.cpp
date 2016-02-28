@@ -13,12 +13,6 @@
 
 using namespace Outputs;
 
-static const uint32_t kCRTFixedPointRange	= 0xf7ffffff;
-static const uint32_t kCRTFixedPointOffset	= 0x04000000;
-
-#define kRetraceXMask	0x01
-#define kRetraceYMask	0x02
-
 void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 {
 	_colour_space = colour_space;
@@ -43,24 +37,13 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 
 	// generate timing values implied by the given arbuments
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
-	const unsigned int vertical_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
-	const float halfLineWidth = (float)_height_of_display * 1.94f;
 
-	// creat the two flywheels
-	unsigned int horizontal_retrace_time = scanlinesVerticalRetraceTime * _cycles_per_line;
+	// create the two flywheels
 	_horizontal_flywheel	= std::unique_ptr<Outputs::Flywheel>(new Outputs::Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
 	_vertical_flywheel		= std::unique_ptr<Outputs::Flywheel>(new Outputs::Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
 
-	for(int c = 0; c < 4; c++)
-	{
-		_scanSpeed[c].x = (c&kRetraceXMask) ? -(kCRTFixedPointRange / horizontal_retrace_time)	: (kCRTFixedPointRange / _cycles_per_line);
-		_scanSpeed[c].y = (c&kRetraceYMask) ? -(kCRTFixedPointRange / vertical_retrace_time)	: (kCRTFixedPointRange / (_height_of_display * _cycles_per_line));
-
-		// width should be 1.0 / _height_of_display, rotated to match the direction
-		float angle = atan2f(_scanSpeed[c].y, _scanSpeed[c].x);
-		_beamWidth[c].x = (uint32_t)((sinf(angle) / halfLineWidth) * kCRTFixedPointRange);
-		_beamWidth[c].y = (uint32_t)((cosf(angle) / halfLineWidth) * kCRTFixedPointRange);
-	}
+	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
+	_vertical_flywheel_output_divider = (uint16_t)ceilf(_vertical_flywheel->get_scan_period() / 65536.0f);
 }
 
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType)
@@ -98,7 +81,6 @@ CRT::CRT() :
 	_is_receiving_sync(false),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
-	_rasterPosition({.x = 0, .y = 0}),
 	_sync_period(0)
 {
 	construct_openGL();
@@ -166,7 +148,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		vsync_requested = false;
 
 		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_run() : nullptr;
-		int lengthMask = (_horizontal_flywheel->is_in_retrace() ? kRetraceXMask : 0) | (_vertical_flywheel->is_in_retrace() ? kRetraceYMask : 0);
 
 #define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
 #define position_y(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 2])
@@ -175,22 +156,12 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
 #define timestamp(v)	(*(uint32_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTimestamp])
 
-#define InternalToUInt16(v)		((v) + 32768) >> 16
-#define CounterToInternal(c)	(unsigned int)(((uint64_t)c->get_current_output_position() * kCRTFixedPointRange) / c->get_scan_period())
-
 		if(next_run)
 		{
-			unsigned int x_position = CounterToInternal(_horizontal_flywheel);
-			unsigned int y_position = CounterToInternal(_vertical_flywheel);
-
 			// set the type, initial raster position and type of this run
-			position_x(0) = position_x(4) = InternalToUInt16(kCRTFixedPointOffset + x_position + _beamWidth[lengthMask].x);
-			position_y(0) = position_y(4) = InternalToUInt16(kCRTFixedPointOffset + y_position + _beamWidth[lengthMask].y);
-			position_x(1) = InternalToUInt16(kCRTFixedPointOffset + x_position - _beamWidth[lengthMask].x);
-			position_y(1) = InternalToUInt16(kCRTFixedPointOffset + y_position - _beamWidth[lengthMask].y);
-
+			position_x(0) = position_x(1) = position_x(4) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			position_y(0) = position_y(1) = position_y(4) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
 			timestamp(0) = timestamp(1) = timestamp(4) = _run_builders[_run_write_pointer]->duration;
-
 			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
 
 			// these things are constants across the line so just throw them out now
@@ -216,15 +187,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			unsigned int x_position = CounterToInternal(_horizontal_flywheel);
-			unsigned int y_position = CounterToInternal(_vertical_flywheel);
-
 			// store the final raster position
-			position_x(2) = position_x(3) = InternalToUInt16(kCRTFixedPointOffset + x_position - _beamWidth[lengthMask].x);
-			position_y(2) = position_y(3) = InternalToUInt16(kCRTFixedPointOffset + y_position - _beamWidth[lengthMask].y);
-			position_x(5) = InternalToUInt16(kCRTFixedPointOffset + x_position + _beamWidth[lengthMask].x);
-			position_y(5) = InternalToUInt16(kCRTFixedPointOffset + y_position + _beamWidth[lengthMask].y);
-
+			position_x(2) = position_x(3) = position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			position_y(2) = position_y(3) = position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
 			timestamp(2) = timestamp(3) = timestamp(5) = _run_builders[_run_write_pointer]->duration;
 
 			// if this is a data run then advance the buffer pointer
