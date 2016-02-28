@@ -375,9 +375,10 @@ void CRT::prepare_shader()
 	glUniform2f(positionConversionUniform, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period() / (unsigned int)_vertical_flywheel_output_divider);
 
 	float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
-	float scan_normal[] = { sinf(scan_angle), cosf(scan_angle)};
-	scan_normal[0] /= (float)_height_of_display;
-	scan_normal[1] /= (float)_height_of_display;
+	float scan_normal[] = { sinf(scan_angle), -cosf(scan_angle)};
+	float multiplier = (float)_horizontal_flywheel->get_standard_period() / ((float)_height_of_display * (float)_horizontal_flywheel->get_scan_period());
+	scan_normal[0] *= multiplier;
+	scan_normal[1] *= multiplier;
 	glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
 }
 

@@ -24,7 +24,7 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff}
 {
-	_crt = new Outputs::CRT(228, Outputs::CRT::DisplayType::NTSC60, 1, 2);
+	_crt = new Outputs::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 1, 2);
 	_crt->set_composite_sampling_function(
 		"float sample(vec2 coordinate, float phase)\n"
 		"{\n"

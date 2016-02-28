@@ -160,11 +160,19 @@ struct Flywheel
 	}
 
 	/*!
-		@returns the expected length of the scan period.
+		@returns the expected length of the scan period (excluding retrace).
 	*/
 	inline unsigned int get_scan_period()
 	{
 		return _standard_period - _retrace_time;
+	}
+
+	/*!
+		@returns the expected length of a complete scan and retrace cycle.
+	*/
+	inline unsigned int get_standard_period()
+	{
+		return _standard_period;
 	}
 
 	/*!

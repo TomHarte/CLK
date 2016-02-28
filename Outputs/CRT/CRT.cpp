@@ -43,7 +43,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_vertical_flywheel		= std::unique_ptr<Outputs::Flywheel>(new Outputs::Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
-	_vertical_flywheel_output_divider = (uint16_t)ceilf(_vertical_flywheel->get_scan_period() / 65536.0f);
+	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
+	_vertical_flywheel_output_divider = (uint16_t)(ceilf(real_clock_scan_period / 65536.0f) * (_time_multiplier * _common_output_divisor));
 }
 
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType)
@@ -74,14 +75,15 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 	va_end(va);
 }
 
-CRT::CRT() :
+CRT::CRT(unsigned int common_output_divisor) :
 	_next_scan(0),
 	_run_write_pointer(0),
 	_sync_capacitor_charge_level(0),
 	_is_receiving_sync(false),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
-	_sync_period(0)
+	_sync_period(0),
+	_common_output_divisor(common_output_divisor)
 {
 	construct_openGL();
 }
@@ -96,7 +98,7 @@ CRT::~CRT()
 	destruct_openGL();
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT()
+CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
 {
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
@@ -106,7 +108,7 @@ CRT::CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpa
 	va_end(buffer_sizes);
 }
 
-CRT::CRT(unsigned int cycles_per_line, DisplayType displayType, unsigned int number_of_buffers, ...) : CRT()
+CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
 {
 	set_new_display_type(cycles_per_line, displayType);
 

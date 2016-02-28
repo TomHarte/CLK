@@ -58,6 +58,11 @@ class CRT {
 
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
+			
+			@param common_output_divisor The greatest a priori common divisor of all cycle counts that will be
+			supplied to @c output_sync, @c output_data, etc; supply 1 if no greater divisor is known. For many
+			machines output will run at a fixed multiple of the clock rate; knowing this divisor can improve
+			internal precision.
 
 			@param height_of_dispaly The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
@@ -79,7 +84,7 @@ class CRT {
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -88,7 +93,7 @@ class CRT {
 			Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
-		CRT(unsigned int cycles_per_line, DisplayType displayType, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int number_of_buffers, ...);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
@@ -232,12 +237,13 @@ class CRT {
 #endif
 
 	private:
-		CRT();
+		CRT(unsigned int common_output_divisor);
 		void allocate_buffers(unsigned int number, va_list sizes);
 
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
 		unsigned int _time_multiplier;
+		const unsigned int _common_output_divisor;
 
 		// fundamental creator-specified properties
 		unsigned int _cycles_per_line;
