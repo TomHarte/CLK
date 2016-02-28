@@ -158,6 +158,12 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
 #define timestamp(v)	(*(uint32_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTimestamp])
 
+		//	Vertex output is arranged as:
+		//
+		//	[0/4]		3
+		//
+		//	1			[2/5]
+
 		if(next_run)
 		{
 			// set the type, initial raster position and type of this run
