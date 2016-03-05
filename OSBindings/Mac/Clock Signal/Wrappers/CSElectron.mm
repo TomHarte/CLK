@@ -54,7 +54,7 @@
 	return YES;
 }
 
-- (void)setView:(CSCathodeRayView *)view {
+- (void)setView:(CSOpenGLView *)view {
 	[super setView:view];
 }
 

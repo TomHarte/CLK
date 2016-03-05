@@ -1,12 +1,12 @@
 //
-//  CSCathodeRayView.m
+//  CSOpenGLView
 //  CLK
 //
 //  Created by Thomas Harte on 16/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#import "CSCathodeRayView.h"
+#import "CSOpenGLView.h"
 @import CoreVideo;
 @import GLKit;
 
@@ -15,7 +15,7 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewCondition) {
 	CSOpenGLViewConditionUpdating
 };
 
-@implementation CSCathodeRayView {
+@implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	NSConditionLock *_runningLock;
 	dispatch_queue_t _dispatchQueue;
@@ -55,7 +55,7 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewCondition) {
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
 {
-	CSCathodeRayView *view = (__bridge CSCathodeRayView *)displayLinkContext;
+	CSOpenGLView *view = (__bridge CSOpenGLView *)displayLinkContext;
 	[view drawAtTime:now];
 	return kCVReturnSuccess;
 }

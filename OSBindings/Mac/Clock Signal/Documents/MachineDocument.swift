@@ -9,9 +9,9 @@
 import Cocoa
 import AudioToolbox
 
-class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewResponderDelegate {
+class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate {
 
-	@IBOutlet weak var openGLView: CSCathodeRayView! {
+	@IBOutlet weak var openGLView: CSOpenGLView! {
 		didSet {
 			openGLView.delegate = self
 			openGLView.responderDelegate = self
@@ -29,7 +29,7 @@ class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewRes
 
 	var intendedCyclesPerSecond: Int64 = 0
 	private var lastCycleCount: Int64?
-	final func openGLView(view: CSCathodeRayView, didUpdateToTime time: CVTimeStamp) {
+	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp) {
 		// TODO: treat time as a delta from old time, work out how many cycles that is plus error
 
 		// this slightly elaborate dance is to avoid overflow
@@ -46,7 +46,7 @@ class MachineDocument: NSDocument, CSCathodeRayViewDelegate, CSCathodeRayViewRes
 		lastCycleCount = cycleCount
 	}
 
-	func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {}
+	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {}
 	func runForNumberOfCycles(numberOfCycles: Int32) {}
 
 	// MARK: CSOpenGLViewResponderDelegate

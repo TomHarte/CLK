@@ -5,5 +5,6 @@
 #import "CSMachine.h"
 #import "CSAtari2600.h"
 #import "CSElectron.h"
-#import	"CSCathodeRayView.h"
+
+#import	"CSOpenGLView.h"
 #import "AudioQueue.h"

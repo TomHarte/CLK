@@ -75,7 +75,7 @@ class ElectronDocument: MachineDocument {
 		}
 	}
 
-	override func openGLView(view: CSCathodeRayView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+	override func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
 		electron.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
 	}
 
