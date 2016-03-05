@@ -292,12 +292,11 @@ class CRT {
 					uint8_t phase, magnitude;
 				};
 			};
-		} _scans[2];
-		int _next_scan;
-		void output_scan();
+		};
+		void output_scan(Scan *scan);
 
 		struct CRTRunBuilder {
-			CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
+			CRTRunBuilder(size_t vertex_size, int vertices_per_run) : _vertex_size(vertex_size), _vertices_per_run(vertices_per_run) { reset(); }
 
 			// Resets the run builder.
 			void reset();
@@ -319,6 +318,7 @@ class CRT {
 
 			private:
 				size_t _vertex_size;
+				int _vertices_per_run;
 		};
 
 		struct CRTInputBufferBuilder {
@@ -355,7 +355,9 @@ class CRT {
 
 		// transient buffers indicating composite data not yet decoded
 		std::unique_ptr<CRTRunBuilder> _composite_src_runs;
-		int _composite_src_output_y;
+		uint16_t _composite_src_output_y;
+		uint8_t _colour_burst_phase, _colour_burst_amplitude;
+		uint16_t _colour_burst_time;
 
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		struct OpenGLState;

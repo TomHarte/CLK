@@ -66,9 +66,9 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 	_run_builders = new CRTRunBuilder *[kCRTNumberOfFields];
 	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize);
+		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize, 6);
 	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize));
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize, 2));
 
 	va_list va;
 	va_copy(va, sizes);
@@ -77,14 +77,14 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 }
 
 CRT::CRT(unsigned int common_output_divisor) :
-	_next_scan(0),
 	_run_write_pointer(0),
 	_sync_capacitor_charge_level(0),
 	_is_receiving_sync(false),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
 	_sync_period(0),
-	_common_output_divisor(common_output_divisor)
+	_common_output_divisor(common_output_divisor),
+	_composite_src_output_y(0)
 {
 	construct_openGL();
 }
@@ -131,6 +131,21 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return _horizontal_flywheel->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
+#define output_position_x(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 0])
+#define output_position_y(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 2])
+#define output_tex_x(v)				(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 0])
+#define output_tex_y(v)				(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 2])
+#define output_lateral(v)			next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfLateral]
+#define output_timestamp(v)			(*(uint32_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTimestamp])
+
+#define input_input_position_x(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfInputPosition + 0])
+#define input_input_position_y(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfInputPosition + 2])
+#define input_output_position_x(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfOutputPosition + 0])
+#define input_output_position_y(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfOutputPosition + 2])
+#define input_phase(v)				next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseAndAmplitude + 0]
+#define input_amplitude(v)			next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseAndAmplitude + 1]
+#define input_phase_time(v)			(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseTime])
+
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y)
 {
 	number_of_cycles *= _time_multiplier;
@@ -150,33 +165,44 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		hsync_requested = false;
 		vsync_requested = false;
 
-		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_run() : nullptr;
-
-#define position_x(v)	(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 0])
-#define position_y(v)	(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 2])
-#define tex_x(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 0])
-#define tex_y(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 2])
-#define lateral(v)		next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfLateral]
-#define timestamp(v)	(*(uint32_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTimestamp])
+		bool is_output_segment = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
+		uint8_t *next_run = nullptr;
+		if(is_output_segment)
+		{
+			_output_mutex->lock();
+			next_run = (_output_device == CRT::Monitor) ? _run_builders[_run_write_pointer]->get_next_run() : _composite_src_runs->get_next_run();
+		}
 
 		//	Vertex output is arranged as:
 		//
 		//	[0/4]		3
 		//
 		//	1			[2/5]
-
 		if(next_run)
 		{
-			// set the type, initial raster position and type of this run
-			position_x(0) = position_x(1) = position_x(4) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			position_y(0) = position_y(1) = position_y(4) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-			timestamp(0) = timestamp(1) = timestamp(4) = _run_builders[_run_write_pointer]->duration;
-			tex_x(0) = tex_x(1) = tex_x(4) = tex_x;
+			if(_output_device == CRT::Monitor)
+			{
+				// set the type, initial raster position and type of this run
+				output_position_x(0) = output_position_x(1) = output_position_x(4) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(0) = output_position_y(1) = output_position_y(4) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_timestamp(0) = output_timestamp(1) = output_timestamp(4) = _run_builders[_run_write_pointer]->duration;
+				output_tex_x(0) = output_tex_x(1) = output_tex_x(4) = tex_x;
 
-			// these things are constants across the line so just throw them out now
-			tex_y(0) = tex_y(4) = tex_y(1) = tex_y(2) = tex_y(3) = tex_y(5) = tex_y;
-			lateral(0) = lateral(4) = lateral(5) = 0;
-			lateral(1) = lateral(2) = lateral(3) = 1;
+				// these things are constants across the line so just throw them out now
+				output_tex_y(0) = output_tex_y(4) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(5) = tex_y;
+				output_lateral(0) = output_lateral(4) = output_lateral(5) = 0;
+				output_lateral(1) = output_lateral(2) = output_lateral(3) = 1;
+			}
+			else
+			{
+				input_input_position_x(0) = tex_x;
+				input_input_position_y(0) = input_input_position_y(1) = tex_y;
+				input_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				input_output_position_y(0) = input_output_position_y(1) = _composite_src_output_y;
+				input_phase(0) = input_phase(1) = _colour_burst_phase;
+				input_amplitude(0) = input_amplitude(1) = _colour_burst_amplitude;
+				input_phase_time(0) = input_phase_time(1) = _colour_burst_time;
+			}
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -196,18 +222,39 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			// store the final raster position
-			position_x(2) = position_x(3) = position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			position_y(2) = position_y(3) = position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-			timestamp(2) = timestamp(3) = timestamp(5) = _run_builders[_run_write_pointer]->duration;
-
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
-			// if this is a data or level run then store the end point
-			tex_x(2) = tex_x(3) = tex_x(5) = tex_x;
+			if(_output_device == CRT::Monitor)
+			{
+				// store the final raster position
+				output_position_x(2) = output_position_x(3) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(2) = output_position_y(3) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_timestamp(2) = output_timestamp(3) = output_timestamp(5) = _run_builders[_run_write_pointer]->duration;
+				output_tex_x(2) = output_tex_x(3) = output_tex_x(5) = tex_x;
+			}
+			else
+			{
+				input_input_position_x(1) = tex_x;
+				input_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			}
 		}
 
+		if(is_output_segment)
+		{
+			_output_mutex->unlock();
+		}
+
+		// if this is horizontal retrace then advance the output line counter and bookend an output run
+		if(_output_device == CRT::Television)
+		{
+			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace)
+			{
+				_composite_src_output_y = (_composite_src_output_y + 1) % CRTIntermediateBufferHeight;
+			}
+		}
+
+		// if this is vertical retrace then adcance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace)
 		{
 			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
@@ -219,13 +266,25 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 	}
 }
 
+#undef output_position_x
+#undef output_position_y
+#undef output_tex_x
+#undef output_tex_y
+#undef output_lateral
+#undef output_timestamp
+
+#undef input_input_position_x
+#undef input_input_position_y
+#undef input_output_position_x
+#undef input_output_position_y
+#undef input_phase
+#undef input_amplitude
+#undef input_phase_age
+
 #pragma mark - stream feeding methods
 
-void CRT::output_scan()
+void CRT::output_scan(Scan *scan)
 {
-//	_next_scan ^= 1;
-	Scan *scan = &_scans[_next_scan];
-
 	bool this_is_sync = (scan->type == Type::Sync);
 	bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
 	bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
@@ -241,57 +300,55 @@ void CRT::output_scan()
 */
 void CRT::output_sync(unsigned int number_of_cycles)
 {
-	_output_mutex->lock();
-	_scans[_next_scan].type = Type::Sync;
-	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	output_scan();
-	_output_mutex->unlock();
+	Scan scan{
+		.type = Type::Sync,
+		.number_of_cycles = number_of_cycles
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
-	_output_mutex->lock();
-	_scans[_next_scan].type = Type::Blank;
-	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	output_scan();
-	_output_mutex->unlock();
+	Scan scan {
+		.type = Type::Blank,
+		.number_of_cycles = number_of_cycles
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	_output_mutex->lock();
-	_scans[_next_scan].type = Type::Level;
-	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	_scans[_next_scan].tex_x = _buffer_builder->_write_x_position;
-	_scans[_next_scan].tex_y = _buffer_builder->_write_y_position;
-	output_scan();
-	_output_mutex->unlock();
+	Scan scan {
+		.type = Type::Level,
+		.number_of_cycles = number_of_cycles,
+		.tex_x = _buffer_builder->_write_x_position,
+		.tex_y = _buffer_builder->_write_y_position
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude)
 {
-	_output_mutex->lock();
-	_scans[_next_scan].type = Type::ColourBurst;
-	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	_scans[_next_scan].phase = phase;
-	_scans[_next_scan].magnitude = magnitude;
-	output_scan();
-	_output_mutex->unlock();
+	Scan scan {
+		.type = Type::ColourBurst,
+		.number_of_cycles = number_of_cycles,
+		.phase = phase,
+		.magnitude = magnitude
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	_output_mutex->lock();
-
 	_buffer_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
-	_scans[_next_scan].type = Type::Data;
-	_scans[_next_scan].number_of_cycles = number_of_cycles;
-	_scans[_next_scan].tex_x = _buffer_builder->_write_x_position;
-	_scans[_next_scan].tex_y = _buffer_builder->_write_y_position;
-	_scans[_next_scan].source_divider = source_divider;
-	output_scan();
-
-	_output_mutex->unlock();
+	Scan scan {
+		.type = Type::Data,
+		.number_of_cycles = number_of_cycles,
+		.tex_x = _buffer_builder->_write_x_position,
+		.tex_y = _buffer_builder->_write_y_position,
+		.source_divider = source_divider
+	};
+	output_scan(&scan);
 }
 
 #pragma mark - Buffer supply

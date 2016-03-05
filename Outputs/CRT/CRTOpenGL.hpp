@@ -23,7 +23,7 @@ const size_t kCRTOutputVertexSize = 16;
 const size_t kCRTInputVertexOffsetOfInputPosition = 0;
 const size_t kCRTInputVertexOffsetOfOutputPosition = 4;
 const size_t kCRTInputVertexOffsetOfPhaseAndAmplitude = 8;
-const size_t kCRTInputVertexOffsetOfPhaseAge = 12;
+const size_t kCRTInputVertexOffsetOfPhaseTime = 12;
 
 const size_t kCRTInputVertexSize = 16;
 

@@ -88,16 +88,14 @@ void CRT::CRTRunBuilder::reset()
 
 uint8_t *CRT::CRTRunBuilder::get_next_run()
 {
-	const size_t vertices_per_run = 6;
-
 	// get a run from the allocated list, allocating more if we're about to overrun
-	if((number_of_vertices + vertices_per_run) * _vertex_size >= _runs.size())
+	if((number_of_vertices + (size_t)_vertices_per_run) * _vertex_size >= _runs.size())
 	{
-		_runs.resize(_runs.size() + _vertex_size * vertices_per_run * 100);
+		_runs.resize(_runs.size() + _vertex_size * (size_t)_vertices_per_run * 100);
 	}
 
 	uint8_t *next_run = &_runs[number_of_vertices * _vertex_size];
-	number_of_vertices += vertices_per_run;
+	number_of_vertices += (size_t)_vertices_per_run;
 
 	return next_run;
 }
