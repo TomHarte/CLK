@@ -68,7 +68,7 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 	{
 		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize);
 	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(23));
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize));
 
 	va_list va;
 	va_copy(va, sizes);

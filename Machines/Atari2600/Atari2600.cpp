@@ -33,6 +33,7 @@ Machine::Machine() :
 			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
 			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
 		"}");
+	_crt->set_output_device(Outputs::CRT::Television);
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
 }
