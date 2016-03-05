@@ -137,7 +137,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	[self drawViewOnlyIfDirty:NO];
+	dispatch_sync(_dispatchQueue, ^{
+		[self drawViewOnlyIfDirty:NO];
+	});
 }
 
 - (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty
@@ -160,17 +162,23 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-	[self.responderDelegate keyDown:theEvent];
+	dispatch_async(_dispatchQueue, ^{
+		[self.responderDelegate keyDown:theEvent];
+	});
 }
 
 - (void)keyUp:(NSEvent *)theEvent
 {
-	[self.responderDelegate keyUp:theEvent];
+	dispatch_async(_dispatchQueue, ^{
+		[self.responderDelegate keyUp:theEvent];
+	});
 }
 
 - (void)flagsChanged:(NSEvent *)theEvent
 {
-	[self.responderDelegate flagsChanged:theEvent];
+	dispatch_async(_dispatchQueue, ^{
+		[self.responderDelegate flagsChanged:theEvent];
+	});
 }
 
 @end
