@@ -132,19 +132,19 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 	// ensure array buffer is up to date
 	size_t max_number_of_vertices = 0;
-	for(int c = 0; c < kCRTNumberOfFrames; c++)
+	for(int c = 0; c < kCRTNumberOfFields; c++)
 	{
 		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
 	}
 	if(_openGL_state->verticesPerSlice < max_number_of_vertices)
 	{
 		_openGL_state->verticesPerSlice = max_number_of_vertices;
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTSizeOfVertex * kCRTNumberOfFrames), NULL, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTOutputVertexSize * kCRTOutputVertexSize), NULL, GL_STREAM_DRAW);
 
-		for(unsigned int c = 0; c < kCRTNumberOfFrames; c++)
+		for(unsigned int c = 0; c < kCRTNumberOfFields; c++)
 		{
 			uint8_t *data = &_run_builders[c]->_runs[0];
-			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->verticesPerSlice * kCRTSizeOfVertex), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTSizeOfVertex), data);
+			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->verticesPerSlice * kCRTOutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTOutputVertexSize), data);
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
 	}
@@ -153,7 +153,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	unsigned int run = (unsigned int)_run_write_pointer;
 //	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
 	GLint total_age = 0;
-	for(int c = 0; c < kCRTNumberOfFrames; c++)
+	for(int c = 0; c < kCRTNumberOfFields; c++)
 	{
 		// update the total age at the start of this set of runs
 		total_age += _run_builders[run]->duration;
@@ -164,10 +164,10 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
-				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * kCRTSizeOfVertex];
+				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * kCRTOutputVertexSize];
 				glBufferSubData(GL_ARRAY_BUFFER,
-								(GLsizeiptr)(((run * _openGL_state->verticesPerSlice) + _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex),
-								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTSizeOfVertex), data);
+								(GLsizeiptr)(((run * _openGL_state->verticesPerSlice) + _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize),
+								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize), data);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
@@ -176,7 +176,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		}
 
 		// advance back in time
-		run = (run - 1 + kCRTNumberOfFrames) % kCRTNumberOfFrames;
+		run = (run - 1 + kCRTNumberOfFields) % kCRTNumberOfFields;
 	}
 
 	_output_mutex->unlock();
@@ -389,14 +389,26 @@ void CRT::prepare_vertex_array()
 	glEnableVertexAttribArray((GLuint)_openGL_state->lateralAttribute);
 	glEnableVertexAttribArray((GLuint)_openGL_state->timestampAttribute);
 
-	const GLsizei vertexStride = kCRTSizeOfVertex;
-	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfPosition);
-	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTexCoord);
-	glVertexAttribPointer((GLuint)_openGL_state->timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfTimestamp);
-	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTVertexOffsetOfLateral);
+	const GLsizei vertexStride = kCRTOutputVertexSize;
+	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfPosition);
+	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTexCoord);
+	glVertexAttribPointer((GLuint)_openGL_state->timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTimestamp);
+	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfLateral);
 }
 
-void CRT::set_output_device(OutputDevice output_device)
+#pragma mark - Configuration
+
+void CRT::set_output_device(CRT::OutputDevice output_device)
 {
-	_output_device = output_device;
+	if (_output_device != output_device)
+	{
+		_output_device = output_device;
+
+		for(int builder = 0; builder < kCRTNumberOfFields; builder++)
+		{
+			_run_builders[builder]->reset();
+		}
+		_composite_src_runs->reset();
+		_composite_src_output_y = 0;
+	}
 }

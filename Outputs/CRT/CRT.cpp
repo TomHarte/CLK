@@ -63,11 +63,12 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 
 void CRT::allocate_buffers(unsigned int number, va_list sizes)
 {
-	_run_builders = new CRTRunBuilder *[kCRTNumberOfFrames];
-	for(int builder = 0; builder < kCRTNumberOfFrames; builder++)
+	_run_builders = new CRTRunBuilder *[kCRTNumberOfFields];
+	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder(kCRTSizeOfVertex);
+		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize);
 	}
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(23));
 
 	va_list va;
 	va_copy(va, sizes);
@@ -90,7 +91,7 @@ CRT::CRT(unsigned int common_output_divisor) :
 
 CRT::~CRT()
 {
-	for(int builder = 0; builder < kCRTNumberOfFrames; builder++)
+	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
 	{
 		delete _run_builders[builder];
 	}
@@ -151,12 +152,12 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		uint8_t *next_run = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace()) ? _run_builders[_run_write_pointer]->get_next_run() : nullptr;
 
-#define position_x(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 0])
-#define position_y(v)	(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfPosition + 2])
-#define tex_x(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 0])
-#define tex_y(v)		(*(uint16_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTexCoord + 2])
-#define lateral(v)		next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfLateral]
-#define timestamp(v)	(*(uint32_t *)&next_run[kCRTSizeOfVertex*v + kCRTVertexOffsetOfTimestamp])
+#define position_x(v)	(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 0])
+#define position_y(v)	(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 2])
+#define tex_x(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 0])
+#define tex_y(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 2])
+#define lateral(v)		next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfLateral]
+#define timestamp(v)	(*(uint32_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTimestamp])
 
 		//	Vertex output is arranged as:
 		//
@@ -212,7 +213,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
 //			_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
 
-			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFrames;
+			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFields;
 			_run_builders[_run_write_pointer]->reset();
 		}
 	}

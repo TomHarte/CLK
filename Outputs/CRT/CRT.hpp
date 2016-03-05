@@ -353,6 +353,10 @@ class CRT {
 		int _run_write_pointer;
 		std::shared_ptr<std::mutex> _output_mutex;
 
+		// transient buffers indicating composite data not yet decoded
+		std::unique_ptr<CRTRunBuilder> _composite_src_runs;
+		int _composite_src_output_y;
+
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		struct OpenGLState;
 		OpenGLState *_openGL_state;
