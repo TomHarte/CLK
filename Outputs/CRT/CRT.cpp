@@ -249,6 +249,27 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
 		if(_output_device == CRT::Television)
 		{
+			Flywheel::SyncEvent honoured_event = (next_run_length == time_until_vertical_sync_event) ? next_vertical_sync_event : next_horizontal_sync_event;
+			bool needs_endpoint =
+				(honoured_event == Flywheel::SyncEvent::StartRetrace && _is_writing_composite_run) ||
+				(honoured_event == Flywheel::SyncEvent::EndRetrace && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
+
+			if(needs_endpoint)
+			{
+				uint8_t *next_run = _run_builders[_run_write_pointer]->get_next_run(3);
+
+				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _run_builders[_run_write_pointer]->duration;
+				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = tex_x;
+				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = tex_y;
+				output_lateral(0) = 0;
+				output_lateral(1) = _is_writing_composite_run ? 1 : 0;
+				output_lateral(2) = 1;
+
+				_is_writing_composite_run ^= true;
+			}
+
 			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace)
 			{
 				_composite_src_output_y = (_composite_src_output_y + 1) % CRTIntermediateBufferHeight;
