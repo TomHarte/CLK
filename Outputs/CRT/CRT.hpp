@@ -141,10 +141,10 @@ class CRT {
 			@param phase The initial phase of the colour burst in a measuring system with 256 units
 			per circle, e.g. 0 = 0 degrees, 128 = 180 degrees, 256 = 360 degree.
 
-			@param magnitude The magnitude of the colour burst in 1/256ths of the magnitude of the
+			@param amplitude The amplitude of the colour burst in 1/256ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude);
+		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude);
 
 		/*!	Ensures that the given number of output samples are allocated for writing.
 
@@ -289,14 +289,14 @@ class CRT {
 					uint16_t tex_x, tex_y;
 				};
 				struct {
-					uint8_t phase, magnitude;
+					uint8_t phase, amplitude;
 				};
 			};
 		};
 		void output_scan(Scan *scan);
 
 		struct CRTRunBuilder {
-			CRTRunBuilder(size_t vertex_size, int vertices_per_run) : _vertex_size(vertex_size), _vertices_per_run(vertices_per_run) { reset(); }
+			CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
 
 			// Resets the run builder.
 			void reset();
@@ -305,7 +305,7 @@ class CRT {
 			// from the input buffer to the screen. In composite mode input runs will map from the
 			// input buffer to the processing buffer, and output runs will map from the processing
 			// buffer to the screen.
-			uint8_t *get_next_run();
+			uint8_t *get_next_run(size_t number_of_vertices);
 			std::vector<uint8_t> _runs;
 
 			// Container for total length in cycles of all contained runs.
@@ -318,7 +318,6 @@ class CRT {
 
 			private:
 				size_t _vertex_size;
-				int _vertices_per_run;
 		};
 
 		struct CRTInputBufferBuilder {
@@ -358,6 +357,7 @@ class CRT {
 		uint16_t _composite_src_output_y;
 		uint8_t _colour_burst_phase, _colour_burst_amplitude;
 		uint16_t _colour_burst_time;
+		bool _is_writing_composite_run;
 
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		struct OpenGLState;

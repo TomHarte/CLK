@@ -172,7 +172,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			}
 
 			// draw this frame
-			glDrawArrays(GL_TRIANGLES, (GLint)(run * _openGL_state->verticesPerSlice), (GLsizei)_run_builders[run]->number_of_vertices);
+			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * _openGL_state->verticesPerSlice), (GLsizei)_run_builders[run]->number_of_vertices);
 		}
 
 		// advance back in time

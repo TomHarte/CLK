@@ -66,9 +66,9 @@ void CRT::allocate_buffers(unsigned int number, va_list sizes)
 	_run_builders = new CRTRunBuilder *[kCRTNumberOfFields];
 	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize, 6);
+		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize);
 	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize, 2));
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize));
 
 	va_list va;
 	va_copy(va, sizes);
@@ -84,7 +84,8 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_visible_area(Rect(0, 0, 1, 1)),
 	_sync_period(0),
 	_common_output_divisor(common_output_divisor),
-	_composite_src_output_y(0)
+	_composite_src_output_y(0),
+	_is_writing_composite_run(false)
 {
 	construct_openGL();
 }
@@ -170,28 +171,28 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(is_output_segment)
 		{
 			_output_mutex->lock();
-			next_run = (_output_device == CRT::Monitor) ? _run_builders[_run_write_pointer]->get_next_run() : _composite_src_runs->get_next_run();
+			next_run = (_output_device == CRT::Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
 		}
 
-		//	Vertex output is arranged as:
+		//	Vertex output is arranged for triangle strips, as:
 		//
-		//	[0/4]		3
+		//	2			[4/5]
 		//
-		//	1			[2/5]
+		//	[0/1]		3
 		if(next_run)
 		{
 			if(_output_device == CRT::Monitor)
 			{
 				// set the type, initial raster position and type of this run
-				output_position_x(0) = output_position_x(1) = output_position_x(4) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_position_y(0) = output_position_y(1) = output_position_y(4) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(0) = output_timestamp(1) = output_timestamp(4) = _run_builders[_run_write_pointer]->duration;
-				output_tex_x(0) = output_tex_x(1) = output_tex_x(4) = tex_x;
+				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _run_builders[_run_write_pointer]->duration;
+				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = tex_x;
 
 				// these things are constants across the line so just throw them out now
-				output_tex_y(0) = output_tex_y(4) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(5) = tex_y;
-				output_lateral(0) = output_lateral(4) = output_lateral(5) = 0;
-				output_lateral(1) = output_lateral(2) = output_lateral(3) = 1;
+				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(4) = output_tex_y(5) = tex_y;
+				output_lateral(0) = output_lateral(1) = output_lateral(3) = 0;
+				output_lateral(2) = output_lateral(4) = output_lateral(5) = 1;
 			}
 			else
 			{
@@ -228,10 +229,10 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			if(_output_device == CRT::Monitor)
 			{
 				// store the final raster position
-				output_position_x(2) = output_position_x(3) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_position_y(2) = output_position_y(3) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(2) = output_timestamp(3) = output_timestamp(5) = _run_builders[_run_write_pointer]->duration;
-				output_tex_x(2) = output_tex_x(3) = output_tex_x(5) = tex_x;
+				output_position_x(3) = output_position_x(4) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(3) = output_position_y(4) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _run_builders[_run_write_pointer]->duration;
+				output_tex_x(3) = output_tex_x(4) = output_tex_x(5) = tex_x;
 			}
 			else
 			{
@@ -291,6 +292,19 @@ void CRT::output_scan(Scan *scan)
 	bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 	_is_receiving_sync = this_is_sync;
 
+	// simplified colour burst logic: if it's within the back porch we'll take it
+	if(scan->type == Type::ColourBurst)
+	{
+		if(_horizontal_flywheel->get_current_time() < (_horizontal_flywheel->get_standard_period() * 12) >> 6)
+		{
+			_colour_burst_time = (uint16_t)_colour_burst_time;
+			_colour_burst_phase = scan->phase;
+			_colour_burst_amplitude = scan->amplitude;
+		}
+	}
+
+	// TODO: inspect raw data for potential colour burst if required
+
 	_sync_period = _is_receiving_sync ? (_sync_period + scan->number_of_cycles) : 0;
 	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type, scan->tex_x, scan->tex_y);
 }
@@ -327,13 +341,13 @@ void CRT::output_level(unsigned int number_of_cycles)
 	output_scan(&scan);
 }
 
-void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t magnitude)
+void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude)
 {
 	Scan scan {
 		.type = Type::ColourBurst,
 		.number_of_cycles = number_of_cycles,
 		.phase = phase,
-		.magnitude = magnitude
+		.amplitude = amplitude
 	};
 	output_scan(&scan);
 }
