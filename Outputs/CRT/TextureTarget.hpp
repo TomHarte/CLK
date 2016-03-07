@@ -15,14 +15,19 @@ namespace OpenGL {
 
 class TextureTarget {
 	public:
-		TextureTarget(unsigned int width, unsigned int height);
+		TextureTarget(GLsizei width, GLsizei height);
 		~TextureTarget();
 
 		void bind_framebuffer();
 		void bind_texture();
 
+		enum {
+			ErrorFramebufferIncomplete
+		};
+
 	private:
 		GLuint _framebuffer, _texture;
+		GLsizei _width, _height;
 };
 
 }

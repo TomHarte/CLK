@@ -71,15 +71,20 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	{
 		_openGL_state = new OpenGLState;
 
-		glGenTextures(1, &_openGL_state->textureName);
-		glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		// generate and bind textures for every one of the requested buffers
+		for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
+		{
+			glGenTextures(1, &_openGL_state->textureName);
+			glActiveTexture(GL_TEXTURE3 + buffer);
+			glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
-		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[0].data);
+			GLenum format = formatForDepth(_buffer_builder->buffers[buffer].bytes_per_pixel);
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
+		}
 
 		glGenVertexArrays(1, &_openGL_state->vertexArray);
 		glGenBuffers(1, &_openGL_state->arrayBuffer);
@@ -91,12 +96,23 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		glBindVertexArray(_openGL_state->vertexArray);
 		prepare_vertex_array();
 
+		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
+		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
+		// it works either way.
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
 
-//		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
-//		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
-//		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(2048, kCRTFrameIntermediateBufferHeight));
+		// Create intermediate textures and bind to slots 0, 1 and 2
+		glActiveTexture(GL_TEXTURE0);
+		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
+		glActiveTexture(GL_TEXTURE1);
+		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
+		glActiveTexture(GL_TEXTURE2);
+		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
 	}
+
+//		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
+//
+//		printf("%d", glIsFramebuffer(_openGL_state->defaultFramebuffer));
 
 	// lock down any further work on the current frame
 	_output_mutex->lock();
@@ -107,27 +123,35 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	// clear the buffer
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
+//	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+//	glGetIntegerv(GL_VIEWPORT, results);
+
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-	GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
-	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
+	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
 	{
-		glTexSubImage2D(GL_TEXTURE_2D, 0,
-							0, (GLint)_buffer_builder->last_uploaded_line,
-							CRTInputBufferBuilderWidth, (GLint)(CRTInputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
-							format, GL_UNSIGNED_BYTE,
-							&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
-		_buffer_builder->last_uploaded_line = 0;
-	}
+		glActiveTexture(GL_TEXTURE3 + buffer);
+		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
+		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
+		{
+			glTexSubImage2D(GL_TEXTURE_2D, 0,
+								0, (GLint)_buffer_builder->last_uploaded_line,
+								CRTInputBufferBuilderWidth, (GLint)(CRTInputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
+								format, GL_UNSIGNED_BYTE,
+								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+			_buffer_builder->last_uploaded_line = 0;
+		}
 
-	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
-	{
-		glTexSubImage2D(GL_TEXTURE_2D, 0,
-							0, (GLint)_buffer_builder->last_uploaded_line,
-							CRTInputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
-							format, GL_UNSIGNED_BYTE,
-							&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
-		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+		if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
+		{
+			glTexSubImage2D(GL_TEXTURE_2D, 0,
+								0, (GLint)_buffer_builder->last_uploaded_line,
+								CRTInputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
+								format, GL_UNSIGNED_BYTE,
+								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+		}
 	}
 
 	// ensure array buffer is up to date
@@ -148,6 +172,8 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
 
 	// draw all sitting frames
 	unsigned int run = (unsigned int)_run_write_pointer;
@@ -368,7 +394,7 @@ void CRT::prepare_shader()
 	GLint scanNormalUniform			= _openGL_state->shaderProgram->get_uniform_location("scanNormal");
 	GLint positionConversionUniform	= _openGL_state->shaderProgram->get_uniform_location("positionConversion");
 
-	glUniform1i(texIDUniform, 0);
+	glUniform1i(texIDUniform, 3);
 	glUniform1i(shadowMaskTexIDUniform, 1);
 	glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
 	glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));

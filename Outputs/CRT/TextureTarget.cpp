@@ -10,7 +10,7 @@
 
 using namespace OpenGL;
 
-TextureTarget::TextureTarget(unsigned int width, unsigned int height)
+TextureTarget::TextureTarget(GLsizei width, GLsizei height) : _width(width), _height(height)
 {
 	glGenFramebuffers(1, &_framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
@@ -24,9 +24,8 @@ TextureTarget::TextureTarget(unsigned int width, unsigned int height)
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0);
 
-	// TODO: raise an exception if check framebuffer status fails.
-//		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//			return nil;
+	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		throw ErrorFramebufferIncomplete;
 }
 
 TextureTarget::~TextureTarget()
@@ -38,6 +37,7 @@ TextureTarget::~TextureTarget()
 void TextureTarget::bind_framebuffer()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+	glViewport(0, 0, _width, _height);
 }
 
 void TextureTarget::bind_texture()
