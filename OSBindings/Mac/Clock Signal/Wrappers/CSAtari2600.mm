@@ -47,6 +47,10 @@
 	_atari2600.run_for_cycles(numberOfCycles);
 }
 
+- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
+	_atari2600.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+}
+
 - (void)setROM:(NSData *)rom {
 	[self perform:^{
 		_atari2600.set_rom(rom.length, (const uint8_t *)rom.bytes);

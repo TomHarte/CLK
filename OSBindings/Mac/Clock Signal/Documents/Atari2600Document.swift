@@ -54,6 +54,10 @@ class Atari2600Document: MachineDocument {
 		atari2600.runForNumberOfCycles(numberOfCycles)
 	}
 
+	override func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		atari2600.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+	}
+
 	// MARK: CSOpenGLViewResponderDelegate
 
 	private func inputForKey(event: NSEvent) -> Atari2600DigitalInput? {

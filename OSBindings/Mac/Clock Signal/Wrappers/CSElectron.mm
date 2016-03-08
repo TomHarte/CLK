@@ -54,10 +54,6 @@
 	return YES;
 }
 
-- (void)setView:(CSOpenGLView *)view {
-	[super setView:view];
-}
-
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	switch(key)
 	{
