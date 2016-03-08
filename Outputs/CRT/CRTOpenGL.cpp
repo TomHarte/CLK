@@ -17,7 +17,8 @@
 using namespace Outputs;
 
 struct CRT::OpenGLState {
-	std::unique_ptr<OpenGL::Shader> rgb_shader_program, composite_input_shader_program;
+	std::unique_ptr<OpenGL::Shader> rgb_shader_program;
+	std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
 	GLuint arrayBuffer, vertexArray;
 	size_t verticesPerSlice;
 
@@ -122,16 +123,6 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	// lock down any further work on the current frame
 	_output_mutex->lock();
 
-	// update uniforms
-	push_size_uniforms(output_width, output_height);
-
-	// clear the buffer
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
-//	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-//	glGetIntegerv(GL_VIEWPORT, results);
-
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
 	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
@@ -159,6 +150,20 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		}
 	}
 
+	// check for anything to decode from composite
+	if(_composite_src_runs->number_of_vertices)
+	{
+		_openGL_state->composite_input_shader_program->bind();
+		_composite_src_runs->reset();
+	}
+
+//	_output_mutex->unlock();
+//	return;
+
+	// reinstate the output framebuffer
+//	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+//	glGetIntegerv(GL_VIEWPORT, results);
+
 	// ensure array buffer is up to date
 	size_t max_number_of_vertices = 0;
 	for(int c = 0; c < kCRTNumberOfFields; c++)
@@ -178,7 +183,19 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		}
 	}
 
+	// switch to the output shader
+	if(_openGL_state->rgb_shader_program)
+	{
+	_openGL_state->rgb_shader_program->bind();
+
+	// update uniforms
+	push_size_uniforms(output_width, output_height);
+
+	// Ensure we're back on the output framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
+
+	// clear the buffer
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	// draw all sitting frames
 	unsigned int run = (unsigned int)_run_write_pointer;
@@ -208,6 +225,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 		// advance back in time
 		run = (run - 1 + kCRTNumberOfFields) % kCRTNumberOfFields;
+	}
 	}
 
 	_output_mutex->unlock();
@@ -262,7 +280,8 @@ char *CRT::get_input_vertex_shader()
 		"in vec2 phaseAndAmplitude;"
 		"in float phaseTime;"
 
-		"uniform vec2 textureSize;"
+		"uniform vec2 outputTextureSize;"
+		"uniform vec2 inputTextureSize;"
 		"uniform float phaseCyclesPerTick;"
 
 		"out vec2 inputPositionVarying;"
@@ -270,8 +289,8 @@ char *CRT::get_input_vertex_shader()
 
 		"void main(void)"
 		"{"
-			"inputPositionVarying = inputPosition;"
-			"gl_Position = vec4(outputPosition.x * 2.0 / textureSize.x - 1.0, outputPosition.y * 2.0 / textureSize.y - 1.0, 0.0, 1.0);"
+			"inputPositionVarying = vec2(inputPositionVarying.x / inputTextureSize.x, (inputPositionVarying.y + 0.5) / inputTextureSize.y);"
+			"gl_Position = vec4(outputPosition.x * 2.0 / outputTextureSize - 1.0, outputPosition.y * 2.0 / outputTextureSize - 1.0, 0.0, 1.0);"
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
 		"}");
 }
@@ -281,6 +300,7 @@ char *CRT::get_input_fragment_shader()
 	const char *composite_shader = _composite_shader;
 	if(!composite_shader)
 	{
+		// TODO: synthesise an RGB -> (selected colour space) shader
 	}
 
 	return get_compound_shader(
@@ -393,53 +413,6 @@ char *CRT::get_output_fragment_shader(const char *sampling_function)
 	, sampling_function);
 }
 
-
-//	const char *const ntscVertexShaderGlobals =
-//		"out vec2 srcCoordinatesVarying[4];\n"
-//		"out float phase;\n";
-//
-//	const char *const ntscVertexShaderBody =
-//		"phase = srcCoordinates.x * 6.283185308;\n"
-//		"\n"
-//		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
-
-	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
-//	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
-
-	// assumes y = [0,1], u and v = [-0.5, 0.5]; therefore u components are multiplied by 1.14678899082569, v by 0.8130081300813
-//	const char *const yuvToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.75213899082569, 2.33040137614679, 0.92669105691057, -0.4720325203252, 0.0);";
-
-//	const char *const ntscFragmentShaderGlobals =
-//		"in vec2 srcCoordinatesVarying[4];\n"
-//		"in float phase;\n"
-//		"\n"
-//		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
-//		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
-
-//	const char *const ntscFragmentShaderBody =
-//		"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
-//		"vec4 samples = vec4("
-//		"   sample(srcCoordinatesVarying[0], angles.x),"
-//		"	sample(srcCoordinatesVarying[1], angles.y),"
-//		"	sample(srcCoordinatesVarying[2], angles.z),"
-//		"	sample(srcCoordinatesVarying[3], angles.w)"
-//		");\n"
-//		"\n"
-//		"float y = dot(vec4(0.25), samples);\n"
-//		"samples -= vec4(y);\n"
-//		"\n"
-//		"float i = dot(cos(angles), samples);\n"
-//		"float q = dot(sin(angles), samples);\n"
-//		"\n"
-//		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
-
-//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
-//}
-
 #pragma mark - Shader utilities
 
 char *CRT::get_compound_shader(const char *base, const char *insert)
@@ -460,6 +433,16 @@ void CRT::prepare_composite_input_shader()
 	if(vertex_shader && fragment_shader)
 	{
 		_openGL_state->composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+
+		GLint texIDUniform				= _openGL_state->composite_input_shader_program->get_uniform_location("texID");
+		GLint inputTextureSizeUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("inputTextureSize");
+		GLint outputTextureSizeUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("outputTextureSize");
+		GLint phaseCyclesPerTickUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
+
+		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
+		glUniform2f(outputTextureSizeUniform, CRTIntermediateBufferWidth, CRTIntermediateBufferHeight);
+		glUniform2f(inputTextureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
+		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
 	}
 	free(vertex_shader);
 	free(fragment_shader);
@@ -541,3 +524,51 @@ void CRT::set_output_device(CRT::OutputDevice output_device)
 		_composite_src_output_y = 0;
 	}
 }
+
+
+//	const char *const ntscVertexShaderGlobals =
+//		"out vec2 srcCoordinatesVarying[4];\n"
+//		"out float phase;\n";
+//
+//	const char *const ntscVertexShaderBody =
+//		"phase = srcCoordinates.x * 6.283185308;\n"
+//		"\n"
+//		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+
+	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
+//	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
+
+	// assumes y = [0,1], u and v = [-0.5, 0.5]; therefore u components are multiplied by 1.14678899082569, v by 0.8130081300813
+//	const char *const yuvToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.75213899082569, 2.33040137614679, 0.92669105691057, -0.4720325203252, 0.0);";
+
+//	const char *const ntscFragmentShaderGlobals =
+//		"in vec2 srcCoordinatesVarying[4];\n"
+//		"in float phase;\n"
+//		"\n"
+//		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
+//		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
+
+//	const char *const ntscFragmentShaderBody =
+//		"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
+//		"vec4 samples = vec4("
+//		"   sample(srcCoordinatesVarying[0], angles.x),"
+//		"	sample(srcCoordinatesVarying[1], angles.y),"
+//		"	sample(srcCoordinatesVarying[2], angles.z),"
+//		"	sample(srcCoordinatesVarying[3], angles.w)"
+//		");\n"
+//		"\n"
+//		"float y = dot(vec4(0.25), samples);\n"
+//		"samples -= vec4(y);\n"
+//		"\n"
+//		"float i = dot(cos(angles), samples);\n"
+//		"float q = dot(sin(angles), samples);\n"
+//		"\n"
+//		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
+
+//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
+//}
+
