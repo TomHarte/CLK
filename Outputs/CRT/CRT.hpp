@@ -374,7 +374,7 @@ class CRT {
 		// Methods used by the OpenGL code
 		void prepare_rgb_output_shader();
 		void prepare_composite_input_shader();
-		void prepare_vertex_array();
+		void prepare_output_vertex_array();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		char *get_output_vertex_shader();

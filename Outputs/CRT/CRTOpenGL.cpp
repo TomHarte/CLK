@@ -19,13 +19,9 @@ using namespace Outputs;
 struct CRT::OpenGLState {
 	std::unique_ptr<OpenGL::Shader> rgb_shader_program;
 	std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
-	GLuint arrayBuffer, vertexArray;
-	size_t verticesPerSlice;
 
-	GLint positionAttribute;
-	GLint textureCoordinatesAttribute;
-	GLint lateralAttribute;
-	GLint timestampAttribute;
+	GLuint output_array_buffer, output_vertex_array;
+	size_t output_vertices_per_slice;
 
 	GLint windowSizeUniform, timestampBaseUniform;
 	GLint boundsOriginUniform, boundsSizeUniform;
@@ -91,16 +87,16 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
 		}
 
-		glGenVertexArrays(1, &_openGL_state->vertexArray);
-		glGenBuffers(1, &_openGL_state->arrayBuffer);
-		_openGL_state->verticesPerSlice = 0;
+		glGenVertexArrays(1, &_openGL_state->output_vertex_array);
+		glGenBuffers(1, &_openGL_state->output_array_buffer);
+		_openGL_state->output_vertices_per_slice = 0;
 
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
 
-		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
-		glBindVertexArray(_openGL_state->vertexArray);
-		prepare_vertex_array();
+		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->output_array_buffer);
+		glBindVertexArray(_openGL_state->output_vertex_array);
+		prepare_output_vertex_array();
 
 		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
@@ -165,20 +161,21 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 //	glGetIntegerv(GL_VIEWPORT, results);
 
 	// ensure array buffer is up to date
+	glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->output_array_buffer);
 	size_t max_number_of_vertices = 0;
 	for(int c = 0; c < kCRTNumberOfFields; c++)
 	{
 		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
 	}
-	if(_openGL_state->verticesPerSlice < max_number_of_vertices)
+	if(_openGL_state->output_vertices_per_slice < max_number_of_vertices)
 	{
-		_openGL_state->verticesPerSlice = max_number_of_vertices;
+		_openGL_state->output_vertices_per_slice = max_number_of_vertices;
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTOutputVertexSize * kCRTOutputVertexSize), NULL, GL_STREAM_DRAW);
 
 		for(unsigned int c = 0; c < kCRTNumberOfFields; c++)
 		{
 			uint8_t *data = &_run_builders[c]->_runs[0];
-			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->verticesPerSlice * kCRTOutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTOutputVertexSize), data);
+			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->output_vertices_per_slice * kCRTOutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTOutputVertexSize), data);
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
 	}
@@ -214,13 +211,13 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			{
 				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * kCRTOutputVertexSize];
 				glBufferSubData(GL_ARRAY_BUFFER,
-								(GLsizeiptr)(((run * _openGL_state->verticesPerSlice) + _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize),
+								(GLsizeiptr)(((run * _openGL_state->output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize),
 								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize), data);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
 			// draw this frame
-			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * _openGL_state->verticesPerSlice), (GLsizei)_run_builders[run]->number_of_vertices);
+			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * _openGL_state->output_vertices_per_slice), (GLsizei)_run_builders[run]->number_of_vertices);
 		}
 
 		// advance back in time
@@ -448,6 +445,45 @@ void CRT::prepare_composite_input_shader()
 	free(fragment_shader);
 }
 
+/*void CRT::prepare_output_shader(char *fragment_shader)
+{
+	char *vertex_shader = get_output_vertex_shader();
+	if(vertex_shader && fragment_shader)
+	{
+		_openGL_state->rgb_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+
+		_openGL_state->rgb_shader_program->bind();
+
+		_openGL_state->windowSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("windowSize");
+		_openGL_state->boundsSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("boundsSize");
+		_openGL_state->boundsOriginUniform			= _openGL_state->rgb_shader_program->get_uniform_location("boundsOrigin");
+		_openGL_state->timestampBaseUniform			= _openGL_state->rgb_shader_program->get_uniform_location("timestampBase");
+
+		GLint texIDUniform				= _openGL_state->rgb_shader_program->get_uniform_location("texID");
+		GLint shadowMaskTexIDUniform	= _openGL_state->rgb_shader_program->get_uniform_location("shadowMaskTexID");
+		GLint textureSizeUniform		= _openGL_state->rgb_shader_program->get_uniform_location("textureSize");
+		GLint ticksPerFrameUniform		= _openGL_state->rgb_shader_program->get_uniform_location("ticksPerFrame");
+		GLint scanNormalUniform			= _openGL_state->rgb_shader_program->get_uniform_location("scanNormal");
+		GLint positionConversionUniform	= _openGL_state->rgb_shader_program->get_uniform_location("positionConversion");
+
+		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
+		glUniform1i(shadowMaskTexIDUniform, 1);
+		glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
+		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
+		glUniform2f(positionConversionUniform, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period() / (unsigned int)_vertical_flywheel_output_divider);
+
+		float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
+		float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
+		float multiplier = (float)_horizontal_flywheel->get_standard_period() / ((float)_height_of_display * (float)_horizontal_flywheel->get_scan_period());
+		scan_normal[0] *= multiplier;
+		scan_normal[1] *= multiplier;
+		glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
+	}
+
+	free(vertex_shader);
+	free(fragment_shader);
+}*/
+
 void CRT::prepare_rgb_output_shader()
 {
 	char *vertex_shader = get_output_vertex_shader();
@@ -458,11 +494,6 @@ void CRT::prepare_rgb_output_shader()
 		_openGL_state->rgb_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 
 		_openGL_state->rgb_shader_program->bind();
-
-		_openGL_state->positionAttribute			= _openGL_state->rgb_shader_program->get_attrib_location("position");
-		_openGL_state->textureCoordinatesAttribute	= _openGL_state->rgb_shader_program->get_attrib_location("srcCoordinates");
-		_openGL_state->lateralAttribute				= _openGL_state->rgb_shader_program->get_attrib_location("lateral");
-		_openGL_state->timestampAttribute			= _openGL_state->rgb_shader_program->get_attrib_location("timestamp");
 
 		_openGL_state->windowSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("windowSize");
 		_openGL_state->boundsSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("boundsSize");
@@ -494,18 +525,26 @@ void CRT::prepare_rgb_output_shader()
 	free(fragment_shader);
 }
 
-void CRT::prepare_vertex_array()
+void CRT::prepare_output_vertex_array()
 {
-	glEnableVertexAttribArray((GLuint)_openGL_state->positionAttribute);
-	glEnableVertexAttribArray((GLuint)_openGL_state->textureCoordinatesAttribute);
-	glEnableVertexAttribArray((GLuint)_openGL_state->lateralAttribute);
-	glEnableVertexAttribArray((GLuint)_openGL_state->timestampAttribute);
+	if(_openGL_state->rgb_shader_program)
+	{
+		GLint positionAttribute				= _openGL_state->rgb_shader_program->get_attrib_location("position");
+		GLint textureCoordinatesAttribute	= _openGL_state->rgb_shader_program->get_attrib_location("srcCoordinates");
+		GLint lateralAttribute				= _openGL_state->rgb_shader_program->get_attrib_location("lateral");
+		GLint timestampAttribute			= _openGL_state->rgb_shader_program->get_attrib_location("timestamp");
 
-	const GLsizei vertexStride = kCRTOutputVertexSize;
-	glVertexAttribPointer((GLuint)_openGL_state->positionAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfPosition);
-	glVertexAttribPointer((GLuint)_openGL_state->textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTexCoord);
-	glVertexAttribPointer((GLuint)_openGL_state->timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTimestamp);
-	glVertexAttribPointer((GLuint)_openGL_state->lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfLateral);
+		glEnableVertexAttribArray((GLuint)positionAttribute);
+		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
+		glEnableVertexAttribArray((GLuint)lateralAttribute);
+		glEnableVertexAttribArray((GLuint)timestampAttribute);
+
+		const GLsizei vertexStride = kCRTOutputVertexSize;
+		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfPosition);
+		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTexCoord);
+		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTimestamp);
+		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfLateral);
+	}
 }
 
 #pragma mark - Configuration
