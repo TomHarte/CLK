@@ -245,24 +245,67 @@ void CRT::set_rgb_sampling_function(const char *shader)
 	_rgb_shader = strdup(shader);
 }
 
+#pragma mark - Input vertex shader (i.e. from source data to intermediate line layout)
+
+char *CRT::get_input_vertex_shader()
+{
+	return strdup(
+		"#version 150\n"
+
+		"in vec2 inputPosition;"
+		"in vec2 outputPosition;"
+		"in vec2 phaseAndAmplitude;"
+		"in float phaseTime;"
+
+		"uniform vec2 textureSize;"
+		"uniform float phaseCyclesPerTick;"
+
+		"out vec2 inputPositionVerying;"
+		"out float phaseVarying;"
+
+		"void main(void)"
+		"{"
+			"inputPositionVerying = inputPosition;"
+			"gl_Position = vec4(outputPosition.x * 2.0 / textureSize.width - 1.0, outputPosition.y * 2.0 / textureSize.height - 1.0, 0.0, 1.0);"
+			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
+		"}");
+}
+
+char *CRT::get_input_fragment_shader()
+{
+	const char *composite_shader = _composite_shader;
+	if(!composite_shader)
+	{
+	}
+
+	return get_compound_shader(
+		"#version 150\n"
+
+		"in vec2 inputPositionVerying;"
+		"in float phaseVarying;"
+
+		"out vec4 fragColour;"
+
+		"uniform sampler2D texID;"
+
+		"\n%s\n"
+
+		"void main(void)"
+		"{"
+			"fragColour = vec4(composite_sample(inputPositionVarying, phaseVarying), 0.0, 0.0, 1.0);"
+		"}"
+	, composite_shader);
+}
+
+#pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
+
+#pragma mark - Output vertex shader
+
 char *CRT::get_output_vertex_shader()
 {
 	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
 	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
-	// from integral to floating point; there's also some setup for NTSC, PAL or whatever.
-
-//	const char *const ntscVertexShaderGlobals =
-//		"out vec2 srcCoordinatesVarying[4];\n"
-//		"out float phase;\n";
-//
-//	const char *const ntscVertexShaderBody =
-//		"phase = srcCoordinates.x * 6.283185308;\n"
-//		"\n"
-//		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+	// from integral to floating point.
 
 	return strdup(
 		"#version 150\n"
@@ -305,6 +348,8 @@ char *CRT::get_output_vertex_shader()
 		"}");
 }
 
+#pragma mark - Output fragment shaders; RGB and from composite
+
 char *CRT::get_rgb_output_fragment_shader()
 {
 	return get_output_fragment_shader(_rgb_shader);
@@ -343,6 +388,20 @@ char *CRT::get_output_fragment_shader(const char *sampling_function)
 	, sampling_function);
 }
 
+
+//	const char *const ntscVertexShaderGlobals =
+//		"out vec2 srcCoordinatesVarying[4];\n"
+//		"out float phase;\n";
+//
+//	const char *const ntscVertexShaderBody =
+//		"phase = srcCoordinates.x * 6.283185308;\n"
+//		"\n"
+//		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
+//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
+//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+
 	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
 //	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
 
@@ -376,6 +435,8 @@ char *CRT::get_output_fragment_shader(const char *sampling_function)
 //		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
 //}
 
+#pragma mark - Shader utilities
+
 char *CRT::get_compound_shader(const char *base, const char *insert)
 {
 	size_t totalLength = strlen(base) + strlen(insert) + 1;
@@ -383,6 +444,8 @@ char *CRT::get_compound_shader(const char *base, const char *insert)
 	snprintf(text, totalLength, base, insert);
 	return text;
 }
+
+#pragma mark - Program compilation
 
 void CRT::prepare_rgb_output_shader()
 {
