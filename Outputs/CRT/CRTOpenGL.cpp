@@ -90,7 +90,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		glGenBuffers(1, &_openGL_state->arrayBuffer);
 		_openGL_state->verticesPerSlice = 0;
 
-		prepare_shader();
+		prepare_rgb_output_shader();
 
 		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->arrayBuffer);
 		glBindVertexArray(_openGL_state->vertexArray);
@@ -245,7 +245,7 @@ void CRT::set_rgb_sampling_function(const char *shader)
 	_rgb_shader = strdup(shader);
 }
 
-char *CRT::get_vertex_shader()
+char *CRT::get_output_vertex_shader()
 {
 	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
 	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
@@ -305,8 +305,44 @@ char *CRT::get_vertex_shader()
 		"}");
 }
 
-char *CRT::get_fragment_shader()
+char *CRT::get_rgb_output_fragment_shader()
 {
+	return get_output_fragment_shader(_rgb_shader);
+}
+
+char *CRT::get_composite_output_fragment_shader()
+{
+	return get_output_fragment_shader(
+		"vec4 rgb_sample(vec2 coordinate)"
+		"{"
+			"return texture(texID, coordinate);"
+		"}");
+}
+
+char *CRT::get_output_fragment_shader(const char *sampling_function)
+{
+	return get_compound_shader(
+		"#version 150\n"
+
+		"in float lateralVarying;"
+		"in float alpha;"
+		"in vec2 shadowMaskCoordinates;"
+		"in vec2 srcCoordinatesVarying;"
+
+		"out vec4 fragColour;"
+
+		"uniform sampler2D texID;"
+		"uniform sampler2D shadowMaskTexID;"
+
+		"\n%s\n"
+
+		"void main(void)"
+		"{"
+			"fragColour = rgb_sample(srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha * sin(lateralVarying));" //
+		"}"
+	, sampling_function);
+}
+
 	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
 //	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
 
@@ -338,28 +374,7 @@ char *CRT::get_fragment_shader()
 //		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
 
 //		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
-
-	return get_compound_shader(
-		"#version 150\n"
-
-		"in float lateralVarying;"
-		"in float alpha;"
-		"in vec2 shadowMaskCoordinates;"
-		"in vec2 srcCoordinatesVarying;"
-
-		"out vec4 fragColour;"
-
-		"uniform sampler2D texID;"
-		"uniform sampler2D shadowMaskTexID;"
-
-		"\n%s\n"
-
-		"void main(void)"
-		"{"
-			"fragColour = vec4(rgb_sample(srcCoordinatesVarying).rgb, alpha * sin(lateralVarying));" //
-		"}"
-	, _rgb_shader);
-}
+//}
 
 char *CRT::get_compound_shader(const char *base, const char *insert)
 {
@@ -369,10 +384,10 @@ char *CRT::get_compound_shader(const char *base, const char *insert)
 	return text;
 }
 
-void CRT::prepare_shader()
+void CRT::prepare_rgb_output_shader()
 {
-	char *vertex_shader = get_vertex_shader();
-	char *fragment_shader = get_fragment_shader();
+	char *vertex_shader = get_output_vertex_shader();
+	char *fragment_shader = get_rgb_output_fragment_shader();
 
 	_openGL_state->shaderProgram = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 	_openGL_state->shaderProgram->bind();

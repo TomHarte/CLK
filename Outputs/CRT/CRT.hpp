@@ -195,7 +195,7 @@ class CRT {
 			format will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(vec2 coordinate)` that evaluates to an RGB colour as a function of
+			`vec4 rgb_sample(vec2 coordinate)` that evaluates to an RGBA colour as a function of
 			the source buffer sampling location.
 			The shader may assume a uniform array of sampler2Ds named `buffers` provides access to all input data.
 		*/
@@ -372,12 +372,19 @@ class CRT {
 		void destruct_openGL();
 
 		// Methods used by the OpenGL code
-		void prepare_shader();
+		void prepare_rgb_output_shader();
 		void prepare_vertex_array();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
-		char *get_vertex_shader();
-		char *get_fragment_shader();
+		char *get_output_vertex_shader();
+
+		char *get_output_fragment_shader(const char *sampling_function);
+		char *get_rgb_output_fragment_shader();
+		char *get_composite_output_fragment_shader();
+
+		char *get_input_vertex_shader();
+		char *get_input_fragment_shader();
+
 		char *get_compound_shader(const char *base, const char *insert);
 };
 
