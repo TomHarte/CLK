@@ -61,7 +61,7 @@ class CRT {
 				};
 			};
 		};
-		void output_scan(Scan *scan);
+		void output_scan(const Scan *scan);
 
 		uint8_t _colour_burst_phase, _colour_burst_amplitude;
 		uint16_t _colour_burst_time;

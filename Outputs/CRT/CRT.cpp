@@ -274,13 +274,16 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 #pragma mark - stream feeding methods
 
-void CRT::output_scan(Scan *scan)
+void CRT::output_scan(const Scan *const scan)
 {
-	bool this_is_sync = (scan->type == Scan::Type::Sync);
-	bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
-	bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
-	bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
+	const bool this_is_sync = (scan->type == Scan::Type::Sync);
+	const bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
+//	const bool is_leading_edge = (!_is_receiving_sync && this_is_sync);
 	_is_receiving_sync = this_is_sync;
+
+//	const bool hsync_requested = is_leading_edge;
+	const bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
+	const bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 
 	// simplified colour burst logic: if it's within the back porch we'll take it
 	if(scan->type == Scan::Type::ColourBurst)
