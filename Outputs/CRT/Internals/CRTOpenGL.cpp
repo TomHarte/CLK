@@ -9,40 +9,45 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "OpenGL.hpp"
-#include "TextureTarget.hpp"
-#include "Shader.hpp"
 #include "CRTOpenGL.hpp"
-
-namespace Outputs {
-namespace CRT {
-
-struct OpenGLState {
-	std::unique_ptr<OpenGL::Shader> rgb_shader_program;
-	std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
-
-	GLuint output_array_buffer, output_vertex_array;
-	size_t output_vertices_per_slice;
-
-	GLint windowSizeUniform, timestampBaseUniform;
-	GLint boundsOriginUniform, boundsSizeUniform;
-
-	GLuint textureName, shadowMaskTextureName;
-
-	GLuint defaultFramebuffer;
-
-	std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
-	std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
-	std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
-};
-
-}
-}
 
 using namespace Outputs::CRT;
 
 namespace {
 	static const GLenum first_supplied_buffer_texture_unit = 3;
+}
+
+OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list sizes) :
+	_run_write_pointer(0),
+	_output_mutex(new std::mutex),
+	_visible_area(Rect(0, 0, 1, 1)),
+	_composite_src_output_y(0),
+	_composite_shader(nullptr),
+	_rgb_shader(nullptr)
+{
+	_run_builders = new CRTRunBuilder *[NumberOfFields];
+	for(int builder = 0; builder < NumberOfFields; builder++)
+	{
+		_run_builders[builder] = new CRTRunBuilder(OutputVertexSize);
+	}
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
+
+	va_list va;
+	va_copy(va, sizes);
+	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(number_of_buffers, sizes));
+	va_end(va);
+}
+
+OpenGLOutputBuilder::~OpenGLOutputBuilder()
+{
+	for(int builder = 0; builder < NumberOfFields; builder++)
+	{
+		delete _run_builders[builder];
+	}
+	delete[] _run_builders;
+
+	free(_composite_shader);
+	free(_rgb_shader);
 }
 
 static GLenum formatForDepth(size_t depth)
@@ -57,33 +62,17 @@ static GLenum formatForDepth(size_t depth)
 	}
 }
 
-void CRT::construct_openGL()
-{
-	_openGL_state = nullptr;
-	_composite_shader = _rgb_shader = nullptr;
-}
-
-void CRT::destruct_openGL()
-{
-	delete _openGL_state;
-	_openGL_state = nullptr;
-	if(_composite_shader) free(_composite_shader);
-	if(_rgb_shader) free(_rgb_shader);
-}
-
-void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
+void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
 	// establish essentials
-	if(!_openGL_state)
+	if(!composite_input_shader_program && !rgb_shader_program)
 	{
-		_openGL_state = new OpenGLState;
-
 		// generate and bind textures for every one of the requested buffers
 		for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
 		{
-			glGenTextures(1, &_openGL_state->textureName);
+			glGenTextures(1, &textureName);
 			glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit +  buffer);
-			glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
+			glBindTexture(GL_TEXTURE_2D, textureName);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -93,29 +82,29 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
 		}
 
-		glGenVertexArrays(1, &_openGL_state->output_vertex_array);
-		glGenBuffers(1, &_openGL_state->output_array_buffer);
-		_openGL_state->output_vertices_per_slice = 0;
+		glGenVertexArrays(1, &output_vertex_array);
+		glGenBuffers(1, &output_array_buffer);
+		output_vertices_per_slice = 0;
 
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
 
-		glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->output_array_buffer);
-		glBindVertexArray(_openGL_state->output_vertex_array);
+		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+		glBindVertexArray(output_vertex_array);
 		prepare_output_vertex_array();
 
 		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
 		// it works either way.
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
 
 		// Create intermediate textures and bind to slots 0, 1 and 2
 		glActiveTexture(GL_TEXTURE0);
-		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+		compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 		glActiveTexture(GL_TEXTURE1);
-		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+		filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 		glActiveTexture(GL_TEXTURE2);
-		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	}
 
 //		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
@@ -155,7 +144,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	// check for anything to decode from composite
 	if(_composite_src_runs->number_of_vertices)
 	{
-		_openGL_state->composite_input_shader_program->bind();
+		composite_input_shader_program->bind();
 		_composite_src_runs->reset();
 	}
 
@@ -167,35 +156,35 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 //	glGetIntegerv(GL_VIEWPORT, results);
 
 	// ensure array buffer is up to date
-	glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->output_array_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	size_t max_number_of_vertices = 0;
 	for(int c = 0; c < NumberOfFields; c++)
 	{
 		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
 	}
-	if(_openGL_state->output_vertices_per_slice < max_number_of_vertices)
+	if(output_vertices_per_slice < max_number_of_vertices)
 	{
-		_openGL_state->output_vertices_per_slice = max_number_of_vertices;
+		output_vertices_per_slice = max_number_of_vertices;
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * OutputVertexSize * OutputVertexSize), NULL, GL_STREAM_DRAW);
 
 		for(unsigned int c = 0; c < NumberOfFields; c++)
 		{
 			uint8_t *data = &_run_builders[c]->_runs[0];
-			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->output_vertices_per_slice * OutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * OutputVertexSize), data);
+			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * output_vertices_per_slice * OutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * OutputVertexSize), data);
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
 	}
 
 	// switch to the output shader
-	if(_openGL_state->rgb_shader_program)
+	if(rgb_shader_program)
 	{
-	_openGL_state->rgb_shader_program->bind();
+	rgb_shader_program->bind();
 
 	// update uniforms
 	push_size_uniforms(output_width, output_height);
 
 	// Ensure we're back on the output framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, _openGL_state->defaultFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 
 	// clear the buffer
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -211,19 +200,19 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 		if(_run_builders[run]->number_of_vertices > 0)
 		{
-			glUniform1f(_openGL_state->timestampBaseUniform, (GLfloat)total_age);
+			glUniform1f(timestampBaseUniform, (GLfloat)total_age);
 
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
 				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * OutputVertexSize];
 				glBufferSubData(GL_ARRAY_BUFFER,
-								(GLsizeiptr)(((run * _openGL_state->output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * OutputVertexSize),
+								(GLsizeiptr)(((run * output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * OutputVertexSize),
 								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * OutputVertexSize), data);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
 			// draw this frame
-			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * _openGL_state->output_vertices_per_slice), (GLsizei)_run_builders[run]->number_of_vertices);
+			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * output_vertices_per_slice), (GLsizei)_run_builders[run]->number_of_vertices);
 		}
 
 		// advance back in time
@@ -234,16 +223,15 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	_output_mutex->unlock();
 }
 
-void CRT::set_openGL_context_will_change(bool should_delete_resources)
+void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
 {
-	_openGL_state = nullptr;
 }
 
-void CRT::push_size_uniforms(unsigned int output_width, unsigned int output_height)
+void OpenGLOutputBuilder::push_size_uniforms(unsigned int output_width, unsigned int output_height)
 {
-	if(_openGL_state->windowSizeUniform >= 0)
+	if(windowSizeUniform >= 0)
 	{
-		glUniform2f(_openGL_state->windowSizeUniform, output_width, output_height);
+		glUniform2f(windowSizeUniform, output_width, output_height);
 	}
 
 	GLfloat outputAspectRatioMultiplier = ((float)output_width / (float)output_height) / (4.0f / 3.0f);
@@ -254,26 +242,26 @@ void CRT::push_size_uniforms(unsigned int output_width, unsigned int output_heig
 	_aspect_ratio_corrected_bounds.origin.x -= bonusWidth * 0.5f * _aspect_ratio_corrected_bounds.size.width;
 	_aspect_ratio_corrected_bounds.size.width *= outputAspectRatioMultiplier;
 
-	if(_openGL_state->boundsOriginUniform >= 0)
-		glUniform2f(_openGL_state->boundsOriginUniform, (GLfloat)_aspect_ratio_corrected_bounds.origin.x, (GLfloat)_aspect_ratio_corrected_bounds.origin.y);
+	if(boundsOriginUniform >= 0)
+		glUniform2f(boundsOriginUniform, (GLfloat)_aspect_ratio_corrected_bounds.origin.x, (GLfloat)_aspect_ratio_corrected_bounds.origin.y);
 
-	if(_openGL_state->boundsSizeUniform >= 0)
-		glUniform2f(_openGL_state->boundsSizeUniform, (GLfloat)_aspect_ratio_corrected_bounds.size.width, (GLfloat)_aspect_ratio_corrected_bounds.size.height);
+	if(boundsSizeUniform >= 0)
+		glUniform2f(boundsSizeUniform, (GLfloat)_aspect_ratio_corrected_bounds.size.width, (GLfloat)_aspect_ratio_corrected_bounds.size.height);
 }
 
-void CRT::set_composite_sampling_function(const char *shader)
+void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
 {
 	_composite_shader = strdup(shader);
 }
 
-void CRT::set_rgb_sampling_function(const char *shader)
+void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 {
 	_rgb_shader = strdup(shader);
 }
 
 #pragma mark - Input vertex shader (i.e. from source data to intermediate line layout)
 
-char *CRT::get_input_vertex_shader()
+char *OpenGLOutputBuilder::get_input_vertex_shader()
 {
 	return strdup(
 		"#version 150\n"
@@ -298,7 +286,7 @@ char *CRT::get_input_vertex_shader()
 		"}");
 }
 
-char *CRT::get_input_fragment_shader()
+char *OpenGLOutputBuilder::get_input_fragment_shader()
 {
 	const char *composite_shader = _composite_shader;
 	if(!composite_shader)
@@ -329,7 +317,7 @@ char *CRT::get_input_fragment_shader()
 
 #pragma mark - Output vertex shader
 
-char *CRT::get_output_vertex_shader()
+char *OpenGLOutputBuilder::get_output_vertex_shader()
 {
 	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
 	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
@@ -378,12 +366,12 @@ char *CRT::get_output_vertex_shader()
 
 #pragma mark - Output fragment shaders; RGB and from composite
 
-char *CRT::get_rgb_output_fragment_shader()
+char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
 {
 	return get_output_fragment_shader(_rgb_shader);
 }
 
-char *CRT::get_composite_output_fragment_shader()
+char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
 {
 	return get_output_fragment_shader(
 		"vec4 rgb_sample(vec2 coordinate)"
@@ -392,7 +380,7 @@ char *CRT::get_composite_output_fragment_shader()
 		"}");
 }
 
-char *CRT::get_output_fragment_shader(const char *sampling_function)
+char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function)
 {
 	return get_compound_shader(
 		"#version 150\n"
@@ -418,7 +406,7 @@ char *CRT::get_output_fragment_shader(const char *sampling_function)
 
 #pragma mark - Shader utilities
 
-char *CRT::get_compound_shader(const char *base, const char *insert)
+char *OpenGLOutputBuilder::get_compound_shader(const char *base, const char *insert)
 {
 	if(!base || !insert) return nullptr;
 	size_t totalLength = strlen(base) + strlen(insert) + 1;
@@ -429,18 +417,18 @@ char *CRT::get_compound_shader(const char *base, const char *insert)
 
 #pragma mark - Program compilation
 
-void CRT::prepare_composite_input_shader()
+void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
 	char *vertex_shader = get_input_vertex_shader();
 	char *fragment_shader = get_input_fragment_shader();
 	if(vertex_shader && fragment_shader)
 	{
-		_openGL_state->composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 
-		GLint texIDUniform				= _openGL_state->composite_input_shader_program->get_uniform_location("texID");
-		GLint inputTextureSizeUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("inputTextureSize");
-		GLint outputTextureSizeUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("outputTextureSize");
-		GLint phaseCyclesPerTickUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
+		GLint texIDUniform				= composite_input_shader_program->get_uniform_location("texID");
+		GLint inputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("inputTextureSize");
+		GLint outputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("outputTextureSize");
+		GLint phaseCyclesPerTickUniform	= composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform2f(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
@@ -451,7 +439,7 @@ void CRT::prepare_composite_input_shader()
 	free(fragment_shader);
 }
 
-/*void CRT::prepare_output_shader(char *fragment_shader)
+/*void OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader)
 {
 	char *vertex_shader = get_output_vertex_shader();
 	if(vertex_shader && fragment_shader)
@@ -490,38 +478,38 @@ void CRT::prepare_composite_input_shader()
 	free(fragment_shader);
 }*/
 
-void CRT::prepare_rgb_output_shader()
+void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
 	char *vertex_shader = get_output_vertex_shader();
 	char *fragment_shader = get_rgb_output_fragment_shader();
 
 	if(vertex_shader && fragment_shader)
 	{
-		_openGL_state->rgb_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		rgb_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 
-		_openGL_state->rgb_shader_program->bind();
+		rgb_shader_program->bind();
 
-		_openGL_state->windowSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("windowSize");
-		_openGL_state->boundsSizeUniform			= _openGL_state->rgb_shader_program->get_uniform_location("boundsSize");
-		_openGL_state->boundsOriginUniform			= _openGL_state->rgb_shader_program->get_uniform_location("boundsOrigin");
-		_openGL_state->timestampBaseUniform			= _openGL_state->rgb_shader_program->get_uniform_location("timestampBase");
+		windowSizeUniform			= rgb_shader_program->get_uniform_location("windowSize");
+		boundsSizeUniform			= rgb_shader_program->get_uniform_location("boundsSize");
+		boundsOriginUniform			= rgb_shader_program->get_uniform_location("boundsOrigin");
+		timestampBaseUniform		= rgb_shader_program->get_uniform_location("timestampBase");
 
-		GLint texIDUniform				= _openGL_state->rgb_shader_program->get_uniform_location("texID");
-		GLint shadowMaskTexIDUniform	= _openGL_state->rgb_shader_program->get_uniform_location("shadowMaskTexID");
-		GLint textureSizeUniform		= _openGL_state->rgb_shader_program->get_uniform_location("textureSize");
-		GLint ticksPerFrameUniform		= _openGL_state->rgb_shader_program->get_uniform_location("ticksPerFrame");
-		GLint scanNormalUniform			= _openGL_state->rgb_shader_program->get_uniform_location("scanNormal");
-		GLint positionConversionUniform	= _openGL_state->rgb_shader_program->get_uniform_location("positionConversion");
+		GLint texIDUniform				= rgb_shader_program->get_uniform_location("texID");
+		GLint shadowMaskTexIDUniform	= rgb_shader_program->get_uniform_location("shadowMaskTexID");
+		GLint textureSizeUniform		= rgb_shader_program->get_uniform_location("textureSize");
+		GLint ticksPerFrameUniform		= rgb_shader_program->get_uniform_location("ticksPerFrame");
+		GLint scanNormalUniform			= rgb_shader_program->get_uniform_location("scanNormal");
+		GLint positionConversionUniform	= rgb_shader_program->get_uniform_location("positionConversion");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform1i(shadowMaskTexIDUniform, 1);
 		glUniform2f(textureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
-		glUniform2f(positionConversionUniform, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period() / (unsigned int)_vertical_flywheel_output_divider);
+		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
 
 		float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
 		float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
-		float multiplier = (float)_horizontal_flywheel->get_standard_period() / ((float)_height_of_display * (float)_horizontal_flywheel->get_scan_period());
+		float multiplier = (float)_cycles_per_line / ((float)_height_of_display * (float)_horizontal_scan_period);
 		scan_normal[0] *= multiplier;
 		scan_normal[1] *= multiplier;
 		glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
@@ -531,14 +519,14 @@ void CRT::prepare_rgb_output_shader()
 	free(fragment_shader);
 }
 
-void CRT::prepare_output_vertex_array()
+void OpenGLOutputBuilder::prepare_output_vertex_array()
 {
-	if(_openGL_state->rgb_shader_program)
+	if(rgb_shader_program)
 	{
-		GLint positionAttribute				= _openGL_state->rgb_shader_program->get_attrib_location("position");
-		GLint textureCoordinatesAttribute	= _openGL_state->rgb_shader_program->get_attrib_location("srcCoordinates");
-		GLint lateralAttribute				= _openGL_state->rgb_shader_program->get_attrib_location("lateral");
-		GLint timestampAttribute			= _openGL_state->rgb_shader_program->get_attrib_location("timestamp");
+		GLint positionAttribute				= rgb_shader_program->get_attrib_location("position");
+		GLint textureCoordinatesAttribute	= rgb_shader_program->get_attrib_location("srcCoordinates");
+		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateral");
+		GLint timestampAttribute			= rgb_shader_program->get_attrib_location("timestamp");
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
@@ -555,7 +543,7 @@ void CRT::prepare_output_vertex_array()
 
 #pragma mark - Configuration
 
-void CRT::set_output_device(OutputDevice output_device)
+void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 {
 	if (_output_device != output_device)
 	{

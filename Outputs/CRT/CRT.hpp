@@ -15,48 +15,70 @@
 #include <vector>
 #include <mutex>
 
+#include "CRTTypes.hpp"
 #include "Internals/Flywheel.hpp"
-#include "Internals/CRTInputBufferBuilder.hpp"
-#include "Internals/CRTRunBuilder.hpp"
+#include "Internals/CRTOpenGL.hpp"
 
 namespace Outputs {
 namespace CRT {
 
-struct Rect {
-	struct {
-		float x, y;
-	} origin;
-
-	struct {
-		float width, height;
-	} size;
-
-	Rect() {}
-	Rect(float x, float y, float width, float height) :
-		origin({.x = x, .y = y}), size({.width = width, .height =height}) {}
-};
-
-enum DisplayType {
-	PAL50,
-	NTSC60
-};
-
-enum ColourSpace {
-	YIQ,
-	YUV
-};
-
-enum OutputDevice {
-	Monitor,
-	Television
-};
-
-struct OpenGLState;
-
 class CRT {
-	public:
-		~CRT();
+	private:
+		CRT(unsigned int common_output_divisor);
 
+		// the incoming clock lengths will be multiplied by something to give at least 1000
+		// sample points per line
+		unsigned int _time_multiplier;
+		const unsigned int _common_output_divisor;
+
+		// fundamental creator-specified properties
+		unsigned int _cycles_per_line;
+		unsigned int _height_of_display;
+
+		// the two flywheels regulating scanning
+		std::unique_ptr<Flywheel> _horizontal_flywheel, _vertical_flywheel;
+		uint16_t _vertical_flywheel_output_divider;
+
+		// elements of sync separation
+		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
+		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		unsigned int _sync_period;
+
+		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
+		struct Scan {
+			enum Type {
+				Sync, Level, Data, Blank, ColourBurst
+			} type;
+			unsigned int number_of_cycles;
+			union {
+				struct {
+					unsigned int source_divider;
+					uint16_t tex_x, tex_y;
+				};
+				struct {
+					uint8_t phase, amplitude;
+				};
+			};
+		};
+		void output_scan(Scan *scan);
+
+		uint8_t _colour_burst_phase, _colour_burst_amplitude;
+		uint16_t _colour_burst_time;
+		bool _is_writing_composite_run;
+
+		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
+		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);
+
+		// the inner entry point that determines whether and when the next sync event will occur within
+		// the current output window
+		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
+
+		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
+		std::unique_ptr<OpenGLOutputBuilder> _openGL_output_builder;
+
+	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 			The requested number of buffers, each with the requested number of bytes per pixel,
 			is created for the machine to write raw pixel data to.
@@ -162,19 +184,28 @@ class CRT {
 
 			@param required_length The number of samples to allocate.
 		*/
-		void allocate_write_area(size_t required_length);
+		inline void allocate_write_area(size_t required_length)
+		{
+			return _openGL_output_builder->allocate_write_area(required_length);
+		}
 
 		/*!	Gets a pointer for writing to the area created by the most recent call to @c allocate_write_area
 			for the nominated buffer.
 
 			@param buffer The buffer to get a write target for.
 		*/
-		uint8_t *get_write_target_for_buffer(int buffer);
+		inline uint8_t *get_write_target_for_buffer(int buffer)
+		{
+			return _openGL_output_builder->get_write_target_for_buffer(buffer);
+		}
 
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
 			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
 		*/
-		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
+		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
+		{
+			_openGL_output_builder->draw_frame(output_width, output_height, only_if_dirty);
+		}
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
@@ -183,7 +214,10 @@ class CRT {
 			currently held by the CRT will be deleted now via calls to glDeleteTexture and equivalent. If
 			@c false then the references are simply marked as invalid.
 		*/
-		void set_openGL_context_will_change(bool should_delete_resources);
+		inline void set_openGL_context_will_change(bool should_delete_resources)
+		{
+			_openGL_output_builder->set_openGL_context_will_change(should_delete_resources);
+		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
 
@@ -192,7 +226,10 @@ class CRT {
 			level as a function of a source buffer sampling location and the provided colour carrier phase.
 			The shader may assume a uniform array of sampler2Ds named `buffers` provides access to all input data.
 		*/
-		void set_composite_sampling_function(const char *shader);
+		inline void set_composite_sampling_function(const char *shader)
+		{
+			_openGL_output_builder->set_composite_sampling_function(shader);
+		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
 
@@ -204,7 +241,10 @@ class CRT {
 			the source buffer sampling location.
 			The shader may assume a uniform array of sampler2Ds named `buffers` provides access to all input data.
 		*/
-		void set_rgb_sampling_function(const char *shader);
+		inline void set_rgb_sampling_function(const char *shader)
+		{
+			_openGL_output_builder->set_rgb_sampling_function(shader);
+		}
 
 		/*!	Optionally sets a function that will map from an input cycle count to a colour carrier phase.
 
@@ -218,128 +258,15 @@ class CRT {
 		*/
 //		void set_phase_function(const char *shader);
 
-		void set_output_device(OutputDevice output_device);
-		void set_visible_area(Rect visible_area)
+		inline void set_output_device(OutputDevice output_device)
 		{
-			_visible_area = visible_area;
+			_openGL_output_builder->set_output_device(output_device);
 		}
 
-#ifdef DEBUG
-		inline uint32_t get_field_cycle()
+		inline void set_visible_area(Rect visible_area)
 		{
-			return _run_builders[_run_write_pointer]->duration / _time_multiplier;
+			_openGL_output_builder->set_visible_area(visible_area);
 		}
-
-		inline uint32_t get_line_cycle()
-		{
-			return _horizontal_flywheel->get_current_time()  / _time_multiplier;
-		}
-
-		inline float get_raster_x()
-		{
-			return (float)_horizontal_flywheel->get_current_output_position() / (float)_horizontal_flywheel->get_scan_period();
-		}
-#endif
-
-	private:
-		CRT(unsigned int common_output_divisor);
-		void allocate_buffers(unsigned int number, va_list sizes);
-
-		// the incoming clock lengths will be multiplied by something to give at least 1000
-		// sample points per line
-		unsigned int _time_multiplier;
-		const unsigned int _common_output_divisor;
-
-		// fundamental creator-specified properties
-		unsigned int _cycles_per_line;
-		unsigned int _height_of_display;
-
-		// colour invormation
-		ColourSpace _colour_space;
-		unsigned int _colour_cycle_numerator;
-		unsigned int _colour_cycle_denominator;
-		OutputDevice _output_device;
-
-		// The user-supplied visible area
-		Rect _visible_area;
-
-		// the two flywheels regulating scanning
-		std::unique_ptr<Flywheel> _horizontal_flywheel, _vertical_flywheel;
-		uint16_t _vertical_flywheel_output_divider;
-
-		// elements of sync separation
-		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int _sync_period;
-
-		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
-		enum Type {
-			Sync, Level, Data, Blank, ColourBurst
-		} type;
-		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y);
-
-		// the inner entry point that determines whether and when the next sync event will occur within
-		// the current output window
-		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
-		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
-
-		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
-		struct Scan {
-			Type type;
-			unsigned int number_of_cycles;
-			union {
-				struct {
-					unsigned int source_divider;
-					uint16_t tex_x, tex_y;
-				};
-				struct {
-					uint8_t phase, amplitude;
-				};
-			};
-		};
-		void output_scan(Scan *scan);
-
-		// the run and input data buffers
-		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		CRTRunBuilder **_run_builders;
-		int _run_write_pointer;
-		std::shared_ptr<std::mutex> _output_mutex;
-
-		// transient buffers indicating composite data not yet decoded
-		std::unique_ptr<CRTRunBuilder> _composite_src_runs;
-		uint16_t _composite_src_output_y;
-		uint8_t _colour_burst_phase, _colour_burst_amplitude;
-		uint16_t _colour_burst_time;
-		bool _is_writing_composite_run;
-
-		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
-		OpenGLState *_openGL_state;
-
-		// Other things the caller may have provided.
-		char *_composite_shader;
-		char *_rgb_shader;
-
-		// Setup and teardown for the OpenGL code
-		void construct_openGL();
-		void destruct_openGL();
-
-		// Methods used by the OpenGL code
-		void prepare_rgb_output_shader();
-		void prepare_composite_input_shader();
-		void prepare_output_vertex_array();
-		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
-
-		char *get_output_vertex_shader();
-
-		char *get_output_fragment_shader(const char *sampling_function);
-		char *get_rgb_output_fragment_shader();
-		char *get_composite_output_fragment_shader();
-
-		char *get_input_vertex_shader();
-		char *get_input_fragment_shader();
-
-		char *get_compound_shader(const char *base, const char *insert);
 };
 
 }

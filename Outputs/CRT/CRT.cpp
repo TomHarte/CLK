@@ -15,9 +15,7 @@ using namespace Outputs::CRT;
 
 void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 {
-	_colour_space = colour_space;
-	_colour_cycle_numerator = colour_cycle_numerator;
-	_colour_cycle_denominator = colour_cycle_denominator;
+	_openGL_output_builder->set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
 	const unsigned int syncCapacityLineChargeThreshold = 3;
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
@@ -45,6 +43,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
 	_vertical_flywheel_output_divider = (uint16_t)(ceilf(real_clock_scan_period / 65536.0f) * (_time_multiplier * _common_output_divisor));
+
+	_openGL_output_builder->set_timing(_cycles_per_line, _height_of_display, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period(), _vertical_flywheel_output_divider);
 }
 
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType)
@@ -61,63 +61,31 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	}
 }
 
-void CRT::allocate_buffers(unsigned int number, va_list sizes)
-{
-	_run_builders = new CRTRunBuilder *[NumberOfFields];
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		_run_builders[builder] = new CRTRunBuilder(OutputVertexSize);
-	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
-
-	va_list va;
-	va_copy(va, sizes);
-	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(number, va));
-	va_end(va);
-}
-
 CRT::CRT(unsigned int common_output_divisor) :
-	_run_write_pointer(0),
 	_sync_capacitor_charge_level(0),
 	_is_receiving_sync(false),
-	_output_mutex(new std::mutex),
-	_visible_area(Rect(0, 0, 1, 1)),
 	_sync_period(0),
 	_common_output_divisor(common_output_divisor),
-	_composite_src_output_y(0),
-	_is_writing_composite_run(false)
-{
-	construct_openGL();
-}
-
-CRT::~CRT()
-{
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		delete _run_builders[builder];
-	}
-	delete[] _run_builders;
-	destruct_openGL();
-}
+	_is_writing_composite_run(false) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
 {
-	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
-
 	va_list buffer_sizes;
 	va_start(buffer_sizes, number_of_buffers);
-	allocate_buffers(number_of_buffers, buffer_sizes);
+	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(number_of_buffers, buffer_sizes));
 	va_end(buffer_sizes);
+
+	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
 {
-	set_new_display_type(cycles_per_line, displayType);
-
 	va_list buffer_sizes;
 	va_start(buffer_sizes, number_of_buffers);
-	allocate_buffers(number_of_buffers, buffer_sizes);
+	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(number_of_buffers, buffer_sizes));
 	va_end(buffer_sizes);
+
+	set_new_display_type(cycles_per_line, displayType);
 }
 
 #pragma mark - Sync loop
@@ -147,11 +115,11 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define input_amplitude(v)			next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseAndAmplitude + 1]
 #define input_phase_time(v)			(*(uint16_t *)&next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseTime])
 
-void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y)
+void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
 {
 	number_of_cycles *= _time_multiplier;
 
-	bool is_output_run = ((type == Type::Level) || (type == Type::Data));
+	bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
 
 	while(number_of_cycles) {
 
@@ -170,8 +138,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		uint8_t *next_run = nullptr;
 		if(is_output_segment)
 		{
-			_output_mutex->lock();
-			next_run = (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
+			next_run = _openGL_output_builder->get_next_input_run();
 		}
 
 		//	Vertex output is arranged for triangle strips, as:
@@ -181,12 +148,12 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		//	[0/1]		3
 		if(next_run)
 		{
-			if(_output_device == Monitor)
+			if(_openGL_output_builder->get_output_device() == Monitor)
 			{
 				// set the type, initial raster position and type of this run
 				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _run_builders[_run_write_pointer]->duration;
+				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = tex_x;
 
 				// these things are constants across the line so just throw them out now
@@ -199,7 +166,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				input_input_position_x(0) = tex_x;
 				input_input_position_y(0) = input_input_position_y(1) = tex_y;
 				input_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				input_output_position_y(0) = input_output_position_y(1) = _composite_src_output_y;
+				input_output_position_y(0) = input_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
 				input_phase(0) = input_phase(1) = _colour_burst_phase;
 				input_amplitude(0) = input_amplitude(1) = _colour_burst_amplitude;
 				input_phase_time(0) = input_phase_time(1) = _colour_burst_time;
@@ -209,7 +176,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// decrement the number of cycles left to run for and increment the
 		// horizontal counter appropriately
 		number_of_cycles -= next_run_length;
-		_run_builders[_run_write_pointer]->duration += next_run_length;
+		_openGL_output_builder->add_to_field_time(next_run_length);
 
 		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
 		if (vsync_charging && !_vertical_flywheel->is_in_retrace())
@@ -224,14 +191,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(next_run)
 		{
 			// if this is a data run then advance the buffer pointer
-			if(type == Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
+			if(type == Scan::Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
-			if(_output_device == Monitor)
+			if(_openGL_output_builder->get_output_device() == Monitor)
 			{
 				// store the final raster position
 				output_position_x(3) = output_position_x(4) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(3) = output_position_y(4) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _run_builders[_run_write_pointer]->duration;
+				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(3) = output_tex_x(4) = output_tex_x(5) = tex_x;
 			}
 			else
@@ -243,11 +210,11 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(is_output_segment)
 		{
-			_output_mutex->unlock();
+			_openGL_output_builder->complete_input_run();
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
-		if(_output_device == Television)
+		if(_openGL_output_builder->get_output_device() == Television)
 		{
 			Flywheel::SyncEvent honoured_event = Flywheel::SyncEvent::None;
 			if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) honoured_event = next_vertical_sync_event;
@@ -258,23 +225,24 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 			if(needs_endpoint)
 			{
-				uint8_t *next_run = _run_builders[_run_write_pointer]->get_next_run(3);
+				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 
 				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _run_builders[_run_write_pointer]->duration;
+				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _composite_src_output_y;
+				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
 				output_lateral(0) = 0;
 				output_lateral(1) = _is_writing_composite_run ? 1 : 0;
 				output_lateral(2) = 1;
 
+				_openGL_output_builder->complete_output_run();
 				_is_writing_composite_run ^= true;
 			}
 
 			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace)
 			{
-				_composite_src_output_y = (_composite_src_output_y + 1) % IntermediateBufferHeight;
+				_openGL_output_builder->increment_composite_output_y();
 			}
 		}
 
@@ -284,8 +252,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
 //			_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
 
-			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
-			_run_builders[_run_write_pointer]->reset();
+			_openGL_output_builder->increment_field();
 		}
 	}
 }
@@ -309,14 +276,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 void CRT::output_scan(Scan *scan)
 {
-	bool this_is_sync = (scan->type == Type::Sync);
+	bool this_is_sync = (scan->type == Scan::Type::Sync);
 	bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
 	bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
 	bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 	_is_receiving_sync = this_is_sync;
 
 	// simplified colour burst logic: if it's within the back porch we'll take it
-	if(scan->type == Type::ColourBurst)
+	if(scan->type == Scan::Type::ColourBurst)
 	{
 		if(_horizontal_flywheel->get_current_time() < (_horizontal_flywheel->get_standard_period() * 12) >> 6)
 		{
@@ -338,7 +305,7 @@ void CRT::output_scan(Scan *scan)
 void CRT::output_sync(unsigned int number_of_cycles)
 {
 	Scan scan{
-		.type = Type::Sync,
+		.type = Scan::Type::Sync,
 		.number_of_cycles = number_of_cycles
 	};
 	output_scan(&scan);
@@ -347,7 +314,7 @@ void CRT::output_sync(unsigned int number_of_cycles)
 void CRT::output_blank(unsigned int number_of_cycles)
 {
 	Scan scan {
-		.type = Type::Blank,
+		.type = Scan::Type::Blank,
 		.number_of_cycles = number_of_cycles
 	};
 	output_scan(&scan);
@@ -356,10 +323,10 @@ void CRT::output_blank(unsigned int number_of_cycles)
 void CRT::output_level(unsigned int number_of_cycles)
 {
 	Scan scan {
-		.type = Type::Level,
+		.type = Scan::Type::Level,
 		.number_of_cycles = number_of_cycles,
-		.tex_x = _buffer_builder->_write_x_position,
-		.tex_y = _buffer_builder->_write_y_position
+		.tex_x = _openGL_output_builder->get_last_write_x_posiiton(),
+		.tex_y = _openGL_output_builder->get_last_write_y_posiiton()
 	};
 	output_scan(&scan);
 }
@@ -367,7 +334,7 @@ void CRT::output_level(unsigned int number_of_cycles)
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude)
 {
 	Scan scan {
-		.type = Type::ColourBurst,
+		.type = Scan::Type::ColourBurst,
 		.number_of_cycles = number_of_cycles,
 		.phase = phase,
 		.amplitude = amplitude
@@ -377,27 +344,13 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	_buffer_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
+	_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
 	Scan scan {
-		.type = Type::Data,
+		.type = Scan::Type::Data,
 		.number_of_cycles = number_of_cycles,
-		.tex_x = _buffer_builder->_write_x_position,
-		.tex_y = _buffer_builder->_write_y_position,
+		.tex_x = _openGL_output_builder->get_last_write_x_posiiton(),
+		.tex_y = _openGL_output_builder->get_last_write_y_posiiton(),
 		.source_divider = source_divider
 	};
 	output_scan(&scan);
-}
-
-#pragma mark - Buffer supply
-
-void CRT::allocate_write_area(size_t required_length)
-{
-	_output_mutex->lock();
-	_buffer_builder->allocate_write_area(required_length);
-	_output_mutex->unlock();
-}
-
-uint8_t *CRT::get_write_target_for_buffer(int buffer)
-{
-	return _buffer_builder->get_write_target_for_buffer(buffer);
 }

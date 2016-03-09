@@ -9,6 +9,8 @@
 #ifndef CRTRunBuilder_h
 #define CRTRunBuilder_h
 
+#import <vector>
+
 namespace Outputs {
 namespace CRT {
 

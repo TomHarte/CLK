@@ -664,6 +664,7 @@
 		4BBF99111C8FBA6F0075DAFB /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
+		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -700,6 +701,7 @@
 				4BBF99071C8FBA6F0075DAFB /* Internals */,
 				4B0CCC421C62D0B3001CAC5F /* CRT.cpp */,
 				4B0CCC431C62D0B3001CAC5F /* CRT.hpp */,
+				4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */,
 			);
 			name = CRT;
 			path = ../../Outputs/CRT;
