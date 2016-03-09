@@ -10,7 +10,12 @@
 #define OpenGL_h
 
 // TODO: figure out correct include paths for other platforms.
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl3.h>
+#ifdef __APPLE__
+	#if TARGET_OS_IPHONE
+	#else
+		#include <OpenGL/OpenGL.h>
+		#include <OpenGL/gl3.h>
+	#endif
+#endif
 
 #endif /* OpenGL_h */
