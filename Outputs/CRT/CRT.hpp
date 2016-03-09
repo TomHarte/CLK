@@ -6,8 +6,8 @@
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef CRT_cpp
-#define CRT_cpp
+#ifndef CRT_hpp
+#define CRT_hpp
 
 #include <stdint.h>
 #include <stdarg.h>
@@ -15,7 +15,9 @@
 #include <vector>
 #include <mutex>
 
-#include "Flywheel.hpp"
+#include "Internals/Flywheel.hpp"
+#include "Internals/CRTInputBufferBuilder.hpp"
+#include "Internals/CRTRunBuilder.hpp"
 
 namespace Outputs {
 namespace CRT {
@@ -47,57 +49,6 @@ enum ColourSpace {
 enum OutputDevice {
 	Monitor,
 	Television
-};
-
-struct CRTInputBufferBuilder {
-	CRTInputBufferBuilder(unsigned int number_of_buffers, va_list buffer_sizes);
-	~CRTInputBufferBuilder();
-
-	void allocate_write_area(size_t required_length);
-	void reduce_previous_allocation_to(size_t actual_length);
-	uint8_t *get_write_target_for_buffer(int buffer);
-
-	// a pointer to the section of content buffer currently being
-	// returned and to where the next section will begin
-	uint16_t _next_write_x_position, _next_write_y_position;
-	uint16_t _write_x_position, _write_y_position;
-	size_t _write_target_pointer;
-	size_t _last_allocation_amount;
-
-	struct Buffer {
-		uint8_t *data;
-		size_t bytes_per_pixel;
-	} *buffers;
-	unsigned int number_of_buffers;
-
-	// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
-	// builder but otherwise entrusted to the CRT to update.
-	unsigned int last_uploaded_line;
-};
-
-struct CRTRunBuilder {
-	CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
-
-	// Resets the run builder.
-	void reset();
-
-	// Getter for new storage plus backing storage; in RGB mode input runs will map directly
-	// from the input buffer to the screen. In composite mode input runs will map from the
-	// input buffer to the processing buffer, and output runs will map from the processing
-	// buffer to the screen.
-	uint8_t *get_next_run(size_t number_of_vertices);
-	std::vector<uint8_t> _runs;
-
-	// Container for total length in cycles of all contained runs.
-	uint32_t duration;
-
-	// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
-	// entrusted to the CRT to update.
-	size_t uploaded_vertices;
-	size_t number_of_vertices;
-
-	private:
-		size_t _vertex_size;
 };
 
 struct OpenGLState;
