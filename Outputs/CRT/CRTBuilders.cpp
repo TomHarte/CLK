@@ -23,7 +23,7 @@ CRT::CRTInputBufferBuilder::CRTInputBufferBuilder(unsigned int number_of_buffers
 	for(int buffer = 0; buffer < number_of_buffers; buffer++)
 	{
 		buffers[buffer].bytes_per_pixel = va_arg(buffer_sizes, unsigned int);
-		buffers[buffer].data = new uint8_t[CRTInputBufferBuilderWidth * CRTInputBufferBuilderHeight * buffers[buffer].bytes_per_pixel];
+		buffers[buffer].data = new uint8_t[InputBufferBuilderWidth * InputBufferBuilderHeight * buffers[buffer].bytes_per_pixel];
 	}
 
 	_next_write_x_position = _next_write_y_position = 0;
@@ -42,15 +42,15 @@ void CRT::CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 {
 	_last_allocation_amount = required_length;
 
-	if(_next_write_x_position + required_length + 2 > CRTInputBufferBuilderWidth)
+	if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
 	{
 		_next_write_x_position = 0;
-		_next_write_y_position = (_next_write_y_position+1)%CRTInputBufferBuilderHeight;
+		_next_write_y_position = (_next_write_y_position+1)%InputBufferBuilderHeight;
 	}
 
 	_write_x_position = _next_write_x_position + 1;
 	_write_y_position = _next_write_y_position;
-	_write_target_pointer = (_write_y_position * CRTInputBufferBuilderWidth) + _write_x_position;
+	_write_target_pointer = (_write_y_position * InputBufferBuilderWidth) + _write_x_position;
 	_next_write_x_position += required_length + 2;
 }
 

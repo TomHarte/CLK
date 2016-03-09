@@ -32,7 +32,7 @@ Machine::Machine() :
 	_audioOutputPositionError(0),
 	_currentOutputLine(0),
 	_is_odd_field(false),
-	_crt(std::unique_ptr<Outputs::CRT>(new Outputs::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1, 1)))
+	_crt(std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1, 1)))
 {
 	_crt->set_rgb_sampling_function(
 		"vec4 rgb_sample(vec2 coordinate)"

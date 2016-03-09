@@ -11,7 +11,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-using namespace Outputs;
+using namespace Outputs::CRT;
 
 void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 {
@@ -39,8 +39,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
 
 	// create the two flywheels
-	_horizontal_flywheel	= std::unique_ptr<Outputs::Flywheel>(new Outputs::Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
-	_vertical_flywheel		= std::unique_ptr<Outputs::Flywheel>(new Outputs::Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
+	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
+	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
@@ -63,12 +63,12 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 
 void CRT::allocate_buffers(unsigned int number, va_list sizes)
 {
-	_run_builders = new CRTRunBuilder *[kCRTNumberOfFields];
-	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
+	_run_builders = new CRTRunBuilder *[NumberOfFields];
+	for(int builder = 0; builder < NumberOfFields; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder(kCRTOutputVertexSize);
+		_run_builders[builder] = new CRTRunBuilder(OutputVertexSize);
 	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(kCRTInputVertexSize));
+	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
 
 	va_list va;
 	va_copy(va, sizes);
@@ -92,7 +92,7 @@ CRT::CRT(unsigned int common_output_divisor) :
 
 CRT::~CRT()
 {
-	for(int builder = 0; builder < kCRTNumberOfFields; builder++)
+	for(int builder = 0; builder < NumberOfFields; builder++)
 	{
 		delete _run_builders[builder];
 	}
@@ -132,20 +132,20 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return _horizontal_flywheel->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_position_x(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 0])
-#define output_position_y(v)		(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfPosition + 2])
-#define output_tex_x(v)				(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 0])
-#define output_tex_y(v)				(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTexCoord + 2])
-#define output_lateral(v)			next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfLateral]
-#define output_timestamp(v)			(*(uint32_t *)&next_run[kCRTOutputVertexSize*v + kCRTOutputVertexOffsetOfTimestamp])
+#define output_position_x(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 0])
+#define output_position_y(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 2])
+#define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
+#define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
+#define output_lateral(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfLateral]
+#define output_timestamp(v)			(*(uint32_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTimestamp])
 
-#define input_input_position_x(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfInputPosition + 0])
-#define input_input_position_y(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfInputPosition + 2])
-#define input_output_position_x(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfOutputPosition + 0])
-#define input_output_position_y(v)	(*(uint16_t *)&next_run[kCRTInputVertexSize*v + kCRTInputVertexOffsetOfOutputPosition + 2])
-#define input_phase(v)				next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseAndAmplitude + 0]
-#define input_amplitude(v)			next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseAndAmplitude + 1]
-#define input_phase_time(v)			(*(uint16_t *)&next_run[kCRTOutputVertexSize*v + kCRTInputVertexOffsetOfPhaseTime])
+#define input_input_position_x(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfInputPosition + 0])
+#define input_input_position_y(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfInputPosition + 2])
+#define input_output_position_x(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfOutputPosition + 0])
+#define input_output_position_y(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfOutputPosition + 2])
+#define input_phase(v)				next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseAndAmplitude + 0]
+#define input_amplitude(v)			next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseAndAmplitude + 1]
+#define input_phase_time(v)			(*(uint16_t *)&next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Type type, uint16_t tex_x, uint16_t tex_y)
 {
@@ -171,7 +171,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(is_output_segment)
 		{
 			_output_mutex->lock();
-			next_run = (_output_device == CRT::Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
+			next_run = (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
 		}
 
 		//	Vertex output is arranged for triangle strips, as:
@@ -181,7 +181,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		//	[0/1]		3
 		if(next_run)
 		{
-			if(_output_device == CRT::Monitor)
+			if(_output_device == Monitor)
 			{
 				// set the type, initial raster position and type of this run
 				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
@@ -226,7 +226,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// if this is a data run then advance the buffer pointer
 			if(type == Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
-			if(_output_device == CRT::Monitor)
+			if(_output_device == Monitor)
 			{
 				// store the final raster position
 				output_position_x(3) = output_position_x(4) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
@@ -247,7 +247,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
-		if(_output_device == CRT::Television)
+		if(_output_device == Television)
 		{
 			Flywheel::SyncEvent honoured_event = Flywheel::SyncEvent::None;
 			if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) honoured_event = next_vertical_sync_event;
@@ -274,7 +274,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace)
 			{
-				_composite_src_output_y = (_composite_src_output_y + 1) % CRTIntermediateBufferHeight;
+				_composite_src_output_y = (_composite_src_output_y + 1) % IntermediateBufferHeight;
 			}
 		}
 
@@ -284,7 +284,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
 //			_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
 
-			_run_write_pointer = (_run_write_pointer + 1)%kCRTNumberOfFields;
+			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
 			_run_builders[_run_write_pointer]->reset();
 		}
 	}

@@ -14,9 +14,10 @@
 #include "Shader.hpp"
 #include "CRTOpenGL.hpp"
 
-using namespace Outputs;
+namespace Outputs {
+namespace CRT {
 
-struct CRT::OpenGLState {
+struct OpenGLState {
 	std::unique_ptr<OpenGL::Shader> rgb_shader_program;
 	std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
 
@@ -34,6 +35,11 @@ struct CRT::OpenGLState {
 	std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
 	std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 };
+
+}
+}
+
+using namespace Outputs::CRT;
 
 namespace {
 	static const GLenum first_supplied_buffer_texture_unit = 3;
@@ -84,7 +90,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 			GLenum format = formatForDepth(_buffer_builder->buffers[buffer].bytes_per_pixel);
-			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
 		}
 
 		glGenVertexArrays(1, &_openGL_state->output_vertex_array);
@@ -105,11 +111,11 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 		// Create intermediate textures and bind to slots 0, 1 and 2
 		glActiveTexture(GL_TEXTURE0);
-		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
+		_openGL_state->compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 		glActiveTexture(GL_TEXTURE1);
-		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
+		_openGL_state->filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 		glActiveTexture(GL_TEXTURE2);
-		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(CRTIntermediateBufferWidth, CRTIntermediateBufferHeight));
+		_openGL_state->filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	}
 
 //		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
@@ -129,9 +135,9 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		{
 			glTexSubImage2D(GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
-								CRTInputBufferBuilderWidth, (GLint)(CRTInputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
+								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
 			_buffer_builder->last_uploaded_line = 0;
 		}
 
@@ -139,9 +145,9 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		{
 			glTexSubImage2D(GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
-								CRTInputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
+								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * CRTInputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
 			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 		}
 	}
@@ -163,19 +169,19 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	// ensure array buffer is up to date
 	glBindBuffer(GL_ARRAY_BUFFER, _openGL_state->output_array_buffer);
 	size_t max_number_of_vertices = 0;
-	for(int c = 0; c < kCRTNumberOfFields; c++)
+	for(int c = 0; c < NumberOfFields; c++)
 	{
 		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
 	}
 	if(_openGL_state->output_vertices_per_slice < max_number_of_vertices)
 	{
 		_openGL_state->output_vertices_per_slice = max_number_of_vertices;
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * kCRTOutputVertexSize * kCRTOutputVertexSize), NULL, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * OutputVertexSize * OutputVertexSize), NULL, GL_STREAM_DRAW);
 
-		for(unsigned int c = 0; c < kCRTNumberOfFields; c++)
+		for(unsigned int c = 0; c < NumberOfFields; c++)
 		{
 			uint8_t *data = &_run_builders[c]->_runs[0];
-			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->output_vertices_per_slice * kCRTOutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * kCRTOutputVertexSize), data);
+			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * _openGL_state->output_vertices_per_slice * OutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * OutputVertexSize), data);
 			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
 		}
 	}
@@ -198,7 +204,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 	unsigned int run = (unsigned int)_run_write_pointer;
 //	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
 	GLint total_age = 0;
-	for(int c = 0; c < kCRTNumberOfFields; c++)
+	for(int c = 0; c < NumberOfFields; c++)
 	{
 		// update the total age at the start of this set of runs
 		total_age += _run_builders[run]->duration;
@@ -209,10 +215,10 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 
 			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
 			{
-				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * kCRTOutputVertexSize];
+				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * OutputVertexSize];
 				glBufferSubData(GL_ARRAY_BUFFER,
-								(GLsizeiptr)(((run * _openGL_state->output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize),
-								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * kCRTOutputVertexSize), data);
+								(GLsizeiptr)(((run * _openGL_state->output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * OutputVertexSize),
+								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * OutputVertexSize), data);
 				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
 			}
 
@@ -221,7 +227,7 @@ void CRT::draw_frame(unsigned int output_width, unsigned int output_height, bool
 		}
 
 		// advance back in time
-		run = (run - 1 + kCRTNumberOfFields) % kCRTNumberOfFields;
+		run = (run - 1 + NumberOfFields) % NumberOfFields;
 	}
 	}
 
@@ -437,8 +443,8 @@ void CRT::prepare_composite_input_shader()
 		GLint phaseCyclesPerTickUniform	= _openGL_state->composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
-		glUniform2f(outputTextureSizeUniform, CRTIntermediateBufferWidth, CRTIntermediateBufferHeight);
-		glUniform2f(inputTextureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
+		glUniform2f(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
+		glUniform2f(inputTextureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
 	}
 	free(vertex_shader);
@@ -509,7 +515,7 @@ void CRT::prepare_rgb_output_shader()
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform1i(shadowMaskTexIDUniform, 1);
-		glUniform2f(textureSizeUniform, CRTInputBufferBuilderWidth, CRTInputBufferBuilderHeight);
+		glUniform2f(textureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period() / (unsigned int)_vertical_flywheel_output_divider);
 
@@ -539,23 +545,23 @@ void CRT::prepare_output_vertex_array()
 		glEnableVertexAttribArray((GLuint)lateralAttribute);
 		glEnableVertexAttribArray((GLuint)timestampAttribute);
 
-		const GLsizei vertexStride = kCRTOutputVertexSize;
-		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfPosition);
-		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTexCoord);
-		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfTimestamp);
-		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)kCRTOutputVertexOffsetOfLateral);
+		const GLsizei vertexStride = OutputVertexSize;
+		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
+		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
+		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTimestamp);
+		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
 	}
 }
 
 #pragma mark - Configuration
 
-void CRT::set_output_device(CRT::OutputDevice output_device)
+void CRT::set_output_device(OutputDevice output_device)
 {
 	if (_output_device != output_device)
 	{
 		_output_device = output_device;
 
-		for(int builder = 0; builder < kCRTNumberOfFields; builder++)
+		for(int builder = 0; builder < NumberOfFields; builder++)
 		{
 			_run_builders[builder]->reset();
 		}

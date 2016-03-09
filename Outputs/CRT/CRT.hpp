@@ -18,6 +18,7 @@
 #include "Flywheel.hpp"
 
 namespace Outputs {
+namespace CRT {
 
 struct Rect {
 	struct {
@@ -33,24 +34,77 @@ struct Rect {
 		origin({.x = x, .y = y}), size({.width = width, .height =height}) {}
 };
 
+enum DisplayType {
+	PAL50,
+	NTSC60
+};
+
+enum ColourSpace {
+	YIQ,
+	YUV
+};
+
+enum OutputDevice {
+	Monitor,
+	Television
+};
+
+struct CRTInputBufferBuilder {
+	CRTInputBufferBuilder(unsigned int number_of_buffers, va_list buffer_sizes);
+	~CRTInputBufferBuilder();
+
+	void allocate_write_area(size_t required_length);
+	void reduce_previous_allocation_to(size_t actual_length);
+	uint8_t *get_write_target_for_buffer(int buffer);
+
+	// a pointer to the section of content buffer currently being
+	// returned and to where the next section will begin
+	uint16_t _next_write_x_position, _next_write_y_position;
+	uint16_t _write_x_position, _write_y_position;
+	size_t _write_target_pointer;
+	size_t _last_allocation_amount;
+
+	struct Buffer {
+		uint8_t *data;
+		size_t bytes_per_pixel;
+	} *buffers;
+	unsigned int number_of_buffers;
+
+	// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
+	// builder but otherwise entrusted to the CRT to update.
+	unsigned int last_uploaded_line;
+};
+
+struct CRTRunBuilder {
+	CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
+
+	// Resets the run builder.
+	void reset();
+
+	// Getter for new storage plus backing storage; in RGB mode input runs will map directly
+	// from the input buffer to the screen. In composite mode input runs will map from the
+	// input buffer to the processing buffer, and output runs will map from the processing
+	// buffer to the screen.
+	uint8_t *get_next_run(size_t number_of_vertices);
+	std::vector<uint8_t> _runs;
+
+	// Container for total length in cycles of all contained runs.
+	uint32_t duration;
+
+	// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
+	// entrusted to the CRT to update.
+	size_t uploaded_vertices;
+	size_t number_of_vertices;
+
+	private:
+		size_t _vertex_size;
+};
+
+struct OpenGLState;
+
 class CRT {
 	public:
 		~CRT();
-
-		enum DisplayType {
-			PAL50,
-			NTSC60
-		};
-
-		enum ColourSpace {
-			YIQ,
-			YUV
-		};
-
-		enum OutputDevice {
-			Monitor,
-			Television
-		};
 
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 			The requested number of buffers, each with the requested number of bytes per pixel,
@@ -259,7 +313,7 @@ class CRT {
 		Rect _visible_area;
 
 		// the two flywheels regulating scanning
-		std::unique_ptr<Outputs::Flywheel> _horizontal_flywheel, _vertical_flywheel;
+		std::unique_ptr<Flywheel> _horizontal_flywheel, _vertical_flywheel;
 		uint16_t _vertical_flywheel_output_divider;
 
 		// elements of sync separation
@@ -295,57 +349,6 @@ class CRT {
 		};
 		void output_scan(Scan *scan);
 
-		struct CRTRunBuilder {
-			CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size) { reset(); }
-
-			// Resets the run builder.
-			void reset();
-
-			// Getter for new storage plus backing storage; in RGB mode input runs will map directly
-			// from the input buffer to the screen. In composite mode input runs will map from the
-			// input buffer to the processing buffer, and output runs will map from the processing
-			// buffer to the screen.
-			uint8_t *get_next_run(size_t number_of_vertices);
-			std::vector<uint8_t> _runs;
-
-			// Container for total length in cycles of all contained runs.
-			uint32_t duration;
-
-			// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
-			// entrusted to the CRT to update.
-			size_t uploaded_vertices;
-			size_t number_of_vertices;
-
-			private:
-				size_t _vertex_size;
-		};
-
-		struct CRTInputBufferBuilder {
-			CRTInputBufferBuilder(unsigned int number_of_buffers, va_list buffer_sizes);
-			~CRTInputBufferBuilder();
-
-			void allocate_write_area(size_t required_length);
-			void reduce_previous_allocation_to(size_t actual_length);
-			uint8_t *get_write_target_for_buffer(int buffer);
-
-			// a pointer to the section of content buffer currently being
-			// returned and to where the next section will begin
-			uint16_t _next_write_x_position, _next_write_y_position;
-			uint16_t _write_x_position, _write_y_position;
-			size_t _write_target_pointer;
-			size_t _last_allocation_amount;
-
-			struct Buffer {
-				uint8_t *data;
-				size_t bytes_per_pixel;
-			} *buffers;
-			unsigned int number_of_buffers;
-
-			// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
-			// builder but otherwise entrusted to the CRT to update.
-			unsigned int last_uploaded_line;
-		};
-
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
 		CRTRunBuilder **_run_builders;
@@ -360,7 +363,6 @@ class CRT {
 		bool _is_writing_composite_run;
 
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
-		struct OpenGLState;
 		OpenGLState *_openGL_state;
 
 		// Other things the caller may have provided.
@@ -390,6 +392,6 @@ class CRT {
 };
 
 }
-
+}
 
 #endif /* CRT_cpp */
