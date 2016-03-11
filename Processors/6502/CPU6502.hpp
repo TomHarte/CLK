@@ -545,9 +545,15 @@ template <class T> class Processor {
 				OperationMoveToNextProgram
 			};
 
+			// These plus program below act to give the compiler permission to update these values
+			// without touching the class storage (i.e. it explicitly says they need be completely up
+			// to date in this stack frame only); which saves some complicated addressing
+			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
+			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
+
 #define checkSchedule(op) \
-	if(!_scheduledPrograms[_scheduleProgramsReadPointer]) {\
-		_scheduleProgramsReadPointer = _scheduleProgramsWritePointer = _scheduleProgramProgramCounter = 0;\
+	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
+		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
 		if(_reset_line_is_enabled)\
 			schedule_program(get_reset_program());\
 		else\
@@ -561,25 +567,26 @@ template <class T> class Processor {
 	}
 
 			checkSchedule();
-			_cycles_left_to_run += number_of_cycles;
+			number_of_cycles += _cycles_left_to_run;
+			const MicroOp *program = _scheduledPrograms[scheduleProgramsReadPointer];
 
-			while(_cycles_left_to_run > 0) {
+			while(number_of_cycles > 0) {
 
-				while (_ready_is_active && _cycles_left_to_run > 0) {
-					_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
+				while (_ready_is_active && number_of_cycles > 0) {
+					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
 				}
 
-				while (!_ready_is_active && _cycles_left_to_run > 0) {
+				while (!_ready_is_active && number_of_cycles > 0) {
 
 					if (_nextBusOperation != BusOperation::None) {
 						_irq_request_history[0] = _irq_request_history[1];
 						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
-						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
+						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
 						_nextBusOperation = BusOperation::None;
 					}
 
-					const MicroOp cycle = _scheduledPrograms[_scheduleProgramsReadPointer][_scheduleProgramProgramCounter];
-					_scheduleProgramProgramCounter++;
+					const MicroOp cycle = program[scheduleProgramProgramCounter];
+					scheduleProgramProgramCounter++;
 
 #define read_op(val, addr)		_nextBusOperation = BusOperation::ReadOpcode;	_busAddress = addr;		_busValue = &val
 #define read_mem(val, addr)		_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &val
@@ -616,10 +623,11 @@ template <class T> class Processor {
 						break;
 
 						case OperationMoveToNextProgram:
-							_scheduledPrograms[_scheduleProgramsReadPointer] = NULL;
-							_scheduleProgramsReadPointer = (_scheduleProgramsReadPointer+1)&3;
-							_scheduleProgramProgramCounter = 0;
+							_scheduledPrograms[scheduleProgramsReadPointer] = NULL;
+							scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
+							scheduleProgramProgramCounter = 0;
 							checkSchedule();
+							program = _scheduledPrograms[scheduleProgramsReadPointer];
 						break;
 
 #define push(v) \
@@ -1035,6 +1043,10 @@ template <class T> class Processor {
 						_ready_is_active = true;
 					}
 				}
+
+				_cycles_left_to_run = number_of_cycles;
+				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
+				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
 			}
 		}
 

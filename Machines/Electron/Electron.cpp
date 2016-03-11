@@ -101,7 +101,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(isReadOperation(operation))
 						{
 							*value = _interrupt_status;
-							_interrupt_status &= ~0x02;
+							_interrupt_status &= ~PowerOnReset;
 						}
 						else
 						{
@@ -283,8 +283,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	unsigned int start_of_graphics = get_first_graphics_cycle();
-	const unsigned int real_time_clock_interrupt_time = start_of_graphics + 99*128;
-	const unsigned int display_end_interrupt_time = start_of_graphics + 257*128 + 64;
+	const unsigned int real_time_clock_interrupt_time = start_of_graphics + 128*128;
+	const unsigned int display_end_interrupt_time = start_of_graphics + 264*128;
 
 	if(_fieldCycles < real_time_clock_interrupt_time && _fieldCycles + cycles >= real_time_clock_interrupt_time)
 	{
