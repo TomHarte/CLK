@@ -80,13 +80,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += (_fieldCycles&1)^1;
+		cycles += 1 + ((_fieldCycles&1));
 		if(_screen_mode < 4)
 		{
 			const int current_line = _fieldCycles >> 7;
-			const int line_position = _fieldCycles & 127;
+			const int line_position = (_fieldCycles+cycles) & 127;
 			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= first_graphics_cycle && line_position < first_graphics_cycle + 80)
-				cycles = (unsigned int)(80 + first_graphics_cycle - line_position);
+				cycles += (unsigned int)(80 + first_graphics_cycle - line_position);
 		}
 	}
 	else
@@ -95,9 +95,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			if((address & 0xff00) == 0xfe00)
 			{
-				cycles += (_fieldCycles&1)^1;
-//				printf("%c: %02x: ", isReadOperation(operation) ? 'r' : 'w', *value);
-
 				switch(address&0xf)
 				{
 					case 0x0:
@@ -294,13 +291,38 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		update_audio();
 		signal_interrupt(Interrupt::RealTimeClock);
 	}
+
+//	if(_fieldCycles < real_time_clock_interrupt_time+128 && _fieldCycles + cycles >= real_time_clock_interrupt_time+128)
+//	{
+//		update_audio();
+//		_interrupt_status &= ~Interrupt::RealTimeClock;
+//		evaluate_interrupts();
+//	}
+
 	else if(_fieldCycles < display_end_interrupt_time && _fieldCycles + cycles >= display_end_interrupt_time)
 	{
 		update_audio();
 		signal_interrupt(Interrupt::DisplayEnd);
 	}
 
+//	if(_fieldCycles < display_end_interrupt_time+128 && _fieldCycles + cycles >= display_end_interrupt_time+128)
+//	{
+//		update_audio();
+//		_interrupt_status &= ~Interrupt::DisplayEnd;
+//		evaluate_interrupts();
+//	}
+
 	_fieldCycles += cycles;
+
+	if(_fieldCycles >= cycles_per_frame)
+	{
+		update_display();
+		update_audio();
+		_fieldCycles -= cycles_per_frame;
+		_displayOutputPosition = 0;
+		_audioOutputPosition -= _audioOutputPosition;
+		_currentOutputLine = 0;
+	}
 
 	switch(_fieldCycles)
 	{
@@ -308,15 +330,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		case 196*128:
 			update_audio();
 		break;
-
-		case cycles_per_frame:
-			update_display();
-			update_audio();
-			_fieldCycles = 0;
-			_displayOutputPosition = 0;
-			_audioOutputPosition = 0;
-			_currentOutputLine = 0;
-		break;
+//
+//		case cycles_per_frame:
+//		break;
 	}
 
 	_tape.run_for_cycles(cycles);
