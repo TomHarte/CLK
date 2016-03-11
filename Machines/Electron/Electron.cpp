@@ -292,12 +292,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		signal_interrupt(Interrupt::RealTimeClock);
 	}
 
-//	if(_fieldCycles < real_time_clock_interrupt_time+128 && _fieldCycles + cycles >= real_time_clock_interrupt_time+128)
-//	{
-//		update_audio();
-//		_interrupt_status &= ~Interrupt::RealTimeClock;
-//		evaluate_interrupts();
-//	}
+	if(_fieldCycles < real_time_clock_interrupt_time+128 && _fieldCycles + cycles >= real_time_clock_interrupt_time+128)
+	{
+		update_audio();
+		_interrupt_status &= ~Interrupt::RealTimeClock;
+		evaluate_interrupts();
+	}
 
 	else if(_fieldCycles < display_end_interrupt_time && _fieldCycles + cycles >= display_end_interrupt_time)
 	{
@@ -305,12 +305,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		signal_interrupt(Interrupt::DisplayEnd);
 	}
 
-//	if(_fieldCycles < display_end_interrupt_time+128 && _fieldCycles + cycles >= display_end_interrupt_time+128)
-//	{
-//		update_audio();
-//		_interrupt_status &= ~Interrupt::DisplayEnd;
-//		evaluate_interrupts();
-//	}
+	if(_fieldCycles < display_end_interrupt_time+128 && _fieldCycles + cycles >= display_end_interrupt_time+128)
+	{
+		update_audio();
+		_interrupt_status &= ~Interrupt::DisplayEnd;
+		evaluate_interrupts();
+	}
 
 	_fieldCycles += cycles;
 
