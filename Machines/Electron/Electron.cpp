@@ -32,7 +32,7 @@ namespace {
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
-#define graphics_column(v)	((((v) %127) - first_graphics_cycle) % 127)
+#define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
 
 Machine::Machine() :
 	_interrupt_control(0),
@@ -93,9 +93,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		cycles += 1 + (_frameCycles&1);
 		if(_screen_mode < 4)
 		{
-			const int current_line = graphics_line(_frameCycles + cycles);
-			const int current_column = graphics_column(_frameCycles + cycles);
-			if(current_line < 256 && current_column < 80)
+			update_display();
+			const int current_line = graphics_line(_frameCycles); // + cycles
+			const int current_column = graphics_column(_frameCycles); // + cycles
+			if(current_line < 256 && current_column < 80 && !_isBlankLine)
 				cycles += (unsigned int)(80 - current_column);
 		}
 	}
@@ -297,25 +298,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
 	// is never longer than a line. On the Electron, it's a safe one.
-	switch(line_before_cycle)
+	if(line_before_cycle != line_after_cycle)
 	{
-		case real_time_clock_interrupt_line:
-			if(line_after_cycle > real_time_clock_interrupt_line)
-				signal_interrupt(Interrupt::RealTimeClock);
-		break;
-		case real_time_clock_interrupt_line+1:
-			if(line_after_cycle > real_time_clock_interrupt_line+1)
-				clear_interrupt(Interrupt::RealTimeClock);
-		break;
-
-		case display_end_interrupt_line:
-			if(line_after_cycle > display_end_interrupt_line)
-				signal_interrupt(Interrupt::DisplayEnd);
-		break;
-		case display_end_interrupt_line+1:
-			if(line_after_cycle > display_end_interrupt_line+1)
-				clear_interrupt(Interrupt::DisplayEnd);
-		break;
+		switch(line_before_cycle)
+		{
+			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
+//			case real_time_clock_interrupt_line+1:	clear_interrupt(Interrupt::RealTimeClock);	break;
+			case display_end_interrupt_line:		signal_interrupt(Interrupt::DisplayEnd);	break;
+//			case display_end_interrupt_line+1:		clear_interrupt(Interrupt::DisplayEnd);		break;
+		}
 	}
 
 	_frameCycles += cycles;
