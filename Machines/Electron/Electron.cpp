@@ -26,10 +26,9 @@ namespace {
 												// with pixels in field 2 will be 20+field_divider_line
 	static const unsigned int first_graphics_line = 38;
 	static const unsigned int first_graphics_cycle = 33;
-	static const unsigned int last_graphics_cycle = 80 + first_graphics_cycle;
 
-	static const unsigned int real_time_clock_interrupt_line = 156;
-	static const unsigned int display_end_interrupt_line = 256;
+	static const unsigned int real_time_clock_interrupt_line = 100;
+	static const unsigned int display_end_interrupt_line = 264;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
