@@ -407,145 +407,166 @@ inline void Machine::update_audio()
 inline void Machine::start_pixel_line()
 {
 	_current_pixel_line = (_current_pixel_line+1)&255;
-	if(!(_current_pixel_line&7))
-	{
-		_startLineAddress += ((_screen_mode < 4) ? 80 : 40) * 8 - 8;
-	}
 	if(!_current_pixel_line)
 	{
 		_startLineAddress = _startScreenAddress;
+		_current_character_row = 0;
+		_isBlankLine = false;
 	}
 	else
 	{
-		_startLineAddress++;
+		bool mode_has_blank_lines = (_screen_mode == 6) || (_screen_mode == 3);
+		_isBlankLine = (mode_has_blank_lines && ((_current_character_row > 7 && _current_character_row < 10) || (_current_pixel_line > 249)));
+
+		if(!_isBlankLine)
+		{
+			_startLineAddress++;
+
+			if(_current_character_row > 7)
+			{
+				_startLineAddress += ((_screen_mode < 4) ? 80 : 40) * 8 - 8;
+				_current_character_row = 0;
+			}
+		}
 	}
 	_currentScreenAddress = _startLineAddress;
 	_current_pixel_column = 0;
 
-	_crt->allocate_write_area(640);
-	_currentLine = _crt->get_write_target_for_buffer(0);
+	if(!_isBlankLine)
+	{
+		_crt->allocate_write_area(640);
+		_currentLine = _crt->get_write_target_for_buffer(0);
+	}
 }
 
 inline void Machine::end_pixel_line()
 {
-	_crt->output_data(640, 1);
+	if(!_isBlankLine) _crt->output_data(640, 1);
+	_current_character_row++;
 }
 
 inline void Machine::output_pixels(unsigned int number_of_cycles)
 {
-	while(number_of_cycles--)
+	if(_isBlankLine)
 	{
-		if(!(_current_pixel_column&1) || _screen_mode < 4)
+		_crt->output_blank(number_of_cycles * crt_cycles_multiplier);
+	}
+	else
+	{
+		while(number_of_cycles--)
 		{
-			if(_currentScreenAddress&32768)
+			if(!(_current_pixel_column&1) || _screen_mode < 4)
 			{
-				_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;
-			}
-
-			_last_pixel_byte = _ram[_currentScreenAddress];
-			_currentScreenAddress = _currentScreenAddress+8;
-		}
-
-		switch(_screen_mode)
-		{
-			case 3:
-			case 0:
-			{
-				_currentLine[0] = _palette[(_last_pixel_byte&0x80) >> 4];
-				_currentLine[1] = _palette[(_last_pixel_byte&0x40) >> 3];
-				_currentLine[2] = _palette[(_last_pixel_byte&0x20) >> 2];
-				_currentLine[3] = _palette[(_last_pixel_byte&0x10) >> 1];
-				_currentLine[4] = _palette[(_last_pixel_byte&0x08) >> 0];
-				_currentLine[5] = _palette[(_last_pixel_byte&0x04) << 1];
-				_currentLine[6] = _palette[(_last_pixel_byte&0x02) << 2];
-				_currentLine[7] = _palette[(_last_pixel_byte&0x01) << 3];
-			}
-			break;
-
-			case 1:
-			{
-				_currentLine[0] =
-				_currentLine[1] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
-				_currentLine[2] =
-				_currentLine[3] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
-				_currentLine[4] =
-				_currentLine[5] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
-				_currentLine[6] =
-				_currentLine[7] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
-			}
-			break;
-
-			case 2:
-			{
-				_currentLine[0] =
-				_currentLine[1] =
-				_currentLine[2] =
-				_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)];
-				_currentLine[4] =
-				_currentLine[5] =
-				_currentLine[6] =
-				_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)];
-			}
-			break;
-
-			case 6:
-			case 4:
-			{
-				if(_current_pixel_column&1)
+				if(_currentScreenAddress&32768)
 				{
-					_currentLine[0] =
-					_currentLine[1] = _palette[(_last_pixel_byte&0x08) >> 0];
-					_currentLine[2] =
-					_currentLine[3] = _palette[(_last_pixel_byte&0x04) << 1];
-					_currentLine[4] =
-					_currentLine[5] = _palette[(_last_pixel_byte&0x02) << 2];
-					_currentLine[6] =
+					_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;
+				}
+
+				_last_pixel_byte = _ram[_currentScreenAddress];
+				_currentScreenAddress = _currentScreenAddress+8;
+			}
+
+			switch(_screen_mode)
+			{
+				case 3:
+				case 0:
+				{
+					_currentLine[0] = _palette[(_last_pixel_byte&0x80) >> 4];
+					_currentLine[1] = _palette[(_last_pixel_byte&0x40) >> 3];
+					_currentLine[2] = _palette[(_last_pixel_byte&0x20) >> 2];
+					_currentLine[3] = _palette[(_last_pixel_byte&0x10) >> 1];
+					_currentLine[4] = _palette[(_last_pixel_byte&0x08) >> 0];
+					_currentLine[5] = _palette[(_last_pixel_byte&0x04) << 1];
+					_currentLine[6] = _palette[(_last_pixel_byte&0x02) << 2];
 					_currentLine[7] = _palette[(_last_pixel_byte&0x01) << 3];
 				}
-				else
-				{
-					_currentLine[0] =
-					_currentLine[1] = _palette[(_last_pixel_byte&0x80) >> 4];
-					_currentLine[2] =
-					_currentLine[3] = _palette[(_last_pixel_byte&0x40) >> 3];
-					_currentLine[4] =
-					_currentLine[5] = _palette[(_last_pixel_byte&0x20) >> 2];
-					_currentLine[6] =
-					_currentLine[7] = _palette[(_last_pixel_byte&0x10) >> 1];
-				}
-			}
-			break;
+				break;
 
-			case 5:
-			{
-				if(_current_pixel_column&1)
+				case 1:
 				{
 					_currentLine[0] =
-					_currentLine[1] =
+					_currentLine[1] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
 					_currentLine[2] =
-					_currentLine[3] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
+					_currentLine[3] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
 					_currentLine[4] =
-					_currentLine[5] =
+					_currentLine[5] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
 					_currentLine[6] =
 					_currentLine[7] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
 				}
-				else
+				break;
+
+				case 2:
 				{
 					_currentLine[0] =
 					_currentLine[1] =
 					_currentLine[2] =
-					_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
+					_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)];
 					_currentLine[4] =
 					_currentLine[5] =
 					_currentLine[6] =
-					_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
+					_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)];
 				}
-			}
-			break;
-		}
+				break;
 
-		_current_pixel_column++;
-		_currentLine += 8;
+				case 6:
+				case 4:
+				{
+					if(_current_pixel_column&1)
+					{
+						_currentLine[0] =
+						_currentLine[1] = _palette[(_last_pixel_byte&0x08) >> 0];
+						_currentLine[2] =
+						_currentLine[3] = _palette[(_last_pixel_byte&0x04) << 1];
+						_currentLine[4] =
+						_currentLine[5] = _palette[(_last_pixel_byte&0x02) << 2];
+						_currentLine[6] =
+						_currentLine[7] = _palette[(_last_pixel_byte&0x01) << 3];
+					}
+					else
+					{
+						_currentLine[0] =
+						_currentLine[1] = _palette[(_last_pixel_byte&0x80) >> 4];
+						_currentLine[2] =
+						_currentLine[3] = _palette[(_last_pixel_byte&0x40) >> 3];
+						_currentLine[4] =
+						_currentLine[5] = _palette[(_last_pixel_byte&0x20) >> 2];
+						_currentLine[6] =
+						_currentLine[7] = _palette[(_last_pixel_byte&0x10) >> 1];
+					}
+				}
+				break;
+
+				case 5:
+				{
+					if(_current_pixel_column&1)
+					{
+						_currentLine[0] =
+						_currentLine[1] =
+						_currentLine[2] =
+						_currentLine[3] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
+						_currentLine[4] =
+						_currentLine[5] =
+						_currentLine[6] =
+						_currentLine[7] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
+					}
+					else
+					{
+						_currentLine[0] =
+						_currentLine[1] =
+						_currentLine[2] =
+						_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
+						_currentLine[4] =
+						_currentLine[5] =
+						_currentLine[6] =
+						_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
+					}
+				}
+				break;
+			}
+
+			_current_pixel_column++;
+			_currentLine += 8;
+		}
 	}
 }
 

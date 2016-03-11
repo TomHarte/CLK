@@ -185,8 +185,9 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
-		int _current_pixel_line, _current_pixel_column;
+		int _current_pixel_line, _current_pixel_column, _current_character_row;
 		uint8_t _last_pixel_byte;
+		bool _isBlankLine;
 
 		// CRT output
 		uint8_t *_currentLine;
