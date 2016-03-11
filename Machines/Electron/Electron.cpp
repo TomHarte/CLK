@@ -14,24 +14,35 @@
 
 using namespace Electron;
 
-static const unsigned int cycles_per_line = 128;
-static const unsigned int cycles_per_frame = 312*cycles_per_line + 64;
-static const unsigned int crt_cycles_multiplier = 8;
-static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
+namespace {
+	static const unsigned int cycles_per_line = 128;
+	static const unsigned int lines_per_frame = 625;
+	static const unsigned int cycles_per_frame = lines_per_frame * cycles_per_line;
+	static const unsigned int crt_cycles_multiplier = 8;
+	static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
-static const int first_graphics_line = 38;
-static const int first_graphics_cycle = 33;
-static const int last_graphics_cycle = 80 + first_graphics_cycle;
+	static const unsigned int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
+												// the first line with pixels in field 1 is the 20th in the frame, the first line
+												// with pixels in field 2 will be 20+field_divider_line
+	static const unsigned int first_graphics_line = 38;
+	static const unsigned int first_graphics_cycle = 33;
+	static const unsigned int last_graphics_cycle = 80 + first_graphics_cycle;
+
+	static const unsigned int real_time_clock_interrupt_line = 156;
+	static const unsigned int display_end_interrupt_line = 256;
+}
+
+#define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
+#define graphics_column(v)	((((v) %127) - first_graphics_cycle) % 127)
 
 Machine::Machine() :
 	_interrupt_control(0),
 	_interrupt_status(Interrupt::PowerOnReset),
-	_fieldCycles(0),
+	_frameCycles(0),
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
-	_currentOutputLine(0),
-	_is_odd_field(false),
+	_current_pixel_line(-1),
 	_crt(std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1, 1)))
 {
 	_crt->set_rgb_sampling_function(
@@ -69,10 +80,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			// base address) then there's no way this write can affect the current frame. Sp
 			// no need to flush the display. Otherwise, output up until now so that any
 			// write doesn't have retroactive effect on the video output.
-			if(!(
-				(_fieldCycles < first_graphics_line * cycles_per_line) ||
-				(address < _startLineAddress && address < 0x3000)
-			))
+//			if(!(
+//				(_fieldCycles < first_graphics_line * cycles_per_line) ||
+//				(address < _startLineAddress && address < 0x3000)
+//			))
 				update_display();
 
 			_ram[address] = *value;
@@ -80,13 +91,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += 1 + ((_fieldCycles&1));
+		cycles += 1 + (_frameCycles&1);
 		if(_screen_mode < 4)
 		{
-			const int current_line = _fieldCycles >> 7;
-			const int line_position = (_fieldCycles+cycles) & 127;
-			if(current_line >= first_graphics_line && current_line < first_graphics_line+256 && line_position >= first_graphics_cycle && line_position < first_graphics_cycle + 80)
-				cycles += (unsigned int)(80 + first_graphics_cycle - line_position);
+			const int current_line = graphics_line(_frameCycles + cycles);
+			const int current_column = graphics_column(_frameCycles + cycles);
+			if(current_line < 256 && current_column < 80)
+				cycles += (unsigned int)(80 - current_column);
 		}
 	}
 	else
@@ -183,7 +194,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							if(new_screen_mode == 7) new_screen_mode = 4;
 							if(new_screen_mode != _screen_mode)
 							{
-								printf("To mode %d, %d cycles into field (%d)\n", new_screen_mode, _fieldCycles, _fieldCycles >> 7);
+//								printf("To mode %d, at %d cycles into field (%d)\n", new_screen_mode, _fieldCycles, _fieldCycles >> 7);
 								update_display();
 								_screen_mode = new_screen_mode;
 								switch(_screen_mode)
@@ -282,59 +293,50 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
-	unsigned int start_of_graphics = get_first_graphics_cycle();
-	const unsigned int real_time_clock_interrupt_time = start_of_graphics + 128*128;
-	const unsigned int display_end_interrupt_time = start_of_graphics + 264*128;
+	const unsigned int line_before_cycle = graphics_line(_frameCycles);
+	const unsigned int line_after_cycle = graphics_line(_frameCycles + cycles);
 
-	if(_fieldCycles < real_time_clock_interrupt_time && _fieldCycles + cycles >= real_time_clock_interrupt_time)
+	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
+	// is never longer than a line. On the Electron, it's a safe one.
+	switch(line_before_cycle)
 	{
-		update_audio();
-		signal_interrupt(Interrupt::RealTimeClock);
+		case real_time_clock_interrupt_line:
+			if(line_after_cycle > real_time_clock_interrupt_line)
+				signal_interrupt(Interrupt::RealTimeClock);
+		break;
+		case real_time_clock_interrupt_line+1:
+			if(line_after_cycle > real_time_clock_interrupt_line+1)
+				clear_interrupt(Interrupt::RealTimeClock);
+		break;
+
+		case display_end_interrupt_line:
+			if(line_after_cycle > display_end_interrupt_line)
+				signal_interrupt(Interrupt::DisplayEnd);
+		break;
+		case display_end_interrupt_line+1:
+			if(line_after_cycle > display_end_interrupt_line+1)
+				clear_interrupt(Interrupt::DisplayEnd);
+		break;
 	}
 
-	if(_fieldCycles < real_time_clock_interrupt_time+128 && _fieldCycles + cycles >= real_time_clock_interrupt_time+128)
-	{
-		update_audio();
-		_interrupt_status &= ~Interrupt::RealTimeClock;
-		evaluate_interrupts();
-	}
+	_frameCycles += cycles;
 
-	else if(_fieldCycles < display_end_interrupt_time && _fieldCycles + cycles >= display_end_interrupt_time)
+	// deal with frame wraparound by updating the two dependent subsystems
+	// as though the exact end of frame had been hit, then reset those
+	// and allow the frame cycle counter to assume its real value
+	if(_frameCycles >= cycles_per_frame)
 	{
-		update_audio();
-		signal_interrupt(Interrupt::DisplayEnd);
-	}
-
-	if(_fieldCycles < display_end_interrupt_time+128 && _fieldCycles + cycles >= display_end_interrupt_time+128)
-	{
-		update_audio();
-		_interrupt_status &= ~Interrupt::DisplayEnd;
-		evaluate_interrupts();
-	}
-
-	_fieldCycles += cycles;
-
-	if(_fieldCycles >= cycles_per_frame)
-	{
+		unsigned int nextFrameCycles = _frameCycles - cycles_per_frame;
+		_frameCycles = cycles_per_frame;
 		update_display();
 		update_audio();
-		_fieldCycles -= cycles_per_frame;
 		_displayOutputPosition = 0;
-		_audioOutputPosition -= _audioOutputPosition;
-		_currentOutputLine = 0;
+		_audioOutputPosition = 0;
+		_frameCycles = nextFrameCycles;
 	}
 
-	switch(_fieldCycles)
-	{
-		case 64*128:
-		case 196*128:
-			update_audio();
-		break;
-//
-//		case cycles_per_frame:
-//		break;
-	}
-
+	if(!(_frameCycles&31))
+		update_audio();
 	_tape.run_for_cycles(cycles);
 
 	return cycles;
@@ -369,6 +371,12 @@ inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
 	evaluate_interrupts();
 }
 
+inline void Machine::clear_interrupt(Electron::Interrupt interrupt)
+{
+	_interrupt_status &= ~interrupt;
+	evaluate_interrupts();
+}
+
 void Machine::tape_did_change_interrupt_status(Tape *tape)
 {
 	_interrupt_status = (_interrupt_status & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | _tape.get_interrupt_status();
@@ -390,180 +398,155 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_audio()
 {
-	int difference = (int)_fieldCycles - _audioOutputPosition;
-	_audioOutputPosition = (int)_fieldCycles;
+	int difference = (int)_frameCycles - _audioOutputPosition;
+	_audioOutputPosition = (int)_frameCycles;
 	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 4);
 	_audioOutputPositionError = (_audioOutputPositionError + difference)&15;
 }
 
-inline void Machine::reset_pixel_output()
+inline void Machine::start_pixel_line()
 {
-	display_x = 0;
-	display_y = 0;
-	_currentScreenAddress = _startLineAddress = _startScreenAddress;
-	_currentOutputLine = 0;
+	_current_pixel_line = (_current_pixel_line+1)&255;
+	if(!(_current_pixel_line&7))
+	{
+		_startLineAddress += ((_screen_mode < 4) ? 80 : 40) * 8 - 8;
+	}
+	if(!_current_pixel_line)
+	{
+		_startLineAddress = _startScreenAddress;
+	}
+	else
+	{
+		_startLineAddress++;
+	}
+	_currentScreenAddress = _startLineAddress;
+	_current_pixel_column = 0;
+
+	_crt->allocate_write_area(640);
+	_currentLine = _crt->get_write_target_for_buffer(0);
 }
 
-inline void Machine::output_pixels(int start_x, int number_of_pixels)
+inline void Machine::end_pixel_line()
 {
-	if(number_of_pixels)
+	_crt->output_data(640, 1);
+}
+
+inline void Machine::output_pixels(unsigned int number_of_cycles)
+{
+	while(number_of_cycles--)
 	{
-		if(
-			((_screen_mode == 3) || (_screen_mode == 6)) &&
-			(((display_y%10) >= 8) || (display_y >= 250))
-		)
+		if(!(_current_pixel_column&1) || _screen_mode < 4)
 		{
-			end_pixel_output();
-			_crt->output_blank((unsigned int)number_of_pixels * crt_cycles_multiplier);
-			return;
+			if(_currentScreenAddress&32768)
+			{
+				_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;
+			}
+
+			_last_pixel_byte = _ram[_currentScreenAddress];
+			_currentScreenAddress = _currentScreenAddress+8;
 		}
 
-		unsigned int newDivider = 0;
 		switch(_screen_mode)
 		{
-			case 0: case 3:				newDivider = 1; break;
-			case 1:	case 4: case 6:		newDivider = 2; break;
-			case 2: case 5:				newDivider = 4; break;
-		}
-		bool is40Column = (_screen_mode > 3);
-
-		if(!_writePointer || newDivider != _currentOutputDivider || _isOutputting40Columns != is40Column)
-		{
-			end_pixel_output();
-			_currentOutputDivider = newDivider;
-			_isOutputting40Columns = is40Column;
-			_crt->allocate_write_area(640 / newDivider);
-			_currentLine = _writePointer = _crt->get_write_target_for_buffer(0);
-		}
-
-		if(is40Column)
-		{
-			number_of_pixels = ((start_x + number_of_pixels) >> 1) - (start_x >> 1);
-		}
-
-#define GetNextPixels() \
-	if(_currentScreenAddress&32768)\
-	{\
-		_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;\
-	}\
-	uint8_t pixels = _ram[_currentScreenAddress];\
-	_currentScreenAddress = _currentScreenAddress+8
-		switch(_screen_mode)
-		{
-			default:
-			case 0: case 3: case 4: case 6:
-				while(number_of_pixels--)
-				{
-					GetNextPixels();
-
-					_writePointer[0] = _palette[(pixels&0x80) >> 4];
-					_writePointer[1] = _palette[(pixels&0x40) >> 3];
-					_writePointer[2] = _palette[(pixels&0x20) >> 2];
-					_writePointer[3] = _palette[(pixels&0x10) >> 1];
-					_writePointer[4] = _palette[(pixels&0x08) >> 0];
-					_writePointer[5] = _palette[(pixels&0x04) << 1];
-					_writePointer[6] = _palette[(pixels&0x02) << 2];
-					_writePointer[7] = _palette[(pixels&0x01) << 3];
-
-					_writePointer += 8;
-				}
+			case 3:
+			case 0:
+			{
+				_currentLine[0] = _palette[(_last_pixel_byte&0x80) >> 4];
+				_currentLine[1] = _palette[(_last_pixel_byte&0x40) >> 3];
+				_currentLine[2] = _palette[(_last_pixel_byte&0x20) >> 2];
+				_currentLine[3] = _palette[(_last_pixel_byte&0x10) >> 1];
+				_currentLine[4] = _palette[(_last_pixel_byte&0x08) >> 0];
+				_currentLine[5] = _palette[(_last_pixel_byte&0x04) << 1];
+				_currentLine[6] = _palette[(_last_pixel_byte&0x02) << 2];
+				_currentLine[7] = _palette[(_last_pixel_byte&0x01) << 3];
+			}
 			break;
 
-			case 1: case 5:
-				while(number_of_pixels--)
-				{
-					GetNextPixels();
-
-					_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x08) >> 2)];
-					_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x04) >> 1)];
-					_writePointer[2] = _palette[((pixels&0x20) >> 2) | ((pixels&0x02) >> 0)];
-					_writePointer[3] = _palette[((pixels&0x10) >> 1) | ((pixels&0x01) << 1)];
-
-					_writePointer += 4;
-				}
+			case 1:
+			{
+				_currentLine[0] =
+				_currentLine[1] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
+				_currentLine[2] =
+				_currentLine[3] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
+				_currentLine[4] =
+				_currentLine[5] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
+				_currentLine[6] =
+				_currentLine[7] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
+			}
 			break;
 
 			case 2:
-				while(number_of_pixels--)
+			{
+				_currentLine[0] =
+				_currentLine[1] =
+				_currentLine[2] =
+				_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)];
+				_currentLine[4] =
+				_currentLine[5] =
+				_currentLine[6] =
+				_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)];
+			}
+			break;
+
+			case 6:
+			case 4:
+			{
+				if(_current_pixel_column&1)
 				{
-					GetNextPixels();
-
-					_writePointer[0] = _palette[((pixels&0x80) >> 4) | ((pixels&0x20) >> 3) | ((pixels&0x08) >> 2) | ((pixels&0x02) >> 1)];
-					_writePointer[1] = _palette[((pixels&0x40) >> 3) | ((pixels&0x10) >> 2) | ((pixels&0x04) >> 1) | ((pixels&0x01) >> 0)];
-
-					_writePointer += 2;
+					_currentLine[0] =
+					_currentLine[1] = _palette[(_last_pixel_byte&0x08) >> 0];
+					_currentLine[2] =
+					_currentLine[3] = _palette[(_last_pixel_byte&0x04) << 1];
+					_currentLine[4] =
+					_currentLine[5] = _palette[(_last_pixel_byte&0x02) << 2];
+					_currentLine[6] =
+					_currentLine[7] = _palette[(_last_pixel_byte&0x01) << 3];
 				}
+				else
+				{
+					_currentLine[0] =
+					_currentLine[1] = _palette[(_last_pixel_byte&0x80) >> 4];
+					_currentLine[2] =
+					_currentLine[3] = _palette[(_last_pixel_byte&0x40) >> 3];
+					_currentLine[4] =
+					_currentLine[5] = _palette[(_last_pixel_byte&0x20) >> 2];
+					_currentLine[6] =
+					_currentLine[7] = _palette[(_last_pixel_byte&0x10) >> 1];
+				}
+			}
+			break;
+
+			case 5:
+			{
+				if(_current_pixel_column&1)
+				{
+					_currentLine[0] =
+					_currentLine[1] =
+					_currentLine[2] =
+					_currentLine[3] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
+					_currentLine[4] =
+					_currentLine[5] =
+					_currentLine[6] =
+					_currentLine[7] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
+				}
+				else
+				{
+					_currentLine[0] =
+					_currentLine[1] =
+					_currentLine[2] =
+					_currentLine[3] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
+					_currentLine[4] =
+					_currentLine[5] =
+					_currentLine[6] =
+					_currentLine[7] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
+				}
+			}
 			break;
 		}
+
+		_current_pixel_column++;
+		_currentLine += 8;
 	}
-#undef GetNextPixels
-}
-
-inline void Machine::end_pixel_output()
-{
-	if(_currentLine != nullptr)
-	{
-		_crt->output_data((unsigned int)((_writePointer - _currentLine) * _currentOutputDivider), _currentOutputDivider);
-		_writePointer = _currentLine = nullptr;
-	}
-}
-
-inline void Machine::update_pixels_to_position(int x, int y)
-{
-	while((display_x < x) || (display_y < y))
-	{
-		if(display_x < first_graphics_cycle)
-		{
-			display_x++;
-
-			if(display_x == first_graphics_cycle)
-			{
-				_crt->output_sync(9 * crt_cycles_multiplier);
-				_crt->output_blank((first_graphics_cycle - 9) * crt_cycles_multiplier);
-				_currentScreenAddress = _startLineAddress;
-			}
-			continue;
-		}
-
-		if(display_x < last_graphics_cycle)
-		{
-			int cycles_to_output = (display_y < y) ? last_graphics_cycle - display_x : std::min(last_graphics_cycle - display_x, x - display_x);
-			output_pixels(display_x, cycles_to_output);
-			display_x += cycles_to_output;
-
-			if(display_x == last_graphics_cycle)
-			{
-				end_pixel_output();
-			}
-			continue;
-		}
-
-		display_x++;
-		if(display_x == 128)
-		{
-			_crt->output_blank((128 - 80 - first_graphics_cycle) * crt_cycles_multiplier);
-			display_x = 0;
-			display_y++;
-
-
-			if(((_screen_mode != 3) && (_screen_mode != 6)) || ((display_y%10) < 8))
-			{
-				_startLineAddress++;
-				_currentOutputLine++;
-
-				if(_currentOutputLine == 8)
-				{
-					_currentOutputLine = 0;
-					_startLineAddress = (_startLineAddress - 8) + ((_screen_mode < 4) ? 80 : 40)*8;
-				}
-			}
-		}
-	}
-}
-
-inline unsigned int Machine::get_first_graphics_cycle()
-{
-	return (first_graphics_line * cycles_per_line) - (_is_odd_field ? 0 : 64);
 }
 
 inline void Machine::update_display()
@@ -582,58 +565,126 @@ inline void Machine::update_display()
 
 	*/
 
-	const unsigned int end_of_top = get_first_graphics_cycle();
-	const unsigned int end_of_graphics = end_of_top + 256 * cycles_per_line;
-
-	// does the top region need to be output?
-	if(_displayOutputPosition < end_of_top && _fieldCycles >= end_of_top)
+	int final_line = _frameCycles >> 7;
+	while(_displayOutputPosition < _frameCycles)
 	{
-		_crt->output_sync(320 * crt_cycles_multiplier);
-		if(_is_odd_field) _crt->output_blank(64 * crt_cycles_multiplier);
-		_displayOutputPosition += 320 + (_is_odd_field ? 64 : 0);
+		int line = _displayOutputPosition >> 7;
 
-		while(_displayOutputPosition < end_of_top)
+		// Priority one: sync.
+		// ===================
+
+		// full sync lines are 0, 1, field_divider_line+1 and field_divider_line+2
+		if(line == 0 || line == 1 || line == field_divider_line+1 || line == field_divider_line+2)
 		{
+			// wait for the line to complete before signalling
+			if(final_line == line) return;
+			_crt->output_sync(128 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
+			continue;
+		}
+
+		// line 2 is a left-sync line
+		if(line == 2)
+		{
+			// wait for the line to complete before signalling
+			if(final_line == line) return;
+			_crt->output_sync(64 * crt_cycles_multiplier);
+			_crt->output_blank(64 * crt_cycles_multiplier);
+			_displayOutputPosition += 128;
+			continue;
+		}
+
+		// line field_divider_line is a right-sync line
+		if(line == field_divider_line)
+		{
+			// wait for the line to complete before signalling
+			if(final_line == line) return;
+			_crt->output_blank(64 * crt_cycles_multiplier);
+			_crt->output_sync(64 * crt_cycles_multiplier);
+			_displayOutputPosition += 128;
+			continue;
+		}
+
+		// Priority two: blank lines.
+		// ==========================
+		//
+		// Given that it is not a sync line, this is a blank line if it is less than first_graphics_line, or greater
+		// than first_graphics_line+255 and less than first_graphics_line+field_divider_line, or greater than
+		// first_graphics_line+field_divider_line+255 (TODO: or this is Mode 3 or 6 and this should be blank)
+		if(
+			line < first_graphics_line ||
+			(line > first_graphics_line+255 && line < first_graphics_line+field_divider_line) ||
+			line > first_graphics_line+field_divider_line+255)
+		{
+			if(final_line == line) return;
 			_crt->output_sync(9 * crt_cycles_multiplier);
 			_crt->output_blank(119 * crt_cycles_multiplier);
+			_displayOutputPosition += 128;
+			continue;
 		}
 
-		assert(_displayOutputPosition == end_of_top);
+		// Final possibility: this is a pixel line.
+		// ========================================
 
-		reset_pixel_output();
-	}
-
-	// is this the pixel region?
-	if(_displayOutputPosition >= end_of_top && _displayOutputPosition < end_of_graphics)
-	{
-		unsigned int final_position = std::min(_fieldCycles, end_of_graphics) - end_of_top;
-		unsigned int final_line = final_position >> 7;
-		unsigned int final_pixel = final_position & 127;
-		update_pixels_to_position((int)final_pixel, (int)final_line);
-		_displayOutputPosition = final_position + end_of_top;
-	}
-
-	// is this the bottom region?
-	if(_displayOutputPosition >= end_of_graphics && _displayOutputPosition < cycles_per_frame)
-	{
-		unsigned int remaining_time = cycles_per_frame - _displayOutputPosition;
-		while(remaining_time >= 128)
+		// determine how far we're going from left to right
+		unsigned int this_cycle = _displayOutputPosition&127;
+		unsigned int final_cycle = _frameCycles&127;
+		if(final_line > line)
 		{
-			_crt->output_sync(9 * crt_cycles_multiplier);
-			_crt->output_blank(119 * crt_cycles_multiplier);
-			remaining_time -= 128;
+			final_cycle = 128;
 		}
 
-		if(remaining_time == 64)
+		// output format is:
+		// 9 cycles: sync
+		// ... to 24 cycles: colour burst
+		// ... to first_graphics_cycle: blank
+		// ... for 80 cycles: pixels
+		// ... until end of line: blank
+		while(this_cycle < final_cycle)
 		{
-			_crt->output_sync(9 * crt_cycles_multiplier);
-			_crt->output_blank(55 * crt_cycles_multiplier);
+			if(this_cycle < 9)
+			{
+				if(final_cycle < 9) return;
+				_crt->output_sync(9 * crt_cycles_multiplier);
+				_displayOutputPosition += 9;
+				this_cycle = 9;
+			}
+
+			if(this_cycle < 24)
+			{
+				if(final_cycle < 24) return;
+				_crt->output_colour_burst((24-9) * crt_cycles_multiplier, 0, 12);
+				_displayOutputPosition += 24-9;
+				this_cycle = 24;
+				// TODO: phase shouldn't be zero on every line
+			}
+
+			if(this_cycle < first_graphics_cycle)
+			{
+				if(final_cycle < first_graphics_cycle) return;
+				_crt->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
+				_displayOutputPosition += first_graphics_cycle - 24;
+				this_cycle = first_graphics_cycle;
+				start_pixel_line();
+			}
+
+			if(this_cycle < first_graphics_cycle + 80)
+			{
+				unsigned int length_to_output = std::min(final_cycle, (first_graphics_cycle + 80)) - this_cycle;
+				output_pixels(length_to_output);
+				_displayOutputPosition += length_to_output;
+				this_cycle += length_to_output;
+			}
+
+			if(this_cycle >= first_graphics_cycle + 80)
+			{
+				if(final_cycle < 128) return;
+				end_pixel_line();
+				_crt->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
+				_displayOutputPosition += 128 - (first_graphics_cycle + 80);
+				this_cycle = 128;
+			}
 		}
-
-		_displayOutputPosition = cycles_per_frame;
-
-		_is_odd_field ^= true;
 	}
 }
 

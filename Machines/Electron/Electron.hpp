@@ -157,18 +157,14 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 	private:
 
 		inline void update_display();
-		inline void update_pixels_to_position(int x, int y);
-		inline void output_pixels(int start_x, int number_of_pixels);
-		inline void end_pixel_output();
-		inline void reset_pixel_output();
-		inline unsigned int get_first_graphics_cycle();
+		inline void start_pixel_line();
+		inline void end_pixel_line();
+		inline void output_pixels(unsigned int number_of_cycles);
 
 		inline void update_audio();
 		inline void signal_interrupt(Interrupt interrupt);
+		inline void clear_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
-
-		// Pixel tracker;
-		int display_x, display_y;
 
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
@@ -184,18 +180,16 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint16_t _startScreenAddress;
 
 		// Counters related to simultaneous subsystems;
-		unsigned int _fieldCycles, _displayOutputPosition;
+		unsigned int _frameCycles, _displayOutputPosition;
 		int _audioOutputPosition, _audioOutputPositionError;
 
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
-		int _currentOutputLine;
-		bool _is_odd_field;
+		int _current_pixel_line, _current_pixel_column;
+		uint8_t _last_pixel_byte;
 
 		// CRT output
-		unsigned int _currentOutputDivider;
-		bool _isOutputting40Columns;
-		uint8_t *_currentLine, *_writePointer;
+		uint8_t *_currentLine;
 
 		// Tape.
 		Tape _tape;
