@@ -308,6 +308,7 @@
 		4BBF99161C8FBA6F0075DAFB /* CRTRunBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990C1C8FBA6F0075DAFB /* CRTRunBuilder.cpp */; };
 		4BBF99171C8FBA6F0075DAFB /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99101C8FBA6F0075DAFB /* Shader.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
+		4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BCB70B31C947DDC005B1712 /* plus1.rom */; };
 		4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85C1C3E1C2500C43F01 /* basic.rom */; };
 		4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85D1C3E1C2500C43F01 /* os.rom */; };
 /* End PBXBuildFile section */
@@ -665,6 +666,7 @@
 		4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
+		4BCB70B31C947DDC005B1712 /* plus1.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = plus1.rom; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1221,6 +1223,7 @@
 		4BE5F85B1C3E1C2500C43F01 /* Electron */ = {
 			isa = PBXGroup;
 			children = (
+				4BCB70B31C947DDC005B1712 /* plus1.rom */,
 				4BE5F85C1C3E1C2500C43F01 /* basic.rom */,
 				4BE5F85D1C3E1C2500C43F01 /* os.rom */,
 			);
@@ -1339,6 +1342,7 @@
 				4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */,
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */,
+				4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
 				4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */,

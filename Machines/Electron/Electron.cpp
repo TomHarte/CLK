@@ -28,7 +28,7 @@ namespace {
 	static const unsigned int first_graphics_cycle = 33;
 
 	static const unsigned int real_time_clock_interrupt_line = 100;
-	static const unsigned int display_end_interrupt_line = 264;
+	static const unsigned int display_end_interrupt_line = 255;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
@@ -293,8 +293,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
-	const unsigned int line_before_cycle = graphics_line(_frameCycles);
-	const unsigned int line_after_cycle = graphics_line(_frameCycles + cycles);
+	const unsigned int pixel_line_clock = _frameCycles + 128 - first_graphics_cycle + 80;
+	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
+	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
 
 	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
 	// is never longer than a line. On the Electron, it's a safe one.
