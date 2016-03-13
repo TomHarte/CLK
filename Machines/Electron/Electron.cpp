@@ -850,8 +850,17 @@ inline void Tape::get_next_tape_pulse()
 inline void Tape::push_tape_bit(uint16_t bit)
 {
 	_data_register = (uint16_t)((_data_register >> 1) | (bit << 10));
+
 	if(_input.minimum_bits_until_full) _input.minimum_bits_until_full--;
-	if(_input.minimum_bits_until_full == 7) _interrupt_status &= ~Interrupt::ReceiveDataFull;
+	if(_input.minimum_bits_until_full == 8) _interrupt_status &= ~Interrupt::ReceiveDataFull;
+	if(!_input.minimum_bits_until_full)
+	{
+		if((_data_register&0x3) == 0x1)
+		{
+			_interrupt_status |= Interrupt::ReceiveDataFull;
+			if(_is_in_input_mode) _input.minimum_bits_until_full = 9;
+		}
+	}
 
 	if(_output.bits_remaining_until_empty)	_output.bits_remaining_until_empty--;
 	if(!_output.bits_remaining_until_empty)	_interrupt_status |= Interrupt::TransmitDataEmpty;
@@ -862,29 +871,8 @@ inline void Tape::push_tape_bit(uint16_t bit)
 	evaluate_interrupts();
 }
 
-//inline void Tape::reset_tape_input()
-//{
-//	_input.minimum_bits_until_full = 0;
-//	_interrupt_status &= ~(Interrupt::ReceiveDataFull | Interrupt::TransmitDataEmpty | Interrupt::HighToneDetect);
-//
-//	if(_last_posted_interrupt_status != _interrupt_status)
-//	{
-//		_last_posted_interrupt_status = _interrupt_status;
-//		if(_delegate) _delegate->tape_did_change_interrupt_status(this);
-//	}
-//}
-
 inline void Tape::evaluate_interrupts()
 {
-	if(!_input.minimum_bits_until_full)
-	{
-		if((_data_register&0x3) == 0x1)
-		{
-			_interrupt_status |= Interrupt::ReceiveDataFull;
-			if(_is_in_input_mode) _input.minimum_bits_until_full = 9;
-		}
-	}
-
 	if(_last_posted_interrupt_status != _interrupt_status)
 	{
 		_last_posted_interrupt_status = _interrupt_status;
@@ -894,11 +882,8 @@ inline void Tape::evaluate_interrupts()
 
 inline void Tape::clear_interrupts(uint8_t interrupts)
 {
-	if(_interrupt_status & interrupts)
-	{
-		_interrupt_status &= ~interrupts;
-		if(_delegate) _delegate->tape_did_change_interrupt_status(this);
-	}
+	_interrupt_status &= ~interrupts;
+	evaluate_interrupts();
 }
 
 inline void Tape::set_is_in_input_mode(bool is_in_input_mode)
