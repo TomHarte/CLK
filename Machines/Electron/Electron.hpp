@@ -78,6 +78,7 @@ class Tape {
 		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
 
 		inline void run_for_cycles(unsigned int number_of_cycles);
+		inline uint8_t run_for_input_pulse();
 
 		inline void set_is_running(bool is_running) { _is_running = is_running; }
 		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
@@ -158,6 +159,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		virtual void tape_did_change_interrupt_status(Tape *tape);
 
 		void update_output();
+		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
 
 	private:
 
@@ -199,6 +201,8 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		// Tape.
 		Tape _tape;
+		bool _use_fast_tape_hack;
+		bool _fast_load_is_in_data;
 
 		// Outputs.
 		std::unique_ptr<Outputs::CRT::CRT> _crt;

@@ -42,6 +42,7 @@ Machine::Machine() :
 	_audioOutputPosition(0),
 	_audioOutputPositionError(0),
 	_current_pixel_line(-1),
+	_use_fast_tape_hack(false),
 	_crt(std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1, 1)))
 {
 	_crt->set_rgb_sampling_function(
@@ -263,7 +264,65 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			else
 			{
 				if(isReadOperation(operation))
-					*value = _os[address & 16383];
+				{
+					if(
+						_use_fast_tape_hack &&
+						(operation == CPU6502::BusOperation::ReadOpcode) &&
+						(
+							(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
+							(address == 0xf6de) || (address == 0xf6df) ||	// act to disable the normal branch into tape-handling
+							(address == 0xf6fa) || (address == 0xf6fb) ||	// code, forcing the OS along the serially-accessed ROM
+							(address == 0xfa51) || (address == 0xfa52) ||	// pathway.
+
+							(address == 0xf0a8)								// 0xf0a8 is from where a service call would normally be
+																			// dispatched; we can check whether it would be call 14
+																			// (i.e. read byte) and, if so, whether the OS was about to
+																			// issue a read byte call to a ROM despite being the tape
+																			// FS being selected. If so then this is a get byte that
+																			// we should service synthetically. Put the byte into Y
+																			// and set A to zero to report that action was taken, then
+																			// allow the PC read to return an RTS.
+						)
+					)
+					{
+						uint8_t service_call = (uint8_t)get_value_of_register(CPU6502::Register::X);
+						if(address == 0xf0a8)
+						{
+							if(!_ram[0x247] && service_call == 14)
+							{
+								_tape.set_delegate(nullptr);
+
+								// TODO: handle tape wrap around.
+
+								int cycles_left_while_plausibly_in_data = 50;
+								_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+								while(1)
+								{
+									uint8_t tapeStatus = _tape.run_for_input_pulse();
+									cycles_left_while_plausibly_in_data--;
+									if(!cycles_left_while_plausibly_in_data) _fast_load_is_in_data = false;
+									if(	(tapeStatus & Interrupt::ReceiveDataFull) &&
+										(_fast_load_is_in_data || _tape.get_data_register() == 0x2a)
+									) break;
+								}
+								_tape.set_delegate(this);
+
+								_fast_load_is_in_data = true;
+								set_value_of_register(CPU6502::Register::A, 0);
+								set_value_of_register(CPU6502::Register::Y, _tape.get_data_register());
+								*value = 0x60; // 0x60 is RTS
+							}
+							else
+								*value = _os[address & 16383];
+						}
+						else
+							*value = 0xea;
+					}
+					else
+					{
+						*value = _os[address & 16383];
+					}
+				}
 			}
 		}
 		else
@@ -866,6 +925,40 @@ inline uint8_t Tape::get_data_register()
 	return (uint8_t)(_data_register >> 2);
 }
 
+inline uint8_t Tape::run_for_input_pulse()
+{
+	get_next_tape_pulse();
+
+	_crossings[0] = _crossings[1];
+	_crossings[1] = _crossings[2];
+	_crossings[2] = _crossings[3];
+
+	_crossings[3] = Tape::Unrecognised;
+	if(_input.current_pulse.type != Storage::Tape::Pulse::Zero)
+	{
+		float pulse_length = (float)_input.current_pulse.length.length / (float)_input.current_pulse.length.clock_rate;
+		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
+		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
+	}
+
+	if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
+	{
+		push_tape_bit(0);
+		_crossings[0] = _crossings[1] = Tape::Recognised;
+	}
+	else
+	{
+		if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
+		{
+			push_tape_bit(1);
+			_crossings[0] = _crossings[1] =
+			_crossings[2] = _crossings[3] = Tape::Recognised;
+		}
+	}
+
+	return _interrupt_status;
+}
+
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 {
 	if(_is_enabled)
@@ -879,35 +972,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 					_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
 					if(_input.time_into_pulse == _input.current_pulse.length.length)
 					{
-						get_next_tape_pulse();
-
-						_crossings[0] = _crossings[1];
-						_crossings[1] = _crossings[2];
-						_crossings[2] = _crossings[3];
-
-						_crossings[3] = Tape::Unrecognised;
-						if(_input.current_pulse.type != Storage::Tape::Pulse::Zero)
-						{
-							float pulse_length = (float)_input.current_pulse.length.length / (float)_input.current_pulse.length.clock_rate;
-							if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
-							if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
-						}
-
-						if(_crossings[0] == Tape::Long && _crossings[1] == Tape::Long)
-						{
-							push_tape_bit(0);
-							_crossings[0] = _crossings[1] = Tape::Recognised;
-						}
-						else
-						{
-							if(_crossings[0] == Tape::Short && _crossings[1] == Tape::Short && _crossings[2] == Tape::Short && _crossings[3] == Tape::Short)
-							{
-								push_tape_bit(1);
-								_crossings[0] = _crossings[1] =
-								_crossings[2] = _crossings[3] = Tape::Recognised;
-							}
-						}
-
+						run_for_input_pulse();
 					}
 				}
 			}

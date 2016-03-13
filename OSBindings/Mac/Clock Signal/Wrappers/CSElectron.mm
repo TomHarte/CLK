@@ -131,4 +131,9 @@
 	}
 }
 
+- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	_useFastLoadingHack = useFastLoadingHack;
+	_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+}
+
 @end

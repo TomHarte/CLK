@@ -20,4 +20,6 @@
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
+@property (nonatomic, assign) BOOL useFastLoadingHack;
+
 @end

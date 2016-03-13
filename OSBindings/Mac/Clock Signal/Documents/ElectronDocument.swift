@@ -42,6 +42,7 @@ class ElectronDocument: MachineDocument {
 			switch pathExtension.lowercaseString {
 				case "uef":
 					electron.openUEFAtURL(url)
+					electron.useFastLoadingHack = true
 					return
 				default: break;
 			}
