@@ -28,7 +28,7 @@ namespace {
 	static const unsigned int first_graphics_cycle = 33;
 
 	static const unsigned int real_time_clock_interrupt_line = 100;
-	static const unsigned int display_end_interrupt_line = 255;
+	static const unsigned int display_end_interrupt_line = 256;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
