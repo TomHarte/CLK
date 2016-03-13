@@ -35,6 +35,18 @@ class UEF : public Tape {
 		uint16_t _chunk_id;
 		uint32_t _chunk_length;
 
+		union {
+			struct {
+				uint8_t current_byte;
+				uint32_t position;
+			} _implicit_data_chunk;
+
+			struct {
+				uint8_t current_byte;
+				uint32_t position;
+			} _explicit_data_chunk;
+		};
+
 		uint8_t _current_byte;
 		uint32_t _chunk_position;
 

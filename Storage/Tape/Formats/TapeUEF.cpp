@@ -176,7 +176,12 @@ void Storage::UEF::find_next_tape_chunk()
 
 		switch(_chunk_id)
 		{
-			case 0x0100: case 0x0102: // implicit and explicit bit patterns
+			case 0x0100: // implicit bit pattern
+				_implicit_data_chunk.position = 0;
+			return;
+
+			case 0x0102: // explicit bit patterns
+				_explicit_data_chunk.position = 0;
 			return;
 
 			case 0x0112: // integer gap
@@ -233,8 +238,8 @@ bool Storage::UEF::chunk_is_finished()
 {
 	switch(_chunk_id)
 	{
-		case 0x0100: return (_chunk_position / 10) == _chunk_length;
-		case 0x0102: return (_chunk_position / 8) == _chunk_length;
+		case 0x0100: return (_implicit_data_chunk.position / 10) == _chunk_length;
+		case 0x0102: return (_explicit_data_chunk.position / 8) == _chunk_length;
 		case 0x0114:
 		case 0x0110: return _chunk_position == _chunk_duration.length;
 
@@ -251,16 +256,24 @@ bool Storage::UEF::get_next_bit()
 	{
 		case 0x0100:
 		{
-			uint32_t bit_position = _chunk_position%10;
-			_chunk_position++;
-			if(!bit_position)
-			{
-				_current_byte = (uint8_t)gzgetc(_file);
-			}
+			uint32_t bit_position = _implicit_data_chunk.position%10;
+			_implicit_data_chunk.position++;
+			if(!bit_position) _implicit_data_chunk.current_byte = (uint8_t)gzgetc(_file);
 			if(bit_position == 0) return false;
 			if(bit_position == 9) return true;
-			bool result = (_current_byte&1) ? true : false;
-			_current_byte >>= 1;
+			bool result = (_implicit_data_chunk.current_byte&1) ? true : false;
+			_implicit_data_chunk.current_byte >>= 1;
+			return result;
+		}
+		break;
+
+		case 0x0102:
+		{
+			uint32_t bit_position = _explicit_data_chunk.position%8;
+			_explicit_data_chunk.position++;
+			if(!bit_position) _explicit_data_chunk.current_byte = (uint8_t)gzgetc(_file);
+			bool result = (_explicit_data_chunk.current_byte&1) ? true : false;
+			_explicit_data_chunk.current_byte >>= 1;
 			return result;
 		}
 		break;
@@ -268,7 +281,6 @@ bool Storage::UEF::get_next_bit()
 		// TODO: 0x0104, 0x0111
 
 		case 0x0114:
-		case 0x0102:
 		{
 			uint32_t bit_position = _chunk_position%8;
 			_chunk_position++;
