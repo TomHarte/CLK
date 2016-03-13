@@ -124,14 +124,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1:
 					break;
 					case 0x2:
-						printf("%02x to [2] mutates %04x ", *value, _startScreenAddress);
-						_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
-						printf("into %04x\n", _startScreenAddress);
+						if(!isReadOperation(operation))
+						{
+							_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
+							if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+						}
 					break;
 					case 0x3:
-						printf("%02x to [3] mutates %04x ", *value, _startScreenAddress);
-						_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
-						printf("into %04x\n", _startScreenAddress);
+						if(!isReadOperation(operation))
+						{
+							_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
+							if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+						}
 					break;
 					case 0x4:
 						if(isReadOperation(operation))
