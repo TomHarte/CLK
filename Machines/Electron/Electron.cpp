@@ -116,7 +116,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 						else
 						{
-							_interrupt_control = *value;
+							_interrupt_control = (*value) & ~1;
 							evaluate_interrupts();
 						}
 					break;
