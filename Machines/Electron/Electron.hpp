@@ -90,17 +90,22 @@ class Tape {
 
 		std::shared_ptr<Storage::Tape> _tape;
 
-		Storage::Tape::Pulse _current_pulse;
-		std::unique_ptr<SignalProcessing::Stepper> _input_pulse_stepper;
-		std::unique_ptr<SignalProcessing::Stepper> _output_pulse_stepper;
-		uint32_t _time_into_pulse;
+		struct {
+			Storage::Tape::Pulse current_pulse;
+			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
+			uint32_t time_into_pulse;
+			int minimum_bits_until_full;
+		} _input;
+		struct {
+			unsigned int cycles_into_pulse;
+			unsigned int bits_remaining_until_empty;
+		} _output;
 
 		bool _is_running;
 		bool _is_enabled;
 		bool _is_in_input_mode;
 
 		inline void evaluate_interrupts();
-		int _bits_since_start, _output_bits_remaining;
 		uint16_t _data_register;
 
 		uint8_t _interrupt_status, _last_posted_interrupt_status;

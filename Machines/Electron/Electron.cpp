@@ -760,7 +760,13 @@ void Speaker::set_is_enabled(bool is_enabled)
 	Tape
 */
 
-Tape::Tape() : _is_running(false), _data_register(0), _delegate(nullptr), _output_bits_remaining(0), _last_posted_interrupt_status(0), _interrupt_status(0) {}
+Tape::Tape() :
+	_is_running(false),
+	_data_register(0),
+	_delegate(nullptr),
+	_output({.bits_remaining_until_empty = 0, .cycles_into_pulse = 0}),
+	_last_posted_interrupt_status(0),
+	_interrupt_status(0) {}
 
 void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
@@ -770,22 +776,22 @@ void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
 
 inline void Tape::get_next_tape_pulse()
 {
-	_time_into_pulse = 0;
-	_current_pulse = _tape->get_next_pulse();
-	if(_input_pulse_stepper == nullptr || _current_pulse.length.clock_rate != _input_pulse_stepper->get_output_rate())
+	_input.time_into_pulse = 0;
+	_input.current_pulse = _tape->get_next_pulse();
+	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
 	{
-		_input_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_current_pulse.length.clock_rate, 2000000));
+		_input.pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));
 	}
 }
 
 inline void Tape::push_tape_bit(uint16_t bit)
 {
 	_data_register = (uint16_t)((_data_register >> 1) | (bit << 10));
-	if(_bits_since_start)
+	if(_input.minimum_bits_until_full)
 	{
-		_bits_since_start--;
+		_input.minimum_bits_until_full--;
 
-		if(_bits_since_start == 7)
+		if(_input.minimum_bits_until_full == 7)
 		{
 			_interrupt_status &= ~Interrupt::ReceiveDataFull;
 		}
@@ -795,7 +801,7 @@ inline void Tape::push_tape_bit(uint16_t bit)
 
 inline void Tape::reset_tape_input()
 {
-	_bits_since_start = 0;
+	_input.minimum_bits_until_full = 0;
 //	_interrupt_status &= ~(Interrupt::ReceiveDataFull | Interrupt::TransmitDataEmpty | Interrupt::HighToneDetect);
 //
 //	if(_last_posted_interrupt_status != _interrupt_status)
@@ -807,12 +813,12 @@ inline void Tape::reset_tape_input()
 
 inline void Tape::evaluate_interrupts()
 {
-	if(!_bits_since_start)
+	if(!_input.minimum_bits_until_full)
 	{
 		if((_data_register&0x3) == 0x1)
 		{
 			_interrupt_status |= Interrupt::ReceiveDataFull;
-			if(_is_in_input_mode) _bits_since_start = 9;
+			if(_is_in_input_mode) _input.minimum_bits_until_full = 9;
 		}
 	}
 
@@ -844,14 +850,15 @@ inline void Tape::set_is_in_input_mode(bool is_in_input_mode)
 
 inline void Tape::set_counter(uint8_t value)
 {
-	_output_pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(1200, 2000000));
+	_output.cycles_into_pulse = 0;
+	_output.bits_remaining_until_empty = 0;
 }
 
 inline void Tape::set_data_register(uint8_t value)
 {
 	_data_register = (uint16_t)((value << 2) | 1);
 	printf("Loaded — %03x\n", _data_register);
-	_bits_since_start = _output_bits_remaining = 9;
+	_output.bits_remaining_until_empty = 9;
 }
 
 inline uint8_t Tape::get_data_register()
@@ -869,8 +876,8 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 			{
 				while(number_of_cycles--)
 				{
-					_time_into_pulse += (unsigned int)_input_pulse_stepper->step();
-					if(_time_into_pulse == _current_pulse.length.length)
+					_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
+					if(_input.time_into_pulse == _input.current_pulse.length.length)
 					{
 						get_next_tape_pulse();
 
@@ -879,9 +886,9 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 						_crossings[2] = _crossings[3];
 
 						_crossings[3] = Tape::Unrecognised;
-						if(_current_pulse.type != Storage::Tape::Pulse::Zero)
+						if(_input.current_pulse.type != Storage::Tape::Pulse::Zero)
 						{
-							float pulse_length = (float)_current_pulse.length.length / (float)_current_pulse.length.clock_rate;
+							float pulse_length = (float)_input.current_pulse.length.length / (float)_input.current_pulse.length.clock_rate;
 							if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
 							if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
 						}
@@ -907,23 +914,15 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 		}
 		else
 		{
-			while(number_of_cycles--)
+			_output.cycles_into_pulse += number_of_cycles;
+			while(_output.cycles_into_pulse > 1666)
 			{
-				if(_output_pulse_stepper->step())
-				{
-					_output_bits_remaining--;
-					_bits_since_start--;
-					if(!_output_bits_remaining)
-					{
-						_output_bits_remaining = 9;
-						_interrupt_status |= Interrupt::TransmitDataEmpty;
-					}
+				_output.cycles_into_pulse -= 1666;
+				if(_output.bits_remaining_until_empty)	_output.bits_remaining_until_empty--;
+				if(!_output.bits_remaining_until_empty)	_interrupt_status |= Interrupt::TransmitDataEmpty;
+				_data_register = (_data_register >> 1) | 0x200;
 
-					evaluate_interrupts();
-
-					_data_register = (_data_register >> 1) | 0x200;
-					printf("Shifted — %03x\n", _data_register);
-				}
+				evaluate_interrupts();
 			}
 		}
 	}
