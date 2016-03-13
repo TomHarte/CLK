@@ -10,10 +10,6 @@
 #define CRT_hpp
 
 #include <stdint.h>
-#include <stdarg.h>
-#include <string>
-#include <vector>
-#include <mutex>
 
 #include "CRTTypes.hpp"
 #include "Internals/Flywheel.hpp"
