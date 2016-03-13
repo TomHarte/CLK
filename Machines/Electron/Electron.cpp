@@ -850,21 +850,21 @@ inline void Tape::get_next_tape_pulse()
 inline void Tape::push_tape_bit(uint16_t bit)
 {
 	_data_register = (uint16_t)((_data_register >> 1) | (bit << 10));
-	if(_input.minimum_bits_until_full)
-	{
-		_input.minimum_bits_until_full--;
+	if(_input.minimum_bits_until_full) _input.minimum_bits_until_full--;
+	if(_input.minimum_bits_until_full == 7) _interrupt_status &= ~Interrupt::ReceiveDataFull;
 
-		if(_input.minimum_bits_until_full == 7)
-		{
-			_interrupt_status &= ~Interrupt::ReceiveDataFull;
-		}
-	}
+	if(_output.bits_remaining_until_empty)	_output.bits_remaining_until_empty--;
+	if(!_output.bits_remaining_until_empty)	_interrupt_status |= Interrupt::TransmitDataEmpty;
+
+	if(_data_register == 0x3ff)	_interrupt_status |= Interrupt::HighToneDetect;
+	else						_interrupt_status &= ~Interrupt::HighToneDetect;
+
 	evaluate_interrupts();
 }
 
-inline void Tape::reset_tape_input()
-{
-	_input.minimum_bits_until_full = 0;
+//inline void Tape::reset_tape_input()
+//{
+//	_input.minimum_bits_until_full = 0;
 //	_interrupt_status &= ~(Interrupt::ReceiveDataFull | Interrupt::TransmitDataEmpty | Interrupt::HighToneDetect);
 //
 //	if(_last_posted_interrupt_status != _interrupt_status)
@@ -872,7 +872,7 @@ inline void Tape::reset_tape_input()
 //		_last_posted_interrupt_status = _interrupt_status;
 //		if(_delegate) _delegate->tape_did_change_interrupt_status(this);
 //	}
-}
+//}
 
 inline void Tape::evaluate_interrupts()
 {
@@ -884,11 +884,6 @@ inline void Tape::evaluate_interrupts()
 			if(_is_in_input_mode) _input.minimum_bits_until_full = 9;
 		}
 	}
-
-	if(_data_register == 0x3ff)
-		_interrupt_status |= Interrupt::HighToneDetect;
-	else
-		_interrupt_status &= ~Interrupt::HighToneDetect;
 
 	if(_last_posted_interrupt_status != _interrupt_status)
 	{
@@ -920,7 +915,6 @@ inline void Tape::set_counter(uint8_t value)
 inline void Tape::set_data_register(uint8_t value)
 {
 	_data_register = (uint16_t)((value << 2) | 1);
-	printf("Loaded — %03x\n", _data_register);
 	_output.bits_remaining_until_empty = 9;
 }
 
@@ -987,11 +981,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 			while(_output.cycles_into_pulse > 1666)
 			{
 				_output.cycles_into_pulse -= 1666;
-				if(_output.bits_remaining_until_empty)	_output.bits_remaining_until_empty--;
-				if(!_output.bits_remaining_until_empty)	_interrupt_status |= Interrupt::TransmitDataEmpty;
-				_data_register = (_data_register >> 1) | 0x200;
-
-				evaluate_interrupts();
+				push_tape_bit(1);
 			}
 		}
 	}
