@@ -95,8 +95,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		if(_screen_mode < 4)
 		{
 			update_display();
-			const int current_line = graphics_line(_frameCycles); // + cycles
-			const int current_column = graphics_column(_frameCycles); // + cycles
+			const int current_line = graphics_line(_frameCycles + (_frameCycles&1));
+			const int current_column = graphics_column(_frameCycles + (_frameCycles&1));
 			if(current_line < 256 && current_column < 80 && !_isBlankLine)
 				cycles += (unsigned int)(80 - current_column);
 		}
@@ -310,6 +310,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 									) break;
 								}
 								_tape.set_delegate(this);
+								_interrupt_status |= _tape.get_interrupt_status();
 
 								_fast_load_is_in_data = true;
 								set_value_of_register(CPU6502::Register::A, 0);
@@ -356,7 +357,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
-	const unsigned int pixel_line_clock = _frameCycles + 128 - first_graphics_cycle + 80;
+	const unsigned int pixel_line_clock = _frameCycles;// + 128 - first_graphics_cycle + 80;
 	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
 	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
 
@@ -963,9 +964,9 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 		else
 		{
 			_output.cycles_into_pulse += number_of_cycles;
-			while(_output.cycles_into_pulse > 1666)
-			{
-				_output.cycles_into_pulse -= 1666;
+			while(_output.cycles_into_pulse > 1664)		// 1664 = the closest you can get to 1200 baud if you're looking for something
+			{											// that divides the 125,000Hz clock that the sound divider runs off.
+				_output.cycles_into_pulse -= 1664;
 				push_tape_bit(1);
 			}
 		}
