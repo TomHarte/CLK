@@ -302,14 +302,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 								_tape.clear_interrupts(Interrupt::ReceiveDataFull);
 								while(1)
 								{
-									uint8_t tapeStatus = _tape.run_for_input_pulse();
+									_tape.run_for_input_pulse();
 									cycles_left_while_plausibly_in_data--;
 									if(!cycles_left_while_plausibly_in_data) _fast_load_is_in_data = false;
-									if(	(tapeStatus & Interrupt::ReceiveDataFull) &&
+									if(	(_tape.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
 										(_fast_load_is_in_data || _tape.get_data_register() == 0x2a)
 									) break;
 								}
 								_tape.set_delegate(this);
+								_tape.clear_interrupts(Interrupt::ReceiveDataFull);
 								_interrupt_status |= _tape.get_interrupt_status();
 
 								_fast_load_is_in_data = true;
@@ -909,7 +910,7 @@ inline uint8_t Tape::get_data_register()
 	return (uint8_t)(_data_register >> 2);
 }
 
-inline uint8_t Tape::run_for_input_pulse()
+inline void Tape::run_for_input_pulse()
 {
 	get_next_tape_pulse();
 
@@ -939,8 +940,6 @@ inline uint8_t Tape::run_for_input_pulse()
 			_crossings[2] = _crossings[3] = Tape::Recognised;
 		}
 	}
-
-	return _interrupt_status;
 }
 
 inline void Tape::run_for_cycles(unsigned int number_of_cycles)

@@ -78,7 +78,7 @@ class Tape {
 		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
 
 		inline void run_for_cycles(unsigned int number_of_cycles);
-		inline uint8_t run_for_input_pulse();
+		inline void run_for_input_pulse();
 
 		inline void set_is_running(bool is_running) { _is_running = is_running; }
 		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
