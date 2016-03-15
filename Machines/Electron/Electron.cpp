@@ -802,7 +802,7 @@ void Speaker::skip_samples(unsigned int number_of_samples)
 	while(number_of_samples--)
 	{
 		_counter ++;
-		if(_counter > _divider)
+		if(_counter > _divider*2)
 		{
 			_counter = 0;
 			_output_level ^= 8192;
