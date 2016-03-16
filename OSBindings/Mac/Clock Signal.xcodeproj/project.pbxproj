@@ -308,6 +308,7 @@
 		4BBF99161C8FBA6F0075DAFB /* CRTRunBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990C1C8FBA6F0075DAFB /* CRTRunBuilder.cpp */; };
 		4BBF99171C8FBA6F0075DAFB /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99101C8FBA6F0075DAFB /* Shader.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
+		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BCB70B31C947DDC005B1712 /* plus1.rom */; };
 		4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85C1C3E1C2500C43F01 /* basic.rom */; };
 		4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85D1C3E1C2500C43F01 /* os.rom */; };
@@ -666,6 +667,8 @@
 		4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
+		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
+		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BCB70B31C947DDC005B1712 /* plus1.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = plus1.rom; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
@@ -733,6 +736,8 @@
 		4B2409591C45DF85004DA684 /* SignalProcessing */ = {
 			isa = PBXGroup;
 			children = (
+				4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */,
+				4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */,
 				4B24095A1C45DF85004DA684 /* Stepper.hpp */,
 			);
 			name = SignalProcessing;
@@ -1646,6 +1651,7 @@
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
 				4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
+				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
