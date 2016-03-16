@@ -49,7 +49,7 @@ class FIRFilter {
 		~FIRFilter();
 
 		/*! A suggested default attenuation value. */
-		const float DefaultAttenuation = 60.0f;
+		constexpr static float DefaultAttenuation = 60.0f;
 
 		/*!
 			Applies the filter to one batch of input samples, returning the net result.

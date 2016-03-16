@@ -69,7 +69,7 @@ static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float
 			a = 0.5842f * powf(attenuation - 21.0f, 0.4f) + 0.7886f * (attenuation - 21.0f);
 	}
 
-	float *filterCoefficientsFloat = (float *)malloc(sizeof(float) * numberOfTaps);
+	float *filterCoefficientsFloat = new float[numberOfTaps];
 
 	/* work out the right hand side of the filter coefficients */
 	unsigned int Np = (numberOfTaps - 1) / 2;
@@ -103,7 +103,7 @@ static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float
 		filterCoefficients[i] = (short)(filterCoefficientsFloat[i] * kCSKaiserBesselFilterFixedMultiplier * coefficientMultiplier);
 	}
 
-	free(filterCoefficientsFloat);
+	delete[] filterCoefficientsFloat;
 }
 
 FIRFilter::FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate, float low_frequency, float high_frequency, float attenuation)
