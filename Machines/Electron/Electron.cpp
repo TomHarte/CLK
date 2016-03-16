@@ -786,15 +786,12 @@ void Machine::set_key_state(Key key, bool isPressed)
 
 void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
-	if(!_is_enabled)
+	while(number_of_samples--)
 	{
-		*target = 0;
+		*target = _is_enabled ? _output_level : 0;
+		target++;
+		skip_samples(1);
 	}
-	else
-	{
-		*target = _output_level;
-	}
-	skip_samples(number_of_samples);
 }
 
 void Speaker::skip_samples(unsigned int number_of_samples)

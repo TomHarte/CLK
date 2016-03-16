@@ -309,6 +309,7 @@
 		4BBF99171C8FBA6F0075DAFB /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99101C8FBA6F0075DAFB /* Shader.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
+		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BCB70B31C947DDC005B1712 /* plus1.rom */; };
 		4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85C1C3E1C2500C43F01 /* basic.rom */; };
 		4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85D1C3E1C2500C43F01 /* os.rom */; };
@@ -669,6 +670,7 @@
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
+		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BCB70B31C947DDC005B1712 /* plus1.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = plus1.rom; sourceTree = "<group>"; };
 		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
 		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
@@ -679,6 +681,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */,
 				4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1115,6 +1118,7 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
+				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
 				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
 				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
