@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "../SignalProcessing/Stepper.hpp"
+#include "../SignalProcessing/FIRFilter.hpp"
 
 namespace Outputs {
 
@@ -28,8 +29,7 @@ class Speaker {
 			_output_cycles_per_second = cycles_per_second;
 			if(_buffer_size != buffer_size)
 			{
-				delete[] _buffer_in_progress;
-				_buffer_in_progress = new int16_t[buffer_size];
+				_buffer_in_progress = std::unique_ptr<int16_t>(new int16_t[buffer_size]);
 				_buffer_size = buffer_size;
 			}
 			set_needs_updated_filter_coefficients();
@@ -55,13 +55,12 @@ class Speaker {
 		Speaker() : _buffer_in_progress_pointer(0) {}
 
 	protected:
-		int16_t *_buffer_in_progress;
+		std::unique_ptr<int16_t> _buffer_in_progress;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
 		int _number_of_taps;
 		bool _coefficients_are_dirty;
 		Delegate *_delegate;
-		SignalProcessing::Stepper *_stepper;
 
 		int _input_cycles_per_second, _output_cycles_per_second;
 
@@ -77,23 +76,12 @@ template <class T> class Filter: public Speaker {
 		{
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
-//			_periodic_cycles += input_cycles;
-//			time_t time_now = time(nullptr);
-//			if(time_now > _periodic_start)
-//			{
-//				printf("input audio samples: %d\n", _periodic_cycles);
-//				printf("output audio samples: %d\n", _periodic_output);
-//				_periodic_cycles = 0;
-//				_periodic_output = 0;
-//				_periodic_start = time_now;
-//			}
-
 			// point sample for now, as a temporary measure
 			input_cycles += _input_cycles_carry;
 			while(input_cycles > 0)
 			{
 				// get a sample for the current location
-				static_cast<T *>(this)->get_samples(1, &_buffer_in_progress[_buffer_in_progress_pointer]);
+				static_cast<T *>(this)->get_samples(1, &_buffer_in_progress.get()[_buffer_in_progress_pointer]);
 				_buffer_in_progress_pointer++;
 
 				// announce to delegate if full
@@ -102,7 +90,7 @@ template <class T> class Filter: public Speaker {
 					_buffer_in_progress_pointer = 0;
 					if(_delegate)
 					{
-						_delegate->speaker_did_complete_samples(this, _buffer_in_progress, _buffer_size);
+						_delegate->speaker_did_complete_samples(this, _buffer_in_progress.get(), _buffer_size);
 					}
 				}
 
@@ -111,7 +99,6 @@ template <class T> class Filter: public Speaker {
 				if(steps > 1)
 					static_cast<T *>(this)->skip_samples((unsigned int)(steps-1));
 				input_cycles -= steps;
-//				_periodic_output ++;
 			}
 			_input_cycles_carry = input_cycles;
 		}
@@ -119,10 +106,8 @@ template <class T> class Filter: public Speaker {
 		Filter() {} // _periodic_cycles(0), _periodic_start(0)
 
 	private:
-//				time_t _periodic_start;
-//				int _periodic_cycles;
-//				int _periodic_output;
-		SignalProcessing::Stepper *_stepper;
+		std::unique_ptr<SignalProcessing::Stepper> _stepper;
+		std::unique_ptr<SignalProcessing::FIRFilter> _filter;
 		int _input_cycles_carry;
 
 		void update_filter_coefficients()
@@ -130,8 +115,8 @@ template <class T> class Filter: public Speaker {
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
 
-			delete _stepper;
-			_stepper = new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second);
+			_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
+			_filter = std::unique_ptr<SignalProcessing::FIRFilter>(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (unsigned int)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
 		}
 };
 
