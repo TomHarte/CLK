@@ -1084,13 +1084,13 @@ template <class T> class Processor {
 		void set_value_of_register(Register r, uint16_t value)
 		{
 			switch (r) {
-				case Register::ProgramCounter:	_pc.full = value;	break;
-				case Register::StackPointer:	_s = value;			break;
-				case Register::Flags:			set_flags(value);	break;
-				case Register::A:				_a = value;			break;
-				case Register::X:				_x = value;			break;
-				case Register::Y:				_y = value;			break;
-				case Register::S:				_s = value;			break;
+				case Register::ProgramCounter:	_pc.full = value;			break;
+				case Register::StackPointer:	_s = (uint8_t)value;		break;
+				case Register::Flags:			set_flags((uint8_t)value);	break;
+				case Register::A:				_a = (uint8_t)value;		break;
+				case Register::X:				_x = (uint8_t)value;		break;
+				case Register::Y:				_y = (uint8_t)value;		break;
+				case Register::S:				_s = (uint8_t)value;		break;
 				default: break;
 			}
 		}
