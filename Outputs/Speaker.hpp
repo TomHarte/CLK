@@ -101,10 +101,22 @@ template <class T> class Filter: public Speaker {
 						}
 					}
 
+					// If the next loop around is going to reuse some of the samples just collected, use a memmove to
+					// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
+					// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
 					uint64_t steps = _stepper->step();
-					int16_t *input_buffer = _input_buffer.get();
-					memmove(input_buffer, &input_buffer[steps], sizeof(int16_t)  * ((size_t)_number_of_taps - (size_t)steps));
-					_input_buffer_depth -= steps;
+					if(steps < _number_of_taps)
+					{
+						int16_t *input_buffer = _input_buffer.get();
+						memmove(input_buffer, &input_buffer[steps], sizeof(int16_t)  * ((size_t)_number_of_taps - (size_t)steps));
+						_input_buffer_depth -= steps;
+					}
+					else
+					{
+						if(steps > _number_of_taps)
+							static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)_number_of_taps);
+						_input_buffer_depth = 0;
+					}
 				}
 			}
 		}
