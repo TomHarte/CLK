@@ -11,7 +11,7 @@
 
 using namespace Outputs::CRT;
 
-void CRTRunBuilder::reset()
+/*void CRTRunBuilder::reset()
 {
 	number_of_vertices = 0;
 	uploaded_vertices = 0;
@@ -31,3 +31,4 @@ uint8_t *CRTRunBuilder::get_next_run(size_t number_of_vertices_in_run)
 
 	return next_run;
 }
+*/

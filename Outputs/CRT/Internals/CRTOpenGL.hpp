@@ -47,6 +47,9 @@ const int InputBufferBuilderHeight = 1024;
 const int IntermediateBufferWidth = 2048;
 const int IntermediateBufferHeight = 2048;
 
+const GLsizeiptr buffer_size = (GLsizeiptr)(312 * 6 * 6 * OutputVertexSize);
+
+
 // Runs are divided discretely by vertical syncs in order to put a usable bounds on the uniform used to track
 // run age; that therefore creates a discrete number of fields that are stored. This number should be the
 // number of historic fields that are required fully to 
@@ -136,23 +139,30 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_input_run()
 		{
-			_output_mutex->lock();
-			return (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
+			if (_output_buffer_data_pointer + 6 * InputVertexSize > buffer_size) _output_buffer_data_pointer = 0;
+			uint8_t *pointer = &_output_buffer_data[_output_buffer_data_pointer];
+			_output_buffer_data_pointer += 6 * InputVertexSize;
+			return pointer;
+//			_output_mutex->lock();
+//			return (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
 		}
 
 		inline void complete_input_run()
 		{
-			_output_mutex->unlock();
+			_run_builders[_run_write_pointer]->number_of_vertices += 6;
+//			_output_mutex->unlock();
 		}
 
 		inline uint8_t *get_next_output_run()
 		{
-			_output_mutex->lock();
-			return (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
+//			_output_mutex->lock();
+//			return (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
+			return nullptr;
 		}
 
 		inline void complete_output_run()
 		{
+//			_output_mutex->unlock();
 		}
 
 		inline OutputDevice get_output_device()
@@ -183,7 +193,9 @@ class OpenGLOutputBuilder {
 		inline void increment_field()
 		{
 			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
-			_run_builders[_run_write_pointer]->reset();
+			_run_builders[_run_write_pointer]->start = _output_buffer_data_pointer;
+			_run_builders[_run_write_pointer]->duration = 0;
+			_run_builders[_run_write_pointer]->number_of_vertices = 0;
 		}
 
 		inline void allocate_write_area(size_t required_length)
@@ -228,6 +240,9 @@ class OpenGLOutputBuilder {
 
 			// TODO: update related uniforms
 		}
+
+		uint8_t *_output_buffer_data;
+		size_t _output_buffer_data_pointer;
 };
 
 }
