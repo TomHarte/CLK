@@ -47,7 +47,8 @@ const int InputBufferBuilderHeight = 1024;
 const int IntermediateBufferWidth = 2048;
 const int IntermediateBufferHeight = 2048;
 
-const GLsizeiptr buffer_size = (GLsizeiptr)(312 * 6 * 6 * OutputVertexSize);
+// Some internal
+const GLsizeiptr InputVertexBufferDataSize = 256 * 1024;
 
 
 // Runs are divided discretely by vertical syncs in order to put a usable bounds on the uniform used to track
@@ -139,7 +140,7 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_input_run()
 		{
-			if (_output_buffer_data_pointer + 6 * InputVertexSize > buffer_size) _output_buffer_data_pointer = 0;
+			if (_output_buffer_data_pointer + 6 * InputVertexSize > InputVertexBufferDataSize) _output_buffer_data_pointer = 0;
 			uint8_t *pointer = &_output_buffer_data[_output_buffer_data_pointer];
 			_output_buffer_data_pointer += 6 * InputVertexSize;
 			return pointer;

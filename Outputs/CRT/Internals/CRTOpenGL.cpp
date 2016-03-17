@@ -91,8 +91,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
-		glBufferData(GL_ARRAY_BUFFER, buffer_size, NULL, GL_STREAM_DRAW);
-		_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+		glBufferData(GL_ARRAY_BUFFER, InputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
+		_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 		_output_buffer_data_pointer = 0;
 		glBindVertexArray(output_vertex_array);
 		prepare_output_vertex_array();
@@ -110,10 +110,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glActiveTexture(GL_TEXTURE2);
 		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	}
-
-//		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&_openGL_state->defaultFramebuffer);
-//
-//		printf("%d", glIsFramebuffer(_openGL_state->defaultFramebuffer));
 
 	// lock down any further work on the current frame
 	_output_mutex->lock();
@@ -159,81 +155,50 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
 //	glGetIntegerv(GL_VIEWPORT, results);
 
-	// ensure array buffer is up to date
-//	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-//	size_t max_number_of_vertices = 0;
-//	for(int c = 0; c < NumberOfFields; c++)
-//	{
-//		max_number_of_vertices = std::max(max_number_of_vertices, _run_builders[c]->number_of_vertices);
-//	}
-//	if(output_vertices_per_slice < max_number_of_vertices)
-//	{
-//		output_vertices_per_slice = max_number_of_vertices;
-//		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(max_number_of_vertices * OutputVertexSize * OutputVertexSize), NULL, GL_STREAM_DRAW);
-//
-//		for(unsigned int c = 0; c < NumberOfFields; c++)
-//		{
-//			uint8_t *data = &_run_builders[c]->_runs[0];
-//			glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)(c * output_vertices_per_slice * OutputVertexSize), (GLsizeiptr)(_run_builders[c]->number_of_vertices * OutputVertexSize), data);
-//			_run_builders[c]->uploaded_vertices = _run_builders[c]->number_of_vertices;
-//		}
-//	}
-
 	// switch to the output shader
 	if(rgb_shader_program)
 	{
-	rgb_shader_program->bind();
+		rgb_shader_program->bind();
 
-	// update uniforms
-	push_size_uniforms(output_width, output_height);
+		// update uniforms
+		push_size_uniforms(output_width, output_height);
 
-	// Ensure we're back on the output framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+		// Ensure we're back on the output framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 
-	// clear the buffer
-	glClear(GL_COLOR_BUFFER_BIT);
+		// clear the buffer
+		glClear(GL_COLOR_BUFFER_BIT);
 
-	// draw all sitting frames
-	unsigned int run = (unsigned int)_run_write_pointer;
-//	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
-	GLint total_age = 0;
-	for(int c = 0; c < NumberOfFields; c++)
-	{
-		// update the total age at the start of this set of runs
-		total_age += _run_builders[run]->duration;
-
-		if(_run_builders[run]->number_of_vertices > 0)
+		// draw all sitting frames
+		unsigned int run = (unsigned int)_run_write_pointer;
+	//	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
+		GLint total_age = 0;
+		for(int c = 0; c < NumberOfFields; c++)
 		{
-			glUniform1f(timestampBaseUniform, (GLfloat)total_age);
+			// update the total age at the start of this set of runs
+			total_age += _run_builders[run]->duration;
 
-//			if(_run_builders[run]->uploaded_vertices != _run_builders[run]->number_of_vertices)
-//			{
-//				uint8_t *data =  &_run_builders[run]->_runs[_run_builders[run]->uploaded_vertices * OutputVertexSize];
-//				glBufferSubData(GL_ARRAY_BUFFER,
-//								(GLsizeiptr)(((run * output_vertices_per_slice) + _run_builders[run]->uploaded_vertices) * OutputVertexSize),
-//								(GLsizeiptr)((_run_builders[run]->number_of_vertices - _run_builders[run]->uploaded_vertices) * OutputVertexSize), data);
-//				_run_builders[run]->uploaded_vertices = _run_builders[run]->number_of_vertices;
-//			}
-
-			// draw this frame
-//			glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(run * output_vertices_per_slice), (GLsizei)_run_builders[run]->number_of_vertices);
-
-			GLsizei count = (GLsizei)_run_builders[run]->number_of_vertices;
-			GLsizei max_count = (GLsizei)((buffer_size - _run_builders[run]->start) / InputVertexSize);
-			if(count < max_count)
+			if(_run_builders[run]->number_of_vertices > 0)
 			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), count);
+				glUniform1f(timestampBaseUniform, (GLfloat)total_age);
+
+				// draw this frame
+				GLsizei count = (GLsizei)_run_builders[run]->number_of_vertices;
+				GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - _run_builders[run]->start) / InputVertexSize);
+				if(count < max_count)
+				{
+					glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), count);
+				}
+				else
+				{
+					glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), max_count);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, count - max_count);
+				}
 			}
-			else
-			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), max_count);
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, count - max_count);
-			}
+
+			// advance back in time
+			run = (run - 1 + NumberOfFields) % NumberOfFields;
 		}
-
-		// advance back in time
-		run = (run - 1 + NumberOfFields) % NumberOfFields;
-	}
 	}
 
 	_output_mutex->unlock();
