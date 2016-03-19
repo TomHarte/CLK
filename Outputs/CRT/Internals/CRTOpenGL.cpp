@@ -206,7 +206,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 							size_t first_size = InputVertexBufferDataSize - start;
 							memcpy(&target[start], &_output_buffer_data[start], first_size);
 							memcpy(target, _output_buffer_data, length - first_size);
-							glUnmapBuffer(GL_ARRAY_BUFFER);
 						}
 					}
 					else
@@ -215,8 +214,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 						if(target)
 						{
 							memcpy(target, &_output_buffer_data[start], length);
-							glUnmapBuffer(GL_ARRAY_BUFFER);
 						}
+					}
+
+					while(glUnmapBuffer(GL_ARRAY_BUFFER) == GL_FALSE)
+					{
+						// "the data store contents are undefined. An application must detect this rare condition and reinitialize the data store."
+						uint8_t *target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+						memcpy(target, _output_buffer_data, InputVertexBufferDataSize);
 					}
 
 					_run_builders[run]->amount_of_uploaded_data = _run_builders[run]->amount_of_data;
