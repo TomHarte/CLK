@@ -23,14 +23,15 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list
 	_visible_area(Rect(0, 0, 1, 1)),
 	_composite_src_output_y(0),
 	_composite_shader(nullptr),
-	_rgb_shader(nullptr)
+	_rgb_shader(nullptr),
+	_output_buffer_data(nullptr)
 {
 	_run_builders = new CRTRunBuilder *[NumberOfFields];
 	for(int builder = 0; builder < NumberOfFields; builder++)
 	{
-		_run_builders[builder] = new CRTRunBuilder(OutputVertexSize);
+		_run_builders[builder] = new CRTRunBuilder();
 	}
-	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
+//	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
 
 	va_list va;
 	va_copy(va, sizes);
@@ -45,6 +46,7 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 		delete _run_builders[builder];
 	}
 	delete[] _run_builders;
+	delete[] _output_buffer_data;
 
 	free(_composite_shader);
 	free(_rgb_shader);
@@ -82,6 +84,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
 		}
 
+		printf("%s\n", glGetString(GL_VERSION));
+
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
 
@@ -92,7 +96,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
 		glBufferData(GL_ARRAY_BUFFER, InputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-		_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+		_output_buffer_data = new uint8_t[InputVertexBufferDataSize];
 		_output_buffer_data_pointer = 0;
 		glBindVertexArray(output_vertex_array);
 		prepare_output_vertex_array();
@@ -142,11 +146,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// check for anything to decode from composite
-	if(_composite_src_runs->number_of_vertices)
-	{
+//	if(_composite_src_runs->number_of_vertices)
+//	{
 //		composite_input_shader_program->bind();
 //		_composite_src_runs->reset();
-	}
+//	}
 
 //	_output_mutex->unlock();
 //	return;
@@ -178,12 +182,32 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			// update the total age at the start of this set of runs
 			total_age += _run_builders[run]->duration;
 
-			if(_run_builders[run]->number_of_vertices > 0)
+			if(_run_builders[run]->amount_of_data > 0)
 			{
-				glUniform1f(timestampBaseUniform, (GLfloat)total_age);
+				// upload if required
+				uint8_t *target = nullptr;
+				if(_run_builders[run]->amount_of_data != _run_builders[run]->amount_of_uploaded_data)
+				{
+					target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-				// draw this frame
-				GLsizei count = (GLsizei)_run_builders[run]->number_of_vertices;
+					size_t start = _run_builders[run]->start + _run_builders[run]->amount_of_uploaded_data;
+					size_t length = _run_builders[run]->amount_of_data + _run_builders[run]->amount_of_uploaded_data;
+
+					if(start + length > InputVertexBufferDataSize)
+					{
+						memcpy(&target[start], &_output_buffer_data[start], InputVertexBufferDataSize - start);
+						memcpy(target, _output_buffer_data, length - (InputVertexBufferDataSize - start));
+					}
+					else
+						memcpy(&target[start], &_output_buffer_data[start], length);
+
+					glUnmapBuffer(GL_ARRAY_BUFFER);
+					_run_builders[run]->amount_of_uploaded_data = _run_builders[run]->amount_of_data;
+				}
+
+				// draw
+				glUniform1f(timestampBaseUniform, (GLfloat)total_age);
+				GLsizei count = (GLsizei)(_run_builders[run]->amount_of_data / InputVertexSize);
 				GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - _run_builders[run]->start) / InputVertexSize);
 				if(count < max_count)
 				{

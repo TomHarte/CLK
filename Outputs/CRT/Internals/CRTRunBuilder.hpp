@@ -15,17 +15,15 @@ namespace Outputs {
 namespace CRT {
 
 struct CRTRunBuilder {
-	CRTRunBuilder(size_t vertex_size) : _vertex_size(vertex_size), duration(0), start(0), number_of_vertices(0) {}	// reset();
+	CRTRunBuilder() : start(0) { reset(); }
 
 	// Resets the run builder.
-//	void reset();
-
-	// Getter for new storage plus backing storage; in RGB mode input runs will map directly
-	// from the input buffer to the screen. In composite mode input runs will map from the
-	// input buffer to the processing buffer, and output runs will map from the processing
-	// buffer to the screen.
-//	uint8_t *get_next_run(size_t number_of_vertices);
-//	std::vector<uint8_t> _runs;
+	inline void reset()
+	{
+		duration = 0;
+		amount_of_uploaded_data = 0;
+		amount_of_data = 0;
+	}
 
 	// Container for total length in cycles of all contained runs.
 	uint32_t duration;
@@ -33,11 +31,8 @@ struct CRTRunBuilder {
 
 	// Storage for the length of run data uploaded so far; reset to zero by reset but otherwise
 	// entrusted to the CRT to update.
-//	size_t uploaded_vertices;
-	size_t number_of_vertices;
-
-	private:
-		size_t _vertex_size;
+	size_t amount_of_uploaded_data;
+	size_t amount_of_data;
 };
 
 }
