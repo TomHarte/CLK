@@ -41,8 +41,7 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 	if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
 	{
-		_next_write_x_position = 0;
-		_next_write_y_position = (_next_write_y_position+1)%InputBufferBuilderHeight;
+		move_to_new_line();
 	}
 
 	_write_x_position = _next_write_x_position + 1;
@@ -53,6 +52,8 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
+	// book end the allocation with duplicates of the first and last pixel, to protect
+	// against rounding errors when this run is drawn
 	for(int c = 0; c < number_of_buffers; c++)
 	{
 		memcpy(	&buffers[c].data[(_write_target_pointer - 1) * buffers[c].bytes_per_pixel],
@@ -64,6 +65,7 @@ void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 				buffers[c].bytes_per_pixel);
 	}
 
+	// return any allocated length that wasn't actually used to the available pool
 	_next_write_x_position -= (_last_allocation_amount - actual_length);
 }
 

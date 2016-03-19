@@ -333,6 +333,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioQueue.h; sourceTree = "<group>"; };
@@ -1217,6 +1218,7 @@
 				4BBF99111C8FBA6F0075DAFB /* Shader.hpp */,
 				4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */,
 				4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */,
+				4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */,
 			);
 			path = Internals;
 			sourceTree = "<group>";

@@ -107,7 +107,7 @@ class CRT {
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth, ...);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of

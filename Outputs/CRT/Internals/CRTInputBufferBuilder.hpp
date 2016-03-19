@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include "CRTConstants.hpp"
 
 namespace Outputs {
 namespace CRT {
@@ -40,6 +41,12 @@ struct CRTInputBufferBuilder {
 	// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
 	// builder but otherwise entrusted to the CRT to update.
 	unsigned int last_uploaded_line;
+
+	inline void move_to_new_line()
+	{
+		_next_write_x_position = 0;
+		_next_write_y_position = (_next_write_y_position+1)%InputBufferBuilderHeight;
+	}
 };
 
 }

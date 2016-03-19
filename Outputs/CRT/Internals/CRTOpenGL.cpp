@@ -25,7 +25,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
 	_output_buffer_data(nullptr),
-	_output_buffer_sync(nullptr)
+	_output_buffer_sync(nullptr),
+	_input_texture_data(nullptr)
 {
 	_run_builders = new CRTRunBuilder *[NumberOfFields];
 	for(int builder = 0; builder < NumberOfFields; builder++)
@@ -47,7 +48,9 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 		delete _run_builders[builder];
 	}
 	delete[] _run_builders;
-	delete[] _output_buffer_data;
+//	delete[] _input_texture_data;
+
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 
 	free(_composite_shader);
 	free(_rgb_shader);
@@ -82,10 +85,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 			GLenum format = formatForDepth(_buffer_builder->buffers[buffer].bytes_per_pixel);
-			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, _buffer_builder->buffers[buffer].data);
-		}
+			glGenBuffers(1, &_input_texture_array);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER, InputTextureBufferDataSize, NULL, GL_STREAM_DRAW);
 
-		printf("%s\n", glGetString(GL_VERSION));
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, nullptr);
+		}
 
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
@@ -97,7 +102,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
 		glBufferData(GL_ARRAY_BUFFER, InputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-		_output_buffer_data = new uint8_t[InputVertexBufferDataSize];
 		_output_buffer_data_pointer = 0;
 
 		glBindVertexArray(output_vertex_array);
@@ -109,22 +113,30 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
 
 		// Create intermediate textures and bind to slots 0, 1 and 2
-		glActiveTexture(GL_TEXTURE0);
-		compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-		glActiveTexture(GL_TEXTURE1);
-		filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-		glActiveTexture(GL_TEXTURE2);
-		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+//		glActiveTexture(GL_TEXTURE0);
+//		compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+//		glActiveTexture(GL_TEXTURE1);
+//		filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+//		glActiveTexture(GL_TEXTURE2);
+//		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	}
 
 	// lock down any further work on the current frame
 	_output_mutex->lock();
 
+	// release the mapping, giving up on trying to draw if data has been lost
+	if(glUnmapBuffer(GL_ARRAY_BUFFER) == GL_FALSE)
+	{
+		for(int c = 0; c < NumberOfFields; c++)
+			_run_builders[c]->reset();
+	}
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
 	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
 	{
-		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
+//		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
 		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
 		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 		{
@@ -132,7 +144,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = 0;
 		}
 
@@ -142,7 +154,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								&_buffer_builder->buffers[0].data[_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel]);
+								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 		}
 	}
@@ -177,7 +189,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
-	//	printf("%d: %zu v %zu\n", run, _run_builders[run]->uploaded_vertices, _run_builders[run]->number_of_vertices);
 		GLint total_age = 0;
 		for(int c = 0; c < NumberOfFields; c++)
 		{
@@ -186,47 +197,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			if(_run_builders[run]->amount_of_data > 0)
 			{
-				// upload if required
-				if(_run_builders[run]->amount_of_data != _run_builders[run]->amount_of_uploaded_data)
-				{
-					size_t start = (_run_builders[run]->start + _run_builders[run]->amount_of_uploaded_data) % InputVertexBufferDataSize;
-					size_t length = _run_builders[run]->amount_of_data + _run_builders[run]->amount_of_uploaded_data;
-
-					if(start + length > InputVertexBufferDataSize)
-					{
-						if(_output_buffer_sync)
-						{
-							glClientWaitSync(_output_buffer_sync, GL_SYNC_FLUSH_COMMANDS_BIT, ~(GLuint64)0);
-							glDeleteSync(_output_buffer_sync);
-						}
-						_output_buffer_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-						uint8_t *target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-						if(target)
-						{
-							size_t first_size = InputVertexBufferDataSize - start;
-							memcpy(&target[start], &_output_buffer_data[start], first_size);
-							memcpy(target, _output_buffer_data, length - first_size);
-						}
-					}
-					else
-					{
-						uint8_t *target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, (GLintptr)start, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-						if(target)
-						{
-							memcpy(target, &_output_buffer_data[start], length);
-						}
-					}
-
-					while(glUnmapBuffer(GL_ARRAY_BUFFER) == GL_FALSE)
-					{
-						// "the data store contents are undefined. An application must detect this rare condition and reinitialize the data store."
-						uint8_t *target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-						memcpy(target, _output_buffer_data, InputVertexBufferDataSize);
-					}
-
-					_run_builders[run]->amount_of_uploaded_data = _run_builders[run]->amount_of_data;
-				}
-
 				// draw
 				glUniform1f(timestampBaseUniform, (GLfloat)total_age);
 				GLsizei count = (GLsizei)(_run_builders[run]->amount_of_data / InputVertexSize);
@@ -247,6 +217,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		}
 	}
 
+	// drawing commands having been issued, reclaim the array buffer pointer
+	_buffer_builder->move_to_new_line();
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, InputTextureBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
 }
 
