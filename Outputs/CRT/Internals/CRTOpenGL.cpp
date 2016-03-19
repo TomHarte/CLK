@@ -197,7 +197,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 					{
 						if(_output_buffer_sync)
 						{
-							glWaitSync(_output_buffer_sync, 0, GL_TIMEOUT_IGNORED);
+							glClientWaitSync(_output_buffer_sync, GL_SYNC_FLUSH_COMMANDS_BIT, ~(GLuint64)0);
 							glDeleteSync(_output_buffer_sync);
 						}
 						_output_buffer_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
