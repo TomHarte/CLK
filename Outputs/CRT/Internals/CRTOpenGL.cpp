@@ -24,7 +24,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list
 	_composite_src_output_y(0),
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
-	_output_buffer_data(nullptr)
+	_output_buffer_data(nullptr),
+	_output_buffer_sync(nullptr)
 {
 	_run_builders = new CRTRunBuilder *[NumberOfFields];
 	for(int builder = 0; builder < NumberOfFields; builder++)
@@ -194,6 +195,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 					if(start + length > InputVertexBufferDataSize)
 					{
+						if(_output_buffer_sync)
+						{
+							glWaitSync(_output_buffer_sync, 0, GL_TIMEOUT_IGNORED);
+							glDeleteSync(_output_buffer_sync);
+						}
+						_output_buffer_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 						target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 						memcpy(&target[start], &_output_buffer_data[start], InputVertexBufferDataSize - start);
 						memcpy(target, _output_buffer_data, length - (InputVertexBufferDataSize - start));
