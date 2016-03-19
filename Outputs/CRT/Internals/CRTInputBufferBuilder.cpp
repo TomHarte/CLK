@@ -12,28 +12,11 @@
 
 using namespace Outputs::CRT;
 
-CRTInputBufferBuilder::CRTInputBufferBuilder(unsigned int number_of_buffers, va_list buffer_sizes)
+CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) : bytes_per_pixel(bytes_per_pixel)
 {
-	this->number_of_buffers = number_of_buffers;
-	buffers = new CRTInputBufferBuilder::Buffer[number_of_buffers];
-
-	for(int buffer = 0; buffer < number_of_buffers; buffer++)
-	{
-		buffers[buffer].bytes_per_pixel = va_arg(buffer_sizes, unsigned int);
-		buffers[buffer].data = new uint8_t[InputBufferBuilderWidth * InputBufferBuilderHeight * buffers[buffer].bytes_per_pixel];
-	}
-
 	_next_write_x_position = _next_write_y_position = 0;
 	last_uploaded_line = 0;
 }
-
-CRTInputBufferBuilder::~CRTInputBufferBuilder()
-{
-	for(int buffer = 0; buffer < number_of_buffers; buffer++)
-		delete[] buffers[buffer].data;
-	delete buffers;
-}
-
 
 void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 {
@@ -50,26 +33,18 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	_next_write_x_position += required_length + 2;
 }
 
-void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
+void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length, uint8_t *buffer)
 {
 	// book end the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn
-	for(int c = 0; c < number_of_buffers; c++)
-	{
-		memcpy(	&buffers[c].data[(_write_target_pointer - 1) * buffers[c].bytes_per_pixel],
-				&buffers[c].data[_write_target_pointer * buffers[c].bytes_per_pixel],
-				buffers[c].bytes_per_pixel);
+	memcpy(	&buffer[(_write_target_pointer - 1) * bytes_per_pixel],
+			&buffer[_write_target_pointer * bytes_per_pixel],
+			bytes_per_pixel);
 
-		memcpy(	&buffers[c].data[(_write_target_pointer + actual_length) * buffers[c].bytes_per_pixel],
-				&buffers[c].data[(_write_target_pointer + actual_length - 1) * buffers[c].bytes_per_pixel],
-				buffers[c].bytes_per_pixel);
-	}
+	memcpy(	&buffer[(_write_target_pointer + actual_length) * bytes_per_pixel],
+			&buffer[(_write_target_pointer + actual_length - 1) * bytes_per_pixel],
+			bytes_per_pixel);
 
 	// return any allocated length that wasn't actually used to the available pool
 	_next_write_x_position -= (_last_allocation_amount - actual_length);
-}
-
-uint8_t *CRTInputBufferBuilder::get_write_target_for_buffer(int buffer)
-{
-	return &buffers[buffer].data[_write_target_pointer * buffers[buffer].bytes_per_pixel];
 }

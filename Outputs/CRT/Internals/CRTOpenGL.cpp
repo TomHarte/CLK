@@ -17,7 +17,7 @@ namespace {
 	static const GLenum first_supplied_buffer_texture_unit = 3;
 }
 
-OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list sizes) :
+OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_run_write_pointer(0),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
@@ -35,10 +35,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int number_of_buffers, va_list
 	}
 //	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
 
-	va_list va;
-	va_copy(va, sizes);
-	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(number_of_buffers, sizes));
-	va_end(va);
+	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -48,9 +45,13 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 		delete _run_builders[builder];
 	}
 	delete[] _run_builders;
-//	delete[] _input_texture_data;
 
 	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	glDeleteTextures(1, &textureName);
+	glDeleteBuffers(1, &_input_texture_array);
+	glDeleteBuffers(1, &output_array_buffer);
+	glDeleteVertexArrays(1, &output_vertex_array);
 
 	free(_composite_shader);
 	free(_rgb_shader);
@@ -73,24 +74,21 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// establish essentials
 	if(!composite_input_shader_program && !rgb_shader_program)
 	{
-		// generate and bind textures for every one of the requested buffers
-		for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
-		{
-			glGenTextures(1, &textureName);
-			glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit +  buffer);
-			glBindTexture(GL_TEXTURE_2D, textureName);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		// generate and bind texture for input data
+		glGenTextures(1, &textureName);
+		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
+		glBindTexture(GL_TEXTURE_2D, textureName);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-			GLenum format = formatForDepth(_buffer_builder->buffers[buffer].bytes_per_pixel);
-			glGenBuffers(1, &_input_texture_array);
-			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, InputTextureBufferDataSize, NULL, GL_STREAM_DRAW);
+		GLenum format = formatForDepth(_buffer_builder->bytes_per_pixel);
+		glGenBuffers(1, &_input_texture_array);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, InputTextureBufferDataSize, NULL, GL_STREAM_DRAW);
 
-			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, nullptr);
-		}
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
@@ -134,17 +132,17 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
-	{
+//	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
+//	{
 //		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
-		GLenum format = formatForDepth(_buffer_builder->buffers[0].bytes_per_pixel);
+		GLenum format = formatForDepth(_buffer_builder->bytes_per_pixel);
 		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 		{
 			glTexSubImage2D(GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel));
+								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = 0;
 		}
 
@@ -154,10 +152,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
 								format, GL_UNSIGNED_BYTE,
-								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->buffers[0].bytes_per_pixel));
+								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 		}
-	}
+//	}
 
 	// check for anything to decode from composite
 //	if(_composite_src_runs->number_of_vertices)

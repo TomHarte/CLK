@@ -24,7 +24,7 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff}
 {
-	_crt = new Outputs::CRT::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 1, 2);
+	_crt = new Outputs::CRT::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 2);
 	_crt->set_composite_sampling_function(
 		"float composite_sample(vec2 coordinate, float phase)\n"
 		"{\n"
@@ -226,8 +226,7 @@ void Machine::output_pixels(unsigned int count)
 
 			if(state == OutputState::Pixel)
 			{
-				_crt->allocate_write_area(160);
-				_outputBuffer = _crt->get_write_target_for_buffer(0);
+				_outputBuffer = _crt->allocate_write_area(160);
 			} else {
 				_outputBuffer = nullptr;
 			}

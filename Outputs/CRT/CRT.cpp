@@ -68,22 +68,15 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_common_output_divisor(common_output_divisor),
 	_is_writing_composite_run(false) {}
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
+CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
-	va_list buffer_sizes;
-	va_start(buffer_sizes, number_of_buffers);
-	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(number_of_buffers, buffer_sizes));
-	va_end(buffer_sizes);
-
+	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(buffer_depth));
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int number_of_buffers, ...) : CRT(common_output_divisor)
+CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
-	va_list buffer_sizes;
-	va_start(buffer_sizes, number_of_buffers);
-	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(number_of_buffers, buffer_sizes));
-	va_end(buffer_sizes);
+	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(buffer_depth));
 
 	set_new_display_type(cycles_per_line, displayType);
 }

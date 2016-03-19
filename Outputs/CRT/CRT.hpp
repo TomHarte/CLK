@@ -95,19 +95,15 @@ class CRT {
 			@param colour_cycle_denominator Specifies the denominator for the per-line frequency of the colour subcarrier.
 			The colour subcarrier is taken to have colour_cycle_numerator/colour_cycle_denominator cycles per line.
 
-			@param number_of_buffers The number of source data buffers to create for this machine. Machines
-			may provide per-clock-cycle data in any form that they consider convenient, supplying a sampling
+			@param buffer_depth The depth per pixel of source data buffers to create for this machine. Machines
+			may provide per-clock-cycle data in the depth that they consider convenient, supplying a sampling
 			function to convert between their data format and either a composite or RGB signal, allowing that
 			work to be offloaded onto the GPU and allowing the output signal to be sampled at a rate appropriate
 			to the display size.
 
-			@param ... A list of sizes for source data buffers, provided as the number of bytes per sample.
-			For compatibility with OpenGL ES, samples should be 1–4 bytes in size. If a machine requires more
-			than 4 bytes/sample then it should use multiple buffers.
-
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth, ...);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -116,7 +112,7 @@ class CRT {
 			Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int number_of_buffers, ...);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
@@ -171,28 +167,16 @@ class CRT {
 
 		/*!	Ensures that the given number of output samples are allocated for writing.
 
-			Following this call, the caller should call @c get_write_target_for_buffer for each
-			buffer they requested to get the location of the allocated memory.
-
 			The beginning of the most recently allocated area is used as the start
 			of data written by a call to @c output_data; it is acceptable to write and to
 			output less data than the amount requested but that may be less efficient.
 
 			@param required_length The number of samples to allocate.
+			@returns A pointer to the allocated area.
 		*/
-		inline void allocate_write_area(size_t required_length)
+		inline uint8_t *allocate_write_area(size_t required_length)
 		{
 			return _openGL_output_builder->allocate_write_area(required_length);
-		}
-
-		/*!	Gets a pointer for writing to the area created by the most recent call to @c allocate_write_area
-			for the nominated buffer.
-
-			@param buffer The buffer to get a write target for.
-		*/
-		inline uint8_t *get_write_target_for_buffer(int buffer)
-		{
-			return _openGL_output_builder->get_write_target_for_buffer(buffer);
 		}
 
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.

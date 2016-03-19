@@ -89,7 +89,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 
 	public:
-		OpenGLOutputBuilder(unsigned int number_of_buffers, va_list sizes);
+		OpenGLOutputBuilder(unsigned int buffer_depth);
 		~OpenGLOutputBuilder();
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
@@ -164,22 +164,18 @@ class OpenGLOutputBuilder {
 			_output_mutex->unlock();
 		}
 
-		inline void allocate_write_area(size_t required_length)
+		inline uint8_t *allocate_write_area(size_t required_length)
 		{
 			_output_mutex->lock();
 			_buffer_builder->allocate_write_area(required_length);
+			uint8_t *output = _input_texture_data ? _buffer_builder->get_write_target(_input_texture_data) : nullptr;
 			_output_mutex->unlock();
+			return output;
 		}
 
 		inline void reduce_previous_allocation_to(size_t actual_length)
 		{
-			_buffer_builder->reduce_previous_allocation_to(actual_length);
-		}
-
-		inline uint8_t *get_write_target_for_buffer(int buffer)
-		{
-			return &_input_texture_data[_buffer_builder->_write_target_pointer];	//  * _buffer_builder->bytes_per_pixel
-//			return _buffer_builder->get_write_target_for_buffer(buffer);
+			_buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
 		}
 
 		inline uint16_t get_last_write_x_posiiton()
