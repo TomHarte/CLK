@@ -22,13 +22,15 @@ namespace {
 	static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
 	static const unsigned int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-												// the first line with pixels in field 1 is the 20th in the frame, the first line
-												// with pixels in field 2 will be 20+field_divider_line
-	static const unsigned int first_graphics_line = 38;
+														// the first line with pixels in field 1 is the 20th in the frame, the first line
+														// with pixels in field 2 will be 20+field_divider_line
+	static const unsigned int first_graphics_line = 31;
 	static const unsigned int first_graphics_cycle = 33;
 
-	static const unsigned int real_time_clock_interrupt_line = 100;
 	static const unsigned int display_end_interrupt_line = 256;
+
+	static const unsigned int real_time_clock_interrupt_1 = 16704;
+	static const unsigned int real_time_clock_interrupt_2 = 56704;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
@@ -358,6 +360,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
 //	}
 
+//	const int end_of_field =
+//	if (_frameCycles < (256 + first_graphics_line) << 7))
+
 	const unsigned int pixel_line_clock = _frameCycles;// + 128 - first_graphics_cycle + 80;
 	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
 	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
@@ -368,11 +373,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		switch(line_before_cycle)
 		{
-			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
+//			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
 //			case real_time_clock_interrupt_line+1:	clear_interrupt(Interrupt::RealTimeClock);	break;
 			case display_end_interrupt_line:		signal_interrupt(Interrupt::DisplayEnd);	break;
 //			case display_end_interrupt_line+1:		clear_interrupt(Interrupt::DisplayEnd);		break;
 		}
+	}
+
+	if(
+		(pixel_line_clock < real_time_clock_interrupt_1 && pixel_line_clock + cycles >= real_time_clock_interrupt_1) ||
+		(pixel_line_clock < real_time_clock_interrupt_2 && pixel_line_clock + cycles >= real_time_clock_interrupt_2))
+	{
+		signal_interrupt(Interrupt::RealTimeClock);
 	}
 
 	_frameCycles += cycles;
