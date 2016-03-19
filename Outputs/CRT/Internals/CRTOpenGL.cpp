@@ -185,21 +185,24 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			if(_run_builders[run]->amount_of_data > 0)
 			{
 				// upload if required
-				uint8_t *target = nullptr;
 				if(_run_builders[run]->amount_of_data != _run_builders[run]->amount_of_uploaded_data)
 				{
-					target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					uint8_t *target = nullptr;
 
-					size_t start = _run_builders[run]->start + _run_builders[run]->amount_of_uploaded_data;
+					size_t start = (_run_builders[run]->start + _run_builders[run]->amount_of_uploaded_data) % InputVertexBufferDataSize;
 					size_t length = _run_builders[run]->amount_of_data + _run_builders[run]->amount_of_uploaded_data;
 
 					if(start + length > InputVertexBufferDataSize)
 					{
+						target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 						memcpy(&target[start], &_output_buffer_data[start], InputVertexBufferDataSize - start);
 						memcpy(target, _output_buffer_data, length - (InputVertexBufferDataSize - start));
 					}
 					else
-						memcpy(&target[start], &_output_buffer_data[start], length);
+					{
+						target = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, (GLintptr)start, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+						memcpy(target, &_output_buffer_data[start], length);
+					}
 
 					glUnmapBuffer(GL_ARRAY_BUFFER);
 					_run_builders[run]->amount_of_uploaded_data = _run_builders[run]->amount_of_data;
