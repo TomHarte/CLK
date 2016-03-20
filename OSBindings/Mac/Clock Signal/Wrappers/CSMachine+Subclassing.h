@@ -16,5 +16,6 @@
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)performAsync:(dispatch_block_t)action;
 - (void)performSync:(dispatch_block_t)action;
+- (void)setupOutput;
 
 @end

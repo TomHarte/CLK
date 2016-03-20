@@ -47,6 +47,16 @@ Machine::Machine() :
 	_use_fast_tape_hack(false),
 	_crt(std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1)))
 {
+	memset(_key_states, 0, sizeof(_key_states));
+	memset(_palette, 0xf, sizeof(_palette));
+	for(int c = 0; c < 16; c++)
+		memset(_roms[c], 0xff, 16384);
+
+	_tape.set_delegate(this);
+}
+
+void Machine::setup_output()
+{
 	_crt->set_rgb_sampling_function(
 		"vec4 rgb_sample(vec2 coordinate)"
 		"{"
@@ -56,13 +66,7 @@ Machine::Machine() :
 	_crt->set_output_device(Outputs::CRT::Monitor);
 //	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
 
-	memset(_key_states, 0, sizeof(_key_states));
-	memset(_palette, 0xf, sizeof(_palette));
-	for(int c = 0; c < 16; c++)
-		memset(_roms[c], 0xff, 16384);
-
 	_speaker.set_input_rate(125000);
-	_tape.set_delegate(this);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)

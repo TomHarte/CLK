@@ -42,9 +42,7 @@
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	@synchronized(self) {
-		_electron.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
-	}
+	_electron.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (BOOL)openUEFAtURL:(NSURL *)URL {
@@ -151,6 +149,12 @@
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
 		_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
+}
+
+- (void)setupOutput {
+	@synchronized(self) {
+		_electron.setup_output();
 	}
 }
 

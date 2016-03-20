@@ -51,4 +51,13 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	dispatch_async(_serialDispatchQueue, action);
 }
 
+- (void)setupOutput {}
+
+- (void)setView:(CSOpenGLView *)view {
+	_view = view;
+	[view performWithGLContext:^{
+		[self setupOutput];
+	}];
+}
+
 @end
