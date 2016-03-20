@@ -133,8 +133,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)performWithGLContext:(dispatch_block_t)action
 {
-	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
+	[self.openGLContext makeCurrentContext];
 	action();
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
