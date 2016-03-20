@@ -12,6 +12,7 @@
 
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
+	uint32_t _updateIsOngoing;
 }
 
 - (void)prepareOpenGL
@@ -51,9 +52,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now
 {
-	NSLog(@"%0.4f", (double)now->videoTime / (double)now->videoTimeScale);
-	[self.delegate openGLView:self didUpdateToTime:*now];
-	[self drawViewOnlyIfDirty:YES];
+	const uint32_t activityMask = 0x01;
+	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
+	{
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+			[self.delegate openGLView:self didUpdateToTime:*now];
+			[self drawViewOnlyIfDirty:YES];
+			OSAtomicTestAndClear(activityMask, &_updateIsOngoing);
+		});
+	}
 }
 
 - (void)invalidate
