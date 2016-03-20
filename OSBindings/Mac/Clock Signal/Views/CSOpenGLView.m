@@ -55,8 +55,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	const uint32_t activityMask = 0x01;
 	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
 	{
+		CVTimeStamp time = *now;
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-			[self.delegate openGLView:self didUpdateToTime:*now];
+			[self.delegate openGLView:self didUpdateToTime:time];
 			[self drawViewOnlyIfDirty:YES];
 			OSAtomicTestAndClear(activityMask, &_updateIsOngoing);
 		});
