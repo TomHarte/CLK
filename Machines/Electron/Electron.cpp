@@ -45,7 +45,7 @@ Machine::Machine() :
 	_audioOutputPositionError(0),
 	_current_pixel_line(-1),
 	_use_fast_tape_hack(false),
-	_crt(std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1)))
+	_crt(nullptr)
 {
 	memset(_key_states, 0, sizeof(_key_states));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -57,6 +57,7 @@ Machine::Machine() :
 
 void Machine::setup_output()
 {
+	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
 		"vec4 rgb_sample(vec2 coordinate)"
 		"{"

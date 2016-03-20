@@ -62,6 +62,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			OSAtomicTestAndClear(activityMask, &_updateIsOngoing);
 		});
 	}
+	else
+	{
+		[self drawViewOnlyIfDirty:YES];
+	}
 }
 
 - (void)invalidate

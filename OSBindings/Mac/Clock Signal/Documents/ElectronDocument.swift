@@ -58,11 +58,14 @@ class ElectronDocument: MachineDocument {
 	}
 
 	lazy var actionLock = NSLock()
+	lazy var drawLock = NSLock()
 	override func close() {
 		actionLock.lock()
+		drawLock.lock()
 		openGLView.invalidate()
 		openGLView.openGLContext!.makeCurrentContext()
 		actionLock.unlock()
+		drawLock.unlock()
 
 		super.close()
 	}
@@ -76,7 +79,10 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
-		electron.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+		if drawLock.tryLock() {
+			electron.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+			drawLock.unlock()
+		}
 	}
 
 	// MARK: CSOpenGLViewResponderDelegate
