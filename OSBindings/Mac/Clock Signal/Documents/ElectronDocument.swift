@@ -11,23 +11,21 @@ import AudioToolbox
 
 class ElectronDocument: MachineDocument {
 
-	private var electron: CSElectron! = CSElectron()
-	override init() {
-		super.init()
-		self.intendedCyclesPerSecond = 2000000
-
-		if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
-			electron.setOSROM(NSData(contentsOfFile: osPath)!)
-		}
-		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
-			electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
-		}
-	}
+	private lazy var electron = CSElectron()
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
-		electron.view = openGLView
-		electron.audioQueue = self.audioQueue
+		self.intendedCyclesPerSecond = 2000000
+		openGLView.performWithGLContext({
+			if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
+				self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
+			}
+			if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
+				self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
+			}
+			self.electron.view = self.openGLView
+			self.electron.audioQueue = self.audioQueue
+		})
 	}
 
 	override var windowNibName: String? {
@@ -62,10 +60,8 @@ class ElectronDocument: MachineDocument {
 	lazy var actionLock = NSLock()
 	override func close() {
 		actionLock.lock()
-		electron.sync()
 		openGLView.invalidate()
 		openGLView.openGLContext!.makeCurrentContext()
-		electron = nil
 		actionLock.unlock()
 
 		super.close()
@@ -74,7 +70,7 @@ class ElectronDocument: MachineDocument {
 	// MARK: CSOpenGLViewDelegate
 	override func runForNumberOfCycles(numberOfCycles: Int32) {
 		if actionLock.tryLock() {
-			electron?.runForNumberOfCycles(numberOfCycles)
+			electron.runForNumberOfCycles(numberOfCycles)
 			actionLock.unlock()
 		}
 	}

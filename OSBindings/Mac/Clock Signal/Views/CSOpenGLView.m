@@ -10,15 +10,8 @@
 @import CoreVideo;
 @import GLKit;
 
-typedef NS_ENUM(NSInteger, CSOpenGLViewCondition) {
-	CSOpenGLViewConditionReadyForUpdate,
-	CSOpenGLViewConditionUpdating
-};
-
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
-	NSConditionLock *_runningLock;
-	dispatch_queue_t _dispatchQueue;
 }
 
 - (void)prepareOpenGL
@@ -33,10 +26,6 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewCondition) {
 	// Set the renderer output callback function
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
 
-	// Create a queue and a condition lock for dispatching to it
-	_runningLock = [[NSConditionLock alloc] initWithCondition:CSOpenGLViewConditionReadyForUpdate];
-	_dispatchQueue = dispatch_queue_create("com.thomasharte.clocksignal.GL", DISPATCH_QUEUE_SERIAL);
- 
 	// Set the display link for the current renderer
 	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
@@ -62,24 +51,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now
 {
-	if([_runningLock tryLockWhenCondition:CSOpenGLViewConditionReadyForUpdate])
-	{
-		CVTimeStamp timeStamp = *now;
-		dispatch_async(_dispatchQueue, ^{
-			[_runningLock lockWhenCondition:CSOpenGLViewConditionUpdating];
-			[self.delegate openGLView:self didUpdateToTime:timeStamp];
-			[self drawViewOnlyIfDirty:YES];
-			[_runningLock unlockWithCondition:CSOpenGLViewConditionReadyForUpdate];
-		});
-		[_runningLock unlockWithCondition:CSOpenGLViewConditionUpdating];
-	}
+	NSLog(@"%0.4f", (double)now->videoTime / (double)now->videoTimeScale);
+	[self.delegate openGLView:self didUpdateToTime:*now];
+	[self drawViewOnlyIfDirty:YES];
 }
 
 - (void)invalidate
 {
 	CVDisplayLinkStop(_displayLink);
-	[_runningLock lockWhenCondition:CSOpenGLViewConditionReadyForUpdate];
-	[_runningLock unlock];
 }
 
 - (void)dealloc
@@ -97,13 +76,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	[super reshape];
 
-	[self.openGLContext makeCurrentContext];
-	CGLLockContext([[self openGLContext] CGLContextObj]);
-
-	CGSize viewSize = [self backingSize];
-	glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
-
-	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+	[self performWithGLContext:^{
+		CGSize viewSize = [self backingSize];
+		glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
+	}];
 }
 
 - (void)awakeFromNib
@@ -142,12 +118,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty
 {
+	[self performWithGLContext:^{
+		[self.delegate openGLView:self drawViewOnlyIfDirty:onlyIfDirty];
+		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+	}];
+}
+
+- (void)performWithGLContext:(dispatch_block_t)action
+{
 	[self.openGLContext makeCurrentContext];
 	CGLLockContext([[self openGLContext] CGLContextObj]);
-
-	[self.delegate openGLView:self drawViewOnlyIfDirty:onlyIfDirty];
-
-	CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+	action();
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
@@ -160,23 +141,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-	dispatch_async(_dispatchQueue, ^{
-		[self.responderDelegate keyDown:theEvent];
-	});
+	[self.responderDelegate keyDown:theEvent];
 }
 
 - (void)keyUp:(NSEvent *)theEvent
 {
-	dispatch_async(_dispatchQueue, ^{
-		[self.responderDelegate keyUp:theEvent];
-	});
+	[self.responderDelegate keyUp:theEvent];
 }
 
 - (void)flagsChanged:(NSEvent *)theEvent
 {
-	dispatch_async(_dispatchQueue, ^{
-		[self.responderDelegate flagsChanged:theEvent];
-	});
+	[self.responderDelegate flagsChanged:theEvent];
 }
 
 @end

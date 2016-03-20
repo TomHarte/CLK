@@ -13,10 +13,8 @@
 @interface CSMachine (Subclassing)
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate;
-
-- (void)doRunForNumberOfCycles:(int)numberOfCycles;
-- (void)perform:(dispatch_block_t)action;
-
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
+- (void)performAsync:(dispatch_block_t)action;
+- (void)performSync:(dispatch_block_t)action;
 
 @end

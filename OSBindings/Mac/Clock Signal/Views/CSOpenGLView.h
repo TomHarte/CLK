@@ -28,6 +28,7 @@
 	identical to the previous frame. If @c NO then the delegate must draw.
 */
 - (void)openGLView:(nonnull CSOpenGLView *)view drawViewOnlyIfDirty:(BOOL)onlyIfDirty;
+
 @end
 
 @protocol CSOpenGLViewResponderDelegate <NSObject>
@@ -71,5 +72,7 @@
 
 /// The size in pixels of the OpenGL canvas, factoring in screen pixel density and view size in points.
 @property (nonatomic, readonly) CGSize backingSize;
+
+- (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
 @end

@@ -16,39 +16,13 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	}
 };
 
-typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
-	CSMachineRunningStateRunning,
-	CSMachineRunningStateStopped
-};
-
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
-
 	dispatch_queue_t _serialDispatchQueue;
-	NSConditionLock *_runningLock;
-}
-
-- (void)perform:(dispatch_block_t)action {
-	dispatch_async(_serialDispatchQueue, action);
 }
 
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
-}
-
-- (void)runForNumberOfCycles:(int)cycles {
-	if([_runningLock tryLockWhenCondition:CSMachineRunningStateStopped]) {
-		[_runningLock unlockWithCondition:CSMachineRunningStateRunning];
-		dispatch_async(_serialDispatchQueue, ^{
-			[_runningLock lockWhenCondition:CSMachineRunningStateRunning];
-			[self doRunForNumberOfCycles:cycles];
-			[_runningLock unlockWithCondition:CSMachineRunningStateStopped];
-		});
-	}
-}
-
-- (void)sync {
-	dispatch_sync(_serialDispatchQueue, ^{});
 }
 
 - (instancetype)init {
@@ -56,8 +30,6 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 
 	if (self) {
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
-		_runningLock = [[NSConditionLock alloc] initWithCondition:CSMachineRunningStateStopped];
-
 		_speakerDelegate.machine = self;
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:44100];
 	}
@@ -68,6 +40,15 @@ typedef NS_ENUM(NSInteger, CSAtari2600RunningState) {
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
 	return NO;
 }
-- (void)doRunForNumberOfCycles:(int)numberOfCycles {}
+
+- (void)runForNumberOfCycles:(int)numberOfCycles {}
+
+- (void)performSync:(dispatch_block_t)action {
+	dispatch_sync(_serialDispatchQueue, action);
+}
+
+- (void)performAsync:(dispatch_block_t)action {
+	dispatch_async(_serialDispatchQueue, action);
+}
 
 @end

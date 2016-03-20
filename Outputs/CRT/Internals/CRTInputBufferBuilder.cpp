@@ -12,10 +12,17 @@
 
 using namespace Outputs::CRT;
 
-CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) : bytes_per_pixel(bytes_per_pixel)
+CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) :
+	bytes_per_pixel(bytes_per_pixel),
+	_next_write_x_position(0),
+	_next_write_y_position(0),
+	last_uploaded_line(0),
+	_wraparound_sync(glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0))
+{}
+
+CRTInputBufferBuilder::~CRTInputBufferBuilder()
 {
-	_next_write_x_position = _next_write_y_position = 0;
-	last_uploaded_line = 0;
+	glDeleteSync(_wraparound_sync);
 }
 
 void CRTInputBufferBuilder::allocate_write_area(size_t required_length)

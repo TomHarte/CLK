@@ -52,21 +52,15 @@
 }
 
 - (void)setROM:(NSData *)rom {
-	[self perform:^{
 		_atari2600.set_rom(rom.length, (const uint8_t *)rom.bytes);
-	}];
 }
 
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput {
-	[self perform:^{
 		_atari2600.set_digital_input(digitalInput, state ? true : false);
-	}];
 }
 
 - (void)setResetLineEnabled:(BOOL)enabled {
-	[self perform:^{
 		_atari2600.set_reset_line(enabled ? true : false);
-	}];
 }
 
 @end
