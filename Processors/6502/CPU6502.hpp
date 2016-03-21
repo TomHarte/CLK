@@ -551,6 +551,7 @@ template <class T> class Processor {
 			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
 			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
 			uint8_t operand = _operand;
+			uint8_t operation = _operation;
 
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
@@ -601,7 +602,7 @@ template <class T> class Processor {
 						case CycleFetchOperation: {
 							_lastOperationPC = _pc;
 							_pc.full++;
-							read_op(_operation, _lastOperationPC.full);
+							read_op(operation, _lastOperationPC.full);
 
 //							static int last_cycles_left_to_run = 0;
 //							static bool printed_map[256] = {false};
@@ -620,7 +621,7 @@ template <class T> class Processor {
 						break;
 
 						case OperationDecodeOperation:
-							decode_operation(_operation);
+							decode_operation(operation);
 						break;
 
 						case OperationMoveToNextProgram:
@@ -1049,6 +1050,7 @@ template <class T> class Processor {
 				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
 				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
 				_operand = operand;
+				_operation = operation;
 			}
 		}
 
