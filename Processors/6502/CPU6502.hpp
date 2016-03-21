@@ -552,6 +552,11 @@ template <class T> class Processor {
 			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
 			uint8_t operand = _operand;
 			uint8_t operation = _operation;
+			RegisterPair address = _address;
+			RegisterPair nextAddress = _nextAddress;
+			BusOperation nextBusOperation = _nextBusOperation;
+			uint16_t busAddress = _busAddress;
+			uint8_t *busValue = _busValue;
 
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
@@ -575,25 +580,25 @@ template <class T> class Processor {
 			while(number_of_cycles > 0) {
 
 				while (_ready_is_active && number_of_cycles > 0) {
-					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
+					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
 				while (!_ready_is_active && number_of_cycles > 0) {
 
-					if (_nextBusOperation != BusOperation::None) {
+					if (nextBusOperation != BusOperation::None) {
 						_irq_request_history[0] = _irq_request_history[1];
 						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
-						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
-						_nextBusOperation = BusOperation::None;
+						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
+						nextBusOperation = BusOperation::None;
 					}
 
 					const MicroOp cycle = program[scheduleProgramProgramCounter];
 					scheduleProgramProgramCounter++;
 
-#define read_op(val, addr)		_nextBusOperation = BusOperation::ReadOpcode;	_busAddress = addr;		_busValue = &val
-#define read_mem(val, addr)		_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &val
-#define throwaway_read(addr)	_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &throwaway_target
-#define write_mem(val, addr)	_nextBusOperation = BusOperation::Write;		_busAddress = addr;		_busValue = &val
+#define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val
+#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val
+#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target
+#define write_mem(val, addr)	nextBusOperation = BusOperation::Write;			busAddress = addr;		busValue = &val
 
 					switch(cycle) {
 
@@ -664,8 +669,8 @@ template <class T> class Processor {
 						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									break;
 
 						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
-						case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
-						case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
+						case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, address.full);								break;
+						case CycleReadPCHFromAddress:		address.bytes.low++; read_mem(_pc.bytes.high, address.full);		break;
 
 						case CycleReadAndIncrementPC: {
 							uint16_t oldPC = _pc.full;
@@ -703,10 +708,10 @@ template <class T> class Processor {
 						case OperationSTX:	operand = _x;											break;
 						case OperationSTY:	operand = _y;											break;
 						case OperationSAX:	operand = _a & _x;										break;
-						case OperationSHA:	operand = _a & _x & (_address.bytes.high+1);			break;
-						case OperationSHX:	operand = _x & (_address.bytes.high+1);					break;
-						case OperationSHY:	operand = _y & (_address.bytes.high+1);					break;
-						case OperationSHS:	_s = _a & _x; operand = _s & (_address.bytes.high+1);	break;
+						case OperationSHA:	operand = _a & _x & (address.bytes.high+1);			break;
+						case OperationSHX:	operand = _x & (address.bytes.high+1);					break;
+						case OperationSHY:	operand = _y & (address.bytes.high+1);					break;
+						case OperationSHS:	_s = _a & _x; operand = _s & (address.bytes.high+1);	break;
 
 						case OperationLXA:
 							_a = _x = (_a | 0xee) & operand;
@@ -895,43 +900,43 @@ template <class T> class Processor {
 #pragma mark - Addressing Mode Work
 
 						case CycleAddXToAddressLow:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
-								throwaway_read(_address.full);
+							nextAddress.full = address.full + _x;
+							address.bytes.low = nextAddress.bytes.low;
+							if (address.bytes.high != nextAddress.bytes.high) {
+								throwaway_read(address.full);
 							}
 						break;
 						case CycleAddXToAddressLowRead:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
-							throwaway_read(_address.full);
+							nextAddress.full = address.full + _x;
+							address.bytes.low = nextAddress.bytes.low;
+							throwaway_read(address.full);
 						break;
 						case CycleAddYToAddressLow:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
-								throwaway_read(_address.full);
+							nextAddress.full = address.full + _y;
+							address.bytes.low = nextAddress.bytes.low;
+							if (address.bytes.high != nextAddress.bytes.high) {
+								throwaway_read(address.full);
 							}
 						break;
 						case CycleAddYToAddressLowRead:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
-							throwaway_read(_address.full);
+							nextAddress.full = address.full + _y;
+							address.bytes.low = nextAddress.bytes.low;
+							throwaway_read(address.full);
 						break;
 						case OperationCorrectAddressHigh:
-							_address.full = _nextAddress.full;
+							address.full = nextAddress.full;
 						break;
 						case CycleIncrementPCFetchAddressLowFromOperand:
 							_pc.full++;
-							read_mem(_address.bytes.low, operand);
+							read_mem(address.bytes.low, operand);
 						break;
 						case CycleAddXToOperandFetchAddressLow:
 							operand += _x;
-							read_mem(_address.bytes.low, operand);
+							read_mem(address.bytes.low, operand);
 						break;
 						case CycleIncrementOperandFetchAddressHigh:
 							operand++;
-							read_mem(_address.bytes.high, operand);
+							read_mem(address.bytes.high, operand);
 						break;
 						case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
 							_pc.full++;
@@ -942,37 +947,37 @@ template <class T> class Processor {
 						} break;
 
 						case CycleReadAddressHLoadAddressL:
-							_address.bytes.low = operand; _pc.full++;
-							read_mem(_address.bytes.high, _pc.full);
+							address.bytes.low = operand; _pc.full++;
+							read_mem(address.bytes.high, _pc.full);
 						break;
 
 						case CycleLoadAddressAbsolute: {
 							uint16_t nextPC = _pc.full+1;
 							_pc.full += 2;
-							_address.bytes.low = operand;
-							read_mem(_address.bytes.high, nextPC);
+							address.bytes.low = operand;
+							read_mem(address.bytes.high, nextPC);
 						} break;
 
 						case OperationLoadAddressZeroPage:
 							_pc.full++;
-							_address.full = operand;
+							address.full = operand;
 						break;
 
 						case CycleLoadAddessZeroX:
 							_pc.full++;
-							_address.full = (operand + _x)&0xff;
+							address.full = (operand + _x)&0xff;
 							throwaway_read(operand);
 						break;
 
 						case CycleLoadAddessZeroY:
 							_pc.full++;
-							_address.full = (operand + _y)&0xff;
+							address.full = (operand + _y)&0xff;
 							throwaway_read(operand);
 						break;
 
 						case OperationIncrementPC:			_pc.full++;						break;
-						case CycleFetchOperandFromAddress:	read_mem(operand, _address.full);	break;
-						case CycleWriteOperandToAddress:	write_mem(operand, _address.full);	break;
+						case CycleFetchOperandFromAddress:	read_mem(operand, address.full);	break;
+						case CycleWriteOperandToAddress:	write_mem(operand, address.full);	break;
 						case OperationCopyOperandFromA:		operand = _a;					break;
 						case OperationCopyOperandToA:		_a = operand;					break;
 
@@ -990,11 +995,11 @@ template <class T> class Processor {
 						case OperationBEQ: BRA(!_zeroResult);							break;
 
 						case CycleAddSignedOperandToPC:
-							_nextAddress.full = (uint16_t)(_pc.full + (int8_t)operand);
-							_pc.bytes.low = _nextAddress.bytes.low;
-							if(_nextAddress.bytes.high != _pc.bytes.high) {
+							nextAddress.full = (uint16_t)(_pc.full + (int8_t)operand);
+							_pc.bytes.low = nextAddress.bytes.low;
+							if(nextAddress.bytes.high != _pc.bytes.high) {
 								uint16_t halfUpdatedPc = _pc.full;
-								_pc.full = _nextAddress.full;
+								_pc.full = nextAddress.full;
 								throwaway_read(halfUpdatedPc);
 							}
 						break;
@@ -1041,7 +1046,7 @@ template <class T> class Processor {
 						break;
 					}
 
-					if (isReadOperation(_nextBusOperation) && _ready_line_is_enabled) {
+					if (isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
 						_ready_is_active = true;
 					}
 				}
@@ -1051,6 +1056,11 @@ template <class T> class Processor {
 				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
 				_operand = operand;
 				_operation = operation;
+				_address = address;
+				_nextAddress = nextAddress;
+				_nextBusOperation = nextBusOperation;
+				_busAddress = busAddress;
+				_busValue = busValue;
 			}
 		}
 
