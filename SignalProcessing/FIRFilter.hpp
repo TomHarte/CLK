@@ -42,7 +42,7 @@ class FIRFilter {
 			@param input_sample_rate The sampling rate of the input signal.
 			@param low_frequency The lowest frequency of signal to retain in the output.
 			@param high_frequency The highest frequency of signal to retain in the output.
-			@param attenuation The attenuation of the output.
+			@param attenuation The attenuation of the discarded frequencies.
 		*/
 		FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate, float low_frequency, float high_frequency, float attenuation);
 
@@ -73,9 +73,19 @@ class FIRFilter {
 			#endif
 		}
 
+		inline unsigned int get_number_of_taps()
+		{
+			return number_of_taps_;
+		}
+
+		void get_coefficients(float *coefficients);
+
 	private:
 		short *filter_coefficients_;
 		unsigned int number_of_taps_;
+
+		static void coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps);
+		static float ino(float a);
 };
 
 }

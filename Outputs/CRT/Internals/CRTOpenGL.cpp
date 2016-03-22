@@ -10,6 +10,7 @@
 #include <math.h>
 
 #include "CRTOpenGL.hpp"
+#include "../../../SignalProcessing/FIRFilter.hpp"
 
 using namespace Outputs::CRT;
 
@@ -342,6 +343,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"uniform float ticksPerFrame;"
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
+		"uniform vec3 filterCoefficients;"
 
 		"const float shadowMaskMultiple = 600;"
 
@@ -355,7 +357,9 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase - timestamp) / ticksPerFrame;"
-			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
+			"vec3 alphas = vec3(10.0 * exp((-age - 0.66) * 2.0), 10.0 * exp(-(age - 0.33) * 2.0), 10.0 * exp(-age * 2.0));"
+//			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
+			"alpha = dot(alphas, filterCoefficients);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateral*scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -499,12 +503,18 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 		GLint ticksPerFrameUniform		= rgb_shader_program->get_uniform_location("ticksPerFrame");
 		GLint scanNormalUniform			= rgb_shader_program->get_uniform_location("scanNormal");
 		GLint positionConversionUniform	= rgb_shader_program->get_uniform_location("positionConversion");
+		GLint filterCoefficients		= rgb_shader_program->get_uniform_location("filterCoefficients");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform1i(shadowMaskTexIDUniform, 1);
 		glUniform2f(textureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
+
+		SignalProcessing::FIRFilter filter(3, 3 * 50, 0, 25, SignalProcessing::FIRFilter::DefaultAttenuation);
+		float coefficients[3];
+		filter.get_coefficients(coefficients);
+		glUniform3fv(filterCoefficients, 1, coefficients);
 
 		float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
 		float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};

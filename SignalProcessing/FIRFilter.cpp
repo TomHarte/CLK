@@ -37,7 +37,7 @@ using namespace SignalProcessing;
 #define kCSKaiserBesselFilterFixedShift			15
 
 /* ino evaluates the 0th order Bessel function at a */
-static float csfilter_ino(float a)
+float FIRFilter::ino(float a)
 {
 	float d = 0.0f;
 	float ds = 1.0f;
@@ -54,7 +54,8 @@ static float csfilter_ino(float a)
 	return s;
 }
 
-static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps)
+//static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps)
+void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps)
 {
 	/* calculate alpha, which is the Kaiser-Bessel window shape factor */
 	float a;	// to take the place of alpha in the normal derivation
@@ -73,13 +74,13 @@ static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float
 
 	/* work out the right hand side of the filter coefficients */
 	unsigned int Np = (numberOfTaps - 1) / 2;
-	float I0 = csfilter_ino(a);
+	float I0 = ino(a);
 	float NpSquared = (float)(Np * Np);
 	for(unsigned int i = 0; i <= Np; i++)
 	{
 		filterCoefficientsFloat[Np + i] = 
 				A[i] * 
-				csfilter_ino(a * sqrtf(1.0f - ((float)(i * i) / NpSquared) )) /
+				ino(a * sqrtf(1.0f - ((float)(i * i) / NpSquared) )) /
 				I0;
 	}
 
@@ -104,6 +105,14 @@ static void csfilter_setIdealisedFilterResponse(short *filterCoefficients, float
 	}
 
 	delete[] filterCoefficientsFloat;
+}
+
+void FIRFilter::get_coefficients(float *coefficients)
+{
+	for(unsigned int i = 0; i < number_of_taps_; i++)
+	{
+		coefficients[i] = (float)filter_coefficients_[i] / kCSKaiserBesselFilterFixedMultiplier;
+	}
 }
 
 FIRFilter::FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate, float low_frequency, float high_frequency, float attenuation)
@@ -136,7 +145,7 @@ FIRFilter::FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate
 			) / iPi;
 	}
 
-	csfilter_setIdealisedFilterResponse(filter_coefficients_, A, attenuation, number_of_taps_);
+	FIRFilter::coefficients_for_idealised_filter_response(filter_coefficients_, A, attenuation, number_of_taps_);
 
 	/* clean up */
 	delete[] A;
