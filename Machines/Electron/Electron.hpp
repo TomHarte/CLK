@@ -197,7 +197,8 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		bool _isBlankLine;
 
 		// CRT output
-		uint8_t *_currentLine;
+		uint8_t *_current_output_target, *_initial_output_target;
+		unsigned int _current_output_divider;
 
 		// Tape.
 		Tape _tape;

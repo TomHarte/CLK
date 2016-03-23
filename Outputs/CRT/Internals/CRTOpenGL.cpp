@@ -87,7 +87,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		GLenum format = formatForDepth(_buffer_builder->bytes_per_pixel);
 		glGenBuffers(1, &_input_texture_array);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER, InputTextureBufferDataSize, NULL, GL_STREAM_DRAW);
+		_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->bytes_per_pixel);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
@@ -219,7 +220,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// drawing commands having been issued, reclaim the array buffer pointer
 	_buffer_builder->move_to_new_line();
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, InputTextureBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
 }
 

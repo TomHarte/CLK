@@ -207,6 +207,7 @@ class OpenGLOutputBuilder {
 		uint8_t *_input_texture_data;
 		GLuint _input_texture_array;
 		GLsync _input_texture_sync;
+		GLsizeiptr _input_texture_array_size;
 
 		uint8_t *_output_buffer_data;
 		size_t _output_buffer_data_pointer;
