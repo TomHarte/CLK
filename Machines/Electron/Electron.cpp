@@ -82,15 +82,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else
 		{
-			// If we're still before the display will start to be painted, or the address is
-			// less than both the current line address and 0x3000, (the minimum screen mode
-			// base address) then there's no way this write can affect the current frame. Sp
-			// no need to flush the display. Otherwise, output up until now so that any
-			// write doesn't have retroactive effect on the video output.
-//			if(!(
-//				(_fieldCycles < first_graphics_line * cycles_per_line) ||
-//				(address < _startLineAddress && address < 0x3000)
-//			))
+			if(
+				(
+					((_frameCycles >= first_graphics_line * cycles_per_line) && (_frameCycles < (first_graphics_line + 256) * cycles_per_line)) ||
+					((_frameCycles >= (first_graphics_line + field_divider_line)  * cycles_per_line) && (_frameCycles < (first_graphics_line + 256 + field_divider_line) * cycles_per_line))
+				)
+			)
 				update_display();
 
 			_ram[address] = *value;
@@ -101,7 +98,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		cycles += 1 + (_frameCycles&1);
 		if(_screen_mode < 4)
 		{
-			update_display();
 			const int current_line = graphics_line(_frameCycles + (_frameCycles&1));
 			const int current_column = graphics_column(_frameCycles + (_frameCycles&1));
 			if(current_line < 256 && current_column < 80 && !_isBlankLine)

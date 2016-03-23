@@ -358,7 +358,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase - timestamp) / ticksPerFrame;"
-			"vec3 alphas = vec3(10.0 * exp((-age - 0.66) * 2.0), 10.0 * exp(-(age - 0.33) * 2.0), 10.0 * exp(-age * 2.0));"
+			"vec3 alphas = vec3(10.0 * exp((-age - 1.33) * 2.0), 10.0 * exp(-(age - 0.66) * 2.0), 10.0 * exp(-age * 2.0));"
 //			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
 			"alpha = dot(alphas, filterCoefficients);"
 
@@ -512,7 +512,7 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
 
-		SignalProcessing::FIRFilter filter(3, 3 * 50, 0, 25, SignalProcessing::FIRFilter::DefaultAttenuation);
+		SignalProcessing::FIRFilter filter(3, 6 * 50, 0, 25, SignalProcessing::FIRFilter::DefaultAttenuation);
 		float coefficients[3];
 		filter.get_coefficients(coefficients);
 		glUniform3fv(filterCoefficients, 1, coefficients);

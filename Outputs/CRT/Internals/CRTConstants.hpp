@@ -48,7 +48,7 @@ const GLsizeiptr InputVertexBufferDataSize = 262080;	// a multiple of 6 * Output
 // Runs are divided discretely by vertical syncs in order to put a usable bounds on the uniform used to track
 // run age; that therefore creates a discrete number of fields that are stored. This number should be the
 // number of historic fields that are required fully to 
-const int NumberOfFields = 3;
+const int NumberOfFields = 4;
 
 }
 }
