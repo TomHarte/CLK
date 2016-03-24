@@ -550,7 +550,7 @@ template <class T> class Processor {
 			// to date in this stack frame only); which saves some complicated addressing
 			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
 			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
-			uint8_t operation = _operation;
+			RegisterPair nextAddress = _nextAddress;
 
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
@@ -601,7 +601,7 @@ template <class T> class Processor {
 						case CycleFetchOperation: {
 							_lastOperationPC = _pc;
 							_pc.full++;
-							read_op(operation, _lastOperationPC.full);
+							read_op(_operation, _lastOperationPC.full);
 
 //							static int last_cycles_left_to_run = 0;
 //							static bool printed_map[256] = {false};
@@ -620,7 +620,7 @@ template <class T> class Processor {
 						break;
 
 						case OperationDecodeOperation:
-							decode_operation(operation);
+							decode_operation(_operation);
 						break;
 
 						case OperationMoveToNextProgram:
@@ -894,31 +894,31 @@ template <class T> class Processor {
 #pragma mark - Addressing Mode Work
 
 						case CycleAddXToAddressLow:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
+							nextAddress.full = _address.full + _x;
+							_address.bytes.low = nextAddress.bytes.low;
+							if (_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
 						case CycleAddXToAddressLowRead:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
+							nextAddress.full = _address.full + _x;
+							_address.bytes.low = nextAddress.bytes.low;
 							throwaway_read(_address.full);
 						break;
 						case CycleAddYToAddressLow:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
+							nextAddress.full = _address.full + _y;
+							_address.bytes.low = nextAddress.bytes.low;
+							if (_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
 						case CycleAddYToAddressLowRead:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
+							nextAddress.full = _address.full + _y;
+							_address.bytes.low = nextAddress.bytes.low;
 							throwaway_read(_address.full);
 						break;
 						case OperationCorrectAddressHigh:
-							_address.full = _nextAddress.full;
+							_address.full = nextAddress.full;
 						break;
 						case CycleIncrementPCFetchAddressLowFromOperand:
 							_pc.full++;
@@ -989,11 +989,11 @@ template <class T> class Processor {
 						case OperationBEQ: BRA(!_zeroResult);							break;
 
 						case CycleAddSignedOperandToPC:
-							_nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
-							_pc.bytes.low = _nextAddress.bytes.low;
-							if(_nextAddress.bytes.high != _pc.bytes.high) {
+							nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
+							_pc.bytes.low = nextAddress.bytes.low;
+							if(nextAddress.bytes.high != _pc.bytes.high) {
 								uint16_t halfUpdatedPc = _pc.full;
-								_pc.full = _nextAddress.full;
+								_pc.full = nextAddress.full;
 								throwaway_read(halfUpdatedPc);
 							}
 						break;
@@ -1048,7 +1048,7 @@ template <class T> class Processor {
 				_cycles_left_to_run = number_of_cycles;
 				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
 				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
-				_operation = operation;
+				_nextAddress = nextAddress;
 			}
 		}
 
