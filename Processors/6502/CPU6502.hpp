@@ -551,6 +551,9 @@ template <class T> class Processor {
 			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
 			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
 			RegisterPair nextAddress = _nextAddress;
+			BusOperation nextBusOperation = _nextBusOperation;
+			uint16_t busAddress = _busAddress;
+			uint8_t *busValue = _busValue;
 
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
@@ -574,25 +577,25 @@ template <class T> class Processor {
 			while(number_of_cycles > 0) {
 
 				while (_ready_is_active && number_of_cycles > 0) {
-					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
+					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
 				while (!_ready_is_active && number_of_cycles > 0) {
 
-					if (_nextBusOperation != BusOperation::None) {
+					if (nextBusOperation != BusOperation::None) {
 						_irq_request_history[0] = _irq_request_history[1];
 						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
-						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
-						_nextBusOperation = BusOperation::None;
+						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
+						nextBusOperation = BusOperation::None;
 					}
 
 					const MicroOp cycle = program[scheduleProgramProgramCounter];
 					scheduleProgramProgramCounter++;
 
-#define read_op(val, addr)		_nextBusOperation = BusOperation::ReadOpcode;	_busAddress = addr;		_busValue = &val
-#define read_mem(val, addr)		_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &val
-#define throwaway_read(addr)	_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &throwaway_target
-#define write_mem(val, addr)	_nextBusOperation = BusOperation::Write;		_busAddress = addr;		_busValue = &val
+#define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val
+#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val
+#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target
+#define write_mem(val, addr)	nextBusOperation = BusOperation::Write;			busAddress = addr;		busValue = &val
 
 					switch(cycle) {
 
@@ -1040,7 +1043,7 @@ template <class T> class Processor {
 						break;
 					}
 
-					if (isReadOperation(_nextBusOperation) && _ready_line_is_enabled) {
+					if (isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
 						_ready_is_active = true;
 					}
 				}
@@ -1049,6 +1052,9 @@ template <class T> class Processor {
 				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
 				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
 				_nextAddress = nextAddress;
+				_nextBusOperation = nextBusOperation;
+				_busAddress = busAddress;
+				_busValue = busValue;
 			}
 		}
 
