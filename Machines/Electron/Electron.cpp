@@ -61,11 +61,10 @@ void Machine::setup_output()
 	_crt->set_rgb_sampling_function(
 		"vec4 rgb_sample(vec2 coordinate)"
 		"{"
-			"float texValue = texture(texID, coordinate).r;"
-			"return vec4(step(4.0/256.0, mod(texValue, 8.0/256.0)), step(2.0/256.0, mod(texValue, 4.0/256.0)), step(1.0/256.0, mod(texValue, 2.0/256.0)), 1.0);"
+			"uint texValue = texture(texID, coordinate).r;"
+			"return vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
-//	_crt->set_visible_area(Outputs::Rect(0.23108f, 0.0f, 0.8125f, 0.98f));	//1875
 
 	_speaker.set_input_rate(125000);
 }

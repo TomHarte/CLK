@@ -58,15 +58,27 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	free(_rgb_shader);
 }
 
-static GLenum formatForDepth(size_t depth)
+static const GLint internalFormatForDepth(size_t depth)
 {
 	switch(depth)
 	{
 		default: return GL_FALSE;
-		case 1: return GL_RED;
-		case 2: return GL_RG;
-		case 3: return GL_RGB;
-		case 4: return GL_RGBA;
+		case 1: return GL_R8UI;
+		case 2: return GL_RG8UI;
+		case 3: return GL_RGB8UI;
+		case 4: return GL_RGBA8UI;
+	}
+}
+
+static const GLenum formatForDepth(size_t depth)
+{
+	switch(depth)
+	{
+		default: return GL_FALSE;
+		case 1: return GL_RED_INTEGER;
+		case 2: return GL_RG_INTEGER;
+		case 3: return GL_RGB_INTEGER;
+		case 4: return GL_RGBA_INTEGER;
 	}
 }
 
@@ -84,13 +96,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-		GLenum format = formatForDepth(_buffer_builder->bytes_per_pixel);
 		glGenBuffers(1, &_input_texture_array);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
 		_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->bytes_per_pixel);
 		glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, InputBufferBuilderWidth, InputBufferBuilderHeight, 0, format, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
 
 		prepare_composite_input_shader();
 		prepare_rgb_output_shader();
@@ -137,13 +148,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
 //	{
 //		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
-		GLenum format = formatForDepth(_buffer_builder->bytes_per_pixel);
 		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 		{
 			glTexSubImage2D(GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
-								format, GL_UNSIGNED_BYTE,
+								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
 								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = 0;
 		}
@@ -153,7 +163,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			glTexSubImage2D(GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
-								format, GL_UNSIGNED_BYTE,
+								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
 								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
 			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 		}
@@ -303,7 +313,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"out vec4 fragColour;"
 
-		"uniform sampler2D texID;"
+		"uniform usampler2D texID;"
 
 		"\n%s\n"
 
@@ -396,7 +406,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"out vec4 fragColour;"
 
-		"uniform sampler2D texID;"
+		"uniform usampler2D texID;"
 		"uniform sampler2D shadowMaskTexID;"
 
 		"\n%s\n"
