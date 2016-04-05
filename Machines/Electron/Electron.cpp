@@ -66,7 +66,11 @@ void Machine::setup_output()
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 
-	_speaker.set_input_rate(125000);
+	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
+	// nevertheless sampling only at 62500Hz may introduce aliasing errors as setting the speaker on or off can happen on
+	// any 2Mhz cycle, and I've no idea whether it has an immediate effect or happens only on the next clock. If it turns
+	// out that the former is the case, I'll need to turn this up to 2000000.
+	_speaker.set_input_rate(62500);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -468,8 +472,8 @@ inline void Machine::update_audio()
 {
 	int difference = (int)_frameCycles - _audioOutputPosition;
 	_audioOutputPosition = (int)_frameCycles;
-	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 4);
-	_audioOutputPositionError = (_audioOutputPositionError + difference)&15;
+	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 5);
+	_audioOutputPositionError = (_audioOutputPositionError + difference)&31;
 }
 
 inline void Machine::start_pixel_line()
@@ -782,25 +786,24 @@ void Machine::set_key_state(Key key, bool isPressed)
 
 void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
-	while(number_of_samples--)
+	if(_is_enabled)
 	{
-		*target = _is_enabled ? _output_level : 0;
-		target++;
-		skip_samples(1);
+		while(number_of_samples--)
+		{
+			*target = (int16_t)((_counter / (_divider+1)) * 8192);
+			target++;
+			_counter = (_counter + 1) % ((_divider+1) * 2);
+		}
+	}
+	else
+	{
+		memset(target, 0, sizeof(int16_t) * number_of_samples);
 	}
 }
 
 void Speaker::skip_samples(unsigned int number_of_samples)
 {
-	while(number_of_samples--)
-	{
-		_counter ++;
-		if(_counter > _divider*2)
-		{
-			_counter = 0;
-			_output_level ^= 8192;
-		}
-	}
+	_counter = (_counter + number_of_samples) % ((_divider+1) * 2);
 }
 
 void Speaker::set_divider(uint8_t divider)

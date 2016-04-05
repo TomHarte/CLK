@@ -130,7 +130,6 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		unsigned int _counter;
 		uint8_t _divider;
 		bool _is_enabled;
-		int16_t _output_level;
 };
 
 /*!
