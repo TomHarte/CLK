@@ -13,6 +13,7 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	uint32_t _updateIsOngoing;
+	int _missedFrames;
 }
 
 - (void)prepareOpenGL
@@ -55,6 +56,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	const uint32_t activityMask = 0x01;
 	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
 	{
+		_missedFrames = 0;
 		CVTimeStamp time = *now;
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			[self.delegate openGLView:self didUpdateToTime:time];
@@ -64,7 +66,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	}
 	else
 	{
-		[self drawViewOnlyIfDirty:YES];
+		_missedFrames++;
+		if(_missedFrames == 10)
+		{
+			_missedFrames = 0;
+			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+				[self drawViewOnlyIfDirty:YES];
+			});
+		}
 	}
 }
 
