@@ -164,6 +164,11 @@ class OpenGLOutputBuilder {
 			_output_mutex->unlock();
 		}
 
+		inline int get_current_field()
+		{
+			return _run_write_pointer;
+		}
+
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
 			_output_mutex->lock();

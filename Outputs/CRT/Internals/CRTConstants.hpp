@@ -21,6 +21,7 @@ const size_t OutputVertexOffsetOfPosition = 0;
 const size_t OutputVertexOffsetOfTexCoord = 4;
 const size_t OutputVertexOffsetOfTimestamp = 8;
 const size_t OutputVertexOffsetOfLateral = 12;
+const size_t OutputVertexOffsetOfFrameID = 13;
 
 const size_t OutputVertexSize = 16;
 

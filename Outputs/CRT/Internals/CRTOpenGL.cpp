@@ -150,7 +150,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
 		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 		{
-			glTexSubImage2D(GL_TEXTURE_2D, 0,
+			glTexSubImage2D(	GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
 								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
@@ -160,7 +160,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
 		{
-			glTexSubImage2D(GL_TEXTURE_2D, 0,
+			glTexSubImage2D(	GL_TEXTURE_2D, 0,
 								0, (GLint)_buffer_builder->last_uploaded_line,
 								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
 								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
@@ -200,35 +200,37 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
 		GLint total_age = 0;
+		float timestampBases[4];
+		size_t start = 0, count = 0;
 		for(int c = 0; c < NumberOfFields; c++)
 		{
-			// update the total age at the start of this set of runs
 			total_age += _run_builders[run]->duration;
-
-			if(_run_builders[run]->amount_of_data > 0)
-			{
-				// draw
-				glUniform1f(timestampBaseUniform, (GLfloat)total_age);
-				GLsizei count = (GLsizei)(_run_builders[run]->amount_of_data / InputVertexSize);
-				GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - _run_builders[run]->start) / InputVertexSize);
-				if(count < max_count)
-				{
-					glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), count);
-				}
-				else
-				{
-					glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(_run_builders[run]->start / InputVertexSize), max_count);
-					glDrawArrays(GL_TRIANGLE_STRIP, 0, count - max_count);
-				}
-			}
-
-			// advance back in time
+			timestampBases[run] = (float)total_age;
+			count += _run_builders[run]->amount_of_data;
+			start = _run_builders[run]->start;
 			run = (run - 1 + NumberOfFields) % NumberOfFields;
+		}
+		glUniform4fv(timestampBaseUniform, 1, timestampBases);
+
+		if(count > 0)
+		{
+			// draw
+			GLsizei primitive_count = (GLsizei)(count / InputVertexSize);
+			GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - start) / InputVertexSize);
+			if(primitive_count < max_count)
+			{
+				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / InputVertexSize), primitive_count);
+			}
+			else
+			{
+				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / InputVertexSize), max_count);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, primitive_count - max_count);
+			}
 		}
 	}
 
 	// drawing commands having been issued, reclaim the array buffer pointer
-	_buffer_builder->move_to_new_line();
+//	_buffer_builder->move_to_new_line();
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
@@ -282,8 +284,6 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"in vec2 phaseAndAmplitude;"
 		"in float phaseTime;"
 
-		"uniform vec2 outputTextureSize;"
-		"uniform vec2 inputTextureSize;"
 		"uniform float phaseCyclesPerTick;"
 
 		"out vec2 inputPositionVarying;"
@@ -339,7 +339,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 
 		"in vec2 position;"
 		"in vec2 srcCoordinates;"
-		"in float lateral;"
+		"in vec2 lateralAndTimestampBaseOffset;"
 		"in float timestamp;"
 
 		"uniform vec2 boundsOrigin;"
@@ -349,12 +349,14 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"out vec2 shadowMaskCoordinates;"
 		"out float alpha;"
 
-		"uniform vec2 textureSize;"
-		"uniform float timestampBase;"
+		"uniform vec4 timestampBase;"
 		"uniform float ticksPerFrame;"
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
 		"uniform vec3 filterCoefficients;"
+
+		"uniform usampler2D texID;"
+		"uniform sampler2D shadowMaskTexID;"
 
 		"const float shadowMaskMultiple = 600;"
 
@@ -362,17 +364,19 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 
 		"void main(void)"
 		"{"
-			"lateralVarying = lateral + 1.0707963267949;"
+			"lateralVarying = lateralAndTimestampBaseOffset.x + 1.0707963267949;"
 
 			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
 
+			"ivec2 textureSize = textureSize(texID, 0);"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
-			"float age = (timestampBase - timestamp) / ticksPerFrame;"
-			"vec3 alphas = vec3(10.0 * exp((-age - 1.33) * 2.0), 10.0 * exp(-(age - 0.66) * 2.0), 10.0 * exp(-age * 2.0));"
+			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
+			"alpha = 10.0 * exp(-age * 2.0);"
+//			"vec3 alphas = vec3(10.0 * exp((-age - 1.33) * 2.0), 10.0 * exp(-(age - 0.66) * 2.0), 10.0 * exp(-age * 2.0));"
 //			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
-			"alpha = dot(alphas, filterCoefficients);"
+//			"alpha = dot(alphas, filterCoefficients);"
 
-			"vec2 floatingPosition = (position / positionConversion) + lateral*scanNormal;"
+			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
 		"}");
@@ -440,13 +444,9 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 		composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
 
 		GLint texIDUniform				= composite_input_shader_program->get_uniform_location("texID");
-		GLint inputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("inputTextureSize");
-		GLint outputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("outputTextureSize");
 		GLint phaseCyclesPerTickUniform	= composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
-		glUniform2f(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
-		glUniform2f(inputTextureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
 	}
 	free(vertex_shader);
@@ -510,7 +510,6 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 		GLint texIDUniform				= rgb_shader_program->get_uniform_location("texID");
 		GLint shadowMaskTexIDUniform	= rgb_shader_program->get_uniform_location("shadowMaskTexID");
-		GLint textureSizeUniform		= rgb_shader_program->get_uniform_location("textureSize");
 		GLint ticksPerFrameUniform		= rgb_shader_program->get_uniform_location("ticksPerFrame");
 		GLint scanNormalUniform			= rgb_shader_program->get_uniform_location("scanNormal");
 		GLint positionConversionUniform	= rgb_shader_program->get_uniform_location("positionConversion");
@@ -518,7 +517,6 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform1i(shadowMaskTexIDUniform, 1);
-		glUniform2f(textureSizeUniform, InputBufferBuilderWidth, InputBufferBuilderHeight);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
 
@@ -545,7 +543,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		GLint positionAttribute				= rgb_shader_program->get_attrib_location("position");
 		GLint textureCoordinatesAttribute	= rgb_shader_program->get_attrib_location("srcCoordinates");
-		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateral");
+		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateralAndTimestampBaseOffset");
 		GLint timestampAttribute			= rgb_shader_program->get_attrib_location("timestamp");
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
@@ -557,7 +555,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
 		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTimestamp);
-		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
+		glVertexAttribPointer((GLuint)lateralAttribute,				2, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
 	}
 }
 

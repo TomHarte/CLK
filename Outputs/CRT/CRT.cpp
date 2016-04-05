@@ -98,6 +98,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
 #define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
 #define output_lateral(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfLateral]
+#define output_frame_id(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfFrameID]
 #define output_timestamp(v)			(*(uint32_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTimestamp])
 
 #define input_input_position_x(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfInputPosition + 0])
@@ -153,6 +154,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(4) = output_tex_y(5) = tex_y;
 				output_lateral(0) = output_lateral(1) = output_lateral(3) = 0;
 				output_lateral(2) = output_lateral(4) = output_lateral(5) = 1;
+				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = output_frame_id(3) = output_frame_id(4) = output_frame_id(5) = (uint8_t)_openGL_output_builder->get_current_field();
 			}
 			else
 			{
