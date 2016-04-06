@@ -581,30 +581,17 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				case 6:
 				case 4:
 				{
-					if(_current_pixel_column&1)
-					{
-						_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x08) >> 0], _palette[(_last_pixel_byte&0x04) << 1]);
-						_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x02) << 2], _palette[(_last_pixel_byte&0x01) << 3]);
-					}
-					else
-					{
-						_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
-						_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
-					}
+					_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
+					_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
+					_last_pixel_byte <<= 4;
 					_current_output_target += 2;
 				}
 				break;
 
 				case 5:
 				{
-					if(_current_pixel_column&1)
-					{
-						_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)], _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)]);
-					}
-					else
-					{
-						_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
-					}
+					_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
+					_last_pixel_byte <<= 2;
 					_current_output_target += 1;
 				}
 				break;
