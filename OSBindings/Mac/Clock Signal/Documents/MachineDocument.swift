@@ -41,12 +41,10 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		let cycleCount = cycleCountLow + cycleCountHigh
 		if let lastCycleCount = lastCycleCount {
 			let elapsedTime = cycleCount - lastCycleCount
-			// if the emulation has fallen too far behind then silently swallow the request;
+			// if the emulation has fallen too far behind then silently limit the request;
 			// some actions — e.g. the host computer waking after sleep — may give us a
 			// prohibitive backlog
-			if elapsedTime < intendedCyclesPerSecond / 25 {
-				runForNumberOfCycles(Int32(elapsedTime))
-			}
+			runForNumberOfCycles(max(Int32(elapsedTime), Int32(intendedCyclesPerSecond / 25)))
 		}
 		lastCycleCount = cycleCount
 	}

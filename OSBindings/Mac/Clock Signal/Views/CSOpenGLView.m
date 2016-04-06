@@ -13,7 +13,6 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	uint32_t _updateIsOngoing;
-	int _missedFrames;
 }
 
 - (void)prepareOpenGL
@@ -53,27 +52,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now
 {
+	// Always post a -didUpdateToTime:. This is the hook upon which the substantial processing occurs.
+	[self.delegate openGLView:self didUpdateToTime:*now];
+
+	// Draw the display only if a previous draw is not still ongoing.
 	const uint32_t activityMask = 0x01;
 	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
 	{
-		_missedFrames = 0;
-		CVTimeStamp time = *now;
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-			[self.delegate openGLView:self didUpdateToTime:time];
 			[self drawViewOnlyIfDirty:YES];
 			OSAtomicTestAndClear(activityMask, &_updateIsOngoing);
 		});
-	}
-	else
-	{
-		_missedFrames++;
-		if(_missedFrames == 10)
-		{
-			_missedFrames = 0;
-			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-				[self drawViewOnlyIfDirty:YES];
-			});
-		}
 	}
 }
 
