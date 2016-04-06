@@ -604,6 +604,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 			case 4: case 6:
 				if(_current_pixel_column&1)
 				{
+					_last_pixel_byte <<= 4;
 					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
 					_current_output_target += 2;
 
@@ -615,8 +616,8 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 					get_pixel();
 					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
 					_current_output_target += 2;
-					_last_pixel_byte <<= 4;
 
+					_last_pixel_byte <<= 4;
 					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
 					_current_output_target += 2;
 
@@ -628,7 +629,6 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 					get_pixel();
 					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
 					_current_output_target += 2;
-					_last_pixel_byte <<= 4;
 					_current_pixel_column++;
 				}
 			break;
@@ -636,6 +636,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 			case 5:
 				if(_current_pixel_column&1)
 				{
+					_last_pixel_byte <<= 2;
 					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
 					_current_output_target += 1;
 
@@ -646,9 +647,9 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				{
 					get_pixel();
 					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_last_pixel_byte <<= 2;
 					_current_output_target += 1;
 
+					_last_pixel_byte <<= 2;
 					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
 					_current_output_target += 1;
 
@@ -659,7 +660,6 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				{
 					get_pixel();
 					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_last_pixel_byte <<= 2;
 					_current_output_target += 1;
 					_current_pixel_column++;
 				}
