@@ -52,10 +52,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now
 {
-	// Always post a -didUpdateToTime:. This is the hook upon which the substantial processing occurs.
+	// Always post a -openGLView:didUpdateToTime:. This is the hook upon which the substantial processing occurs.
 	[self.delegate openGLView:self didUpdateToTime:*now];
 
-	// Draw the display only if a previous draw is not still ongoing.
+	// Draw the display only if a previous draw is not still ongoing. -drawViewOnlyIfDirty: is guaranteed
+	// to be safe to call concurrently with -openGLView:updateToTime: so there's no need to worry about
+	// the above interrupting the below or vice versa.
 	const uint32_t activityMask = 0x01;
 	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
 	{
