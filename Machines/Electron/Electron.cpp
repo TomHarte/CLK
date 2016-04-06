@@ -538,6 +538,8 @@ inline void Machine::end_pixel_line()
 
 inline void Machine::output_pixels(unsigned int number_of_cycles)
 {
+	if(!number_of_cycles) return;
+
 	if(_isBlankLine)
 	{
 		_crt->output_blank(number_of_cycles * crt_cycles_multiplier);
@@ -559,65 +561,112 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 			_initial_output_target = _current_output_target = _crt->allocate_write_area(640 / _current_output_divider);
 		}
 
-#define pack(a, b) (uint8_t)((a << 4) | (b))
-		while(number_of_cycles--)
+#define get_pixel()	\
+				if(_currentScreenAddress&32768)\
+				{\
+					_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;\
+				}\
+				_last_pixel_byte = _ram[_currentScreenAddress];\
+				_currentScreenAddress = _currentScreenAddress+8
+
+		switch(_screen_mode)
 		{
-			if(!(_current_pixel_column&1) || _screen_mode < 4)
-			{
-				if(_currentScreenAddress&32768)
+			case 0: case 3:
+				while(number_of_cycles--)
 				{
-					_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;
-				}
-
-				_last_pixel_byte = _ram[_currentScreenAddress];
-				_currentScreenAddress = _currentScreenAddress+8;
-			}
-
-			switch(_screen_mode)
-			{
-				case 3:
-				case 0:
-				{
+					get_pixel();
 					*(uint32_t *)_current_output_target = _paletteTables.eighty1bpp[_last_pixel_byte];
 					_current_output_target += 4;
+					_current_pixel_column++;
 				}
-				break;
+			break;
 
-				case 1:
+			case 1:
+				while(number_of_cycles--)
 				{
+					get_pixel();
 					*(uint16_t *)_current_output_target = _paletteTables.eighty2bpp[_last_pixel_byte];
 					_current_output_target += 2;
+					_current_pixel_column++;
 				}
-				break;
+			break;
 
-				case 2:
+			case 2:
+				while(number_of_cycles--)
 				{
+					get_pixel();
 					*_current_output_target = _paletteTables.eighty4bpp[_last_pixel_byte];
 					_current_output_target += 1;
+					_current_pixel_column++;
 				}
-				break;
+			break;
 
-				case 6:
-				case 4:
+			case 4: case 6:
+				if(_current_pixel_column&1)
 				{
 					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-					_last_pixel_byte <<= 4;
 					_current_output_target += 2;
-				}
-				break;
 
-				case 5:
+					number_of_cycles--;
+					_current_pixel_column++;
+				}
+				while(number_of_cycles > 1)
 				{
+					get_pixel();
+					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+					_current_output_target += 2;
+					_last_pixel_byte <<= 4;
+
+					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+					_current_output_target += 2;
+
+					number_of_cycles -= 2;
+					_current_pixel_column+=2;
+				}
+				if(number_of_cycles)
+				{
+					get_pixel();
+					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+					_current_output_target += 2;
+					_last_pixel_byte <<= 4;
+					_current_pixel_column++;
+				}
+			break;
+
+			case 5:
+				if(_current_pixel_column&1)
+				{
+					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+					_current_output_target += 1;
+
+					number_of_cycles--;
+					_current_pixel_column++;
+				}
+				while(number_of_cycles > 1)
+				{
+					get_pixel();
 					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
 					_last_pixel_byte <<= 2;
 					_current_output_target += 1;
-				}
-				break;
-			}
-#undef pack
 
-			_current_pixel_column++;
+					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+					_current_output_target += 1;
+
+					number_of_cycles -= 2;
+					_current_pixel_column+=2;
+				}
+				if(number_of_cycles)
+				{
+					get_pixel();
+					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+					_last_pixel_byte <<= 2;
+					_current_output_target += 1;
+					_current_pixel_column++;
+				}
+			break;
 		}
+
+#undef get_pixel
 	}
 }
 
