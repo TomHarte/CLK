@@ -189,6 +189,14 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		unsigned int _frameCycles, _displayOutputPosition;
 		int _audioOutputPosition, _audioOutputPositionError;
 
+		struct {
+			uint16_t forty1bpp[256];
+			uint8_t forty2bpp[256];
+			uint32_t eighty1bpp[256];
+			uint16_t eighty2bpp[256];
+			uint8_t eighty4bpp[256];
+		} _paletteTables;
+
 		// Display generation.
 		uint16_t _startLineAddress, _currentScreenAddress;
 		int _current_pixel_line, _current_pixel_column, _current_character_row;

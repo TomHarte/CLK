@@ -266,6 +266,30 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 								_palette[registers[index][0]]	= (_palette[registers[index][0]]&5)	| ((colour >> 2)&2);
 								_palette[registers[index][1]]	= (_palette[registers[index][1]]&5)	| ((colour >> 1)&2);
 							}
+
+							// regenerate all palette tables for now
+#define pack(a, b) (uint8_t)((a << 4) | (b))
+							for(int byte = 0; byte < 256; byte++)
+							{
+								uint8_t *target = (uint8_t *)&_paletteTables.forty1bpp[byte];
+								target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
+								target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
+
+								target = (uint8_t *)&_paletteTables.eighty2bpp[byte];
+								target[0] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+								target[1] = pack(_palette[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], _palette[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
+
+								target = (uint8_t *)&_paletteTables.eighty1bpp[byte];
+								target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
+								target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
+								target[2] = pack(_palette[(byte&0x08) >> 0], _palette[(byte&0x04) << 1]);
+								target[3] = pack(_palette[(byte&0x02) << 2], _palette[(byte&0x01) << 3]);
+
+								_paletteTables.forty2bpp[byte] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+								_paletteTables.eighty4bpp[byte] = pack(	_palette[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
+																		_palette[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
+							}
+#undef pack
 						}
 					}
 					break;
@@ -554,26 +578,21 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				case 3:
 				case 0:
 				{
-					_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
-					_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
-					_current_output_target[2] = pack(_palette[(_last_pixel_byte&0x08) >> 0], _palette[(_last_pixel_byte&0x04) << 1]);
-					_current_output_target[3] = pack(_palette[(_last_pixel_byte&0x02) << 2], _palette[(_last_pixel_byte&0x01) << 3]);
+					*(uint32_t *)_current_output_target = _paletteTables.eighty1bpp[_last_pixel_byte];
 					_current_output_target += 4;
 				}
 				break;
 
 				case 1:
 				{
-					_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
-					_current_output_target[1] = pack(_palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)], _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)]);
+					*(uint16_t *)_current_output_target = _paletteTables.eighty2bpp[_last_pixel_byte];
 					_current_output_target += 2;
 				}
 				break;
 
 				case 2:
 				{
-					_current_output_target[0] = pack(	_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)],
-														_palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)]);
+					*_current_output_target = _paletteTables.eighty4bpp[_last_pixel_byte];
 					_current_output_target += 1;
 				}
 				break;
@@ -581,8 +600,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				case 6:
 				case 4:
 				{
-					_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
-					_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
+					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
 					_last_pixel_byte <<= 4;
 					_current_output_target += 2;
 				}
@@ -590,7 +608,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 
 				case 5:
 				{
-					_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
+					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
 					_last_pixel_byte <<= 2;
 					_current_output_target += 1;
 				}
