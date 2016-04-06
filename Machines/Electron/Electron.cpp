@@ -59,10 +59,10 @@ void Machine::setup_output()
 {
 	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
-		"vec4 rgb_sample(vec2 coordinate)"
+		"vec4 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
-			"uint texValue = texture(texID, coordinate).r;"
-			"return vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0);"
+			"uint texValue = texture(sampler, coordinate).r;"
+			"return mix(vec4(texValue & 64u, texValue & 32u, texValue & 16u, 1.0), vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0), int(icoordinate.x * 2) & 1);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 
@@ -523,9 +523,9 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 		unsigned int divider = 0;
 		switch(_screen_mode)
 		{
-			case 0: case 3: divider = 1; break;
-			case 1: case 4: case 6: divider = 2; break;
-			case 2: case 5: divider = 4; break;
+			case 0: case 3: divider = 2; break;
+			case 1: case 4: case 6: divider = 4; break;
+			case 2: case 5: divider = 8; break;
 		}
 
 		if(!_current_output_target || divider != _current_output_divider)
@@ -535,6 +535,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 			_initial_output_target = _current_output_target = _crt->allocate_write_area(640 / _current_output_divider);
 		}
 
+#define pack(a, b) (uint8_t)((a << 4) | (b))
 		while(number_of_cycles--)
 		{
 			if(!(_current_pixel_column&1) || _screen_mode < 4)
@@ -553,33 +554,27 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				case 3:
 				case 0:
 				{
-					_current_output_target[0] = _palette[(_last_pixel_byte&0x80) >> 4];
-					_current_output_target[1] = _palette[(_last_pixel_byte&0x40) >> 3];
-					_current_output_target[2] = _palette[(_last_pixel_byte&0x20) >> 2];
-					_current_output_target[3] = _palette[(_last_pixel_byte&0x10) >> 1];
-					_current_output_target[4] = _palette[(_last_pixel_byte&0x08) >> 0];
-					_current_output_target[5] = _palette[(_last_pixel_byte&0x04) << 1];
-					_current_output_target[6] = _palette[(_last_pixel_byte&0x02) << 2];
-					_current_output_target[7] = _palette[(_last_pixel_byte&0x01) << 3];
-					_current_output_target += 8;
+					_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
+					_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
+					_current_output_target[2] = pack(_palette[(_last_pixel_byte&0x08) >> 0], _palette[(_last_pixel_byte&0x04) << 1]);
+					_current_output_target[3] = pack(_palette[(_last_pixel_byte&0x02) << 2], _palette[(_last_pixel_byte&0x01) << 3]);
+					_current_output_target += 4;
 				}
 				break;
 
 				case 1:
 				{
-					_current_output_target[0] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
-					_current_output_target[1] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
-					_current_output_target[2] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
-					_current_output_target[3] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
-					_current_output_target += 4;
+					_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
+					_current_output_target[1] = pack(_palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)], _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)]);
+					_current_output_target += 2;
 				}
 				break;
 
 				case 2:
 				{
-					_current_output_target[0] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)];
-					_current_output_target[1] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)];
-					_current_output_target += 2;
+					_current_output_target[0] = pack(	_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x20) >> 3) | ((_last_pixel_byte&0x08) >> 2) | ((_last_pixel_byte&0x02) >> 1)],
+														_palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x10) >> 2) | ((_last_pixel_byte&0x04) >> 1) | ((_last_pixel_byte&0x01) >> 0)]);
+					_current_output_target += 1;
 				}
 				break;
 
@@ -588,19 +583,15 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				{
 					if(_current_pixel_column&1)
 					{
-						_current_output_target[0] = _palette[(_last_pixel_byte&0x08) >> 0];
-						_current_output_target[1] = _palette[(_last_pixel_byte&0x04) << 1];
-						_current_output_target[2] = _palette[(_last_pixel_byte&0x02) << 2];
-						_current_output_target[3] = _palette[(_last_pixel_byte&0x01) << 3];
+						_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x08) >> 0], _palette[(_last_pixel_byte&0x04) << 1]);
+						_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x02) << 2], _palette[(_last_pixel_byte&0x01) << 3]);
 					}
 					else
 					{
-						_current_output_target[0] = _palette[(_last_pixel_byte&0x80) >> 4];
-						_current_output_target[1] = _palette[(_last_pixel_byte&0x40) >> 3];
-						_current_output_target[2] = _palette[(_last_pixel_byte&0x20) >> 2];
-						_current_output_target[3] = _palette[(_last_pixel_byte&0x10) >> 1];
+						_current_output_target[0] = pack(_palette[(_last_pixel_byte&0x80) >> 4], _palette[(_last_pixel_byte&0x40) >> 3]);
+						_current_output_target[1] = pack(_palette[(_last_pixel_byte&0x20) >> 2], _palette[(_last_pixel_byte&0x10) >> 1]);
 					}
-					_current_output_target += 4;
+					_current_output_target += 2;
 				}
 				break;
 
@@ -608,18 +599,17 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 				{
 					if(_current_pixel_column&1)
 					{
-						_current_output_target[0] = _palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)];
-						_current_output_target[1] = _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)];
+						_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x20) >> 2) | ((_last_pixel_byte&0x02) >> 0)], _palette[((_last_pixel_byte&0x10) >> 1) | ((_last_pixel_byte&0x01) << 1)]);
 					}
 					else
 					{
-						_current_output_target[0] = _palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)];
-						_current_output_target[1] = _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)];
+						_current_output_target[0] = pack(_palette[((_last_pixel_byte&0x80) >> 4) | ((_last_pixel_byte&0x08) >> 2)], _palette[((_last_pixel_byte&0x40) >> 3) | ((_last_pixel_byte&0x04) >> 1)]);
 					}
-					_current_output_target += 2;
+					_current_output_target += 1;
 				}
 				break;
 			}
+#undef pack
 
 			_current_pixel_column++;
 		}

@@ -361,6 +361,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"const float shadowMaskMultiple = 600;"
 
 		"out vec2 srcCoordinatesVarying;"
+		"out vec2 iSrcCoordinatesVarying;"
 
 		"void main(void)"
 		"{"
@@ -369,6 +370,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
 
 			"ivec2 textureSize = textureSize(texID, 0);"
+			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
 			"alpha = 10.0 * exp(-age * 2.0);"
@@ -407,6 +409,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 		"in float alpha;"
 		"in vec2 shadowMaskCoordinates;"
 		"in vec2 srcCoordinatesVarying;"
+		"in vec2 iSrcCoordinatesVarying;"
 
 		"out vec4 fragColour;"
 
@@ -417,7 +420,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"void main(void)"
 		"{"
-			"fragColour = rgb_sample(srcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha * sin(lateralVarying));" //
+			"fragColour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha);" // * sin(lateralVarying)
 		"}"
 	, sampling_function);
 }
