@@ -128,7 +128,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 
 	private:
 		unsigned int _counter;
-		uint8_t _divider;
+		unsigned int _divider;
 		bool _is_enabled;
 };
 

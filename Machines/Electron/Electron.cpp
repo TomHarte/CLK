@@ -67,10 +67,9 @@ void Machine::setup_output()
 	_crt->set_output_device(Outputs::CRT::Monitor);
 
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
-	// nevertheless sampling only at 62500Hz may introduce aliasing errors as setting the speaker on or off can happen on
-	// any 2Mhz cycle, and I've no idea whether it has an immediate effect or happens only on the next clock. If it turns
-	// out that the former is the case, I'll need to turn this up to 2000000.
-	_speaker.set_input_rate(62500);
+	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
+	// run the speaker at a 2000000Hz input rate, at least for the time being.
+	_speaker.set_input_rate(2000000);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -431,7 +430,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		_frameCycles = nextFrameCycles;
 	}
 
-	if(!(_frameCycles&31))
+	if(!(_frameCycles&16383))
 		update_audio();
 	_tape.run_for_cycles(cycles);
 
@@ -495,9 +494,8 @@ inline void Machine::evaluate_interrupts()
 inline void Machine::update_audio()
 {
 	int difference = (int)_frameCycles - _audioOutputPosition;
+	_speaker.run_for_cycles(difference);
 	_audioOutputPosition = (int)_frameCycles;
-	_speaker.run_for_cycles((_audioOutputPositionError + difference) >> 5);
-	_audioOutputPositionError = (_audioOutputPositionError + difference)&31;
 }
 
 inline void Machine::start_pixel_line()
@@ -852,7 +850,7 @@ void Speaker::skip_samples(unsigned int number_of_samples)
 
 void Speaker::set_divider(uint8_t divider)
 {
-	_divider = divider;
+	_divider = divider * 32;
 }
 
 void Speaker::set_is_enabled(bool is_enabled)
