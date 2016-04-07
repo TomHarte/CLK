@@ -44,7 +44,7 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 			// if the emulation has fallen too far behind then silently limit the request;
 			// some actions — e.g. the host computer waking after sleep — may give us a
 			// prohibitive backlog
-			runForNumberOfCycles(max(Int32(elapsedTime), Int32(intendedCyclesPerSecond / 25)))
+			runForNumberOfCycles(min(Int32(elapsedTime), Int32(intendedCyclesPerSecond / 25)))
 		}
 		lastCycleCount = cycleCount
 	}
