@@ -28,25 +28,23 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	}
 
 	var intendedCyclesPerSecond: Int64 = 0
-	private var lastCycleCount: Int64?
+	private var cycleCountError: Int64 = 0
+	private var lastTime: CVTimeStamp?
 	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp) {
-		// TODO: treat time as a delta from old time, work out how many cycles that is plus error
+		if let lastTime = lastTime {
+			// perform (time passed in seconds) * (intended cycles per second), converting and
+			// maintaining an error count to deal with underflow
+			let videoTimeScale64 = Int64(time.videoTimeScale)
+			let videoTimeCount = ((time.videoTime - lastTime.videoTime) * intendedCyclesPerSecond) + cycleCountError
+			cycleCountError = videoTimeCount % videoTimeScale64
+			let numberOfCycles = videoTimeCount / videoTimeScale64
 
-		// this slightly elaborate dance is to avoid overflow
-		let videoTimeScale64 = Int64(time.videoTimeScale)
-
-		let cycleCountLow = ((time.videoTime % videoTimeScale64) * intendedCyclesPerSecond) / videoTimeScale64
-		let cycleCountHigh = (time.videoTime / videoTimeScale64) * intendedCyclesPerSecond
-
-		let cycleCount = cycleCountLow + cycleCountHigh
-		if let lastCycleCount = lastCycleCount {
-			let elapsedTime = cycleCount - lastCycleCount
 			// if the emulation has fallen too far behind then silently limit the request;
 			// some actions — e.g. the host computer waking after sleep — may give us a
 			// prohibitive backlog
-			runForNumberOfCycles(min(Int32(elapsedTime), Int32(intendedCyclesPerSecond / 25)))
+			runForNumberOfCycles(min(Int32(numberOfCycles), Int32(intendedCyclesPerSecond / 25)))
 		}
-		lastCycleCount = cycleCount
+		lastTime = time
 	}
 
 	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {}
