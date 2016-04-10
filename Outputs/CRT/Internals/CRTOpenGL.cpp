@@ -215,15 +215,15 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		if(count > 0)
 		{
 			// draw
-			GLsizei primitive_count = (GLsizei)(count / InputVertexSize);
-			GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - start) / InputVertexSize);
+			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
+			GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - start) / OutputVertexSize);
 			if(primitive_count < max_count)
 			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / InputVertexSize), primitive_count);
+				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / OutputVertexSize), primitive_count);
 			}
 			else
 			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / InputVertexSize), max_count);
+				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / OutputVertexSize), max_count);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, primitive_count - max_count);
 			}
 		}

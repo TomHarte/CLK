@@ -101,13 +101,13 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_frame_id(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfFrameID]
 #define output_timestamp(v)			(*(uint32_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTimestamp])
 
-#define input_input_position_x(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfInputPosition + 0])
-#define input_input_position_y(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfInputPosition + 2])
-#define input_output_position_x(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfOutputPosition + 0])
-#define input_output_position_y(v)	(*(uint16_t *)&next_run[InputVertexSize*v + InputVertexOffsetOfOutputPosition + 2])
-#define input_phase(v)				next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseAndAmplitude + 0]
-#define input_amplitude(v)			next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseAndAmplitude + 1]
-#define input_phase_time(v)			(*(uint16_t *)&next_run[OutputVertexSize*v + InputVertexOffsetOfPhaseTime])
+#define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
+#define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
+#define source_output_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 0])
+#define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
+#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 0]
+#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 1]
+#define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
 {
@@ -132,7 +132,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		uint8_t *next_run = nullptr;
 		if(is_output_segment)
 		{
-			next_run = _openGL_output_builder->get_next_input_run();
+			next_run = _openGL_output_builder->get_next_output_run();
 		}
 
 		//	Vertex output is arranged for triangle strips, as:
@@ -158,13 +158,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			}
 			else
 			{
-				input_input_position_x(0) = tex_x;
-				input_input_position_y(0) = input_input_position_y(1) = tex_y;
-				input_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				input_output_position_y(0) = input_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
-				input_phase(0) = input_phase(1) = _colour_burst_phase;
-				input_amplitude(0) = input_amplitude(1) = _colour_burst_amplitude;
-				input_phase_time(0) = input_phase_time(1) = _colour_burst_time;
+				source_input_position_x(0) = tex_x;
+				source_input_position_y(0) = source_input_position_y(1) = tex_y;
+				source_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				source_output_position_y(0) = source_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
+				source_phase(0) = source_phase(1) = _colour_burst_phase;
+				source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
+				source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
 			}
 		}
 
@@ -198,14 +198,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			}
 			else
 			{
-				input_input_position_x(1) = tex_x;
-				input_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				source_input_position_x(1) = tex_x;
+				source_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 			}
 		}
 
 		if(is_output_segment)
 		{
-			_openGL_output_builder->complete_input_run();
+			_openGL_output_builder->complete_output_run();
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run

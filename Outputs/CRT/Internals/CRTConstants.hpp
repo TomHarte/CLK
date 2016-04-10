@@ -27,12 +27,12 @@ const size_t OutputVertexSize = 16;
 
 // Input vertices, used only in composite mode, map from the input buffer to temporary buffer locations; such
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
-const size_t InputVertexOffsetOfInputPosition = 0;
-const size_t InputVertexOffsetOfOutputPosition = 4;
-const size_t InputVertexOffsetOfPhaseAndAmplitude = 8;
-const size_t InputVertexOffsetOfPhaseTime = 12;
+const size_t SourceVertexOffsetOfInputPosition = 0;
+const size_t SourceVertexOffsetOfOutputPosition = 4;
+const size_t SourceVertexOffsetOfPhaseAndAmplitude = 8;
+const size_t SourceVertexOffsetOfPhaseTime = 12;
 
-const size_t InputVertexSize = 16;
+const size_t SourceVertexSize = 16;
 
 // These constants hold the size of the rolling buffer to which the CPU writes
 const int InputBufferBuilderWidth = 2048;

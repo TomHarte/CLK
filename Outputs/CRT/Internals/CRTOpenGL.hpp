@@ -104,30 +104,27 @@ class OpenGLOutputBuilder {
 			_visible_area = visible_area;
 		}
 
-		inline uint8_t *get_next_input_run()
+		inline uint8_t *get_next_source_run()
 		{
-			_output_mutex->lock();
-			uint8_t *pointer = &_output_buffer_data[_output_buffer_data_pointer];
-			_output_buffer_data_pointer = (_output_buffer_data_pointer + 6 * InputVertexSize) % InputVertexBufferDataSize;
-			return pointer;
+			return nullptr;
 		}
 
-		inline void complete_input_run()
+		inline void complete_source_run()
 		{
-			_run_builders[_run_write_pointer]->amount_of_data += 6 * InputVertexSize;
-			_output_mutex->unlock();
 		}
 
 		inline uint8_t *get_next_output_run()
 		{
-//			_output_mutex->lock();
-//			return (_output_device == Monitor) ? _run_builders[_run_write_pointer]->get_next_run(6) : _composite_src_runs->get_next_run(2);
-			return nullptr;
+			_output_mutex->lock();
+			uint8_t *pointer = &_output_buffer_data[_output_buffer_data_pointer];
+			_output_buffer_data_pointer = (_output_buffer_data_pointer + 6 * OutputVertexSize) % InputVertexBufferDataSize;
+			return pointer;
 		}
 
 		inline void complete_output_run()
 		{
-//			_output_mutex->unlock();
+			_run_builders[_run_write_pointer]->amount_of_data += 6 * OutputVertexSize;
+			_output_mutex->unlock();
 		}
 
 		inline OutputDevice get_output_device()
