@@ -132,7 +132,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		uint8_t *next_run = nullptr;
 		if(is_output_segment)
 		{
-			next_run = _openGL_output_builder->get_next_output_run();
+			next_run = (_openGL_output_builder->get_output_device() == Monitor) ? _openGL_output_builder->get_next_output_run() : _openGL_output_builder->get_next_source_run();
 		}
 
 		//	Vertex output is arranged for triangle strips, as:
@@ -195,18 +195,22 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				output_position_y(3) = output_position_y(4) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
 				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(3) = output_tex_x(4) = output_tex_x(5) = tex_x;
+
+				_openGL_output_builder->complete_output_run(6);
 			}
 			else
 			{
 				source_input_position_x(1) = tex_x;
 				source_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+
+				_openGL_output_builder->complete_source_run();
 			}
 		}
 
-		if(is_output_segment)
-		{
-			_openGL_output_builder->complete_output_run();
-		}
+//		if(is_output_segment)
+//		{
+//			_openGL_output_builder->complete_output_run(6);
+//		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
 		if(_openGL_output_builder->get_output_device() == Television)
@@ -230,8 +234,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				output_lateral(0) = 0;
 				output_lateral(1) = _is_writing_composite_run ? 1 : 0;
 				output_lateral(2) = 1;
+				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = (uint8_t)_openGL_output_builder->get_current_field();
 
-				_openGL_output_builder->complete_output_run();
+				_openGL_output_builder->complete_output_run(3);
 				_is_writing_composite_run ^= true;
 			}
 

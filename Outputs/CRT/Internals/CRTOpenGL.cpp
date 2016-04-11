@@ -112,7 +112,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
-		glBufferData(GL_ARRAY_BUFFER, InputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 		_output_buffer_data_pointer = 0;
 
 		glBindVertexArray(output_vertex_array);
@@ -216,7 +216,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			// draw
 			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
-			GLsizei max_count = (GLsizei)((InputVertexBufferDataSize - start) / OutputVertexSize);
+			GLsizei max_count = (GLsizei)((OutputVertexBufferDataSize - start) / OutputVertexSize);
 			if(primitive_count < max_count)
 			{
 				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / OutputVertexSize), primitive_count);
@@ -231,7 +231,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 //	_buffer_builder->move_to_new_line();
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, InputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
 }

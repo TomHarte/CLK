@@ -117,13 +117,13 @@ class OpenGLOutputBuilder {
 		{
 			_output_mutex->lock();
 			uint8_t *pointer = &_output_buffer_data[_output_buffer_data_pointer];
-			_output_buffer_data_pointer = (_output_buffer_data_pointer + 6 * OutputVertexSize) % InputVertexBufferDataSize;
 			return pointer;
 		}
 
-		inline void complete_output_run()
+		inline void complete_output_run(size_t vertices_written)
 		{
-			_run_builders[_run_write_pointer]->amount_of_data += 6 * OutputVertexSize;
+			_run_builders[_run_write_pointer]->amount_of_data += vertices_written * OutputVertexSize;
+			_output_buffer_data_pointer = (_output_buffer_data_pointer + vertices_written * OutputVertexSize) % OutputVertexBufferDataSize;
 			_output_mutex->unlock();
 		}
 

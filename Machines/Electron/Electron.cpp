@@ -64,6 +64,7 @@ void Machine::setup_output()
 			"uint texValue = texture(sampler, coordinate).r;"
 			"texValue >>= 4 - (int(icoordinate.x * 2) & 1)*4;"
 			"return vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0);"
+//			"return vec4(1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 
