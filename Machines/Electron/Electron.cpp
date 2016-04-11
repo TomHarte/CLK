@@ -62,7 +62,8 @@ void Machine::setup_output()
 		"vec4 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"return mix(vec4(texValue & 64u, texValue & 32u, texValue & 16u, 1.0), vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0), int(icoordinate.x * 2) & 1);"
+			"texValue >>= 4 - (int(icoordinate.x * 2) & 1)*4;"
+			"return vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 
@@ -697,7 +698,8 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_sync(128 * crt_cycles_multiplier);
+			_crt->output_blank(9 * crt_cycles_multiplier);
+			_crt->output_sync(119 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
 			continue;
 		}
@@ -707,7 +709,8 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_sync(64 * crt_cycles_multiplier);
+			_crt->output_blank(9 * crt_cycles_multiplier);
+			_crt->output_sync(55 * crt_cycles_multiplier);
 			_crt->output_blank(64 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
 			continue;
@@ -718,7 +721,8 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_blank(64 * crt_cycles_multiplier);
+			_crt->output_sync(9 * crt_cycles_multiplier);
+			_crt->output_blank(55 * crt_cycles_multiplier);
 			_crt->output_sync(64 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
 			continue;

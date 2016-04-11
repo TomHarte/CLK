@@ -374,9 +374,6 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
 			"alpha = 10.0 * exp(-age * 2.0);"
-//			"vec3 alphas = vec3(10.0 * exp((-age - 1.33) * 2.0), 10.0 * exp(-(age - 0.66) * 2.0), 10.0 * exp(-age * 2.0));"
-//			"alpha = min(10.0 * exp(-age * 2.0), 1.0);"
-//			"alpha = dot(alphas, filterCoefficients);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -420,7 +417,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"void main(void)"
 		"{"
-			"fragColour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha);" // * sin(lateralVarying)
+			"fragColour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha*sin(lateralVarying));" //
 		"}"
 	, sampling_function);
 }

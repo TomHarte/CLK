@@ -17,7 +17,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 {
 	_openGL_output_builder->set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
-	const unsigned int syncCapacityLineChargeThreshold = 3;
+	const unsigned int syncCapacityLineChargeThreshold = 2;
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const unsigned int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
@@ -34,7 +34,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_cycles_per_line = cycles_per_line * _time_multiplier;
 
 	// generate timing values implied by the given arbuments
-	_sync_capacitor_charge_threshold = ((syncCapacityLineChargeThreshold * _cycles_per_line) * 50) >> 7;
+	_sync_capacitor_charge_threshold = (int)(syncCapacityLineChargeThreshold * _cycles_per_line);
 
 	// create the two flywheels
 	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
@@ -174,7 +174,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		_openGL_output_builder->add_to_field_time(next_run_length);
 
 		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
-		if (vsync_charging && !_vertical_flywheel->is_in_retrace())
+		if (vsync_charging)
 			_sync_capacitor_charge_level += next_run_length;
 		else
 			_sync_capacitor_charge_level = std::max(_sync_capacitor_charge_level - (int)next_run_length, 0);
@@ -273,12 +273,17 @@ void CRT::output_scan(const Scan *const scan)
 {
 	const bool this_is_sync = (scan->type == Scan::Type::Sync);
 	const bool is_trailing_edge = (_is_receiving_sync && !this_is_sync);
-//	const bool is_leading_edge = (!_is_receiving_sync && this_is_sync);
+	const bool is_leading_edge = (!_is_receiving_sync && this_is_sync);
 	_is_receiving_sync = this_is_sync;
 
-//	const bool hsync_requested = is_leading_edge;
-	const bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
+	const bool hsync_requested = is_leading_edge;
+//	const bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
 	const bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
+
+//	if(is_trailing_edge && _sync_capacitor_charge_threshold - _sync_capacitor_charge_level < 3000)
+//	{
+//		printf("%d\n", _sync_capacitor_charge_threshold - _sync_capacitor_charge_level);
+//	}
 
 	// simplified colour burst logic: if it's within the back porch we'll take it
 	if(scan->type == Scan::Type::ColourBurst)
