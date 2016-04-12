@@ -55,7 +55,7 @@ Machine::Machine() :
 	_tape.set_delegate(this);
 }
 
-void Machine::setup_output()
+void Machine::setup_output(float aspect_ratio)
 {
 	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(

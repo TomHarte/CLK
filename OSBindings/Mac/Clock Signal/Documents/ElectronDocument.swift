@@ -16,6 +16,7 @@ class ElectronDocument: MachineDocument {
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		self.intendedCyclesPerSecond = 2000000
+		aController.window?.contentAspectRatio = NSSize(width: 11.0, height: 10.0)
 		openGLView.performWithGLContext({
 			if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
 				self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
@@ -23,7 +24,7 @@ class ElectronDocument: MachineDocument {
 			if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
 				self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
 			}
-			self.electron.view = self.openGLView
+			self.electron.setView(self.openGLView, aspectRatio: 11.0 / 10.0)
 			self.electron.audioQueue = self.audioQueue
 		})
 	}

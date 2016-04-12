@@ -11,8 +11,6 @@
 
 @interface CSElectron : CSMachine
 
-- (void)setupOutput;
-
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot;

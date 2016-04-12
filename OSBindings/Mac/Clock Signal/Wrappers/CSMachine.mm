@@ -51,12 +51,11 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	dispatch_async(_serialDispatchQueue, action);
 }
 
-- (void)setupOutput {}
+- (void)setupOutputWithAspectRatio:(float)aspectRatio {}
 
-- (void)setView:(CSOpenGLView *)view {
-	_view = view;
+- (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
 	[view performWithGLContext:^{
-		[self setupOutput];
+		[self setupOutputWithAspectRatio:aspectRatio];
 	}];
 }
 

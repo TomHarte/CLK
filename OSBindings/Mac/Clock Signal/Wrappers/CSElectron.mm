@@ -152,9 +152,9 @@
 	}
 }
 
-- (void)setupOutput {
+- (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	@synchronized(self) {
-		_electron.setup_output();
+		_electron.setup_output(aspectRatio);
 	}
 }
 

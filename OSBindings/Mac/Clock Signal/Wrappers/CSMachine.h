@@ -13,8 +13,8 @@
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
+- (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 
-@property (nonatomic, weak) CSOpenGLView *view;
 @property (nonatomic, weak) AudioQueue *audioQueue;
 
 @end
