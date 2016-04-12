@@ -699,8 +699,7 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_blank(9 * crt_cycles_multiplier);
-			_crt->output_sync(119 * crt_cycles_multiplier);
+			_crt->output_sync(128 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
 			continue;
 		}
@@ -710,8 +709,7 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_blank(9 * crt_cycles_multiplier);
-			_crt->output_sync(55 * crt_cycles_multiplier);
+			_crt->output_sync(64 * crt_cycles_multiplier);
 			_crt->output_blank(64 * crt_cycles_multiplier);
 			_displayOutputPosition += 128;
 			continue;
