@@ -417,7 +417,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"void main(void)"
 		"{"
-			"fragColour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha*sin(lateralVarying));" //
+			"fragColour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying) * vec4(1.0, 1.0, 1.0, alpha);" //*sin(lateralVarying)
 		"}"
 	, sampling_function);
 }
