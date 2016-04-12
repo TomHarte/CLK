@@ -247,6 +247,8 @@ class CRT {
 		{
 			_openGL_output_builder->set_visible_area(visible_area);
 		}
+
+		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
 };
 
 }

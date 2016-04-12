@@ -357,3 +357,41 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 	};
 	output_scan(&scan);
 }
+
+Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)
+{
+	first_cycle_after_sync *= _time_multiplier;
+	number_of_cycles *= _time_multiplier;
+
+	// determine prima facie x extent
+	unsigned int horizontal_period = _horizontal_flywheel->get_standard_period();
+	unsigned int horizontal_scan_period = _horizontal_flywheel->get_scan_period();
+	unsigned int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
+
+	float start_x = (float)((unsigned)first_cycle_after_sync - horizontal_retrace_period) / (float)horizontal_scan_period;
+	float width = (float)number_of_cycles / (float)horizontal_scan_period;
+
+	// determine prima facie y extent
+	unsigned int vertical_period = _vertical_flywheel->get_standard_period();
+	unsigned int vertical_scan_period = _vertical_flywheel->get_scan_period();
+	unsigned int vertical_retrace_period = vertical_period - vertical_scan_period;
+	float start_y = (float)(((unsigned)first_line_after_sync * horizontal_period) - vertical_retrace_period) / (float)vertical_scan_period;
+	float height = (float)((unsigned)number_of_lines * horizontal_period) / vertical_scan_period;
+
+	// adjust to ensure aspect ratio is correct
+	float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
+	float ideal_width = height * adjusted_aspect_ratio;
+	if(ideal_width > width)
+	{
+		start_x -= (ideal_width - width) * 0.5f;
+		width = ideal_width;
+	}
+	else
+	{
+		float ideal_height = width / adjusted_aspect_ratio;
+		start_y -= (ideal_height - height) * 0.5f;
+		height = ideal_height;
+	}
+
+	return Rect(start_x, start_y, width, height);
+}

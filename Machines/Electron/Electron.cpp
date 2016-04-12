@@ -67,6 +67,7 @@ void Machine::setup_output()
 //			"return vec4(1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
+	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, first_graphics_cycle * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So

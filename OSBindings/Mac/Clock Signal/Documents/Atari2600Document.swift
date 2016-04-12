@@ -19,7 +19,6 @@ class Atari2600Document: MachineDocument {
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		atari2600.view = openGLView
-//		openGLView.frameBounds = CGRectMake(0.1, 0.1, 0.8, 0.8)
 	}
 
 	override class func autosavesInPlace() -> Bool {
