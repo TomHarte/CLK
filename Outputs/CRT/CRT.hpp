@@ -217,9 +217,12 @@ class CRT {
 			format will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec4 rgb_sample(vec2 coordinate)` that evaluates to an RGBA colour as a function of
-			the source buffer sampling location.
-			The shader may assume a uniform array of sampler2Ds named `buffers` provides access to all input data.
+			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour 
+			as a function of:
+
+			* `usampler2D sampler` representing the source buffer;
+			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
+			* `vec2 icoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
 		*/
 		inline void set_rgb_sampling_function(const char *shader)
 		{
