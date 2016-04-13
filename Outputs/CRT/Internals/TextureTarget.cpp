@@ -18,8 +18,8 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height) : _width(width), _he
 	glGenTextures(1, &_texture);
 	glBindTexture(GL_TEXTURE_2D, _texture);
 
-	uint8_t *emptySpace = new uint8_t[width*height*4];
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)width, (GLsizei)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, emptySpace);
+	uint8_t *emptySpace = new uint8_t[width*height*3];
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)width, (GLsizei)height, 0, GL_RGB, GL_UNSIGNED_BYTE, emptySpace);
 	delete[] emptySpace;
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0);

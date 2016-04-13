@@ -62,6 +62,14 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
+	// Create intermediate textures and bind to slots 0, 1 and 2
+	glActiveTexture(GL_TEXTURE0);
+	compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+	glActiveTexture(GL_TEXTURE1);
+	filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+	glActiveTexture(GL_TEXTURE2);
+	filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+
 	// create the surce texture
 	glGenTextures(1, &textureName);
 	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
@@ -92,14 +100,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-		// Create intermediate textures and bind to slots 0, 1 and 2
-//		glActiveTexture(GL_TEXTURE0);
-//		compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-//		glActiveTexture(GL_TEXTURE1);
-//		filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-//		glActiveTexture(GL_TEXTURE2);
-//		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -134,6 +134,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
 		// it works either way.
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
+
+		// TODO: is this sustainable, cross-platform? If so, why store it at all?
+		defaultFramebuffer = 0;
 	}
 
 	// lock down any further work on the current frame
