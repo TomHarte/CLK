@@ -59,12 +59,12 @@ void Machine::setup_output(float aspect_ratio)
 {
 	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
-		"vec4 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
 			"texValue >>= 4 - (int(icoordinate.x * 2) & 1)*4;"
-			"return vec4(texValue & 4u, texValue & 2u, texValue & 1u, 1.0);"
-//			"return vec4(1.0);"
+			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
+//			"return vec3(1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, first_graphics_cycle * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
