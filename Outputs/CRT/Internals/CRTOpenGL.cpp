@@ -12,52 +12,6 @@
 #include "CRTOpenGL.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
 
-using namespace Outputs::CRT;
-
-namespace {
-	static const GLenum first_supplied_buffer_texture_unit = 3;
-}
-
-OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
-	_run_write_pointer(0),
-	_output_mutex(new std::mutex),
-	_visible_area(Rect(0, 0, 1, 1)),
-	_composite_src_output_y(0),
-	_composite_shader(nullptr),
-	_rgb_shader(nullptr),
-	_output_buffer_data(nullptr),
-	_output_buffer_sync(nullptr),
-	_input_texture_data(nullptr)
-{
-	_run_builders = new CRTRunBuilder *[NumberOfFields];
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		_run_builders[builder] = new CRTRunBuilder();
-	}
-//	_composite_src_runs = std::unique_ptr<CRTRunBuilder>(new CRTRunBuilder(InputVertexSize));
-
-	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
-}
-
-OpenGLOutputBuilder::~OpenGLOutputBuilder()
-{
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		delete _run_builders[builder];
-	}
-	delete[] _run_builders;
-
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-	glDeleteTextures(1, &textureName);
-	glDeleteBuffers(1, &_input_texture_array);
-	glDeleteBuffers(1, &output_array_buffer);
-	glDeleteVertexArrays(1, &output_vertex_array);
-
-	free(_composite_shader);
-	free(_rgb_shader);
-}
-
 static const GLint internalFormatForDepth(size_t depth)
 {
 	switch(depth)
@@ -82,46 +36,62 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
+
+using namespace Outputs::CRT;
+
+namespace {
+	static const GLenum first_supplied_buffer_texture_unit = 3;
+}
+
+OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
+	_run_write_pointer(0),
+	_output_mutex(new std::mutex),
+	_visible_area(Rect(0, 0, 1, 1)),
+	_composite_src_output_y(0),
+	_composite_shader(nullptr),
+	_rgb_shader(nullptr),
+	_output_buffer_data(nullptr),
+	_output_buffer_sync(nullptr),
+	_input_texture_data(nullptr),
+	_output_buffer_data_pointer(0)
 {
-	// establish essentials
-	if(!composite_input_shader_program && !rgb_shader_program)
+	_run_builders = new CRTRunBuilder *[NumberOfFields];
+	for(int builder = 0; builder < NumberOfFields; builder++)
 	{
-		// generate and bind texture for input data
-		glGenTextures(1, &textureName);
-		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
-		glBindTexture(GL_TEXTURE_2D, textureName);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		_run_builders[builder] = new CRTRunBuilder();
+	}
+	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
-		glGenBuffers(1, &_input_texture_array);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-		_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->bytes_per_pixel);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
+	// create the surce texture
+	glGenTextures(1, &textureName);
+	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
+	glBindTexture(GL_TEXTURE_2D, textureName);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
+	// create a pixel unpack buffer
+	glGenBuffers(1, &_input_texture_array);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
+	_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->bytes_per_pixel);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
 
-		prepare_composite_input_shader();
-		prepare_rgb_output_shader();
+	// map the buffer for clients
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-		glGenVertexArrays(1, &output_vertex_array);
-		glGenBuffers(1, &output_array_buffer);
-		output_vertices_per_slice = 0;
+	// create the output vertex array
+	glGenVertexArrays(1, &output_vertex_array);
+	glBindVertexArray(output_vertex_array);
 
-		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+	// create a buffer for output vertex attributes
+	glGenBuffers(1, &output_array_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
-		glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-		_output_buffer_data_pointer = 0;
-
-		glBindVertexArray(output_vertex_array);
-		prepare_output_vertex_array();
-
-		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
-		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
-		// it works either way.
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
+	// map that buffer too, for any CRT activity that may occur before the first draw
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 		// Create intermediate textures and bind to slots 0, 1 and 2
 //		glActiveTexture(GL_TEXTURE0);
@@ -130,6 +100,40 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //		filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 //		glActiveTexture(GL_TEXTURE2);
 //		filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+}
+
+OpenGLOutputBuilder::~OpenGLOutputBuilder()
+{
+	for(int builder = 0; builder < NumberOfFields; builder++)
+	{
+		delete _run_builders[builder];
+	}
+	delete[] _run_builders;
+
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	glDeleteTextures(1, &textureName);
+	glDeleteBuffers(1, &_input_texture_array);
+	glDeleteBuffers(1, &output_array_buffer);
+	glDeleteVertexArrays(1, &output_vertex_array);
+
+	free(_composite_shader);
+	free(_rgb_shader);
+}
+
+void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
+{
+	// establish essentials
+	if(!composite_input_shader_program && !rgb_shader_program)
+	{
+		prepare_composite_input_shader();
+		prepare_rgb_output_shader();
+		prepare_output_vertex_array();
+
+		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
+		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
+		// it works either way.
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
 	}
 
 	// lock down any further work on the current frame
@@ -145,29 +149,25 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-//	for(unsigned int buffer = 0; buffer < _buffer_builder->number_of_buffers; buffer++)
-//	{
-//		glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit + buffer);
-		if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
-		{
-			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-								0, (GLint)_buffer_builder->last_uploaded_line,
-								InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
-								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
-								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
-			_buffer_builder->last_uploaded_line = 0;
-		}
+	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
+	{
+		glTexSubImage2D(	GL_TEXTURE_2D, 0,
+							0, (GLint)_buffer_builder->last_uploaded_line,
+							InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
+							formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
+							(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
+		_buffer_builder->last_uploaded_line = 0;
+	}
 
-		if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
-		{
-			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-								0, (GLint)_buffer_builder->last_uploaded_line,
-								InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
-								formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
-								(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
-			_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
-		}
-//	}
+	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
+	{
+		glTexSubImage2D(	GL_TEXTURE_2D, 0,
+							0, (GLint)_buffer_builder->last_uploaded_line,
+							InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
+							formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
+							(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
+		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+	}
 
 	// check for anything to decode from composite
 //	if(_composite_src_runs->number_of_vertices)
@@ -230,7 +230,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// drawing commands having been issued, reclaim the array buffer pointer
-//	_buffer_builder->move_to_new_line();
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
