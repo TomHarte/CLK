@@ -62,7 +62,7 @@ void Machine::setup_output(float aspect_ratio)
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 2) & 1)*4;"
+			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 //			"return vec3(1.0);"
 		"}");
