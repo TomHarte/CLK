@@ -75,6 +75,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
+		GLuint source_array_buffer;
 
 		GLint windowSizeUniform, timestampBaseUniform;
 		GLint boundsOriginUniform, boundsSizeUniform;
@@ -212,7 +213,9 @@ class OpenGLOutputBuilder {
 
 		uint8_t *_output_buffer_data;
 		size_t _output_buffer_data_pointer;
-		GLsync _output_buffer_sync;
+
+		uint8_t *_source_buffer_data;
+		size_t _source_buffer_data_pointer;
 };
 
 }

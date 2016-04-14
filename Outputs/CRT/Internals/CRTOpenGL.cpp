@@ -51,7 +51,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
 	_output_buffer_data(nullptr),
-	_output_buffer_sync(nullptr),
+	_source_buffer_data(nullptr),
 	_input_texture_data(nullptr),
 	_output_buffer_data_pointer(0)
 {
@@ -100,6 +100,14 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	// create a buffer for source vertex attributes
+	glGenBuffers(1, &source_array_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+	glBufferData(GL_ARRAY_BUFFER, SourceVertexBufferDataSize, NULL, GL_STREAM_DRAW);
+
+	// map that buffer too, for any CRT activity that may occur before the first draw
+	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -115,6 +123,7 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	glDeleteTextures(1, &textureName);
 	glDeleteBuffers(1, &_input_texture_array);
 	glDeleteBuffers(1, &output_array_buffer);
+	glDeleteBuffers(1, &source_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
 
 	free(_composite_shader);
@@ -143,11 +152,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_output_mutex->lock();
 
 	// release the mapping, giving up on trying to draw if data has been lost
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	if(glUnmapBuffer(GL_ARRAY_BUFFER) == GL_FALSE)
 	{
 		for(int c = 0; c < NumberOfFields; c++)
 			_run_builders[c]->reset();
 	}
+	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
@@ -194,8 +206,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// update uniforms
 		push_size_uniforms(output_width, output_height);
 
-		// Ensure we're back on the output framebuffer
+		// Ensure we're back on the output framebuffer, drawing from the output array buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+//		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -233,7 +246,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// drawing commands having been issued, reclaim the array buffer pointer
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	_output_mutex->unlock();
 }
@@ -554,6 +570,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 		glEnableVertexAttribArray((GLuint)timestampAttribute);
 
 		const GLsizei vertexStride = OutputVertexSize;
+		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
 		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTimestamp);

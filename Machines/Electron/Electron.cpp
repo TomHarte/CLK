@@ -64,7 +64,6 @@ void Machine::setup_output(float aspect_ratio)
 			"uint texValue = texture(sampler, coordinate).r;"
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-//			"return vec3(1.0);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Monitor);
 	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, first_graphics_cycle * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));

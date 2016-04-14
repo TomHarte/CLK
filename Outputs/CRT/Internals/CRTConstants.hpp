@@ -42,8 +42,9 @@ const int InputBufferBuilderHeight = 1024;
 const int IntermediateBufferWidth = 2048;
 const int IntermediateBufferHeight = 2048;
 
-// Some internal
+// Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = 262080;	// a multiple of 6 * OutputVertexSize
+const GLsizeiptr SourceVertexBufferDataSize = 87360;	// a multiple of 2 * OutputVertexSize
 
 
 // Runs are divided discretely by vertical syncs in order to put a usable bounds on the uniform used to track
