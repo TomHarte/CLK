@@ -248,9 +248,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_source_buffer_data_pointer = 0;
+
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
 	_output_mutex->unlock();
 }
 
