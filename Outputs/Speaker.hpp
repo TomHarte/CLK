@@ -72,7 +72,7 @@ class Speaker {
 
 template <class T> class Filter: public Speaker {
 	public:
-		void run_for_cycles(int input_cycles)
+		void run_for_cycles(unsigned int input_cycles)
 		{
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
@@ -81,7 +81,7 @@ template <class T> class Filter: public Speaker {
 			// fill up as much of the input buffer as possible
 			while(input_cycles)
 			{
-				unsigned int cycles_to_read = (unsigned int)std::min(input_cycles, _number_of_taps - _input_buffer_depth);
+				unsigned int cycles_to_read = (unsigned int)std::min((int)input_cycles, _number_of_taps - _input_buffer_depth);
 				static_cast<T *>(this)->get_samples(cycles_to_read, &_input_buffer.get()[_input_buffer_depth]);
 				input_cycles -= cycles_to_read;
 				_input_buffer_depth += cycles_to_read;

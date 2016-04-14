@@ -31,6 +31,8 @@ namespace {
 
 	static const unsigned int real_time_clock_interrupt_1 = 16704;
 	static const unsigned int real_time_clock_interrupt_2 = 56704;
+
+	static const unsigned int clock_rate_audio_divider = 8;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
@@ -42,7 +44,6 @@ Machine::Machine() :
 	_frameCycles(0),
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
-	_audioOutputPositionError(0),
 	_current_pixel_line(-1),
 	_use_fast_tape_hack(false),
 	_crt(nullptr)
@@ -65,13 +66,15 @@ void Machine::setup_output(float aspect_ratio)
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
-	_crt->set_output_device(Outputs::CRT::Television);
-	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, first_graphics_cycle * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+	_crt->set_output_device(Outputs::CRT::Monitor);
+
+	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
+	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
 	// run the speaker at a 2000000Hz input rate, at least for the time being.
-	_speaker.set_input_rate(2000000);
+	_speaker.set_input_rate(2000000 / clock_rate_audio_divider);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -495,9 +498,10 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_audio()
 {
-	int difference = (int)_frameCycles - _audioOutputPosition;
-	_speaker.run_for_cycles(difference);
-	_audioOutputPosition = (int)_frameCycles;
+	unsigned int difference = _frameCycles - _audioOutputPosition;
+	_audioOutputPosition = _frameCycles;
+	_speaker.run_for_cycles(difference / clock_rate_audio_divider);
+	_audioOutputPositionError = difference % clock_rate_audio_divider;
 }
 
 inline void Machine::start_pixel_line()
@@ -853,7 +857,7 @@ void Speaker::skip_samples(unsigned int number_of_samples)
 
 void Speaker::set_divider(uint8_t divider)
 {
-	_divider = divider * 32;
+	_divider = divider * 32 / clock_rate_audio_divider;
 }
 
 void Speaker::set_is_enabled(bool is_enabled)

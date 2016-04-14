@@ -187,7 +187,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 
 		// Counters related to simultaneous subsystems;
 		unsigned int _frameCycles, _displayOutputPosition;
-		int _audioOutputPosition, _audioOutputPositionError;
+		unsigned int _audioOutputPosition, _audioOutputPositionError;
 
 		struct {
 			uint16_t forty1bpp[256];
