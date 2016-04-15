@@ -281,8 +281,11 @@ void CRT::output_scan(const Scan *const scan)
 	const bool is_leading_edge = (!_is_receiving_sync && this_is_sync);
 	_is_receiving_sync = this_is_sync;
 
-	const bool hsync_requested = is_leading_edge;
-//	const bool hsync_requested = is_trailing_edge && (_sync_period < (_horizontal_flywheel->get_scan_period() >> 2));
+	// This introduces a blackout period close to the expected vertical sync point in which horizontal syncs are not
+	// recognised, effectively causing the horizontal flywheel to freewheel during that period. This attempts to seek
+	// the problem that vertical sync otherwise often starts halfway through a scanline, which confuses the horizontal
+	// flywheel. I'm currently unclear whether this is an accurate solution to this problem.
+	const bool hsync_requested = is_leading_edge && !_vertical_flywheel->is_near_expected_sync();
 	const bool vsync_requested = is_trailing_edge && (_sync_capacitor_charge_level >= _sync_capacitor_charge_threshold);
 
 	// simplified colour burst logic: if it's within the back porch we'll take it

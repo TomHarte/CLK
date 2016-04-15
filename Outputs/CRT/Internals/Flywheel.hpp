@@ -9,6 +9,8 @@
 #ifndef Flywheel_hpp
 #define Flywheel_hpp
 
+#include <stdlib.h>
+
 namespace Outputs {
 namespace CRT {
 
@@ -185,6 +187,14 @@ struct Flywheel
 		unsigned int result = _number_of_surprises;
 		_number_of_surprises = 0;
 		return result;
+	}
+
+	/*!
+		@returns `true` if a sync is expected soon or the time at which it was expected was recent.
+	*/
+	inline bool is_near_expected_sync()
+	{
+		return abs((int)_counter - (int)_expected_next_sync) < (int)_standard_period / 50;
 	}
 
 	private:
