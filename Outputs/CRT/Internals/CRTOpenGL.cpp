@@ -62,6 +62,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(GL_TEXTURE0);
 	compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
@@ -226,11 +229,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			start = _run_builders[run]->start;
 			run = (run - 1 + NumberOfFields) % NumberOfFields;
 		}
-		glUniform4fv(timestampBaseUniform, 1, timestampBases);
 
 		if(count > 0)
 		{
 			// draw
+			glUniform4fv(timestampBaseUniform, 1, timestampBases);
 			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
 			GLsizei max_count = (GLsizei)((OutputVertexBufferDataSize - start) / OutputVertexSize);
 			if(primitive_count < max_count)
@@ -395,7 +398,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 10.0 * exp(-age * 2.0);"
+			"alpha = exp(-age) + 0.2;"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -439,7 +442,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying), alpha);" //*sin(lateralVarying)
+			"fragColour = vec4(rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying), clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
 		"}"
 	, sampling_function);
 }
