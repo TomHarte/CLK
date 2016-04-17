@@ -69,10 +69,13 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(GL_TEXTURE0);
 	compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+	compositeTexture->bind_texture();
 	glActiveTexture(GL_TEXTURE1);
 	filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+	filteredYTexture->bind_texture();
 	glActiveTexture(GL_TEXTURE2);
 	filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
+	filteredTexture->bind_texture();
 
 	// create the surce texture
 	glGenTextures(1, &textureName);
@@ -144,6 +147,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		prepare_composite_input_shader();
 		prepare_source_vertex_array();
 
+		prepare_composite_output_shader();
 		prepare_rgb_output_shader();
 		prepare_output_vertex_array();
 
@@ -172,7 +176,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-	glBindTexture(GL_TEXTURE_2D, textureName);
 	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
@@ -193,29 +196,16 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
 	}
 
-	// check for anything to decode from composite
-//	if(_composite_src_runs->number_of_vertices)
-//	{
-//		composite_input_shader_program->bind();
-//		_composite_src_runs->reset();
-//	}
-
-//	_output_mutex->unlock();
-//	return;
-
-	// reinstate the output framebuffer
-//	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
-//	glGetIntegerv(GL_VIEWPORT, results);
-
+	// for television, update intermediate buffers and then draw; for a monitor, just draw
 	if(_output_device == Television)
 	{
 		composite_input_shader_program->bind();
 
+		compositeTexture->bind_framebuffer();
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		glBindVertexArray(source_vertex_array);
 
-		// clear the buffer
-		glClear(GL_COLOR_BUFFER_BIT);
+		glDisable(GL_BLEND);
 
 		// decide how much to draw
 		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
@@ -238,12 +228,30 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
 			}
 		}
-	} else
 
-	// switch to the output shader
-	if(rgb_shader_program)
+		// transfer to screen
+		perform_output_stage(output_width, output_height, rgb_shader_program.get());
+	}
+	else
+		perform_output_stage(output_width, output_height, rgb_shader_program.get());
+
+	// drawing commands having been issued, reclaim the array buffer pointer
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	_output_mutex->unlock();
+}
+
+void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader)
+{
+	if(shader)
 	{
-		rgb_shader_program->bind();
+		shader->bind();
 
 		// update uniforms
 		push_size_uniforms(output_width, output_height);
@@ -254,6 +262,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_BLEND);
 
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
@@ -286,17 +295,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			}
 		}
 	}
-
-	// drawing commands having been issued, reclaim the array buffer pointer
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
@@ -415,19 +413,18 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"uniform vec2 boundsSize;"
 
 		"out float lateralVarying;"
-		"out vec2 shadowMaskCoordinates;"
+//		"out vec2 shadowMaskCoordinates;"
 		"out float alpha;"
 
 		"uniform vec4 timestampBase;"
 		"uniform float ticksPerFrame;"
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
-		"uniform vec3 filterCoefficients;"
 
 		"uniform usampler2D texID;"
-		"uniform sampler2D shadowMaskTexID;"
+//		"uniform sampler2D shadowMaskTexID;"
 
-		"const float shadowMaskMultiple = 600;"
+//		"const float shadowMaskMultiple = 600;"
 
 		"out vec2 srcCoordinatesVarying;"
 		"out vec2 iSrcCoordinatesVarying;"
@@ -436,7 +433,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"{"
 			"lateralVarying = lateralAndTimestampBaseOffset.x + 1.0707963267949;"
 
-			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
+//			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
 
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"iSrcCoordinatesVarying = srcCoordinates;"
@@ -459,11 +456,22 @@ char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
 
 char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
 {
-	return get_output_fragment_shader(
-		"vec4 rgb_sample(vec2 coordinate)"
+	return strdup(
+		"#version 150\n"
+
+		"in float lateralVarying;"
+		"in float alpha;"
+		"in vec2 srcCoordinatesVarying;"
+
+		"out vec4 fragColour;"
+
+		"uniform sampler2D texID;"
+
+		"void main(void)"
 		"{"
-			"return texture(texID, coordinate);"
-		"}");
+			"fragColour = vec4(texture(texID, srcCoordinatesVarying).rgb, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
+		"}"
+	);
 }
 
 char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function)
@@ -473,14 +481,14 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"in float lateralVarying;"
 		"in float alpha;"
-		"in vec2 shadowMaskCoordinates;"
+//		"in vec2 shadowMaskCoordinates;"
 		"in vec2 srcCoordinatesVarying;"
 		"in vec2 iSrcCoordinatesVarying;"
 
 		"out vec4 fragColour;"
 
 		"uniform usampler2D texID;"
-		"uniform sampler2D shadowMaskTexID;"
+//		"uniform sampler2D shadowMaskTexID;"
 
 		"\n%s\n"
 
@@ -497,7 +505,7 @@ char *OpenGLOutputBuilder::get_compound_shader(const char *base, const char *ins
 {
 	if(!base || !insert) return nullptr;
 	size_t totalLength = strlen(base) + strlen(insert) + 1;
-	char *text = new char[totalLength];
+	char *text = (char *)malloc(totalLength);
 	snprintf(text, totalLength, base, insert);
 	return text;
 }
@@ -590,38 +598,29 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	free(fragment_shader);
 }*/
 
-void OpenGLOutputBuilder::prepare_rgb_output_shader()
+std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader)
 {
 	char *vertex_shader = get_output_vertex_shader();
-	char *fragment_shader = get_rgb_output_fragment_shader();
+	std::unique_ptr<OpenGL::Shader> shader_program;
 
 	if(vertex_shader && fragment_shader)
 	{
-		rgb_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		shader_program->bind();
 
-		rgb_shader_program->bind();
+		windowSizeUniform			= shader_program->get_uniform_location("windowSize");
+		boundsSizeUniform			= shader_program->get_uniform_location("boundsSize");
+		boundsOriginUniform			= shader_program->get_uniform_location("boundsOrigin");
+		timestampBaseUniform		= shader_program->get_uniform_location("timestampBase");
 
-		windowSizeUniform			= rgb_shader_program->get_uniform_location("windowSize");
-		boundsSizeUniform			= rgb_shader_program->get_uniform_location("boundsSize");
-		boundsOriginUniform			= rgb_shader_program->get_uniform_location("boundsOrigin");
-		timestampBaseUniform		= rgb_shader_program->get_uniform_location("timestampBase");
-
-		GLint texIDUniform				= rgb_shader_program->get_uniform_location("texID");
-		GLint shadowMaskTexIDUniform	= rgb_shader_program->get_uniform_location("shadowMaskTexID");
-		GLint ticksPerFrameUniform		= rgb_shader_program->get_uniform_location("ticksPerFrame");
-		GLint scanNormalUniform			= rgb_shader_program->get_uniform_location("scanNormal");
-		GLint positionConversionUniform	= rgb_shader_program->get_uniform_location("positionConversion");
-		GLint filterCoefficients		= rgb_shader_program->get_uniform_location("filterCoefficients");
+		GLint texIDUniform				= shader_program->get_uniform_location("texID");
+		GLint ticksPerFrameUniform		= shader_program->get_uniform_location("ticksPerFrame");
+		GLint scanNormalUniform			= shader_program->get_uniform_location("scanNormal");
+		GLint positionConversionUniform	= shader_program->get_uniform_location("positionConversion");
 
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
-		glUniform1i(shadowMaskTexIDUniform, 1);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
-
-		SignalProcessing::FIRFilter filter(3, 6 * 50, 0, 25, SignalProcessing::FIRFilter::DefaultAttenuation);
-		float coefficients[3];
-		filter.get_coefficients(coefficients);
-		glUniform3fv(filterCoefficients, 1, coefficients);
 
 		float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
 		float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
@@ -633,6 +632,18 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 	free(vertex_shader);
 	free(fragment_shader);
+
+	return shader_program;
+}
+
+void OpenGLOutputBuilder::prepare_rgb_output_shader()
+{
+	rgb_shader_program = prepare_output_shader(get_rgb_output_fragment_shader());
+}
+
+void OpenGLOutputBuilder::prepare_composite_output_shader()
+{
+	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()

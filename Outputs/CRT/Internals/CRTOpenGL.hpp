@@ -46,6 +46,8 @@ class OpenGLOutputBuilder {
 
 		// Methods used by the OpenGL code
 		void prepare_rgb_output_shader();
+		void prepare_composite_output_shader();
+		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *fragment_shader);
 		void prepare_composite_input_shader();
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
@@ -88,6 +90,8 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
 		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
+
+		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader);
 
 	public:
 		OpenGLOutputBuilder(unsigned int buffer_depth);
