@@ -140,6 +140,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	if(!composite_input_shader_program && !rgb_shader_program)
 	{
 		prepare_composite_input_shader();
+		prepare_source_vertex_array();
+
 		prepare_rgb_output_shader();
 		prepare_output_vertex_array();
 
@@ -319,7 +321,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"void main(void)"
 		"{"
 			"ivec2 textureSize = textureSize(texID, 0);"
-			"inputPositionVarying = vec2(inputPositionVarying.x / textureSize.x, (inputPositionVarying.y + 0.5) / textureSize.y);"
+			"inputPositionVarying = vec2(inputPosition.x / textureSize.x, (inputPosition.y + 0.5) / textureSize.y);"
 
 			"gl_Position = vec4(outputPosition / outputTextureSize, 0.0, 1.0);"
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
@@ -485,6 +487,30 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 	free(vertex_shader);
 	free(fragment_shader);
 }
+
+void OpenGLOutputBuilder::prepare_source_vertex_array()
+{
+	if(composite_input_shader_program)
+	{
+		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
+		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
+		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
+		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
+
+		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
+		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
+		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
+		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
+
+		const GLsizei vertexStride = SourceVertexSize;
+		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
+		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
+		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
+		glVertexAttribPointer((GLuint)phaseTimeAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+	}
+}
+
 
 /*void OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader)
 {

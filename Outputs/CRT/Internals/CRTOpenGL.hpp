@@ -48,6 +48,7 @@ class OpenGLOutputBuilder {
 		void prepare_rgb_output_shader();
 		void prepare_composite_input_shader();
 		void prepare_output_vertex_array();
+		void prepare_source_vertex_array();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		// the run and input data buffers
