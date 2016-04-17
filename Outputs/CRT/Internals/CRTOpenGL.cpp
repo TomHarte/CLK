@@ -359,7 +359,8 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"inputPositionVarying = vec2(inputPosition.x / textureSize.x, (inputPosition.y + 0.5) / textureSize.y);"
 
-			"gl_Position = vec4(outputPosition / outputTextureSize, 0.0, 1.0);"
+			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0);"
+			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
 		"}");
 }
