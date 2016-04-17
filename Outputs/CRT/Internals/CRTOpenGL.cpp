@@ -53,7 +53,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_output_buffer_data(nullptr),
 	_source_buffer_data(nullptr),
 	_input_texture_data(nullptr),
-	_output_buffer_data_pointer(0)
+	_output_buffer_data_pointer(0),
+	_source_buffer_data_pointer(0)
 {
 	_run_builders = new CRTRunBuilder *[NumberOfFields];
 	for(int builder = 0; builder < NumberOfFields; builder++)
@@ -211,7 +212,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
-//		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+		glBindVertexArray(output_vertex_array);
 
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -254,7 +255,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-	_source_buffer_data_pointer = 0;
 
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
@@ -310,14 +310,18 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"in float phaseTime;"
 
 		"uniform float phaseCyclesPerTick;"
+		"uniform usampler2D texID;"
+		"uniform ivec2 outputTextureSize;"
 
 		"out vec2 inputPositionVarying;"
 		"out float phaseVarying;"
 
 		"void main(void)"
 		"{"
-			"inputPositionVarying = vec2(inputPositionVarying.x / inputTextureSize.x, (inputPositionVarying.y + 0.5) / inputTextureSize.y);"
-			"gl_Position = vec4(outputPosition.x * 2.0 / outputTextureSize - 1.0, outputPosition.y * 2.0 / outputTextureSize - 1.0, 0.0, 1.0);"
+			"ivec2 textureSize = textureSize(texID, 0);"
+			"inputPositionVarying = vec2(inputPositionVarying.x / textureSize.x, (inputPositionVarying.y + 0.5) / textureSize.y);"
+
+			"gl_Position = vec4(outputPosition / outputTextureSize, 0.0, 1.0);"
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
 		"}");
 }
@@ -327,6 +331,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 	const char *composite_shader = _composite_shader;
 	if(!composite_shader)
 	{
+		composite_shader = _rgb_shader;
 		// TODO: synthesise an RGB -> (selected colour space) shader
 	}
 
@@ -344,7 +349,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(composite_sample(inputPositionVarying, phaseVarying), 0.0, 0.0, 1.0);"
+			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, inputPositionVarying), 1.0);" // composite
 		"}"
 	, composite_shader);
 }
@@ -470,9 +475,12 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 
 		GLint texIDUniform				= composite_input_shader_program->get_uniform_location("texID");
 		GLint phaseCyclesPerTickUniform	= composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
+		GLint outputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("outputTextureSize");
 
+		composite_input_shader_program->bind();
 		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
 		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
+		glUniform2i(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
 	}
 	free(vertex_shader);
 	free(fragment_shader);

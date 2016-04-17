@@ -112,7 +112,7 @@ class OpenGLOutputBuilder {
 
 		inline void complete_source_run()
 		{
-			_source_buffer_data_pointer += 2 * SourceVertexSize;
+			_source_buffer_data_pointer = (_source_buffer_data_pointer + 2 * SourceVertexSize) % SourceVertexBufferDataSize;
 			_output_mutex->unlock();
 		}
 
