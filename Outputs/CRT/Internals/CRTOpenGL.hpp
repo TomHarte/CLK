@@ -76,7 +76,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
-		GLuint source_array_buffer;
+		GLuint source_array_buffer, source_vertex_array;
 
 		GLint windowSizeUniform, timestampBaseUniform;
 		GLint boundsOriginUniform, boundsSizeUniform;
@@ -108,12 +108,12 @@ class OpenGLOutputBuilder {
 		inline uint8_t *get_next_source_run()
 		{
 			_output_mutex->lock();
-			return &_source_buffer_data[_source_buffer_data_pointer];
+			return &_source_buffer_data[_source_buffer_data_pointer % SourceVertexBufferDataSize];
 		}
 
 		inline void complete_source_run()
 		{
-			_source_buffer_data_pointer = (_source_buffer_data_pointer + 2 * SourceVertexSize) % SourceVertexBufferDataSize;
+			_source_buffer_data_pointer += 2 * SourceVertexSize;;
 			_output_mutex->unlock();
 		}
 
@@ -219,6 +219,7 @@ class OpenGLOutputBuilder {
 
 		uint8_t *_source_buffer_data;
 		size_t _source_buffer_data_pointer;
+		size_t _drawn_source_buffer_data_pointer;
 };
 
 }

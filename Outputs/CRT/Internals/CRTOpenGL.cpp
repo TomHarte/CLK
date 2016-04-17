@@ -95,7 +95,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
-	glBindVertexArray(output_vertex_array);
 
 	// create a buffer for output vertex attributes
 	glGenBuffers(1, &output_array_buffer);
@@ -104,6 +103,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	// create the source vertex array
+	glGenVertexArrays(1, &source_vertex_array);
 
 	// create a buffer for source vertex attributes
 	glGenBuffers(1, &source_array_buffer);
@@ -170,6 +172,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
+	glBindTexture(GL_TEXTURE_2D, textureName);
 	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
@@ -203,6 +206,39 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// reinstate the output framebuffer
 //	glBindTexture(GL_TEXTURE_2D, _openGL_state->textureName);
 //	glGetIntegerv(GL_VIEWPORT, results);
+
+	if(_output_device == Television)
+	{
+		composite_input_shader_program->bind();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+		glBindVertexArray(source_vertex_array);
+
+		// clear the buffer
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// decide how much to draw
+		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
+		{
+			size_t new_data_size = _drawn_source_buffer_data_pointer - _source_buffer_data_pointer;
+			size_t new_data_start = _drawn_source_buffer_data_pointer;
+			_source_buffer_data_pointer %= SourceVertexBufferDataSize;
+			_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
+
+			if(new_data_size >= SourceVertexBufferDataSize)
+			{
+				new_data_size = SourceVertexBufferDataSize;
+				new_data_start = 0;
+			}
+
+			size_t first_data_length = std::max(SourceVertexBufferDataSize - new_data_start, new_data_size);
+			glDrawArrays(GL_LINES, (GLint)(new_data_start / SourceVertexSize), (GLsizei)(first_data_length / SourceVertexSize));
+			if(new_data_size > first_data_length)
+			{
+				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
+			}
+		}
+	} else
 
 	// switch to the output shader
 	if(rgb_shader_program)
@@ -497,6 +533,8 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
 		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
 
+		glBindVertexArray(source_vertex_array);
+
 		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
@@ -604,6 +642,8 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 		GLint textureCoordinatesAttribute	= rgb_shader_program->get_attrib_location("srcCoordinates");
 		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateralAndTimestampBaseOffset");
 		GLint timestampAttribute			= rgb_shader_program->get_attrib_location("timestamp");
+
+		glBindVertexArray(output_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
