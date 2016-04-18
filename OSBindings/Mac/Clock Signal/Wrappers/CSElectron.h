@@ -21,5 +21,6 @@
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
+@property (nonatomic, assign) BOOL useTelevisionOutput;
 
 @end

@@ -32,7 +32,7 @@ namespace {
 	static const unsigned int real_time_clock_interrupt_1 = 16704;
 	static const unsigned int real_time_clock_interrupt_2 = 56704;
 
-	static const unsigned int clock_rate_audio_divider = 1;
+	static const unsigned int clock_rate_audio_divider = 8;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)

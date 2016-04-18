@@ -112,25 +112,25 @@
 			case VK_ANSI_Grave:
 			case VK_ANSI_Backslash:
 									_electron.set_key_state(Electron::Key::KeyCopy, isPressed);			break;
-			case VK_Return:		_electron.set_key_state(Electron::Key::KeyReturn, isPressed);		break;
-			case VK_ANSI_Minus:	_electron.set_key_state(Electron::Key::KeyMinus, isPressed);		break;
+			case VK_Return:			_electron.set_key_state(Electron::Key::KeyReturn, isPressed);		break;
+			case VK_ANSI_Minus:		_electron.set_key_state(Electron::Key::KeyMinus, isPressed);		break;
 
-			case VK_RightArrow:	_electron.set_key_state(Electron::Key::KeyRight, isPressed);		break;
+			case VK_RightArrow:		_electron.set_key_state(Electron::Key::KeyRight, isPressed);		break;
 			case VK_LeftArrow:		_electron.set_key_state(Electron::Key::KeyLeft, isPressed);			break;
 			case VK_DownArrow:		_electron.set_key_state(Electron::Key::KeyDown, isPressed);			break;
 			case VK_UpArrow:		_electron.set_key_state(Electron::Key::KeyUp, isPressed);			break;
 
-			case VK_Delete:		_electron.set_key_state(Electron::Key::KeyDelete, isPressed);		break;
-			case VK_Escape:		_electron.set_key_state(Electron::Key::KeyEscape, isPressed);		break;
+			case VK_Delete:			_electron.set_key_state(Electron::Key::KeyDelete, isPressed);		break;
+			case VK_Escape:			_electron.set_key_state(Electron::Key::KeyEscape, isPressed);		break;
 
-			case VK_ANSI_Comma:	_electron.set_key_state(Electron::Key::KeyComma, isPressed);		break;
+			case VK_ANSI_Comma:		_electron.set_key_state(Electron::Key::KeyComma, isPressed);		break;
 			case VK_ANSI_Period:	_electron.set_key_state(Electron::Key::KeyFullStop, isPressed);		break;
 
 			case VK_ANSI_Semicolon:
 									_electron.set_key_state(Electron::Key::KeySemiColon, isPressed);	break;
-			case VK_ANSI_Quote:	_electron.set_key_state(Electron::Key::KeyColon, isPressed);		break;
+			case VK_ANSI_Quote:		_electron.set_key_state(Electron::Key::KeyColon, isPressed);		break;
 
-			case VK_ANSI_Slash:	_electron.set_key_state(Electron::Key::KeySlash, isPressed);		break;
+			case VK_ANSI_Slash:		_electron.set_key_state(Electron::Key::KeySlash, isPressed);		break;
 
 			case VK_Shift:			_electron.set_key_state(Electron::Key::KeyShift, isPressed);		break;
 			case VK_Control:		_electron.set_key_state(Electron::Key::KeyControl, isPressed);		break;

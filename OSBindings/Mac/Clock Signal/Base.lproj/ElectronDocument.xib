@@ -4,8 +4,10 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9532"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="Atari2600Document" customModule="Clock_Signal" customModuleProvider="target">
+        <customObject id="-2" userLabel="File's Owner" customClass="ElectronDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="displayTypeButton" destination="rh8-km-57n" id="4Np-OD-NLO"/>
+                <outlet property="fastLoadingButton" destination="e1J-pw-zGw" id="yck-sy-WRa"/>
                 <outlet property="openGLView" destination="gIp-Ho-8D9" id="GVg-Gs-Zn9"/>
                 <outlet property="optionsPanel" destination="ZW7-Bw-4RP" id="JpE-wG-zRR"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
@@ -28,8 +30,8 @@
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
             </connections>
         </window>
-        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="NSPanel">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
+        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="83" y="102" width="200" height="83"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
@@ -45,19 +47,25 @@
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
+                        <connections>
+                            <action selector="setFastLoading:" target="-2" id="CTb-Dn-QiP"/>
+                        </connections>
                     </button>
                     <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rh8-km-57n">
                         <rect key="frame" x="18" y="17" width="165" height="26"/>
-                        <popUpButtonCell key="cell" type="push" title="Monitor" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="tJM-kX-gaK" id="8SX-c5-ud1">
+                        <popUpButtonCell key="cell" type="push" title="Monitor" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="tJM-kX-gaK" id="8SX-c5-ud1">
                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
+                            <font key="font" metaFont="menu"/>
                             <menu key="menu" id="L06-TO-EF0">
                                 <items>
-                                    <menuItem title="Monitor" id="tJM-kX-gaK"/>
+                                    <menuItem title="Monitor" state="on" id="tJM-kX-gaK"/>
                                     <menuItem title="Television" id="fFm-fS-rWG"/>
                                 </items>
                             </menu>
                         </popUpButtonCell>
+                        <connections>
+                            <action selector="setDisplayType:" target="-2" id="kgH-SR-fI3"/>
+                        </connections>
                     </popUpButton>
                 </subviews>
                 <constraints>

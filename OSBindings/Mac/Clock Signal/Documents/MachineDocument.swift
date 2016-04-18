@@ -19,7 +19,7 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	}
 
 	@IBOutlet weak var optionsPanel: NSPanel!
-	@IBAction func showOptions(sender: AnyObject?) {
+	@IBAction func showOptions(sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
 

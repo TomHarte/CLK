@@ -27,6 +27,7 @@ class ElectronDocument: MachineDocument {
 			self.electron.setView(self.openGLView, aspectRatio: 11.0 / 10.0)
 			self.electron.audioQueue = self.audioQueue
 		})
+		establishStoredOptions()
 	}
 
 	override var windowNibName: String? {
@@ -41,7 +42,6 @@ class ElectronDocument: MachineDocument {
 			switch pathExtension.lowercaseString {
 				case "uef":
 					electron.openUEFAtURL(url)
-					electron.useFastLoadingHack = true
 					return
 				default: break;
 			}
@@ -69,6 +69,40 @@ class ElectronDocument: MachineDocument {
 		drawLock.unlock()
 
 		super.close()
+	}
+
+	// MARK: IBActions
+	@IBOutlet var displayTypeButton: NSPopUpButton!
+	@IBAction func setDisplayType(sender: NSPopUpButton!) {
+		switch sender.indexOfSelectedItem {
+			case 1:		electron.useTelevisionOutput = false
+			default:	electron.useTelevisionOutput = true
+		}
+		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
+	}
+
+	@IBOutlet var fastLoadingButton: NSButton!
+	@IBAction func setFastLoading(sender: NSButton!) {
+		electron.useFastLoadingHack = sender.state == NSOnState
+		NSUserDefaults.standardUserDefaults().setBool(electron.useFastLoadingHack, forKey: self.fastLoadingUserDefaultsKey)
+	}
+
+	private let displayTypeUserDefaultsKey = "electron.displayType"
+	private let fastLoadingUserDefaultsKey = "electron.fastLoading"
+	private func establishStoredOptions() {
+		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
+		standardUserDefaults.registerDefaults([
+			displayTypeUserDefaultsKey: 0,
+			fastLoadingUserDefaultsKey: true
+		])
+
+		let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
+		electron.useFastLoadingHack = useFastLoadingHack
+		self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
+
+		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
+		electron.useTelevisionOutput = (displayType == 1)
+		self.displayTypeButton.selectItemAtIndex(displayType)
 	}
 
 	// MARK: CSOpenGLViewDelegate
