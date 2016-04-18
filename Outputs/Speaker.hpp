@@ -35,11 +35,11 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-//		void set_output_quality(int number_of_taps)
-//		{
-//			_number_of_taps = number_of_taps;
-//			set_needs_updated_filter_coefficients();
-//		}
+		void set_output_quality(int number_of_taps)
+		{
+			_requested_number_of_taps = number_of_taps;
+			set_needs_updated_filter_coefficients();
+		}
 
 		void set_delegate(Delegate *delegate)
 		{
@@ -52,13 +52,13 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : _buffer_in_progress_pointer(0) {}
+		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0) {}
 
 	protected:
 		std::unique_ptr<int16_t> _buffer_in_progress;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
-		int _number_of_taps;
+		int _number_of_taps, _requested_number_of_taps;
 		bool _coefficients_are_dirty;
 		Delegate *_delegate;
 
@@ -130,10 +130,17 @@ template <class T> class Filter: public Speaker {
 
 		void update_filter_coefficients()
 		{
-			// make a guess at a good number of taps
-			_number_of_taps = (_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second;
-			_number_of_taps *= 2;
-			_number_of_taps |= 1;
+			// make a guess at a good number of taps if this hasn't been provided explicitly
+			if(_requested_number_of_taps)
+			{
+				_number_of_taps = _requested_number_of_taps;
+			}
+			else
+			{
+				_number_of_taps = (_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second;
+				_number_of_taps *= 2;
+				_number_of_taps |= 1;
+			}
 
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
