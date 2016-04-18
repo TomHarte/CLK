@@ -134,7 +134,7 @@
 
 			case VK_Shift:			_electron.set_key_state(Electron::Key::KeyShift, isPressed);		break;
 			case VK_Control:		_electron.set_key_state(Electron::Key::KeyControl, isPressed);		break;
-			case VK_Command:		_electron.set_key_state(Electron::Key::KeyFunc, isPressed);			break;
+			case VK_Option:			_electron.set_key_state(Electron::Key::KeyFunc, isPressed);			break;
 
 			case VK_F12:			_electron.set_key_state(Electron::Key::KeyBreak, isPressed);		break;
 

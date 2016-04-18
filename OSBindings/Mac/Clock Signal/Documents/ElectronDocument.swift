@@ -130,5 +130,6 @@ class ElectronDocument: MachineDocument {
 		electron.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
 		electron.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
 		electron.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
+		electron.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
 	}
 }
