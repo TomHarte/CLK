@@ -6,7 +6,8 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="Atari2600Document" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
+                <outlet property="openGLView" destination="gIp-Ho-8D9" id="GVg-Gs-Zn9"/>
+                <outlet property="optionsPanel" destination="ZW7-Bw-4RP" id="JpE-wG-zRR"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>
@@ -19,24 +20,56 @@
             <rect key="contentRect" x="133" y="235" width="440" height="400"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
             <value key="minSize" type="size" width="228" height="171"/>
-            <view key="contentView" id="gIp-Ho-8D9">
+            <view key="contentView" id="gIp-Ho-8D9" customClass="CSOpenGLView">
                 <rect key="frame" x="0.0" y="0.0" width="440" height="400"/>
                 <autoresizingMask key="autoresizingMask"/>
-                <subviews>
-                    <openGLView useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
-                        <rect key="frame" x="0.0" y="0.0" width="440" height="400"/>
-                    </openGLView>
-                </subviews>
-                <constraints>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="ES5-nL-N3h"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="height" secondItem="gIp-Ho-8D9" secondAttribute="height" id="YoB-qI-LFX"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="centerY" secondItem="gIp-Ho-8D9" secondAttribute="centerY" id="d5Y-3a-CEI"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="width" secondItem="gIp-Ho-8D9" secondAttribute="width" id="mYS-bH-DST"/>
-                </constraints>
             </view>
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
             </connections>
+        </window>
+        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="83" y="102" width="200" height="83"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
+            <value key="minSize" type="size" width="200" height="83"/>
+            <value key="maxSize" type="size" width="200" height="83"/>
+            <view key="contentView" id="tpZ-0B-QQu">
+                <rect key="frame" x="0.0" y="0.0" width="200" height="83"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="e1J-pw-zGw">
+                        <rect key="frame" x="18" y="47" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Load Quickly" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="tD6-UB-ESB">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                    </button>
+                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rh8-km-57n">
+                        <rect key="frame" x="18" y="17" width="165" height="26"/>
+                        <popUpButtonCell key="cell" type="push" title="Monitor" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="tJM-kX-gaK" id="8SX-c5-ud1">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <menu key="menu" id="L06-TO-EF0">
+                                <items>
+                                    <menuItem title="Monitor" id="tJM-kX-gaK"/>
+                                    <menuItem title="Television" id="fFm-fS-rWG"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                    </popUpButton>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="rh8-km-57n" firstAttribute="top" secondItem="e1J-pw-zGw" secondAttribute="bottom" constant="8" id="GLg-6X-Lj2"/>
+                    <constraint firstItem="e1J-pw-zGw" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="HSD-3d-Bl7"/>
+                    <constraint firstAttribute="trailing" secondItem="e1J-pw-zGw" secondAttribute="trailing" constant="20" id="Q9M-FH-92N"/>
+                    <constraint firstItem="rh8-km-57n" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="VRo-6R-IKd"/>
+                    <constraint firstItem="e1J-pw-zGw" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="ul9-lf-Y3u"/>
+                    <constraint firstAttribute="trailing" secondItem="rh8-km-57n" secondAttribute="trailing" constant="20" id="urO-Ac-aqK"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="129" y="46.5"/>
         </window>
     </objects>
 </document>

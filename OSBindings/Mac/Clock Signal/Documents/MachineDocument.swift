@@ -18,6 +18,11 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		}
 	}
 
+	@IBOutlet weak var optionsPanel: NSPanel!
+	@IBAction func showOptions(sender: AnyObject?) {
+		optionsPanel?.setIsVisible(true)
+	}
+
 	lazy var audioQueue = AudioQueue()
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
