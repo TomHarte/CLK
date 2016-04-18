@@ -152,6 +152,13 @@
 	}
 }
 
+- (void)setUseTelevisionOutput:(BOOL)useTelevisionOutput {
+	@synchronized(self) {
+		_useTelevisionOutput = useTelevisionOutput;
+		_electron.get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
+	}
+}
+
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	@synchronized(self) {
 		_electron.setup_output(aspectRatio);
