@@ -60,7 +60,7 @@
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
 	@synchronized(self) {
 		_electron.get_speaker()->set_output_rate(sampleRate, 256);
-		_electron.get_speaker()->set_output_quality(47);
+//		_electron.get_speaker()->set_output_quality(47);
 		_electron.get_speaker()->set_delegate(delegate);
 		return YES;
 	}

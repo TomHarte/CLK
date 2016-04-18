@@ -35,11 +35,11 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-		void set_output_quality(int number_of_taps)
-		{
-			_number_of_taps = number_of_taps;
-			set_needs_updated_filter_coefficients();
-		}
+//		void set_output_quality(int number_of_taps)
+//		{
+//			_number_of_taps = number_of_taps;
+//			set_needs_updated_filter_coefficients();
+//		}
 
 		void set_delegate(Delegate *delegate)
 		{
@@ -130,6 +130,11 @@ template <class T> class Filter: public Speaker {
 
 		void update_filter_coefficients()
 		{
+			// make a guess at a good number of taps
+			_number_of_taps = (_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second;
+			_number_of_taps *= 2;
+			_number_of_taps |= 1;
+
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
 
