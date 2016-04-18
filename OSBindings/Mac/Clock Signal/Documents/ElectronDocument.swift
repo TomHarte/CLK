@@ -74,10 +74,7 @@ class ElectronDocument: MachineDocument {
 	// MARK: IBActions
 	@IBOutlet var displayTypeButton: NSPopUpButton!
 	@IBAction func setDisplayType(sender: NSPopUpButton!) {
-		switch sender.indexOfSelectedItem {
-			case 1:		electron.useTelevisionOutput = false
-			default:	electron.useTelevisionOutput = true
-		}
+		electron.useTelevisionOutput = (sender.indexOfSelectedItem == 1)
 		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
 

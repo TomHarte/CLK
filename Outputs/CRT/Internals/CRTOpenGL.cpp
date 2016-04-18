@@ -681,7 +681,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 
 void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 {
-	if (_output_device != output_device)
+	if(_output_device != output_device)
 	{
 		_output_device = output_device;
 
