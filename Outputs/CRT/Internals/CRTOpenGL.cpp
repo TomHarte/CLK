@@ -147,7 +147,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		prepare_composite_input_shader();
 		prepare_source_vertex_array();
 
-		prepare_composite_output_shader();
+//		prepare_composite_output_shader();
 		prepare_rgb_output_shader();
 		prepare_output_vertex_array();
 
@@ -201,7 +201,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	{
 		composite_input_shader_program->bind();
 
-		compositeTexture->bind_framebuffer();
+//		compositeTexture->bind_framebuffer();
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		glBindVertexArray(source_vertex_array);
 
@@ -230,7 +230,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		}
 
 		// transfer to screen
-		perform_output_stage(output_width, output_height, rgb_shader_program.get());
+//		perform_output_stage(output_width, output_height, rgb_shader_program.get());
 	}
 	else
 		perform_output_stage(output_width, output_height, rgb_shader_program.get());
@@ -255,6 +255,7 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 		// update uniforms
 		push_size_uniforms(output_width, output_height);
+		glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
@@ -342,7 +343,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 
 		"in vec2 inputPosition;"
 		"in vec2 outputPosition;"
-		"in vec2 phaseAndAmplitude;"
+		"in vec3 phaseAmplitudeAndAlpha;"
 		"in float phaseTime;"
 
 		"uniform float phaseCyclesPerTick;"
@@ -351,15 +352,18 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 
 		"out vec2 inputPositionVarying;"
 		"out float phaseVarying;"
+		"out float alphaVarying;"
 
 		"void main(void)"
 		"{"
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"inputPositionVarying = vec2(inputPosition.x / textureSize.x, (inputPosition.y + 0.5) / textureSize.y);"
 
+			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
+			"alphaVarying = phaseAmplitudeAndAlpha.z;"
+
 			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0);"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
 		"}");
 }
 
@@ -377,6 +381,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"in vec2 inputPositionVarying;"
 		"in float phaseVarying;"
+		"in float alphaVarying;"
 
 		"out vec4 fragColour;"
 
@@ -386,7 +391,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, inputPositionVarying), 1.0);" // composite
+			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, inputPositionVarying) * alphaVarying, 1.0);" // composite
 		"}"
 	, composite_shader);
 }
@@ -537,24 +542,24 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 {
 	if(composite_input_shader_program)
 	{
-		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
-		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
-		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
+		GLint inputPositionAttribute			= composite_input_shader_program->get_attrib_location("inputPosition");
+		GLint outputPositionAttribute			= composite_input_shader_program->get_attrib_location("outputPosition");
+		GLint phaseAmplitudeAndAlphaAttribute	= composite_input_shader_program->get_attrib_location("phaseAmplitudeAndAlpha");
+		GLint phaseTimeAttribute				= composite_input_shader_program->get_attrib_location("phaseTime");
 
 		glBindVertexArray(source_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
+		glEnableVertexAttribArray((GLuint)phaseAmplitudeAndAlphaAttribute);
 		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
 
 		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
-		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
-		glVertexAttribPointer((GLuint)phaseTimeAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+		glVertexAttribPointer((GLuint)inputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
+		glVertexAttribPointer((GLuint)outputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
+		glVertexAttribPointer((GLuint)phaseAmplitudeAndAlphaAttribute,	3, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAmplitudeAndAlpha);
+		glVertexAttribPointer((GLuint)phaseTimeAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
 	}
 }
 
@@ -643,6 +648,7 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
+//	rgb_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
 	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
 }
 

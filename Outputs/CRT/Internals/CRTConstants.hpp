@@ -29,7 +29,7 @@ const size_t OutputVertexSize = 16;
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
 const size_t SourceVertexOffsetOfInputPosition = 0;
 const size_t SourceVertexOffsetOfOutputPosition = 4;
-const size_t SourceVertexOffsetOfPhaseAndAmplitude = 8;
+const size_t SourceVertexOffsetOfPhaseAmplitudeAndAlpha = 8;
 const size_t SourceVertexOffsetOfPhaseTime = 12;
 
 const size_t SourceVertexSize = 16;
