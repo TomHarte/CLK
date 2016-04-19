@@ -65,7 +65,7 @@ class OpenGLOutputBuilder {
 
 		char *get_output_vertex_shader();
 
-		char *get_output_fragment_shader(const char *sampling_function);
+		char *get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function);
 		char *get_rgb_output_fragment_shader();
 		char *get_composite_output_fragment_shader();
 

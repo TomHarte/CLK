@@ -26,12 +26,14 @@ GLuint Shader::compile_shader(const char *source, GLenum type)
 	{
 		GLint logLength;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-		if (logLength > 0) {
+		if(logLength > 0) {
 			GLchar *log = (GLchar *)malloc((size_t)logLength);
 			glGetShaderInfoLog(shader, logLength, &logLength, log);
 			printf("Compile log:\n%s\n", log);
 			free(log);
 		}
+
+		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
 	}
 #endif
 
@@ -71,6 +73,7 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 			printf("Link log:\n%s\n", log);
 			free(log);
 		}
+		throw ProgramLinkageError;
 	}
 #endif
 }

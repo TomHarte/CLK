@@ -14,13 +14,19 @@
 namespace OpenGL {
   class Shader {
 	public:
+		enum {
+			VertexShaderCompilationError,
+			FragmentShaderCompilationError,
+			ProgramLinkageError
+		};
+
 		struct AttributeBinding {
 			const GLchar *name;
 			GLuint index;
 		};
 
 		/*!
-			Constructs a shader, comprised of:
+			Attempts to compile a shader, throwing @c VertexShaderCompilationError, @c FragmentShaderCompilationError or @c ProgramLinkageError upon failure.
 			@param vertex_shader The vertex shader source code.
 			@param fragment_shader The fragment shader source code.
 			@param attribute_bindings Either @c nullptr or an array terminated by an entry with a @c nullptr-name of attribute bindings.
@@ -46,6 +52,7 @@ namespace OpenGL {
 			@returns The location of the requested uniform.
 		*/
 		GLint get_uniform_location(const GLchar *name);
+
 
 	private:
 		GLuint compile_shader(const char *source, GLenum type);

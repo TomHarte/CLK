@@ -232,7 +232,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// transfer to screen
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		compositeTexture->bind_texture();
-		perform_output_stage(output_width, output_height, rgb_shader_program.get());
+		perform_output_stage(output_width, output_height, composite_output_shader_program.get());
 	}
 	else
 		perform_output_stage(output_width, output_height, rgb_shader_program.get());
@@ -463,32 +463,17 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 
 char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
 {
-	return get_output_fragment_shader(_rgb_shader);
+	return get_output_fragment_shader(_rgb_shader, "uniform usampler2D texID;", "rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying)");
 }
 
 char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
 {
-	return strdup(
-		"#version 150\n"
-
-		"in float lateralVarying;"
-		"in float alpha;"
-		"in vec2 srcCoordinatesVarying;"
-
-		"out vec4 fragColour;"
-
-		"uniform sampler2D texID;"
-
-		"void main(void)"
-		"{"
-			"fragColour = vec4(texture(texID, srcCoordinatesVarying).rgb, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
-		"}"
-	);
+	return get_output_fragment_shader("", "uniform sampler2D texID;", "texture(texID, srcCoordinatesVarying).rgb");
 }
 
-char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function)
+char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function)
 {
-	return get_compound_shader(
+	char *complete_header = get_compound_shader(
 		"#version 150\n"
 
 		"in float lateralVarying;"
@@ -499,20 +484,25 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 		"out vec4 fragColour;"
 
-//		"uniform usampler2D texID;"
-		"uniform sampler2D texID;"
-//		"uniform sampler2D shadowMaskTexID;"
+//		"uniform sampler2D shadowMaskTexID;",
+		"%s\n%%s\n",
+	header);
 
-		"\n%s\n"
-
+	char *complete_body = get_compound_shader(
+		"%%s\n"
 		"void main(void)"
 		"{"
-//			"fragColour = vec4(srcCoordinatesVarying.rg, 0.0, 1.0);" //
-			"fragColour = vec4(texture(texID, srcCoordinatesVarying).rgb, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
-//			"fragColour = vec4(srcCoordinatesVarying.y / 4.0, 0.0, 0.0, 1.0);"//texture(texID, srcCoordinatesVarying).rgba;" //
-//			"fragColour = vec4(rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying), clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
-		"}"
-	, sampling_function);
+			"fragColour = vec4(%s, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));"
+		"}",
+	fragColour_function);
+
+	char *top = get_compound_shader(complete_header, sampling_function);
+	free(complete_header);
+
+	char *result = get_compound_shader(complete_body, top);
+	free(complete_body);
+
+	return result;
 }
 
 #pragma mark - Shader utilities
@@ -621,7 +611,15 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 	if(vertex_shader && fragment_shader)
 	{
-		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, nullptr));
+		OpenGL::Shader::AttributeBinding bindings[] =
+		{
+			{"position", 0},
+			{"srcCoordinates", 1},
+			{"lateralAndTimestampBaseOffset", 2},
+			{"timestamp", 3},
+			{nullptr}
+		};
+		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, bindings));
 		shader_program->bind();
 
 		windowSizeUniform			= shader_program->get_uniform_location("windowSize");
@@ -659,7 +657,6 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-//	rgb_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
 	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
 }
 
