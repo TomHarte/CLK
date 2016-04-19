@@ -145,7 +145,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		prepare_composite_input_shader();
 		prepare_source_vertex_array();
 
-//		prepare_composite_output_shader();
+		prepare_composite_output_shader();
 		prepare_rgb_output_shader();
 		prepare_output_vertex_array();
 
