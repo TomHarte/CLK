@@ -47,6 +47,22 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader)
 	glAttachShader(_shader_program, vertex);
 	glAttachShader(_shader_program, fragment);
 	glLinkProgram(_shader_program);
+
+#if defined(DEBUG)
+	GLint didLink = 0;
+	glGetProgramiv(_shader_program, GL_LINK_STATUS, &didLink);
+	if(didLink == GL_FALSE)
+	{
+		GLint logLength;
+		glGetProgramiv(_shader_program, GL_INFO_LOG_LENGTH, &logLength);
+		if (logLength > 0) {
+			GLchar *log = (GLchar *)malloc((size_t)logLength);
+			glGetProgramInfoLog(_shader_program, logLength, &logLength, log);
+			printf("Link log:\n%s\n", log);
+			free(log);
+		}
+	}
+#endif
 }
 
 Shader::~Shader()
