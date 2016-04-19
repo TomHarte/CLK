@@ -364,7 +364,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"{"
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"iInputPositionVarying = inputPosition;"
-			"inputPositionVarying = vec2(inputPosition.x / textureSize.x, (inputPosition.y + 0.5) / textureSize.y);"
+			"inputPositionVarying = inputPosition / vec2(textureSize);" // + 0.5
 
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
 			"alphaVarying = phaseAmplitudeAndAlpha.z;"
