@@ -38,7 +38,7 @@ GLuint Shader::compile_shader(const char *source, GLenum type)
 	return shader;
 }
 
-Shader::Shader(const char *vertex_shader, const char *fragment_shader)
+Shader::Shader(const char *vertex_shader, const char *fragment_shader, const AttributeBinding *attribute_bindings)
 {
 	_shader_program = glCreateProgram();
 	GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
@@ -46,6 +46,16 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader)
 
 	glAttachShader(_shader_program, vertex);
 	glAttachShader(_shader_program, fragment);
+
+	if(attribute_bindings)
+	{
+		while(attribute_bindings->name)
+		{
+			glBindAttribLocation(_shader_program, attribute_bindings->index, attribute_bindings->name);
+			attribute_bindings++;
+		}
+	}
+
 	glLinkProgram(_shader_program);
 
 #if defined(DEBUG)
@@ -76,12 +86,12 @@ void Shader::bind()
 	glUseProgram(_shader_program);
 }
 
-GLint Shader::get_attrib_location(const char *name)
+GLint Shader::get_attrib_location(const GLchar *name)
 {
 	return glGetAttribLocation(_shader_program, name);
 }
 
-GLint Shader::get_uniform_location(const char *name)
+GLint Shader::get_uniform_location(const GLchar *name)
 {
 	return glGetUniformLocation(_shader_program, name);
 }

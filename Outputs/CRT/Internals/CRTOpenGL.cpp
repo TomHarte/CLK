@@ -246,7 +246,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-//	printf("%04x\n", glGetError());
 	_output_mutex->unlock();
 }
 
@@ -535,7 +534,7 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 	char *fragment_shader = get_input_fragment_shader();
 	if(vertex_shader && fragment_shader)
 	{
-		composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, nullptr));
 
 		GLint texIDUniform				= composite_input_shader_program->get_uniform_location("texID");
 		GLint phaseCyclesPerTickUniform	= composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
@@ -622,7 +621,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 	if(vertex_shader && fragment_shader)
 	{
-		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader));
+		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, nullptr));
 		shader_program->bind();
 
 		windowSizeUniform			= shader_program->get_uniform_location("windowSize");
