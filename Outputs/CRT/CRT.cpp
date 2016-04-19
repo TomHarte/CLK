@@ -237,14 +237,11 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				output_lateral(2) = 1;
 				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = (uint8_t)_openGL_output_builder->get_current_field();
 
-//				printf("%d", _horizontal_flywheel->get_current_output_position());
-//				if(_is_writing_composite_run) printf("\n"); else printf(" -> ");
-
 				_openGL_output_builder->complete_output_run(3);
 				_is_writing_composite_run ^= true;
 			}
 
-			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace)
+			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
 			{
 				_openGL_output_builder->increment_composite_output_y();
 

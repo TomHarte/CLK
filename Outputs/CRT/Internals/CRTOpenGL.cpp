@@ -268,7 +268,7 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
-//		glEnable(GL_BLEND);
+		glEnable(GL_BLEND);
 
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
@@ -509,7 +509,7 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 		"void main(void)"
 		"{"
 //			"fragColour = vec4(srcCoordinatesVarying.rg, 0.0, 1.0);" //
-			"fragColour = texture(texID, srcCoordinatesVarying).rgba;" //
+			"fragColour = vec4(texture(texID, srcCoordinatesVarying).rgb, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
 //			"fragColour = vec4(srcCoordinatesVarying.y / 4.0, 0.0, 0.0, 1.0);"//texture(texID, srcCoordinatesVarying).rgba;" //
 //			"fragColour = vec4(rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying), clamp(alpha, 0.0, 1.0)*sin(lateralVarying));" //
 		"}"
