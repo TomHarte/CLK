@@ -36,7 +36,6 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-
 using namespace Outputs::CRT;
 
 namespace {
@@ -382,7 +381,8 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 		// TODO: synthesise an RGB -> (selected colour space) shader
 	}
 
-	return get_compound_shader(
+	char *result;
+	asprintf(&result,
 		"#version 150\n"
 
 		"in vec2 inputPositionVarying;"
@@ -401,19 +401,21 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, iInputPositionVarying) * alphaVarying, 1.0);" // composite
 		"}"
 	, composite_shader);
+	return result;
 }
 
 #pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
 
 #pragma mark - Output vertex shader
 
-char *OpenGLOutputBuilder::get_output_vertex_shader()
+char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 {
 	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
 	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
 	// from integral to floating point.
 
-	return strdup(
+	char *result;
+	asprintf(&result,
 		"#version 150\n"
 
 		"in vec2 position;"
@@ -433,7 +435,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
 
-		"uniform sampler2D texID;"
+		"\n%s\n"
 //		"uniform sampler2D shadowMaskTexID;"
 
 //		"const float shadowMaskMultiple = 600;"
@@ -456,7 +458,18 @@ char *OpenGLOutputBuilder::get_output_vertex_shader()
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
-		"}");
+		"}", header);
+	return result;
+}
+
+char *OpenGLOutputBuilder::get_rgb_output_vertex_shader()
+{
+	return get_output_vertex_shader("uniform usampler2D texID;");
+}
+
+char *OpenGLOutputBuilder::get_composite_output_vertex_shader()
+{
+	return get_output_vertex_shader("uniform sampler2D texID;");
 }
 
 #pragma mark - Output fragment shaders; RGB and from composite
@@ -473,7 +486,8 @@ char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
 
 char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function)
 {
-	char *complete_header = get_compound_shader(
+	char *result;
+	asprintf(&result,
 		"#version 150\n"
 
 		"in float lateralVarying;"
@@ -485,35 +499,15 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 		"out vec4 fragColour;"
 
 //		"uniform sampler2D shadowMaskTexID;",
-		"%s\n%%s\n",
-	header);
-
-	char *complete_body = get_compound_shader(
-		"%%s\n"
+		"%s\n"
+		"%s\n"
 		"void main(void)"
 		"{"
 			"fragColour = vec4(%s, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));"
 		"}",
-	fragColour_function);
-
-	char *top = get_compound_shader(complete_header, sampling_function);
-	free(complete_header);
-
-	char *result = get_compound_shader(complete_body, top);
-	free(complete_body);
+	header, sampling_function, fragColour_function);
 
 	return result;
-}
-
-#pragma mark - Shader utilities
-
-char *OpenGLOutputBuilder::get_compound_shader(const char *base, const char *insert)
-{
-	if(!base || !insert) return nullptr;
-	size_t totalLength = strlen(base) + strlen(insert) + 1;
-	char *text = (char *)malloc(totalLength);
-	snprintf(text, totalLength, base, insert);
-	return text;
 }
 
 #pragma mark - Program compilation
@@ -604,9 +598,8 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	free(fragment_shader);
 }*/
 
-std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader)
+std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *vertex_shader, char *fragment_shader)
 {
-	char *vertex_shader = get_output_vertex_shader();
 	std::unique_ptr<OpenGL::Shader> shader_program;
 
 	if(vertex_shader && fragment_shader)
@@ -652,12 +645,12 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_fragment_shader());
+	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader());
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader());
+	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader());
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()

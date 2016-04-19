@@ -47,7 +47,7 @@ class OpenGLOutputBuilder {
 		// Methods used by the OpenGL code
 		void prepare_rgb_output_shader();
 		void prepare_composite_output_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *fragment_shader);
+		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader);
 		void prepare_composite_input_shader();
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
@@ -63,7 +63,9 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<CRTRunBuilder> _composite_src_runs;
 		uint16_t _composite_src_output_y;
 
-		char *get_output_vertex_shader();
+		char *get_output_vertex_shader(const char *header);
+		char *get_rgb_output_vertex_shader();
+		char *get_composite_output_vertex_shader();
 
 		char *get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function);
 		char *get_rgb_output_fragment_shader();
@@ -71,8 +73,6 @@ class OpenGLOutputBuilder {
 
 		char *get_input_vertex_shader();
 		char *get_input_fragment_shader();
-
-		char *get_compound_shader(const char *base, const char *insert);
 
 		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
 		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
