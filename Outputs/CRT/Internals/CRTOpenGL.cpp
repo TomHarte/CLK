@@ -63,7 +63,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
-	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
@@ -269,7 +268,7 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
-		glEnable(GL_BLEND);
+//		glEnable(GL_BLEND);
 
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
@@ -357,12 +356,14 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"uniform ivec2 outputTextureSize;"
 
 		"out vec2 inputPositionVarying;"
+		"out vec2 iInputPositionVarying;"
 		"out float phaseVarying;"
 		"out float alphaVarying;"
 
 		"void main(void)"
 		"{"
 			"ivec2 textureSize = textureSize(texID, 0);"
+			"iInputPositionVarying = inputPosition;"
 			"inputPositionVarying = vec2(inputPosition.x / textureSize.x, (inputPosition.y + 0.5) / textureSize.y);"
 
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
@@ -386,6 +387,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 		"#version 150\n"
 
 		"in vec2 inputPositionVarying;"
+		"in vec2 iInputPositionVarying;"
 		"in float phaseVarying;"
 		"in float alphaVarying;"
 
@@ -397,7 +399,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, inputPositionVarying) * alphaVarying, 1.0);" // composite
+			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, iInputPositionVarying) * alphaVarying, 1.0);" // composite
 		"}"
 	, composite_shader);
 }
