@@ -17,6 +17,7 @@
 - (BOOL)openUEFAtURL:(nonnull NSURL *)URL;
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
+- (void)clearAllKeys;
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 

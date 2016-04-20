@@ -814,6 +814,11 @@ inline void Machine::update_display()
 	}
 }
 
+void Machine::clear_all_keys()
+{
+	memset(_key_states, 0, sizeof(_key_states));
+}
+
 void Machine::set_key_state(Key key, bool isPressed)
 {
 	if(key == KeyBreak)

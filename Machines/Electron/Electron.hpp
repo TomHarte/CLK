@@ -154,6 +154,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
 		void set_key_state(Key key, bool isPressed);
+		void clear_all_keys();
 
 		void setup_output(float aspect_ratio);
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }

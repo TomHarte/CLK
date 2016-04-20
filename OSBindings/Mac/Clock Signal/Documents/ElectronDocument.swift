@@ -117,6 +117,11 @@ class ElectronDocument: MachineDocument {
 		}
 	}
 
+	// MARK: NSWindowDelegate
+	func windowDidResignKey(notification: NSNotification) {
+		electron.clearAllKeys()
+	}
+
 	// MARK: CSOpenGLViewResponderDelegate
 	override func keyDown(event: NSEvent) {
 		electron.setKey(event.keyCode, isPressed: true)

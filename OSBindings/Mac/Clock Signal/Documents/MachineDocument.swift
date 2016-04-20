@@ -9,7 +9,7 @@
 import Cocoa
 import AudioToolbox
 
-class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate {
+class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, NSWindowDelegate {
 
 	@IBOutlet weak var openGLView: CSOpenGLView! {
 		didSet {
