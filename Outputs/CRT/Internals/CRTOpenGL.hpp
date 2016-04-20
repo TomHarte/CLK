@@ -47,7 +47,7 @@ class OpenGLOutputBuilder {
 		// Methods used by the OpenGL code
 		void prepare_rgb_output_shader();
 		void prepare_composite_output_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader);
+		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit);
 		void prepare_composite_input_shader();
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();

@@ -174,8 +174,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
-	glBindTexture(GL_TEXTURE_2D, textureName);
+//	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
+//	glBindTexture(GL_TEXTURE_2D, textureName);
 	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
@@ -199,16 +199,16 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// for television, update intermediate buffers and then draw; for a monitor, just draw
 	if(_output_device == Television)
 	{
-		composite_input_shader_program->bind();
-
-		compositeTexture->bind_framebuffer();
-		glBindVertexArray(source_vertex_array);
-
-		glDisable(GL_BLEND);
-
 		// decide how much to draw
 		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
 		{
+			composite_input_shader_program->bind();
+
+			compositeTexture->bind_framebuffer();
+			glBindVertexArray(source_vertex_array);
+
+			glDisable(GL_BLEND);
+
 			size_t new_data_size = _drawn_source_buffer_data_pointer - _source_buffer_data_pointer;
 			size_t new_data_start = _drawn_source_buffer_data_pointer;
 			_source_buffer_data_pointer %= SourceVertexBufferDataSize;
@@ -226,12 +226,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			{
 				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
 			}
-			glFinish();
+
+			glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+			glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 		}
 
 		// transfer to screen
-		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
-		compositeTexture->bind_texture();
 		perform_output_stage(output_width, output_height, composite_output_shader_program.get());
 	}
 	else
@@ -253,11 +253,7 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 {
 	if(shader)
 	{
-		// definitively establish the viewport
-		glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
-
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
-		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		glBindVertexArray(output_vertex_array);
 
 		shader->bind();
@@ -600,7 +596,7 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	free(fragment_shader);
 }*/
 
-std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *vertex_shader, char *fragment_shader)
+std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit)
 {
 	std::unique_ptr<OpenGL::Shader> shader_program;
 
@@ -627,7 +623,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 		GLint scanNormalUniform			= shader_program->get_uniform_location("scanNormal");
 		GLint positionConversionUniform	= shader_program->get_uniform_location("positionConversion");
 
-		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
+		glUniform1i(texIDUniform, source_texture_unit);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
 
@@ -647,12 +643,12 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader());
+	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), first_supplied_buffer_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader());
+	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), 0);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
