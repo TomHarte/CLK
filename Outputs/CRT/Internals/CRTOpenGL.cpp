@@ -229,6 +229,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		}
 
 		// transfer to screen
+		glFinish();
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		compositeTexture->bind_texture();
 		perform_output_stage(output_width, output_height, composite_output_shader_program.get());
@@ -362,12 +363,12 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"{"
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"iInputPositionVarying = inputPosition;"
-			"inputPositionVarying = inputPosition / vec2(textureSize);" // + 0.5
+			"inputPositionVarying = (inputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
 
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
 			"alphaVarying = phaseAmplitudeAndAlpha.z;"
 
-			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0);"
+			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}");
 }
