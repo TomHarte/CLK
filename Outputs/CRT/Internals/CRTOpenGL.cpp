@@ -226,6 +226,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			{
 				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
 			}
+			glFinish();
 		}
 
 		// transfer to screen
@@ -286,7 +287,6 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 		{
 			// draw
 			glUniform4fv(timestampBaseUniform, 1, timestampBases);
-			glFlush();
 
 			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
 			GLsizei max_count = (GLsizei)((OutputVertexBufferDataSize - start) / OutputVertexSize);
@@ -688,11 +688,11 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 	{
 		_output_device = output_device;
 
-//		for(int builder = 0; builder < NumberOfFields; builder++)
-//		{
-//			_run_builders[builder]->reset();
-//		}
-//		_composite_src_runs->reset();
+		for(int builder = 0; builder < NumberOfFields; builder++)
+		{
+			_run_builders[builder]->reset();
+		}
+
 		_composite_src_output_y = 0;
 	}
 }

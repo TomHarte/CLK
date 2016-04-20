@@ -60,7 +60,6 @@ class OpenGLOutputBuilder {
 		std::shared_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
-		std::unique_ptr<CRTRunBuilder> _composite_src_runs;
 		uint16_t _composite_src_output_y;
 
 		char *get_output_vertex_shader(const char *header);
