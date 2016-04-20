@@ -39,7 +39,10 @@ static const GLenum formatForDepth(size_t depth)
 using namespace Outputs::CRT;
 
 namespace {
-	static const GLenum first_supplied_buffer_texture_unit = 3;
+	static const GLenum composite_texture_unit = GL_TEXTURE0;
+	static const GLenum filtered_y_texture_unit = GL_TEXTURE1;
+	static const GLenum filtered_texture_unit = GL_TEXTURE2;
+	static const GLenum source_data_texture_unit = GL_TEXTURE3;
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
@@ -65,19 +68,19 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(composite_texture_unit);
 	compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	compositeTexture->bind_texture();
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(filtered_y_texture_unit);
 	filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	filteredYTexture->bind_texture();
-	glActiveTexture(GL_TEXTURE2);
+	glActiveTexture(filtered_texture_unit);
 	filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
 	filteredTexture->bind_texture();
 
 	// create the surce texture
 	glGenTextures(1, &textureName);
-	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
+	glActiveTexture(source_data_texture_unit);
 	glBindTexture(GL_TEXTURE_2D, textureName);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -115,6 +118,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+	// map back the default framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -174,8 +180,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-//	glActiveTexture(GL_TEXTURE0 + first_supplied_buffer_texture_unit);
-//	glBindTexture(GL_TEXTURE_2D, textureName);
 	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
@@ -253,17 +257,8 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 {
 	if(shader)
 	{
-		// Ensure we're back on the output framebuffer, drawing from the output array buffer
-		glBindVertexArray(output_vertex_array);
-
-		shader->bind();
-
-		// update uniforms
-		push_size_uniforms(output_width, output_height);
-
 		// clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
-		glEnable(GL_BLEND);
 
 		// draw all sitting frames
 		unsigned int run = (unsigned int)_run_write_pointer;
@@ -281,6 +276,15 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 		if(count > 0)
 		{
+			glEnable(GL_BLEND);
+
+			// Ensure we're back on the output framebuffer, drawing from the output array buffer
+			glBindVertexArray(output_vertex_array);
+			shader->bind();
+
+			// update uniforms
+			push_size_uniforms(output_width, output_height);
+
 			// draw
 			glUniform4fv(timestampBaseUniform, 1, timestampBases);
 
@@ -523,7 +527,7 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 		GLint outputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("outputTextureSize");
 
 		composite_input_shader_program->bind();
-		glUniform1i(texIDUniform, first_supplied_buffer_texture_unit);
+		glUniform1i(texIDUniform, source_data_texture_unit - GL_TEXTURE0);
 		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
 		glUniform2i(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
 	}
@@ -623,7 +627,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 		GLint scanNormalUniform			= shader_program->get_uniform_location("scanNormal");
 		GLint positionConversionUniform	= shader_program->get_uniform_location("positionConversion");
 
-		glUniform1i(texIDUniform, source_texture_unit);
+		glUniform1i(texIDUniform, source_texture_unit - GL_TEXTURE0);
 		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
 		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
 
@@ -643,12 +647,12 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), first_supplied_buffer_texture_unit);
+	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), 0);
+	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), composite_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
