@@ -304,6 +304,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					if(
 						_use_fast_tape_hack &&
+						_tape.has_tape() &&
 						(operation == CPU6502::BusOperation::ReadOpcode) &&
 						(
 							(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
@@ -886,7 +887,14 @@ void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
 inline void Tape::get_next_tape_pulse()
 {
 	_input.time_into_pulse = 0;
-	_input.current_pulse = _tape->get_next_pulse();
+	if(_tape)
+		_input.current_pulse = _tape->get_next_pulse();
+	else
+	{
+		_input.current_pulse.length.length = 1;
+		_input.current_pulse.length.clock_rate = 1;
+		_input.current_pulse.type = Storage::Tape::Pulse::Zero;
+	}
 	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
 	{
 		_input.pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));

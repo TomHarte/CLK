@@ -229,7 +229,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		}
 
 		// transfer to screen
-		glFinish();
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		compositeTexture->bind_texture();
 		perform_output_stage(output_width, output_height, composite_output_shader_program.get());
@@ -287,6 +286,8 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 		{
 			// draw
 			glUniform4fv(timestampBaseUniform, 1, timestampBases);
+			glFlush();
+
 			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
 			GLsizei max_count = (GLsizei)((OutputVertexBufferDataSize - start) / OutputVertexSize);
 			if(primitive_count < max_count)
