@@ -209,7 +209,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			glDisable(GL_BLEND);
 
-			size_t new_data_size = _drawn_source_buffer_data_pointer - _source_buffer_data_pointer;
+			size_t new_data_size = _source_buffer_data_pointer - _drawn_source_buffer_data_pointer;
 			size_t new_data_start = _drawn_source_buffer_data_pointer;
 			_source_buffer_data_pointer %= SourceVertexBufferDataSize;
 			_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
@@ -220,7 +220,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				new_data_start = 0;
 			}
 
-			size_t first_data_length = std::max(SourceVertexBufferDataSize - new_data_start, new_data_size);
+			size_t first_data_length = std::min(SourceVertexBufferDataSize - new_data_start, new_data_size);
 			glDrawArrays(GL_LINES, (GLint)(new_data_start / SourceVertexSize), (GLsizei)(first_data_length / SourceVertexSize));
 			if(new_data_size > first_data_length)
 			{
