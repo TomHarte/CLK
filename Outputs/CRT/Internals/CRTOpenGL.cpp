@@ -405,7 +405,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 			"iInputPositionVarying = inputPosition;"
 			"inputPositionVarying = (inputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
 
-			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
+			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
 
 			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
@@ -414,11 +414,21 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 
 char *OpenGLOutputBuilder::get_input_fragment_shader()
 {
-	const char *composite_shader = _composite_shader;
+	char *composite_shader = _composite_shader;
 	if(!composite_shader)
 	{
-		composite_shader = _rgb_shader;
-		// TODO: synthesise an RGB -> (selected colour space) shader
+		asprintf(&composite_shader,
+			"%s\n"
+			"const mat3 rgbToYUV = mat3(0.299, -0.14713, 0.615, 0.587, -0.28886, -0.51499, 0.114, 0.436, -0.10001);"
+			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"{"
+				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
+				"vec3 yuvColour = rgbToYUV * rgbColour;"
+				"vec2 quadrature = vec2(sin(phase), cos(phase)) * 0.1;"
+				"return dot(yuvColour, vec3(0.9, quadrature));"
+			"}",
+			_rgb_shader);
+		// TODO: use YIQ if this is NTSC
 	}
 
 	char *result;
@@ -437,9 +447,12 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, iInputPositionVarying), 1.0);"
+			"fragColour = vec4(composite_sample(texID, inputPositionVarying, iInputPositionVarying, phaseVarying));"
 		"}"
 	, composite_shader);
+
+	if(!_composite_shader) free(composite_shader);
+
 	return result;
 }
 
