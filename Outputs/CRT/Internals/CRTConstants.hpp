@@ -17,30 +17,30 @@ namespace CRT {
 
 // Output vertices are those used to copy from an input buffer — whether it describes data that maps directly to RGB
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
-const size_t OutputVertexOffsetOfPosition = 0;
-const size_t OutputVertexOffsetOfTexCoord = 4;
-const size_t OutputVertexOffsetOfTimestamp = 8;
-const size_t OutputVertexOffsetOfLateral = 12;
-const size_t OutputVertexOffsetOfFrameID = 13;
+const GLsizei OutputVertexOffsetOfPosition = 0;
+const GLsizei OutputVertexOffsetOfTexCoord = 4;
+const GLsizei OutputVertexOffsetOfTimestamp = 8;
+const GLsizei OutputVertexOffsetOfLateral = 12;
+const GLsizei OutputVertexOffsetOfFrameID = 13;
 
-const size_t OutputVertexSize = 16;
+const GLsizei OutputVertexSize = 16;
 
 // Input vertices, used only in composite mode, map from the input buffer to temporary buffer locations; such
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
-const size_t SourceVertexOffsetOfInputPosition = 0;
-const size_t SourceVertexOffsetOfOutputPosition = 4;
-const size_t SourceVertexOffsetOfPhaseAmplitudeAndAlpha = 8;
-const size_t SourceVertexOffsetOfPhaseTime = 12;
+const GLsizei SourceVertexOffsetOfInputPosition = 0;
+const GLsizei SourceVertexOffsetOfOutputPosition = 4;
+const GLsizei SourceVertexOffsetOfPhaseAmplitudeAndAlpha = 8;
+const GLsizei SourceVertexOffsetOfPhaseTime = 12;
 
-const size_t SourceVertexSize = 16;
+const GLsizei SourceVertexSize = 16;
 
 // These constants hold the size of the rolling buffer to which the CPU writes
-const int InputBufferBuilderWidth = 2048;
-const int InputBufferBuilderHeight = 1024;
+const GLsizei InputBufferBuilderWidth = 2048;
+const GLsizei InputBufferBuilderHeight = 1024;
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
-const int IntermediateBufferWidth = 2048;
-const int IntermediateBufferHeight = 2048;
+const GLsizei IntermediateBufferWidth = 2048;
+const GLsizei IntermediateBufferHeight = 2048;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = 262080;	// a multiple of 6 * OutputVertexSize

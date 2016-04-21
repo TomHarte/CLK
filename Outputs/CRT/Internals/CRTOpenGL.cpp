@@ -36,6 +36,34 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
+static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei *ranges)
+{
+	GLsizei length = end - start;
+	if(!length) return 0;
+	if(length > buffer_length)
+	{
+		ranges[0] = 0;
+		ranges[1] = buffer_length;
+		return 1;
+	}
+	else
+	{
+		ranges[0] = start % buffer_length;
+		if(ranges[0]+length < buffer_length)
+		{
+			ranges[1] = length;
+			return 1;
+		}
+		else
+		{
+			ranges[1] = buffer_length - ranges[0];
+			ranges[2] = 0;
+			ranges[3] = length - ranges[1];
+			return 2;
+		}
+	}
+}
+
 using namespace Outputs::CRT;
 
 namespace {
@@ -207,38 +235,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
 		{
 			// determine how many lines are newly reclaimed; they'll need to be cleared
-			uint16_t clearing_zones[4];
-			int number_of_clearing_zones = 0;
+			GLsizei clearing_zones[4], drawing_zones[4];
+			int number_of_clearing_zones = getCircularRanges(_cleared_composite_output_y+1, _composite_src_output_y+1, IntermediateBufferHeight, clearing_zones);
+			int number_of_drawing_zones = getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, drawing_zones);
 
-			if(_composite_src_output_y != _cleared_composite_output_y)
-			{
-				uint16_t lines_to_clear = _composite_src_output_y - _cleared_composite_output_y;
-				if(lines_to_clear > IntermediateBufferHeight)
-				{
-					number_of_clearing_zones = 1;
-					clearing_zones[0] = 0;
-					clearing_zones[1] = IntermediateBufferHeight;
-				}
-				else
-				{
-					clearing_zones[0] = (_cleared_composite_output_y+1)%IntermediateBufferHeight;
-					if(clearing_zones[0]+lines_to_clear < IntermediateBufferHeight)
-					{
-						clearing_zones[1] = lines_to_clear;
-						number_of_clearing_zones = 1;
-					}
-					else
-					{
-						clearing_zones[1] = IntermediateBufferHeight - clearing_zones[0];
-						clearing_zones[2] = 0;
-						clearing_zones[3] = lines_to_clear - clearing_zones[1];
-						number_of_clearing_zones = 2;
-					}
-				}
-
-				_composite_src_output_y %= IntermediateBufferHeight;
-				_cleared_composite_output_y = _composite_src_output_y;
-			}
+			_composite_src_output_y %= IntermediateBufferHeight;
+			_cleared_composite_output_y = _composite_src_output_y;
+			_source_buffer_data_pointer %= SourceVertexBufferDataSize;
+			_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 
 			// all drawing will be from the source vertex array and without blending
 			glBindVertexArray(source_vertex_array);
@@ -260,22 +264,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				glDisable(GL_SCISSOR_TEST);
 			}
 
-			size_t new_data_size = _source_buffer_data_pointer - _drawn_source_buffer_data_pointer;
-			size_t new_data_start = _drawn_source_buffer_data_pointer;
-			_source_buffer_data_pointer %= SourceVertexBufferDataSize;
-			_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
-
-			if(new_data_size >= SourceVertexBufferDataSize)
+			// draw as desired
+			for(int c = 0; c < number_of_drawing_zones; c++)
 			{
-				new_data_size = SourceVertexBufferDataSize;
-				new_data_start = 0;
-			}
-
-			size_t first_data_length = std::min(SourceVertexBufferDataSize - new_data_start, new_data_size);
-			glDrawArrays(GL_LINES, (GLint)(new_data_start / SourceVertexSize), (GLsizei)(first_data_length / SourceVertexSize));
-			if(new_data_size > first_data_length)
-			{
-				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
+				glDrawArrays(GL_LINES, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
 			}
 
 			// switch back to screen output

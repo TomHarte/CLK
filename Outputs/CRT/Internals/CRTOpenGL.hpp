@@ -126,9 +126,9 @@ class OpenGLOutputBuilder {
 			return &_output_buffer_data[_output_buffer_data_pointer];
 		}
 
-		inline void complete_output_run(size_t vertices_written)
+		inline void complete_output_run(GLsizei vertices_written)
 		{
-			_run_builders[_run_write_pointer]->amount_of_data += vertices_written * OutputVertexSize;
+			_run_builders[_run_write_pointer]->amount_of_data += (size_t)(vertices_written * OutputVertexSize);
 			_output_buffer_data_pointer = (_output_buffer_data_pointer + vertices_written * OutputVertexSize) % OutputVertexBufferDataSize;
 			_output_mutex->unlock();
 		}
@@ -162,7 +162,7 @@ class OpenGLOutputBuilder {
 		{
 			_output_mutex->lock();
 			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
-			_run_builders[_run_write_pointer]->start = _output_buffer_data_pointer;
+			_run_builders[_run_write_pointer]->start = (size_t)_output_buffer_data_pointer;
 			_run_builders[_run_write_pointer]->reset();
 			_output_mutex->unlock();
 		}
@@ -218,11 +218,11 @@ class OpenGLOutputBuilder {
 		GLsizeiptr _input_texture_array_size;
 
 		uint8_t *_output_buffer_data;
-		size_t _output_buffer_data_pointer;
+		GLsizei _output_buffer_data_pointer;
 
 		uint8_t *_source_buffer_data;
-		size_t _source_buffer_data_pointer;
-		size_t _drawn_source_buffer_data_pointer;
+		GLsizei _source_buffer_data_pointer;
+		GLsizei _drawn_source_buffer_data_pointer;
 };
 
 }

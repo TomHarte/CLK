@@ -43,12 +43,6 @@ struct CRTInputBufferBuilder {
 	{
 		_next_write_x_position = 0;
 		_next_write_y_position = (_next_write_y_position+1)%InputBufferBuilderHeight;
-//		if(!_next_write_y_position)
-//		{
-//			glClientWaitSync(_wraparound_sync, 0, ~(GLuint64)0);
-//			glDeleteSync(_wraparound_sync);
-//			_wraparound_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-//		}
 	}
 
 	inline uint8_t *get_write_target(uint8_t *buffer)
