@@ -13,6 +13,7 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	uint32_t _updateIsOngoing;
+	BOOL _hasSkipped;
 }
 
 - (void)prepareOpenGL
@@ -23,7 +24,7 @@
 
 	// Create a display link capable of being used with all active displays
 	CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
- 
+
 	// Set the renderer output callback function
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
 
@@ -42,25 +43,36 @@
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
 {
-	CSOpenGLView *view = (__bridge CSOpenGLView *)displayLinkContext;
-	[view drawAtTime:now];
+	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
+	[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
 	return kCVReturnSuccess;
 }
 
-- (void)drawAtTime:(const CVTimeStamp *)now
+- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
 {
+	const uint32_t processingMask = 0x01;
+	const uint32_t drawingMask = 0x02;
+
 	// Always post a -openGLView:didUpdateToTime:. This is the hook upon which the substantial processing occurs.
-	[self.delegate openGLView:self didUpdateToTime:*now];
+	if(!OSAtomicTestAndSet(processingMask, &_updateIsOngoing))
+	{
+		CVTimeStamp time = *now;
+		BOOL didSkip = _hasSkipped;
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+			[self.delegate openGLView:self didUpdateToTime:time didSkipPreviousUpdate:didSkip frequency:frequency];
+			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
+		});
+		_hasSkipped = NO;
+	} else _hasSkipped = YES;
 
 	// Draw the display only if a previous draw is not still ongoing. -drawViewOnlyIfDirty: is guaranteed
 	// to be safe to call concurrently with -openGLView:updateToTime: so there's no need to worry about
 	// the above interrupting the below or vice versa.
-	const uint32_t activityMask = 0x01;
-	if(!OSAtomicTestAndSet(activityMask, &_updateIsOngoing))
+	if(!OSAtomicTestAndSet(drawingMask, &_updateIsOngoing))
 	{
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			[self drawViewOnlyIfDirty:YES];
-			OSAtomicTestAndClear(activityMask, &_updateIsOngoing);
+			OSAtomicTestAndClear(drawingMask, &_updateIsOngoing);
 		});
 	}
 }

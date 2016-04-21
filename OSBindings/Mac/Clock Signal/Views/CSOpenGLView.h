@@ -13,12 +13,12 @@
 
 @protocol CSOpenGLViewDelegate
 /*!
-	Tells the delegate that time has advanced. This method will always be called on the same queue
-	as the @c CSOpenGLViewResponderDelegate methods.
+	Tells the delegate that time has advanced.
 	@param view The view sending the message.
 	@param time The time to which time has advanced.
+	@param didSkipPreviousUpdate @c YES if the previous update that would have occurred was skipped because a didUpdateToTime: call prior to that was still ongoing; @c NO otherwise.
 */
-- (void)openGLView:(nonnull CSOpenGLView *)view didUpdateToTime:(CVTimeStamp)time;
+- (void)openGLView:(nonnull CSOpenGLView *)view didUpdateToTime:(CVTimeStamp)time didSkipPreviousUpdate:(BOOL)didSkipPreviousUpdate frequency:(double)frequency;
 
 /*!
 	Requests that the delegate produce an image of its current output state. May be called on
