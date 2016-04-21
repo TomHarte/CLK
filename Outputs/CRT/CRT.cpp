@@ -106,7 +106,6 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
 #define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndAlpha + 0]
 #define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndAlpha + 1]
-#define source_alpha(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndAlpha + 2]
 #define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
@@ -165,7 +164,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				source_phase(0) = source_phase(1) = _colour_burst_phase;
 				source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
 				source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
-				source_alpha(0) = source_alpha(1) = 255;
 			}
 		}
 
@@ -244,14 +242,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
 			{
 				_openGL_output_builder->increment_composite_output_y();
-
-				// store a run to clear the new line
-				next_run = _openGL_output_builder->get_next_source_run();
-				source_output_position_x(0) = 0;
-				source_output_position_x(1) = IntermediateBufferWidth;
-				source_output_position_y(0) = source_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
-				source_alpha(0) = source_alpha(1) = 0;
-				_openGL_output_builder->complete_source_run();
 			}
 		}
 

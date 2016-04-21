@@ -60,7 +60,7 @@ class OpenGLOutputBuilder {
 		std::shared_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
-		uint16_t _composite_src_output_y;
+		uint16_t _composite_src_output_y, _cleared_composite_output_y;
 
 		char *get_output_vertex_shader(const char *header);
 		char *get_rgb_output_vertex_shader();
@@ -150,12 +150,12 @@ class OpenGLOutputBuilder {
 
 		inline uint16_t get_composite_output_y()
 		{
-			return _composite_src_output_y;
+			return _composite_src_output_y % IntermediateBufferHeight;
 		}
 
 		inline void increment_composite_output_y()
 		{
-			_composite_src_output_y = (_composite_src_output_y + 1) % IntermediateBufferHeight;
+			_composite_src_output_y++;
 		}
 
 		inline void increment_field()

@@ -206,12 +206,59 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// decide how much to draw
 		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
 		{
+			// determine how many lines are newly reclaimed; they'll need to be cleared
+			uint16_t clearing_zones[4];
+			int number_of_clearing_zones = 0;
+
+			if(_composite_src_output_y != _cleared_composite_output_y)
+			{
+				uint16_t lines_to_clear = _composite_src_output_y - _cleared_composite_output_y;
+				if(lines_to_clear > IntermediateBufferHeight)
+				{
+					number_of_clearing_zones = 1;
+					clearing_zones[0] = 0;
+					clearing_zones[1] = IntermediateBufferHeight;
+				}
+				else
+				{
+					clearing_zones[0] = (_cleared_composite_output_y+1)%IntermediateBufferHeight;
+					if(clearing_zones[0]+lines_to_clear < IntermediateBufferHeight)
+					{
+						clearing_zones[1] = lines_to_clear;
+						number_of_clearing_zones = 1;
+					}
+					else
+					{
+						clearing_zones[1] = IntermediateBufferHeight - clearing_zones[0];
+						clearing_zones[2] = 0;
+						clearing_zones[3] = lines_to_clear - clearing_zones[1];
+						number_of_clearing_zones = 2;
+					}
+				}
+
+				_composite_src_output_y %= IntermediateBufferHeight;
+				_cleared_composite_output_y = _composite_src_output_y;
+			}
+
+			// all drawing will be from the source vertex array and without blending
+			glBindVertexArray(source_vertex_array);
+			glDisable(GL_BLEND);
+
+			// switch to the initial texture
+			compositeTexture->bind_framebuffer();
 			composite_input_shader_program->bind();
 
-			compositeTexture->bind_framebuffer();
-			glBindVertexArray(source_vertex_array);
-
-			glDisable(GL_BLEND);
+			// clear as desired
+			if(number_of_clearing_zones)
+			{
+				glEnable(GL_SCISSOR_TEST);
+				for(int c = 0; c < number_of_clearing_zones; c++)
+				{
+					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+					glClear(GL_COLOR_BUFFER_BIT);
+				}
+				glDisable(GL_SCISSOR_TEST);
+			}
 
 			size_t new_data_size = _source_buffer_data_pointer - _drawn_source_buffer_data_pointer;
 			size_t new_data_start = _drawn_source_buffer_data_pointer;
@@ -231,6 +278,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				glDrawArrays(GL_LINES, 0, (GLsizei)((new_data_size - first_data_length) / SourceVertexSize));
 			}
 
+			// switch back to screen output
 			glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 			glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 		}
@@ -358,7 +406,6 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"out vec2 inputPositionVarying;"
 		"out vec2 iInputPositionVarying;"
 		"out float phaseVarying;"
-		"out float alphaVarying;"
 
 		"void main(void)"
 		"{"
@@ -367,7 +414,6 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 			"inputPositionVarying = (inputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
 
 			"phaseVarying = (phaseCyclesPerTick * phaseTime + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
-			"alphaVarying = phaseAmplitudeAndAlpha.z;"
 
 			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
@@ -390,7 +436,6 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 		"in vec2 inputPositionVarying;"
 		"in vec2 iInputPositionVarying;"
 		"in float phaseVarying;"
-		"in float alphaVarying;"
 
 		"out vec4 fragColour;"
 
@@ -400,7 +445,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, iInputPositionVarying) * alphaVarying, 1.0);" // composite
+			"fragColour = vec4(rgb_sample(texID, inputPositionVarying, iInputPositionVarying), 1.0);"
 		"}"
 	, composite_shader);
 	return result;
