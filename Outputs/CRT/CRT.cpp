@@ -104,8 +104,8 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
 #define source_output_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 0])
 #define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
-#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndAlpha + 0]
-#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndAlpha + 1]
+#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 0]
+#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 1]
 #define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)

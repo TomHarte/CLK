@@ -29,7 +29,7 @@ const GLsizei OutputVertexSize = 16;
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
 const GLsizei SourceVertexOffsetOfInputPosition = 0;
 const GLsizei SourceVertexOffsetOfOutputPosition = 4;
-const GLsizei SourceVertexOffsetOfPhaseAmplitudeAndAlpha = 8;
+const GLsizei SourceVertexOffsetOfPhaseAmplitudeAndOffset = 8;
 const GLsizei SourceVertexOffsetOfPhaseTime = 12;
 
 const GLsizei SourceVertexSize = 16;

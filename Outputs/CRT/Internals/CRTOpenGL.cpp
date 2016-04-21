@@ -388,7 +388,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 
 		"in vec2 inputPosition;"
 		"in vec2 outputPosition;"
-		"in vec3 phaseAmplitudeAndAlpha;"
+		"in vec3 phaseAmplitudeAndOffset;"
 		"in float phaseTime;"
 
 		"uniform float phaseCyclesPerTick;"
@@ -398,6 +398,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"out vec2 inputPositionVarying;"
 		"out vec2 iInputPositionVarying;"
 		"out float phaseVarying;"
+		"out float amplitudeVarying;"
 
 		"void main(void)"
 		"{"
@@ -405,7 +406,8 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 			"iInputPositionVarying = inputPosition;"
 			"inputPositionVarying = (inputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
 
-			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndAlpha.x) * 2.0 * 3.141592654;"
+			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
+			"amplitudeVarying = phaseAmplitudeAndOffset.y;"
 
 			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
@@ -420,12 +422,12 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 		asprintf(&composite_shader,
 			"%s\n"
 			"const mat3 rgbToYUV = mat3(0.299, -0.14713, 0.615, 0.587, -0.28886, -0.51499, 0.114, 0.436, -0.10001);"
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 				"vec3 yuvColour = rgbToYUV * rgbColour;"
-				"vec2 quadrature = vec2(sin(phase), cos(phase)) * 0.1;"
-				"return dot(yuvColour, vec3(0.9, quadrature));"
+				"vec2 quadrature = vec2(sin(phase), cos(phase)) * amplitude;"
+				"return dot(yuvColour, vec3(1.0 - amplitude, quadrature));"
 			"}",
 			_rgb_shader);
 		// TODO: use YIQ if this is NTSC
@@ -438,6 +440,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 		"in vec2 inputPositionVarying;"
 		"in vec2 iInputPositionVarying;"
 		"in float phaseVarying;"
+		"in float amplitudeVarying;"
 
 		"out vec4 fragColour;"
 
@@ -447,7 +450,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(composite_sample(texID, inputPositionVarying, iInputPositionVarying, phaseVarying));"
+			"fragColour = vec4(composite_sample(texID, inputPositionVarying, iInputPositionVarying, phaseVarying, amplitudeVarying));"
 		"}"
 	, composite_shader);
 
@@ -591,21 +594,21 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	{
 		GLint inputPositionAttribute			= composite_input_shader_program->get_attrib_location("inputPosition");
 		GLint outputPositionAttribute			= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAmplitudeAndAlphaAttribute	= composite_input_shader_program->get_attrib_location("phaseAmplitudeAndAlpha");
+		GLint phaseAmplitudeAndOffsetAttribute	= composite_input_shader_program->get_attrib_location("phaseAmplitudeAndOffset");
 		GLint phaseTimeAttribute				= composite_input_shader_program->get_attrib_location("phaseTime");
 
 		glBindVertexArray(source_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAmplitudeAndAlphaAttribute);
+		glEnableVertexAttribArray((GLuint)phaseAmplitudeAndOffsetAttribute);
 		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
 
 		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 		glVertexAttribPointer((GLuint)inputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
 		glVertexAttribPointer((GLuint)outputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAmplitudeAndAlphaAttribute,	3, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAmplitudeAndAlpha);
+		glVertexAttribPointer((GLuint)phaseAmplitudeAndOffsetAttribute,	3, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAmplitudeAndOffset);
 		glVertexAttribPointer((GLuint)phaseTimeAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
 	}
 }
