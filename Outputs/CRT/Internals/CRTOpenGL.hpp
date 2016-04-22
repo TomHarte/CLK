@@ -75,10 +75,12 @@ class OpenGLOutputBuilder {
 
 		char *get_input_vertex_shader(const char *input_position, const char *header);
 		char *get_input_fragment_shader();
+
 		char *get_y_filter_fragment_shader();
+		char *get_chrominance_filter_fragment_shader();
 
 		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
-		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program, composite_output_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
