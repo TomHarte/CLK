@@ -46,7 +46,8 @@ Machine::Machine() :
 	_audioOutputPosition(0),
 	_current_pixel_line(-1),
 	_use_fast_tape_hack(false),
-	_crt(nullptr)
+	_crt(nullptr),
+	_phase(0)
 {
 	memset(_key_states, 0, sizeof(_key_states));
 	memset(_palette, 0xf, sizeof(_palette));
@@ -421,6 +422,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	_frameCycles += cycles;
 
+	if(!(_frameCycles&127)) _phase += 64;
+
 	// deal with frame wraparound by updating the two dependent subsystems
 	// as though the exact end of frame had been hit, then reset those
 	// and allow the frame cycle counter to assume its real value
@@ -779,7 +782,7 @@ inline void Machine::update_display()
 			if(this_cycle < 24)
 			{
 				if(final_cycle < 24) return;
-				_crt->output_colour_burst((24-9) * crt_cycles_multiplier, 0, 12);
+				_crt->output_colour_burst((24-9) * crt_cycles_multiplier, _phase, 12);
 				_displayOutputPosition += 24-9;
 				this_cycle = 24;
 				// TODO: phase shouldn't be zero on every line

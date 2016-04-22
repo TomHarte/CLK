@@ -190,9 +190,10 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint16_t _screenModeBaseAddress;
 		uint16_t _startScreenAddress;
 
-		// Counters related to simultaneous subsystems;
+		// Counters related to simultaneous subsystems
 		unsigned int _frameCycles, _displayOutputPosition;
 		unsigned int _audioOutputPosition, _audioOutputPositionError;
+		uint8_t _phase;
 
 		struct {
 			uint16_t forty1bpp[256];
