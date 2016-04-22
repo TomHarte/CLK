@@ -106,6 +106,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
 #define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 0]
 #define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 1]
+#define source_offset(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 2]
 #define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
@@ -164,6 +165,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				source_phase(0) = source_phase(1) = _colour_burst_phase;
 				source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
 				source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
+				source_offset(0) = 0;
+				source_offset(1) = 255;
 			}
 		}
 

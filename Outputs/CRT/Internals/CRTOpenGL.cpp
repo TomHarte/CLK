@@ -381,9 +381,10 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 
 #pragma mark - Input vertex shader (i.e. from source data to intermediate line layout)
 
-char *OpenGLOutputBuilder::get_input_vertex_shader()
+char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position)
 {
-	return strdup(
+	char *result;
+	asprintf(&result,
 		"#version 150\n"
 
 		"in vec2 inputPosition;"
@@ -394,6 +395,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 		"uniform float phaseCyclesPerTick;"
 		"uniform usampler2D texID;"
 		"uniform ivec2 outputTextureSize;"
+		"uniform float extension;"
 
 		"out vec2 inputPositionVarying;"
 		"out vec2 iInputPositionVarying;"
@@ -402,16 +404,21 @@ char *OpenGLOutputBuilder::get_input_vertex_shader()
 
 		"void main(void)"
 		"{"
+			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (phaseAmplitudeAndOffset.z - 0.5);"
+			"vec2 extendedInputPosition = %s + extensionVector;"
+			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
+
 			"ivec2 textureSize = textureSize(texID, 0);"
-			"iInputPositionVarying = inputPosition;"
-			"inputPositionVarying = (inputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
+			"iInputPositionVarying = extendedInputPosition;"
+			"inputPositionVarying = (extendedInputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
 
 			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
 			"amplitudeVarying = phaseAmplitudeAndOffset.y;"
 
-			"vec2 eyePosition = 2.0*(outputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
+			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-		"}");
+		"}", input_position);
+	return result;
 }
 
 char *OpenGLOutputBuilder::get_input_fragment_shader()
@@ -567,25 +574,44 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 #pragma mark - Program compilation
 
-void OpenGLOutputBuilder::prepare_composite_input_shader()
+std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, char *fragment_shader, GLenum texture_unit, bool extends)
 {
-	char *vertex_shader = get_input_vertex_shader();
-	char *fragment_shader = get_input_fragment_shader();
+	std::unique_ptr<OpenGL::Shader> shader;
+	char *vertex_shader = get_input_vertex_shader(input_position);
 	if(vertex_shader && fragment_shader)
 	{
-		composite_input_shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, nullptr));
+		OpenGL::Shader::AttributeBinding bindings[] =
+		{
+			{"inputPosition", 0},
+			{"outputPosition", 1},
+			{"phaseAmplitudeAndOffset", 2},
+			{"phaseTime", 3},
+			{nullptr}
+		};
+		shader = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, bindings));
 
-		GLint texIDUniform				= composite_input_shader_program->get_uniform_location("texID");
-		GLint phaseCyclesPerTickUniform	= composite_input_shader_program->get_uniform_location("phaseCyclesPerTick");
-		GLint outputTextureSizeUniform	= composite_input_shader_program->get_uniform_location("outputTextureSize");
+		GLint texIDUniform				= shader->get_uniform_location("texID");
+		GLint phaseCyclesPerTickUniform	= shader->get_uniform_location("phaseCyclesPerTick");
+		GLint outputTextureSizeUniform	= shader->get_uniform_location("outputTextureSize");
+		GLint extensionUniform			= shader->get_uniform_location("extension");
 
-		composite_input_shader_program->bind();
-		glUniform1i(texIDUniform, source_data_texture_unit - GL_TEXTURE0);
-		glUniform1f(phaseCyclesPerTickUniform, (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line));
+		shader->bind();
+		glUniform1i(texIDUniform, (GLint)(texture_unit - GL_TEXTURE0));
 		glUniform2i(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
+
+		float phaseCyclesPerTick = (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line);
+		glUniform1f(phaseCyclesPerTickUniform, phaseCyclesPerTick);
+		glUniform1f(extensionUniform, extends ? ceilf(1.0f / phaseCyclesPerTick) : 0.0f);
 	}
 	free(vertex_shader);
 	free(fragment_shader);
+
+	return shader;
+}
+
+void OpenGLOutputBuilder::prepare_composite_input_shader()
+{
+	composite_input_shader_program = prepare_intermediate_shader("inputPosition", get_input_fragment_shader(), source_data_texture_unit, false);
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array()

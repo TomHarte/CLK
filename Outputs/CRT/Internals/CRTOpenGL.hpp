@@ -48,7 +48,10 @@ class OpenGLOutputBuilder {
 		void prepare_rgb_output_shader();
 		void prepare_composite_output_shader();
 		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit);
+
 		void prepare_composite_input_shader();
+		std::unique_ptr<OpenGL::Shader> prepare_intermediate_shader(const char *input_position, char *fragment_shader, GLenum texture_unit, bool extends);
+
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
 		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
@@ -70,7 +73,7 @@ class OpenGLOutputBuilder {
 		char *get_rgb_output_fragment_shader();
 		char *get_composite_output_fragment_shader();
 
-		char *get_input_vertex_shader();
+		char *get_input_vertex_shader(const char *input_position);
 		char *get_input_fragment_shader();
 
 		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
