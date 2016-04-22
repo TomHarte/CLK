@@ -50,7 +50,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit);
 
 		void prepare_composite_input_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_intermediate_shader(const char *input_position, char *fragment_shader, GLenum texture_unit, bool extends);
+		std::unique_ptr<OpenGL::Shader> prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends);
 
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
@@ -73,11 +73,12 @@ class OpenGLOutputBuilder {
 		char *get_rgb_output_fragment_shader();
 		char *get_composite_output_fragment_shader();
 
-		char *get_input_vertex_shader(const char *input_position);
+		char *get_input_vertex_shader(const char *input_position, const char *header);
 		char *get_input_fragment_shader();
+		char *get_y_filter_fragment_shader();
 
 		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
-		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_output_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;

@@ -248,26 +248,38 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			glBindVertexArray(source_vertex_array);
 			glDisable(GL_BLEND);
 
-			// switch to the initial texture
-			compositeTexture->bind_framebuffer();
-			composite_input_shader_program->bind();
-
-			// clear as desired
-			if(number_of_clearing_zones)
+			OpenGL::TextureTarget *targets[] = {
+				compositeTexture.get(),
+				filteredYTexture.get(),
+				filteredTexture.get()
+			};
+			OpenGL::Shader *shaders[] = {
+				composite_input_shader_program.get(),
+				composite_y_filter_shader_program.get()
+			};
+			for(int stage = 0; stage < 2; stage++)
 			{
-				glEnable(GL_SCISSOR_TEST);
-				for(int c = 0; c < number_of_clearing_zones; c++)
+				// switch to the initial texture
+				targets[stage]->bind_framebuffer();
+				shaders[stage]->bind();
+
+				// clear as desired
+				if(number_of_clearing_zones)
 				{
-					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
-					glClear(GL_COLOR_BUFFER_BIT);
+					glEnable(GL_SCISSOR_TEST);
+					for(int c = 0; c < number_of_clearing_zones; c++)
+					{
+						glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+						glClear(GL_COLOR_BUFFER_BIT);
+					}
+					glDisable(GL_SCISSOR_TEST);
 				}
-				glDisable(GL_SCISSOR_TEST);
-			}
 
-			// draw as desired
-			for(int c = 0; c < number_of_drawing_zones; c++)
-			{
-				glDrawArrays(GL_LINES, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
+				// draw as desired
+				for(int c = 0; c < number_of_drawing_zones; c++)
+				{
+					glDrawArrays(GL_LINES, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
+				}
 			}
 
 			// switch back to screen output
@@ -381,7 +393,7 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 
 #pragma mark - Input vertex shader (i.e. from source data to intermediate line layout)
 
-char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position)
+char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, const char *header)
 {
 	char *result;
 	asprintf(&result,
@@ -393,9 +405,10 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position)
 		"in float phaseTime;"
 
 		"uniform float phaseCyclesPerTick;"
-		"uniform usampler2D texID;"
 		"uniform ivec2 outputTextureSize;"
 		"uniform float extension;"
+
+		"\n%s\n"
 
 		"out vec2 inputPositionVarying;"
 		"out vec2 iInputPositionVarying;"
@@ -417,7 +430,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position)
 
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-		"}", input_position);
+		"}", header, input_position);
 	return result;
 }
 
@@ -464,6 +477,26 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 	if(!_composite_shader) free(composite_shader);
 
 	return result;
+}
+
+char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
+{
+	return strdup(
+		"#version 150\n"
+
+		"in vec2 inputPositionVarying;"
+		"in vec2 iInputPositionVarying;"
+		"in float phaseVarying;"
+		"in float amplitudeVarying;"
+
+		"out vec4 fragColour;"
+
+		"uniform sampler2D texID;"
+
+		"void main(void)"
+		"{"
+			"fragColour = texture(texID, inputPositionVarying);"
+		"}");
 }
 
 #pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
@@ -574,10 +607,10 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 #pragma mark - Program compilation
 
-std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, char *fragment_shader, GLenum texture_unit, bool extends)
+std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends)
 {
 	std::unique_ptr<OpenGL::Shader> shader;
-	char *vertex_shader = get_input_vertex_shader(input_position);
+	char *vertex_shader = get_input_vertex_shader(input_position, header);
 	if(vertex_shader && fragment_shader)
 	{
 		OpenGL::Shader::AttributeBinding bindings[] =
@@ -611,7 +644,8 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader
 
 void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
-	composite_input_shader_program = prepare_intermediate_shader("inputPosition", get_input_fragment_shader(), source_data_texture_unit, false);
+	composite_input_shader_program = prepare_intermediate_shader("inputPosition", "uniform usampler2D texID;", get_input_fragment_shader(), source_data_texture_unit, false);
+	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array()
@@ -731,7 +765,7 @@ void OpenGLOutputBuilder::prepare_rgb_output_shader()
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), composite_texture_unit);
+	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), filtered_y_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
