@@ -414,6 +414,7 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, c
 		"out vec2 iInputPositionVarying;"
 		"out float phaseVarying;"
 		"out float amplitudeVarying;"
+		"out vec2 inputPositionsVarying[11];"
 
 		"void main(void)"
 		"{"
@@ -421,9 +422,24 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, c
 			"vec2 extendedInputPosition = %s + extensionVector;"
 			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
 
-			"ivec2 textureSize = textureSize(texID, 0);"
+			"vec2 textureSize = vec2(textureSize(texID, 0));"
 			"iInputPositionVarying = extendedInputPosition;"
-			"inputPositionVarying = (extendedInputPosition + vec2(0.0, 0.5)) / vec2(textureSize);"
+			"inputPositionVarying = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
+
+			"textureSize = textureSize * vec2(1.0);"
+			"inputPositionsVarying[0] = inputPositionVarying - (vec2(5.0, 0.0) / textureSize);"
+			"inputPositionsVarying[1] = inputPositionVarying - (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[2] = inputPositionVarying - (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[3] = inputPositionVarying - (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[4] = inputPositionVarying - (vec2(1.0, 0.0) / textureSize);"
+
+			"inputPositionsVarying[5] = inputPositionVarying;"
+
+			"inputPositionsVarying[6] = inputPositionVarying + (vec2(1.0, 0.0) / textureSize);"
+			"inputPositionsVarying[7] = inputPositionVarying + (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[8] = inputPositionVarying + (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[9] = inputPositionVarying + (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[10] = inputPositionVarying + (vec2(5.0, 0.0) / textureSize);"
 
 			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
 			"amplitudeVarying = phaseAmplitudeAndOffset.y;"
@@ -484,10 +500,11 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 	return strdup(
 		"#version 150\n"
 
-		"in vec2 inputPositionVarying;"
-		"in vec2 iInputPositionVarying;"
 		"in float phaseVarying;"
 		"in float amplitudeVarying;"
+
+		"in vec2 inputPositionsVarying[11];"
+		"uniform vec4 weights[3];"
 
 		"out vec4 fragColour;"
 
@@ -495,7 +512,33 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 
 		"void main(void)"
 		"{"
-			"fragColour = texture(texID, inputPositionVarying);"
+			"vec4 samples[3] = vec4[]("
+				"vec4("
+					"texture(texID, inputPositionsVarying[0]).r,"
+					"texture(texID, inputPositionsVarying[1]).r,"
+					"texture(texID, inputPositionsVarying[2]).r,"
+					"texture(texID, inputPositionsVarying[3]).r"
+				"),"
+				"vec4("
+					"texture(texID, inputPositionsVarying[4]).r,"
+					"texture(texID, inputPositionsVarying[5]).r,"
+					"texture(texID, inputPositionsVarying[6]).r,"
+					"texture(texID, inputPositionsVarying[7]).r"
+				"),"
+				"vec4("
+					"texture(texID, inputPositionsVarying[8]).r,"
+					"texture(texID, inputPositionsVarying[9]).r,"
+					"texture(texID, inputPositionsVarying[10]).r,"
+					"0.0"
+				")"
+			");"
+			"fragColour = vec4("
+				"dot(vec3("
+					"dot(samples[0], weights[0]),"
+					"dot(samples[1], weights[1]),"
+					"dot(samples[2], weights[2])"
+				"), vec3(1.0)));"
+//			"fragColour = vec4(dot(samples[0], weights[0]));"
 		"}");
 }
 
@@ -645,7 +688,15 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader
 void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
 	composite_input_shader_program = prepare_intermediate_shader("inputPosition", "uniform usampler2D texID;", get_input_fragment_shader(), source_data_texture_unit, false);
+
+	float colour_subcarrier_frequency = (float)_colour_cycle_numerator / (float)_colour_cycle_denominator;
+	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line, 0.0f, colour_subcarrier_frequency - 50, SignalProcessing::FIRFilter::DefaultAttenuation);
 	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
+	composite_y_filter_shader_program->bind();
+	GLint weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
+	float weights[12];
+	luminance_filter.get_coefficients(weights);
+	glUniform4fv(weightsUniform, 3, weights);
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array()
