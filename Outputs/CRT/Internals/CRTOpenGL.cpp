@@ -506,7 +506,7 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 		"in vec2 inputPositionsVarying[11];"
 		"uniform vec4 weights[3];"
 
-		"out vec4 fragColour;"
+		"out vec3 fragColour;"
 
 		"uniform sampler2D texID;"
 
@@ -532,13 +532,15 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 					"0.0"
 				")"
 			");"
-			"fragColour = vec4("
+			"vec2 quadrature = vec2(sin(phaseVarying), cos(phaseVarying)) * 0.5;"
+			"float luminance = "
 				"dot(vec3("
 					"dot(samples[0], weights[0]),"
 					"dot(samples[1], weights[1]),"
 					"dot(samples[2], weights[2])"
-				"), vec3(1.0)));"
-//			"fragColour = vec4(dot(samples[0], weights[0]));"
+				"), vec3(1.0));"
+			"float chrominance = (samples[1].y - luminance) / amplitudeVarying;"
+			"fragColour = vec3(luminance, vec2(0.5) + chrominance * quadrature );"
 		"}");
 }
 
