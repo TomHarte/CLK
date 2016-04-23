@@ -44,7 +44,7 @@ class FIRFilter {
 			@param high_frequency The highest frequency of signal to retain in the output.
 			@param attenuation The attenuation of the discarded frequencies.
 		*/
-		FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate, float low_frequency, float high_frequency, float attenuation);
+		FIRFilter(unsigned int number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
 
 		~FIRFilter();
 

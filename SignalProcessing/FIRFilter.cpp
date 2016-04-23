@@ -115,7 +115,7 @@ void FIRFilter::get_coefficients(float *coefficients)
 	}
 }
 
-FIRFilter::FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate, float low_frequency, float high_frequency, float attenuation)
+FIRFilter::FIRFilter(unsigned int number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation)
 {
 	// we must be asked to filter based on an odd number of
 	// taps, and at least three
@@ -131,10 +131,10 @@ FIRFilter::FIRFilter(unsigned int number_of_taps, unsigned int input_sample_rate
 
 	/* calculate idealised filter response */
 	unsigned int Np = (number_of_taps - 1) / 2;
-	float twoOverSampleRate = 2.0f / (float)input_sample_rate;
+	float twoOverSampleRate = 2.0f / input_sample_rate;
 
 	float *A = new float[Np+1];
-	A[0] = 2.0f * (high_frequency - low_frequency) / (float)input_sample_rate;
+	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; i++)
 	{
 		float iPi = (float)i * (float)M_PI;

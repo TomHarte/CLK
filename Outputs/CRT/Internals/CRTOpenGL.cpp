@@ -449,8 +449,8 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, c
 			"inputPositionsVarying[9] = inputPositionVarying + (vec2(4.0, 0.0) / textureSize);"
 			"inputPositionsVarying[10] = inputPositionVarying + (vec2(5.0, 0.0) / textureSize);"
 
-			"phaseVarying = (phaseCyclesPerTick * (outputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
-			"amplitudeVarying = phaseAmplitudeAndOffset.y;"
+			"phaseVarying = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
+			"amplitudeVarying = 0.33;" // phaseAmplitudeAndOffset.y
 
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
@@ -613,7 +613,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 			");"
 
 			"vec3 yuvColourInRange = (yuvColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
-			"fragColour = yuvToRGB * yuvColourInRange; "
+			"fragColour = yuvToRGB * yuvColourInRange;"
 		"}");
 }
 
@@ -667,7 +667,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 15.0*exp(-age*3.0);" //+ 0.2
+			"alpha = 15.0*exp(-age*3.0);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -733,9 +733,6 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 
 std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends)
 {
-	// TODO: at the minute, allowing extensions seems to throw the colour phase out of whack between encoding and decoding. Figure out why.
-	extends = false;
-
 	std::unique_ptr<OpenGL::Shader> shader;
 	char *vertex_shader = get_input_vertex_shader(input_position, header);
 	if(vertex_shader && fragment_shader)
@@ -778,7 +775,7 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 	float weights[12];
 
 	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
-	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line, 0.0f, colour_subcarrier_frequency - 50, SignalProcessing::FIRFilter::DefaultAttenuation);
+	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line, 0.0f, colour_subcarrier_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 	composite_y_filter_shader_program->bind();
 	weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
 	luminance_filter.get_coefficients(weights);
