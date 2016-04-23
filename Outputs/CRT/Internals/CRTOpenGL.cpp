@@ -258,6 +258,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				composite_y_filter_shader_program.get(),
 				composite_chrominance_filter_shader_program.get()
 			};
+			float clear_colours[][3] = {
+				{0.0, 0.0, 0.0},
+				{0.0, 0.5, 0.5},
+				{0.0, 0.0, 0.0}
+			};
 			for(int stage = 0; stage < 3; stage++)
 			{
 				// switch to the initial texture
@@ -268,6 +273,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				if(number_of_clearing_zones)
 				{
 					glEnable(GL_SCISSOR_TEST);
+					glClearColor(clear_colours[stage][0], clear_colours[stage][1], clear_colours[stage][2], 1.0);
 					for(int c = 0; c < number_of_clearing_zones; c++)
 					{
 						glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
@@ -286,6 +292,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			// switch back to screen output
 			glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 			glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
+			glClearColor(0.0, 0.0, 0.0, 1.0);
 		}
 
 		// transfer to screen
@@ -534,14 +541,16 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 				")"
 			");"
 
-			"vec2 quadrature = vec2(sin(phaseVarying), cos(phaseVarying)) * vec2(0.5);"
 			"float luminance = "
 				"dot(vec3("
 					"dot(samples[0], weights[0]),"
 					"dot(samples[1], weights[1]),"
 					"dot(samples[2], weights[2])"
 				"), vec3(1.0));"
-			"float chrominance = (samples[1].y - luminance) / amplitudeVarying;"
+
+			"float chrominance = 0.5 * (samples[1].y - luminance) / amplitudeVarying;"
+			"vec2 quadrature = vec2(sin(phaseVarying), cos(phaseVarying));"
+
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}");
 }
@@ -560,6 +569,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 		"out vec3 fragColour;"
 
 		"uniform sampler2D texID;"
+		"const mat3 yuvToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.39465, 2.03211, 1.13983, -0.58060, 0.0);"
 
 		"void main(void)"
 		"{"
@@ -589,7 +599,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
 			");"
 
-			"fragColour = vec3(centreSample.r,"
+			"vec3 yuvColour = vec3(centreSample.r,"
 				"dot(vec3("
 					"dot(channel1[0], weights[0]),"
 					"dot(channel1[1], weights[1]),"
@@ -601,6 +611,9 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 					"dot(channel2[2], weights[2])"
 				"), vec3(1.0, 1.0, 1.0))"
 			");"
+
+			"vec3 yuvColourInRange = (yuvColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
+			"fragColour = yuvToRGB * yuvColourInRange; "
 		"}");
 }
 
@@ -684,12 +697,8 @@ char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
 char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
 {
 	return get_output_fragment_shader("",
-		"uniform sampler2D texID;"
-		"const mat3 yuvToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.39465, 2.03211, 1.13983, -0.58060, 0.0);",
-
-		"vec3 srcColour = texture(texID, srcCoordinatesVarying).rgb;"
-		"vec3 yuvColour = vec3(srcColour.r, (srcColour.gb - vec2(0.5, 0.5)) * vec2(2.0, 2.0));"
-		"vec3 colour = yuvToRGB * yuvColour; "
+		"uniform sampler2D texID;",
+		"vec3 colour = texture(texID, srcCoordinatesVarying).rgb;"
 		);
 }
 
