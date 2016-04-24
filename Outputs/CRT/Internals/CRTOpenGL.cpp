@@ -692,8 +692,20 @@ char *OpenGLOutputBuilder::get_composite_output_vertex_shader()
 
 char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
 {
-	return get_output_fragment_shader(_rgb_shader, "uniform usampler2D texID;",
+	const char *rgb_shader = _rgb_shader;
+	if(!_rgb_shader)
+	{
+		rgb_shader =
+			"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+			"{"
+				"return texture(sampler, coordinate).rgb / vec3(255.0);"
+			"}";
+	}
+
+	char *result = get_output_fragment_shader(rgb_shader, "uniform usampler2D texID;",
 		"vec3 colour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying);");
+
+	return result;
 }
 
 char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
@@ -863,8 +875,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	if(_rgb_shader)
-		rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
+	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()

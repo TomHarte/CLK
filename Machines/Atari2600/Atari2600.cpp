@@ -40,7 +40,7 @@ void Machine::setup_output(float aspect_ratio)
 //			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
 //			"return y + step(0.03125, c.y) * 0.1 * cos((coordinate.x * 2.0 * 3.141592654) - aOffset);\n"
 		"}");
-	_crt->set_output_device(Outputs::CRT::Television);
+	_crt->set_output_device(Outputs::CRT::Monitor);
 }
 
 Machine::~Machine()
