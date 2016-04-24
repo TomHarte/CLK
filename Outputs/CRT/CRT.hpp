@@ -202,9 +202,9 @@ class CRT {
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
 
 			@param shader A GLSL fragment including a function with the signature
-			`float composite_sample(vec2 coordinate, float phase)` that evaluates to the composite signal
-			level as a function of a source buffer sampling location and the provided colour carrier phase.
-			The shader may assume a uniform array of sampler2Ds named `buffers` provides access to all input data.
+			`float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)` 
+			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
+			carrier phase and amplitude.
 		*/
 		inline void set_composite_sampling_function(const char *shader)
 		{

@@ -30,6 +30,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		void set_digital_input(Atari2600DigitalInput input, bool state);
 
 		Outputs::CRT::CRT *get_crt() { return _crt; }
+		void setup_output(float aspect_ratio);
 
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];

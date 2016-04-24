@@ -43,8 +43,10 @@
 	[super crt:crt didEndFrame:frame didDetectVSync:didDetectVSync];
 }*/
 
-- (void)doRunForNumberOfCycles:(int)numberOfCycles {
-	_atari2600.run_for_cycles(numberOfCycles);
+- (void)runForNumberOfCycles:(int)numberOfCycles {
+	@synchronized(self) {
+		_atari2600.run_for_cycles(numberOfCycles);
+	}
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
@@ -52,15 +54,27 @@
 }
 
 - (void)setROM:(NSData *)rom {
+	@synchronized(self) {
 		_atari2600.set_rom(rom.length, (const uint8_t *)rom.bytes);
+	}
 }
 
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput {
+	@synchronized(self) {
 		_atari2600.set_digital_input(digitalInput, state ? true : false);
+	}
 }
 
 - (void)setResetLineEnabled:(BOOL)enabled {
+	@synchronized(self) {
 		_atari2600.set_reset_line(enabled ? true : false);
+	}
+}
+
+- (void)setupOutputWithAspectRatio:(float)aspectRatio {
+	@synchronized(self) {
+		_atari2600.setup_output(aspectRatio);
+	}
 }
 
 @end

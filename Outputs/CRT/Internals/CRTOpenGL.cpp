@@ -861,7 +861,8 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
+	if(_rgb_shader)
+		rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()

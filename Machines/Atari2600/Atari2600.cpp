@@ -24,18 +24,23 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff}
 {
-	_crt = new Outputs::CRT::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 2);
-	_crt->set_composite_sampling_function(
-		"float composite_sample(vec2 coordinate, float phase)\n"
-		"{\n"
-			"vec2 c = texture(texID, coordinate).rg;"
-			"float y = 0.1 + c.x * 0.91071428571429;\n"
-			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
-			"return y + step(0.03125, c.y) * 0.1 * cos((coordinate.x * 2.0 * 3.141592654) - aOffset);\n"
-		"}");
-	_crt->set_output_device(Outputs::CRT::Television);
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
+}
+
+void Machine::setup_output(float aspect_ratio)
+{
+	_crt = new Outputs::CRT::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 2);
+	_crt->set_composite_sampling_function(
+		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
+		"{\n"
+			"return 0.9;"
+//			"vec2 c = vec2(1.0);"//vec2(texture(texID, coordinate).rg) / vec2(255.0);"
+//			"float y = 0.1 + c.x * 0.91071428571429;\n"
+//			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
+//			"return y + step(0.03125, c.y) * 0.1 * cos((coordinate.x * 2.0 * 3.141592654) - aOffset);\n"
+		"}");
+	_crt->set_output_device(Outputs::CRT::Television);
 }
 
 Machine::~Machine()
