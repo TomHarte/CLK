@@ -98,6 +98,7 @@ class OpenGLOutputBuilder {
 
 		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader);
 		void set_timing_uniforms();
+		void set_colour_space_uniforms();
 
 	public:
 		OpenGLOutputBuilder(unsigned int buffer_depth);
@@ -108,6 +109,7 @@ class OpenGLOutputBuilder {
 			_colour_space = colour_space;
 			_colour_cycle_numerator = colour_cycle_numerator;
 			_colour_cycle_denominator = colour_cycle_denominator;
+			set_colour_space_uniforms();
 		}
 
 		inline void set_visible_area(Rect visible_area)

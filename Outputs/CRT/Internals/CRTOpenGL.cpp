@@ -186,6 +186,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		prepare_output_vertex_array();
 
 		set_timing_uniforms();
+		set_colour_space_uniforms();
 
 		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
@@ -469,7 +470,7 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 	{
 		asprintf(&composite_shader,
 			"%s\n"
-			"const mat3 rgbToYUV = mat3(0.299, -0.14713, 0.615, 0.587, -0.28886, -0.51499, 0.114, 0.436, -0.10001);"
+			"uniform mat3 rgbToYUV;"
 			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
@@ -573,7 +574,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 		"out vec3 fragColour;"
 
 		"uniform sampler2D texID;"
-		"const mat3 yuvToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.39465, 2.03211, 1.13983, -0.58060, 0.0);"
+		"uniform mat3 yuvToRGB;"
 
 		"void main(void)"
 		"{"
@@ -779,10 +780,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader
 void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
 	composite_input_shader_program = prepare_intermediate_shader("inputPosition", "uniform usampler2D texID;", get_input_fragment_shader(), source_data_texture_unit, false);
-
-
 	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
-
 	composite_chrominance_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_chrominance_filter_fragment_shader(), filtered_y_texture_unit, true);
 }
 
@@ -907,6 +905,50 @@ void OpenGLOutputBuilder::set_timing(unsigned int cycles_per_line, unsigned int 
 }
 
 #pragma mark - Internal Configuration
+
+void OpenGLOutputBuilder::set_colour_space_uniforms()
+{
+	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+	GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+
+	GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, -0.312f};
+	GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+
+	GLfloat *fromRGB, *toRGB;
+
+	switch(_colour_space)
+	{
+		case ColourSpace::YIQ:
+			fromRGB = rgbToYIQ;
+			toRGB = yiqToRGB;
+		break;
+
+		case ColourSpace::YUV:
+			fromRGB = rgbToYUV;
+			toRGB = yuvToRGB;
+		break;
+	}
+
+	if(composite_input_shader_program)
+	{
+		composite_input_shader_program->bind();
+		GLint rgbToYUVUniform			= composite_input_shader_program->get_uniform_location("rgbToYUV");
+		if(rgbToYUVUniform >= 0)
+		{
+			glUniformMatrix3fv(rgbToYUVUniform, 1, GL_FALSE, fromRGB);
+		}
+	}
+
+	if(composite_chrominance_filter_shader_program)
+	{
+		composite_chrominance_filter_shader_program->bind();
+		GLint yuvToRGBUniform			= composite_chrominance_filter_shader_program->get_uniform_location("yuvToRGB");
+		if(yuvToRGBUniform >= 0)
+		{
+			glUniformMatrix3fv(yuvToRGBUniform, 1, GL_FALSE, toRGB);
+		}
+	}
+}
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
