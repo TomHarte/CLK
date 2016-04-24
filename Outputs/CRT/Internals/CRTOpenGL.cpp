@@ -93,7 +93,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(composite_texture_unit);
@@ -435,19 +435,19 @@ char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, c
 			"inputPositionVarying = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
 
 			"textureSize = textureSize * vec2(1.0);"
-			"inputPositionsVarying[0] = inputPositionVarying - (vec2(5.0, 0.0) / textureSize);"
-			"inputPositionsVarying[1] = inputPositionVarying - (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[2] = inputPositionVarying - (vec2(3.0, 0.0) / textureSize);"
-			"inputPositionsVarying[3] = inputPositionVarying - (vec2(2.0, 0.0) / textureSize);"
-			"inputPositionsVarying[4] = inputPositionVarying - (vec2(1.0, 0.0) / textureSize);"
+			"inputPositionsVarying[0] = inputPositionVarying - (vec2(10.0, 0.0) / textureSize);"
+			"inputPositionsVarying[1] = inputPositionVarying - (vec2(8.0, 0.0) / textureSize);"
+			"inputPositionsVarying[2] = inputPositionVarying - (vec2(6.0, 0.0) / textureSize);"
+			"inputPositionsVarying[3] = inputPositionVarying - (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[4] = inputPositionVarying - (vec2(2.0, 0.0) / textureSize);"
 
 			"inputPositionsVarying[5] = inputPositionVarying;"
 
-			"inputPositionsVarying[6] = inputPositionVarying + (vec2(1.0, 0.0) / textureSize);"
-			"inputPositionsVarying[7] = inputPositionVarying + (vec2(2.0, 0.0) / textureSize);"
-			"inputPositionsVarying[8] = inputPositionVarying + (vec2(3.0, 0.0) / textureSize);"
-			"inputPositionsVarying[9] = inputPositionVarying + (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[10] = inputPositionVarying + (vec2(5.0, 0.0) / textureSize);"
+			"inputPositionsVarying[6] = inputPositionVarying + (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[7] = inputPositionVarying + (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[8] = inputPositionVarying + (vec2(6.0, 0.0) / textureSize);"
+			"inputPositionsVarying[9] = inputPositionVarying + (vec2(8.0, 0.0) / textureSize);"
+			"inputPositionsVarying[10] = inputPositionVarying + (vec2(10.0, 0.0) / textureSize);"
 
 			"phaseVarying = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
 			"amplitudeVarying = 0.33;" // phaseAmplitudeAndOffset.y
@@ -546,7 +546,7 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 					"dot(samples[0], weights[0]),"
 					"dot(samples[1], weights[1]),"
 					"dot(samples[2], weights[2])"
-				"), vec3(1.0));"
+				"), vec3(1.0)) / (1.0 - amplitudeVarying);"
 
 			"float chrominance = 0.5 * (samples[1].y - luminance) / amplitudeVarying;"
 			"vec2 quadrature = vec2(sin(phaseVarying), cos(phaseVarying));"
@@ -575,17 +575,17 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 		"{"
 			"vec3 centreSample = texture(texID, inputPositionsVarying[5]).rgb;"
 			"vec2 samples[] = vec2[]("
-				"texture(texID, inputPositionsVarying[0]).gb,"
-				"texture(texID, inputPositionsVarying[1]).gb,"
-				"texture(texID, inputPositionsVarying[2]).gb,"
-				"texture(texID, inputPositionsVarying[3]).gb,"
-				"texture(texID, inputPositionsVarying[4]).gb,"
-				"centreSample.gb,"
-				"texture(texID, inputPositionsVarying[6]).gb,"
-				"texture(texID, inputPositionsVarying[7]).gb,"
-				"texture(texID, inputPositionsVarying[8]).gb,"
-				"texture(texID, inputPositionsVarying[9]).gb,"
-				"texture(texID, inputPositionsVarying[10]).gb"
+				"texture(texID, inputPositionsVarying[0]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[1]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[2]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[3]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[4]).gb - vec2(0.5),"
+				"centreSample.gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[6]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[7]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[8]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[9]).gb - vec2(0.5),"
+				"texture(texID, inputPositionsVarying[10]).gb - vec2(0.5)"
 			");"
 
 			"vec4 channel1[] = vec4[]("
@@ -604,12 +604,12 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 					"dot(channel1[0], weights[0]),"
 					"dot(channel1[1], weights[1]),"
 					"dot(channel1[2], weights[2])"
-				"), vec3(1.0, 1.0, 1.0)),"
+				"), vec3(1.0)) + 0.5,"
 				"dot(vec3("
 					"dot(channel2[0], weights[0]),"
 					"dot(channel2[1], weights[1]),"
 					"dot(channel2[2], weights[2])"
-				"), vec3(1.0, 1.0, 1.0))"
+				"), vec3(1.0)) + 0.5"
 			");"
 
 			"vec3 yuvColourInRange = (yuvColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
@@ -667,7 +667,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 15.0*exp(-age*3.0);"
+			"alpha = 0.75;"//15.0*exp(-age*3.0);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -775,14 +775,14 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 	float weights[12];
 
 	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
-	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line, 0.0f, colour_subcarrier_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
+	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
 	composite_y_filter_shader_program->bind();
 	weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
 	luminance_filter.get_coefficients(weights);
 	glUniform4fv(weightsUniform, 3, weights);
 
 	composite_chrominance_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_chrominance_filter_fragment_shader(), filtered_y_texture_unit, false);
-	SignalProcessing::FIRFilter chrominance_filter(11, _cycles_per_line, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
+	SignalProcessing::FIRFilter chrominance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
 	composite_chrominance_filter_shader_program->bind();
 	weightsUniform = composite_chrominance_filter_shader_program->get_uniform_location("weights");
 	chrominance_filter.get_coefficients(weights);
