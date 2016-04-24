@@ -78,13 +78,15 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
 	_composite_src_output_y(0),
+	_cleared_composite_output_y(0),
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
 	_output_buffer_data(nullptr),
 	_source_buffer_data(nullptr),
 	_input_texture_data(nullptr),
 	_output_buffer_data_pointer(0),
-	_source_buffer_data_pointer(0)
+	_source_buffer_data_pointer(0),
+	_drawn_source_buffer_data_pointer(0)
 {
 	_run_builders = new CRTRunBuilder *[NumberOfFields];
 	for(int builder = 0; builder < NumberOfFields; builder++)
@@ -229,7 +231,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// for television, update intermediate buffers and then draw; for a monitor, just draw
-	if(_output_device == Television)
+	if(_output_device == Television || !rgb_shader_program)
 	{
 		// decide how much to draw
 		if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
