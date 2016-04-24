@@ -18,6 +18,13 @@
 namespace Outputs {
 namespace CRT {
 
+class CRT;
+
+class Delegate {
+	public:
+		virtual void crt_did_end_batch_of_frames(CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) = 0;
+};
+
 class CRT {
 	private:
 		CRT(unsigned int common_output_divisor);
@@ -73,6 +80,10 @@ class CRT {
 
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		std::unique_ptr<OpenGLOutputBuilder> _openGL_output_builder;
+
+		// The delegate;
+		Delegate *_delegate;
+		unsigned int _frames_since_last_delegate_call;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -252,6 +263,11 @@ class CRT {
 		}
 
 		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
+
+		inline void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
 };
 
 }

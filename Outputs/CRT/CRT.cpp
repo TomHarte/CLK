@@ -66,7 +66,9 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_is_receiving_sync(false),
 	_sync_period(0),
 	_common_output_divisor(common_output_divisor),
-	_is_writing_composite_run(false) {}
+	_is_writing_composite_run(false),
+	_delegate(nullptr),
+	_frames_since_last_delegate_call(0) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
@@ -209,11 +211,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			}
 		}
 
-//		if(is_output_segment)
-//		{
-//			_openGL_output_builder->complete_output_run(6);
-//		}
-
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
 		if(_openGL_output_builder->get_output_device() == Television)
 		{
@@ -251,8 +248,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// if this is vertical retrace then adcance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace)
 		{
-			// TODO: how to communicate did_detect_vsync? Bring the delegate back?
-//			_delegate->crt_did_end_frame(this, &_current_frame_builder->frame, _did_detect_vsync);
+			if(_delegate)
+			{
+				_frames_since_last_delegate_call++;
+				if(_frames_since_last_delegate_call == 100)
+				{
+					_delegate->crt_did_end_batch_of_frames(this, _frames_since_last_delegate_call, _vertical_flywheel->get_and_reset_number_of_surprises());
+					_frames_since_last_delegate_call = 0;
+				}
+			}
 
 			_openGL_output_builder->increment_field();
 		}

@@ -11,37 +11,36 @@
 #import "Atari2600.hpp"
 #import "CSMachine+Subclassing.h"
 
+@interface CSAtari2600 ()
+- (void)crt:(Outputs::CRT::CRT *)crt didEndBatchOfFrames:(unsigned int)numberOfFrames withUnexpectedVerticalSyncs:(unsigned int)numberOfUnexpectedSyncs;
+@end
+
+struct CRTDelegate: public Outputs::CRT::Delegate {
+	__weak CSAtari2600 *atari2600;
+	void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) {
+		[atari2600 crt:crt didEndBatchOfFrames:number_of_frames withUnexpectedVerticalSyncs:number_of_unexpected_vertical_syncs];
+	}
+};
+
 @implementation CSAtari2600 {
 	Atari2600::Machine _atari2600;
+	CRTDelegate _crtDelegate;
 
 	int _frameCount;
 	int _hitCount;
 	BOOL _didDecideRegion;
 }
 
-/*- (void)crt:(Outputs::CRT *)crt didEndFrame:(CRTFrame *)frame didDetectVSync:(BOOL)didDetectVSync {
+- (void)crt:(Outputs::CRT::CRT *)crt didEndBatchOfFrames:(unsigned int)numberOfFrames withUnexpectedVerticalSyncs:(unsigned int)numberOfUnexpectedSyncs {
 	if(!_didDecideRegion)
 	{
-		_frameCount++;
-		_hitCount += didDetectVSync ? 1 : 0;
-
-		if(_frameCount > 30)
+		_didDecideRegion = YES;
+		if(numberOfUnexpectedSyncs >= numberOfFrames >> 1)
 		{
-			if(_hitCount < _frameCount >> 1)
-			{
-				_atari2600.switch_region();
-				_didDecideRegion = YES;
-			}
-
-			if(_hitCount > (_frameCount * 7) >> 3)
-			{
-				_didDecideRegion = YES;
-			}
+			_atari2600.switch_region();
 		}
 	}
-
-	[super crt:crt didEndFrame:frame didDetectVSync:didDetectVSync];
-}*/
+}
 
 - (void)runForNumberOfCycles:(int)numberOfCycles {
 	@synchronized(self) {
@@ -74,6 +73,8 @@
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	@synchronized(self) {
 		_atari2600.setup_output(aspectRatio);
+		_atari2600.get_crt()->set_delegate(&_crtDelegate);
+		_crtDelegate.atari2600 = self;
 	}
 }
 

@@ -36,7 +36,8 @@ struct Flywheel
 		_sync_error_window(standard_period >> 7),
 		_counter(0),
 		_expected_next_sync(standard_period),
-		_counter_before_retrace(standard_period - retrace_time) {}
+		_counter_before_retrace(standard_period - retrace_time),
+		_number_of_surprises(0) {}
 
 	enum SyncEvent {
 		/// Indicates that no synchronisation events will occur in the queried window.
