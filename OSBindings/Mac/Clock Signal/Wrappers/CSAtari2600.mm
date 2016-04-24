@@ -29,15 +29,20 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	int _frameCount;
 	int _hitCount;
 	BOOL _didDecideRegion;
+	int _batchesReceived;
 }
 
 - (void)crt:(Outputs::CRT::CRT *)crt didEndBatchOfFrames:(unsigned int)numberOfFrames withUnexpectedVerticalSyncs:(unsigned int)numberOfUnexpectedSyncs {
 	if(!_didDecideRegion)
 	{
-		_didDecideRegion = YES;
-		if(numberOfUnexpectedSyncs >= numberOfFrames >> 1)
+		_batchesReceived++;
+		if(_batchesReceived == 2)
 		{
-			_atari2600.switch_region();
+			_didDecideRegion = YES;
+			if(numberOfUnexpectedSyncs >= numberOfFrames >> 1)
+			{
+				_atari2600.switch_region();
+			}
 		}
 	}
 }

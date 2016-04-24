@@ -185,6 +185,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		prepare_rgb_output_shader();
 		prepare_output_vertex_array();
 
+		set_timing_uniforms();
+
 		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
 		// it works either way.
@@ -762,17 +764,11 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader
 		shader = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, bindings));
 
 		GLint texIDUniform				= shader->get_uniform_location("texID");
-		GLint phaseCyclesPerTickUniform	= shader->get_uniform_location("phaseCyclesPerTick");
 		GLint outputTextureSizeUniform	= shader->get_uniform_location("outputTextureSize");
-		GLint extensionUniform			= shader->get_uniform_location("extension");
 
 		shader->bind();
 		glUniform1i(texIDUniform, (GLint)(texture_unit - GL_TEXTURE0));
 		glUniform2i(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
-
-		float phaseCyclesPerTick = (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line);
-		glUniform1f(phaseCyclesPerTickUniform, phaseCyclesPerTick);
-		glUniform1f(extensionUniform, extends ? ceilf(1.0f / phaseCyclesPerTick) : 0.0f);
 	}
 	free(vertex_shader);
 	free(fragment_shader);
@@ -784,23 +780,10 @@ void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
 	composite_input_shader_program = prepare_intermediate_shader("inputPosition", "uniform usampler2D texID;", get_input_fragment_shader(), source_data_texture_unit, false);
 
-	float colour_subcarrier_frequency = (float)_colour_cycle_numerator / (float)_colour_cycle_denominator;
-	GLint weightsUniform;
-	float weights[12];
 
 	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
-	SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
-	composite_y_filter_shader_program->bind();
-	weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
-	luminance_filter.get_coefficients(weights);
-	glUniform4fv(weightsUniform, 3, weights);
 
-	composite_chrominance_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_chrominance_filter_fragment_shader(), filtered_y_texture_unit, false);
-	SignalProcessing::FIRFilter chrominance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
-	composite_chrominance_filter_shader_program->bind();
-	weightsUniform = composite_chrominance_filter_shader_program->get_uniform_location("weights");
-	chrominance_filter.get_coefficients(weights);
-	glUniform4fv(weightsUniform, 3, weights);
+	composite_chrominance_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_chrominance_filter_fragment_shader(), filtered_y_texture_unit, true);
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array()
@@ -851,20 +834,7 @@ std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char 
 		timestampBaseUniform		= shader_program->get_uniform_location("timestampBase");
 
 		GLint texIDUniform				= shader_program->get_uniform_location("texID");
-		GLint ticksPerFrameUniform		= shader_program->get_uniform_location("ticksPerFrame");
-		GLint scanNormalUniform			= shader_program->get_uniform_location("scanNormal");
-		GLint positionConversionUniform	= shader_program->get_uniform_location("positionConversion");
-
 		glUniform1i(texIDUniform, source_texture_unit - GL_TEXTURE0);
-		glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
-		glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
-
-		float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
-		float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
-		float multiplier = (float)_cycles_per_line / ((float)_height_of_display * (float)_horizontal_scan_period);
-		scan_normal[0] *= multiplier;
-		scan_normal[1] *= multiplier;
-		glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
 	}
 
 	free(vertex_shader);
@@ -908,7 +878,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	}
 }
 
-#pragma mark - Configuration
+#pragma mark - Public Configuration
 
 void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 {
@@ -925,50 +895,87 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 	}
 }
 
+void OpenGLOutputBuilder::set_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
+{
+	_cycles_per_line = cycles_per_line;
+	_height_of_display = height_of_display;
+	_horizontal_scan_period = horizontal_scan_period;
+	_vertical_scan_period = vertical_scan_period;
+	_vertical_period_divider = vertical_period_divider;
 
-//	const char *const ntscVertexShaderGlobals =
-//		"out vec2 srcCoordinatesVarying[4];\n"
-//		"out float phase;\n";
-//
-//	const char *const ntscVertexShaderBody =
-//		"phase = srcCoordinates.x * 6.283185308;\n"
-//		"\n"
-//		"srcCoordinatesVarying[0] = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);\n"
-//		"srcCoordinatesVarying[3] = srcCoordinatesVarying[0] + vec2(0.375 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[2] = srcCoordinatesVarying[0] + vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[1] = srcCoordinatesVarying[0] - vec2(0.125 / textureSize.x, 0.0);\n"
-//		"srcCoordinatesVarying[0] = srcCoordinatesVarying[0] - vec2(0.325 / textureSize.x, 0.0);\n";
+	set_timing_uniforms();
+}
 
-	// assumes y = [0, 1], i and q = [-0.5, 0.5]; therefore i components are multiplied by 1.1914 versus standard matrices, q by 1.0452
-//	const char *const yiqToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);";
+#pragma mark - Internal Configuration
 
-	// assumes y = [0,1], u and v = [-0.5, 0.5]; therefore u components are multiplied by 1.14678899082569, v by 0.8130081300813
-//	const char *const yuvToRGB = "const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 0.0, -0.75213899082569, 2.33040137614679, 0.92669105691057, -0.4720325203252, 0.0);";
+void OpenGLOutputBuilder::set_timing_uniforms()
+{
+	OpenGL::Shader *intermediate_shaders[] = {
+		composite_input_shader_program.get(),
+		composite_y_filter_shader_program.get(),
+		composite_chrominance_filter_shader_program.get()
+	};
+	bool extends = false;
+	for(int c = 0; c < 3; c++)
+	{
+		if(intermediate_shaders[c])
+		{
+			intermediate_shaders[c]->bind();
+			GLint phaseCyclesPerTickUniform	= intermediate_shaders[c]->get_uniform_location("phaseCyclesPerTick");
+			GLint extensionUniform			= intermediate_shaders[c]->get_uniform_location("extension");
 
-//	const char *const ntscFragmentShaderGlobals =
-//		"in vec2 srcCoordinatesVarying[4];\n"
-//		"in float phase;\n"
-//		"\n"
-//		"// for conversion from i and q are in the range [-0.5, 0.5] (so i needs to be multiplied by 1.1914 and q by 1.0452)\n"
-//		"const mat3 yiqToRGB = mat3(1.0, 1.0, 1.0, 1.1389784, -0.3240608, -1.3176884, 0.6490692, -0.6762444, 1.7799756);\n";
+			float phaseCyclesPerTick = (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line);
+			glUniform1f(phaseCyclesPerTickUniform, phaseCyclesPerTick);
+			glUniform1f(extensionUniform, extends ? ceilf(1.0f / phaseCyclesPerTick) : 0.0f);
+		}
+		extends = true;
+	}
 
-//	const char *const ntscFragmentShaderBody =
-//		"vec4 angles = vec4(phase) + vec4(-2.35619449019234, -0.78539816339745, 0.78539816339745, 2.35619449019234);\n"
-//		"vec4 samples = vec4("
-//		"   sample(srcCoordinatesVarying[0], angles.x),"
-//		"	sample(srcCoordinatesVarying[1], angles.y),"
-//		"	sample(srcCoordinatesVarying[2], angles.z),"
-//		"	sample(srcCoordinatesVarying[3], angles.w)"
-//		");\n"
-//		"\n"
-//		"float y = dot(vec4(0.25), samples);\n"
-//		"samples -= vec4(y);\n"
-//		"\n"
-//		"float i = dot(cos(angles), samples);\n"
-//		"float q = dot(sin(angles), samples);\n"
-//		"\n"
-//		"fragColour = 5.0 * texture(shadowMaskTexID, shadowMaskCoordinates) * vec4(yiqToRGB * vec3(y, i, q), 1.0);//sin(lateralVarying));\n";
+	OpenGL::Shader *output_shaders[] = {
+		rgb_shader_program.get(),
+		composite_output_shader_program.get()
+	};
+	for(int c = 0; c < 2; c++)
+	{
+		if(output_shaders[c])
+		{
+			output_shaders[c]->bind();
 
-//		dot(vec3(1.0/6.0, 2.0/3.0, 1.0/6.0), vec3(sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0]), sample(srcCoordinatesVarying[0])));//sin(lateralVarying));\n";
-//}
+			GLint ticksPerFrameUniform		= output_shaders[c]->get_uniform_location("ticksPerFrame");
+			GLint scanNormalUniform			= output_shaders[c]->get_uniform_location("scanNormal");
+			GLint positionConversionUniform	= output_shaders[c]->get_uniform_location("positionConversion");
 
+			glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
+			float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
+			float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
+			float multiplier = (float)_cycles_per_line / ((float)_height_of_display * (float)_horizontal_scan_period);
+			scan_normal[0] *= multiplier;
+			scan_normal[1] *= multiplier;
+			glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
+
+			glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
+		}
+	}
+
+	float colour_subcarrier_frequency = (float)_colour_cycle_numerator / (float)_colour_cycle_denominator;
+	GLint weightsUniform;
+	float weights[12];
+
+	if(composite_y_filter_shader_program)
+	{
+		SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
+		composite_y_filter_shader_program->bind();
+		weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
+		luminance_filter.get_coefficients(weights);
+		glUniform4fv(weightsUniform, 3, weights);
+	}
+
+	if(composite_chrominance_filter_shader_program)
+	{
+		SignalProcessing::FIRFilter chrominance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
+		composite_chrominance_filter_shader_program->bind();
+		weightsUniform = composite_chrominance_filter_shader_program->get_uniform_location("weights");
+		chrominance_filter.get_coefficients(weights);
+		glUniform4fv(weightsUniform, 3, weights);
+	}
+}

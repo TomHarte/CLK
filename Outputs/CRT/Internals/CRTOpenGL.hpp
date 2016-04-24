@@ -97,6 +97,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 
 		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader);
+		void set_timing_uniforms();
 
 	public:
 		OpenGLOutputBuilder(unsigned int buffer_depth);
@@ -207,16 +208,7 @@ class OpenGLOutputBuilder {
 		void set_composite_sampling_function(const char *shader);
 		void set_rgb_sampling_function(const char *shader);
 		void set_output_device(OutputDevice output_device);
-		inline void set_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
-		{
-			_cycles_per_line = cycles_per_line;
-			_height_of_display = height_of_display;
-			_horizontal_scan_period = horizontal_scan_period;
-			_vertical_scan_period = vertical_scan_period;
-			_vertical_period_divider = vertical_period_divider;
-
-			// TODO: update related uniforms
-		}
+		void set_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
 		uint8_t *_input_texture_data;
 		GLuint _input_texture_array;
