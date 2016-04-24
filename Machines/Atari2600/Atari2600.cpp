@@ -30,7 +30,7 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = new Outputs::CRT::CRT(228, 1, Outputs::CRT::DisplayType::NTSC60, 2);
+	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 2);
 	_crt->set_composite_sampling_function(
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
 		"{\n"
@@ -50,7 +50,7 @@ Machine::~Machine()
 
 void Machine::switch_region()
 {
-	_crt->set_new_display_type(228, Outputs::CRT::DisplayType::PAL50);
+	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
