@@ -909,6 +909,7 @@ void OpenGLOutputBuilder::set_timing(unsigned int cycles_per_line, unsigned int 
 
 void OpenGLOutputBuilder::set_colour_space_uniforms()
 {
+	_output_mutex->lock();
 	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
 	GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
 
@@ -949,10 +950,12 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 			glUniformMatrix3fv(uniform, 1, GL_FALSE, toRGB);
 		}
 	}
+	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
+	_output_mutex->lock();
 	OpenGL::Shader *intermediate_shaders[] = {
 		composite_input_shader_program.get(),
 		composite_y_filter_shader_program.get(),
@@ -1021,4 +1024,5 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 		chrominance_filter.get_coefficients(weights);
 		glUniform4fv(weightsUniform, 3, weights);
 	}
+	_output_mutex->unlock();
 }
