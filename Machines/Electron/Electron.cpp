@@ -77,6 +77,11 @@ void Machine::setup_output(float aspect_ratio)
 	_speaker.set_input_rate(2000000 / clock_rate_audio_divider);
 }
 
+void Machine::close_output()
+{
+	_crt = nullptr;
+}
+
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	unsigned int cycles = 1;

@@ -171,4 +171,10 @@
 	}
 }
 
+- (void)closeOutput {
+	@synchronized(self) {
+		_electron.close_output();
+	}
+}
+
 @end

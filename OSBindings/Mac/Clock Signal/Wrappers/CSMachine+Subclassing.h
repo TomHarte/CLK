@@ -17,5 +17,6 @@
 - (void)performAsync:(dispatch_block_t)action;
 - (void)performSync:(dispatch_block_t)action;
 - (void)setupOutputWithAspectRatio:(float)aspectRatio;
+- (void)closeOutput;
 
 @end

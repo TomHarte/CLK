@@ -83,4 +83,10 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	}
 }
 
+- (void)closeOutput {
+	@synchronized(self) {
+		_atari2600.close_output();
+	}
+}
+
 @end

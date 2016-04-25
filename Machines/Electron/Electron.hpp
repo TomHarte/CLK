@@ -157,6 +157,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		void clear_all_keys();
 
 		void setup_output(float aspect_ratio);
+		void close_output();
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 

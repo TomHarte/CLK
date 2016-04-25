@@ -31,6 +31,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		Outputs::CRT::CRT *get_crt() { return _crt; }
 		void setup_output(float aspect_ratio);
+		void close_output();
 
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];

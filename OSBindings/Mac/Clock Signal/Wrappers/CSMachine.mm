@@ -37,6 +37,12 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	return self;
 }
 
+- (void)dealloc {
+	[_view performWithGLContext:^{
+		[self closeOutput];
+	}];
+}
+
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
 	return NO;
 }
@@ -53,7 +59,10 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {}
 
+- (void)closeOutput {}
+
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
+	_view = view;
 	[view performWithGLContext:^{
 		[self setupOutputWithAspectRatio:aspectRatio];
 	}];

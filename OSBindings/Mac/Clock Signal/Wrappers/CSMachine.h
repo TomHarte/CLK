@@ -16,5 +16,6 @@
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 
 @property (nonatomic, weak) AudioQueue *audioQueue;
+@property (nonatomic, readonly) CSOpenGLView *view;
 
 @end

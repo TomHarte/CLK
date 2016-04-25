@@ -42,10 +42,16 @@ void Machine::setup_output(float aspect_ratio)
 	_crt->set_output_device(Outputs::CRT::Television);
 }
 
+void Machine::close_output()
+{
+	delete _crt;
+	_crt = nullptr;
+}
+
 Machine::~Machine()
 {
 	delete[] _rom;
-	delete _crt;
+	close_output();
 }
 
 void Machine::switch_region()

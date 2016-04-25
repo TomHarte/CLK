@@ -80,8 +80,7 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 
 Shader::~Shader()
 {
-	// TODO: ensure this is destructed within the correct context.
-//	glDeleteProgram(_shader_program);
+	glDeleteProgram(_shader_program);
 }
 
 void Shader::bind()
