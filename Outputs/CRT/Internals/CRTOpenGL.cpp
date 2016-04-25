@@ -470,13 +470,13 @@ char *OpenGLOutputBuilder::get_input_fragment_shader()
 	{
 		asprintf(&composite_shader,
 			"%s\n"
-			"uniform mat3 rgbToYUV;"
+			"uniform mat3 rgbToLumaChroma;"
 			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
-				"vec3 yuvColour = rgbToYUV * rgbColour;"
-				"vec2 quadrature = vec2(sin(phase), cos(phase)) * amplitude;"
-				"return dot(yuvColour, vec3(1.0 - amplitude, quadrature));"
+				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
+				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
+				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
 			"}",
 			_rgb_shader);
 		// TODO: use YIQ if this is NTSC
@@ -554,7 +554,7 @@ char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
 				"), vec3(1.0)) / (1.0 - amplitudeVarying);"
 
 			"float chrominance = 0.5 * (samples[1].y - luminance) / amplitudeVarying;"
-			"vec2 quadrature = vec2(sin(phaseVarying), cos(phaseVarying));"
+			"vec2 quadrature = vec2(cos(phaseVarying), -sin(phaseVarying));"
 
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}");
@@ -574,7 +574,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 		"out vec3 fragColour;"
 
 		"uniform sampler2D texID;"
-		"uniform mat3 yuvToRGB;"
+		"uniform mat3 lumaChromaToRGB;"
 
 		"void main(void)"
 		"{"
@@ -604,7 +604,7 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
 			");"
 
-			"vec3 yuvColour = vec3(centreSample.r,"
+			"vec3 lumaChromaColour = vec3(centreSample.r,"
 				"dot(vec3("
 					"dot(channel1[0], weights[0]),"
 					"dot(channel1[1], weights[1]),"
@@ -617,8 +617,8 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 				"), vec3(1.0)) + 0.5"
 			");"
 
-			"vec3 yuvColourInRange = (yuvColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
-			"fragColour = yuvToRGB * yuvColourInRange;"
+			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
+			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
 		"}");
 }
 
@@ -932,20 +932,20 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 	if(composite_input_shader_program)
 	{
 		composite_input_shader_program->bind();
-		GLint rgbToYUVUniform			= composite_input_shader_program->get_uniform_location("rgbToYUV");
-		if(rgbToYUVUniform >= 0)
+		GLint uniform = composite_input_shader_program->get_uniform_location("rgbToLumaChroma");
+		if(uniform >= 0)
 		{
-			glUniformMatrix3fv(rgbToYUVUniform, 1, GL_FALSE, fromRGB);
+			glUniformMatrix3fv(uniform, 1, GL_FALSE, fromRGB);
 		}
 	}
 
 	if(composite_chrominance_filter_shader_program)
 	{
 		composite_chrominance_filter_shader_program->bind();
-		GLint yuvToRGBUniform			= composite_chrominance_filter_shader_program->get_uniform_location("yuvToRGB");
-		if(yuvToRGBUniform >= 0)
+		GLint uniform = composite_chrominance_filter_shader_program->get_uniform_location("lumaChromaToRGB");
+		if(uniform >= 0)
 		{
-			glUniformMatrix3fv(yuvToRGBUniform, 1, GL_FALSE, toRGB);
+			glUniformMatrix3fv(uniform, 1, GL_FALSE, toRGB);
 		}
 	}
 }
