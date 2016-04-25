@@ -558,10 +558,9 @@ template <class T> class Processor {
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
 		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
-		if(_reset_line_is_enabled)\
+		if(_reset_line_is_enabled) {\
 			schedule_program(get_reset_program());\
-		else\
-		{\
+		} else {\
 			if(_irq_request_history[0])\
 				schedule_program(get_irq_program());\
 			else\
@@ -582,7 +581,7 @@ template <class T> class Processor {
 
 				while (!_ready_is_active && number_of_cycles > 0) {
 
-					if (nextBusOperation != BusOperation::None) {
+					if(nextBusOperation != BusOperation::None) {
 						_irq_request_history[0] = _irq_request_history[1];
 						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
 						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
@@ -682,7 +681,7 @@ template <class T> class Processor {
 							static const MicroOp jam[] = JAM;
 							schedule_program(jam);
 
-							if (_jam_handler) {
+							if(_jam_handler) {
 								_jam_handler->processor_did_jam(this, _pc.full - 1);
 								checkSchedule(_is_jammed = false);
 							}
@@ -899,7 +898,7 @@ template <class T> class Processor {
 						case CycleAddXToAddressLow:
 							nextAddress.full = _address.full + _x;
 							_address.bytes.low = nextAddress.bytes.low;
-							if (_address.bytes.high != nextAddress.bytes.high) {
+							if(_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
@@ -911,7 +910,7 @@ template <class T> class Processor {
 						case CycleAddYToAddressLow:
 							nextAddress.full = _address.full + _y;
 							_address.bytes.low = nextAddress.bytes.low;
-							if (_address.bytes.high != nextAddress.bytes.high) {
+							if(_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
@@ -1020,11 +1019,10 @@ template <class T> class Processor {
 								_zeroResult = _negativeResult = _a;
 								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
 
-								if ((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
+								if((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
 
 								_carryFlag = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
-								if (_carryFlag) _a += 0x60;
-
+								if(_carryFlag) _a += 0x60;
 							} else {
 								_a &= _operand;
 								_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
@@ -1043,7 +1041,7 @@ template <class T> class Processor {
 						break;
 					}
 
-					if (isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
+					if(isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
 						_ready_is_active = true;
 					}
 				}
@@ -1126,10 +1124,9 @@ template <class T> class Processor {
 		*/
 		inline void set_ready_line(bool active)
 		{
-			if(active)
+			if(active) {
 				_ready_line_is_enabled = true;
-			else
-			{
+			} else {
 				_ready_line_is_enabled = false;
 				_ready_is_active = false;
 			}

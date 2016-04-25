@@ -67,7 +67,7 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 	{
 		GLint logLength;
 		glGetProgramiv(_shader_program, GL_INFO_LOG_LENGTH, &logLength);
-		if (logLength > 0) {
+		if(logLength > 0) {
 			GLchar *log = (GLchar *)malloc((size_t)logLength);
 			glGetProgramInfoLog(_shader_program, logLength, &logLength, log);
 			printf("Link log:\n%s\n", log);

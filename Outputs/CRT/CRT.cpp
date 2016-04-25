@@ -178,7 +178,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		_openGL_output_builder->add_to_field_time(next_run_length);
 
 		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
-		if (vsync_charging)
+		if(vsync_charging)
 			_sync_capacitor_charge_level += next_run_length;
 		else
 			_sync_capacitor_charge_level = std::max(_sync_capacitor_charge_level - (int)next_run_length, 0);

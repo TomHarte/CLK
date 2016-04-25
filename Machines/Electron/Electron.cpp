@@ -399,7 +399,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 //	const int end_of_field =
-//	if (_frameCycles < (256 + first_graphics_line) << 7))
+//	if(_frameCycles < (256 + first_graphics_line) << 7))
 
 	const unsigned int pixel_line_clock = _frameCycles;// + 128 - first_graphics_cycle + 80;
 	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);

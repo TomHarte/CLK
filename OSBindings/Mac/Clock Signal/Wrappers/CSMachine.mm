@@ -28,7 +28,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 - (instancetype)init {
 	self = [super init];
 
-	if (self) {
+	if(self) {
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
 		_speakerDelegate.machine = self;
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:44100];
