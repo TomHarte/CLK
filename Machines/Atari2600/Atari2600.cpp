@@ -35,9 +35,9 @@ void Machine::setup_output(float aspect_ratio)
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
 		"{\n"
 			"vec2 c = vec2(texture(texID, coordinate).rg) / vec2(255.0);"
-			"float y = 0.1 + c.x * 0.91071428571429;\n"
-			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
-			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
+			"float y = 0.1 + c.x * 0.91071428571429;"
+			"float aOffset = 6.283185308 * (2.0/16.0 - c.y);" //  - 3.0 / 16.0
+			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
 }
