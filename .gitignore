@@ -18,6 +18,9 @@ DerivedData
 *.xcuserstate
 .DS_Store
 
+# Exclude Electron ROMs
+OSBindings/Mac/Clock Signal/Resources/Electron/*
+
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However

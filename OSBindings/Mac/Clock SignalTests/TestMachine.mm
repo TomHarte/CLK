@@ -83,7 +83,7 @@ class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 - (instancetype)init {
 	self = [super init];
 
-	if (self) {
+	if(self) {
 		_cppJamHandler = new MachineJamHandler(self);
 		_processor.set_jam_handler(_cppJamHandler);
 	}

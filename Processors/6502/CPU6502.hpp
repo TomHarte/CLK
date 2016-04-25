@@ -14,6 +14,9 @@
 
 namespace CPU6502 {
 
+/*
+	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
+*/
 enum Register {
 	LastOperationAddress,
 	ProgramCounter,
@@ -25,7 +28,9 @@ enum Register {
 	S
 };
 
-
+/*
+	Flags as defined on the 6502; can be used to decode the result of @c get_flags or to form a value for @c set_flags.
+*/
 enum Flag {
 	Sign		= 0x80,
 	Overflow	= 0x40,
@@ -37,14 +42,35 @@ enum Flag {
 	Carry		= 0x01
 };
 
+/*!
+	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
+	between a 6502 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
+
+	@c None is reserved for internal use. It will never be requested from a subclass. It is safe always to use the
+	isReadOperation macro to make a binary choice between reading and writing.
+*/
 enum BusOperation {
 	Read, ReadOpcode, Write, Ready, None
 };
 
+/*!
+	Evaluates to `true` if the operation is a read; `false` if it is a write.
+*/
 #define isReadOperation(v)	(v == CPU6502::BusOperation::Read || v == CPU6502::BusOperation::ReadOpcode)
 
+/*!
+	An opcode that is guaranteed to cause the CPU to jam.
+*/
 extern const uint8_t JamOpcode;
 
+/*!
+	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
+
+	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
+	order to provde the bus on which the 6502 operates. Additional functionality can be provided by the host machine by providing
+	a jam handler and inserting jam opcodes where appropriate; that will cause call outs when the program counter reaches those
+	addresses. @c return_from_subroutine can be used to exit from a jammed state.
+*/
 template <class T> class Processor {
 	public:
 
@@ -55,10 +81,16 @@ template <class T> class Processor {
 
 	private:
 
+		/*
+			This emulation funcitons by decomposing instructions into micro programs, consisting of the micro operations
+			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+		*/
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			CycleSetIReadBRKLow,						CycleReadBRKHigh,					CycleReadFromS,							CycleReadFromPC,
+			CycleSetIReadBRKLow,						CycleReadBRKHigh,
+			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
@@ -84,6 +116,7 @@ template <class T> class Processor {
 			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+			OperationSetOperandFromFlags,
 			OperationSetFlagsFromA,						CycleReadRSTLow,					CycleReadRSTHigh,						CycleScheduleJam
 		};
 
@@ -96,33 +129,69 @@ template <class T> class Processor {
 			} bytes;
 		};
 
+		/*
+			Storage for the 6502 registers; F is stored as individual flags.
+		*/
 		RegisterPair _pc, _lastOperationPC;
 		uint8_t _a, _x, _y, _s;
 		uint8_t _carryFlag, _negativeResult, _zeroResult, _decimalFlag, _overflowFlag, _interruptFlag;
 
+		/*
+			Temporary state for the micro programs.
+		*/
 		uint8_t _operation, _operand;
 		RegisterPair _address, _nextAddress;
 
+		/*
+			Up to four programs can be scheduled; each will be carried out in turn. This
+			storage maintains pointers to the scheduled list of programs.
+
+			Programs should be terminated by an OperationMoveToNextProgram, causing this
+			queue to take that step.
+		*/
 		const MicroOp *_scheduledPrograms[4];
 		unsigned int _scheduleProgramsWritePointer, _scheduleProgramsReadPointer, _scheduleProgramProgramCounter;
 
+		/*
+			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
+			possibly deferring is no longer of value.
+		*/
 		BusOperation _nextBusOperation;
 		uint16_t _busAddress;
 		uint8_t *_busValue;
 
-		uint64_t _externalBus;
+		/*!
+			Schedules a new program, adding it to the end of the queue. Programs should be
+			terminated with a OperationMoveToNextProgram. No attempt to copy the program
+			is made; a non-owning reference is kept.
 
-		void schedule_program(const MicroOp *program)
+			@param program The program to schedule.
+		*/
+		inline void schedule_program(const MicroOp *program)
 		{
 			_scheduledPrograms[_scheduleProgramsWritePointer] = program;
 			_scheduleProgramsWritePointer = (_scheduleProgramsWritePointer+1)&3;
 		}
 
+		/*!
+			Gets the flags register.
+
+			@see set_flags
+
+			@returns The current value of the flags register.
+		*/
 		uint8_t get_flags()
 		{
 			return _carryFlag | _overflowFlag | _interruptFlag | (_negativeResult & 0x80) | (_zeroResult ? 0 : Flag::Zero) | Flag::Always | _decimalFlag;
 		}
 
+		/*!
+			Sets the flags register.
+
+			@see set_flags
+
+			@param flags The new value of the flags register.
+		*/
 		void set_flags(uint8_t flags)
 		{
 			_carryFlag		= flags		& Flag::Carry;
@@ -133,7 +202,12 @@ template <class T> class Processor {
 			_decimalFlag	= flags		& Flag::Decimal;
 		}
 
-		void decode_operation(uint8_t operation)
+		/*!
+			Schedules the program corresponding to the specified operation.
+
+			@param operation The operation code for which to schedule a program.
+		*/
+		inline void decode_operation(uint8_t operation)
 		{
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
 
@@ -378,21 +452,16 @@ template <class T> class Processor {
 
 		bool _ready_line_is_enabled;
 		bool _reset_line_is_enabled;
+		bool _irq_line_is_enabled, _irq_request_history[2];
+		bool _nmi_line_is_enabled;
 		bool _ready_is_active;
 
-	public:
-		Processor() :
-			_scheduleProgramsReadPointer(0),
-			_scheduleProgramsWritePointer(0),
-			_is_jammed(false),
-			_jam_handler(nullptr),
-			_cycles_left_to_run(0),
-			_ready_line_is_enabled(false),
-			_ready_is_active(false),
-			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr}
-		{}
+		/*!
+			Gets the program representing an RST response.
 
-		const MicroOp *get_reset_program() {
+			@returns The program representing an RST response.
+		*/
+		inline const MicroOp *get_reset_program() {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
 				CycleFetchOperand,
@@ -406,6 +475,60 @@ template <class T> class Processor {
 			return reset;
 		}
 
+		/*!
+			Gets the program representing an IRQ response.
+
+			@returns The program representing an IRQ response.
+		*/
+		inline const MicroOp *get_irq_program() {
+			static const MicroOp reset[] = {
+				CyclePushPCH,
+				CyclePushPCL,
+				OperationSetOperandFromFlags,
+				CyclePushOperand,
+				CycleSetIReadBRKLow,
+				CycleReadBRKHigh,
+				OperationMoveToNextProgram
+			};
+			return reset;
+		}
+
+	protected:
+		Processor() :
+			_scheduleProgramsReadPointer(0),
+			_scheduleProgramsWritePointer(0),
+			_is_jammed(false),
+			_jam_handler(nullptr),
+			_cycles_left_to_run(0),
+			_ready_line_is_enabled(false),
+			_ready_is_active(false),
+			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
+			_interruptFlag(Flag::Interrupt),
+			_s(0),
+			_nextBusOperation(BusOperation::None)
+
+		{
+			// only the interrupt flag is defined upon reset but get_flags isn't going to
+			// mask the other flags so we need to do that, at least
+			_carryFlag &= Flag::Carry;
+			_decimalFlag &= Flag::Decimal;
+			_overflowFlag &= Flag::Overflow;
+
+			// TODO: is this accurate? It feels more likely that a CPU would need to wait
+			// on an explicit reset command, since the relative startup times of different
+			// components from power on would be a bit unpredictable.
+			schedule_program(get_reset_program());
+		}
+
+	public:
+		/*!
+			Runs the 6502 for a supplied number of cycles.
+
+			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
+			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
+
+			@param number_of_cycles The number of cycles to run the 6502 for.
+		*/
 		void run_for_cycles(int number_of_cycles)
 		{
 			static const MicroOp doBranch[] = {
@@ -422,39 +545,56 @@ template <class T> class Processor {
 				OperationMoveToNextProgram
 			};
 
+			// These plus program below act to give the compiler permission to update these values
+			// without touching the class storage (i.e. it explicitly says they need be completely up
+			// to date in this stack frame only); which saves some complicated addressing
+			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
+			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
+			RegisterPair nextAddress = _nextAddress;
+			BusOperation nextBusOperation = _nextBusOperation;
+			uint16_t busAddress = _busAddress;
+			uint8_t *busValue = _busValue;
+
 #define checkSchedule(op) \
-	if(!_scheduledPrograms[_scheduleProgramsReadPointer]) {\
-		_scheduleProgramsReadPointer = _scheduleProgramsWritePointer = _scheduleProgramProgramCounter = 0;\
-		if(_reset_line_is_enabled)\
+	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
+		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
+		if(_reset_line_is_enabled) {\
 			schedule_program(get_reset_program());\
-		else\
-			schedule_program(fetch_decode_execute);\
+		} else {\
+			if(_irq_request_history[0])\
+				schedule_program(get_irq_program());\
+			else\
+				schedule_program(fetch_decode_execute);\
+		}\
 		op;\
 	}
 
 			checkSchedule();
-			_cycles_left_to_run += number_of_cycles;
+			number_of_cycles += _cycles_left_to_run;
+			const MicroOp *program = _scheduledPrograms[scheduleProgramsReadPointer];
 
-			while(_cycles_left_to_run > 0) {
+			while(number_of_cycles > 0) {
 
-				while (_ready_is_active && _cycles_left_to_run > 0) {
-					_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, _busAddress, _busValue);
+				while (_ready_is_active && number_of_cycles > 0) {
+					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
-				while (!_ready_is_active && _cycles_left_to_run > 0) {
+				while (!_ready_is_active && number_of_cycles > 0) {
 
-					if (_nextBusOperation != BusOperation::None) {
-						_cycles_left_to_run -= static_cast<T *>(this)->perform_bus_operation(_nextBusOperation, _busAddress, _busValue);
-						_nextBusOperation = BusOperation::None;
+					if(nextBusOperation != BusOperation::None) {
+						_irq_request_history[0] = _irq_request_history[1];
+						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
+						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
+						nextBusOperation = BusOperation::None;
 					}
 
-					const MicroOp cycle = _scheduledPrograms[_scheduleProgramsReadPointer][_scheduleProgramProgramCounter];
-					_scheduleProgramProgramCounter++;
+					const MicroOp cycle = program[scheduleProgramProgramCounter];
+					scheduleProgramProgramCounter++;
 
-#define read_op(val, addr)		_nextBusOperation = BusOperation::ReadOpcode;	_busAddress = addr;		_busValue = &val
-#define read_mem(val, addr)		_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &val
-#define throwaway_read(addr)	_nextBusOperation = BusOperation::Read;			_busAddress = addr;		_busValue = &throwaway_target
-#define write_mem(val, addr)	_nextBusOperation = BusOperation::Write;		_busAddress = addr;		_busValue = &val
+#define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val
+#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val
+#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target
+#define write_mem(val, addr)	nextBusOperation = BusOperation::Write;			busAddress = addr;		busValue = &val
 
 					switch(cycle) {
 
@@ -486,10 +626,11 @@ template <class T> class Processor {
 						break;
 
 						case OperationMoveToNextProgram:
-							_scheduledPrograms[_scheduleProgramsReadPointer] = NULL;
-							_scheduleProgramsReadPointer = (_scheduleProgramsReadPointer+1)&3;
-							_scheduleProgramProgramCounter = 0;
+							_scheduledPrograms[scheduleProgramsReadPointer] = NULL;
+							scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
+							scheduleProgramProgramCounter = 0;
 							checkSchedule();
+							program = _scheduledPrograms[scheduleProgramsReadPointer];
 						break;
 
 #define push(v) \
@@ -520,6 +661,7 @@ template <class T> class Processor {
 						case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
 						case OperationSetFlagsFromOperand:	set_flags(_operand);												break;
 						case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;						break;
+						case OperationSetOperandFromFlags:  _operand = get_flags();												break;
 						case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									break;
 
 						case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
@@ -539,7 +681,7 @@ template <class T> class Processor {
 							static const MicroOp jam[] = JAM;
 							schedule_program(jam);
 
-							if (_jam_handler) {
+							if(_jam_handler) {
 								_jam_handler->processor_did_jam(this, _pc.full - 1);
 								checkSchedule(_is_jammed = false);
 							}
@@ -754,31 +896,31 @@ template <class T> class Processor {
 #pragma mark - Addressing Mode Work
 
 						case CycleAddXToAddressLow:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
+							nextAddress.full = _address.full + _x;
+							_address.bytes.low = nextAddress.bytes.low;
+							if(_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
 						case CycleAddXToAddressLowRead:
-							_nextAddress.full = _address.full + _x;
-							_address.bytes.low = _nextAddress.bytes.low;
+							nextAddress.full = _address.full + _x;
+							_address.bytes.low = nextAddress.bytes.low;
 							throwaway_read(_address.full);
 						break;
 						case CycleAddYToAddressLow:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
-							if (_address.bytes.high != _nextAddress.bytes.high) {
+							nextAddress.full = _address.full + _y;
+							_address.bytes.low = nextAddress.bytes.low;
+							if(_address.bytes.high != nextAddress.bytes.high) {
 								throwaway_read(_address.full);
 							}
 						break;
 						case CycleAddYToAddressLowRead:
-							_nextAddress.full = _address.full + _y;
-							_address.bytes.low = _nextAddress.bytes.low;
+							nextAddress.full = _address.full + _y;
+							_address.bytes.low = nextAddress.bytes.low;
 							throwaway_read(_address.full);
 						break;
 						case OperationCorrectAddressHigh:
-							_address.full = _nextAddress.full;
+							_address.full = nextAddress.full;
 						break;
 						case CycleIncrementPCFetchAddressLowFromOperand:
 							_pc.full++;
@@ -849,11 +991,11 @@ template <class T> class Processor {
 						case OperationBEQ: BRA(!_zeroResult);							break;
 
 						case CycleAddSignedOperandToPC:
-							_nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
-							_pc.bytes.low = _nextAddress.bytes.low;
-							if(_nextAddress.bytes.high != _pc.bytes.high) {
+							nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
+							_pc.bytes.low = nextAddress.bytes.low;
+							if(nextAddress.bytes.high != _pc.bytes.high) {
 								uint16_t halfUpdatedPc = _pc.full;
-								_pc.full = _nextAddress.full;
+								_pc.full = nextAddress.full;
 								throwaway_read(halfUpdatedPc);
 							}
 						break;
@@ -877,11 +1019,10 @@ template <class T> class Processor {
 								_zeroResult = _negativeResult = _a;
 								_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
 
-								if ((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
+								if((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
 
 								_carryFlag = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
-								if (_carryFlag) _a += 0x60;
-
+								if(_carryFlag) _a += 0x60;
 							} else {
 								_a &= _operand;
 								_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
@@ -900,13 +1041,29 @@ template <class T> class Processor {
 						break;
 					}
 
-					if (isReadOperation(_nextBusOperation) && _ready_line_is_enabled) {
+					if(isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
 						_ready_is_active = true;
 					}
 				}
+
+				_cycles_left_to_run = number_of_cycles;
+				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
+				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
+				_nextAddress = nextAddress;
+				_nextBusOperation = nextBusOperation;
+				_busAddress = busAddress;
+				_busValue = busValue;
 			}
 		}
 
+		/*!
+			Gets the value of a register.
+
+			@see set_value_of_register
+
+			@param r The register to set.
+			@returns The value of the register. 8-bit registers will be returned as unsigned.
+		*/
 		uint16_t get_value_of_register(Register r)
 		{
 			switch (r) {
@@ -922,32 +1079,32 @@ template <class T> class Processor {
 			}
 		}
 
+		/*!
+			Sets the value of a register.
+
+			@see get_value_of_register
+
+			@param r The register to set.
+			@param value The value to set. If the register is only 8 bit, the value will be truncated.
+		*/
 		void set_value_of_register(Register r, uint16_t value)
 		{
 			switch (r) {
-				case Register::ProgramCounter:	_pc.full = value;	break;
-				case Register::StackPointer:	_s = value;			break;
-				case Register::Flags:			set_flags(value);	break;
-				case Register::A:				_a = value;			break;
-				case Register::X:				_x = value;			break;
-				case Register::Y:				_y = value;			break;
-				case Register::S:				_s = value;			break;
+				case Register::ProgramCounter:	_pc.full = value;			break;
+				case Register::StackPointer:	_s = (uint8_t)value;		break;
+				case Register::Flags:			set_flags((uint8_t)value);	break;
+				case Register::A:				_a = (uint8_t)value;		break;
+				case Register::X:				_x = (uint8_t)value;		break;
+				case Register::Y:				_y = (uint8_t)value;		break;
+				case Register::S:				_s = (uint8_t)value;		break;
 				default: break;
 			}
 		}
 
-		void setup6502()
-		{
-			// only the interrupt flag is defined upon reset but get_flags isn't going to
-			// mask the other flags so we need to do that, at least
-			_interruptFlag = Flag::Interrupt;
-			_carryFlag &= Flag::Carry;
-			_decimalFlag &= Flag::Decimal;
-			_overflowFlag &= Flag::Overflow;
-			_s = 0;
-			_nextBusOperation = BusOperation::None;
-		}
-
+		/*!
+			Interrupts current execution flow to perform an RTS and, if the 6502 is currently jammed,
+			to unjam it.
+		*/
 		void return_from_subroutine()
 		{
 			_s++;
@@ -960,28 +1117,70 @@ template <class T> class Processor {
 			}
 		}
 
-		void set_ready_line(bool active)
+		/*!
+			Sets the current level of the RDY line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
+		inline void set_ready_line(bool active)
 		{
-			if(active)
+			if(active) {
 				_ready_line_is_enabled = true;
-			else
-			{
+			} else {
 				_ready_line_is_enabled = false;
 				_ready_is_active = false;
 			}
 		}
 
-		void set_reset_line(bool active)
+		/*!
+			Sets the current level of the RST line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
+		inline void set_reset_line(bool active)
 		{
 			_reset_line_is_enabled = active;
 		}
 
-		bool is_jammed()
+		/*!
+			Sets the current level of the IRQ line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
+		inline void set_irq_line(bool active)
+		{
+			_irq_line_is_enabled = active;
+		}
+
+		/*!
+			Sets the current level of the NMI line.
+
+			@param active `true` if the line is logically active; `false` otherwise.
+		*/
+		inline void set_nmi_line(bool active)
+		{
+			// TODO: NMI is edge triggered, not level, and in any case _nmi_line_is_enabled
+			// is not honoured elsewhere. So NMI is yet to be implemented.
+			_nmi_line_is_enabled = active;
+		}
+
+		/*!
+			Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
+			such that it will not of itself perform any more meaningful processing.
+
+			@returns @c true if the 6502 is jammed; @c false otherwise.
+		*/
+		inline bool is_jammed()
 		{
 			return _is_jammed;
 		}
 
-		void set_jam_handler(JamHandler *handler)
+		/*!
+			Installs a jam handler. Jam handlers are notified if a running 6502 jams.
+
+			@param handler The class instance that will be this 6502's jam handler from now on.
+		*/
+		inline void set_jam_handler(JamHandler *handler)
 		{
 			_jam_handler = handler;
 		}

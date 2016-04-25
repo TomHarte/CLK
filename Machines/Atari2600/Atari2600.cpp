@@ -24,21 +24,39 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff}
 {
-	_crt = new Outputs::CRT(228, 262, 1, 2);
 	memset(_collisions, 0xff, sizeof(_collisions));
-	setup6502();
 	set_reset_line(true);
+}
+
+void Machine::setup_output(float aspect_ratio)
+{
+	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 2);
+	_crt->set_composite_sampling_function(
+		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
+		"{\n"
+			"vec2 c = vec2(texture(texID, coordinate).rg) / vec2(255.0);"
+			"float y = 0.1 + c.x * 0.91071428571429;"
+			"float aOffset = 6.283185308 * (2.0/16.0 - c.y);" //  - 3.0 / 16.0
+			"return y + step(0.03125, c.y) * amplitude * cos(phase - aOffset);"
+		"}");
+	_crt->set_output_device(Outputs::CRT::Television);
+}
+
+void Machine::close_output()
+{
+	delete _crt;
+	_crt = nullptr;
 }
 
 Machine::~Machine()
 {
 	delete[] _rom;
-	delete _crt;
+	close_output();
 }
 
 void Machine::switch_region()
 {
-	_crt->set_new_timing(228, 312);
+	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)
@@ -52,8 +70,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	for(int c = 0; c < 2; c++)
 	{
 		const uint8_t repeatMask = _playerAndMissileSize[c]&7;
-		if(_playerGraphics[c])
-		{
+		if(_playerGraphics[c]) {
 			// figure out player colour
 			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 
@@ -62,9 +79,9 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 			{
 				case 0: break;
 				default:
-					if (repeatMask&4 && relativeTimer >= 64) relativeTimer -= 64;
-					else if (repeatMask&2 && relativeTimer >= 32) relativeTimer -= 32;
-					else if (repeatMask&1 && relativeTimer >= 16) relativeTimer -= 16;
+					if(repeatMask&4 && relativeTimer >= 64) relativeTimer -= 64;
+					else if(repeatMask&2 && relativeTimer >= 32) relativeTimer -= 32;
+					else if(repeatMask&1 && relativeTimer >= 16) relativeTimer -= 16;
 				break;
 				case 5:
 					relativeTimer >>= 1;
@@ -79,16 +96,15 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		}
 
 		// figure out missile colour
-		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2))
-		{
+		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
 			int missileIndex = _objectCounter[2+c] - 4;
 			switch (repeatMask)
 			{
 				case 0: break;
 				default:
-					if (repeatMask&4 && missileIndex >= 64) missileIndex -= 64;
-					else if (repeatMask&2 && missileIndex >= 32) missileIndex -= 32;
-					else if (repeatMask&1 && missileIndex >= 16) missileIndex -= 16;
+					if(repeatMask&4 && missileIndex >= 64) missileIndex -= 64;
+					else if(repeatMask&2 && missileIndex >= 32) missileIndex -= 32;
+					else if(repeatMask&1 && missileIndex >= 16) missileIndex -= 16;
 				break;
 				case 5:
 					missileIndex >>= 1;
@@ -104,16 +120,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 	// get the ball proposed colour
 	uint8_t ballPixel = 0;
-	if(_ballGraphicsEnable&2)
-	{
+	if(_ballGraphicsEnable&2) {
 		int ballIndex = _objectCounter[4] - 4;
 		int ballSize = 1 << ((_playfieldControl >> 4)&3);
 		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
 	}
 
 	// accumulate collisions
-	if(playerPixels[0] | playerPixels[1])
-	{
+	if(playerPixels[0] | playerPixels[1]) {
 		_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
 		_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
 
@@ -123,8 +137,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7);
 	}
 
-	if(playfieldPixel | ballPixel)
-	{
+	if(playfieldPixel | ballPixel) {
 		_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
 		_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
 
@@ -139,27 +152,14 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
-		if (playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
-		if (playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
+		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
+		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
 	// map that colour to separate Y and phase components
 	pixel[0] = (outputColour << 4)&0xe0;
 	pixel[1] = outputColour&0xf0;
 }
-
-const char *Machine::get_signal_decoder()
-{
-	return
-		"float sample(vec2 coordinate, float phase)\n"
-		"{\n"
-			"vec2 c = texture(texID, coordinate).rg;"
-			"float y = 0.1 + c.x * 0.91071428571429;\n"
-			"float aOffset = 6.283185308 * (c.y - 3.0 / 16.0) * 1.14285714285714;\n"
-			"return y + step(0.03125, c.y) * 0.1 * cos(phase - aOffset);\n"
-		"}";
-}
-
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
 // this is faster than the straightforward +1)%160 per profiling
@@ -175,13 +175,13 @@ void Machine::output_pixels(unsigned int count)
 		OutputState state;
 
 		// update hmove
-		if (!(_horizontalTimer&3)) {
+		if(!(_horizontalTimer&3)) {
 
 			if(_hMoveFlags) {
 				const uint8_t counterValue = _hMoveCounter ^ 0x7;
 				for(int c = 0; c < 5; c++) {
-					if (counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
-					if (_hMoveFlags&(1 << c)) increment_object_counter(c);
+					if(counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
+					if(_hMoveFlags&(1 << c)) increment_object_counter(c);
 				}
 			}
 
@@ -201,15 +201,15 @@ void Machine::output_pixels(unsigned int count)
 
 		// it'll be about 43 cycles from start of hsync to start of visible frame, so...
 		// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-		if (_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
+		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			if(_vBlankEnabled) {
 				state = OutputState::Blank;
 			} else {
 				state = OutputState::Pixel;
 			}
 		}
-		else if (_horizontalTimer < end_of_sync) state = OutputState::Blank;
-		else if (_horizontalTimer < start_of_sync) state = OutputState::Sync;
+		else if(_horizontalTimer < end_of_sync) state = OutputState::Blank;
+		else if(_horizontalTimer < start_of_sync) state = OutputState::Sync;
 		else state = OutputState::Blank;
 
 		// logic: if vsync is enabled, output the opposite of the automatic hsync output
@@ -218,28 +218,23 @@ void Machine::output_pixels(unsigned int count)
 		}
 
 		_lastOutputStateDuration++;
-		if(state != _lastOutputState)
-		{
-			switch(_lastOutputState)
-			{
+		if(state != _lastOutputState) {
+			switch(_lastOutputState) {
 				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);	break;
 				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);	break;
-				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration);	break;
+				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration,	1);	break;
 			}
 			_lastOutputStateDuration = 0;
 			_lastOutputState = state;
 
-			if(state == OutputState::Pixel)
-			{
-				_crt->allocate_write_area(160);
-				_outputBuffer = _crt->get_write_target_for_buffer(0);
+			if(state == OutputState::Pixel) {
+				_outputBuffer = _crt->allocate_write_area(160);
 			} else {
 				_outputBuffer = nullptr;
 			}
 		}
 
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160))
-		{
+		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			if(_outputBuffer)
 				get_output_pixel(&_outputBuffer[_lastOutputStateDuration << 1], 159 - _horizontalTimer);
 
@@ -314,13 +309,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 
 		// check for a ROM read
-		if ((address&0x1000) && isReadOperation(operation)) {
+		if((address&0x1000) && isReadOperation(operation)) {
 			returnValue &= _romPages[(address >> 10)&3][address&1023];
 		}
 
 		// check for a RAM access
-		if ((address&0x1280) == 0x80) {
-
+		if((address&0x1280) == 0x80) {
 			if(isReadOperation(operation)) {
 				returnValue &= _ram[address&0x7f];
 			} else {
@@ -329,7 +323,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 
 		// check for a TIA access
-		if (!(address&0x1080)) {
+		if(!(address&0x1080)) {
 			if(isReadOperation(operation)) {
 				const uint16_t decodedAddress = address & 0xf;
 				switch(decodedAddress) {
@@ -474,7 +468,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x28:
 					case 0x29:
-						if (!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
+						if(!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
 							_objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
 						_missileGraphicsReset[decodedAddress - 0x28] = *value;
 					break;
@@ -501,7 +495,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 
 		// check for a PIA access
-		if ((address&0x1280) == 0x280) {
+		if((address&0x1280) == 0x280) {
 			if(isReadOperation(operation)) {
 				const uint8_t decodedAddress = address & 0xf;
 				switch(address & 0xf) {

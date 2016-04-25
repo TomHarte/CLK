@@ -9,8 +9,8 @@
 #ifndef Atari2600_cpp
 #define Atari2600_cpp
 
-#include "../Processors/6502/CPU6502.hpp"
-#include "../Outputs/CRT.hpp"
+#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 #include <stdint.h>
 #include "Atari2600Inputs.h"
 
@@ -19,7 +19,6 @@ namespace Atari2600 {
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:
-
 		Machine();
 		~Machine();
 
@@ -30,9 +29,9 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
 
-		Outputs::CRT *get_crt() { return _crt; }
-
-		const char *get_signal_decoder();
+		Outputs::CRT::CRT *get_crt() { return _crt; }
+		void setup_output(float aspect_ratio);
+		void close_output();
 
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];
@@ -93,7 +92,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void output_pixels(unsigned int count);
 		void get_output_pixel(uint8_t *pixel, int offset);
-		Outputs::CRT *_crt;
+		Outputs::CRT::CRT *_crt;
 
 		// latched output state
 		unsigned int _lastOutputStateDuration;
