@@ -95,7 +95,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
+	glBlendColor(1.0f, 1.0f, 1.0f, 0.33f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(composite_texture_unit);
@@ -672,7 +673,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 0.75;"//15.0*exp(-age*3.0);"
+			"alpha = 1.0;"//15.0*exp(-age*3.0);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
