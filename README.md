@@ -13,8 +13,8 @@ The hard emulation parts are C++11 and assume the OpenGL Core Profile; an Object
 
 Composite decoding is currently performed purely by notch filtering; this produces worse separation than a comb but remained the predominant method for cheap TVs into the 1980s so is nevertheless not unrealistic. As I have yet to introduce any sort of inter-line processing, when running in PAL mode mine is the equivalent of a PAL-S. Since all signals propagate within a closed circuit there's no opportunity for a phase change that would produce Hanover bars but it's probably something that needs addressing regardless.
 
-I've hesitated on a comb since it becomes complicated with machines — including the already-supported Atari 2600 — that use a not-strictly-conformant line length*, or, more substantially, with those that reset phase every line**.
+I've hesitated on a comb since it becomes complicated with machines — including the already-supported Atari 2600 — that use a not-strictly-conformant line length†, or, more substantially, with those that reset phase every line††.
 
-*) per the documentation, its 228 cycles per line make each of its pixels exactly one NTSC colour clock long. There are 228.5 NTSC colour clocks per line so its hardware would appear to produce shorter-than-specified lines (albeit still well within tolerable variation).
+† per the documentation, its 228 cycles per line make each of its pixels exactly one NTSC colour clock long. There are 228.5 NTSC colour clocks per line so its hardware would appear to produce shorter-than-specified lines (albeit still well within tolerable variation).
 
-**) I suspect that a real TV will switch to a notch if adjacent colour bursts appear to keep resetting the colour oscillator, amongst other sanity checks, as analogue delay lines have a physically-fixed duration. I just need to do the same.
+†† I suspect that a real TV will switch to a notch if adjacent colour bursts appear to keep resetting the colour oscillator, amongst other sanity checks, as analogue delay lines have a physically-fixed duration. I just need to do the same.
