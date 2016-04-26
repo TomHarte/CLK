@@ -14,7 +14,6 @@ using namespace Atari2600;
 static const int horizontalTimerReload = 227;
 
 Machine::Machine() :
-	_timestamp(0),
 	_horizontalTimer(0),
 	_lastOutputStateDuration(0),
 	_lastOutputState(OutputState::Sync),
@@ -257,8 +256,6 @@ void Machine::output_pixels(unsigned int count)
 
 		if(!_horizontalTimer)
 			_vBlankExtend = false;
-
-		_timestamp ++;
 	}
 }
 

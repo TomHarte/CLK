@@ -37,8 +37,6 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t *_rom, *_romPages[4], _ram[128];
 		size_t _rom_size;
 
-		uint64_t _timestamp;
-
 		// the timer
 		unsigned int _piaTimerValue;
 		unsigned int _piaTimerShift, _writtenPiaTimerShift;
