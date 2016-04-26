@@ -299,7 +299,7 @@ void CRT::output_scan(const Scan *const scan)
 	{
 		if(_horizontal_flywheel->get_current_time() < (_horizontal_flywheel->get_standard_period() * 12) >> 6)
 		{
-			_colour_burst_time = (uint16_t)_colour_burst_time;
+			_colour_burst_time = (uint16_t)_horizontal_flywheel->get_current_time();
 			_colour_burst_phase = scan->phase;
 			_colour_burst_amplitude = scan->amplitude;
 		}

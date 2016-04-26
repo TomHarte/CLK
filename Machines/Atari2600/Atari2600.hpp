@@ -87,6 +87,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		enum OutputState {
 			Sync,
 			Blank,
+			ColourBurst,
 			Pixel
 		};
 

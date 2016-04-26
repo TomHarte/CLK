@@ -30,14 +30,15 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 2);
+	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1);
 	_crt->set_composite_sampling_function(
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
-		"{\n"
-			"vec2 c = vec2(texture(texID, coordinate).rg) / vec2(255.0);"
-			"float y = 0.1 + c.x * 0.91071428571429;"
-			"float aOffset = 6.283185308 * (2.0/16.0 - c.y);" //  - 3.0 / 16.0
-			"return y + step(0.03125, c.y) * amplitude * cos(phase - aOffset);"
+		"{"
+			"uint c = texture(texID, coordinate).r;"
+			"uint y = (c >> 1) & 7u;"
+			"uint iPhase = (c >> 4);"
+			"float phaseOffset = 6.283185308 * float(iPhase + 13u) / 16.0;"
+			"return (float(y) / 7.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
 }
@@ -156,9 +157,8 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
-	// map that colour to separate Y and phase components
-	pixel[0] = (outputColour << 4)&0xe0;
-	pixel[1] = outputColour&0xf0;
+	// store colour
+	pixel[0] = outputColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -169,6 +169,7 @@ void Machine::output_pixels(unsigned int count)
 {
 	const int32_t start_of_sync = 214;
 	const int32_t end_of_sync = 198;
+	const int32_t end_of_colour_burst = 188;
 
 	while(count--)
 	{
@@ -208,7 +209,8 @@ void Machine::output_pixels(unsigned int count)
 				state = OutputState::Pixel;
 			}
 		}
-		else if(_horizontalTimer < end_of_sync) state = OutputState::Blank;
+		else if(_horizontalTimer < end_of_colour_burst) state = OutputState::Blank;
+		else if(_horizontalTimer < end_of_sync) state = OutputState::ColourBurst;
 		else if(_horizontalTimer < start_of_sync) state = OutputState::Sync;
 		else state = OutputState::Blank;
 
@@ -220,9 +222,10 @@ void Machine::output_pixels(unsigned int count)
 		_lastOutputStateDuration++;
 		if(state != _lastOutputState) {
 			switch(_lastOutputState) {
-				case OutputState::Blank:	_crt->output_blank(_lastOutputStateDuration);	break;
-				case OutputState::Sync:		_crt->output_sync(_lastOutputStateDuration);	break;
-				case OutputState::Pixel:	_crt->output_data(_lastOutputStateDuration,	1);	break;
+				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
+				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
+				case OutputState::ColourBurst:	_crt->output_colour_burst(_lastOutputStateDuration, 96, 0);	break;
+				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
 			}
 			_lastOutputStateDuration = 0;
 			_lastOutputState = state;
@@ -236,7 +239,7 @@ void Machine::output_pixels(unsigned int count)
 
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			if(_outputBuffer)
-				get_output_pixel(&_outputBuffer[_lastOutputStateDuration << 1], 159 - _horizontalTimer);
+				get_output_pixel(&_outputBuffer[_lastOutputStateDuration], 159 - _horizontalTimer);
 
 			// increment all graphics counters
 			increment_object_counter(0);
