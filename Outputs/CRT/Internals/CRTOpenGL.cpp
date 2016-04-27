@@ -36,8 +36,14 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei *ranges)
+static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, GLsizei *ranges)
 {
+	GLsizei startOffset = start%granularity;
+	if(startOffset)
+	{
+		start -= startOffset;
+	}
+
 	GLsizei length = end - start;
 	if(!length) return 0;
 	if(length > buffer_length)
@@ -74,7 +80,6 @@ namespace {
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
-	_run_write_pointer(0),
 	_output_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
 	_composite_src_output_y(0),
@@ -85,18 +90,14 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_source_buffer_data(nullptr),
 	_input_texture_data(nullptr),
 	_output_buffer_data_pointer(0),
+	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
 	_drawn_source_buffer_data_pointer(0)
 {
-	_run_builders = new CRTRunBuilder *[NumberOfFields];
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		_run_builders[builder] = new CRTRunBuilder();
-	}
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
-	glBlendColor(1.0f, 1.0f, 1.0f, 0.33f);
+	glBlendColor(1.0f, 1.0f, 1.0f, 0.5f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(composite_texture_unit);
@@ -156,12 +157,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-	for(int builder = 0; builder < NumberOfFields; builder++)
-	{
-		delete _run_builders[builder];
-	}
-	delete[] _run_builders;
-
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteTextures(1, &textureName);
@@ -203,11 +198,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// release the mapping, giving up on trying to draw if data has been lost
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	if(glUnmapBuffer(GL_ARRAY_BUFFER) == GL_FALSE)
-	{
-		for(int c = 0; c < NumberOfFields; c++)
-			_run_builders[c]->reset();
-	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
@@ -242,8 +233,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			// determine how many lines are newly reclaimed; they'll need to be cleared
 			GLsizei clearing_zones[4], drawing_zones[4];
-			int number_of_clearing_zones = getCircularRanges(_cleared_composite_output_y+1, _composite_src_output_y+1, IntermediateBufferHeight, clearing_zones);
-			int number_of_drawing_zones = getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, drawing_zones);
+			int number_of_clearing_zones = getCircularRanges(_cleared_composite_output_y+1, _composite_src_output_y+1, IntermediateBufferHeight, 1, clearing_zones);
+			int number_of_drawing_zones = getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, drawing_zones);
 
 			_composite_src_output_y %= IntermediateBufferHeight;
 			_cleared_composite_output_y = _composite_src_output_y;
@@ -324,23 +315,17 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 	if(shader)
 	{
 		// clear the buffer
-		glClear(GL_COLOR_BUFFER_BIT);
+//		glClear(GL_COLOR_BUFFER_BIT);
 
-		// draw all sitting frames
-		unsigned int run = (unsigned int)_run_write_pointer;
-		GLint total_age = 0;
-		float timestampBases[4];
-		size_t start = 0, count = 0;
-		for(int c = 0; c < NumberOfFields; c++)
-		{
-			total_age += _run_builders[run]->duration;
-			timestampBases[run] = (float)total_age;
-			count += _run_builders[run]->amount_of_data;
-			start = _run_builders[run]->start;
-			run = (run - 1 + NumberOfFields) % NumberOfFields;
-		}
+		// draw all pending lines
+		GLsizei drawing_zones[4];
+		int number_of_drawing_zones = getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, drawing_zones);
 
-		if(count > 0)
+		_output_buffer_data_pointer %= SourceVertexBufferDataSize;
+		_output_buffer_data_pointer -= (_output_buffer_data_pointer%(6*OutputVertexSize));
+		_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
+
+		if(number_of_drawing_zones > 0)
 		{
 			glEnable(GL_BLEND);
 
@@ -352,18 +337,9 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 			push_size_uniforms(output_width, output_height);
 
 			// draw
-			glUniform4fv(timestampBaseUniform, 1, timestampBases);
-
-			GLsizei primitive_count = (GLsizei)(count / OutputVertexSize);
-			GLsizei max_count = (GLsizei)((OutputVertexBufferDataSize - start) / OutputVertexSize);
-			if(primitive_count < max_count)
+			for(int c = 0; c < number_of_drawing_zones; c++)
 			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / OutputVertexSize), primitive_count);
-			}
-			else
-			{
-				glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(start / OutputVertexSize), max_count);
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, primitive_count - max_count);
+				glDrawArrays(GL_TRIANGLE_STRIP, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
 			}
 		}
 	}
@@ -673,7 +649,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 1.0;"//15.0*exp(-age*3.0);"
+			"alpha = 0.5;"//15.0*exp(-age*3.0);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
@@ -884,12 +860,6 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 	if(_output_device != output_device)
 	{
 		_output_device = output_device;
-
-		for(int builder = 0; builder < NumberOfFields; builder++)
-		{
-			_run_builders[builder]->reset();
-		}
-
 		_composite_src_output_y = 0;
 	}
 }

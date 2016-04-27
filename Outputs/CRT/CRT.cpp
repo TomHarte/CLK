@@ -10,6 +10,7 @@
 #include "CRTOpenGL.hpp"
 #include <stdarg.h>
 #include <math.h>
+#include <algorithm>
 
 using namespace Outputs::CRT;
 
@@ -149,14 +150,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				// set the type, initial raster position and type of this run
 				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
+//				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = tex_x;
 
 				// these things are constants across the line so just throw them out now
 				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(4) = output_tex_y(5) = tex_y;
 				output_lateral(0) = output_lateral(1) = output_lateral(3) = 0;
 				output_lateral(2) = output_lateral(4) = output_lateral(5) = 1;
-				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = output_frame_id(3) = output_frame_id(4) = output_frame_id(5) = (uint8_t)_openGL_output_builder->get_current_field();
+//				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = output_frame_id(3) = output_frame_id(4) = output_frame_id(5) = (uint8_t)_openGL_output_builder->get_current_field();
 			}
 			else
 			{
@@ -175,7 +176,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// decrement the number of cycles left to run for and increment the
 		// horizontal counter appropriately
 		number_of_cycles -= next_run_length;
-		_openGL_output_builder->add_to_field_time(next_run_length);
+//		_openGL_output_builder->add_to_field_time(next_run_length);
 
 		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
 		if(vsync_charging)
@@ -197,7 +198,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				// store the final raster position
 				output_position_x(3) = output_position_x(4) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(3) = output_position_y(4) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _openGL_output_builder->get_current_field_time();
+//				output_timestamp(3) = output_timestamp(4) = output_timestamp(5) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(3) = output_tex_x(4) = output_tex_x(5) = tex_x;
 
 				_openGL_output_builder->complete_output_run(6);
@@ -227,13 +228,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
+//				output_timestamp(0) = output_timestamp(1) = output_timestamp(2) = _openGL_output_builder->get_current_field_time();
 				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
 				output_lateral(0) = 0;
 				output_lateral(1) = _is_writing_composite_run ? 1 : 0;
 				output_lateral(2) = 1;
-				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = (uint8_t)_openGL_output_builder->get_current_field();
+//				output_frame_id(0) = output_frame_id(1) = output_frame_id(2) = (uint8_t)_openGL_output_builder->get_current_field();
 
 				_openGL_output_builder->complete_output_run(3);
 				_is_writing_composite_run ^= true;
@@ -258,7 +259,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				}
 			}
 
-			_openGL_output_builder->increment_field();
+//			_openGL_output_builder->increment_field();
 		}
 	}
 }

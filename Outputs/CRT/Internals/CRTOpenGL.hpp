@@ -15,7 +15,6 @@
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
 #include "CRTInputBufferBuilder.hpp"
-#include "CRTRunBuilder.hpp"
 
 #include <mutex>
 
@@ -58,8 +57,6 @@ class OpenGLOutputBuilder {
 
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		CRTRunBuilder **_run_builders;
-		int _run_write_pointer;
 		std::shared_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
@@ -132,29 +129,18 @@ class OpenGLOutputBuilder {
 		inline uint8_t *get_next_output_run()
 		{
 			_output_mutex->lock();
-			return &_output_buffer_data[_output_buffer_data_pointer];
+			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
 		inline void complete_output_run(GLsizei vertices_written)
 		{
-			_run_builders[_run_write_pointer]->amount_of_data += (size_t)(vertices_written * OutputVertexSize);
-			_output_buffer_data_pointer = (_output_buffer_data_pointer + vertices_written * OutputVertexSize) % OutputVertexBufferDataSize;
+			_output_buffer_data_pointer += vertices_written * OutputVertexSize;
 			_output_mutex->unlock();
 		}
 
 		inline OutputDevice get_output_device()
 		{
 			return _output_device;
-		}
-
-		inline uint32_t get_current_field_time()
-		{
-			return _run_builders[_run_write_pointer]->duration;
-		}
-
-		inline void add_to_field_time(uint32_t amount)
-		{
-			_run_builders[_run_write_pointer]->duration += amount;
 		}
 
 		inline uint16_t get_composite_output_y()
@@ -165,20 +151,6 @@ class OpenGLOutputBuilder {
 		inline void increment_composite_output_y()
 		{
 			_composite_src_output_y++;
-		}
-
-		inline void increment_field()
-		{
-			_output_mutex->lock();
-			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
-			_run_builders[_run_write_pointer]->start = (size_t)_output_buffer_data_pointer;
-			_run_builders[_run_write_pointer]->reset();
-			_output_mutex->unlock();
-		}
-
-		inline int get_current_field()
-		{
-			return _run_write_pointer;
 		}
 
 		inline uint8_t *allocate_write_area(size_t required_length)
@@ -217,12 +189,13 @@ class OpenGLOutputBuilder {
 		GLsync _input_texture_sync;
 		GLsizeiptr _input_texture_array_size;
 
-		uint8_t *_output_buffer_data;
-		GLsizei _output_buffer_data_pointer;
-
 		uint8_t *_source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
 		GLsizei _drawn_source_buffer_data_pointer;
+
+		uint8_t *_output_buffer_data;
+		GLsizei _output_buffer_data_pointer;
+		GLsizei _drawn_output_buffer_data_pointer;
 };
 
 }
