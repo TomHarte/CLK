@@ -96,8 +96,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 {
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
-	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
-	glBlendColor(1.0f, 1.0f, 1.0f, 0.5f);
+	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
+	glBlendColor(0.4f, 0.4f, 0.4f, 0.5f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	glActiveTexture(composite_texture_unit);
@@ -205,7 +205,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
-	if(_buffer_builder->_next_write_y_position < _buffer_builder->last_uploaded_line)
+	if(_buffer_builder->_write_y_position < _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
 							0, (GLint)_buffer_builder->last_uploaded_line,
@@ -215,7 +215,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		_buffer_builder->last_uploaded_line = 0;
 	}
 
-	if(_buffer_builder->_next_write_y_position > _buffer_builder->last_uploaded_line)
+	if(_buffer_builder->_write_y_position > _buffer_builder->last_uploaded_line)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
 							0, (GLint)_buffer_builder->last_uploaded_line,
@@ -649,7 +649,7 @@ char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
 			"iSrcCoordinatesVarying = srcCoordinates;"
 			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
 			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 0.5;"//15.0*exp(-age*3.0);"
+			"alpha = 0.6;"//15.0*exp(-age*3.0);"
 
 			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
