@@ -21,33 +21,40 @@ public:
 		Constructs and returns an instance of OutputShader. OutputShaders are intended to read source data
 		from a texture and draw a single raster scan containing that data as output.
 
-		The fragment shader should expect to receive the inputs:
+		Does not catch any of the exceptions potentially thrown by `Shader::Shader`.
 
-			in float lateralVarying;
-			in vec2 srcCoordinatesVarying;
-			in vec2 iSrcCoordinatesVarying;
+		All instances of OutputShader are guaranteed to use the same attribute locations for their inputs.
 
-		If `use_usampler` is `true` then a `uniform usampler2D texID` will be used as the source texture.
-		Otherwise it'll be a `sampler2D`.
+		@param fragment_methods A block of code that will appear within the global area of the fragment shader.
 
-		`lateralVarying` is a value in radians that is equal to 0 at the centre of the scan and ± a suitable
-		angle at the top and bottom extremes.
+		@param colour_expression An expression that should evaluate to a `vec3` indicating the colour at the current location. The
+		decision should be a function of the uniform `texID`, which will be either a `usampler2D` or a `sampler2D` as per the
+		`use_usampler` parameter, and the inputs `srcCoordinatesVarying` which is a location within the texture from which to
+		take the source value, and `iSrcCoordinatesVarying` which is a value proportional to `srcCoordinatesVarying` but scaled
+		so that one unit equals one source sample.
 
-		`srcCoordinatesVarying` is a value representing the coordinates for source data in the texture
-		attached to the sampler `texID`.
-
-		`iSrcCoordinatesVarying` is a value corresponding to `srcCoordinatesVarying` but scaled up so that
-		one unit is the width of one source sample.
-
-		Does not catch any exceptions raised by `Shader::Shader`.
+		@param use_usampler Dictates the type of the `texID` uniform; will be a `usampler2D` if this parameter is `true`, a
+		`sampler2D` otherwise.
 
 		@returns an instance of OutputShader.
 	*/
-	static std::unique_ptr<OutputShader> make_shader(const char *fragment_methods, const char *output_colour, bool use_usampler);
+	static std::unique_ptr<OutputShader> make_shader(const char *fragment_methods, const char *colour_expression, bool use_usampler);
 	using Shader::Shader;
 
+	/*!
+		Binds this shader and configures it for output to an area of `output_width` and `output_height` pixels, ensuring
+		the largest possible drawing size that allows everything within `visible_area` to be visible.
+	*/
 	void set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area);
+
+	/*!
+		Binds this shader and sets the texture unit (as an enum, e.g. `GL_TEXTURE0`) to sample as source data.
+	*/
 	void set_source_texture_unit(GLenum unit);
+
+	/*!
+		Binds this shader and configures its understanding of how to map from the source vertex stream to screen coordinates.
+	*/
 	void set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
 	private:

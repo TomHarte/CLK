@@ -23,7 +23,7 @@ namespace {
 	};
 }
 
-std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_methods, const char *output_colour, bool use_usampler)
+std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_methods, const char *colour_expression, bool use_usampler)
 {
 	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
 
