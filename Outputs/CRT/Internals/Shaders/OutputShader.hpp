@@ -43,7 +43,7 @@ public:
 
 		@returns an instance of OutputShader.
 	*/
-	static std::unique_ptr<OutputShader> make_shader(const char *fragment_shader, bool use_usampler);
+	static std::unique_ptr<OutputShader> make_shader(const char *fragment_methods, const char *output_colour, bool use_usampler);
 	using Shader::Shader;
 
 	void set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area);

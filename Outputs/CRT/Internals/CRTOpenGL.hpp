@@ -63,14 +63,6 @@ class OpenGLOutputBuilder {
 		// transient buffers indicating composite data not yet decoded
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;
 
-		char *get_output_vertex_shader(const char *header);
-		char *get_rgb_output_vertex_shader();
-		char *get_composite_output_vertex_shader();
-
-		char *get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function);
-		char *get_rgb_output_fragment_shader();
-		char *get_composite_output_fragment_shader();
-
 		char *get_input_vertex_shader(const char *input_position, const char *header);
 		char *get_input_fragment_shader();
 

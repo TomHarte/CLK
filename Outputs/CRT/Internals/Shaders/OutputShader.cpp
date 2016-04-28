@@ -23,8 +23,10 @@ namespace {
 	};
 }
 
-std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_shader, bool use_usampler)
+std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_methods, const char *output_colour, bool use_usampler)
 {
+	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
+
 	char *vertex_shader;
 	asprintf(&vertex_shader,
 		"#version 150\n"
@@ -54,10 +56,31 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_sha
 			"vec2 floatingPosition = (position / positionConversion) + lateral * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
-		"}", use_usampler ? "usampler2D" : "sampler2D");
+		"}", sampler_type);
+
+	char *fragment_shader;
+	asprintf(&fragment_shader,
+		"#version 150\n"
+
+		"in float lateralVarying;"
+		"in vec2 srcCoordinatesVarying;"
+		"in vec2 iSrcCoordinatesVarying;"
+
+		"out vec4 fragColour;"
+
+		"uniform %s texID;"
+
+		"\n%s\n"
+
+		"void main(void)"
+		"{"
+			"fragColour = vec4(%s, 0.6*cos(lateralVarying));"
+		"}",
+	sampler_type, fragment_methods, output_colour);
 
 	std::unique_ptr<OutputShader> result = std::unique_ptr<OutputShader>(new OutputShader(vertex_shader, fragment_shader, bindings));
 	free(vertex_shader);
+	free(fragment_shader);
 
 	result->boundsSizeUniform			= result->get_uniform_location("boundsSize");
 	result->boundsOriginUniform			= result->get_uniform_location("boundsOrigin");

@@ -580,58 +580,6 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 
 #pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
 
-#pragma mark - Output fragment shaders; RGB and from composite
-
-char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
-{
-	const char *rgb_shader = _rgb_shader;
-	if(!_rgb_shader)
-	{
-		rgb_shader =
-			"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
-			"{"
-				"return texture(sampler, coordinate).rgb / vec3(255.0);"
-			"}";
-	}
-
-	char *result = get_output_fragment_shader(rgb_shader, "uniform usampler2D texID;",
-		"vec3 colour = rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying);");
-
-	return result;
-}
-
-char *OpenGLOutputBuilder::get_composite_output_fragment_shader()
-{
-	return get_output_fragment_shader("",
-		"uniform sampler2D texID;",
-		"vec3 colour = texture(texID, srcCoordinatesVarying).rgb;"
-		);
-}
-
-char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function)
-{
-	char *result;
-	asprintf(&result,
-		"#version 150\n"
-
-		"in float lateralVarying;"
-		"in vec2 srcCoordinatesVarying;"
-		"in vec2 iSrcCoordinatesVarying;"
-
-		"out vec4 fragColour;"
-
-		"%s\n"
-		"%s\n"
-		"void main(void)"
-		"{"
-			"\n%s\n"
-			"fragColour = vec4(colour, 0.5*cos(lateralVarying));"
-		"}",
-	header, sampling_function, fragColour_function);
-
-	return result;
-}
-
 #pragma mark - Program compilation
 
 std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends)
@@ -695,24 +643,26 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	}
 }
 
-std::unique_ptr<OpenGL::OutputShader> OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader, bool use_usampler, GLenum source_texture_unit)
-{
-	std::unique_ptr<OpenGL::OutputShader> shader_program;
-
-	shader_program = OpenGL::OutputShader::make_shader(fragment_shader, use_usampler);
-	shader_program->set_source_texture_unit(source_texture_unit);
-
-	return shader_program;
-}
-
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_fragment_shader(), true, source_data_texture_unit);
+	const char *rgb_shader = _rgb_shader;
+	if(!_rgb_shader)
+	{
+		rgb_shader =
+			"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+			"{"
+				"return texture(sampler, coordinate).rgb / vec3(255.0);"
+			"}";
+	}
+
+	rgb_shader_program = OpenGL::OutputShader::make_shader(rgb_shader, "rgb_sample(texID, srcCoordinatesVarying, iSrcCoordinatesVarying)", true);
+	rgb_shader_program->set_source_texture_unit(source_data_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader(), false, filtered_texture_unit);
+	composite_output_shader_program = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
+	composite_output_shader_program->set_source_texture_unit(filtered_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
