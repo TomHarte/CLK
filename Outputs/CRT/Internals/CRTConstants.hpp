@@ -44,13 +44,6 @@ const GLsizei IntermediateBufferHeight = 2048;
 const GLsizeiptr OutputVertexBufferDataSize = 89856;	// a multiple of 6 * OutputVertexSize
 const GLsizeiptr SourceVertexBufferDataSize = 87360;	// a multiple of 2 * SourceVertexSize
 
-
-// Runs are divided discretely by vertical syncs in order to put a usable bounds on the uniform used to track
-// run age; that therefore creates a discrete number of fields that are stored. This number should be the
-// number of historic fields that are required fully to complete a frame. It should be at least two and not
-// more than four.
-const int NumberOfFields = 4;
-
 }
 }
 
