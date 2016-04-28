@@ -11,6 +11,7 @@
 
 #include "CRTOpenGL.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
+#include "Shaders/OutputShader.hpp"
 
 static const GLint internalFormatForDepth(size_t depth)
 {
@@ -310,7 +311,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_output_mutex->unlock();
 }
 
-void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader)
+void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::OutputShader *const shader)
 {
 	if(shader)
 	{
@@ -331,10 +332,9 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 			// Ensure we're back on the output framebuffer, drawing from the output array buffer
 			glBindVertexArray(output_vertex_array);
-			shader->bind();
 
-			// update uniforms
-			push_size_uniforms(output_width, output_height);
+			// update uniforms (implicitly binding the shader)
+			shader->set_output_size(output_width, output_height, _visible_area);
 
 			// draw
 			for(int c = 0; c < number_of_drawing_zones; c++)
@@ -347,28 +347,6 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 
 void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
 {
-}
-
-void OpenGLOutputBuilder::push_size_uniforms(unsigned int output_width, unsigned int output_height)
-{
-	if(windowSizeUniform >= 0)
-	{
-		glUniform2f(windowSizeUniform, output_width, output_height);
-	}
-
-	GLfloat outputAspectRatioMultiplier = ((float)output_width / (float)output_height) / (4.0f / 3.0f);
-
-	Rect _aspect_ratio_corrected_bounds = _visible_area;
-
-	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * _visible_area.size.width;
-	_aspect_ratio_corrected_bounds.origin.x -= bonusWidth * 0.5f * _aspect_ratio_corrected_bounds.size.width;
-	_aspect_ratio_corrected_bounds.size.width *= outputAspectRatioMultiplier;
-
-	if(boundsOriginUniform >= 0)
-		glUniform2f(boundsOriginUniform, (GLfloat)_aspect_ratio_corrected_bounds.origin.x, (GLfloat)_aspect_ratio_corrected_bounds.origin.y);
-
-	if(boundsSizeUniform >= 0)
-		glUniform2f(boundsSizeUniform, (GLfloat)_aspect_ratio_corrected_bounds.size.width, (GLfloat)_aspect_ratio_corrected_bounds.size.height);
 }
 
 void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
@@ -602,72 +580,6 @@ char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
 
 #pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
 
-#pragma mark - Output vertex shader
-
-char *OpenGLOutputBuilder::get_output_vertex_shader(const char *header)
-{
-	// the main job of the vertex shader is just to map from an input area of [0,1]x[0,1], with the origin in the
-	// top left to OpenGL's [-1,1]x[-1,1] with the origin in the lower left, and to convert input data coordinates
-	// from integral to floating point.
-
-	char *result;
-	asprintf(&result,
-		"#version 150\n"
-
-		"in vec2 position;"
-		"in vec2 srcCoordinates;"
-		"in vec2 lateralAndTimestampBaseOffset;"
-		"in float timestamp;"
-
-		"uniform vec2 boundsOrigin;"
-		"uniform vec2 boundsSize;"
-
-		"out float lateralVarying;"
-//		"out vec2 shadowMaskCoordinates;"
-		"out float alpha;"
-
-		"uniform vec4 timestampBase;"
-		"uniform float ticksPerFrame;"
-		"uniform vec2 positionConversion;"
-		"uniform vec2 scanNormal;"
-
-		"\n%s\n"
-//		"uniform sampler2D shadowMaskTexID;"
-
-//		"const float shadowMaskMultiple = 600;"
-
-		"out vec2 srcCoordinatesVarying;"
-		"out vec2 iSrcCoordinatesVarying;"
-
-		"void main(void)"
-		"{"
-			"lateralVarying = lateralAndTimestampBaseOffset.x + 1.0707963267949;"
-
-//			"shadowMaskCoordinates = position * vec2(shadowMaskMultiple, shadowMaskMultiple * 0.85057471264368);"
-
-			"ivec2 textureSize = textureSize(texID, 0);"
-			"iSrcCoordinatesVarying = srcCoordinates;"
-			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
-			"float age = (timestampBase[int(lateralAndTimestampBaseOffset.y)] - timestamp) / ticksPerFrame;"
-			"alpha = 0.6;"//15.0*exp(-age*3.0);"
-
-			"vec2 floatingPosition = (position / positionConversion) + lateralAndTimestampBaseOffset.x * scanNormal;"
-			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
-			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
-		"}", header);
-	return result;
-}
-
-char *OpenGLOutputBuilder::get_rgb_output_vertex_shader()
-{
-	return get_output_vertex_shader("uniform usampler2D texID;");
-}
-
-char *OpenGLOutputBuilder::get_composite_output_vertex_shader()
-{
-	return get_output_vertex_shader("uniform sampler2D texID;");
-}
-
 #pragma mark - Output fragment shaders; RGB and from composite
 
 char *OpenGLOutputBuilder::get_rgb_output_fragment_shader()
@@ -703,20 +615,17 @@ char *OpenGLOutputBuilder::get_output_fragment_shader(const char *sampling_funct
 		"#version 150\n"
 
 		"in float lateralVarying;"
-		"in float alpha;"
-//		"in vec2 shadowMaskCoordinates;"
 		"in vec2 srcCoordinatesVarying;"
 		"in vec2 iSrcCoordinatesVarying;"
 
 		"out vec4 fragColour;"
 
-//		"uniform sampler2D shadowMaskTexID;",
 		"%s\n"
 		"%s\n"
 		"void main(void)"
 		"{"
 			"\n%s\n"
-			"fragColour = vec4(colour, clamp(alpha, 0.0, 1.0)*sin(lateralVarying));"
+			"fragColour = vec4(colour, 0.5*cos(lateralVarying));"
 		"}",
 	header, sampling_function, fragColour_function);
 
@@ -786,46 +695,24 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	}
 }
 
-std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit)
+std::unique_ptr<OpenGL::OutputShader> OpenGLOutputBuilder::prepare_output_shader(char *fragment_shader, bool use_usampler, GLenum source_texture_unit)
 {
-	std::unique_ptr<OpenGL::Shader> shader_program;
+	std::unique_ptr<OpenGL::OutputShader> shader_program;
 
-	if(vertex_shader && fragment_shader)
-	{
-		OpenGL::Shader::AttributeBinding bindings[] =
-		{
-			{"position", 0},
-			{"srcCoordinates", 1},
-			{"lateralAndTimestampBaseOffset", 2},
-			{"timestamp", 3},
-			{nullptr}
-		};
-		shader_program = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, bindings));
-		shader_program->bind();
-
-		windowSizeUniform			= shader_program->get_uniform_location("windowSize");
-		boundsSizeUniform			= shader_program->get_uniform_location("boundsSize");
-		boundsOriginUniform			= shader_program->get_uniform_location("boundsOrigin");
-		timestampBaseUniform		= shader_program->get_uniform_location("timestampBase");
-
-		GLint texIDUniform				= shader_program->get_uniform_location("texID");
-		glUniform1i(texIDUniform, source_texture_unit - GL_TEXTURE0);
-	}
-
-	free(vertex_shader);
-	free(fragment_shader);
+	shader_program = OpenGL::OutputShader::make_shader(fragment_shader, use_usampler);
+	shader_program->set_source_texture_unit(source_texture_unit);
 
 	return shader_program;
 }
 
 void OpenGLOutputBuilder::prepare_rgb_output_shader()
 {
-	rgb_shader_program = prepare_output_shader(get_rgb_output_vertex_shader(), get_rgb_output_fragment_shader(), source_data_texture_unit);
+	rgb_shader_program = prepare_output_shader(get_rgb_output_fragment_shader(), true, source_data_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_composite_output_shader()
 {
-	composite_output_shader_program = prepare_output_shader(get_composite_output_vertex_shader(), get_composite_output_fragment_shader(), filtered_texture_unit);
+	composite_output_shader_program = prepare_output_shader(get_composite_output_fragment_shader(), false, filtered_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
@@ -834,22 +721,19 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		GLint positionAttribute				= rgb_shader_program->get_attrib_location("position");
 		GLint textureCoordinatesAttribute	= rgb_shader_program->get_attrib_location("srcCoordinates");
-		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateralAndTimestampBaseOffset");
-		GLint timestampAttribute			= rgb_shader_program->get_attrib_location("timestamp");
+		GLint lateralAttribute				= rgb_shader_program->get_attrib_location("lateral");
 
 		glBindVertexArray(output_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
 		glEnableVertexAttribArray((GLuint)lateralAttribute);
-		glEnableVertexAttribArray((GLuint)timestampAttribute);
 
 		const GLsizei vertexStride = OutputVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
-		glVertexAttribPointer((GLuint)timestampAttribute,			4, GL_UNSIGNED_INT,		GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTimestamp);
-		glVertexAttribPointer((GLuint)lateralAttribute,				2, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
+		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
 	}
 }
 
@@ -947,7 +831,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 		extends = true;
 	}
 
-	OpenGL::Shader *output_shaders[] = {
+	OpenGL::OutputShader *output_shaders[] = {
 		rgb_shader_program.get(),
 		composite_output_shader_program.get()
 	};
@@ -955,21 +839,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	{
 		if(output_shaders[c])
 		{
-			output_shaders[c]->bind();
-
-			GLint ticksPerFrameUniform		= output_shaders[c]->get_uniform_location("ticksPerFrame");
-			GLint scanNormalUniform			= output_shaders[c]->get_uniform_location("scanNormal");
-			GLint positionConversionUniform	= output_shaders[c]->get_uniform_location("positionConversion");
-
-			glUniform1f(ticksPerFrameUniform, (GLfloat)(_cycles_per_line * _height_of_display));
-			float scan_angle = atan2f(1.0f / (float)_height_of_display, 1.0f);
-			float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
-			float multiplier = (float)_cycles_per_line / ((float)_height_of_display * (float)_horizontal_scan_period);
-			scan_normal[0] *= multiplier;
-			scan_normal[1] *= multiplier;
-			glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
-
-			glUniform2f(positionConversionUniform, _horizontal_scan_period, _vertical_scan_period / (unsigned int)_vertical_period_divider);
+			output_shaders[c]->set_timing(_height_of_display, _cycles_per_line, _horizontal_scan_period, _vertical_scan_period, _vertical_period_divider);
 		}
 	}
 

@@ -16,6 +16,8 @@
 #include "Shader.hpp"
 #include "CRTInputBufferBuilder.hpp"
 
+#include "Shaders/OutputShader.hpp"
+
 #include <mutex>
 
 namespace Outputs {
@@ -46,14 +48,13 @@ class OpenGLOutputBuilder {
 		// Methods used by the OpenGL code
 		void prepare_rgb_output_shader();
 		void prepare_composite_output_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit);
+		std::unique_ptr<OpenGL::OutputShader> prepare_output_shader(char *fragment_shader, bool use_usampler, GLenum source_texture_unit);
 
 		void prepare_composite_input_shader();
 		std::unique_ptr<OpenGL::Shader> prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends);
 
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
-		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
@@ -76,8 +77,8 @@ class OpenGLOutputBuilder {
 		char *get_y_filter_fragment_shader();
 		char *get_chrominance_filter_fragment_shader();
 
-		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
-		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::OutputShader> rgb_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
@@ -93,7 +94,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 
-		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader);
+		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::OutputShader *const shader);
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
 

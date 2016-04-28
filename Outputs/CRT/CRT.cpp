@@ -100,8 +100,6 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
 #define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
 #define output_lateral(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfLateral]
-#define output_frame_id(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfFrameID]
-#define output_timestamp(v)			(*(uint32_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTimestamp])
 
 #define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
@@ -269,7 +267,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #undef output_tex_x
 #undef output_tex_y
 #undef output_lateral
-#undef output_timestamp
 
 #undef input_input_position_x
 #undef input_input_position_y

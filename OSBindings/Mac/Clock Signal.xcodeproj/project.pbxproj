@@ -305,8 +305,9 @@
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */; };
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
-		4BBF99171C8FBA6F0075DAFB /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99101C8FBA6F0075DAFB /* Shader.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
+		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
+		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BCB70B31C947DDC005B1712 /* plus1.rom */; };
@@ -661,11 +662,13 @@
 		4BBF990B1C8FBA6F0075DAFB /* CRTOpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTOpenGL.hpp; sourceTree = "<group>"; };
 		4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Flywheel.hpp; sourceTree = "<group>"; };
 		4BBF990F1C8FBA6F0075DAFB /* OpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OpenGL.hpp; sourceTree = "<group>"; };
-		4BBF99101C8FBA6F0075DAFB /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
-		4BBF99111C8FBA6F0075DAFB /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
+		4BC3B74D1CD194CC00F86E85 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
+		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
+		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
+		4BC3B7511CD1956900F86E85 /* OutputShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OutputShader.hpp; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -1203,19 +1206,29 @@
 		4BBF99071C8FBA6F0075DAFB /* Internals */ = {
 			isa = PBXGroup;
 			children = (
+				4BC3B74C1CD194CC00F86E85 /* Shaders */,
 				4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */,
 				4BBF99091C8FBA6F0075DAFB /* CRTInputBufferBuilder.hpp */,
 				4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */,
 				4BBF990B1C8FBA6F0075DAFB /* CRTOpenGL.hpp */,
 				4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */,
 				4BBF990F1C8FBA6F0075DAFB /* OpenGL.hpp */,
-				4BBF99101C8FBA6F0075DAFB /* Shader.cpp */,
-				4BBF99111C8FBA6F0075DAFB /* Shader.hpp */,
 				4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */,
 				4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */,
 				4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */,
 			);
 			path = Internals;
+			sourceTree = "<group>";
+		};
+		4BC3B74C1CD194CC00F86E85 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				4BC3B74D1CD194CC00F86E85 /* Shader.cpp */,
+				4BC3B74E1CD194CC00F86E85 /* Shader.hpp */,
+				4BC3B7501CD1956900F86E85 /* OutputShader.cpp */,
+				4BC3B7511CD1956900F86E85 /* OutputShader.hpp */,
+			);
+			path = Shaders;
 			sourceTree = "<group>";
 		};
 		4BE5F85A1C3E1C2500C43F01 /* Resources */ = {
@@ -1647,6 +1660,7 @@
 				4B55CE541C3B7ABF0093A61B /* CSElectron.mm in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
+				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
 				4B55CE4B1C3B3B0C0093A61B /* CSAtari2600.mm in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
 				4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */,
@@ -1658,10 +1672,10 @@
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
 				4B55CE4E1C3B3BDA0093A61B /* CSMachine.mm in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
-				4BBF99171C8FBA6F0075DAFB /* Shader.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
+				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 			);
