@@ -74,7 +74,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(%s, 0.6*cos(lateralVarying));"
+			"fragColour = vec4(%s, 0.7*cos(lateralVarying));"
 		"}",
 	sampler_type, fragment_methods, colour_expression);
 

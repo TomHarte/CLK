@@ -93,7 +93,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_output_buffer_data_pointer(0),
 	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
-	_drawn_source_buffer_data_pointer(0)
+	_drawn_source_buffer_data_pointer(0),
+	_last_output_width(0),
+	_last_output_height(0)
 {
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
@@ -315,9 +317,6 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 {
 	if(shader)
 	{
-		// clear the buffer
-//		glClear(GL_COLOR_BUFFER_BIT);
-
 		// draw all pending lines
 		GLsizei drawing_zones[4];
 		int number_of_drawing_zones = getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, drawing_zones);
@@ -334,7 +333,15 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 			glBindVertexArray(output_vertex_array);
 
 			// update uniforms (implicitly binding the shader)
-			shader->set_output_size(output_width, output_height, _visible_area);
+			if(_last_output_width != output_width || _last_output_height != output_height)
+			{
+				glClear(GL_COLOR_BUFFER_BIT);
+				shader->set_output_size(output_width, output_height, _visible_area);
+				_last_output_width = output_width;
+				_last_output_height = output_height;
+			}
+			else
+				shader->bind();
 
 			// draw
 			for(int c = 0; c < number_of_drawing_zones; c++)
@@ -453,6 +460,8 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 	{
 		_output_device = output_device;
 		_composite_src_output_y = 0;
+		_last_output_width = 0;
+		_last_output_height = 0;
 	}
 }
 
