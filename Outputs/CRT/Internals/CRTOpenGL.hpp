@@ -17,6 +17,7 @@
 #include "CRTInputBufferBuilder.hpp"
 
 #include "Shaders/OutputShader.hpp"
+#include "Shaders/IntermediateShader.hpp"
 
 #include <mutex>
 
@@ -70,13 +71,10 @@ class OpenGLOutputBuilder {
 		char *get_chrominance_filter_fragment_shader();
 
 		std::unique_ptr<OpenGL::OutputShader> rgb_shader_program, composite_output_shader_program;
-		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
-
-		GLint windowSizeUniform, timestampBaseUniform;
-		GLint boundsOriginUniform, boundsSizeUniform;
 
 		GLuint textureName, shadowMaskTextureName;
 

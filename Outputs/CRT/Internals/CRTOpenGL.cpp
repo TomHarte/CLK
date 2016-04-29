@@ -359,263 +359,21 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 	_rgb_shader = strdup(shader);
 }
 
-#pragma mark - Input vertex shader (i.e. from source data to intermediate line layout)
-
-char *OpenGLOutputBuilder::get_input_vertex_shader(const char *input_position, const char *header)
-{
-	char *result;
-	asprintf(&result,
-		"#version 150\n"
-
-		"in vec2 inputPosition;"
-		"in vec2 outputPosition;"
-		"in vec3 phaseAmplitudeAndOffset;"
-		"in float phaseTime;"
-
-		"uniform float phaseCyclesPerTick;"
-		"uniform ivec2 outputTextureSize;"
-		"uniform float extension;"
-
-		"\n%s\n"
-
-		"out vec2 inputPositionVarying;"
-		"out vec2 iInputPositionVarying;"
-		"out float phaseVarying;"
-		"out float amplitudeVarying;"
-		"out vec2 inputPositionsVarying[11];"
-
-		"void main(void)"
-		"{"
-			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (phaseAmplitudeAndOffset.z - 0.5);"
-			"vec2 extendedInputPosition = %s + extensionVector;"
-			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
-
-			"vec2 textureSize = vec2(textureSize(texID, 0));"
-			"iInputPositionVarying = extendedInputPosition;"
-			"inputPositionVarying = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
-
-			"textureSize = textureSize * vec2(1.0);"
-			"inputPositionsVarying[0] = inputPositionVarying - (vec2(10.0, 0.0) / textureSize);"
-			"inputPositionsVarying[1] = inputPositionVarying - (vec2(8.0, 0.0) / textureSize);"
-			"inputPositionsVarying[2] = inputPositionVarying - (vec2(6.0, 0.0) / textureSize);"
-			"inputPositionsVarying[3] = inputPositionVarying - (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[4] = inputPositionVarying - (vec2(2.0, 0.0) / textureSize);"
-
-			"inputPositionsVarying[5] = inputPositionVarying;"
-
-			"inputPositionsVarying[6] = inputPositionVarying + (vec2(2.0, 0.0) / textureSize);"
-			"inputPositionsVarying[7] = inputPositionVarying + (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[8] = inputPositionVarying + (vec2(6.0, 0.0) / textureSize);"
-			"inputPositionsVarying[9] = inputPositionVarying + (vec2(8.0, 0.0) / textureSize);"
-			"inputPositionsVarying[10] = inputPositionVarying + (vec2(10.0, 0.0) / textureSize);"
-
-			"phaseVarying = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
-			"amplitudeVarying = 0.33;" // phaseAmplitudeAndOffset.y
-
-			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
-			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-		"}", header, input_position);
-	return result;
-}
-
-char *OpenGLOutputBuilder::get_input_fragment_shader()
-{
-	char *composite_shader = _composite_shader;
-	if(!composite_shader)
-	{
-		asprintf(&composite_shader,
-			"%s\n"
-			"uniform mat3 rgbToLumaChroma;"
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
-			"{"
-				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
-				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
-				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
-				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
-			"}",
-			_rgb_shader);
-		// TODO: use YIQ if this is NTSC
-	}
-
-	char *result;
-	asprintf(&result,
-		"#version 150\n"
-
-		"in vec2 inputPositionVarying;"
-		"in vec2 iInputPositionVarying;"
-		"in float phaseVarying;"
-		"in float amplitudeVarying;"
-
-		"out vec4 fragColour;"
-
-		"uniform usampler2D texID;"
-
-		"\n%s\n"
-
-		"void main(void)"
-		"{"
-			"fragColour = vec4(composite_sample(texID, inputPositionVarying, iInputPositionVarying, phaseVarying, amplitudeVarying));"
-		"}"
-	, composite_shader);
-
-	if(!_composite_shader) free(composite_shader);
-
-	return result;
-}
-
-char *OpenGLOutputBuilder::get_y_filter_fragment_shader()
-{
-	return strdup(
-		"#version 150\n"
-
-		"in float phaseVarying;"
-		"in float amplitudeVarying;"
-
-		"in vec2 inputPositionsVarying[11];"
-		"uniform vec4 weights[3];"
-
-		"out vec3 fragColour;"
-
-		"uniform sampler2D texID;"
-
-		"void main(void)"
-		"{"
-			"vec4 samples[3] = vec4[]("
-				"vec4("
-					"texture(texID, inputPositionsVarying[0]).r,"
-					"texture(texID, inputPositionsVarying[1]).r,"
-					"texture(texID, inputPositionsVarying[2]).r,"
-					"texture(texID, inputPositionsVarying[3]).r"
-				"),"
-				"vec4("
-					"texture(texID, inputPositionsVarying[4]).r,"
-					"texture(texID, inputPositionsVarying[5]).r,"
-					"texture(texID, inputPositionsVarying[6]).r,"
-					"texture(texID, inputPositionsVarying[7]).r"
-				"),"
-				"vec4("
-					"texture(texID, inputPositionsVarying[8]).r,"
-					"texture(texID, inputPositionsVarying[9]).r,"
-					"texture(texID, inputPositionsVarying[10]).r,"
-					"0.0"
-				")"
-			");"
-
-			"float luminance = "
-				"dot(vec3("
-					"dot(samples[0], weights[0]),"
-					"dot(samples[1], weights[1]),"
-					"dot(samples[2], weights[2])"
-				"), vec3(1.0)) / (1.0 - amplitudeVarying);"
-
-			"float chrominance = 0.5 * (samples[1].y - luminance) / amplitudeVarying;"
-			"vec2 quadrature = vec2(cos(phaseVarying), -sin(phaseVarying));"
-
-			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
-		"}");
-}
-
-char *OpenGLOutputBuilder::get_chrominance_filter_fragment_shader()
-{
-	return strdup(
-		"#version 150\n"
-
-		"in float phaseVarying;"
-		"in float amplitudeVarying;"
-
-		"in vec2 inputPositionsVarying[11];"
-		"uniform vec4 weights[3];"
-
-		"out vec3 fragColour;"
-
-		"uniform sampler2D texID;"
-		"uniform mat3 lumaChromaToRGB;"
-
-		"void main(void)"
-		"{"
-			"vec3 centreSample = texture(texID, inputPositionsVarying[5]).rgb;"
-			"vec2 samples[] = vec2[]("
-				"texture(texID, inputPositionsVarying[0]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[1]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[2]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[3]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[4]).gb - vec2(0.5),"
-				"centreSample.gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[6]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[7]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[8]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[9]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[10]).gb - vec2(0.5)"
-			");"
-
-			"vec4 channel1[] = vec4[]("
-				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
-				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
-				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
-			");"
-			"vec4 channel2[] = vec4[]("
-				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
-				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
-				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
-			");"
-
-			"vec3 lumaChromaColour = vec3(centreSample.r,"
-				"dot(vec3("
-					"dot(channel1[0], weights[0]),"
-					"dot(channel1[1], weights[1]),"
-					"dot(channel1[2], weights[2])"
-				"), vec3(1.0)) + 0.5,"
-				"dot(vec3("
-					"dot(channel2[0], weights[0]),"
-					"dot(channel2[1], weights[1]),"
-					"dot(channel2[2], weights[2])"
-				"), vec3(1.0)) + 0.5"
-			");"
-
-			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
-			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
-		"}");
-}
-
-
-#pragma mark - Intermediate vertex shaders (i.e. from intermediate line layout to intermediate line layout)
-
 #pragma mark - Program compilation
-
-std::unique_ptr<OpenGL::Shader> OpenGLOutputBuilder::prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends)
-{
-	std::unique_ptr<OpenGL::Shader> shader;
-	char *vertex_shader = get_input_vertex_shader(input_position, header);
-	if(vertex_shader && fragment_shader)
-	{
-		OpenGL::Shader::AttributeBinding bindings[] =
-		{
-			{"inputPosition", 0},
-			{"outputPosition", 1},
-			{"phaseAmplitudeAndOffset", 2},
-			{"phaseTime", 3},
-			{nullptr}
-		};
-		shader = std::unique_ptr<OpenGL::Shader>(new OpenGL::Shader(vertex_shader, fragment_shader, bindings));
-
-		GLint texIDUniform				= shader->get_uniform_location("texID");
-		GLint outputTextureSizeUniform	= shader->get_uniform_location("outputTextureSize");
-
-		shader->bind();
-		glUniform1i(texIDUniform, (GLint)(texture_unit - GL_TEXTURE0));
-		glUniform2i(outputTextureSizeUniform, IntermediateBufferWidth, IntermediateBufferHeight);
-	}
-	free(vertex_shader);
-	free(fragment_shader);
-
-	return shader;
-}
 
 void OpenGLOutputBuilder::prepare_composite_input_shader()
 {
-	composite_input_shader_program = prepare_intermediate_shader("inputPosition", "uniform usampler2D texID;", get_input_fragment_shader(), source_data_texture_unit, false);
-	composite_y_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_y_filter_fragment_shader(), composite_texture_unit, true);
-	composite_chrominance_filter_shader_program = prepare_intermediate_shader("outputPosition", "uniform sampler2D texID;", get_chrominance_filter_fragment_shader(), filtered_y_texture_unit, true);
+	composite_input_shader_program = OpenGL::IntermediateShader::make_source_conversion_shader(_composite_shader, _rgb_shader);
+	composite_input_shader_program->set_source_texture_unit(source_data_texture_unit);
+	composite_input_shader_program->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+
+	composite_y_filter_shader_program = OpenGL::IntermediateShader::make_chroma_luma_separation_shader();
+	composite_y_filter_shader_program->set_source_texture_unit(composite_texture_unit);
+	composite_y_filter_shader_program->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+
+	composite_chrominance_filter_shader_program = OpenGL::IntermediateShader::make_chroma_filter_shader();
+	composite_chrominance_filter_shader_program->set_source_texture_unit(filtered_y_texture_unit);
+	composite_chrominance_filter_shader_program->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array()
@@ -735,49 +493,24 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 		break;
 	}
 
-	if(composite_input_shader_program)
-	{
-		composite_input_shader_program->bind();
-		GLint uniform = composite_input_shader_program->get_uniform_location("rgbToLumaChroma");
-		if(uniform >= 0)
-		{
-			glUniformMatrix3fv(uniform, 1, GL_FALSE, fromRGB);
-		}
-	}
-
-	if(composite_chrominance_filter_shader_program)
-	{
-		composite_chrominance_filter_shader_program->bind();
-		GLint uniform = composite_chrominance_filter_shader_program->get_uniform_location("lumaChromaToRGB");
-		if(uniform >= 0)
-		{
-			glUniformMatrix3fv(uniform, 1, GL_FALSE, toRGB);
-		}
-	}
+	if(composite_input_shader_program) composite_input_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
+	if(composite_chrominance_filter_shader_program) composite_chrominance_filter_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
 	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
 	_output_mutex->lock();
-	OpenGL::Shader *intermediate_shaders[] = {
+	OpenGL::IntermediateShader *intermediate_shaders[] = {
 		composite_input_shader_program.get(),
 		composite_y_filter_shader_program.get(),
 		composite_chrominance_filter_shader_program.get()
 	};
 	bool extends = false;
+	float phaseCyclesPerTick = (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line);
 	for(int c = 0; c < 3; c++)
 	{
-		if(intermediate_shaders[c])
-		{
-			intermediate_shaders[c]->bind();
-			GLint phaseCyclesPerTickUniform	= intermediate_shaders[c]->get_uniform_location("phaseCyclesPerTick");
-			GLint extensionUniform			= intermediate_shaders[c]->get_uniform_location("extension");
-
-			float phaseCyclesPerTick = (float)_colour_cycle_numerator / (float)(_colour_cycle_denominator * _cycles_per_line);
-			glUniform1f(phaseCyclesPerTickUniform, phaseCyclesPerTick);
-			glUniform1f(extensionUniform, extends ? ceilf(1.0f / phaseCyclesPerTick) : 0.0f);
-		}
+		if(intermediate_shaders[c]) intermediate_shaders[c]->set_phase_cycles_per_sample(phaseCyclesPerTick, extends);
 		extends = true;
 	}
 
@@ -787,32 +520,11 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	};
 	for(int c = 0; c < 2; c++)
 	{
-		if(output_shaders[c])
-		{
-			output_shaders[c]->set_timing(_height_of_display, _cycles_per_line, _horizontal_scan_period, _vertical_scan_period, _vertical_period_divider);
-		}
+		if(output_shaders[c]) output_shaders[c]->set_timing(_height_of_display, _cycles_per_line, _horizontal_scan_period, _vertical_scan_period, _vertical_period_divider);
 	}
 
 	float colour_subcarrier_frequency = (float)_colour_cycle_numerator / (float)_colour_cycle_denominator;
-	GLint weightsUniform;
-	float weights[12];
-
-	if(composite_y_filter_shader_program)
-	{
-		SignalProcessing::FIRFilter luminance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
-		composite_y_filter_shader_program->bind();
-		weightsUniform = composite_y_filter_shader_program->get_uniform_location("weights");
-		luminance_filter.get_coefficients(weights);
-		glUniform4fv(weightsUniform, 3, weights);
-	}
-
-	if(composite_chrominance_filter_shader_program)
-	{
-		SignalProcessing::FIRFilter chrominance_filter(11, _cycles_per_line * 0.5f, 0.0f, colour_subcarrier_frequency * 0.5f, SignalProcessing::FIRFilter::DefaultAttenuation);
-		composite_chrominance_filter_shader_program->bind();
-		weightsUniform = composite_chrominance_filter_shader_program->get_uniform_location("weights");
-		chrominance_filter.get_coefficients(weights);
-		glUniform4fv(weightsUniform, 3, weights);
-	}
+	if(composite_y_filter_shader_program) composite_y_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.5f);
+	if(composite_chrominance_filter_shader_program) composite_chrominance_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.5f);
 	_output_mutex->unlock();
 }

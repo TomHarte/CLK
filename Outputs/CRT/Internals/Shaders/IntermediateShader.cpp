@@ -264,7 +264,11 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 {
 	bind();
 
+	sampling_rate *= 0.5f;
+	cutoff_frequency *= 0.5f;
+
 	float weights[12];
+	weights[11] = 0.0f;
 	SignalProcessing::FIRFilter luminance_filter(11, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 	luminance_filter.get_coefficients(weights);
 	glUniform4fv(weightsUniform, 3, weights);
