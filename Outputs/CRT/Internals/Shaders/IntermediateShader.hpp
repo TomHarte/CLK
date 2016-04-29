@@ -20,8 +20,22 @@ class IntermediateShader: public Shader {
 public:
 	using Shader::Shader;
 
+	/*!
+		Constructs and returns an intermediate shader that will take runs from the inputPositions,
+		converting them to single-channel composite values using @c composite_shader if supplied
+		or @c rgb_shader and a reference composite conversion if @c composite_shader is @c nullptr.
+	*/
 	static std::unique_ptr<IntermediateShader> make_source_conversion_shader(const char *composite_shader, const char *rgb_shader);
+
+	/*!
+		Constructs and returns an intermediate shader that will read composite samples from the R channel,
+		filter then to obtain luminance, stored to R, and to separate out unfiltered chrominance, store to G and B.
+	*/
 	static std::unique_ptr<IntermediateShader> make_chroma_luma_separation_shader();
+
+	/*!
+		Constructs and returns an intermediate shader that will pass R through unchanged while filtering G and B.
+	*/
 	static std::unique_ptr<IntermediateShader> make_chroma_filter_shader();
 
 	/*!
