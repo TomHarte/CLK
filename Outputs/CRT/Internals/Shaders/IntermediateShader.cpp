@@ -44,6 +44,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 		"uniform ivec2 outputTextureSize;"
 		"uniform float extension;"
 		"uniform %s texID;"
+		"uniform float offsets[5];"
 
 		"out vec2 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
@@ -60,17 +61,17 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"iInputPositionVarying = extendedInputPosition;"
 			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
 
-			"inputPositionsVarying[0] = mappedInputPosition - (vec2(10.0, 0.0) / textureSize);"
-			"inputPositionsVarying[1] = mappedInputPosition - (vec2(8.0, 0.0) / textureSize);"
-			"inputPositionsVarying[2] = mappedInputPosition - (vec2(6.0, 0.0) / textureSize);"
-			"inputPositionsVarying[3] = mappedInputPosition - (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[4] = mappedInputPosition - (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[4], 0.0) / textureSize);"
+			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[3], 0.0) / textureSize);"
+			"inputPositionsVarying[2] = mappedInputPosition - (vec2(offsets[2], 0.0) / textureSize);"
+			"inputPositionsVarying[3] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
+			"inputPositionsVarying[4] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
 			"inputPositionsVarying[5] = mappedInputPosition;"
-			"inputPositionsVarying[6] = mappedInputPosition + (vec2(2.0, 0.0) / textureSize);"
-			"inputPositionsVarying[7] = mappedInputPosition + (vec2(4.0, 0.0) / textureSize);"
-			"inputPositionsVarying[8] = mappedInputPosition + (vec2(6.0, 0.0) / textureSize);"
-			"inputPositionsVarying[9] = mappedInputPosition + (vec2(8.0, 0.0) / textureSize);"
-			"inputPositionsVarying[10] = mappedInputPosition + (vec2(10.0, 0.0) / textureSize);"
+			"inputPositionsVarying[6] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
+			"inputPositionsVarying[7] = mappedInputPosition + (vec2(offsets[1], 0.0) / textureSize);"
+			"inputPositionsVarying[8] = mappedInputPosition + (vec2(offsets[2], 0.0) / textureSize);"
+			"inputPositionsVarying[9] = mappedInputPosition + (vec2(offsets[3], 0.0) / textureSize);"
+			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[4], 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
 			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
@@ -90,6 +91,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 	shader->weightsUniform				= shader->get_uniform_location("weights");
 	shader->rgbToLumaChromaUniform		= shader->get_uniform_location("rgbToLumaChroma");
 	shader->lumaChromaToRGBUniform		= shader->get_uniform_location("lumaChromaToRGB");
+	shader->offsetsUniform				= shader->get_uniform_location("offsets");
 
 	return shader;
 }
@@ -264,14 +266,54 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 {
 	bind();
 
-	sampling_rate *= 0.5f;
-	cutoff_frequency *= 0.5f;
-
+	// The process below: the source texture will have bilinear filtering enabled; so by
+	// sampling at non-integral offsets from the centre the shader can get a weighted sum
+	// of two source pixels, then scale that once, to do two taps per sample. However
+	// that works only if the two coefficients being joined have the same sign. So the
+	// number of usable taps is between 11 and 21 depending on the values that come out.
+	// Perform a linear search for the highest number of taps we can use with 11 samples.
 	float weights[12];
-	weights[11] = 0.0f;
-	SignalProcessing::FIRFilter luminance_filter(11, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
-	luminance_filter.get_coefficients(weights);
+	float offsets[5];
+	unsigned int taps = 21;
+	while(1)
+	{
+		float coefficients[21];
+		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
+		luminance_filter.get_coefficients(coefficients);
+
+		int sample = 0;
+		int c = 0;
+		memset(weights, 0, sizeof(float)*12);
+		while(c < (taps >> 1) && sample < 5)
+		{
+			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
+			{
+				weights[sample] = coefficients[c] + coefficients[c+1];
+				offsets[sample] = (float)c + 1.0f + (coefficients[c+1] / weights[sample]);
+				c += 2;
+			}
+			else
+			{
+				offsets[sample] = (float)c + 1.0f;
+				weights[sample] = coefficients[c];
+				c++;
+			}
+			sample ++;
+		}
+		if(c == (taps >> 1))
+		{
+			weights[sample] = coefficients[c];
+			for(int c = 0; c < sample; c++)
+			{
+				weights[sample+c+1] = weights[sample-c-1];
+			}
+			break;
+		}
+		taps -= 2;
+	}
+
 	glUniform4fv(weightsUniform, 3, weights);
+	glUniform1fv(offsetsUniform, 5, offsets);
 }
 
 void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)

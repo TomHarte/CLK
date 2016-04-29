@@ -74,6 +74,7 @@ private:
 	GLint extensionUniform;
 	GLint rgbToLumaChromaUniform;
 	GLint lumaChromaToRGBUniform;
+	GLint offsetsUniform;
 };
 
 }
