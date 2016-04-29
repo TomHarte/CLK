@@ -28,7 +28,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																//	a TV picture tube or camera tube to the starting point of a line or field. It is about 7 µs
 																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
 
-	_time_multiplier = (2000 + cycles_per_line - 1) / cycles_per_line;
+	_time_multiplier = IntermediateBufferWidth / cycles_per_line;
 
 	// store fundamental display configuration properties
 	_height_of_display = height_of_display;
