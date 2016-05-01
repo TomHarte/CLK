@@ -10,6 +10,8 @@
 #define TextureTarget_hpp
 
 #include "OpenGL.hpp"
+#include "Shaders/Shader.hpp"
+#include <memory>
 
 namespace OpenGL {
 
@@ -40,6 +42,11 @@ class TextureTarget {
 		*/
 		void bind_texture();
 
+		/*!
+
+		*/
+		void draw(float aspect_ratio, GLenum texture_unit);
+
 		enum {
 			ErrorFramebufferIncomplete
 		};
@@ -47,6 +54,10 @@ class TextureTarget {
 	private:
 		GLuint _framebuffer, _texture;
 		GLsizei _width, _height;
+
+		std::unique_ptr<Shader> _pixel_shader;
+		GLuint _drawing_vertex_array, _drawing_array_buffer;
+		float _set_aspect_ratio;
 };
 
 }
