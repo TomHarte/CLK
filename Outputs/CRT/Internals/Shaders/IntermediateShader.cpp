@@ -61,17 +61,17 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"iInputPositionVarying = extendedInputPosition;"
 			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
 
-			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[4], 0.0) / textureSize);"
-			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[3], 0.0) / textureSize);"
+			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
+			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
 			"inputPositionsVarying[2] = mappedInputPosition - (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[3] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
-			"inputPositionsVarying[4] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
+			"inputPositionsVarying[3] = mappedInputPosition - (vec2(offsets[3], 0.0) / textureSize);"
+			"inputPositionsVarying[4] = mappedInputPosition - (vec2(offsets[4], 0.0) / textureSize);"
 			"inputPositionsVarying[5] = mappedInputPosition;"
-			"inputPositionsVarying[6] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
-			"inputPositionsVarying[7] = mappedInputPosition + (vec2(offsets[1], 0.0) / textureSize);"
+			"inputPositionsVarying[6] = mappedInputPosition + (vec2(offsets[4], 0.0) / textureSize);"
+			"inputPositionsVarying[7] = mappedInputPosition + (vec2(offsets[3], 0.0) / textureSize);"
 			"inputPositionsVarying[8] = mappedInputPosition + (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[9] = mappedInputPosition + (vec2(offsets[3], 0.0) / textureSize);"
-			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[4], 0.0) / textureSize);"
+			"inputPositionsVarying[9] = mappedInputPosition + (vec2(offsets[1], 0.0) / textureSize);"
+			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
 			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
@@ -284,23 +284,26 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 		int sample = 0;
 		int c = 0;
 		memset(weights, 0, sizeof(float)*12);
-		while(c < (taps >> 1) && sample < 5)
+		memset(offsets, 0, sizeof(float)*5);
+
+		int halfSize = (taps >> 1);
+		while(c < halfSize && sample < 5)
 		{
+			offsets[sample] = (float)(halfSize - c);
 			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
 			{
 				weights[sample] = coefficients[c] + coefficients[c+1];
-				offsets[sample] = (float)c + 1.0f + (coefficients[c+1] / weights[sample]);
+				offsets[sample] -= (coefficients[c+1] / weights[sample]);
 				c += 2;
 			}
 			else
 			{
-				offsets[sample] = (float)c + 1.0f;
 				weights[sample] = coefficients[c];
 				c++;
 			}
 			sample ++;
 		}
-		if(c == (taps >> 1))
+		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
 		{
 			weights[sample] = coefficients[c];
 			for(int c = 0; c < sample; c++)
