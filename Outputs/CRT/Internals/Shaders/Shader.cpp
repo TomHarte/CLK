@@ -95,7 +95,6 @@ void Shader::bind()
 		glUseProgram(_shader_program);
 		bound_shader = this;
 	}
-	else printf("-");
 }
 
 void Shader::unbind()

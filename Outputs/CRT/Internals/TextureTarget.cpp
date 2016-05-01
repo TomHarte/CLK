@@ -7,23 +7,29 @@
 //
 
 #include "TextureTarget.hpp"
+#include <math.h>
 
 using namespace OpenGL;
 
-TextureTarget::TextureTarget(GLsizei width, GLsizei height) :
+TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit) :
 	_width(width),
 	_height(height),
 	_pixel_shader(nullptr),
 	_drawing_vertex_array(0),
 	_drawing_array_buffer(0),
-	_set_aspect_ratio(0.0f)
+	_set_aspect_ratio(0.0f),
+	_texture_unit(texture_unit)
 {
 	glGenFramebuffers(1, &_framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
 
+	_expanded_width = 1 << (GLsizei)ceil(log2(width));
+	_expanded_height = 1 << (GLsizei)ceil(log2(height));
+
 	glGenTextures(1, &_texture);
+	glActiveTexture(texture_unit);
 	glBindTexture(GL_TEXTURE_2D, _texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)width, (GLsizei)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
@@ -52,7 +58,7 @@ void TextureTarget::bind_texture()
 	glBindTexture(GL_TEXTURE_2D, _texture);
 }
 
-void TextureTarget::draw(float aspect_ratio, GLenum texture_unit)
+void TextureTarget::draw(float aspect_ratio)
 {
 	if(!_pixel_shader)
 	{
@@ -86,8 +92,8 @@ void TextureTarget::draw(float aspect_ratio, GLenum texture_unit)
 		glGenVertexArrays(1, &_drawing_vertex_array);
 		glGenBuffers(1, &_drawing_array_buffer);
 
-		glBindVertexArray(_drawing_array_buffer);
-		glBindBuffer(GL_ARRAY_BUFFER, _drawing_vertex_array);
+		glBindVertexArray(_drawing_vertex_array);
+		glBindBuffer(GL_ARRAY_BUFFER, _drawing_array_buffer);
 
 		GLint positionAttribute			= _pixel_shader->get_attrib_location("position");
 		GLint texCoordAttribute			= _pixel_shader->get_attrib_location("texCoord");
@@ -98,6 +104,9 @@ void TextureTarget::draw(float aspect_ratio, GLenum texture_unit)
 		const GLsizei vertexStride = 12;
 		glVertexAttribPointer((GLuint)positionAttribute,	2, GL_FLOAT,	GL_FALSE,	vertexStride, (void *)0);
 		glVertexAttribPointer((GLuint)texCoordAttribute,	2, GL_BYTE,		GL_FALSE,	vertexStride, (void *)(2 * sizeof(GLfloat)));
+
+		GLint texIDUniform = _pixel_shader->get_uniform_location("texID");
+		glUniform1i(texIDUniform, (GLint)(_texture_unit - GL_TEXTURE0));
 	}
 
 	if(_set_aspect_ratio != aspect_ratio)
@@ -133,7 +142,7 @@ void TextureTarget::draw(float aspect_ratio, GLenum texture_unit)
 		}
 
 		// upload buffer
-		glBindBuffer(GL_ARRAY_BUFFER, _drawing_vertex_array);
+		glBindBuffer(GL_ARRAY_BUFFER, _drawing_array_buffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
 	}
 

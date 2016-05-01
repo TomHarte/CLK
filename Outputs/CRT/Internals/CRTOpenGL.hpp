@@ -77,6 +77,8 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 
+		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
+
 		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::OutputShader *const shader);
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();

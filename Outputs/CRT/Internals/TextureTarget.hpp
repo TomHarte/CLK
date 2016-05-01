@@ -24,12 +24,13 @@ class TextureTarget {
 		/*!
 			Creates a new texture target.
 
-			Throws ErrorFramebufferIncomplete if creation fails.
+			Throws ErrorFramebufferIncomplete if creation fails. Leaves both the generated texture and framebuffer bound.
 
 			@param width The width of target to create.
 			@param height The height of target to create.
+			@param texture_unit A texture unit on which to bind the texture.
 		*/
-		TextureTarget(GLsizei width, GLsizei height);
+		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit);
 		~TextureTarget();
 
 		/*!
@@ -43,9 +44,25 @@ class TextureTarget {
 		void bind_texture();
 
 		/*!
+			@returns the width of the texture target.
+		*/
+		GLsizei get_width()
+		{
+			return _width;
+		}
+
+		/*!
+			@returns the height of the texture target.
+		*/
+		GLsizei get_height()
+		{
+			return _height;
+		}
+
+		/*!
 
 		*/
-		void draw(float aspect_ratio, GLenum texture_unit);
+		void draw(float aspect_ratio);
 
 		enum {
 			ErrorFramebufferIncomplete
@@ -54,6 +71,8 @@ class TextureTarget {
 	private:
 		GLuint _framebuffer, _texture;
 		GLsizei _width, _height;
+		GLsizei _expanded_width, _expanded_height;
+		GLenum _texture_unit;
 
 		std::unique_ptr<Shader> _pixel_shader;
 		GLuint _drawing_vertex_array, _drawing_array_buffer;

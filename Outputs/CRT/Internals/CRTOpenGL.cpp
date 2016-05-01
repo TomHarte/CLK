@@ -78,6 +78,7 @@ namespace {
 	static const GLenum filtered_y_texture_unit = GL_TEXTURE1;
 	static const GLenum filtered_texture_unit = GL_TEXTURE2;
 	static const GLenum source_data_texture_unit = GL_TEXTURE3;
+	static const GLenum pixel_accumulation_texture_unit = GL_TEXTURE4;
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
@@ -103,15 +104,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBlendColor(0.4f, 0.4f, 0.4f, 0.5f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
-	glActiveTexture(composite_texture_unit);
-	compositeTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-	compositeTexture->bind_texture();
-	glActiveTexture(filtered_y_texture_unit);
-	filteredYTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-	filteredYTexture->bind_texture();
-	glActiveTexture(filtered_texture_unit);
-	filteredTexture = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight));
-	filteredTexture->bind_texture();
+	compositeTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
+	filteredYTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_y_texture_unit));
+	filteredTexture		= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
 
 	// create the surce texture
 	glGenTextures(1, &textureName);
@@ -153,9 +148,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-	// map back the default framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -194,6 +186,21 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		// TODO: is this sustainable, cross-platform? If so, why store it at all?
 		defaultFramebuffer = 0;
+	}
+
+	// make sure there's a target to draw to
+	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
+	{
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
+		if(framebuffer)
+		{
+			new_framebuffer->bind_framebuffer();
+			framebuffer->draw((float)output_width / (float)output_height);
+		}
+		framebuffer = std::move(new_framebuffer);
+		glActiveTexture(source_data_texture_unit);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
 	}
 
 	// lock down any further work on the current frame
@@ -288,11 +295,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 					glDrawArrays(GL_LINES, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
 				}
 			}
-
-			// switch back to screen output
-			glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
-			glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
-			glClearColor(0.0, 0.0, 0.0, 1.0);
 		}
 
 		// transfer to screen
@@ -317,6 +319,9 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 {
 	if(shader)
 	{
+		// bind the target
+		framebuffer->bind_framebuffer();
+
 		// draw all pending lines
 		GLsizei drawing_zones[4];
 		int number_of_drawing_zones = getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, drawing_zones);
@@ -349,6 +354,11 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 				glDrawArrays(GL_TRIANGLE_STRIP, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
 			}
 		}
+
+		// copy to the intended place
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		framebuffer->draw((float)output_width / (float)output_height);
 	}
 }
 
