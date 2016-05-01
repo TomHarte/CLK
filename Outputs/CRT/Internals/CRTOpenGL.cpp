@@ -188,6 +188,16 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		defaultFramebuffer = 0;
 	}
 
+	// lock down any further work on the current frame
+	_output_mutex->lock();
+
+	// release the mapping, giving up on trying to draw if data has been lost
+	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
 	{
@@ -202,16 +212,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glActiveTexture(source_data_texture_unit);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
 	}
-
-	// lock down any further work on the current frame
-	_output_mutex->lock();
-
-	// release the mapping, giving up on trying to draw if data has been lost
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
 	// upload more source pixel data if any; we'll always resubmit the last line submitted last
 	// time as it may have had extra data appended to it
