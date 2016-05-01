@@ -13,6 +13,10 @@
 
 using namespace OpenGL;
 
+namespace {
+	Shader *bound_shader = nullptr;
+}
+
 GLuint Shader::compile_shader(const char *source, GLenum type)
 {
 	GLuint shader = glCreateShader(type);
@@ -80,12 +84,24 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 
 Shader::~Shader()
 {
+	if(bound_shader == this) Shader::unbind();
 	glDeleteProgram(_shader_program);
 }
 
 void Shader::bind()
 {
-	glUseProgram(_shader_program);
+	if(bound_shader != this)
+	{
+		glUseProgram(_shader_program);
+		bound_shader = this;
+	}
+	else printf("-");
+}
+
+void Shader::unbind()
+{
+	bound_shader = nullptr;
+	glUseProgram(0);
 }
 
 GLint Shader::get_attrib_location(const GLchar *name)
