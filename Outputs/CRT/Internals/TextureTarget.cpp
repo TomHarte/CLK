@@ -85,7 +85,7 @@ void TextureTarget::draw(float aspect_ratio)
 
 			"void main(void)"
 			"{"
-				"fragColour = texture(texID, texCoordVarying);"
+				"fragColour = vec4(0.5);"//texture(texID, texCoordVarying);"
 			"}";
 		_pixel_shader = std::unique_ptr<Shader>(new Shader(vertex_shader, fragment_shader, nullptr));
 
@@ -111,7 +111,7 @@ void TextureTarget::draw(float aspect_ratio)
 
 	if(_set_aspect_ratio != aspect_ratio)
 	{
-		aspect_ratio = _set_aspect_ratio;
+		_set_aspect_ratio = aspect_ratio;
 		int8_t buffer[12*4];
 
 		// establish texture coordinates
@@ -127,18 +127,18 @@ void TextureTarget::draw(float aspect_ratio)
 		if(aspect_ratio_ratio >= 1.0f)
 		{
 			// output is thinner than we are; letterbox
-			fl_buffer[0] = -1.0f;	fl_buffer[1] = 1.0f / aspect_ratio_ratio;
-			fl_buffer[3] = -1.0f;	fl_buffer[4] = -1.0f / aspect_ratio_ratio;
-			fl_buffer[6] = 1.0f;	fl_buffer[7] = 1.0f / aspect_ratio_ratio;
-			fl_buffer[9] = 1.0f;	fl_buffer[10] = -1.0f / aspect_ratio_ratio;
+			fl_buffer[0] = -1.0f;					fl_buffer[1] = 1.0f / aspect_ratio_ratio;
+			fl_buffer[3] = -1.0f;					fl_buffer[4] = -1.0f / aspect_ratio_ratio;
+			fl_buffer[6] = 1.0f;					fl_buffer[7] = 1.0f / aspect_ratio_ratio;
+			fl_buffer[9] = 1.0f;					fl_buffer[10] = -1.0f / aspect_ratio_ratio;
 		}
 		else
 		{
 			// output is wider than we are; pillarbox
-			fl_buffer[0] = -aspect_ratio_ratio;	fl_buffer[1] = 1.0f;
-			fl_buffer[3] = -aspect_ratio_ratio;	fl_buffer[4] = -1.0f;
-			fl_buffer[6] = aspect_ratio_ratio;	fl_buffer[7] = 1.0f;
-			fl_buffer[9] = aspect_ratio_ratio;	fl_buffer[10] = -1.0f;
+			fl_buffer[0] = -aspect_ratio_ratio;		fl_buffer[1] = 1.0f;
+			fl_buffer[3] = -aspect_ratio_ratio;		fl_buffer[4] = -1.0f;
+			fl_buffer[6] = aspect_ratio_ratio;		fl_buffer[7] = 1.0f;
+			fl_buffer[9] = aspect_ratio_ratio;		fl_buffer[10] = -1.0f;
 		}
 
 		// upload buffer
