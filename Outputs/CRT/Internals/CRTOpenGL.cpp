@@ -345,8 +345,7 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 				_last_output_width = output_width;
 				_last_output_height = output_height;
 			}
-			else
-				shader->bind();
+			shader->bind();
 
 			// draw
 			for(int c = 0; c < number_of_drawing_zones; c++)

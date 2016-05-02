@@ -87,6 +87,7 @@ void TextureTarget::draw(float aspect_ratio)
 				"fragColour = texture(texID, texCoordVarying);"
 			"}";
 		_pixel_shader = std::unique_ptr<Shader>(new Shader(vertex_shader, fragment_shader, nullptr));
+		_pixel_shader->bind();
 
 		glGenVertexArrays(1, &_drawing_vertex_array);
 		glGenBuffers(1, &_drawing_array_buffer);
@@ -100,9 +101,9 @@ void TextureTarget::draw(float aspect_ratio)
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)texCoordAttribute);
 
-		const GLsizei vertexStride = 12;
+		const GLsizei vertexStride = 4 * sizeof(GLfloat);
 		glVertexAttribPointer((GLuint)positionAttribute,	2, GL_FLOAT,	GL_FALSE,	vertexStride, (void *)0);
-		glVertexAttribPointer((GLuint)texCoordAttribute,	2, GL_BYTE,		GL_FALSE,	vertexStride, (void *)(2 * sizeof(GLfloat)));
+		glVertexAttribPointer((GLuint)texCoordAttribute,	2, GL_FLOAT,	GL_FALSE,	vertexStride, (void *)(2 * sizeof(GLfloat)));
 
 		GLint texIDUniform = _pixel_shader->get_uniform_location("texID");
 		glUniform1i(texIDUniform, (GLint)(_texture_unit - GL_TEXTURE0));
@@ -111,33 +112,36 @@ void TextureTarget::draw(float aspect_ratio)
 	if(_set_aspect_ratio != aspect_ratio)
 	{
 		_set_aspect_ratio = aspect_ratio;
-		int8_t buffer[12*4];
+		float buffer[4*4];
 
 		// establish texture coordinates
-		buffer[8] = 0;		buffer[9] = 0;
-		buffer[20] = 0;		buffer[21] = 1;
-		buffer[32] = 1;		buffer[33] = 0;
-		buffer[44] = 1;		buffer[45] = 1;
+		buffer[2] = 0.0f;
+		buffer[3] = 0.0f;
+		buffer[6] = 0.0f;
+		buffer[7] = (float)_height / (float)_expanded_height;
+		buffer[10] = (float)_width / (float)_expanded_width;
+		buffer[11] = 0;
+		buffer[14] = buffer[10];
+		buffer[15] = buffer[7];
 
 		// determine positions
 		float internal_aspect_ratio = (float)_width / (float)_height;
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
-		float *fl_buffer = (float *)buffer;
 		if(aspect_ratio_ratio >= 1.0f)
 		{
 			// output is thinner than we are; letterbox
-			fl_buffer[0] = -1.0f;					fl_buffer[1] = -1.0f / aspect_ratio_ratio;
-			fl_buffer[3] = 1.0f;					fl_buffer[4] = -1.0f / aspect_ratio_ratio;
-			fl_buffer[6] = -1.0f;					fl_buffer[7] = 1.0f / aspect_ratio_ratio;
-			fl_buffer[9] = 1.0f;					fl_buffer[10] = 1.0f / aspect_ratio_ratio;
+			buffer[0] = -1.0f;					buffer[1] = -1.0f / aspect_ratio_ratio;
+			buffer[4] = -1.0f;					buffer[5] = 1.0f / aspect_ratio_ratio;
+			buffer[8] = 1.0f;					buffer[9] = -1.0f / aspect_ratio_ratio;
+			buffer[12] = 1.0f;					buffer[13] = 1.0f / aspect_ratio_ratio;
 		}
 		else
 		{
 			// output is wider than we are; pillarbox
-			fl_buffer[0] = -aspect_ratio_ratio;		fl_buffer[1] = -1.0f;
-			fl_buffer[3] = aspect_ratio_ratio;		fl_buffer[4] = -1.0f;
-			fl_buffer[6] = -aspect_ratio_ratio;		fl_buffer[7] = 1.0f;
-			fl_buffer[9] = aspect_ratio_ratio;		fl_buffer[10] = 1.0f;
+			buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
+			buffer[4] = -aspect_ratio_ratio;	buffer[5] = 1.0f;
+			buffer[8] = aspect_ratio_ratio;		buffer[9] = -1.0f;
+			buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
 		}
 
 		// upload buffer
