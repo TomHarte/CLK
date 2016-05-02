@@ -124,25 +124,14 @@ void TextureTarget::draw(float aspect_ratio)
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
 
-		// determine positions
+		// determine positions; rule is to keep the same height and centre
 		float internal_aspect_ratio = (float)_width / (float)_height;
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
-		if(aspect_ratio_ratio >= 1.0f)
-		{
-			// output is thinner than we are; letterbox
-			buffer[0] = -1.0f;					buffer[1] = -1.0f / aspect_ratio_ratio;
-			buffer[4] = -1.0f;					buffer[5] = 1.0f / aspect_ratio_ratio;
-			buffer[8] = 1.0f;					buffer[9] = -1.0f / aspect_ratio_ratio;
-			buffer[12] = 1.0f;					buffer[13] = 1.0f / aspect_ratio_ratio;
-		}
-		else
-		{
-			// output is wider than we are; pillarbox
-			buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
-			buffer[4] = -aspect_ratio_ratio;	buffer[5] = 1.0f;
-			buffer[8] = aspect_ratio_ratio;		buffer[9] = -1.0f;
-			buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
-		}
+
+		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
+		buffer[4] = -aspect_ratio_ratio;	buffer[5] = 1.0f;
+		buffer[8] = aspect_ratio_ratio;		buffer[9] = -1.0f;
+		buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
 
 		// upload buffer
 		glBindBuffer(GL_ARRAY_BUFFER, _drawing_array_buffer);

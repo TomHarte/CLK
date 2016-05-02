@@ -101,7 +101,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	glBlendColor(0.4f, 0.4f, 0.4f, 0.5f);
+	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	compositeTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
@@ -206,7 +206,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		if(framebuffer)
 		{
 			new_framebuffer->bind_framebuffer();
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glActiveTexture(pixel_accumulation_texture_unit);
+			framebuffer->bind_texture();
 			framebuffer->draw((float)output_width / (float)output_height);
+
+			new_framebuffer->bind_texture();
 		}
 		framebuffer = std::move(new_framebuffer);
 		glActiveTexture(source_data_texture_unit);
@@ -303,6 +309,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	else
 		perform_output_stage(output_width, output_height, rgb_shader_program.get());
 
+	// copy framebuffer to the intended place
+	glDisable(GL_BLEND);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
+	glClear(GL_COLOR_BUFFER_BIT);
+	framebuffer->draw((float)output_width / (float)output_height);
+
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
@@ -340,7 +353,6 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 			// update uniforms (implicitly binding the shader)
 			if(_last_output_width != output_width || _last_output_height != output_height)
 			{
-				glClear(GL_COLOR_BUFFER_BIT);
 				shader->set_output_size(output_width, output_height, _visible_area);
 				_last_output_width = output_width;
 				_last_output_height = output_height;
@@ -353,11 +365,6 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 				glDrawArrays(GL_TRIANGLE_STRIP, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
 			}
 		}
-
-		// copy to the intended place
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
-		framebuffer->draw((float)output_width / (float)output_height);
 	}
 }
 
