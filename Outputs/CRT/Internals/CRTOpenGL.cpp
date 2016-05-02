@@ -125,7 +125,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
 
 	// map the buffer for clients
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
@@ -136,7 +136,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array);
@@ -147,7 +147,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBufferData(GL_ARRAY_BUFFER, SourceVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
 	// map that buffer too, for any CRT activity that may occur before the first draw
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -261,6 +261,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			glBindVertexArray(source_vertex_array);
 			glDisable(GL_BLEND);
 
+			// flush the source data
+			glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+			for(int c = 0; c < number_of_drawing_zones; c++)
+			{
+				glFlushMappedBufferRange(GL_ARRAY_BUFFER, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
+			}
+
 			OpenGL::TextureTarget *targets[] = {
 				compositeTexture.get(),
 				filteredYTexture.get(),
@@ -318,12 +325,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	_output_mutex->unlock();
 }
@@ -338,6 +345,13 @@ void OpenGLOutputBuilder::perform_output_stage(unsigned int output_width, unsign
 		// draw all pending lines
 		GLsizei drawing_zones[4];
 		int number_of_drawing_zones = getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, drawing_zones);
+
+		// flush the buffer data
+		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+		for(int c = 0; c < number_of_drawing_zones; c++)
+		{
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
+		}
 
 		_output_buffer_data_pointer %= SourceVertexBufferDataSize;
 		_output_buffer_data_pointer -= (_output_buffer_data_pointer%(6*OutputVertexSize));
