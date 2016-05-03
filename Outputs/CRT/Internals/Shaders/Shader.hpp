@@ -41,9 +41,16 @@ public:
 	~Shader();
 
 	/*!
-		Performs an @c glUseProgram to make this the active shader.
+		Performs an @c glUseProgram to make this the active shader unless:
+			(i) it was the previous shader bound; and 
+			(ii) no calls have been received to unbind in the interim.
 	*/
 	void bind();
+
+	/*!
+		Unbinds the current instance of Shader, if one is bound.
+	*/
+	static void unbind();
 
 	/*!
 		Performs a @c glGetAttribLocation call.

@@ -15,7 +15,9 @@
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
 #include "CRTInputBufferBuilder.hpp"
-#include "CRTRunBuilder.hpp"
+
+#include "Shaders/OutputShader.hpp"
+#include "Shaders/IntermediateShader.hpp"
 
 #include <mutex>
 
@@ -31,6 +33,7 @@ class OpenGLOutputBuilder {
 		OutputDevice _output_device;
 
 		// timing information to allow reasoning about input information
+		unsigned int _input_frequency;
 		unsigned int _cycles_per_line;
 		unsigned int _height_of_display;
 		unsigned int _horizontal_scan_period;
@@ -45,48 +48,28 @@ class OpenGLOutputBuilder {
 		char *_rgb_shader;
 
 		// Methods used by the OpenGL code
-		void prepare_rgb_output_shader();
-		void prepare_composite_output_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_output_shader(char *vertex_shader, char *fragment_shader, GLint source_texture_unit);
-
-		void prepare_composite_input_shader();
-		std::unique_ptr<OpenGL::Shader> prepare_intermediate_shader(const char *input_position, const char *header, char *fragment_shader, GLenum texture_unit, bool extends);
+		void prepare_output_shader();
+		void prepare_rgb_input_shaders();
+		void prepare_composite_input_shaders();
 
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
-		void push_size_uniforms(unsigned int output_width, unsigned int output_height);
 
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		CRTRunBuilder **_run_builders;
-		int _run_write_pointer;
 		std::shared_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;
 
-		char *get_output_vertex_shader(const char *header);
-		char *get_rgb_output_vertex_shader();
-		char *get_composite_output_vertex_shader();
-
-		char *get_output_fragment_shader(const char *sampling_function, const char *header, const char *fragColour_function);
-		char *get_rgb_output_fragment_shader();
-		char *get_composite_output_fragment_shader();
-
-		char *get_input_vertex_shader(const char *input_position, const char *header);
-		char *get_input_fragment_shader();
-
-		char *get_y_filter_fragment_shader();
-		char *get_chrominance_filter_fragment_shader();
-
-		std::unique_ptr<OpenGL::Shader> rgb_shader_program;
-		std::unique_ptr<OpenGL::Shader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::OutputShader> output_shader_program;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
+		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program, rgb_filter_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
 
-		GLint windowSizeUniform, timestampBaseUniform;
-		GLint boundsOriginUniform, boundsSizeUniform;
+		unsigned int _last_output_width, _last_output_height;
 
 		GLuint textureName, shadowMaskTextureName;
 
@@ -96,7 +79,9 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
 		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
 
-		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::Shader *const shader);
+		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
+
+		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::OutputShader *const shader);
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
 
@@ -132,29 +117,18 @@ class OpenGLOutputBuilder {
 		inline uint8_t *get_next_output_run()
 		{
 			_output_mutex->lock();
-			return &_output_buffer_data[_output_buffer_data_pointer];
+			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
 		inline void complete_output_run(GLsizei vertices_written)
 		{
-			_run_builders[_run_write_pointer]->amount_of_data += (size_t)(vertices_written * OutputVertexSize);
-			_output_buffer_data_pointer = (_output_buffer_data_pointer + vertices_written * OutputVertexSize) % OutputVertexBufferDataSize;
+			_output_buffer_data_pointer += vertices_written * OutputVertexSize;
 			_output_mutex->unlock();
 		}
 
 		inline OutputDevice get_output_device()
 		{
 			return _output_device;
-		}
-
-		inline uint32_t get_current_field_time()
-		{
-			return _run_builders[_run_write_pointer]->duration;
-		}
-
-		inline void add_to_field_time(uint32_t amount)
-		{
-			_run_builders[_run_write_pointer]->duration += amount;
 		}
 
 		inline uint16_t get_composite_output_y()
@@ -165,20 +139,6 @@ class OpenGLOutputBuilder {
 		inline void increment_composite_output_y()
 		{
 			_composite_src_output_y++;
-		}
-
-		inline void increment_field()
-		{
-			_output_mutex->lock();
-			_run_write_pointer = (_run_write_pointer + 1)%NumberOfFields;
-			_run_builders[_run_write_pointer]->start = (size_t)_output_buffer_data_pointer;
-			_run_builders[_run_write_pointer]->reset();
-			_output_mutex->unlock();
-		}
-
-		inline int get_current_field()
-		{
-			return _run_write_pointer;
 		}
 
 		inline uint8_t *allocate_write_area(size_t required_length)
@@ -210,19 +170,20 @@ class OpenGLOutputBuilder {
 		void set_composite_sampling_function(const char *shader);
 		void set_rgb_sampling_function(const char *shader);
 		void set_output_device(OutputDevice output_device);
-		void set_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
+		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
 		uint8_t *_input_texture_data;
 		GLuint _input_texture_array;
 		GLsync _input_texture_sync;
 		GLsizeiptr _input_texture_array_size;
 
-		uint8_t *_output_buffer_data;
-		GLsizei _output_buffer_data_pointer;
-
 		uint8_t *_source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
 		GLsizei _drawn_source_buffer_data_pointer;
+
+		uint8_t *_output_buffer_data;
+		GLsizei _output_buffer_data_pointer;
+		GLsizei _drawn_output_buffer_data_pointer;
 };
 
 }

@@ -66,12 +66,15 @@
 }
 
 - (void)clearAllKeys {
-	@synchronized(self) {
-		_electron.clear_all_keys();
-	}
+//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+		@synchronized(self) {
+			_electron.clear_all_keys();
+		}
+//	});
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 	@synchronized(self) {
 		switch(key)
 		{
@@ -149,13 +152,16 @@
 			break;
 		}
 	}
+//	});
 }
 
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
-	@synchronized(self) {
-		_useFastLoadingHack = useFastLoadingHack;
-		_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
-	}
+//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+		@synchronized(self) {
+			_useFastLoadingHack = useFastLoadingHack;
+			_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+		}
+//	});
 }
 
 - (void)setUseTelevisionOutput:(BOOL)useTelevisionOutput {
