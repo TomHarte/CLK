@@ -137,6 +137,17 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
+	// create and populate a buffer for the lateral attributes
+	glGenBuffers(1, &lateral_array_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, lateral_array_buffer);
+	size_t number_of_vertices = OutputVertexBufferDataSize/OutputVertexSize;
+	uint8_t lateral_pattern[] = {0, 0, 1, 0, 1, 1};
+	uint8_t *laterals = new uint8_t[number_of_vertices];
+	for(size_t c = 0; c < number_of_vertices; c++)
+		laterals[c] = lateral_pattern[c%6];
+	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)number_of_vertices, laterals, GL_STATIC_DRAW);
+	delete[] laterals;
+
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
@@ -160,6 +171,7 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	glDeleteBuffers(1, &_input_texture_array);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
+	glDeleteBuffers(1, &lateral_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
 
 	free(_composite_shader);
@@ -168,6 +180,9 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
+	// lock down any further work on the current frame
+	_output_mutex->lock();
+
 	// establish essentials
 	if(!output_shader_program)
 	{
@@ -189,9 +204,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// TODO: is this sustainable, cross-platform? If so, why store it at all?
 		defaultFramebuffer = 0;
 	}
-
-	// lock down any further work on the current frame
-	_output_mutex->lock();
 
 	// release the mapping, giving up on trying to draw if data has been lost
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
@@ -466,19 +478,21 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		GLint positionAttribute				= output_shader_program->get_attrib_location("position");
 		GLint textureCoordinatesAttribute	= output_shader_program->get_attrib_location("srcCoordinates");
-		GLint lateralAttribute				= output_shader_program->get_attrib_location("lateral");
 
 		glBindVertexArray(output_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
-		glEnableVertexAttribArray((GLuint)lateralAttribute);
 
 		const GLsizei vertexStride = OutputVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
-		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
+
+		GLint lateralAttribute = output_shader_program->get_attrib_location("lateral");
+		glEnableVertexAttribArray((GLuint)lateralAttribute);
+		glBindBuffer(GL_ARRAY_BUFFER, lateral_array_buffer);
+		glVertexAttribPointer((GLuint)lateralAttribute,	1, GL_UNSIGNED_BYTE,	GL_FALSE,	0, (void *)0);
 	}
 }
 
@@ -497,6 +511,7 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 
 void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
 {
+	_output_mutex->lock();
 	_input_frequency = input_frequency;
 	_cycles_per_line = cycles_per_line;
 	_height_of_display = height_of_display;
@@ -505,13 +520,13 @@ void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int 
 	_vertical_period_divider = vertical_period_divider;
 
 	set_timing_uniforms();
+	_output_mutex->unlock();
 }
 
 #pragma mark - Internal Configuration
 
 void OpenGLOutputBuilder::set_colour_space_uniforms()
 {
-	_output_mutex->lock();
 	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
 	GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
 
@@ -535,13 +550,10 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 
 	if(composite_input_shader_program)				composite_input_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_chrominance_filter_shader_program) composite_chrominance_filter_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
-	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
-	_output_mutex->lock();
-
 	OpenGL::IntermediateShader *intermediate_shaders[] = {
 		composite_input_shader_program.get(),
 		composite_separation_filter_program.get(),
@@ -563,6 +575,4 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	if(composite_y_filter_shader_program)			composite_y_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.66f);
 	if(composite_chrominance_filter_shader_program)	composite_chrominance_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.5f);
 	if(rgb_filter_shader_program)					rgb_filter_shader_program->set_filter_coefficients(_cycles_per_line, (float)_input_frequency * 0.5f);
-
-	_output_mutex->unlock();
 }

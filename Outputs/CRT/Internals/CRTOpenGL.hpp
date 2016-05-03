@@ -73,7 +73,7 @@ class OpenGLOutputBuilder {
 
 		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
 
-		GLuint output_array_buffer, output_vertex_array;
+		GLuint output_array_buffer, lateral_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
 
 		unsigned int _last_output_width, _last_output_height;
@@ -91,10 +91,12 @@ class OpenGLOutputBuilder {
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
+			_output_mutex->lock();
 			_colour_space = colour_space;
 			_colour_cycle_numerator = colour_cycle_numerator;
 			_colour_cycle_denominator = colour_cycle_denominator;
 			set_colour_space_uniforms();
+			_output_mutex->unlock();
 		}
 
 		inline void set_visible_area(Rect visible_area)

@@ -99,7 +99,6 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_position_y(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 2])
 #define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
 #define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
-#define output_lateral(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfLateral]
 
 #define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
@@ -195,9 +194,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
 			output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 			output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
-			output_lateral(0) = 0;
-			output_lateral(1) = _is_writing_composite_run ? 1 : 0;
-			output_lateral(2) = 1;
 
 			_openGL_output_builder->complete_output_run(3);
 			_is_writing_composite_run ^= true;
