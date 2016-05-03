@@ -141,6 +141,34 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 	return shader;
 }
 
+std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const char *rgb_shader)
+{
+	char *fragment_shader;
+	asprintf(&fragment_shader,
+		"#version 150\n"
+
+		"in vec2 inputPositionsVarying[11];"
+		"in vec2 iInputPositionVarying;"
+		"in vec2 phaseAndAmplitudeVarying;"
+
+		"out vec3 fragColour;"
+
+		"uniform usampler2D texID;"
+
+		"\n%s\n"
+
+		"void main(void)"
+		"{"
+			"fragColour = rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
+		"}"
+	, rgb_shader);
+
+	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader, true, true);
+	free(fragment_shader);
+
+	return shader;
+}
+
 std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separation_shader()
 {
 	return make_shader(
@@ -250,6 +278,70 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 		"}", false, false);
 }
 
+std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_filter_shader()
+{
+	return make_shader(
+		"#version 150\n"
+
+		"in vec2 inputPositionsVarying[11];"
+		"uniform vec4 weights[3];"
+
+		"out vec3 fragColour;"
+
+		"uniform sampler2D texID;"
+
+		"void main(void)"
+		"{"
+			"vec3 samples[] = vec3[]("
+				"texture(texID, inputPositionsVarying[0]).rgb,"
+				"texture(texID, inputPositionsVarying[1]).rgb,"
+				"texture(texID, inputPositionsVarying[2]).rgb,"
+				"texture(texID, inputPositionsVarying[3]).rgb,"
+				"texture(texID, inputPositionsVarying[4]).rgb,"
+				"texture(texID, inputPositionsVarying[5]).rgb,"
+				"texture(texID, inputPositionsVarying[6]).rgb,"
+				"texture(texID, inputPositionsVarying[7]).rgb,"
+				"texture(texID, inputPositionsVarying[8]).rgb,"
+				"texture(texID, inputPositionsVarying[9]).rgb,"
+				"texture(texID, inputPositionsVarying[10]).rgb"
+			");"
+
+			"vec4 channel1[] = vec4[]("
+				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
+				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
+				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
+			");"
+			"vec4 channel2[] = vec4[]("
+				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
+				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
+				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
+			");"
+			"vec4 channel3[] = vec4[]("
+				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
+				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
+				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
+			");"
+
+			"fragColour = vec3("
+				"dot(vec3("
+					"dot(channel1[0], weights[0]),"
+					"dot(channel1[1], weights[1]),"
+					"dot(channel1[2], weights[2])"
+				"), vec3(1.0)),"
+				"dot(vec3("
+					"dot(channel2[0], weights[0]),"
+					"dot(channel2[1], weights[1]),"
+					"dot(channel2[2], weights[2])"
+				"), vec3(1.0)),"
+				"dot(vec3("
+					"dot(channel3[0], weights[0]),"
+					"dot(channel3[1], weights[1]),"
+					"dot(channel3[2], weights[2])"
+				"), vec3(1.0))"
+			");"
+		"}", false, false);
+}
+
 void IntermediateShader::set_output_size(unsigned int output_width, unsigned int output_height)
 {
 	bind();
@@ -317,6 +409,12 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 
 	glUniform4fv(weightsUniform, 3, weights);
 	glUniform1fv(offsetsUniform, 5, offsets);
+}
+
+void IntermediateShader::set_separation_frequency(float sampling_rate, float colour_burst_frequency)
+{
+	// TODO: apply separately-formed filters for luminance and chrominance
+	set_filter_coefficients(sampling_rate, colour_burst_frequency - 50.0f);
 }
 
 void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)

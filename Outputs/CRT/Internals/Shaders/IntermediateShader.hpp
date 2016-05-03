@@ -28,6 +28,12 @@ public:
 	static std::unique_ptr<IntermediateShader> make_source_conversion_shader(const char *composite_shader, const char *rgb_shader);
 
 	/*!
+		Constructs and returns an intermediate shader that will take runs from the inputPositions,
+		converting them to RGB values using @c rgb_shader.
+	*/
+	static std::unique_ptr<IntermediateShader> make_rgb_source_shader(const char *rgb_shader);
+
+	/*!
 		Constructs and returns an intermediate shader that will read composite samples from the R channel,
 		filter then to obtain luminance, stored to R, and to separate out unfiltered chrominance, store to G and B.
 	*/
@@ -37,6 +43,11 @@ public:
 		Constructs and returns an intermediate shader that will pass R through unchanged while filtering G and B.
 	*/
 	static std::unique_ptr<IntermediateShader> make_chroma_filter_shader();
+
+	/*!
+		Constructs and returns an intermediate shader that will filter R, G and B.
+	*/
+	static std::unique_ptr<IntermediateShader> make_rgb_filter_shader();
 
 	/*!
 		Binds this shader and configures it for output to an area of `output_width` and `output_height` pixels.
@@ -52,6 +63,12 @@ public:
 		Binds this shader and sets filtering coefficients for a lowpass filter based on the cutoff.
 	*/
 	void set_filter_coefficients(float sampling_rate, float cutoff_frequency);
+
+	/*!
+		Binds this shader and configures filtering to separate luminance and chrominance based on a colour
+		subcarrier of the given frequency.
+	*/
+	void set_separation_frequency(float sampling_rate, float colour_burst_frequency);
 
 	/*!
 		Binds this shader and sets the number of colour phase cycles per sample, indicating whether output

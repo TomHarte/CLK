@@ -33,6 +33,7 @@ class OpenGLOutputBuilder {
 		OutputDevice _output_device;
 
 		// timing information to allow reasoning about input information
+		unsigned int _input_frequency;
 		unsigned int _cycles_per_line;
 		unsigned int _height_of_display;
 		unsigned int _horizontal_scan_period;
@@ -47,9 +48,9 @@ class OpenGLOutputBuilder {
 		char *_rgb_shader;
 
 		// Methods used by the OpenGL code
-		void prepare_rgb_output_shader();
-		void prepare_composite_output_shader();
-		void prepare_composite_input_shader();
+		void prepare_output_shader();
+		void prepare_rgb_input_shaders();
+		void prepare_composite_input_shaders();
 
 		void prepare_output_vertex_array();
 		void prepare_source_vertex_array();
@@ -61,8 +62,9 @@ class OpenGLOutputBuilder {
 		// transient buffers indicating composite data not yet decoded
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;
 
-		std::unique_ptr<OpenGL::OutputShader> rgb_shader_program, composite_output_shader_program;
+		std::unique_ptr<OpenGL::OutputShader> output_shader_program;
 		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
+		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program, rgb_filter_shader_program;
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
@@ -168,7 +170,7 @@ class OpenGLOutputBuilder {
 		void set_composite_sampling_function(const char *shader);
 		void set_rgb_sampling_function(const char *shader);
 		void set_output_device(OutputDevice output_device);
-		void set_timing(unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
+		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
 		uint8_t *_input_texture_data;
 		GLuint _input_texture_array;

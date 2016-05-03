@@ -45,7 +45,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
 	_vertical_flywheel_output_divider = (uint16_t)(ceilf(real_clock_scan_period / 65536.0f) * (_time_multiplier * _common_output_divisor));
 
-	_openGL_output_builder->set_timing(_cycles_per_line, _height_of_display, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period(), _vertical_flywheel_output_divider);
+	_openGL_output_builder->set_timing(cycles_per_line, _cycles_per_line, _height_of_display, _horizontal_flywheel->get_scan_period(), _vertical_flywheel->get_scan_period(), _vertical_flywheel_output_divider);
 }
 
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType)
@@ -133,7 +133,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		uint8_t *next_run = nullptr;
 		if(is_output_segment)
 		{
-			next_run = (_openGL_output_builder->get_output_device() == Monitor) ? _openGL_output_builder->get_next_output_run() : _openGL_output_builder->get_next_source_run();
+			next_run = _openGL_output_builder->get_next_source_run();
 		}
 
 		//	Vertex output is arranged for triangle strips, as:
@@ -143,30 +143,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		//	[0/1]		3
 		if(next_run)
 		{
-			if(_openGL_output_builder->get_output_device() == Monitor)
-			{
-				// set the type, initial raster position and type of this run
-				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = tex_x;
-
-				// these things are constants across the line so just throw them out now
-				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = output_tex_y(3) = output_tex_y(4) = output_tex_y(5) = tex_y;
-				output_lateral(0) = output_lateral(1) = output_lateral(3) = 0;
-				output_lateral(2) = output_lateral(4) = output_lateral(5) = 1;
-			}
-			else
-			{
-				source_input_position_x(0) = tex_x;
-				source_input_position_y(0) = source_input_position_y(1) = tex_y;
-				source_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				source_output_position_y(0) = source_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
-				source_phase(0) = source_phase(1) = _colour_burst_phase;
-				source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
-				source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
-				source_offset(0) = 0;
-				source_offset(1) = 255;
-			}
+			source_input_position_x(0) = tex_x;
+			source_input_position_y(0) = source_input_position_y(1) = tex_y;
+			source_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			source_output_position_y(0) = source_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
+			source_phase(0) = source_phase(1) = _colour_burst_phase;
+			source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
+			source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
+			source_offset(0) = 0;
+			source_offset(1) = 255;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -188,54 +173,39 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// if this is a data run then advance the buffer pointer
 			if(type == Scan::Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
-			if(_openGL_output_builder->get_output_device() == Monitor)
-			{
-				// store the final raster position
-				output_position_x(3) = output_position_x(4) = output_position_x(5) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_position_y(3) = output_position_y(4) = output_position_y(5) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_tex_x(3) = output_tex_x(4) = output_tex_x(5) = tex_x;
+			source_input_position_x(1) = tex_x;
+			source_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 
-				_openGL_output_builder->complete_output_run(6);
-			}
-			else
-			{
-				source_input_position_x(1) = tex_x;
-				source_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-
-				_openGL_output_builder->complete_source_run();
-			}
+			_openGL_output_builder->complete_source_run();
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
-		if(_openGL_output_builder->get_output_device() == Television)
+		Flywheel::SyncEvent honoured_event = Flywheel::SyncEvent::None;
+		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) honoured_event = next_vertical_sync_event;
+		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) honoured_event = next_horizontal_sync_event;
+		bool needs_endpoint =
+			(honoured_event == Flywheel::SyncEvent::StartRetrace && _is_writing_composite_run) ||
+			(honoured_event == Flywheel::SyncEvent::EndRetrace && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
+
+		if(needs_endpoint)
 		{
-			Flywheel::SyncEvent honoured_event = Flywheel::SyncEvent::None;
-			if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) honoured_event = next_vertical_sync_event;
-			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) honoured_event = next_horizontal_sync_event;
-			bool needs_endpoint =
-				(honoured_event == Flywheel::SyncEvent::StartRetrace && _is_writing_composite_run) ||
-				(honoured_event == Flywheel::SyncEvent::EndRetrace && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
+			uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 
-			if(needs_endpoint)
-			{
-				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
+			output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+			output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
+			output_lateral(0) = 0;
+			output_lateral(1) = _is_writing_composite_run ? 1 : 0;
+			output_lateral(2) = 1;
 
-				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
-				output_lateral(0) = 0;
-				output_lateral(1) = _is_writing_composite_run ? 1 : 0;
-				output_lateral(2) = 1;
+			_openGL_output_builder->complete_output_run(3);
+			_is_writing_composite_run ^= true;
+		}
 
-				_openGL_output_builder->complete_output_run(3);
-				_is_writing_composite_run ^= true;
-			}
-
-			if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
-			{
-				_openGL_output_builder->increment_composite_output_y();
-			}
+		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+		{
+			_openGL_output_builder->increment_composite_output_y();
 		}
 
 		// if this is vertical retrace then adcance a field
