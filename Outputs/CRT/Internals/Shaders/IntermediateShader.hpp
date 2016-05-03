@@ -45,6 +45,11 @@ public:
 	static std::unique_ptr<IntermediateShader> make_chroma_filter_shader();
 
 	/*!
+		Constructs and returns an intermediate shader that will filter R while passing through G and B unchanged.
+	*/
+	static std::unique_ptr<IntermediateShader> make_luma_filter_shader();
+
+	/*!
 		Constructs and returns an intermediate shader that will filter R, G and B.
 	*/
 	static std::unique_ptr<IntermediateShader> make_rgb_filter_shader();

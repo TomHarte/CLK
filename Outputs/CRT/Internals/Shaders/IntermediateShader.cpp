@@ -210,7 +210,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 					"dot(samples[0], weights[0]),"
 					"dot(samples[1], weights[1]),"
 					"dot(samples[2], weights[2])"
-				"), vec3(1.0)) / (1.0 - phaseAndAmplitudeVarying.y);"
+				"), vec3(1.0));"
 
 			"float chrominance = 0.5 * (samples[1].y - luminance) / phaseAndAmplitudeVarying.y;"
 			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
@@ -234,47 +234,92 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 
 		"void main(void)"
 		"{"
-			"vec3 centreSample = texture(texID, inputPositionsVarying[5]).rgb;"
-			"vec2 samples[] = vec2[]("
-				"texture(texID, inputPositionsVarying[0]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[1]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[2]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[3]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[4]).gb - vec2(0.5),"
-				"centreSample.gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[6]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[7]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[8]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[9]).gb - vec2(0.5),"
-				"texture(texID, inputPositionsVarying[10]).gb - vec2(0.5)"
+			"vec3 samples[] = vec3[]("
+				"texture(texID, inputPositionsVarying[0]).rgb,"
+				"texture(texID, inputPositionsVarying[1]).rgb,"
+				"texture(texID, inputPositionsVarying[2]).rgb,"
+				"texture(texID, inputPositionsVarying[3]).rgb,"
+				"texture(texID, inputPositionsVarying[4]).rgb,"
+				"texture(texID, inputPositionsVarying[5]).rgb,"
+				"texture(texID, inputPositionsVarying[6]).rgb,"
+				"texture(texID, inputPositionsVarying[7]).rgb,"
+				"texture(texID, inputPositionsVarying[8]).rgb,"
+				"texture(texID, inputPositionsVarying[9]).rgb,"
+				"texture(texID, inputPositionsVarying[10]).rgb"
 			");"
 
-			"vec4 channel1[] = vec4[]("
-				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
-				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
-				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
-			");"
-			"vec4 channel2[] = vec4[]("
+			"vec4 chromaChannel1[] = vec4[]("
 				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
 				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
 				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
 			");"
+			"vec4 chromaChannel2[] = vec4[]("
+				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
+				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
+				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
+			");"
 
-			"vec3 lumaChromaColour = vec3(centreSample.r,"
+			"vec3 lumaChromaColour = vec3(samples[5].r,"
 				"dot(vec3("
-					"dot(channel1[0], weights[0]),"
-					"dot(channel1[1], weights[1]),"
-					"dot(channel1[2], weights[2])"
-				"), vec3(1.0)) + 0.5,"
+					"dot(chromaChannel1[0], weights[0]),"
+					"dot(chromaChannel1[1], weights[1]),"
+					"dot(chromaChannel1[2], weights[2])"
+				"), vec3(1.0)),"
 				"dot(vec3("
-					"dot(channel2[0], weights[0]),"
-					"dot(channel2[1], weights[1]),"
-					"dot(channel2[2], weights[2])"
-				"), vec3(1.0)) + 0.5"
+					"dot(chromaChannel2[0], weights[0]),"
+					"dot(chromaChannel2[1], weights[1]),"
+					"dot(chromaChannel2[2], weights[2])"
+				"), vec3(1.0))"
 			");"
 
 			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
 			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
+		"}", false, false);
+}
+
+std::unique_ptr<IntermediateShader> IntermediateShader::make_luma_filter_shader()
+{
+	return make_shader(
+		"#version 150\n"
+
+		"in vec2 inputPositionsVarying[11];"
+		"uniform vec4 weights[3];"
+
+		"out vec3 fragColour;"
+
+		"uniform sampler2D texID;"
+		"uniform mat3 lumaChromaToRGB;"
+
+		"void main(void)"
+		"{"
+			"vec3 samples[] = vec3[]("
+				"texture(texID, inputPositionsVarying[0]).rgb,"
+				"texture(texID, inputPositionsVarying[1]).rgb,"
+				"texture(texID, inputPositionsVarying[2]).rgb,"
+				"texture(texID, inputPositionsVarying[3]).rgb,"
+				"texture(texID, inputPositionsVarying[4]).rgb,"
+				"texture(texID, inputPositionsVarying[5]).rgb,"
+				"texture(texID, inputPositionsVarying[6]).rgb,"
+				"texture(texID, inputPositionsVarying[7]).rgb,"
+				"texture(texID, inputPositionsVarying[8]).rgb,"
+				"texture(texID, inputPositionsVarying[9]).rgb,"
+				"texture(texID, inputPositionsVarying[10]).rgb"
+			");"
+
+			"vec4 luminance[] = vec4[]("
+				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
+				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
+				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
+			");"
+
+			"fragColour = vec3("
+				"dot(vec3("
+					"dot(luminance[0], weights[0]),"
+					"dot(luminance[1], weights[1]),"
+					"dot(luminance[2], weights[2])"
+				"), vec3(1.0)),"
+				"samples[5].gb"
+			");"
 		"}", false, false);
 }
 
@@ -414,7 +459,7 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 void IntermediateShader::set_separation_frequency(float sampling_rate, float colour_burst_frequency)
 {
 	// TODO: apply separately-formed filters for luminance and chrominance
-	set_filter_coefficients(sampling_rate, colour_burst_frequency - 50.0f);
+	set_filter_coefficients(sampling_rate, colour_burst_frequency);
 }
 
 void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)

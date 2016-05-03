@@ -63,8 +63,15 @@ class OpenGLOutputBuilder {
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;
 
 		std::unique_ptr<OpenGL::OutputShader> output_shader_program;
-		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_separation_filter_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
 		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program, rgb_filter_shader_program;
+
+		std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
+		std::unique_ptr<OpenGL::TextureTarget> separatedTexture;	// receives unfiltered Y in the R channel plus unfiltered but demodulated chrominance in G and B
+		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered chrominance in G and B
+		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
+
+		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
 
 		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
@@ -75,13 +82,6 @@ class OpenGLOutputBuilder {
 
 		GLuint defaultFramebuffer;
 
-		std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
-		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered I/U and Q/V in G and B
-		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
-
-		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
-
-		void perform_output_stage(unsigned int output_width, unsigned int output_height, OpenGL::OutputShader *const shader);
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
 
