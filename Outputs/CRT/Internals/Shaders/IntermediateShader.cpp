@@ -213,8 +213,9 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 				"), vec3(1.0));"
 
 			"float chrominance = 0.5 * (samples[1].y - luminance) / phaseAndAmplitudeVarying.y;"
-			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
+			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
 
+			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}",false, false);
 }
@@ -272,7 +273,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 				"), vec3(1.0))"
 			");"
 
-			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 3.0, 3.0);"
+			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 4.0, 4.0);"
 			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
 		"}", false, false);
 }
