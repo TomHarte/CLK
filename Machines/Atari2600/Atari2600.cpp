@@ -156,8 +156,8 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
-	// store colour
-	pixel[0] = outputColour;
+	// store colour, if possible
+	if(pixel) *pixel = outputColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -237,8 +237,7 @@ void Machine::output_pixels(unsigned int count)
 		}
 
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			if(_outputBuffer)
-				get_output_pixel(&_outputBuffer[_lastOutputStateDuration], 159 - _horizontalTimer);
+			get_output_pixel(_outputBuffer ? &_outputBuffer[_lastOutputStateDuration] : nullptr, 159 - _horizontalTimer);
 
 			// increment all graphics counters
 			increment_object_counter(0);

@@ -312,15 +312,21 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
-	Scan scan {
-		.type = Scan::Type::Data,
-		.number_of_cycles = number_of_cycles,
-		.tex_x = _openGL_output_builder->get_last_write_x_posititon(),
-		.tex_y = _openGL_output_builder->get_last_write_y_posititon(),
-		.source_divider = source_divider
-	};
-	output_scan(&scan);
+	if(_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider))
+	{
+		Scan scan {
+			.type = Scan::Type::Data,
+			.number_of_cycles = number_of_cycles,
+			.tex_x = _openGL_output_builder->get_last_write_x_posititon(),
+			.tex_y = _openGL_output_builder->get_last_write_y_posititon(),
+			.source_divider = source_divider
+		};
+		output_scan(&scan);
+	}
+	else
+	{
+		output_blank(number_of_cycles);
+	}
 }
 
 Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)

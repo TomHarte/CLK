@@ -152,9 +152,9 @@ class OpenGLOutputBuilder {
 			return output;
 		}
 
-		inline void reduce_previous_allocation_to(size_t actual_length)
+		inline bool reduce_previous_allocation_to(size_t actual_length)
 		{
-			_buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
+			return _buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
 		}
 
 		inline uint16_t get_last_write_x_posititon()

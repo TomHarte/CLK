@@ -20,23 +20,26 @@ namespace CRT {
 
 struct CRTInputBufferBuilder {
 	CRTInputBufferBuilder(size_t bytes_per_pixel);
-	~CRTInputBufferBuilder();
 
 	void allocate_write_area(size_t required_length);
-	void reduce_previous_allocation_to(size_t actual_length, uint8_t *buffer);
+	bool reduce_previous_allocation_to(size_t actual_length, uint8_t *buffer);
 
 	inline uint16_t get_and_finalise_current_line()
 	{
 		uint16_t result = _write_y_position;
-		_next_write_x_position = 0;
-		_next_write_y_position++;
+		if(!_is_full)
+		{
+			_next_write_x_position = 0;
+			_next_write_y_position++;
+		}
 		_next_write_y_position %= InputBufferBuilderHeight;
+		_is_full = false;
 		return result;
 	}
 
 	inline uint8_t *get_write_target(uint8_t *buffer)
 	{
-		return &buffer[_write_target_pointer * bytes_per_pixel];
+		return _is_full ? nullptr : &buffer[_write_target_pointer * _bytes_per_pixel];
 	}
 
 	inline uint16_t get_last_write_x_position()
@@ -51,7 +54,7 @@ struct CRTInputBufferBuilder {
 
 	inline size_t get_bytes_per_pixel()
 	{
-		return bytes_per_pixel;
+		return _bytes_per_pixel;
 	}
 
 	private:
@@ -66,11 +69,12 @@ struct CRTInputBufferBuilder {
 		size_t _last_allocation_amount;
 
 		// the buffer size
-		size_t bytes_per_pixel;
+		size_t _bytes_per_pixel;
 
 		// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
 		// builder but otherwise entrusted to the CRT to update.
-		unsigned int last_uploaded_line;
+		unsigned int _last_uploaded_line;
+		bool _is_full;
 };
 
 }

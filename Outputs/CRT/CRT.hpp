@@ -176,14 +176,16 @@ class CRT {
 		*/
 		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude);
 
-		/*!	Ensures that the given number of output samples are allocated for writing.
+		/*!	Attempts to allocate the given number of output samples for writing.
 
 			The beginning of the most recently allocated area is used as the start
 			of data written by a call to @c output_data; it is acceptable to write and to
 			output less data than the amount requested but that may be less efficient.
 
+			Allocation should fail only if emulation is running significantly below real speed.
+
 			@param required_length The number of samples to allocate.
-			@returns A pointer to the allocated area.
+			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
