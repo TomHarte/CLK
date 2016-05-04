@@ -240,18 +240,6 @@ class CRT {
 			_openGL_output_builder->set_rgb_sampling_function(shader);
 		}
 
-		/*!	Optionally sets a function that will map from an input cycle count to a colour carrier phase.
-
-			If this function is not supplied then the colour phase is determined from
-			the input clock rate and the the colour cycle clock rate. Machines whose per-line clock rate
-			is not intended exactly to match the normal line time may prefer to supply a custom function.
-
-			@param  A GLSL fragent including a function with the signature
-			`float phase_for_clock_cycle(int cycle)` that returns the colour phase at the beginning of
-			the supplied cycle.
-		*/
-//		void set_phase_function(const char *shader);
-
 		inline void set_output_device(OutputDevice output_device)
 		{
 			_openGL_output_builder->set_output_device(output_device);

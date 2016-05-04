@@ -37,6 +37,8 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit)
 
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		throw ErrorFramebufferIncomplete;
+
+	glClear(GL_COLOR_BUFFER_BIT);
 }
 
 TextureTarget::~TextureTarget()

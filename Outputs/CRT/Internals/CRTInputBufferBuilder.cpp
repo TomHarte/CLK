@@ -16,13 +16,11 @@ CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) :
 	bytes_per_pixel(bytes_per_pixel),
 	_next_write_x_position(0),
 	_next_write_y_position(0),
-	last_uploaded_line(0),
-	_wraparound_sync(glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0))
+	last_uploaded_line(0)
 {}
 
 CRTInputBufferBuilder::~CRTInputBufferBuilder()
 {
-	glDeleteSync(_wraparound_sync);
 }
 
 void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
@@ -31,12 +29,13 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 	if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
 	{
-		move_to_new_line();
+		_next_write_x_position = 0;
+		_next_write_y_position++;
 	}
 
 	_write_x_position = _next_write_x_position + 1;
 	_write_y_position = _next_write_y_position;
-	_write_target_pointer = (_write_y_position * InputBufferBuilderWidth) + _write_x_position;
+	_write_target_pointer = ((_write_y_position % InputBufferBuilderHeight) * InputBufferBuilderWidth) + _write_x_position;
 	_next_write_x_position += required_length + 2;
 }
 

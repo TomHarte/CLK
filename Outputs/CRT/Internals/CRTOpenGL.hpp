@@ -157,14 +157,14 @@ class OpenGLOutputBuilder {
 			_buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
 		}
 
-		inline uint16_t get_last_write_x_posiiton()
+		inline uint16_t get_last_write_x_posititon()
 		{
-			return _buffer_builder->_write_x_position;
+			return _buffer_builder->get_last_write_x_position();
 		}
 
-		inline uint16_t get_last_write_y_posiiton()
+		inline uint16_t get_last_write_y_posititon()
 		{
-			return _buffer_builder->_write_y_position;
+			return _buffer_builder->get_last_write_y_position();
 		}
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
@@ -186,6 +186,8 @@ class OpenGLOutputBuilder {
 		uint8_t *_output_buffer_data;
 		GLsizei _output_buffer_data_pointer;
 		GLsizei _drawn_output_buffer_data_pointer;
+
+		uint16_t _uploaded_texture_y;
 };
 
 }
