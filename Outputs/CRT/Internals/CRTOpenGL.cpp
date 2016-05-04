@@ -266,11 +266,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			new_framebuffer->bind_texture();
 		}
 		framebuffer = std::move(new_framebuffer);
-		glActiveTexture(source_data_texture_unit);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
 	}
 
 	// upload new source pixels
+	glActiveTexture(source_data_texture_unit);
 	for(int c = 0; c < number_of_texture_upload_zones; c++)
 	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
@@ -380,7 +380,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT );
+	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	_output_mutex->unlock();
 }
