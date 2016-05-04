@@ -270,14 +270,19 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// upload new source pixels
-	glActiveTexture(source_data_texture_unit);
-	for(int c = 0; c < number_of_texture_upload_zones; c++)
+	if(number_of_texture_upload_zones)
 	{
-		glTexSubImage2D(	GL_TEXTURE_2D, 0,
-							0, texture_upload_zones[c*2],
-							InputBufferBuilderWidth, texture_upload_zones[c*2 + 1],
-							formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
-							(void *)((size_t)texture_upload_zones[c*2] * InputBufferBuilderWidth * _buffer_builder->get_bytes_per_pixel()));
+		glActiveTexture(source_data_texture_unit);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, (void *)0);
+//		for(int c = 0; c < number_of_texture_upload_zones; c++)
+//		{
+//			glTexSubImage2D(	GL_TEXTURE_2D, 0,
+//								0, texture_upload_zones[c*2],
+//								InputBufferBuilderWidth, texture_upload_zones[c*2 + 1],
+//								formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
+//								(void *)((size_t)texture_upload_zones[c*2] * InputBufferBuilderWidth * _buffer_builder->get_bytes_per_pixel()));
+//		}
+//		glFinish();
 	}
 
 	struct RenderStage {

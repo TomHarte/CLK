@@ -46,7 +46,7 @@ struct CRTInputBufferBuilder {
 
 	inline uint16_t get_last_write_y_position()
 	{
-		return _write_y_position;
+		return _write_y_position % InputBufferBuilderHeight;
 	}
 
 	inline size_t get_bytes_per_pixel()
