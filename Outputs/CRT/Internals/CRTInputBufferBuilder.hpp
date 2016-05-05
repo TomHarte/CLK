@@ -51,11 +51,7 @@ struct CRTInputBufferBuilder {
 		// the buffer size
 		size_t _bytes_per_pixel;
 
-		// Storage for the amount of buffer uploaded so far; initialised correctly by the buffer
-		// builder but otherwise entrusted to the CRT to update.
-		unsigned int _last_uploaded_line;
-		bool _is_full;
-
+		// the buffer
 		uint8_t *_image;
 };
 
