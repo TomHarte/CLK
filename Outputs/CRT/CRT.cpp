@@ -130,7 +130,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		bool is_output_segment = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
 		uint8_t *next_run = nullptr;
-		if(is_output_segment)
+		if(is_output_segment && !_openGL_output_builder->composite_output_buffer_is_full())
 		{
 			next_run = _openGL_output_builder->get_next_source_run();
 		}
@@ -190,12 +190,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		{
 			uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 
-			output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-			output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
+			if(next_run)
+			{
+				output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+				output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+				output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
 
-			_openGL_output_builder->complete_output_run(3);
+				_openGL_output_builder->complete_output_run(3);
+			}
 			_is_writing_composite_run ^= true;
 		}
 

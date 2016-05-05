@@ -30,7 +30,7 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	{
 		_last_allocation_amount = required_length;
 
-		if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
+//		if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
 		{
 			_next_write_x_position = 0;
 			_next_write_y_position++;

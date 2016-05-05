@@ -106,6 +106,7 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_source_run()
 		{
+			if(_source_buffer_data_pointer == _drawn_source_buffer_data_pointer + SourceVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
 			return &_source_buffer_data[_source_buffer_data_pointer % SourceVertexBufferDataSize];
 		}
@@ -118,6 +119,7 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_output_run()
 		{
+			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
 			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
@@ -131,6 +133,11 @@ class OpenGLOutputBuilder {
 		inline OutputDevice get_output_device()
 		{
 			return _output_device;
+		}
+
+		inline bool composite_output_buffer_is_full()
+		{
+			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
 		}
 
 		inline uint16_t get_composite_output_y()
