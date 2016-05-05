@@ -88,7 +88,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_rgb_shader(nullptr),
 	_output_buffer_data(nullptr),
 	_source_buffer_data(nullptr),
-	_input_texture_data(nullptr),
 	_output_buffer_data_pointer(0),
 	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
@@ -116,15 +115,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, nullptr);
-
-	// create a pixel unpack buffer
-	glGenBuffers(1, &_input_texture_array);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-	_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->get_bytes_per_pixel());
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
-
-	// map the buffer for clients
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
@@ -165,7 +155,6 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteTextures(1, &textureName);
-	glDeleteBuffers(1, &_input_texture_array);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
 	glDeleteBuffers(1, &lateral_array_buffer);
@@ -204,13 +193,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	GLsizei clearing_zones[4], source_drawing_zones[4];
-	GLsizei output_drawing_zones[4], texture_upload_zones[4];
+	GLsizei output_drawing_zones[4];
 	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
 
 	uint16_t completed_texture_y = _buffer_builder->get_and_finalise_current_line();
-	int number_of_texture_upload_zones	= getCircularRanges(_uploaded_texture_y, completed_texture_y, InputBufferBuilderHeight, 1, texture_upload_zones);
 
 	_composite_src_output_y %= IntermediateBufferHeight;
 	_source_buffer_data_pointer %= SourceVertexBufferDataSize;
@@ -219,26 +207,19 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_cleared_composite_output_y = _composite_src_output_y;
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
-	_uploaded_texture_y = completed_texture_y % InputBufferBuilderHeight;
 
 	for(int c = 0; c < number_of_source_drawing_zones; c++)
 	{
 		printf("src: + %0.0f\n", (float)source_drawing_zones[c*2 + 1] / (2.0f * SourceVertexSize));
-//		for(int r = 0; r < source_drawing_zones[c*2 + 1]; r += 2*SourceVertexSize)
-//		{
-			int offset = source_drawing_zones[c*2 + 0];
-			uint16_t *base = (uint16_t *)&_source_buffer_data[offset];
-			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
+		int offset = source_drawing_zones[c*2 + 0];
+		uint16_t *base = (uint16_t *)&_source_buffer_data[offset];
+		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
 
-			offset += source_drawing_zones[c*2 + 1] - 2*SourceVertexSize;
-			base = (uint16_t *)&_source_buffer_data[offset];
-			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
-//		}
+		offset += source_drawing_zones[c*2 + 1] - 2*SourceVertexSize;
+		base = (uint16_t *)&_source_buffer_data[offset];
+		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
 	}
-	for(int c = 0; c < number_of_texture_upload_zones; c++)
-	{
-		printf("tx: + %d\n", texture_upload_zones[c*2 + 1]);
-	}
+	printf("tx: + %d\n", completed_texture_y);
 	for(int c = 0; c < number_of_clearing_zones; c++)
 	{
 		printf("cl: %d + %d\n", clearing_zones[c*2], clearing_zones[c*2 + 1]);
@@ -246,16 +227,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	for(int c = 0; c < number_of_output_drawing_zones; c++)
 	{
 		printf("o: + %0.0f\n", (float)output_drawing_zones[c*2 + 1] / (6.0f * OutputVertexSize));
-//		for(int r = 0; r < output_drawing_zones[c*2 + 1]; r += 6*OutputVertexSize)
-//		{
-			int offset = output_drawing_zones[c*2 + 0];
-			uint16_t *base = (uint16_t *)&_output_buffer_data[offset];
-			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
+		int offset = output_drawing_zones[c*2 + 0];
+		uint16_t *base = (uint16_t *)&_output_buffer_data[offset];
+		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
 
-			offset += output_drawing_zones[c*2 + 1] - 6*OutputVertexSize;
-			base = (uint16_t *)&_output_buffer_data[offset];
-			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
-//		}
+		offset += output_drawing_zones[c*2 + 1] - 6*OutputVertexSize;
+		base = (uint16_t *)&_output_buffer_data[offset];
+		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
 	}
 	printf("\n");
 
@@ -275,19 +253,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	if(number_of_texture_upload_zones)
-	{
-		for(int c = 0; c < number_of_texture_upload_zones; c++)
-		{
-			glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, (GLsizeiptr)texture_upload_zones[c*2] * InputBufferBuilderWidth * (GLsizeiptr)_buffer_builder->get_bytes_per_pixel(), (GLsizeiptr)texture_upload_zones[c*2 + 1] * InputBufferBuilderWidth * (GLsizeiptr)_buffer_builder->get_bytes_per_pixel());
-		}
-	}
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
 	{
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
 		if(framebuffer)
 		{
@@ -301,23 +269,17 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			new_framebuffer->bind_texture();
 		}
 		framebuffer = std::move(new_framebuffer);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
 	}
 
 	// upload new source pixels
-	if(number_of_texture_upload_zones)
+	if(completed_texture_y)
 	{
 		glActiveTexture(source_data_texture_unit);
-		glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, (void *)0);
-//		for(int c = 0; c < number_of_texture_upload_zones; c++)
-//		{
-//			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-//								0, texture_upload_zones[c*2],
-//								InputBufferBuilderWidth, texture_upload_zones[c*2 + 1],
-//								formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
-//								(void *)((size_t)texture_upload_zones[c*2] * InputBufferBuilderWidth * _buffer_builder->get_bytes_per_pixel()));
-//		}
-//		glFinish();
+		glTexSubImage2D(	GL_TEXTURE_2D, 0,
+							0, 0,
+							InputBufferBuilderWidth, completed_texture_y,
+							formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
+							_buffer_builder->get_image_pointer());
 	}
 
 	struct RenderStage {
@@ -420,8 +382,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	_output_mutex->unlock();
 }

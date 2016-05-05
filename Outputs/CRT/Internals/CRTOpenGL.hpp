@@ -145,16 +145,13 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			_output_mutex->lock();
 			_buffer_builder->allocate_write_area(required_length);
-			uint8_t *output = _input_texture_data ? _buffer_builder->get_write_target(_input_texture_data) : nullptr;
-			_output_mutex->unlock();
-			return output;
+			return _buffer_builder->get_write_target();
 		}
 
 		inline bool reduce_previous_allocation_to(size_t actual_length)
 		{
-			return _buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
+			return _buffer_builder->reduce_previous_allocation_to(actual_length);
 		}
 
 		inline uint16_t get_last_write_x_posititon()
@@ -174,11 +171,6 @@ class OpenGLOutputBuilder {
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
-		uint8_t *_input_texture_data;
-		GLuint _input_texture_array;
-		GLsync _input_texture_sync;
-		GLsizeiptr _input_texture_array_size;
-
 		uint8_t *_source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
 		GLsizei _drawn_source_buffer_data_pointer;
@@ -186,8 +178,6 @@ class OpenGLOutputBuilder {
 		uint8_t *_output_buffer_data;
 		GLsizei _output_buffer_data_pointer;
 		GLsizei _drawn_output_buffer_data_pointer;
-
-		uint16_t _uploaded_texture_y;
 };
 
 }

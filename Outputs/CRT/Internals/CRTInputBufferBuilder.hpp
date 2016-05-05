@@ -21,47 +21,21 @@ namespace CRT {
 
 struct CRTInputBufferBuilder {
 	CRTInputBufferBuilder(size_t bytes_per_pixel);
+	~CRTInputBufferBuilder();
 
 	void allocate_write_area(size_t required_length);
-	bool reduce_previous_allocation_to(size_t actual_length, uint8_t *buffer);
+	bool reduce_previous_allocation_to(size_t actual_length);
 
-	inline uint16_t get_and_finalise_current_line()
-	{
-		uint16_t result = _write_y_position;
-		if(!_is_full)
-		{
-			_next_write_x_position = 0;
-			_next_write_y_position++;
-		}
-		_next_write_y_position %= InputBufferBuilderHeight;
-		_last_uploaded_line = _next_write_y_position;
-		_is_full = false;
-		return result;
-	}
+	uint16_t get_and_finalise_current_line();
+	uint8_t *get_image_pointer();
 
-	inline uint8_t *get_write_target(uint8_t *buffer)
-	{
-		if(!_is_full)
-		{
-			memset(&buffer[_write_target_pointer * _bytes_per_pixel], 0, _last_allocation_amount * _bytes_per_pixel);
-		}
-		return _is_full ? nullptr : &buffer[_write_target_pointer * _bytes_per_pixel];
-	}
+	uint8_t *get_write_target();
 
-	inline uint16_t get_last_write_x_position()
-	{
-		return _write_x_position;
-	}
+	uint16_t get_last_write_x_position();
 
-	inline uint16_t get_last_write_y_position()
-	{
-		return _write_y_position % InputBufferBuilderHeight;
-	}
+	uint16_t get_last_write_y_position();
 
-	inline size_t get_bytes_per_pixel()
-	{
-		return _bytes_per_pixel;
-	}
+	size_t get_bytes_per_pixel();
 
 	private:
 		// where pixel data will be put to the next time a write is requested
@@ -81,6 +55,8 @@ struct CRTInputBufferBuilder {
 		// builder but otherwise entrusted to the CRT to update.
 		unsigned int _last_uploaded_line;
 		bool _is_full;
+
+		uint8_t *_image;
 };
 
 }
