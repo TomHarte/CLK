@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include "CRTConstants.hpp"
 #include "OpenGL.hpp"
+#include <memory.h>
 
 namespace Outputs {
 namespace CRT {
@@ -33,12 +34,17 @@ struct CRTInputBufferBuilder {
 			_next_write_y_position++;
 		}
 		_next_write_y_position %= InputBufferBuilderHeight;
+		_last_uploaded_line = _next_write_y_position;
 		_is_full = false;
 		return result;
 	}
 
 	inline uint8_t *get_write_target(uint8_t *buffer)
 	{
+		if(!_is_full)
+		{
+			memset(&buffer[_write_target_pointer * _bytes_per_pixel], 0, _last_allocation_amount * _bytes_per_pixel);
+		}
 		return _is_full ? nullptr : &buffer[_write_target_pointer * _bytes_per_pixel];
 	}
 

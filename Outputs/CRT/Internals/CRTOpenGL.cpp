@@ -39,15 +39,12 @@ static const GLenum formatForDepth(size_t depth)
 
 static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, GLsizei *ranges)
 {
-	GLsizei startOffset = start%granularity;
-	if(startOffset)
-	{
-		start -= startOffset;
-	}
+	start -= start%granularity;
+	end -= end%granularity;
 
 	GLsizei length = end - start;
 	if(!length) return 0;
-	if(length > buffer_length)
+	if(length >= buffer_length)
 	{
 		ranges[0] = 0;
 		ranges[1] = buffer_length;
@@ -56,7 +53,7 @@ static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, 
 	else
 	{
 		ranges[0] = start % buffer_length;
-		if(ranges[0]+length < buffer_length)
+		if(ranges[0]+length <= buffer_length)
 		{
 			ranges[1] = length;
 			return 1;
@@ -102,7 +99,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
+	glBlendColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	compositeTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
@@ -208,7 +205,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	GLsizei clearing_zones[4], source_drawing_zones[4];
 	GLsizei output_drawing_zones[4], texture_upload_zones[4];
-	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y+1, _composite_src_output_y+1, IntermediateBufferHeight, 1, clearing_zones);
+	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
 
@@ -223,6 +220,44 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
 	_uploaded_texture_y = completed_texture_y % InputBufferBuilderHeight;
+
+	for(int c = 0; c < number_of_source_drawing_zones; c++)
+	{
+		printf("src: + %0.0f\n", (float)source_drawing_zones[c*2 + 1] / (2.0f * SourceVertexSize));
+//		for(int r = 0; r < source_drawing_zones[c*2 + 1]; r += 2*SourceVertexSize)
+//		{
+			int offset = source_drawing_zones[c*2 + 0];
+			uint16_t *base = (uint16_t *)&_source_buffer_data[offset];
+			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
+
+			offset += source_drawing_zones[c*2 + 1] - 2*SourceVertexSize;
+			base = (uint16_t *)&_source_buffer_data[offset];
+			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
+//		}
+	}
+	for(int c = 0; c < number_of_texture_upload_zones; c++)
+	{
+		printf("tx: + %d\n", texture_upload_zones[c*2 + 1]);
+	}
+	for(int c = 0; c < number_of_clearing_zones; c++)
+	{
+		printf("cl: %d + %d\n", clearing_zones[c*2], clearing_zones[c*2 + 1]);
+	}
+	for(int c = 0; c < number_of_output_drawing_zones; c++)
+	{
+		printf("o: + %0.0f\n", (float)output_drawing_zones[c*2 + 1] / (6.0f * OutputVertexSize));
+//		for(int r = 0; r < output_drawing_zones[c*2 + 1]; r += 6*OutputVertexSize)
+//		{
+			int offset = output_drawing_zones[c*2 + 0];
+			uint16_t *base = (uint16_t *)&_output_buffer_data[offset];
+			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
+
+			offset += output_drawing_zones[c*2 + 1] - 6*OutputVertexSize;
+			base = (uint16_t *)&_output_buffer_data[offset];
+			printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
+//		}
+	}
+	printf("\n");
 
 	// release the mapping, giving up on trying to draw if data has been lost
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
@@ -323,17 +358,18 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			active_pipeline->shader->bind();
 
 			// clear as desired
-			if(number_of_clearing_zones)
-			{
-				glEnable(GL_SCISSOR_TEST);
-				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
-				for(int c = 0; c < number_of_clearing_zones; c++)
-				{
-					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
-					glClear(GL_COLOR_BUFFER_BIT);
-				}
-				glDisable(GL_SCISSOR_TEST);
-			}
+//			if(number_of_clearing_zones)
+//			{
+//				glEnable(GL_SCISSOR_TEST);
+//				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
+//				for(int c = 0; c < number_of_clearing_zones; c++)
+//				{
+//					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+//					glClear(GL_COLOR_BUFFER_BIT);
+//				}
+//				glDisable(GL_SCISSOR_TEST);
+//			}
+			glClear(GL_COLOR_BUFFER_BIT);
 
 			// draw as desired
 			for(int c = 0; c < number_of_source_drawing_zones; c++)

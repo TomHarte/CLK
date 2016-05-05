@@ -22,7 +22,7 @@ CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) :
 
 void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 {
-	if (!_is_full)
+	if(!_is_full)
 	{
 		_last_allocation_amount = required_length;
 
@@ -32,7 +32,8 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 			_next_write_y_position++;
 
 			_is_full = (_next_write_y_position == _last_uploaded_line + InputBufferBuilderHeight);
-			if(_is_full) return;
+			if(_is_full)
+				return;
 		}
 
 		_write_x_position = _next_write_x_position + 1;

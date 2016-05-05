@@ -33,7 +33,7 @@ const GLsizei SourceVertexSize = 16;
 
 // These constants hold the size of the rolling buffer to which the CPU writes
 const GLsizei InputBufferBuilderWidth = 2048;
-const GLsizei InputBufferBuilderHeight = 1024;
+const GLsizei InputBufferBuilderHeight = 8;
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
 const GLsizei IntermediateBufferWidth = 2048;
