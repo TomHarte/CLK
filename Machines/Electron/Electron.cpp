@@ -175,26 +175,25 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 								if( interruptDisable&0x40 ) _interrupt_status &= ~Interrupt::HighToneDetect;
 								evaluate_interrupts();
 
-								// TODO: NMI (?)
+								// TODO: NMI
 							}
-//							else
-							{
-								uint8_t nextROM = (*value)&0xf;
 
-//								if(nextROM&0x08)
-//								{
-//									_activeRom = (Electron::ROMSlot)(nextROM&0x0e);
-//									printf("%d -> Paged %d\n", nextROM, _activeRom);
-//								}
-								if(((_active_rom&12) != 8) || (nextROM&8))
+							// latch the paged ROM in case external hardware is being emulated
+							_active_rom = (Electron::ROMSlot)(*value & 0xf);
+
+							// apply the ULA's test
+							if(*value & 0x08)
+							{
+								if(*value & 0x04)
 								{
-									_active_rom = (Electron::ROMSlot)nextROM;
+									_keyboard_is_active = false;
+									_basic_is_active = false;
 								}
-//								else
-//								{
-//									printf("Ignored!");
-//								}
-//								printf("%d -> Paged %d\n", nextROM, _activeRom);
+								else
+								{
+									_keyboard_is_active = !(*value & 0x02);
+									_basic_is_active = !_keyboard_is_active;
+								}
 							}
 						}
 					break;
@@ -375,19 +374,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			if(isReadOperation(operation))
 			{
-				switch(_active_rom)
+				*value = _roms[_active_rom][address & 16383];
+				if(_keyboard_is_active)
 				{
-					case ROMSlotKeyboard:
-					case ROMSlotKeyboard+1:
-						*value = 0xf0;
-						for(int address_line = 0; address_line < 14; address_line++)
-						{
-							if(!(address&(1 << address_line))) *value |= _key_states[address_line];
-						}
-					break;
-					default:
-						*value = _roms[_active_rom][address & 16383];
-					break;
+					*value &= 0xf0;
+					for(int address_line = 0; address_line < 14; address_line++)
+					{
+						if(!(address&(1 << address_line))) *value |= _key_states[address_line];
+					}
+				}
+				if(_basic_is_active)
+				{
+					*value &= _roms[ROMSlotBASIC][address & 16383];
 				}
 			}
 		}
