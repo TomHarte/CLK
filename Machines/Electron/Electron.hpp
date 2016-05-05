@@ -187,6 +187,7 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint8_t _palette[16];
 		uint8_t _key_states[14];
 		ROMSlot _active_rom;
+		bool _keyboard_is_active, _basic_is_active;
 		uint8_t _screen_mode;
 		uint16_t _screenModeBaseAddress;
 		uint16_t _startScreenAddress;
