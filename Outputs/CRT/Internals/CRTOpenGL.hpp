@@ -73,7 +73,7 @@ class OpenGLOutputBuilder {
 
 		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
 
-		GLuint output_array_buffer, lateral_array_buffer, output_vertex_array;
+		GLuint output_array_buffer, output_vertex_array;
 		GLuint source_array_buffer, source_vertex_array;
 
 		unsigned int _last_output_width, _last_output_height;

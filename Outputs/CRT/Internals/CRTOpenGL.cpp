@@ -124,17 +124,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
-	// create and populate a buffer for the lateral attributes
-	glGenBuffers(1, &lateral_array_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, lateral_array_buffer);
-	size_t number_of_vertices = OutputVertexBufferDataSize/OutputVertexSize;
-	uint8_t lateral_pattern[] = {0, 0, 1, 0, 1, 1};
-	uint8_t *laterals = new uint8_t[number_of_vertices];
-	for(size_t c = 0; c < number_of_vertices; c++)
-		laterals[c] = lateral_pattern[c%6];
-	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)number_of_vertices, laterals, GL_STATIC_DRAW);
-	delete[] laterals;
-
 	// map that buffer too, for any CRT activity that may occur before the first draw
 	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
@@ -157,7 +146,6 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	glDeleteTextures(1, &textureName);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
-	glDeleteBuffers(1, &lateral_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
 
 	free(_composite_shader);
@@ -374,8 +362,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
-//	framebuffer->draw((float)output_width / (float)output_height);
-	compositeTexture->draw((float)output_width / (float)output_height);
+	framebuffer->draw((float)output_width / (float)output_height);
+//	compositeTexture->draw((float)output_width / (float)output_height);
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
@@ -483,11 +471,6 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
-
-		GLint lateralAttribute = output_shader_program->get_attrib_location("lateral");
-		glEnableVertexAttribArray((GLuint)lateralAttribute);
-		glBindBuffer(GL_ARRAY_BUFFER, lateral_array_buffer);
-		glVertexAttribPointer((GLuint)lateralAttribute,	1, GL_UNSIGNED_BYTE,	GL_FALSE,	0, (void *)0);
 	}
 }
 
