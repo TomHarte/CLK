@@ -43,14 +43,8 @@
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
 {
-	static int d = 0;
-	d++;
-	if(d == 10)
-	{
-		d = 0;
-		CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
-		[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
-	}
+	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
+	[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
 	return kCVReturnSuccess;
 }
 

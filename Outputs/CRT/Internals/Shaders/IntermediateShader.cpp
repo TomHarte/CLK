@@ -159,7 +159,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 
 		"void main(void)"
 		"{"
-			"fragColour = vec3(0.2) + rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
+			"fragColour = rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
 		"}"
 	, rgb_shader);
 

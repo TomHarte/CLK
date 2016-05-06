@@ -98,7 +98,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	glBlendColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
 	compositeTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
@@ -195,35 +195,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_cleared_composite_output_y = _composite_src_output_y;
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
-
-	for(int c = 0; c < number_of_source_drawing_zones; c++)
-	{
-		printf("src: + %0.0f\n", (float)source_drawing_zones[c*2 + 1] / (2.0f * SourceVertexSize));
-		int offset = source_drawing_zones[c*2 + 0];
-		uint16_t *base = (uint16_t *)&_source_buffer_data[offset];
-		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
-
-		offset += source_drawing_zones[c*2 + 1] - 2*SourceVertexSize;
-		base = (uint16_t *)&_source_buffer_data[offset];
-		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[10], base[11]);
-	}
-	printf("tx: + %d\n", completed_texture_y);
-	for(int c = 0; c < number_of_clearing_zones; c++)
-	{
-		printf("cl: %d + %d\n", clearing_zones[c*2], clearing_zones[c*2 + 1]);
-	}
-	for(int c = 0; c < number_of_output_drawing_zones; c++)
-	{
-		printf("o: + %0.0f\n", (float)output_drawing_zones[c*2 + 1] / (6.0f * OutputVertexSize));
-		int offset = output_drawing_zones[c*2 + 0];
-		uint16_t *base = (uint16_t *)&_output_buffer_data[offset];
-		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
-
-		offset += output_drawing_zones[c*2 + 1] - 6*OutputVertexSize;
-		base = (uint16_t *)&_output_buffer_data[offset];
-		printf("(%d/%d) -> (%d/%d)\n", base[2], base[3], base[14], base[15]);
-	}
-	printf("\n");
 
 	// release the mapping, giving up on trying to draw if data has been lost
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
