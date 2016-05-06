@@ -374,8 +374,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
-	framebuffer->draw((float)output_width / (float)output_height);
-//	compositeTexture->draw((float)output_width / (float)output_height);
+//	framebuffer->draw((float)output_width / (float)output_height);
+	compositeTexture->draw((float)output_width / (float)output_height);
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);

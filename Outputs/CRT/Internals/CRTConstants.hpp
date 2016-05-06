@@ -37,11 +37,11 @@ const GLsizei InputBufferBuilderHeight = 1024;
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
 const GLsizei IntermediateBufferWidth = 2048;
-const GLsizei IntermediateBufferHeight = 1024;
+const GLsizei IntermediateBufferHeight = 2048;
 
 // Some internal buffer sizes
-const GLsizeiptr OutputVertexBufferDataSize = 5990400;	// a multiple of 6 * OutputVertexSize
-const GLsizeiptr SourceVertexBufferDataSize = 8736000;	// a multiple of 2 * SourceVertexSize
+const GLsizeiptr OutputVertexBufferDataSize = 44928;	// a multiple of 6 * OutputVertexSize
+const GLsizeiptr SourceVertexBufferDataSize = 29952;	// a multiple of 2 * SourceVertexSize
 
 }
 }
