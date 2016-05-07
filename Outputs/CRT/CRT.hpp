@@ -68,7 +68,7 @@ class CRT {
 
 		uint8_t _colour_burst_phase, _colour_burst_amplitude;
 		uint16_t _colour_burst_time;
-		bool _is_writing_composite_run;
+		bool _is_writing_composite_run, _did_start_run;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);

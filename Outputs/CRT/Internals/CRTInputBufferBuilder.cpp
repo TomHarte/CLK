@@ -16,7 +16,8 @@ CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) :
 	_bytes_per_pixel(bytes_per_pixel),
 	_next_write_x_position(0),
 	_next_write_y_position(0),
-	_image(new uint8_t[bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight])
+	_image(new uint8_t[bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight]),
+	_should_reset(false)
 {}
 
 CRTInputBufferBuilder::~CRTInputBufferBuilder()
@@ -30,7 +31,7 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	{
 		_last_allocation_amount = required_length;
 
-//		if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
+		if(_next_write_x_position + required_length + 2 > InputBufferBuilderWidth)
 		{
 			_next_write_x_position = 0;
 			_next_write_y_position++;
@@ -41,13 +42,17 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 		_write_x_position = _next_write_x_position + 1;
 		_write_y_position = _next_write_y_position;
+//		printf("#%d,%d#", _write_x_position, _write_y_position);
 		_write_target_pointer = (_write_y_position * InputBufferBuilderWidth) + _write_x_position;
 		_next_write_x_position += required_length + 2;
+	}
+}
 
-		if(_write_y_position == 0 && _write_x_position == 0)
-		{
-			memset(_image, 0, _bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
-		}
+void CRTInputBufferBuilder::release_write_pointer()
+{
+	if(_should_reset)
+	{
+		_next_write_x_position = _next_write_y_position = 0;
 	}
 }
 
@@ -78,8 +83,9 @@ uint8_t *CRTInputBufferBuilder::get_image_pointer()
 
 uint16_t CRTInputBufferBuilder::get_and_finalise_current_line()
 {
+	// TODO: we may have a vended allocate_write_area in play that'll be lost by this step; fix.
 	uint16_t result = _write_y_position + (_next_write_x_position ? 1 : 0);
-	_next_write_x_position = _next_write_y_position = 0;
+	_should_reset = (_next_write_y_position == InputBufferBuilderHeight);
 	return result;
 }
 

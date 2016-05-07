@@ -26,14 +26,14 @@ const GLsizei OutputVertexSize = 8;
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
 const GLsizei SourceVertexOffsetOfInputPosition = 0;
 const GLsizei SourceVertexOffsetOfOutputPosition = 4;
-const GLsizei SourceVertexOffsetOfPhaseAmplitudeAndOffset = 8;
+const GLsizei SourceVertexOffsetOfPhaseAndAmplitude = 8;
 const GLsizei SourceVertexOffsetOfPhaseTime = 12;
 
 const GLsizei SourceVertexSize = 16;
 
 // These constants hold the size of the rolling buffer to which the CPU writes
 const GLsizei InputBufferBuilderWidth = 2048;
-const GLsizei InputBufferBuilderHeight = 1024;
+const GLsizei InputBufferBuilderHeight = 1024; // 1024
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
 const GLsizei IntermediateBufferWidth = 2048;

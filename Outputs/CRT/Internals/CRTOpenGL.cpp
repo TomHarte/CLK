@@ -173,10 +173,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
 		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
 		// it works either way.
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
+//		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
 
 		// TODO: is this sustainable, cross-platform? If so, why store it at all?
-		defaultFramebuffer = 0;
+//		defaultFramebuffer = 0;
 	}
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
@@ -185,6 +185,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
+
+//	for(int c = 0; c < number_of_output_drawing_zones; c++)
+//	{
+//		printf("\n(%d->%d)\n", output_drawing_zones[c*2], output_drawing_zones[c*2] + output_drawing_zones[c*2 + 1]);
+//	}
+
+//	if(number_of_output_drawing_zones)
+//		printf("\n\n");
 
 	uint16_t completed_texture_y = _buffer_builder->get_and_finalise_current_line();
 
@@ -279,18 +287,17 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			active_pipeline->shader->bind();
 
 			// clear as desired
-//			if(number_of_clearing_zones)
-//			{
-//				glEnable(GL_SCISSOR_TEST);
-//				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
-//				for(int c = 0; c < number_of_clearing_zones; c++)
-//				{
-//					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
-//					glClear(GL_COLOR_BUFFER_BIT);
-//				}
-//				glDisable(GL_SCISSOR_TEST);
-//			}
-			glClear(GL_COLOR_BUFFER_BIT);
+			if(number_of_clearing_zones)
+			{
+				glEnable(GL_SCISSOR_TEST);
+				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
+				for(int c = 0; c < number_of_clearing_zones; c++)
+				{
+					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+					glClear(GL_COLOR_BUFFER_BIT);
+				}
+				glDisable(GL_SCISSOR_TEST);
+			}
 
 			// draw as desired
 			for(int c = 0; c < number_of_source_drawing_zones; c++)
@@ -305,8 +312,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// transfer to framebuffer
 	framebuffer->bind_framebuffer();
 
+
 	if(number_of_output_drawing_zones)
 	{
+//	glClearColor(0.5, 0.5, 0.5, 1.0);
+//	glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_BLEND);
 
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
@@ -326,6 +336,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			glDrawArrays(GL_TRIANGLE_STRIP, output_drawing_zones[c*2] / OutputVertexSize, output_drawing_zones[c*2 + 1] / OutputVertexSize);
 		}
+//			glDrawArrays(GL_TRIANGLE_STRIP, 0, OutputVertexBufferDataSize / OutputVertexSize);
 	}
 
 	// copy framebuffer to the intended place
@@ -333,8 +344,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
+
 	framebuffer->draw((float)output_width / (float)output_height);
-//	compositeTexture->draw((float)output_width / (float)output_height);
+//	filteredYTexture->draw((float)output_width / (float)output_height);
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
@@ -399,24 +411,24 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 {
 	if(composite_input_shader_program)
 	{
-		GLint inputPositionAttribute			= composite_input_shader_program->get_attrib_location("inputPosition");
-		GLint outputPositionAttribute			= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAmplitudeAndOffsetAttribute	= composite_input_shader_program->get_attrib_location("phaseAmplitudeAndOffset");
-		GLint phaseTimeAttribute				= composite_input_shader_program->get_attrib_location("phaseTime");
+		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
+		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
+		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
+		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
 
 		glBindVertexArray(source_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAmplitudeAndOffsetAttribute);
+		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
 		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
 
 		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		glVertexAttribPointer((GLuint)inputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
-		glVertexAttribPointer((GLuint)outputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAmplitudeAndOffsetAttribute,	3, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAmplitudeAndOffset);
-		glVertexAttribPointer((GLuint)phaseTimeAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
+		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
+		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
+		glVertexAttribPointer((GLuint)phaseTimeAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
 	}
 }
 

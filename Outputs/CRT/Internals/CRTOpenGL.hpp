@@ -117,10 +117,16 @@ class OpenGLOutputBuilder {
 			_output_mutex->unlock();
 		}
 
+		inline bool composite_output_run_has_room_for_vertices(GLsizei vertices_to_write)
+		{
+			return _composite_src_output_y <= _cleared_composite_output_y + IntermediateBufferHeight - vertices_to_write * OutputVertexSize;
+		}
+
 		inline uint8_t *get_next_output_run()
 		{
 			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
+//			printf("{%ld}", _output_buffer_data_pointer % OutputVertexBufferDataSize);
 			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
@@ -135,9 +141,9 @@ class OpenGLOutputBuilder {
 			return _output_device;
 		}
 
-		inline bool composite_output_buffer_is_full()
+		inline bool composite_output_buffer_has_room_for_vertices(GLsizei vertices_to_write)
 		{
-			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
+			return _composite_src_output_y <= _cleared_composite_output_y + IntermediateBufferHeight - vertices_to_write * OutputVertexSize;
 		}
 
 		inline uint16_t get_composite_output_y()
@@ -145,9 +151,15 @@ class OpenGLOutputBuilder {
 			return _composite_src_output_y % IntermediateBufferHeight;
 		}
 
+		inline bool composite_output_buffer_is_full()
+		{
+			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
+		}
+
 		inline void increment_composite_output_y()
 		{
-			_composite_src_output_y++;
+			if(!composite_output_buffer_is_full())
+				_composite_src_output_y++;
 		}
 
 		inline uint8_t *allocate_write_area(size_t required_length)
@@ -169,6 +181,11 @@ class OpenGLOutputBuilder {
 		inline uint16_t get_last_write_y_posititon()
 		{
 			return _buffer_builder->get_last_write_y_position();
+		}
+
+		inline void release_source_buffer_write_pointer()
+		{
+			_buffer_builder->release_write_pointer();
 		}
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);

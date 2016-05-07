@@ -27,6 +27,7 @@ struct CRTInputBufferBuilder {
 	bool reduce_previous_allocation_to(size_t actual_length);
 
 	uint16_t get_and_finalise_current_line();
+	void release_write_pointer();
 	uint8_t *get_image_pointer();
 
 	uint8_t *get_write_target();
@@ -53,6 +54,8 @@ struct CRTInputBufferBuilder {
 
 		// the buffer
 		uint8_t *_image;
+
+		bool _should_reset;
 };
 
 }
