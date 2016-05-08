@@ -57,7 +57,7 @@ class OpenGLOutputBuilder {
 
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		std::shared_ptr<std::mutex> _output_mutex;
+		std::unique_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;

@@ -75,4 +75,6 @@
 
 - (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
+- (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty;
+
 @end

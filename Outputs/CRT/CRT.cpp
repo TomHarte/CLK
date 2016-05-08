@@ -141,7 +141,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		//	[0/1]		3
 		if(next_run)
 		{
-//			printf("%d -> %d", tex_y, _openGL_output_builder->get_composite_output_y());
 			source_input_position_x(0) = tex_x;
 			source_input_position_y(0) = source_input_position_y(1) = tex_y;
 			source_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
@@ -194,7 +193,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 				if(next_run)
 				{
-//					printf("{%d -> %0.2f}", _openGL_output_builder->get_composite_output_y(), (float)_vertical_flywheel->get_current_output_position() / (float)_vertical_flywheel->get_scan_period());
 					output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
 					output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
 					output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
@@ -215,7 +213,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// if this is vertical retrace then adcance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace)
 		{
-//			printf("\n!%d!\n", _openGL_output_builder->get_composite_output_y());
 			// TODO: eliminate the below; it's to aid with debug, aligning the top of the
 			// input buffer with the top of the incoming frame.
 			_openGL_output_builder->release_source_buffer_write_pointer();
@@ -326,7 +323,6 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 {
 	if(_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider))
 	{
-//		printf("[%d with %d]", (_vertical_flywheel->get_current_time() * 262) / _vertical_flywheel->get_scan_period(), _openGL_output_builder->get_last_write_y_posititon());
 		Scan scan {
 			.type = Scan::Type::Data,
 			.number_of_cycles = number_of_cycles,

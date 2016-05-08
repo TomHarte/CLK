@@ -77,6 +77,11 @@ class Atari2600Document: MachineDocument {
 			atari2600.setState(true, forDigitalInput: input)
 		}
 
+		if event.keyCode == 49 {
+			self.runForNumberOfCycles(Int32(self.intendedCyclesPerSecond / 60))
+			self.openGLView.drawViewOnlyIfDirty(true)
+		}
+
 		if event.keyCode == 36 {
 			atari2600.setResetLineEnabled(true)
 		}

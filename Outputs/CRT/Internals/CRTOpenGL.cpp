@@ -185,15 +185,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
-
-//	for(int c = 0; c < number_of_output_drawing_zones; c++)
-//	{
-//		printf("\n(%d->%d)\n", output_drawing_zones[c*2], output_drawing_zones[c*2] + output_drawing_zones[c*2 + 1]);
-//	}
-
-//	if(number_of_output_drawing_zones)
-//		printf("\n\n");
-
 	uint16_t completed_texture_y = _buffer_builder->get_and_finalise_current_line();
 
 	_composite_src_output_y %= IntermediateBufferHeight;
@@ -315,8 +306,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	if(number_of_output_drawing_zones)
 	{
-//	glClearColor(0.5, 0.5, 0.5, 1.0);
-//	glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_BLEND);
 
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
@@ -336,7 +325,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			glDrawArrays(GL_TRIANGLE_STRIP, output_drawing_zones[c*2] / OutputVertexSize, output_drawing_zones[c*2 + 1] / OutputVertexSize);
 		}
-//			glDrawArrays(GL_TRIANGLE_STRIP, 0, OutputVertexBufferDataSize / OutputVertexSize);
 	}
 
 	// copy framebuffer to the intended place
@@ -346,7 +334,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	framebuffer->draw((float)output_width / (float)output_height);
-//	filteredYTexture->draw((float)output_width / (float)output_height);
 
 	// drawing commands having been issued, reclaim the array buffer pointer
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);

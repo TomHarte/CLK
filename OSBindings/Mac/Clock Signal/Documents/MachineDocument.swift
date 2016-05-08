@@ -36,12 +36,16 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	private var cycleCountError: Int64 = 0
 	private var lastTime: CVTimeStamp?
 	private var skippedFrames = 0
-//	private var frameSkip = 0
+	private var frameSkip = 0
 	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp, didSkipPreviousUpdate : Bool, frequency : Double) {
 //		frameSkip = frameSkip + 1
 //		let modFrameSkip = frameSkip % 10
-//		if modFrameSkip == 0 {
+//		if modFrameSkip == 0 && frameSkip < 500 {
 //			runForNumberOfCycles(Int32(intendedCyclesPerSecond / 60))
+//			view.drawViewOnlyIfDirty(true)
+//			view.performWithGLContext({ () -> Void in
+//				self.openGLView(view, drawViewOnlyIfDirty: true)
+//			})
 //		}
 		if let lastTime = lastTime {
 			// perform (time passed in seconds) * (intended cycles per second), converting and
