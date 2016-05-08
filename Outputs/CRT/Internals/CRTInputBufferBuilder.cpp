@@ -42,7 +42,6 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 		_write_x_position = _next_write_x_position + 1;
 		_write_y_position = _next_write_y_position;
-//		printf("#%d,%d#\n", _write_x_position, _write_y_position);
 		_write_target_pointer = (_write_y_position * InputBufferBuilderWidth) + _write_x_position;
 		_next_write_x_position += required_length + 2;
 	}
@@ -53,7 +52,6 @@ void CRTInputBufferBuilder::release_write_pointer()
 	if(_should_reset)
 	{
 		_next_write_x_position = _next_write_y_position = 0;
-//		printf("#Reset!#\n");
 	}
 }
 

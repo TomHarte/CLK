@@ -126,7 +126,6 @@ class OpenGLOutputBuilder {
 		{
 			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
-//			printf("{%ld}", _output_buffer_data_pointer % OutputVertexBufferDataSize);
 			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
