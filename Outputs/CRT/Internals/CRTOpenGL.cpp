@@ -117,7 +117,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_source_buffer_data_pointer(0),
 	_drawn_source_buffer_data_pointer(0),
 	_last_output_width(0),
-	_last_output_height(0)
+	_last_output_height(0),
+	_fence(nullptr)
 {
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
@@ -219,7 +220,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 //	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
-	glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+	if(_fence != nullptr)
+	{
+		glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+		glDeleteSync(_fence);
+	}
 
 	// release the mapping, giving up on trying to draw if data has been lost
 	submitArrayData(output_array_buffer, _output_buffer_data.get(), number_of_output_drawing_zones, output_drawing_zones);
