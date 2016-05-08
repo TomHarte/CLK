@@ -78,7 +78,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with phaseAndAmplitude
 
-			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/outputTextureSize;"
+			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(1.0)/outputTextureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
 
