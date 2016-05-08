@@ -80,6 +80,18 @@ static inline void drawArrayRanges(GLenum mode, GLsizei vertex_size, int number_
 	}
 }
 
+static void submitArrayData(GLuint buffer, uint8_t *source, int number_of_ranges, Range *ranges)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	for(int c = 0; c < number_of_ranges; c++)
+	{
+		uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		memcpy(data, &source[ranges[c].location], (size_t)ranges[c].length);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length);
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+	}
+}
+
 using namespace Outputs::CRT;
 
 namespace {
@@ -98,8 +110,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_cleared_composite_output_y(0),
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
-	_output_buffer_data(nullptr),
-	_source_buffer_data(nullptr),
+	_output_buffer_data(new uint8_t[OutputVertexBufferDataSize]),
+	_source_buffer_data(new uint8_t[SourceVertexBufferDataSize]),
 	_output_buffer_data_pointer(0),
 	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
@@ -136,9 +148,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
-	// map that buffer too, for any CRT activity that may occur before the first draw
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array);
 
@@ -146,15 +155,12 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glGenBuffers(1, &source_array_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, SourceVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-
-	// map that buffer too, for any CRT activity that may occur before the first draw
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+//	glUnmapBuffer(GL_ARRAY_BUFFER);
+//	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteTextures(1, &textureName);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
@@ -207,23 +213,19 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
 
-	glFinish();
+	// drawing commands having been issued, reclaim the array buffer pointer
+//	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+//
+//	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+//	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+	glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	for(int c = 0; c < number_of_output_drawing_zones; c++)
-	{
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, output_drawing_zones[c].location, output_drawing_zones[c].length);
-	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	submitArrayData(output_array_buffer, _output_buffer_data.get(), number_of_output_drawing_zones, output_drawing_zones);
 
 	// bind and flush the source array buffer
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	for(int c = 0; c < number_of_source_drawing_zones; c++)
-	{
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, source_drawing_zones[c].location, source_drawing_zones[c].length);
-	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	submitArrayData(source_array_buffer, _source_buffer_data.get(), number_of_source_drawing_zones, source_drawing_zones);
 
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
@@ -345,13 +347,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	framebuffer->draw((float)output_width / (float)output_height);
 
-	// drawing commands having been issued, reclaim the array buffer pointer
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
+	_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	_output_mutex->unlock();
 }
 

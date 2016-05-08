@@ -108,7 +108,7 @@ class OpenGLOutputBuilder {
 		{
 			if(_source_buffer_data_pointer == _drawn_source_buffer_data_pointer + SourceVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
-			return &_source_buffer_data[_source_buffer_data_pointer % SourceVertexBufferDataSize];
+			return &_source_buffer_data.get()[_source_buffer_data_pointer % SourceVertexBufferDataSize];
 		}
 
 		inline void complete_source_run()
@@ -126,7 +126,7 @@ class OpenGLOutputBuilder {
 		{
 			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
-			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
+			return &_output_buffer_data.get()[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
 		inline void complete_output_run(GLsizei vertices_written)
@@ -194,13 +194,15 @@ class OpenGLOutputBuilder {
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
-		uint8_t *_source_buffer_data;
+		std::unique_ptr<uint8_t> _source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
 		GLsizei _drawn_source_buffer_data_pointer;
 
-		uint8_t *_output_buffer_data;
+		std::unique_ptr<uint8_t> _output_buffer_data;
 		GLsizei _output_buffer_data_pointer;
 		GLsizei _drawn_output_buffer_data_pointer;
+
+		GLsync _fence;
 };
 
 }

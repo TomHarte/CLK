@@ -41,7 +41,7 @@ const GLsizei IntermediateBufferHeight = 512;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = 6 * 8 * 312;		// a multiple of 6 * OutputVertexSize
-const GLsizeiptr SourceVertexBufferDataSize = 2 * 16 * 312;	// a multiple of 2 * SourceVertexSize
+const GLsizeiptr SourceVertexBufferDataSize = 2 * 16 * 312;		// a multiple of 2 * SourceVertexSize
 
 }
 }
