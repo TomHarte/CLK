@@ -185,7 +185,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
-	uint16_t completed_texture_y = _buffer_builder->get_and_finalise_current_line();
+	uint16_t completed_texture_y		= _buffer_builder->get_and_finalise_current_line();
 
 	_composite_src_output_y %= IntermediateBufferHeight;
 	_source_buffer_data_pointer %= SourceVertexBufferDataSize;

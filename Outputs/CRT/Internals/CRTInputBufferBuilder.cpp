@@ -49,15 +49,24 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 
 void CRTInputBufferBuilder::release_write_pointer()
 {
-	if(_should_reset)
-	{
-		_next_write_x_position = _next_write_y_position = 0;
-	}
+//	if(_should_reset)
+//	{
+//		_next_write_x_position = _next_write_y_position = 0;
+//	}
 }
 
 bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
 	if(_next_write_y_position == InputBufferBuilderHeight) return false;
+
+	// correct if the writing cursor was reset while a client was writing
+	if(_next_write_x_position == 0 && _next_write_y_position == 0 && _write_target_pointer != 1)
+	{
+		memmove(&_image[1], &_image[_write_target_pointer], actual_length);
+		_write_target_pointer = 1;
+		_last_allocation_amount = actual_length;
+		_next_write_x_position = (uint16_t)(actual_length + 2);
+	}
 
 	// book end the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn
@@ -82,9 +91,8 @@ uint8_t *CRTInputBufferBuilder::get_image_pointer()
 
 uint16_t CRTInputBufferBuilder::get_and_finalise_current_line()
 {
-	// TODO: we may have a vended allocate_write_area in play that'll be lost by this step; fix.
 	uint16_t result = _write_y_position + (_next_write_x_position ? 1 : 0);
-	_should_reset = (_next_write_y_position == InputBufferBuilderHeight);
+	_next_write_x_position = _next_write_y_position = 0;
 	return result;
 }
 
