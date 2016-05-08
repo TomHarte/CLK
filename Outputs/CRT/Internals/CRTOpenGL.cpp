@@ -37,7 +37,11 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, GLsizei *ranges)
+struct Range {
+	GLsizei location, length;
+};
+
+static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, Range *ranges)
 {
 	start -= start%granularity;
 	end -= end%granularity;
@@ -46,25 +50,33 @@ static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, 
 	if(!length) return 0;
 	if(length >= buffer_length)
 	{
-		ranges[0] = 0;
-		ranges[1] = buffer_length;
+		ranges[0].location = 0;
+		ranges[0].length = buffer_length;
 		return 1;
 	}
 	else
 	{
-		ranges[0] = start % buffer_length;
-		if(ranges[0]+length <= buffer_length)
+		ranges[0].location = start % buffer_length;
+		if(ranges[0].location + length <= buffer_length)
 		{
-			ranges[1] = length;
+			ranges[0].length = length;
 			return 1;
 		}
 		else
 		{
-			ranges[1] = buffer_length - ranges[0];
-			ranges[2] = 0;
-			ranges[3] = length - ranges[1];
+			ranges[0].length = buffer_length - ranges[0].location;
+			ranges[1].location = 0;
+			ranges[1].length = length - ranges[0].length;
 			return 2;
 		}
+	}
+}
+
+static inline void drawArrayRanges(GLenum mode, GLsizei vertex_size, int number_of_ranges, Range *ranges)
+{
+	for(int c = 0; c < number_of_ranges; c++)
+	{
+		glDrawArrays(mode, ranges[c].location / vertex_size, ranges[c].length / vertex_size);
 	}
 }
 
@@ -180,8 +192,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
-	GLsizei clearing_zones[4], source_drawing_zones[4];
-	GLsizei output_drawing_zones[4];
+	Range clearing_zones[2], source_drawing_zones[2];
+	Range output_drawing_zones[2];
 	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
 	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
 	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
@@ -195,11 +207,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
 
+	glFinish();
+
 	// release the mapping, giving up on trying to draw if data has been lost
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	for(int c = 0; c < number_of_output_drawing_zones; c++)
 	{
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, output_drawing_zones[c*2], output_drawing_zones[c*2 + 1]);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, output_drawing_zones[c].location, output_drawing_zones[c].length);
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
@@ -207,7 +221,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	for(int c = 0; c < number_of_source_drawing_zones; c++)
 	{
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, source_drawing_zones[c*2], source_drawing_zones[c*2 + 1]);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, source_drawing_zones[c].location, source_drawing_zones[c].length);
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
@@ -284,25 +298,24 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
 				for(int c = 0; c < number_of_clearing_zones; c++)
 				{
-					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+					glScissor(0, clearing_zones[c].location, IntermediateBufferWidth, clearing_zones[c].length);
 					glClear(GL_COLOR_BUFFER_BIT);
 				}
 				glDisable(GL_SCISSOR_TEST);
 			}
 
 			// draw as desired
-			for(int c = 0; c < number_of_source_drawing_zones; c++)
-			{
-				glDrawArrays(GL_LINES, source_drawing_zones[c*2] / SourceVertexSize, source_drawing_zones[c*2 + 1] / SourceVertexSize);
-			}
+			drawArrayRanges(GL_LINES, SourceVertexSize, number_of_source_drawing_zones, source_drawing_zones);
 
 			active_pipeline++;
 		}
+
+		// TODO: determine why the finish below is required
+//		glFinish();
 	}
 
 	// transfer to framebuffer
 	framebuffer->bind_framebuffer();
-
 
 	if(number_of_output_drawing_zones)
 	{
@@ -321,10 +334,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-		for(int c = 0; c < number_of_output_drawing_zones; c++)
-		{
-			glDrawArrays(GL_TRIANGLE_STRIP, output_drawing_zones[c*2] / OutputVertexSize, output_drawing_zones[c*2 + 1] / OutputVertexSize);
-		}
+		drawArrayRanges(GL_TRIANGLE_STRIP, OutputVertexSize, number_of_output_drawing_zones, output_drawing_zones);
 	}
 
 	// copy framebuffer to the intended place

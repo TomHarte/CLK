@@ -134,7 +134,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	[self drawViewOnlyIfDirty:NO];
+//	[self drawViewOnlyIfDirty:NO];
 }
 
 - (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty
