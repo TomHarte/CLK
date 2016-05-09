@@ -119,7 +119,7 @@ class OpenGLOutputBuilder {
 
 		inline bool composite_output_run_has_room_for_vertices(GLsizei vertices_to_write)
 		{
-			return _composite_src_output_y <= _cleared_composite_output_y + IntermediateBufferHeight - vertices_to_write * OutputVertexSize;
+			return _output_buffer_data_pointer <= _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize - vertices_to_write * OutputVertexSize;
 		}
 
 		inline uint8_t *get_next_output_run()

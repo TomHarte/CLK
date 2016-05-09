@@ -69,7 +69,8 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_common_output_divisor(common_output_divisor),
 	_is_writing_composite_run(false),
 	_delegate(nullptr),
-	_frames_since_last_delegate_call(0) {}
+	_frames_since_last_delegate_call(0),
+	_did_start_run(false) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
@@ -186,9 +187,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(needs_endpoint)
 		{
 			if(
-				_openGL_output_builder->composite_output_run_has_room_for_vertices(_did_start_run ? 6 : 3) &&
-				!_openGL_output_builder->composite_output_buffer_is_full() &&
-				_is_writing_composite_run == _did_start_run)
+				_is_writing_composite_run == _did_start_run &&
+				_openGL_output_builder->composite_output_run_has_room_for_vertices(_did_start_run ? 3 : 6) &&
+				!_openGL_output_builder->composite_output_buffer_is_full())
 			{
 				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 				if(next_run)

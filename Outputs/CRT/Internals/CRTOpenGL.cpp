@@ -188,14 +188,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		set_timing_uniforms();
 		set_colour_space_uniforms();
-
-		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
-		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
-		// it works either way.
-//		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
-
-		// TODO: is this sustainable, cross-platform? If so, why store it at all?
-//		defaultFramebuffer = 0;
 	}
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
@@ -213,12 +205,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_cleared_composite_output_y = _composite_src_output_y;
 	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
 	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
-
-	// drawing commands having been issued, reclaim the array buffer pointer
-//	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-//
-//	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-//	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 	if(_fence != nullptr)
 	{
@@ -316,9 +302,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			active_pipeline++;
 		}
-
-		// TODO: determine why the finish below is required
-//		glFinish();
 	}
 
 	// transfer to framebuffer
