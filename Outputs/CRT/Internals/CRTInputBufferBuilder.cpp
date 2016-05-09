@@ -59,6 +59,8 @@ void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 		_write_target_pointer = 1;
 		_last_allocation_amount = actual_length;
 		_next_write_x_position = (uint16_t)(actual_length + 2);
+		_write_x_position = 1;
+		_write_y_position = 0;
 	}
 
 	// book end the allocation with duplicates of the first and last pixel, to protect
