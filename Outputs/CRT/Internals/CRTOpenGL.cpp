@@ -78,24 +78,27 @@ static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsiz
 	}
 }
 
-static inline void drawArrayRanges(GLenum mode, GLsizei vertex_size, int number_of_ranges, Range *ranges)
+static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer, GLsizei chunk_size)
 {
-	for(int c = 0; c < number_of_ranges; c++)
-	{
-		glDrawArrays(mode, ranges[c].location / vertex_size, ranges[c].length / vertex_size);
-	}
-}
+	GLsizei length = *length_pointer;
+	GLsizei residue = length % chunk_size;
+	length -= residue;
 
-static void submitArrayData(GLuint buffer, uint8_t *source, int number_of_ranges, Range *ranges)
-{
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	for(int c = 0; c < number_of_ranges; c++)
+	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+	memcpy(data, source, (size_t)length);
+	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+
+	if(residue)
 	{
-		uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-		memcpy(data, &source[ranges[c].location], (size_t)ranges[c].length);
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length);
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+		memmove(source, &source[length], (size_t)residue);
+		*length_pointer = residue;
 	}
+	else
+		*length_pointer = 0;
+
+	return length;
 }
 
 using namespace Outputs::CRT;
@@ -119,9 +122,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_output_buffer_data(new uint8_t[OutputVertexBufferDataSize]),
 	_source_buffer_data(new uint8_t[SourceVertexBufferDataSize]),
 	_output_buffer_data_pointer(0),
-	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
-	_drawn_source_buffer_data_pointer(0),
 	_last_output_width(0),
 	_last_output_height(0),
 	_fence(nullptr)
@@ -195,11 +196,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
-	Range clearing_zones[2], source_drawing_zones[2];
-	Range output_drawing_zones[2];
+	Range clearing_zones[2];
 	int number_of_clearing_zones		= getCircularRanges(&_cleared_composite_output_y,		&_composite_src_output_y,		IntermediateBufferHeight,	1,					clearing_zones);
-	int number_of_source_drawing_zones	= getCircularRanges(&_drawn_source_buffer_data_pointer,	&_source_buffer_data_pointer,	SourceVertexBufferDataSize,	2*SourceVertexSize,	source_drawing_zones);
-	int number_of_output_drawing_zones	= getCircularRanges(&_drawn_output_buffer_data_pointer,	&_output_buffer_data_pointer,	OutputVertexBufferDataSize,	6*OutputVertexSize,	output_drawing_zones);
 	uint16_t completed_texture_y		= _buffer_builder->get_and_finalise_current_line();
 
 	if(_fence != nullptr)
@@ -209,10 +207,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	submitArrayData(output_array_buffer, _output_buffer_data.get(), number_of_output_drawing_zones, output_drawing_zones);
+	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer, 6*OutputVertexSize);
 
 	// bind and flush the source array buffer
-	submitArrayData(source_array_buffer, _source_buffer_data.get(), number_of_source_drawing_zones, source_drawing_zones);
+	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer, 2*SourceVertexSize);
 
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
@@ -268,7 +266,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	RenderStage *active_pipeline = (_output_device == Television || !rgb_input_shader_program) ? composite_render_stages : rgb_render_stages;
 
 	// for television, update intermediate buffers and then draw; for a monitor, just draw
-	if(number_of_source_drawing_zones)
+	if(submitted_source_data)
 	{
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array);
@@ -294,7 +292,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			}
 
 			// draw as desired
-			drawArrayRanges(GL_LINES, SourceVertexSize, number_of_source_drawing_zones, source_drawing_zones);
+			glDrawArrays(GL_LINES, 0, submitted_source_data / SourceVertexSize);
 
 			active_pipeline++;
 		}
@@ -303,7 +301,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// transfer to framebuffer
 	framebuffer->bind_framebuffer();
 
-	if(number_of_output_drawing_zones)
+	if(submitted_output_data)
 	{
 		glEnable(GL_BLEND);
 
@@ -320,7 +318,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-		drawArrayRanges(GL_TRIANGLE_STRIP, OutputVertexSize, number_of_output_drawing_zones, output_drawing_zones);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, submitted_output_data / OutputVertexSize);
 	}
 
 	// copy framebuffer to the intended place
