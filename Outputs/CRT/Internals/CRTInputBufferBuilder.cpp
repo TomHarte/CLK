@@ -55,7 +55,7 @@ void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 	// correct if the writing cursor was reset while a client was writing
 	if(_next_write_x_position == 0 && _next_write_y_position == 0)
 	{
-		memmove(&image_pointer[1], &image_pointer[_write_target_pointer], actual_length * _bytes_per_pixel);
+		memmove(&image_pointer[_bytes_per_pixel], &image_pointer[_write_target_pointer * _bytes_per_pixel], actual_length * _bytes_per_pixel);
 		_write_target_pointer = 1;
 		_last_allocation_amount = actual_length;
 		_next_write_x_position = (uint16_t)(actual_length + 2);
