@@ -41,8 +41,14 @@ struct Range {
 	GLsizei location, length;
 };
 
-static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, Range *ranges)
+static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsizei buffer_length, GLsizei granularity, Range *ranges)
 {
+	GLsizei start = *start_pointer;
+	GLsizei end = *end_pointer;
+
+	*end_pointer %= buffer_length;
+	*start_pointer = *end_pointer;
+
 	start -= start%granularity;
 	end -= end%granularity;
 
@@ -160,8 +166,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-//	glUnmapBuffer(GL_ARRAY_BUFFER);
-//	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteTextures(1, &textureName);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
@@ -193,18 +197,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	Range clearing_zones[2], source_drawing_zones[2];
 	Range output_drawing_zones[2];
-	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
-	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
-	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
+	int number_of_clearing_zones		= getCircularRanges(&_cleared_composite_output_y,		&_composite_src_output_y,		IntermediateBufferHeight,	1,					clearing_zones);
+	int number_of_source_drawing_zones	= getCircularRanges(&_drawn_source_buffer_data_pointer,	&_source_buffer_data_pointer,	SourceVertexBufferDataSize,	2*SourceVertexSize,	source_drawing_zones);
+	int number_of_output_drawing_zones	= getCircularRanges(&_drawn_output_buffer_data_pointer,	&_output_buffer_data_pointer,	OutputVertexBufferDataSize,	6*OutputVertexSize,	output_drawing_zones);
 	uint16_t completed_texture_y		= _buffer_builder->get_and_finalise_current_line();
-
-	_composite_src_output_y %= IntermediateBufferHeight;
-	_source_buffer_data_pointer %= SourceVertexBufferDataSize;
-	_output_buffer_data_pointer %= OutputVertexBufferDataSize;
-
-	_cleared_composite_output_y = _composite_src_output_y;
-	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
-	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
 
 	if(_fence != nullptr)
 	{
