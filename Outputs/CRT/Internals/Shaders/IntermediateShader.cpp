@@ -20,7 +20,7 @@ namespace {
 	{
 		{"inputPosition", 0},
 		{"outputPosition", 1},
-		{"phaseAmplitudeAndOffset", 2},
+		{"phaseAndAmplitude", 2},
 		{"phaseTime", 3},
 		{nullptr}
 	};
@@ -37,7 +37,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 		"in vec2 inputPosition;"
 		"in vec2 outputPosition;"
-		"in vec3 phaseAmplitudeAndOffset;"
+		"in vec2 phaseAndAmplitude;"
 		"in float phaseTime;"
 
 		"uniform float phaseCyclesPerTick;"
@@ -53,7 +53,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 		"void main(void)"
 		"{"
-			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (phaseAmplitudeAndOffset.z - 0.5);"
+			"float direction = float(gl_VertexID & 1);"
+			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (direction - 0.5);"
 			"vec2 extendedInputPosition = %s + extensionVector;"
 			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
 
@@ -74,10 +75,10 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
-			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAmplitudeAndOffset.x) * 2.0 * 3.141592654;"
-			"phaseAndAmplitudeVarying.y = 0.33;"
+			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTime) + phaseAndAmplitude.x) * 2.0 * 3.141592654;"
+			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with phaseAndAmplitude
 
-			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(0.5)/textureSize;"
+			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(1.0)/outputTextureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
 

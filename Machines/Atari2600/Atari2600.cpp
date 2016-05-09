@@ -157,7 +157,7 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	}
 
 	// store colour
-	pixel[0] = outputColour;
+	*pixel = outputColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -237,8 +237,8 @@ void Machine::output_pixels(unsigned int count)
 		}
 
 		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			if(_outputBuffer)
-				get_output_pixel(&_outputBuffer[_lastOutputStateDuration], 159 - _horizontalTimer);
+			uint8_t throwaway_pixel;
+			get_output_pixel(_outputBuffer ? &_outputBuffer[_lastOutputStateDuration] : &throwaway_pixel, 159 - _horizontalTimer);
 
 			// increment all graphics counters
 			increment_object_counter(0);

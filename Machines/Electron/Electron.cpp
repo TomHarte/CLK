@@ -537,7 +537,7 @@ inline void Machine::start_pixel_line()
 	}
 	_currentScreenAddress = _startLineAddress;
 	_current_pixel_column = 0;
-	_current_output_target = nullptr;
+	_initial_output_target = _current_output_target = nullptr;
 }
 
 inline void Machine::end_pixel_line()
@@ -564,7 +564,7 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 			case 2: case 5: divider = 8; break;
 		}
 
-		if(!_current_output_target || divider != _current_output_divider)
+		if(!_initial_output_target || divider != _current_output_divider)
 		{
 			if(_current_output_target) _crt->output_data((unsigned int)((_current_output_target - _initial_output_target) * _current_output_divider), _current_output_divider);
 			_current_output_divider = divider;
@@ -582,97 +582,112 @@ inline void Machine::output_pixels(unsigned int number_of_cycles)
 		switch(_screen_mode)
 		{
 			case 0: case 3:
-				while(number_of_cycles--)
+				if(_initial_output_target)
 				{
-					get_pixel();
-					*(uint32_t *)_current_output_target = _paletteTables.eighty1bpp[_last_pixel_byte];
-					_current_output_target += 4;
-					_current_pixel_column++;
-				}
+					while(number_of_cycles--)
+					{
+						get_pixel();
+						*(uint32_t *)_current_output_target = _paletteTables.eighty1bpp[_last_pixel_byte];
+						_current_output_target += 4;
+						_current_pixel_column++;
+					}
+				} else _current_output_target += 4*number_of_cycles;
 			break;
 
 			case 1:
-				while(number_of_cycles--)
+				if(_initial_output_target)
 				{
-					get_pixel();
-					*(uint16_t *)_current_output_target = _paletteTables.eighty2bpp[_last_pixel_byte];
-					_current_output_target += 2;
-					_current_pixel_column++;
-				}
+					while(number_of_cycles--)
+					{
+						get_pixel();
+						*(uint16_t *)_current_output_target = _paletteTables.eighty2bpp[_last_pixel_byte];
+						_current_output_target += 2;
+						_current_pixel_column++;
+					}
+				} else _current_output_target += 2*number_of_cycles;
 			break;
 
 			case 2:
-				while(number_of_cycles--)
+				if(_initial_output_target)
 				{
-					get_pixel();
-					*_current_output_target = _paletteTables.eighty4bpp[_last_pixel_byte];
-					_current_output_target += 1;
-					_current_pixel_column++;
-				}
+					while(number_of_cycles--)
+					{
+						get_pixel();
+						*_current_output_target = _paletteTables.eighty4bpp[_last_pixel_byte];
+						_current_output_target += 1;
+						_current_pixel_column++;
+					}
+				} else _current_output_target += number_of_cycles;
 			break;
 
 			case 4: case 6:
-				if(_current_pixel_column&1)
+				if(_initial_output_target)
 				{
-					_last_pixel_byte <<= 4;
-					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-					_current_output_target += 2;
+					if(_current_pixel_column&1)
+					{
+						_last_pixel_byte <<= 4;
+						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+						_current_output_target += 2;
 
-					number_of_cycles--;
-					_current_pixel_column++;
-				}
-				while(number_of_cycles > 1)
-				{
-					get_pixel();
-					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-					_current_output_target += 2;
+						number_of_cycles--;
+						_current_pixel_column++;
+					}
+					while(number_of_cycles > 1)
+					{
+						get_pixel();
+						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+						_current_output_target += 2;
 
-					_last_pixel_byte <<= 4;
-					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-					_current_output_target += 2;
+						_last_pixel_byte <<= 4;
+						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+						_current_output_target += 2;
 
-					number_of_cycles -= 2;
-					_current_pixel_column+=2;
-				}
-				if(number_of_cycles)
-				{
-					get_pixel();
-					*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-					_current_output_target += 2;
-					_current_pixel_column++;
-				}
+						number_of_cycles -= 2;
+						_current_pixel_column+=2;
+					}
+					if(number_of_cycles)
+					{
+						get_pixel();
+						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
+						_current_output_target += 2;
+						_current_pixel_column++;
+					}
+				} else _current_output_target += 2 * number_of_cycles;
 			break;
 
 			case 5:
-				if(_current_pixel_column&1)
+				if(_initial_output_target)
 				{
-					_last_pixel_byte <<= 2;
-					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_current_output_target += 1;
+					if(_current_pixel_column&1)
+					{
+						_last_pixel_byte <<= 2;
+						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+						_current_output_target += 1;
 
-					number_of_cycles--;
-					_current_pixel_column++;
-				}
-				while(number_of_cycles > 1)
-				{
-					get_pixel();
-					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_current_output_target += 1;
+						number_of_cycles--;
+						_current_pixel_column++;
+					}
+					while(number_of_cycles > 1)
+					{
+						get_pixel();
+						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+						_current_output_target += 1;
 
-					_last_pixel_byte <<= 2;
-					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_current_output_target += 1;
+						_last_pixel_byte <<= 2;
+						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+						_current_output_target += 1;
 
-					number_of_cycles -= 2;
-					_current_pixel_column+=2;
-				}
-				if(number_of_cycles)
-				{
-					get_pixel();
-					*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-					_current_output_target += 1;
-					_current_pixel_column++;
-				}
+						number_of_cycles -= 2;
+						_current_pixel_column+=2;
+					}
+					if(number_of_cycles)
+					{
+						get_pixel();
+						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
+						_current_output_target += 1;
+						_current_pixel_column++;
+					}
+				} else _current_output_target += number_of_cycles;
 			break;
 		}
 

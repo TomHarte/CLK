@@ -57,7 +57,7 @@ class OpenGLOutputBuilder {
 
 		// the run and input data buffers
 		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		std::shared_ptr<std::mutex> _output_mutex;
+		std::unique_ptr<std::mutex> _output_mutex;
 
 		// transient buffers indicating composite data not yet decoded
 		uint16_t _composite_src_output_y, _cleared_composite_output_y;
@@ -91,10 +91,12 @@ class OpenGLOutputBuilder {
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
+			_output_mutex->lock();
 			_colour_space = colour_space;
 			_colour_cycle_numerator = colour_cycle_numerator;
 			_colour_cycle_denominator = colour_cycle_denominator;
 			set_colour_space_uniforms();
+			_output_mutex->unlock();
 		}
 
 		inline void set_visible_area(Rect visible_area)
@@ -104,8 +106,9 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_source_run()
 		{
+			if(_source_buffer_data_pointer == _drawn_source_buffer_data_pointer + SourceVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
-			return &_source_buffer_data[_source_buffer_data_pointer % SourceVertexBufferDataSize];
+			return &_source_buffer_data.get()[_source_buffer_data_pointer % SourceVertexBufferDataSize];
 		}
 
 		inline void complete_source_run()
@@ -114,10 +117,16 @@ class OpenGLOutputBuilder {
 			_output_mutex->unlock();
 		}
 
+		inline bool composite_output_run_has_room_for_vertices(GLsizei vertices_to_write)
+		{
+			return _output_buffer_data_pointer <= _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize - vertices_to_write * OutputVertexSize;
+		}
+
 		inline uint8_t *get_next_output_run()
 		{
+			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
 			_output_mutex->lock();
-			return &_output_buffer_data[_output_buffer_data_pointer % OutputVertexBufferDataSize];
+			return &_output_buffer_data.get()[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
 		inline void complete_output_run(GLsizei vertices_written)
@@ -131,38 +140,46 @@ class OpenGLOutputBuilder {
 			return _output_device;
 		}
 
+		inline bool composite_output_buffer_has_room_for_vertices(GLsizei vertices_to_write)
+		{
+			return _composite_src_output_y <= _cleared_composite_output_y + IntermediateBufferHeight - vertices_to_write * OutputVertexSize;
+		}
+
 		inline uint16_t get_composite_output_y()
 		{
 			return _composite_src_output_y % IntermediateBufferHeight;
 		}
 
+		inline bool composite_output_buffer_is_full()
+		{
+			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
+		}
+
 		inline void increment_composite_output_y()
 		{
-			_composite_src_output_y++;
+			if(!composite_output_buffer_is_full())
+				_composite_src_output_y++;
 		}
 
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			_output_mutex->lock();
 			_buffer_builder->allocate_write_area(required_length);
-			uint8_t *output = _input_texture_data ? _buffer_builder->get_write_target(_input_texture_data) : nullptr;
-			_output_mutex->unlock();
-			return output;
+			return _buffer_builder->get_write_target();
 		}
 
-		inline void reduce_previous_allocation_to(size_t actual_length)
+		inline bool reduce_previous_allocation_to(size_t actual_length)
 		{
-			_buffer_builder->reduce_previous_allocation_to(actual_length, _input_texture_data);
+			return _buffer_builder->reduce_previous_allocation_to(actual_length);
 		}
 
-		inline uint16_t get_last_write_x_posiiton()
+		inline uint16_t get_last_write_x_posititon()
 		{
-			return _buffer_builder->_write_x_position;
+			return _buffer_builder->get_last_write_x_position();
 		}
 
-		inline uint16_t get_last_write_y_posiiton()
+		inline uint16_t get_last_write_y_posititon()
 		{
-			return _buffer_builder->_write_y_position;
+			return _buffer_builder->get_last_write_y_position();
 		}
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
@@ -172,18 +189,15 @@ class OpenGLOutputBuilder {
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
-		uint8_t *_input_texture_data;
-		GLuint _input_texture_array;
-		GLsync _input_texture_sync;
-		GLsizeiptr _input_texture_array_size;
-
-		uint8_t *_source_buffer_data;
+		std::unique_ptr<uint8_t> _source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
 		GLsizei _drawn_source_buffer_data_pointer;
 
-		uint8_t *_output_buffer_data;
+		std::unique_ptr<uint8_t> _output_buffer_data;
 		GLsizei _output_buffer_data_pointer;
 		GLsizei _drawn_output_buffer_data_pointer;
+
+		GLsync _fence;
 };
 
 }

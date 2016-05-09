@@ -68,7 +68,7 @@ class CRT {
 
 		uint8_t _colour_burst_phase, _colour_burst_amplitude;
 		uint16_t _colour_burst_time;
-		bool _is_writing_composite_run;
+		bool _is_writing_composite_run, _did_start_run;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);
@@ -176,14 +176,16 @@ class CRT {
 		*/
 		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude);
 
-		/*!	Ensures that the given number of output samples are allocated for writing.
+		/*!	Attempts to allocate the given number of output samples for writing.
 
 			The beginning of the most recently allocated area is used as the start
 			of data written by a call to @c output_data; it is acceptable to write and to
 			output less data than the amount requested but that may be less efficient.
 
+			Allocation should fail only if emulation is running significantly below real speed.
+
 			@param required_length The number of samples to allocate.
-			@returns A pointer to the allocated area.
+			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
@@ -239,18 +241,6 @@ class CRT {
 		{
 			_openGL_output_builder->set_rgb_sampling_function(shader);
 		}
-
-		/*!	Optionally sets a function that will map from an input cycle count to a colour carrier phase.
-
-			If this function is not supplied then the colour phase is determined from
-			the input clock rate and the the colour cycle clock rate. Machines whose per-line clock rate
-			is not intended exactly to match the normal line time may prefer to supply a custom function.
-
-			@param  A GLSL fragent including a function with the signature
-			`float phase_for_clock_cycle(int cycle)` that returns the colour phase at the beginning of
-			the supplied cycle.
-		*/
-//		void set_phase_function(const char *shader);
 
 		inline void set_output_device(OutputDevice output_device)
 		{

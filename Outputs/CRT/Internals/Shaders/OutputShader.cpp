@@ -18,7 +18,6 @@ namespace {
 	{
 		{"position", 0},
 		{"srcCoordinates", 1},
-		{"lateral", 2},
 		{nullptr}
 	};
 }
@@ -33,7 +32,6 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"in vec2 position;"
 		"in vec2 srcCoordinates;"
-		"in float lateral;"
 
 		"uniform vec2 boundsOrigin;"
 		"uniform vec2 boundsSize;"
@@ -47,6 +45,8 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"void main(void)"
 		"{"
+			"float laterals[] = float[](0, 0, 1, 0, 1, 1);"
+			"float lateral = laterals[gl_VertexID %% 6];"
 			"lateralVarying = lateral - 0.5;"
 
 			"ivec2 textureSize = textureSize(texID, 0);"

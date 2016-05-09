@@ -69,7 +69,8 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_common_output_divisor(common_output_divisor),
 	_is_writing_composite_run(false),
 	_delegate(nullptr),
-	_frames_since_last_delegate_call(0) {}
+	_frames_since_last_delegate_call(0),
+	_did_start_run(false) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
@@ -99,15 +100,13 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_position_y(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 2])
 #define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
 #define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
-#define output_lateral(v)			next_run[OutputVertexSize*v + OutputVertexOffsetOfLateral]
 
 #define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
 #define source_output_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 0])
 #define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
-#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 0]
-#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 1]
-#define source_offset(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAmplitudeAndOffset + 2]
+#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 0]
+#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 1]
 #define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
@@ -131,7 +130,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		bool is_output_segment = ((is_output_run && next_run_length) && !_horizontal_flywheel->is_in_retrace() && !_vertical_flywheel->is_in_retrace());
 		uint8_t *next_run = nullptr;
-		if(is_output_segment)
+		if(is_output_segment && !_openGL_output_builder->composite_output_buffer_is_full())
 		{
 			next_run = _openGL_output_builder->get_next_source_run();
 		}
@@ -150,8 +149,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			source_phase(0) = source_phase(1) = _colour_burst_phase;
 			source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
 			source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
-			source_offset(0) = 0;
-			source_offset(1) = 255;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -189,17 +186,23 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(needs_endpoint)
 		{
-			uint8_t *next_run = _openGL_output_builder->get_next_output_run();
+			if(
+				_is_writing_composite_run == _did_start_run &&
+				_openGL_output_builder->composite_output_run_has_room_for_vertices(_did_start_run ? 3 : 6) &&
+				!_openGL_output_builder->composite_output_buffer_is_full())
+			{
+				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
+				if(next_run)
+				{
+					output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+					output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+					output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+					output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
 
-			output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-			output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
-			output_lateral(0) = 0;
-			output_lateral(1) = _is_writing_composite_run ? 1 : 0;
-			output_lateral(2) = 1;
-
-			_openGL_output_builder->complete_output_run(3);
+					_openGL_output_builder->complete_output_run(3);
+					_did_start_run ^= true;
+				}
+			}
 			_is_writing_composite_run ^= true;
 		}
 
@@ -297,8 +300,8 @@ void CRT::output_level(unsigned int number_of_cycles)
 	Scan scan {
 		.type = Scan::Type::Level,
 		.number_of_cycles = number_of_cycles,
-		.tex_x = _openGL_output_builder->get_last_write_x_posiiton(),
-		.tex_y = _openGL_output_builder->get_last_write_y_posiiton()
+		.tex_x = _openGL_output_builder->get_last_write_x_posititon(),
+		.tex_y = _openGL_output_builder->get_last_write_y_posititon()
 	};
 	output_scan(&scan);
 }
@@ -316,15 +319,21 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
-	Scan scan {
-		.type = Scan::Type::Data,
-		.number_of_cycles = number_of_cycles,
-		.tex_x = _openGL_output_builder->get_last_write_x_posiiton(),
-		.tex_y = _openGL_output_builder->get_last_write_y_posiiton(),
-		.source_divider = source_divider
-	};
-	output_scan(&scan);
+	if(_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider))
+	{
+		Scan scan {
+			.type = Scan::Type::Data,
+			.number_of_cycles = number_of_cycles,
+			.tex_x = _openGL_output_builder->get_last_write_x_posititon(),
+			.tex_y = _openGL_output_builder->get_last_write_y_posititon(),
+			.source_divider = source_divider
+		};
+		output_scan(&scan);
+	}
+	else
+	{
+		output_blank(number_of_cycles);
+	}
 }
 
 Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)

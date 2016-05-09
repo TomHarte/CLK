@@ -37,37 +37,58 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, GLsizei *ranges)
+struct Range {
+	GLsizei location, length;
+};
+
+static int getCircularRanges(GLsizei start, GLsizei end, GLsizei buffer_length, GLsizei granularity, Range *ranges)
 {
-	GLsizei startOffset = start%granularity;
-	if(startOffset)
-	{
-		start -= startOffset;
-	}
+	start -= start%granularity;
+	end -= end%granularity;
 
 	GLsizei length = end - start;
 	if(!length) return 0;
-	if(length > buffer_length)
+	if(length >= buffer_length)
 	{
-		ranges[0] = 0;
-		ranges[1] = buffer_length;
+		ranges[0].location = 0;
+		ranges[0].length = buffer_length;
 		return 1;
 	}
 	else
 	{
-		ranges[0] = start % buffer_length;
-		if(ranges[0]+length < buffer_length)
+		ranges[0].location = start % buffer_length;
+		if(ranges[0].location + length <= buffer_length)
 		{
-			ranges[1] = length;
+			ranges[0].length = length;
 			return 1;
 		}
 		else
 		{
-			ranges[1] = buffer_length - ranges[0];
-			ranges[2] = 0;
-			ranges[3] = length - ranges[1];
+			ranges[0].length = buffer_length - ranges[0].location;
+			ranges[1].location = 0;
+			ranges[1].length = length - ranges[0].length;
 			return 2;
 		}
+	}
+}
+
+static inline void drawArrayRanges(GLenum mode, GLsizei vertex_size, int number_of_ranges, Range *ranges)
+{
+	for(int c = 0; c < number_of_ranges; c++)
+	{
+		glDrawArrays(mode, ranges[c].location / vertex_size, ranges[c].length / vertex_size);
+	}
+}
+
+static void submitArrayData(GLuint buffer, uint8_t *source, int number_of_ranges, Range *ranges)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	for(int c = 0; c < number_of_ranges; c++)
+	{
+		uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		memcpy(data, &source[ranges[c].location], (size_t)ranges[c].length);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, ranges[c].location, ranges[c].length);
+		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 }
 
@@ -89,15 +110,15 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_cleared_composite_output_y(0),
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
-	_output_buffer_data(nullptr),
-	_source_buffer_data(nullptr),
-	_input_texture_data(nullptr),
+	_output_buffer_data(new uint8_t[OutputVertexBufferDataSize]),
+	_source_buffer_data(new uint8_t[SourceVertexBufferDataSize]),
 	_output_buffer_data_pointer(0),
 	_drawn_output_buffer_data_pointer(0),
 	_source_buffer_data_pointer(0),
 	_drawn_source_buffer_data_pointer(0),
 	_last_output_width(0),
-	_last_output_height(0)
+	_last_output_height(0),
+	_fence(nullptr)
 {
 	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
 
@@ -118,16 +139,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
-
-	// create a pixel unpack buffer
-	glGenBuffers(1, &_input_texture_array);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-	_input_texture_array_size = (GLsizeiptr)(InputBufferBuilderWidth * InputBufferBuilderHeight * _buffer_builder->bytes_per_pixel);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, _input_texture_array_size, NULL, GL_STREAM_DRAW);
-
-	// map the buffer for clients
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, nullptr);
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
@@ -137,9 +149,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 
-	// map that buffer too, for any CRT activity that may occur before the first draw
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array);
 
@@ -147,17 +156,13 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glGenBuffers(1, &source_array_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
 	glBufferData(GL_ARRAY_BUFFER, SourceVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-
-	// map that buffer too, for any CRT activity that may occur before the first draw
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+//	glUnmapBuffer(GL_ARRAY_BUFFER);
+//	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteTextures(1, &textureName);
-	glDeleteBuffers(1, &_input_texture_array);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
@@ -168,6 +173,9 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
+	// lock down any further work on the current frame
+	_output_mutex->lock();
+
 	// establish essentials
 	if(!output_shader_program)
 	{
@@ -180,30 +188,39 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		set_timing_uniforms();
 		set_colour_space_uniforms();
-
-		// This should return either an actual framebuffer number, if this is a target with a framebuffer intended for output,
-		// or 0 if no framebuffer is bound, in which case 0 is also what we want to supply to bind the implied framebuffer. So
-		// it works either way.
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&defaultFramebuffer);
-
-		// TODO: is this sustainable, cross-platform? If so, why store it at all?
-		defaultFramebuffer = 0;
 	}
 
-	// lock down any further work on the current frame
-	_output_mutex->lock();
+	// determine how many lines are newly reclaimed; they'll need to be cleared
+	Range clearing_zones[2], source_drawing_zones[2];
+	Range output_drawing_zones[2];
+	int number_of_clearing_zones		= getCircularRanges(_cleared_composite_output_y, _composite_src_output_y, IntermediateBufferHeight, 1, clearing_zones);
+	int number_of_source_drawing_zones	= getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, source_drawing_zones);
+	int number_of_output_drawing_zones	= getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, output_drawing_zones);
+	uint16_t completed_texture_y		= _buffer_builder->get_and_finalise_current_line();
+
+	_composite_src_output_y %= IntermediateBufferHeight;
+	_source_buffer_data_pointer %= SourceVertexBufferDataSize;
+	_output_buffer_data_pointer %= OutputVertexBufferDataSize;
+
+	_cleared_composite_output_y = _composite_src_output_y;
+	_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
+	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
+
+	if(_fence != nullptr)
+	{
+		glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+		glDeleteSync(_fence);
+	}
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	submitArrayData(output_array_buffer, _output_buffer_data.get(), number_of_output_drawing_zones, output_drawing_zones);
+
+	// bind and flush the source array buffer
+	submitArrayData(source_array_buffer, _source_buffer_data.get(), number_of_source_drawing_zones, source_drawing_zones);
 
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
 	{
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
 		if(framebuffer)
 		{
@@ -217,30 +234,17 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			new_framebuffer->bind_texture();
 		}
 		framebuffer = std::move(new_framebuffer);
+	}
+
+	// upload new source pixels
+	if(completed_texture_y)
+	{
 		glActiveTexture(source_data_texture_unit);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _input_texture_array);
-	}
-
-	// upload more source pixel data if any; we'll always resubmit the last line submitted last
-	// time as it may have had extra data appended to it
-	if(_buffer_builder->_write_y_position < _buffer_builder->last_uploaded_line)
-	{
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
-							0, (GLint)_buffer_builder->last_uploaded_line,
-							InputBufferBuilderWidth, (GLint)(InputBufferBuilderHeight - _buffer_builder->last_uploaded_line),
-							formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
-							(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
-		_buffer_builder->last_uploaded_line = 0;
-	}
-
-	if(_buffer_builder->_write_y_position > _buffer_builder->last_uploaded_line)
-	{
-		glTexSubImage2D(	GL_TEXTURE_2D, 0,
-							0, (GLint)_buffer_builder->last_uploaded_line,
-							InputBufferBuilderWidth, (GLint)(1 + _buffer_builder->_next_write_y_position - _buffer_builder->last_uploaded_line),
-							formatForDepth(_buffer_builder->bytes_per_pixel), GL_UNSIGNED_BYTE,
-							(void *)(_buffer_builder->last_uploaded_line * InputBufferBuilderWidth * _buffer_builder->bytes_per_pixel));
-		_buffer_builder->last_uploaded_line = _buffer_builder->_next_write_y_position;
+							0, 0,
+							InputBufferBuilderWidth, completed_texture_y,
+							formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
+							_buffer_builder->get_image_pointer());
 	}
 
 	struct RenderStage {
@@ -268,28 +272,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	RenderStage *active_pipeline = (_output_device == Television || !rgb_input_shader_program) ? composite_render_stages : rgb_render_stages;
 
 	// for television, update intermediate buffers and then draw; for a monitor, just draw
-	if(_drawn_source_buffer_data_pointer != _source_buffer_data_pointer)
+	if(number_of_source_drawing_zones)
 	{
-		// determine how many lines are newly reclaimed; they'll need to be cleared
-		GLsizei clearing_zones[4], drawing_zones[4];
-		int number_of_clearing_zones = getCircularRanges(_cleared_composite_output_y+1, _composite_src_output_y+1, IntermediateBufferHeight, 1, clearing_zones);
-		int number_of_drawing_zones = getCircularRanges(_drawn_source_buffer_data_pointer, _source_buffer_data_pointer, SourceVertexBufferDataSize, 2*SourceVertexSize, drawing_zones);
-
-		_composite_src_output_y %= IntermediateBufferHeight;
-		_cleared_composite_output_y = _composite_src_output_y;
-		_source_buffer_data_pointer %= SourceVertexBufferDataSize;
-		_drawn_source_buffer_data_pointer = _source_buffer_data_pointer;
-
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array);
 		glDisable(GL_BLEND);
-
-		// flush the source data
-		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		for(int c = 0; c < number_of_drawing_zones; c++)
-		{
-			glFlushMappedBufferRange(GL_ARRAY_BUFFER, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
-		}
 
 		while(active_pipeline->target)
 		{
@@ -304,17 +291,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
 				for(int c = 0; c < number_of_clearing_zones; c++)
 				{
-					glScissor(0, clearing_zones[c*2], IntermediateBufferWidth, clearing_zones[c*2 + 1]);
+					glScissor(0, clearing_zones[c].location, IntermediateBufferWidth, clearing_zones[c].length);
 					glClear(GL_COLOR_BUFFER_BIT);
 				}
 				glDisable(GL_SCISSOR_TEST);
 			}
 
 			// draw as desired
-			for(int c = 0; c < number_of_drawing_zones; c++)
-			{
-				glDrawArrays(GL_LINES, drawing_zones[c*2] / SourceVertexSize, drawing_zones[c*2 + 1] / SourceVertexSize);
-			}
+			drawArrayRanges(GL_LINES, SourceVertexSize, number_of_source_drawing_zones, source_drawing_zones);
 
 			active_pipeline++;
 		}
@@ -323,22 +307,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// transfer to framebuffer
 	framebuffer->bind_framebuffer();
 
-	// draw all pending lines
-	GLsizei drawing_zones[4];
-	int number_of_drawing_zones = getCircularRanges(_drawn_output_buffer_data_pointer, _output_buffer_data_pointer, OutputVertexBufferDataSize, 6*OutputVertexSize, drawing_zones);
-
-	// flush the buffer data
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	for(int c = 0; c < number_of_drawing_zones; c++)
-	{
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
-	}
-
-	_output_buffer_data_pointer %= SourceVertexBufferDataSize;
-	_output_buffer_data_pointer -= (_output_buffer_data_pointer%(6*OutputVertexSize));
-	_drawn_output_buffer_data_pointer = _output_buffer_data_pointer;
-
-	if(number_of_drawing_zones > 0)
+	if(number_of_output_drawing_zones)
 	{
 		glEnable(GL_BLEND);
 
@@ -355,10 +324,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-		for(int c = 0; c < number_of_drawing_zones; c++)
-		{
-			glDrawArrays(GL_TRIANGLE_STRIP, drawing_zones[c*2] / OutputVertexSize, drawing_zones[c*2 + 1] / OutputVertexSize);
-		}
+		drawArrayRanges(GL_TRIANGLE_STRIP, OutputVertexSize, number_of_output_drawing_zones, output_drawing_zones);
 	}
 
 	// copy framebuffer to the intended place
@@ -366,17 +332,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
+
 	framebuffer->draw((float)output_width / (float)output_height);
 
-	// drawing commands having been issued, reclaim the array buffer pointer
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	_output_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, OutputVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	_source_buffer_data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, SourceVertexBufferDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
-	_input_texture_data = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, _input_texture_array_size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-
+	_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	_output_mutex->unlock();
 }
 
@@ -433,24 +392,24 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 {
 	if(composite_input_shader_program)
 	{
-		GLint inputPositionAttribute			= composite_input_shader_program->get_attrib_location("inputPosition");
-		GLint outputPositionAttribute			= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAmplitudeAndOffsetAttribute	= composite_input_shader_program->get_attrib_location("phaseAmplitudeAndOffset");
-		GLint phaseTimeAttribute				= composite_input_shader_program->get_attrib_location("phaseTime");
+		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
+		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
+		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
+		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
 
 		glBindVertexArray(source_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
 		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAmplitudeAndOffsetAttribute);
+		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
 		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
 
 		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		glVertexAttribPointer((GLuint)inputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
-		glVertexAttribPointer((GLuint)outputPositionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAmplitudeAndOffsetAttribute,	3, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAmplitudeAndOffset);
-		glVertexAttribPointer((GLuint)phaseTimeAttribute,				2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
+		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
+		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
+		glVertexAttribPointer((GLuint)phaseTimeAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
 	}
 }
 
@@ -466,19 +425,16 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		GLint positionAttribute				= output_shader_program->get_attrib_location("position");
 		GLint textureCoordinatesAttribute	= output_shader_program->get_attrib_location("srcCoordinates");
-		GLint lateralAttribute				= output_shader_program->get_attrib_location("lateral");
 
 		glBindVertexArray(output_vertex_array);
 
 		glEnableVertexAttribArray((GLuint)positionAttribute);
 		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
-		glEnableVertexAttribArray((GLuint)lateralAttribute);
 
 		const GLsizei vertexStride = OutputVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
 		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
-		glVertexAttribPointer((GLuint)lateralAttribute,				1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfLateral);
 	}
 }
 
@@ -497,6 +453,7 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 
 void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
 {
+	_output_mutex->lock();
 	_input_frequency = input_frequency;
 	_cycles_per_line = cycles_per_line;
 	_height_of_display = height_of_display;
@@ -505,13 +462,13 @@ void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int 
 	_vertical_period_divider = vertical_period_divider;
 
 	set_timing_uniforms();
+	_output_mutex->unlock();
 }
 
 #pragma mark - Internal Configuration
 
 void OpenGLOutputBuilder::set_colour_space_uniforms()
 {
-	_output_mutex->lock();
 	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
 	GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
 
@@ -535,13 +492,10 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 
 	if(composite_input_shader_program)				composite_input_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_chrominance_filter_shader_program) composite_chrominance_filter_shader_program->set_colour_conversion_matrices(fromRGB, toRGB);
-	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
-	_output_mutex->lock();
-
 	OpenGL::IntermediateShader *intermediate_shaders[] = {
 		composite_input_shader_program.get(),
 		composite_separation_filter_program.get(),
@@ -563,6 +517,4 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	if(composite_y_filter_shader_program)			composite_y_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.66f);
 	if(composite_chrominance_filter_shader_program)	composite_chrominance_filter_shader_program->set_filter_coefficients(_cycles_per_line, colour_subcarrier_frequency * 0.5f);
 	if(rgb_filter_shader_program)					rgb_filter_shader_program->set_filter_coefficients(_cycles_per_line, (float)_input_frequency * 0.5f);
-
-	_output_mutex->unlock();
 }
