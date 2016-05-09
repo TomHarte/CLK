@@ -173,9 +173,14 @@ class OpenGLOutputBuilder {
 			return _buffer_builder->get_write_target();
 		}
 
-		inline bool reduce_previous_allocation_to(size_t actual_length)
+		inline void reduce_previous_allocation_to(size_t actual_length)
 		{
-			return _buffer_builder->reduce_previous_allocation_to(actual_length);
+			_buffer_builder->reduce_previous_allocation_to(actual_length);
+		}
+
+		inline bool input_buffer_is_full()
+		{
+			return _buffer_builder->is_full();
 		}
 
 		inline uint16_t get_last_write_x_posititon()

@@ -23,7 +23,7 @@ struct CRTInputBufferBuilder {
 	CRTInputBufferBuilder(size_t bytes_per_pixel);
 
 	void allocate_write_area(size_t required_length);
-	bool reduce_previous_allocation_to(size_t actual_length);
+	void reduce_previous_allocation_to(size_t actual_length);
 
 	uint16_t get_and_finalise_current_line();
 	uint8_t *get_image_pointer();
@@ -35,6 +35,8 @@ struct CRTInputBufferBuilder {
 	uint16_t get_last_write_y_position();
 
 	size_t get_bytes_per_pixel();
+
+	bool is_full();
 
 	private:
 		// where pixel data will be put to the next time a write is requested

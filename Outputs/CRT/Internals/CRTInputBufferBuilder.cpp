@@ -41,9 +41,14 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	}
 }
 
-bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
+bool CRTInputBufferBuilder::is_full()
 {
-	if(_next_write_y_position == InputBufferBuilderHeight) return false;
+	return (_next_write_y_position == InputBufferBuilderHeight);
+}
+
+void CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
+{
+	if(_next_write_y_position == InputBufferBuilderHeight) return;
 
 	uint8_t *const image_pointer = _image.get();
 
@@ -68,8 +73,6 @@ bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 
 	// return any allocated length that wasn't actually used to the available pool
 	_next_write_x_position -= (_last_allocation_amount - actual_length);
-
-	return true;
 }
 
 uint8_t *CRTInputBufferBuilder::get_image_pointer()
