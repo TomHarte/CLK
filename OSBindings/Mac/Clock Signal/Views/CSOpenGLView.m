@@ -60,6 +60,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		BOOL didSkip = _hasSkipped;
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			[self.delegate openGLView:self didUpdateToTime:time didSkipPreviousUpdate:didSkip frequency:frequency];
+			[self drawViewOnlyIfDirty:YES];
 			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
 		});
 		_hasSkipped = NO;
@@ -68,7 +69,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	// Draw the display only if a previous draw is not still ongoing. -drawViewOnlyIfDirty: is guaranteed
 	// to be safe to call concurrently with -openGLView:updateToTime: so there's no need to worry about
 	// the above interrupting the below or vice versa.
-	if(!OSAtomicTestAndSet(drawingMask, &_updateIsOngoing))
+	if(!OSAtomicTestAndSet(drawingMask, &_updateIsOngoing) && _hasSkipped)
 	{
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			[self drawViewOnlyIfDirty:YES];
