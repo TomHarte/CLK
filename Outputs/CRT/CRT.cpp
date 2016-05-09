@@ -214,9 +214,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		// if this is vertical retrace then adcance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace)
 		{
-			// TODO: eliminate the below; it's to aid with debug, aligning the top of the
-			// input buffer with the top of the incoming frame.
-			_openGL_output_builder->release_source_buffer_write_pointer();
 			if(_delegate)
 			{
 				_frames_since_last_delegate_call++;

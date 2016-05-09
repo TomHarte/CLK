@@ -14,20 +14,18 @@
 #include <stddef.h>
 #include "CRTConstants.hpp"
 #include "OpenGL.hpp"
-#include <memory.h>
+#include <memory>
 
 namespace Outputs {
 namespace CRT {
 
 struct CRTInputBufferBuilder {
 	CRTInputBufferBuilder(size_t bytes_per_pixel);
-	~CRTInputBufferBuilder();
 
 	void allocate_write_area(size_t required_length);
 	bool reduce_previous_allocation_to(size_t actual_length);
 
 	uint16_t get_and_finalise_current_line();
-	void release_write_pointer();
 	uint8_t *get_image_pointer();
 
 	uint8_t *get_write_target();
@@ -53,9 +51,7 @@ struct CRTInputBufferBuilder {
 		size_t _bytes_per_pixel;
 
 		// the buffer
-		uint8_t *_image;
-
-		bool _should_reset;
+		std::unique_ptr<uint8_t> _image;
 };
 
 }

@@ -16,14 +16,8 @@ CRTInputBufferBuilder::CRTInputBufferBuilder(size_t bytes_per_pixel) :
 	_bytes_per_pixel(bytes_per_pixel),
 	_next_write_x_position(0),
 	_next_write_y_position(0),
-	_image(new uint8_t[bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight]),
-	_should_reset(false)
+	_image(new uint8_t[bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight])
 {}
-
-CRTInputBufferBuilder::~CRTInputBufferBuilder()
-{
-	delete[] _image;
-}
 
 void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 {
@@ -47,22 +41,16 @@ void CRTInputBufferBuilder::allocate_write_area(size_t required_length)
 	}
 }
 
-void CRTInputBufferBuilder::release_write_pointer()
-{
-//	if(_should_reset)
-//	{
-//		_next_write_x_position = _next_write_y_position = 0;
-//	}
-}
-
 bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
 	if(_next_write_y_position == InputBufferBuilderHeight) return false;
 
+	uint8_t *const image_pointer = _image.get();
+
 	// correct if the writing cursor was reset while a client was writing
 	if(_next_write_x_position == 0 && _next_write_y_position == 0 && _write_target_pointer != 1)
 	{
-		memmove(&_image[1], &_image[_write_target_pointer], actual_length);
+		memmove(&image_pointer[1], &image_pointer[_write_target_pointer], actual_length);
 		_write_target_pointer = 1;
 		_last_allocation_amount = actual_length;
 		_next_write_x_position = (uint16_t)(actual_length + 2);
@@ -70,12 +58,12 @@ bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 
 	// book end the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn
-	memcpy(	&_image[(_write_target_pointer - 1) * _bytes_per_pixel],
-			&_image[_write_target_pointer * _bytes_per_pixel],
+	memcpy(	&image_pointer[(_write_target_pointer - 1) * _bytes_per_pixel],
+			&image_pointer[_write_target_pointer * _bytes_per_pixel],
 			_bytes_per_pixel);
 
-	memcpy(	&_image[(_write_target_pointer + actual_length) * _bytes_per_pixel],
-			&_image[(_write_target_pointer + actual_length - 1) * _bytes_per_pixel],
+	memcpy(	&image_pointer[(_write_target_pointer + actual_length) * _bytes_per_pixel],
+			&image_pointer[(_write_target_pointer + actual_length - 1) * _bytes_per_pixel],
 			_bytes_per_pixel);
 
 	// return any allocated length that wasn't actually used to the available pool
@@ -86,7 +74,7 @@ bool CRTInputBufferBuilder::reduce_previous_allocation_to(size_t actual_length)
 
 uint8_t *CRTInputBufferBuilder::get_image_pointer()
 {
-	return _image;
+	return _image.get();
 }
 
 uint16_t CRTInputBufferBuilder::get_and_finalise_current_line()
@@ -98,7 +86,7 @@ uint16_t CRTInputBufferBuilder::get_and_finalise_current_line()
 
 uint8_t *CRTInputBufferBuilder::get_write_target()
 {
-	return (_next_write_y_position == InputBufferBuilderHeight) ? nullptr : &_image[_write_target_pointer * _bytes_per_pixel];
+	return (_next_write_y_position == InputBufferBuilderHeight) ? nullptr : &_image.get()[_write_target_pointer * _bytes_per_pixel];
 }
 
 uint16_t CRTInputBufferBuilder::get_last_write_x_position()

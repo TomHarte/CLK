@@ -182,11 +182,6 @@ class OpenGLOutputBuilder {
 			return _buffer_builder->get_last_write_y_position();
 		}
 
-		inline void release_source_buffer_write_pointer()
-		{
-			_buffer_builder->release_write_pointer();
-		}
-
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
 		void set_composite_sampling_function(const char *shader);
