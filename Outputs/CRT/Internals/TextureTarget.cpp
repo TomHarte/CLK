@@ -8,6 +8,7 @@
 
 #include "TextureTarget.hpp"
 #include <math.h>
+#include <stdlib.h>
 
 using namespace OpenGL;
 
@@ -29,7 +30,9 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit)
 	glGenTextures(1, &_texture);
 	glActiveTexture(texture_unit);
 	glBindTexture(GL_TEXTURE_2D, _texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	uint8_t *blank_buffer = (uint8_t *)calloc((size_t)(_expanded_width * _expanded_height), 4);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer);
+	free(blank_buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
@@ -37,8 +40,6 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit)
 
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		throw ErrorFramebufferIncomplete;
-
-	glClear(GL_COLOR_BUFFER_BIT);
 }
 
 TextureTarget::~TextureTarget()
