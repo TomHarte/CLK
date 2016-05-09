@@ -106,7 +106,7 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_source_run()
 		{
-			if(_source_buffer_data_pointer == _drawn_source_buffer_data_pointer + SourceVertexBufferDataSize) return nullptr;
+			if(_source_buffer_data_pointer == SourceVertexBufferDataSize) return nullptr;
 			return &_source_buffer_data.get()[_source_buffer_data_pointer % SourceVertexBufferDataSize];
 		}
 
@@ -117,12 +117,12 @@ class OpenGLOutputBuilder {
 
 		inline bool composite_output_run_has_room_for_vertices(GLsizei vertices_to_write)
 		{
-			return _output_buffer_data_pointer <= _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize - vertices_to_write * OutputVertexSize;
+			return _output_buffer_data_pointer <= OutputVertexBufferDataSize - vertices_to_write * OutputVertexSize;
 		}
 
 		inline uint8_t *get_next_output_run()
 		{
-			if(_output_buffer_data_pointer == _drawn_output_buffer_data_pointer + OutputVertexBufferDataSize) return nullptr;
+			if(_output_buffer_data_pointer == OutputVertexBufferDataSize) return nullptr;
 			return &_output_buffer_data.get()[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
@@ -202,11 +202,9 @@ class OpenGLOutputBuilder {
 
 		std::unique_ptr<uint8_t> _source_buffer_data;
 		GLsizei _source_buffer_data_pointer;
-		GLsizei _drawn_source_buffer_data_pointer;
 
 		std::unique_ptr<uint8_t> _output_buffer_data;
 		GLsizei _output_buffer_data_pointer;
-		GLsizei _drawn_output_buffer_data_pointer;
 
 		GLsync _fence;
 };
