@@ -69,8 +69,7 @@ CRT::CRT(unsigned int common_output_divisor) :
 	_common_output_divisor(common_output_divisor),
 	_is_writing_composite_run(false),
 	_delegate(nullptr),
-	_frames_since_last_delegate_call(0),
-	_did_start_run(false) {}
+	_frames_since_last_delegate_call(0) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
@@ -187,29 +186,26 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(needs_endpoint)
 		{
 			if(
-				_is_writing_composite_run == _did_start_run &&
 				_openGL_output_builder->composite_output_run_has_room_for_vertex() &&
 				!_openGL_output_builder->composite_output_buffer_is_full())
 			{
-				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
-				if(next_run)
+				if(!_is_writing_composite_run)
 				{
-					if(_did_start_run)
-					{
-						output_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
-						output_position_y() = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-						output_tex_y() = _openGL_output_builder->get_composite_output_y();
-					}
-					else
-					{
-						output_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
-						_openGL_output_builder->complete_output_run();
-					}
-
-					_did_start_run ^= true;
+					_output_run.x1 = (uint16_t)_horizontal_flywheel->get_current_output_position();
+					_output_run.y = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+					_output_run.tex_y = _openGL_output_builder->get_composite_output_y();
 				}
+				else
+				{
+					uint8_t *next_run = _openGL_output_builder->get_next_output_run();
+					output_x1() = _output_run.x1;
+					output_position_y() = _output_run.y;
+					output_tex_y() = _output_run.tex_y;
+					output_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+					_openGL_output_builder->complete_output_run();
+				}
+				_is_writing_composite_run ^= true;
 			}
-			_is_writing_composite_run ^= true;
 		}
 
 		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)

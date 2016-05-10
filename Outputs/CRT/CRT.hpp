@@ -68,7 +68,7 @@ class CRT {
 
 		uint8_t _colour_burst_phase, _colour_burst_amplitude;
 		uint16_t _colour_burst_time;
-		bool _is_writing_composite_run, _did_start_run;
+		bool _is_writing_composite_run;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);
@@ -81,7 +81,12 @@ class CRT {
 		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
 		std::unique_ptr<OpenGLOutputBuilder> _openGL_output_builder;
 
-		// The delegate;
+		// temporary storage used during the construction of output runs
+		struct {
+			uint16_t x1, y, tex_y;
+		} _output_run;
+
+		// The delegate
 		Delegate *_delegate;
 		unsigned int _frames_since_last_delegate_call;
 
