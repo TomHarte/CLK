@@ -51,12 +51,12 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 			"lateralVarying = lateral - 0.5;"
 
-			"vec2 vSrcCoordinates = mix(srcCoordinates, vec2(terminators.y, srcCoordinates.y), longitudinal);"
+			"vec2 vSrcCoordinates = vec2(mix(srcCoordinates.x, terminators.y, longitudinal), srcCoordinates.y);"
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"iSrcCoordinatesVarying = vSrcCoordinates;"
 			"srcCoordinatesVarying = vec2(vSrcCoordinates.x / textureSize.x, (vSrcCoordinates.y + 0.5) / textureSize.y);"
 
-			"vec2 vPosition = mix(position, vec2(terminators.x, position.y), longitudinal);"
+			"vec2 vPosition = vec2(mix(position.x, terminators.x, longitudinal), position.y);"
 			"vec2 floatingPosition = (vPosition / positionConversion) + lateral * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"

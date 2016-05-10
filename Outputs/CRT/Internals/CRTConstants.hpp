@@ -19,7 +19,7 @@ namespace CRT {
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
 const GLsizei OutputVertexOffsetOfPosition = 0;
 const GLsizei OutputVertexOffsetOfTexCoord = 4;
-const GLsizei OutputVertexOffsetOfTerminators = 6;
+const GLsizei OutputVertexOffsetOfTerminators = 8;
 
 const GLsizei OutputVertexSize = 12;
 
