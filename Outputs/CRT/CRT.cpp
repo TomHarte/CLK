@@ -96,12 +96,10 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return _horizontal_flywheel->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_position_x1()		(*(uint16_t *)&next_run[OutputVertexOffsetOfPosition + 0])
-#define output_position_x2()		(*(uint16_t *)&next_run[OutputVertexOffsetOfTerminators + 0])
-#define output_position_y()			(*(uint16_t *)&next_run[OutputVertexOffsetOfPosition + 2])
-#define output_tex_x1()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTexCoord + 0])
-#define output_tex_x2()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTerminators + 2])
-#define output_tex_y()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTexCoord + 2])
+#define output_x1()			(*(uint16_t *)&next_run[OutputVertexOffsetOfHorizontal + 0])
+#define output_x2()			(*(uint16_t *)&next_run[OutputVertexOffsetOfHorizontal + 2])
+#define output_position_y()	(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 0])
+#define output_tex_y()		(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 2])
 
 #define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
@@ -198,15 +196,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				{
 					if(_did_start_run)
 					{
-						output_position_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						output_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 						output_position_y() = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-						output_tex_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 						output_tex_y() = _openGL_output_builder->get_composite_output_y();
 					}
 					else
 					{
-						output_position_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
-						output_tex_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						output_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 						_openGL_output_builder->complete_output_run();
 					}
 
@@ -237,11 +233,10 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 	}
 }
 
-#undef output_position_x
+#undef output_x1
+#undef output_x2
 #undef output_position_y
-#undef output_tex_x
 #undef output_tex_y
-#undef output_lateral
 
 #undef input_input_position_x
 #undef input_input_position_y

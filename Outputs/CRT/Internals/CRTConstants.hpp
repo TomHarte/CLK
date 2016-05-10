@@ -17,11 +17,10 @@ namespace CRT {
 
 // Output vertices are those used to copy from an input buffer — whether it describes data that maps directly to RGB
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
-const GLsizei OutputVertexOffsetOfPosition = 0;
-const GLsizei OutputVertexOffsetOfTexCoord = 4;
-const GLsizei OutputVertexOffsetOfTerminators = 8;
+const GLsizei OutputVertexOffsetOfHorizontal = 0;
+const GLsizei OutputVertexOffsetOfVertical = 4;
 
-const GLsizei OutputVertexSize = 12;
+const GLsizei OutputVertexSize = 8;
 
 // Input vertices, used only in composite mode, map from the input buffer to temporary buffer locations; such
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour

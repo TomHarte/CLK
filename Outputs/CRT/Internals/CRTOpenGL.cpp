@@ -424,25 +424,23 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 {
 	if(output_shader_program)
 	{
-		GLint positionAttribute				= output_shader_program->get_attrib_location("position");
-		GLint textureCoordinatesAttribute	= output_shader_program->get_attrib_location("srcCoordinates");
-		GLint terminatorsAttribute			= output_shader_program->get_attrib_location("terminators");
-
 		glBindVertexArray(output_vertex_array);
-
-		glEnableVertexAttribArray((GLuint)positionAttribute);
-		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
-		glEnableVertexAttribArray((GLuint)terminatorsAttribute);
+		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
 		const GLsizei vertexStride = OutputVertexSize;
-		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
-		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
-		glVertexAttribPointer((GLuint)terminatorsAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTerminators);
+		size_t offset = 0;
 
-		glVertexAttribDivisor((GLuint)positionAttribute, 1);
-		glVertexAttribDivisor((GLuint)textureCoordinatesAttribute, 1);
-		glVertexAttribDivisor((GLuint)terminatorsAttribute, 1);
+		const char *attributes[] = {"horizontal", "vertical", nullptr};
+		const char **attribute = attributes;
+		while(*attribute)
+		{
+			GLint attributeLocation = output_shader_program->get_attrib_location(*attribute);
+			glEnableVertexAttribArray((GLuint)attributeLocation);
+			glVertexAttribPointer((GLuint)attributeLocation, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)offset);
+			glVertexAttribDivisor((GLuint)attributeLocation, 1);
+			offset += 4;
+			attribute++;
+		}
 	}
 }
 
