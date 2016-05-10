@@ -324,7 +324,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, submitted_output_data / OutputVertexSize);
+//		glDrawArrays(GL_TRIANGLE_STRIP, 0, submitted_output_data / OutputVertexSize);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, submitted_output_data / OutputVertexSize);
 	}
 
 	// copy framebuffer to the intended place
@@ -423,18 +424,23 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 {
 	if(output_shader_program)
 	{
-		GLint positionAttribute				= output_shader_program->get_attrib_location("position");
-		GLint textureCoordinatesAttribute	= output_shader_program->get_attrib_location("srcCoordinates");
-
 		glBindVertexArray(output_vertex_array);
-
-		glEnableVertexAttribArray((GLuint)positionAttribute);
-		glEnableVertexAttribArray((GLuint)textureCoordinatesAttribute);
+		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
 
 		const GLsizei vertexStride = OutputVertexSize;
-		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-		glVertexAttribPointer((GLuint)positionAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfPosition);
-		glVertexAttribPointer((GLuint)textureCoordinatesAttribute,	2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)OutputVertexOffsetOfTexCoord);
+		size_t offset = 0;
+
+		const char *attributes[] = {"horizontal", "vertical", nullptr};
+		const char **attribute = attributes;
+		while(*attribute)
+		{
+			GLint attributeLocation = output_shader_program->get_attrib_location(*attribute);
+			glEnableVertexAttribArray((GLuint)attributeLocation);
+			glVertexAttribPointer((GLuint)attributeLocation, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)offset);
+			glVertexAttribDivisor((GLuint)attributeLocation, 1);
+			offset += 4;
+			attribute++;
+		}
 	}
 }
 

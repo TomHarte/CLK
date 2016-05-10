@@ -115,9 +115,9 @@ class OpenGLOutputBuilder {
 			_source_buffer_data_pointer += 2 * SourceVertexSize;
 		}
 
-		inline bool composite_output_run_has_room_for_vertices(GLsizei vertices_to_write)
+		inline bool composite_output_run_has_room_for_vertex()
 		{
-			return _output_buffer_data_pointer <= OutputVertexBufferDataSize - vertices_to_write * OutputVertexSize;
+			return _output_buffer_data_pointer < OutputVertexBufferDataSize;
 		}
 
 		inline uint8_t *get_next_output_run()
@@ -126,9 +126,9 @@ class OpenGLOutputBuilder {
 			return &_output_buffer_data.get()[_output_buffer_data_pointer % OutputVertexBufferDataSize];
 		}
 
-		inline void complete_output_run(GLsizei vertices_written)
+		inline void complete_output_run()
 		{
-			_output_buffer_data_pointer += vertices_written * OutputVertexSize;
+			_output_buffer_data_pointer += OutputVertexSize;
 		}
 
 		inline void lock_output()
