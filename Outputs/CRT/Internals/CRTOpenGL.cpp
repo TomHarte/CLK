@@ -80,11 +80,9 @@ static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsiz
 	}
 }
 
-static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer, GLsizei chunk_size)
+static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer)
 {
 	GLsizei length = *length_pointer;
-	GLsizei residue = length % chunk_size;
-	length -= residue;
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
@@ -92,13 +90,7 @@ static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_p
 	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	if(residue)
-	{
-		memmove(source, &source[length], (size_t)residue);
-		*length_pointer = residue;
-	}
-	else
-		*length_pointer = 0;
+	*length_pointer = 0;
 
 	return length;
 }
@@ -204,10 +196,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer, 6*OutputVertexSize);
+	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer);
 
 	// bind and flush the source array buffer
-	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer, 2*SourceVertexSize);
+	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer);
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	Range clearing_zones[2];
