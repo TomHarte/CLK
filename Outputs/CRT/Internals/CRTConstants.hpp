@@ -41,7 +41,7 @@ const GLsizei IntermediateBufferHeight = 1024;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = OutputVertexSize * IntermediateBufferHeight;		// i.e. the maximum number of scans of output that can be created between draws
-const GLsizeiptr SourceVertexBufferDataSize = SourceVertexSize * IntermediateBufferHeight * 2;	// a multiple of 2 * SourceVertexSize
+const GLsizeiptr SourceVertexBufferDataSize = SourceVertexSize * IntermediateBufferHeight * 2;	// (the maximum number of scans) * conservative, high guess at a maximumum number of events likely to occur within a scan
 
 }
 }
