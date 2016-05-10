@@ -96,10 +96,12 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return _horizontal_flywheel->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_position_x(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 0])
-#define output_position_y(v)		(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfPosition + 2])
-#define output_tex_x(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 0])
-#define output_tex_y(v)				(*(uint16_t *)&next_run[OutputVertexSize*v + OutputVertexOffsetOfTexCoord + 2])
+#define output_position_x1()		(*(uint16_t *)&next_run[OutputVertexOffsetOfPosition + 0])
+#define output_position_x2()		(*(uint16_t *)&next_run[OutputVertexOffsetOfTerminators + 0])
+#define output_position_y()			(*(uint16_t *)&next_run[OutputVertexOffsetOfPosition + 2])
+#define output_tex_x1()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTexCoord + 0])
+#define output_tex_x2()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTerminators + 2])
+#define output_tex_y()				(*(uint16_t *)&next_run[OutputVertexOffsetOfTexCoord + 2])
 
 #define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
 #define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
@@ -188,18 +190,26 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		{
 			if(
 				_is_writing_composite_run == _did_start_run &&
-				_openGL_output_builder->composite_output_run_has_room_for_vertices(_did_start_run ? 3 : 6) &&
+				_openGL_output_builder->composite_output_run_has_room_for_vertex() &&
 				!_openGL_output_builder->composite_output_buffer_is_full())
 			{
 				uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 				if(next_run)
 				{
-					output_position_x(0) = output_position_x(1) = output_position_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-					output_position_y(0) = output_position_y(1) = output_position_y(2) = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-					output_tex_x(0) = output_tex_x(1) = output_tex_x(2) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-					output_tex_y(0) = output_tex_y(1) = output_tex_y(2) = _openGL_output_builder->get_composite_output_y();
+					if(_did_start_run)
+					{
+						output_position_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						output_position_y() = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
+						output_tex_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						output_tex_y() = _openGL_output_builder->get_composite_output_y();
+					}
+					else
+					{
+						output_position_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						output_tex_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+						_openGL_output_builder->complete_output_run();
+					}
 
-					_openGL_output_builder->complete_output_run(3);
 					_did_start_run ^= true;
 				}
 			}

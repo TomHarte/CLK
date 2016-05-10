@@ -19,8 +19,9 @@ namespace CRT {
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
 const GLsizei OutputVertexOffsetOfPosition = 0;
 const GLsizei OutputVertexOffsetOfTexCoord = 4;
+const GLsizei OutputVertexOffsetOfTerminators = 6;
 
-const GLsizei OutputVertexSize = 8;
+const GLsizei OutputVertexSize = 12;
 
 // Input vertices, used only in composite mode, map from the input buffer to temporary buffer locations; such
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour

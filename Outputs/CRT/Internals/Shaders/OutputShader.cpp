@@ -32,6 +32,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"in vec2 position;"
 		"in vec2 srcCoordinates;"
+		"in vec2 terminators;"
 
 		"uniform vec2 boundsOrigin;"
 		"uniform vec2 boundsSize;"
@@ -45,15 +46,18 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"void main(void)"
 		"{"
-			"float laterals[] = float[](0, 0, 1, 0, 1, 1);"
-			"float lateral = laterals[gl_VertexID %% 6];"
+			"float lateral = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
 			"lateralVarying = lateral - 0.5;"
 
+			"vec2 vSrcCoordinates = mix(srcCoordinates, vec2(terminators.y, srcCoordinates.y), longitudinal);"
 			"ivec2 textureSize = textureSize(texID, 0);"
-			"iSrcCoordinatesVarying = srcCoordinates;"
-			"srcCoordinatesVarying = vec2(srcCoordinates.x / textureSize.x, (srcCoordinates.y + 0.5) / textureSize.y);"
+			"iSrcCoordinatesVarying = vSrcCoordinates;"
+			"srcCoordinatesVarying = vec2(vSrcCoordinates.x / textureSize.x, (vSrcCoordinates.y + 0.5) / textureSize.y);"
 
-			"vec2 floatingPosition = (position / positionConversion) + lateral * scanNormal;"
+			"vec2 vPosition = mix(position, vec2(terminators.x, position.y), longitudinal);"
+			"vec2 floatingPosition = (vPosition / positionConversion) + lateral * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
 		"}", sampler_type);
