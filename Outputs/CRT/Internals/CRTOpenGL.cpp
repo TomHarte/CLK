@@ -41,7 +41,7 @@ struct Range {
 	GLsizei location, length;
 };
 
-static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsizei buffer_length, GLsizei granularity, Range *ranges)
+static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsizei buffer_length, GLsizei granularity, GLsizei offset, Range *ranges)
 {
 	GLsizei start = *start_pointer;
 	GLsizei end = *end_pointer;
@@ -49,6 +49,8 @@ static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsiz
 	*end_pointer %= buffer_length;
 	*start_pointer = *end_pointer;
 
+	start += offset;
+	end += offset;
 	start -= start%granularity;
 	end -= end%granularity;
 
@@ -195,11 +197,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		set_colour_space_uniforms();
 	}
 
-	// determine how many lines are newly reclaimed; they'll need to be cleared
-	Range clearing_zones[2];
-	int number_of_clearing_zones		= getCircularRanges(&_cleared_composite_output_y,		&_composite_src_output_y,		IntermediateBufferHeight,	1,					clearing_zones);
-	uint16_t completed_texture_y		= _buffer_builder->get_and_finalise_current_line();
-
 	if(_fence != nullptr)
 	{
 		glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
@@ -211,6 +208,15 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// bind and flush the source array buffer
 	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer, 2*SourceVertexSize);
+
+	// determine how many lines are newly reclaimed; they'll need to be cleared
+	Range clearing_zones[2];
+
+	// the clearing zones for the composite output Y are calculated with a fixed offset of '1' which has the effect of clearing
+	// one ahead of the expected drawing area this frame; that's because the current _composite_src_output_y may or may not have been
+	// written to during the last update, so we want it to have been cleared during the last update.
+	int number_of_clearing_zones	= getCircularRanges(&_cleared_composite_output_y, &_composite_src_output_y, IntermediateBufferHeight, 1, 1, clearing_zones);
+	uint16_t completed_texture_y	= _buffer_builder->get_and_finalise_current_line();
 
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
