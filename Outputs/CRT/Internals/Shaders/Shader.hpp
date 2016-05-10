@@ -66,6 +66,14 @@ public:
 	*/
 	GLint get_uniform_location(const GLchar *name);
 
+	/*!
+		Shorthand for an appropriate sequence of:
+		* @c get_attrib_location;
+		* @c glEnableVertexAttribArray;
+		* @c glVertexAttribPointer;
+		* @c glVertexAttribDivisor.
+	*/
+	void enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor);
 
 private:
 	GLuint compile_shader(const char *source, GLenum type);

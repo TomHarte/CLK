@@ -426,21 +426,8 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		glBindVertexArray(output_vertex_array);
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-
-		const GLsizei vertexStride = OutputVertexSize;
-		size_t offset = 0;
-
-		const char *attributes[] = {"horizontal", "vertical", nullptr};
-		const char **attribute = attributes;
-		while(*attribute)
-		{
-			GLint attributeLocation = output_shader_program->get_attrib_location(*attribute);
-			glEnableVertexAttribArray((GLuint)attributeLocation);
-			glVertexAttribPointer((GLuint)attributeLocation, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)offset);
-			glVertexAttribDivisor((GLuint)attributeLocation, 1);
-			offset += 4;
-			attribute++;
-		}
+		output_shader_program->enable_vertex_attribute_with_pointer("horizontal", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfHorizontal, 1);
+		output_shader_program->enable_vertex_attribute_with_pointer("vertical", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfVertical, 1);
 	}
 }
 
