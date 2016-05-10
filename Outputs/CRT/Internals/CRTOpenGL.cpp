@@ -298,7 +298,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			}
 
 			// draw as desired
-			glDrawArrays(GL_LINES, 0, submitted_source_data / SourceVertexSize);
+			glDrawArraysInstanced(GL_LINES, 0, 2, submitted_source_data / SourceVertexSize);
 
 			active_pipeline++;
 		}
@@ -324,7 +324,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-//		glDrawArrays(GL_TRIANGLE_STRIP, 0, submitted_output_data / OutputVertexSize);
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, submitted_output_data / OutputVertexSize);
 	}
 
@@ -393,24 +392,13 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 {
 	if(composite_input_shader_program)
 	{
-		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
-		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
-		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
-
 		glBindVertexArray(source_vertex_array);
-
-		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
-		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
-
-		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
-		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
-		glVertexAttribPointer((GLuint)phaseTimeAttribute,			1, GL_UNSIGNED_BYTE,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("inputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfInputStart, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("outputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfOutputStart, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("ends", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfEnds, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("phaseTimeAndAmplitude", 3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
 	}
 }
 
