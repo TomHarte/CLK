@@ -513,11 +513,6 @@ template <class T> class Processor {
 			_carryFlag &= Flag::Carry;
 			_decimalFlag &= Flag::Decimal;
 			_overflowFlag &= Flag::Overflow;
-
-			// TODO: is this accurate? It feels more likely that a CPU would need to wait
-			// on an explicit reset command, since the relative startup times of different
-			// components from power on would be a bit unpredictable.
-			schedule_program(get_reset_program());
 		}
 
 	public:
