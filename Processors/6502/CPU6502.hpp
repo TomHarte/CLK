@@ -678,7 +678,7 @@ template <class T> class Processor {
 
 							if(_jam_handler) {
 								_jam_handler->processor_did_jam(this, _pc.full - 1);
-								checkSchedule(_is_jammed = false);
+								checkSchedule(_is_jammed = false; program = _scheduledPrograms[scheduleProgramsReadPointer]);
 							}
 						} break;
 
