@@ -24,10 +24,10 @@ const GLsizei OutputVertexSize = 8;
 
 // Input vertices, used only in composite mode, map from the input buffer to temporary buffer locations; such
 // remapping occurs to ensure a continous stream of data for each scan, giving correct out-of-bounds behaviour
-const GLsizei SourceVertexOffsetOfInputPosition = 0;
-const GLsizei SourceVertexOffsetOfOutputPosition = 4;
-const GLsizei SourceVertexOffsetOfPhaseAndAmplitude = 8;
-const GLsizei SourceVertexOffsetOfPhaseTime = 12;
+const GLsizei SourceVertexOffsetOfInputStart = 0;
+const GLsizei SourceVertexOffsetOfOutputStart = 4;
+const GLsizei SourceVertexOffsetOfEnds = 8;
+const GLsizei SourceVertexOffsetOfPhaseTimeAndAmplitude = 12;
 
 const GLsizei SourceVertexSize = 16;
 
@@ -41,7 +41,7 @@ const GLsizei IntermediateBufferHeight = 1024;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = OutputVertexSize * IntermediateBufferHeight;		// i.e. the maximum number of scans of output that can be created between draws
-const GLsizeiptr SourceVertexBufferDataSize = 2 * SourceVertexSize * IntermediateBufferHeight * 2;	// a multiple of 2 * SourceVertexSize
+const GLsizeiptr SourceVertexBufferDataSize = SourceVertexSize * IntermediateBufferHeight * 2;	// (the maximum number of scans) * conservative, high guess at a maximumum number of events likely to occur within a scan
 
 }
 }

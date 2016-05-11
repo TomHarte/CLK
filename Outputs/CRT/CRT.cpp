@@ -100,13 +100,15 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_position_y()	(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 0])
 #define output_tex_y()		(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 2])
 
-#define source_input_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 0])
-#define source_input_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfInputPosition + 2])
-#define source_output_position_x(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 0])
-#define source_output_position_y(v)	(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfOutputPosition + 2])
-#define source_phase(v)				next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 0]
-#define source_amplitude(v)			next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseAndAmplitude + 1]
-#define source_phase_time(v)		(*(uint16_t *)&next_run[SourceVertexSize*v + SourceVertexOffsetOfPhaseTime])
+#define source_input_position_x1()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 0])
+#define source_input_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 2])
+#define source_input_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 0])
+#define source_output_position_x1()	(*(uint16_t *)&next_run[SourceVertexOffsetOfOutputStart + 0])
+#define source_output_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfOutputStart + 2])
+#define source_output_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 2])
+#define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
+#define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
+#define source_phase_time()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
 {
@@ -134,20 +136,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			next_run = _openGL_output_builder->get_next_source_run();
 		}
 
-		//	Vertex output is arranged for triangle strips, as:
-		//
-		//	2			[4/5]
-		//
-		//	[0/1]		3
 		if(next_run)
 		{
-			source_input_position_x(0) = tex_x;
-			source_input_position_y(0) = source_input_position_y(1) = tex_y;
-			source_output_position_x(0) = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			source_output_position_y(0) = source_output_position_y(1) = _openGL_output_builder->get_composite_output_y();
-			source_phase(0) = source_phase(1) = _colour_burst_phase;
-			source_amplitude(0) = source_amplitude(1) = _colour_burst_amplitude;
-			source_phase_time(0) = source_phase_time(1) = _colour_burst_time;
+			source_input_position_x1() = tex_x;
+			source_input_position_y() = tex_y;
+			source_output_position_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			source_output_position_y() = _openGL_output_builder->get_composite_output_y();
+			source_phase() = _colour_burst_phase;
+			source_amplitude() = _colour_burst_amplitude;
+			source_phase_time() = (uint8_t)_colour_burst_time; // assumption: burst was within the first 1/16 of the line
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -169,8 +166,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			// if this is a data run then advance the buffer pointer
 			if(type == Scan::Type::Data && source_divider) tex_x += next_run_length / (_time_multiplier * source_divider);
 
-			source_input_position_x(1) = tex_x;
-			source_output_position_x(1) = (uint16_t)_horizontal_flywheel->get_current_output_position();
+			source_input_position_x2() = tex_x;
+			source_output_position_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 
 			_openGL_output_builder->complete_source_run();
 		}
@@ -234,13 +231,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 #undef output_position_y
 #undef output_tex_y
 
-#undef input_input_position_x
-#undef input_input_position_y
-#undef input_output_position_x
-#undef input_output_position_y
-#undef input_phase
-#undef input_amplitude
-#undef input_phase_age
+#undef source_input_position_x1
+#undef source_input_position_y
+#undef source_input_position_x2
+#undef source_output_position_x1
+#undef source_output_position_y
+#undef source_output_position_x2
+#undef source_phase
+#undef source_amplitude
+#undef source_phase_time
 
 #pragma mark - stream feeding methods
 

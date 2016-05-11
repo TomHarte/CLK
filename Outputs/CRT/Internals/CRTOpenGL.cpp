@@ -80,11 +80,9 @@ static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsiz
 	}
 }
 
-static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer, GLsizei chunk_size)
+static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer)
 {
 	GLsizei length = *length_pointer;
-	GLsizei residue = length % chunk_size;
-	length -= residue;
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
@@ -92,13 +90,7 @@ static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_p
 	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	if(residue)
-	{
-		memmove(source, &source[length], (size_t)residue);
-		*length_pointer = residue;
-	}
-	else
-		*length_pointer = 0;
+	*length_pointer = 0;
 
 	return length;
 }
@@ -204,10 +196,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer, 6*OutputVertexSize);
+	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer);
 
 	// bind and flush the source array buffer
-	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer, 2*SourceVertexSize);
+	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer);
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	Range clearing_zones[2];
@@ -298,7 +290,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			}
 
 			// draw as desired
-			glDrawArrays(GL_LINES, 0, submitted_source_data / SourceVertexSize);
+			glDrawArraysInstanced(GL_LINES, 0, 2, submitted_source_data / SourceVertexSize);
 
 			active_pipeline++;
 		}
@@ -324,7 +316,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-//		glDrawArrays(GL_TRIANGLE_STRIP, 0, submitted_output_data / OutputVertexSize);
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, submitted_output_data / OutputVertexSize);
 	}
 
@@ -393,24 +384,13 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 {
 	if(composite_input_shader_program)
 	{
-		GLint inputPositionAttribute		= composite_input_shader_program->get_attrib_location("inputPosition");
-		GLint outputPositionAttribute		= composite_input_shader_program->get_attrib_location("outputPosition");
-		GLint phaseAndAmplitudeAttribute	= composite_input_shader_program->get_attrib_location("phaseAndAmplitude");
-		GLint phaseTimeAttribute			= composite_input_shader_program->get_attrib_location("phaseTime");
-
 		glBindVertexArray(source_vertex_array);
-
-		glEnableVertexAttribArray((GLuint)inputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)outputPositionAttribute);
-		glEnableVertexAttribArray((GLuint)phaseAndAmplitudeAttribute);
-		glEnableVertexAttribArray((GLuint)phaseTimeAttribute);
-
-		const GLsizei vertexStride = SourceVertexSize;
 		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-		glVertexAttribPointer((GLuint)inputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfInputPosition);
-		glVertexAttribPointer((GLuint)outputPositionAttribute,		2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfOutputPosition);
-		glVertexAttribPointer((GLuint)phaseAndAmplitudeAttribute,	2, GL_UNSIGNED_BYTE,	GL_TRUE,	vertexStride, (void *)SourceVertexOffsetOfPhaseAndAmplitude);
-		glVertexAttribPointer((GLuint)phaseTimeAttribute,			2, GL_UNSIGNED_SHORT,	GL_FALSE,	vertexStride, (void *)SourceVertexOffsetOfPhaseTime);
+
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("inputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfInputStart, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("outputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfOutputStart, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("ends", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfEnds, 1);
+		composite_input_shader_program->enable_vertex_attribute_with_pointer("phaseTimeAndAmplitude", 3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
 	}
 }
 
@@ -426,21 +406,8 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	{
 		glBindVertexArray(output_vertex_array);
 		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-
-		const GLsizei vertexStride = OutputVertexSize;
-		size_t offset = 0;
-
-		const char *attributes[] = {"horizontal", "vertical", nullptr};
-		const char **attribute = attributes;
-		while(*attribute)
-		{
-			GLint attributeLocation = output_shader_program->get_attrib_location(*attribute);
-			glEnableVertexAttribArray((GLuint)attributeLocation);
-			glVertexAttribPointer((GLuint)attributeLocation, 2, GL_UNSIGNED_SHORT, GL_FALSE, vertexStride, (void *)offset);
-			glVertexAttribDivisor((GLuint)attributeLocation, 1);
-			offset += 4;
-			attribute++;
-		}
+		output_shader_program->enable_vertex_attribute_with_pointer("horizontal", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfHorizontal, 1);
+		output_shader_program->enable_vertex_attribute_with_pointer("vertical", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfVertical, 1);
 	}
 }
 
