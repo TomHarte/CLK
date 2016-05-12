@@ -27,13 +27,13 @@ struct Flywheel
 		Constructs an instance of @c Flywheel.
 
 		@param standard_period The expected amount of time between one synchronisation and the next.
-
 		@param retrace_time The amount of time it takes to complete a retrace.
+		@param sync_error_window The permitted deviation of sync timings from the norm.
 	*/
-	Flywheel(unsigned int standard_period, unsigned int retrace_time) :
+	Flywheel(unsigned int standard_period, unsigned int retrace_time, unsigned int sync_error_window) :
 		_standard_period(standard_period),
 		_retrace_time(retrace_time),
-		_sync_error_window(standard_period >> 7),
+		_sync_error_window(sync_error_window),
 		_counter(0),
 		_expected_next_sync(standard_period),
 		_counter_before_retrace(standard_period - retrace_time),

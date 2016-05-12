@@ -38,8 +38,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_sync_capacitor_charge_threshold = (int)(syncCapacityLineChargeThreshold * _cycles_per_line);
 
 	// create the two flywheels
-	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
-	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
+	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6, _cycles_per_line >> 6));
+	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line, (_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
