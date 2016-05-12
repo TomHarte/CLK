@@ -216,9 +216,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			if(_delegate)
 			{
 				_frames_since_last_delegate_call++;
-				if(_frames_since_last_delegate_call == 100)
+				if(_frames_since_last_delegate_call == 20)
 				{
+					// Yuck: to deal with the permitted ability of the delegate to make CRT changes that require the lock to be
+					// asserted during the delegate call, temporarily release the lock. TODO: find a less blunt instrument.
+					_openGL_output_builder->unlock_output();
 					_delegate->crt_did_end_batch_of_frames(this, _frames_since_last_delegate_call, _vertical_flywheel->get_and_reset_number_of_surprises());
+					_openGL_output_builder->lock_output();
 					_frames_since_last_delegate_call = 0;
 				}
 			}

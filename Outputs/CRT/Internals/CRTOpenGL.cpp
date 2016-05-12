@@ -337,7 +337,11 @@ void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_reso
 
 void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
 {
+	_output_mutex->lock();
 	_composite_shader = strdup(shader);
+	output_shader_program = nullptr;
+	framebuffer = nullptr;
+	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
