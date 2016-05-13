@@ -343,6 +343,7 @@ void OpenGLOutputBuilder::reset_all_OpenGL_state()
 	rgb_filter_shader_program = nullptr;
 	output_shader_program = nullptr;
 	framebuffer = nullptr;
+	_last_output_width = _last_output_height = 0;
 }
 
 void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
