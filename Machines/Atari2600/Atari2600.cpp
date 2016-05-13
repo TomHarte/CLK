@@ -30,16 +30,35 @@ Machine::Machine() :
 void Machine::setup_output(float aspect_ratio)
 {
 	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1);
+
+	// this is the NTSC phase offset function; see below for PAL
 	_crt->set_composite_sampling_function(
-		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)\n"
+		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 		"{"
 			"uint c = texture(texID, coordinate).r;"
-			"uint y = (c >> 1) & 7u;"
+			"uint y = c & 14u;"
 			"uint iPhase = (c >> 4);"
-			"float phaseOffset = 6.283185308 * float(iPhase + 13u) / 16.0;"
-			"return (float(y) / 7.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
+
+			"float phaseOffset = 6.283185308 * float(iPhase + 13u) / 14.0;"
+			"return (float(y) / 14.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
+}
+
+void Machine::switch_region()
+{
+	// the PAL function
+	_crt->set_composite_sampling_function(
+		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+		"{"
+			"uint c = texture(texID, coordinate).r;"
+			"uint y = c & 14u;"
+			"uint iPhase = (c >> 4);"
+
+			"float phaseOffset = (0.5 + 2.0 * (float(iPhase&1u) - 0.5) * (float((iPhase >> 1) + (iPhase&1u)) / 14.0));"
+			"return (float(y) / 14.0) * (1.0 - amplitude) + step(4, (iPhase + 2u) & 15u) * amplitude * cos(phase + 6.283185308 * phaseOffset);"
+		"}");
+	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 }
 
 void Machine::close_output()
@@ -52,11 +71,6 @@ Machine::~Machine()
 {
 	delete[] _rom;
 	close_output();
-}
-
-void Machine::switch_region()
-{
-	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 }
 
 void Machine::get_output_pixel(uint8_t *pixel, int offset)

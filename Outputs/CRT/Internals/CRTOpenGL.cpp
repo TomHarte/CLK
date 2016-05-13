@@ -325,24 +325,48 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	glActiveTexture(pixel_accumulation_texture_unit);
+	framebuffer->bind_texture();
 	framebuffer->draw((float)output_width / (float)output_height);
 
 	_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	_output_mutex->unlock();
 }
 
+void OpenGLOutputBuilder::reset_all_OpenGL_state()
+{
+	composite_input_shader_program = nullptr;
+	composite_separation_filter_program = nullptr;
+	composite_y_filter_shader_program = nullptr;
+	composite_chrominance_filter_shader_program = nullptr;
+	rgb_input_shader_program = nullptr;
+	rgb_filter_shader_program = nullptr;
+	output_shader_program = nullptr;
+	framebuffer = nullptr;
+	_last_output_width = _last_output_height = 0;
+}
+
 void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
 {
+	_output_mutex->lock();
+	reset_all_OpenGL_state();
+	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
 {
+	_output_mutex->lock();
 	_composite_shader = strdup(shader);
+	reset_all_OpenGL_state();
+	_output_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 {
+	_output_mutex->lock();
 	_rgb_shader = strdup(shader);
+	reset_all_OpenGL_state();
+	_output_mutex->unlock();
 }
 
 #pragma mark - Program compilation

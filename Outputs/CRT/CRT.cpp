@@ -38,8 +38,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_sync_capacitor_charge_threshold = (int)(syncCapacityLineChargeThreshold * _cycles_per_line);
 
 	// create the two flywheels
-	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6));
-	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line));
+	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6, _cycles_per_line >> 6));
+	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line, (_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
@@ -216,9 +216,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			if(_delegate)
 			{
 				_frames_since_last_delegate_call++;
-				if(_frames_since_last_delegate_call == 100)
+				if(_frames_since_last_delegate_call == 20)
 				{
+					// Yuck: to deal with the permitted ability of the delegate to make CRT changes that require the lock to be
+					// asserted during the delegate call, temporarily release the lock. TODO: find a less blunt instrument.
+					_openGL_output_builder->unlock_output();
 					_delegate->crt_did_end_batch_of_frames(this, _frames_since_last_delegate_call, _vertical_flywheel->get_and_reset_number_of_surprises());
+					_openGL_output_builder->lock_output();
 					_frames_since_last_delegate_call = 0;
 				}
 			}

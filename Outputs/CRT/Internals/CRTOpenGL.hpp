@@ -85,6 +85,9 @@ class OpenGLOutputBuilder {
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
 
+		void establish_OpenGL_state();
+		void reset_all_OpenGL_state();
+
 	public:
 		OpenGLOutputBuilder(unsigned int buffer_depth);
 		~OpenGLOutputBuilder();
