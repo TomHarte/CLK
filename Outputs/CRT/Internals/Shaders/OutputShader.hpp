@@ -56,9 +56,6 @@ public:
 		Binds this shader and configures its understanding of how to map from the source vertex stream to screen coordinates.
 	*/
 	void set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
-
-	private:
-		GLint boundsOriginUniform, boundsSizeUniform, texIDUniform, scanNormalUniform, positionConversionUniform;
 };
 
 }

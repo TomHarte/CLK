@@ -88,15 +88,6 @@ public:
 
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);
-
-	GLint texIDUniform;
-	GLint outputTextureSizeUniform;
-	GLint weightsUniform;
-	GLint phaseCyclesPerTickUniform;
-	GLint extensionUniform;
-	GLint rgbToLumaChromaUniform;
-	GLint lumaChromaToRGBUniform;
-	GLint offsetsUniform;
 };
 
 }

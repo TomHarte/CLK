@@ -120,3 +120,119 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 	glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
 	glVertexAttribDivisor((GLuint)location, divisor);
 }
+
+// The various set_uniforms...
+GLint Shader::location_for_bound_uniform(const GLchar *name)
+{
+	bind();
+	return glGetUniformLocation(_shader_program, name);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint value)
+{
+	glUniform1i(location_for_bound_uniform(name), value);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2)
+{
+	glUniform2i(location_for_bound_uniform(name), value1, value2);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3)
+{
+	glUniform3i(location_for_bound_uniform(name), value1, value2, value3);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3, GLint value4)
+{
+	glUniform4i(location_for_bound_uniform(name), value1, value2, value3, value4);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLint *values)
+{
+	switch(size)
+	{
+		case 1: glUniform1iv(location_for_bound_uniform(name), count, values);	break;
+		case 2: glUniform2iv(location_for_bound_uniform(name), count, values);	break;
+		case 3: glUniform3iv(location_for_bound_uniform(name), count, values);	break;
+		case 4: glUniform4iv(location_for_bound_uniform(name), count, values);	break;
+	}
+}
+
+void Shader::set_uniform(const GLchar *name, GLfloat value)
+{
+	glUniform1f(location_for_bound_uniform(name), value);
+}
+
+void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2)
+{
+	glUniform2f(location_for_bound_uniform(name), value1, value2);
+}
+
+void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3)
+{
+	glUniform3f(location_for_bound_uniform(name), value1, value2, value3);
+}
+
+void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4)
+{
+	glUniform4f(location_for_bound_uniform(name), value1, value2, value3, value4);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLfloat *values)
+{
+	switch(size)
+	{
+		case 1: glUniform1fv(location_for_bound_uniform(name), count, values);	break;
+		case 2: glUniform2fv(location_for_bound_uniform(name), count, values);	break;
+		case 3: glUniform3fv(location_for_bound_uniform(name), count, values);	break;
+		case 4: glUniform4fv(location_for_bound_uniform(name), count, values);	break;
+	}
+}
+
+void Shader::set_uniform(const GLchar *name, GLuint value)
+{
+	glUniform1ui(location_for_bound_uniform(name), value);
+}
+
+void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2)
+{
+	glUniform2ui(location_for_bound_uniform(name), value1, value2);
+}
+
+void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3)
+{
+	glUniform3ui(location_for_bound_uniform(name), value1, value2, value3);
+}
+
+void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3, GLuint value4)
+{
+	glUniform4ui(location_for_bound_uniform(name), value1, value2, value3, value4);
+}
+
+void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLuint *values)
+{
+	switch(size)
+	{
+		case 1: glUniform1uiv(location_for_bound_uniform(name), count, values);	break;
+		case 2: glUniform2uiv(location_for_bound_uniform(name), count, values);	break;
+		case 3: glUniform3uiv(location_for_bound_uniform(name), count, values);	break;
+		case 4: glUniform4uiv(location_for_bound_uniform(name), count, values);	break;
+	}
+}
+
+void Shader::set_uniform_matrix(const GLchar *name, GLint size, bool transpose, const GLfloat *values)
+{
+	set_uniform_matrix(name, size, 1, transpose, values);
+}
+
+void Shader::set_uniform_matrix(const GLchar *name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
+{
+	GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
+	switch(size)
+	{
+		case 2: glUniformMatrix2fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
+		case 3: glUniformMatrix3fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
+		case 4: glUniformMatrix4fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
+	}
+}

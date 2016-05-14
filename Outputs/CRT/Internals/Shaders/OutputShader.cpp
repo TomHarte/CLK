@@ -86,45 +86,34 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 	free(vertex_shader);
 	free(fragment_shader);
 
-	result->boundsSizeUniform			= result->get_uniform_location("boundsSize");
-	result->boundsOriginUniform			= result->get_uniform_location("boundsOrigin");
-	result->texIDUniform				= result->get_uniform_location("texID");
-	result->scanNormalUniform			= result->get_uniform_location("scanNormal");
-	result->positionConversionUniform	= result->get_uniform_location("positionConversion");
-
 	return result;
 }
 
 void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area)
 {
-	bind();
-
 	GLfloat outputAspectRatioMultiplier = ((float)output_width / (float)output_height) / (4.0f / 3.0f);
 
 	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * visible_area.size.width;
 	visible_area.origin.x -= bonusWidth * 0.5f * visible_area.size.width;
 	visible_area.size.width *= outputAspectRatioMultiplier;
 
-	glUniform2f(boundsOriginUniform, (GLfloat)visible_area.origin.x, (GLfloat)visible_area.origin.y);
-	glUniform2f(boundsSizeUniform, (GLfloat)visible_area.size.width, (GLfloat)visible_area.size.height);
+	set_uniform("boundsOrigin", (GLfloat)visible_area.origin.x, (GLfloat)visible_area.origin.y);
+	set_uniform("boundsSize", (GLfloat)visible_area.size.width, (GLfloat)visible_area.size.height);
 }
 
 void OutputShader::set_source_texture_unit(GLenum unit)
 {
-	bind();
-	glUniform1i(texIDUniform, (GLint)(unit - GL_TEXTURE0));
+	set_uniform("texID", (GLint)(unit - GL_TEXTURE0));
 }
 
 void OutputShader::set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
 {
-	bind();
-
-	float scan_angle = atan2f(1.0f / (float)height_of_display, 1.0f);
-	float scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
-	float multiplier = (float)cycles_per_line / ((float)height_of_display * (float)horizontal_scan_period);
+	GLfloat scan_angle = atan2f(1.0f / (float)height_of_display, 1.0f);
+	GLfloat scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
+	GLfloat multiplier = (float)cycles_per_line / ((float)height_of_display * (float)horizontal_scan_period);
 	scan_normal[0] *= multiplier;
 	scan_normal[1] *= multiplier;
 
-	glUniform2f(scanNormalUniform, scan_normal[0], scan_normal[1]);
-	glUniform2f(positionConversionUniform, horizontal_scan_period, vertical_scan_period / (unsigned int)vertical_period_divider);
+	set_uniform("scanNormal", scan_normal[0], scan_normal[1]);
+	set_uniform("positionConversion", (GLfloat)horizontal_scan_period, (GLfloat)vertical_scan_period / (GLfloat)vertical_period_divider);
 }

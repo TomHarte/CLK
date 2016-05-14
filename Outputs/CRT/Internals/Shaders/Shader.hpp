@@ -75,9 +75,35 @@ public:
 	*/
 	void enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor);
 
+	/*!
+		All @c set_uniforms bind the current shader, look up the uniform by name and set the supplied value or values.
+	*/
+	void set_uniform(const GLchar *name, GLint value);
+	void set_uniform(const GLchar *name, GLint value1, GLint value2);
+	void set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3);
+	void set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3, GLint value4);
+	void set_uniform(const GLchar *name, GLint size, GLsizei count, const GLint *values);
+
+	void set_uniform(const GLchar *name, GLfloat value);
+	void set_uniform(const GLchar *name, GLfloat value1, GLfloat value2);
+	void set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3);
+	void set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4);
+	void set_uniform(const GLchar *name, GLint size, GLsizei count, const GLfloat *values);
+
+	void set_uniform(const GLchar *name, GLuint value);
+	void set_uniform(const GLchar *name, GLuint value1, GLuint value2);
+	void set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3);
+	void set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3, GLuint value4);
+	void set_uniform(const GLchar *name, GLint size, GLsizei count, const GLuint *values);
+
+	void set_uniform_matrix(const GLchar *name, GLint size, bool transpose, const GLfloat *values);
+	void set_uniform_matrix(const GLchar *name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
+
 private:
 	GLuint compile_shader(const char *source, GLenum type);
 	GLuint _shader_program;
+
+	GLint location_for_bound_uniform(const GLchar *name);
 };
 
 }
