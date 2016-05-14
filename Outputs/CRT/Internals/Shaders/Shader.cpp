@@ -123,7 +123,13 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 }
 
 // The various set_uniforms...
-#define location() glGetUniformLocation(_shader_program, name.c_str())
+GLint fglGetUniformLocation(GLuint program, const GLchar *name)
+{
+	GLint result = glGetUniformLocation(program, name);
+	printf("Resolved %s to %d\n", name, result);
+	return result;
+}
+#define location() fglGetUniformLocation(_shader_program, name.c_str())
 void Shader::set_uniform(const std::string &name, GLint value)
 {
 	enqueue_function([name, value, this] {
@@ -214,40 +220,49 @@ void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, 
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values)
 {
-	enqueue_function([name, size, count, values, this] {
+	GLint *values_copy = new GLint[count];
+	memcpy(values_copy, values, sizeof(GLint) * (size_t)count);
+	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
-			case 1: glUniform1iv(location(), count, values);	break;
-			case 2: glUniform2iv(location(), count, values);	break;
-			case 3: glUniform3iv(location(), count, values);	break;
-			case 4: glUniform4iv(location(), count, values);	break;
+			case 1: glUniform1iv(location(), count, values_copy);	break;
+			case 2: glUniform2iv(location(), count, values_copy);	break;
+			case 3: glUniform3iv(location(), count, values_copy);	break;
+			case 4: glUniform4iv(location(), count, values_copy);	break;
 		}
+		delete[] values_copy;
 	});
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values)
 {
-	enqueue_function([name, size, count, values, this] {
+	GLfloat *values_copy = new GLfloat[count];
+	memcpy(values_copy, values, sizeof(GLfloat) * (size_t)count);
+	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
-			case 1: glUniform1fv(location(), count, values);	break;
-			case 2: glUniform2fv(location(), count, values);	break;
-			case 3: glUniform3fv(location(), count, values);	break;
-			case 4: glUniform4fv(location(), count, values);	break;
+			case 1: glUniform1fv(location(), count, values_copy);	break;
+			case 2: glUniform2fv(location(), count, values_copy);	break;
+			case 3: glUniform3fv(location(), count, values_copy);	break;
+			case 4: glUniform4fv(location(), count, values_copy);	break;
 		}
+		delete[] values_copy;
 	});
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values)
 {
-	enqueue_function([name, size, count, values, this] {
+	GLuint *values_copy = new GLuint[count];
+	memcpy(values_copy, values, sizeof(GLuint) * (size_t)count);
+	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
-			case 1: glUniform1uiv(location(), count, values);	break;
-			case 2: glUniform2uiv(location(), count, values);	break;
-			case 3: glUniform3uiv(location(), count, values);	break;
-			case 4: glUniform4uiv(location(), count, values);	break;
+			case 1: glUniform1uiv(location(), count, values_copy);	break;
+			case 2: glUniform2uiv(location(), count, values_copy);	break;
+			case 3: glUniform3uiv(location(), count, values_copy);	break;
+			case 4: glUniform4uiv(location(), count, values_copy);	break;
 		}
+		delete[] values_copy;
 	});
 }
 
@@ -258,14 +273,17 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
 {
-	enqueue_function([name, size, count, transpose, values, this] {
-	GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
+	GLfloat *values_copy = new GLfloat[count*size];
+	memcpy(values_copy, values, sizeof(GLfloat) * (size_t)count * (size_t)size);
+	enqueue_function([name, size, count, transpose, values_copy, this] {
+		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
 		switch(size)
 		{
-			case 2: glUniformMatrix2fv(location(), count, glTranspose, values);	break;
-			case 3: glUniformMatrix3fv(location(), count, glTranspose, values);	break;
-			case 4: glUniformMatrix4fv(location(), count, glTranspose, values);	break;
+			case 2: glUniformMatrix2fv(location(), count, glTranspose, values_copy);	break;
+			case 3: glUniformMatrix3fv(location(), count, glTranspose, values_copy);	break;
+			case 4: glUniformMatrix4fv(location(), count, glTranspose, values_copy);	break;
 		}
+		delete[] values_copy;
 	});
 }
 
