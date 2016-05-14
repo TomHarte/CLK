@@ -95,6 +95,7 @@ void Shader::bind()
 		glUseProgram(_shader_program);
 		bound_shader = this;
 	}
+	flush_functions();
 }
 
 void Shader::unbind()
@@ -122,117 +123,162 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 }
 
 // The various set_uniforms...
-GLint Shader::location_for_bound_uniform(const GLchar *name)
+#define location() glGetUniformLocation(_shader_program, name.c_str())
+void Shader::set_uniform(const std::string &name, GLint value)
 {
-	bind();
-	return glGetUniformLocation(_shader_program, name);
+	enqueue_function([name, value, this] {
+		glUniform1i(location(), value);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint value)
+void Shader::set_uniform(const std::string &name, GLuint value)
 {
-	glUniform1i(location_for_bound_uniform(name), value);
+	enqueue_function([name, value, this] {
+		glUniform1ui(location(), value);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2)
+void Shader::set_uniform(const std::string &name, GLfloat value)
 {
-	glUniform2i(location_for_bound_uniform(name), value1, value2);
+	enqueue_function([name, value, this] {
+		glUniform1f(location(), value);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3)
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2)
 {
-	glUniform3i(location_for_bound_uniform(name), value1, value2, value3);
+	enqueue_function([name, value1, value2, this] {
+		glUniform2i(location(), value1, value2);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint value1, GLint value2, GLint value3, GLint value4)
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2)
 {
-	glUniform4i(location_for_bound_uniform(name), value1, value2, value3, value4);
+	enqueue_function([name, value1, value2, this] {
+		glUniform2f(location(), value1, value2);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLint *values)
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2)
 {
-	switch(size)
-	{
-		case 1: glUniform1iv(location_for_bound_uniform(name), count, values);	break;
-		case 2: glUniform2iv(location_for_bound_uniform(name), count, values);	break;
-		case 3: glUniform3iv(location_for_bound_uniform(name), count, values);	break;
-		case 4: glUniform4iv(location_for_bound_uniform(name), count, values);	break;
-	}
+	enqueue_function([name, value1, value2, this] {
+		glUniform2ui(location(), value1, value2);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLfloat value)
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3)
 {
-	glUniform1f(location_for_bound_uniform(name), value);
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3i(location(), value1, value2, value3);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2)
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3)
 {
-	glUniform2f(location_for_bound_uniform(name), value1, value2);
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3f(location(), value1, value2, value3);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3)
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3)
 {
-	glUniform3f(location_for_bound_uniform(name), value1, value2, value3);
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3ui(location(), value1, value2, value3);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4)
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4)
 {
-	glUniform4f(location_for_bound_uniform(name), value1, value2, value3, value4);
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4i(location(), value1, value2, value3, value4);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLfloat *values)
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4)
 {
-	switch(size)
-	{
-		case 1: glUniform1fv(location_for_bound_uniform(name), count, values);	break;
-		case 2: glUniform2fv(location_for_bound_uniform(name), count, values);	break;
-		case 3: glUniform3fv(location_for_bound_uniform(name), count, values);	break;
-		case 4: glUniform4fv(location_for_bound_uniform(name), count, values);	break;
-	}
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4f(location(), value1, value2, value3, value4);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLuint value)
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4)
 {
-	glUniform1ui(location_for_bound_uniform(name), value);
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4ui(location(), value1, value2, value3, value4);
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2)
+
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values)
 {
-	glUniform2ui(location_for_bound_uniform(name), value1, value2);
+	enqueue_function([name, size, count, values, this] {
+		switch(size)
+		{
+			case 1: glUniform1iv(location(), count, values);	break;
+			case 2: glUniform2iv(location(), count, values);	break;
+			case 3: glUniform3iv(location(), count, values);	break;
+			case 4: glUniform4iv(location(), count, values);	break;
+		}
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3)
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values)
 {
-	glUniform3ui(location_for_bound_uniform(name), value1, value2, value3);
+	enqueue_function([name, size, count, values, this] {
+		switch(size)
+		{
+			case 1: glUniform1fv(location(), count, values);	break;
+			case 2: glUniform2fv(location(), count, values);	break;
+			case 3: glUniform3fv(location(), count, values);	break;
+			case 4: glUniform4fv(location(), count, values);	break;
+		}
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLuint value1, GLuint value2, GLuint value3, GLuint value4)
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values)
 {
-	glUniform4ui(location_for_bound_uniform(name), value1, value2, value3, value4);
+	enqueue_function([name, size, count, values, this] {
+		switch(size)
+		{
+			case 1: glUniform1uiv(location(), count, values);	break;
+			case 2: glUniform2uiv(location(), count, values);	break;
+			case 3: glUniform3uiv(location(), count, values);	break;
+			case 4: glUniform4uiv(location(), count, values);	break;
+		}
+	});
 }
 
-void Shader::set_uniform(const GLchar *name, GLint size, GLsizei count, const GLuint *values)
-{
-	switch(size)
-	{
-		case 1: glUniform1uiv(location_for_bound_uniform(name), count, values);	break;
-		case 2: glUniform2uiv(location_for_bound_uniform(name), count, values);	break;
-		case 3: glUniform3uiv(location_for_bound_uniform(name), count, values);	break;
-		case 4: glUniform4uiv(location_for_bound_uniform(name), count, values);	break;
-	}
-}
-
-void Shader::set_uniform_matrix(const GLchar *name, GLint size, bool transpose, const GLfloat *values)
+void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values)
 {
 	set_uniform_matrix(name, size, 1, transpose, values);
 }
 
-void Shader::set_uniform_matrix(const GLchar *name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
+void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
 {
+	enqueue_function([name, size, count, transpose, values, this] {
 	GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
-	switch(size)
+		switch(size)
+		{
+			case 2: glUniformMatrix2fv(location(), count, glTranspose, values);	break;
+			case 3: glUniformMatrix3fv(location(), count, glTranspose, values);	break;
+			case 4: glUniformMatrix4fv(location(), count, glTranspose, values);	break;
+		}
+	});
+}
+
+void Shader::enqueue_function(std::function<void(void)> function)
+{
+	_enqueued_functions.push_back(function);
+}
+
+void Shader::flush_functions()
+{
+	for(std::function<void(void)> function : _enqueued_functions)
 	{
-		case 2: glUniformMatrix2fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
-		case 3: glUniformMatrix3fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
-		case 4: glUniformMatrix4fv(location_for_bound_uniform(name), count, glTranspose, values);	break;
+		function();
 	}
+	_enqueued_functions.clear();
 }
