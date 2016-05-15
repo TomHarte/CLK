@@ -47,6 +47,8 @@ public:
 		Performs an @c glUseProgram to make this the active shader unless:
 			(i) it was the previous shader bound; and 
 			(ii) no calls have been received to unbind in the interim.
+
+		Subsequently performs all work queued up for the next bind irrespective of whether a @c glUseProgram call occurred.
 	*/
 	void bind();
 
@@ -106,9 +108,11 @@ private:
 	GLuint compile_shader(const char *source, GLenum type);
 	GLuint _shader_program;
 
-	void enqueue_function(std::function<void(void)> function);
 	void flush_functions();
 	std::list<std::function<void(void)>> _enqueued_functions;
+
+protected:
+	void enqueue_function(std::function<void(void)> function);
 };
 
 }

@@ -123,13 +123,7 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 }
 
 // The various set_uniforms...
-GLint fglGetUniformLocation(GLuint program, const GLchar *name)
-{
-	GLint result = glGetUniformLocation(program, name);
-	printf("Resolved %s to %d\n", name, result);
-	return result;
-}
-#define location() fglGetUniformLocation(_shader_program, name.c_str())
+#define location() glGetUniformLocation(_shader_program, name.c_str())
 void Shader::set_uniform(const std::string &name, GLint value)
 {
 	enqueue_function([name, value, this] {
@@ -220,8 +214,10 @@ void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, 
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values)
 {
-	GLint *values_copy = new GLint[count];
-	memcpy(values_copy, values, sizeof(GLint) * (size_t)count);
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLint *values_copy = new GLint[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
@@ -236,8 +232,10 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values)
 {
-	GLfloat *values_copy = new GLfloat[count];
-	memcpy(values_copy, values, sizeof(GLfloat) * (size_t)count);
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLfloat *values_copy = new GLfloat[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
@@ -252,8 +250,10 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values)
 {
-	GLuint *values_copy = new GLuint[count];
-	memcpy(values_copy, values, sizeof(GLuint) * (size_t)count);
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLuint *values_copy = new GLuint[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size)
 		{
@@ -273,8 +273,10 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
 {
-	GLfloat *values_copy = new GLfloat[count*size];
-	memcpy(values_copy, values, sizeof(GLfloat) * (size_t)count * (size_t)size);
+	size_t number_of_values = (size_t)count * (size_t)size * (size_t)size;
+	GLfloat *values_copy = new GLfloat[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * number_of_values);
+
 	enqueue_function([name, size, count, transpose, values_copy, this] {
 		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
 		switch(size)

@@ -42,18 +42,20 @@ public:
 	using Shader::Shader;
 
 	/*!
-		Binds this shader and configures it for output to an area of `output_width` and `output_height` pixels, ensuring
-		the largest possible drawing size that allows everything within `visible_area` to be visible.
+		Queues configuration for output to an area of `output_width` and `output_height` pixels, ensuring
+		the largest possible drawing size that allows everything within `visible_area` to be visible, to
+		occur upon the next `bind`.
 	*/
 	void set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area);
 
 	/*!
-		Binds this shader and sets the texture unit (as an enum, e.g. `GL_TEXTURE0`) to sample as source data.
+		Queues setting of the texture unit (as an enum, e.g. `GL_TEXTURE0`) for source data upon the next `bind`.
 	*/
 	void set_source_texture_unit(GLenum unit);
 
 	/*!
-		Binds this shader and configures its understanding of how to map from the source vertex stream to screen coordinates.
+		Queues configuring this shader's understanding of how to map from the source vertex stream to screen coordinates,
+		to occur upon the next `bind`.
 	*/
 	void set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 };
