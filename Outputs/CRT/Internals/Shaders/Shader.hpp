@@ -13,6 +13,7 @@
 #include <string>
 #include <functional>
 #include <list>
+#include <mutex>
 
 namespace OpenGL {
 
@@ -110,6 +111,7 @@ private:
 
 	void flush_functions();
 	std::list<std::function<void(void)>> _enqueued_functions;
+	std::mutex _function_mutex;
 
 protected:
 	void enqueue_function(std::function<void(void)> function);

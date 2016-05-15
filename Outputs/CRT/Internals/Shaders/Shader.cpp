@@ -291,14 +291,18 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei cou
 
 void Shader::enqueue_function(std::function<void(void)> function)
 {
+	_function_mutex.lock();
 	_enqueued_functions.push_back(function);
+	_function_mutex.unlock();
 }
 
 void Shader::flush_functions()
 {
+	_function_mutex.lock();
 	for(std::function<void(void)> function : _enqueued_functions)
 	{
 		function();
 	}
 	_enqueued_functions.clear();
+	_function_mutex.unlock();
 }
