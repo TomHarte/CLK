@@ -89,15 +89,6 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 	std::unique_ptr<IntermediateShader> shader = std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader, fragment_shader, bindings));
 	free(vertex_shader);
 
-	shader->texIDUniform				= shader->get_uniform_location("texID");
-	shader->outputTextureSizeUniform	= shader->get_uniform_location("outputTextureSize");
-	shader->phaseCyclesPerTickUniform	= shader->get_uniform_location("phaseCyclesPerTick");
-	shader->extensionUniform			= shader->get_uniform_location("extension");
-	shader->weightsUniform				= shader->get_uniform_location("weights");
-	shader->rgbToLumaChromaUniform		= shader->get_uniform_location("rgbToLumaChroma");
-	shader->lumaChromaToRGBUniform		= shader->get_uniform_location("lumaChromaToRGB");
-	shader->offsetsUniform				= shader->get_uniform_location("offsets");
-
 	return shader;
 }
 
@@ -395,28 +386,24 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_filter_shader()
 
 void IntermediateShader::set_output_size(unsigned int output_width, unsigned int output_height)
 {
-	bind();
-	glUniform2i(outputTextureSizeUniform, (GLint)output_width, (GLint)output_height);
+	set_uniform("outputTextureSize", (GLint)output_width, (GLint)output_height);
 }
 
 void IntermediateShader::set_source_texture_unit(GLenum unit)
 {
-	bind();
-	glUniform1i(texIDUniform, (GLint)(unit - GL_TEXTURE0));
+	set_uniform("texID", (GLint)(unit - GL_TEXTURE0));
 }
 
 void IntermediateShader::set_filter_coefficients(float sampling_rate, float cutoff_frequency)
 {
-	bind();
-
 	// The process below: the source texture will have bilinear filtering enabled; so by
 	// sampling at non-integral offsets from the centre the shader can get a weighted sum
 	// of two source pixels, then scale that once, to do two taps per sample. However
 	// that works only if the two coefficients being joined have the same sign. So the
 	// number of usable taps is between 11 and 21 depending on the values that come out.
 	// Perform a linear search for the highest number of taps we can use with 11 samples.
-	float weights[12];
-	float offsets[5];
+	GLfloat weights[12];
+	GLfloat offsets[5];
 	unsigned int taps = 21;
 	while(1)
 	{
@@ -458,26 +445,23 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 		taps -= 2;
 	}
 
-	glUniform4fv(weightsUniform, 3, weights);
-	glUniform1fv(offsetsUniform, 5, offsets);
+	set_uniform("weights", 4, 3, weights);
+	set_uniform("offsets", 1, 5, offsets);
 }
 
 void IntermediateShader::set_separation_frequency(float sampling_rate, float colour_burst_frequency)
 {
-	// TODO: apply separately-formed filters for luminance and chrominance
 	set_filter_coefficients(sampling_rate, colour_burst_frequency);
 }
 
 void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)
 {
-	bind();
-	glUniform1f(phaseCyclesPerTickUniform, phase_cycles_per_sample);
-	glUniform1f(extensionUniform, extend_runs_to_full_cycle ? ceilf(1.0f / phase_cycles_per_sample) : 0.0f);
+	set_uniform("phaseCyclesPerTick", (GLfloat)phase_cycles_per_sample);
+	set_uniform("extension", extend_runs_to_full_cycle ? ceilf(1.0f / phase_cycles_per_sample) : 0.0f);
 }
 
 void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *toRGB)
 {
-	bind();
-	glUniformMatrix3fv(lumaChromaToRGBUniform, 1, GL_FALSE, toRGB);
-	glUniformMatrix3fv(rgbToLumaChromaUniform, 1, GL_FALSE, fromRGB);
+	set_uniform_matrix("lumaChromaToRGB", 3, false, toRGB);
+	set_uniform_matrix("rgbToLumaChroma", 3, false, fromRGB);
 }

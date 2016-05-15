@@ -10,6 +10,10 @@
 #define Shader_hpp
 
 #include "OpenGL.hpp"
+#include <string>
+#include <functional>
+#include <list>
+#include <mutex>
 
 namespace OpenGL {
 
@@ -44,6 +48,8 @@ public:
 		Performs an @c glUseProgram to make this the active shader unless:
 			(i) it was the previous shader bound; and 
 			(ii) no calls have been received to unbind in the interim.
+
+		Subsequently performs all work queued up for the next bind irrespective of whether a @c glUseProgram call occurred.
 	*/
 	void bind();
 
@@ -75,9 +81,40 @@ public:
 	*/
 	void enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor);
 
+	/*!
+		All @c set_uniforms queue up the requested uniform changes. Changes are applied automatically the next time the shader is bound.
+	*/
+	void set_uniform(const std::string &name, GLint value);
+	void set_uniform(const std::string &name, GLint value1, GLint value2);
+	void set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3);
+	void set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values);
+
+	void set_uniform(const std::string &name, GLfloat value);
+	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2);
+	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3);
+	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values);
+
+	void set_uniform(const std::string &name, GLuint value);
+	void set_uniform(const std::string &name, GLuint value1, GLuint value2);
+	void set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3);
+	void set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values);
+
+	void set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values);
+	void set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
+
 private:
 	GLuint compile_shader(const char *source, GLenum type);
 	GLuint _shader_program;
+
+	void flush_functions();
+	std::list<std::function<void(void)>> _enqueued_functions;
+	std::mutex _function_mutex;
+
+protected:
+	void enqueue_function(std::function<void(void)> function);
 };
 
 }

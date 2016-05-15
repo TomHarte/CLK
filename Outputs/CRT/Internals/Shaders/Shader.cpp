@@ -95,6 +95,7 @@ void Shader::bind()
 		glUseProgram(_shader_program);
 		bound_shader = this;
 	}
+	flush_functions();
 }
 
 void Shader::unbind()
@@ -119,4 +120,189 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 	glEnableVertexAttribArray((GLuint)location);
 	glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
 	glVertexAttribDivisor((GLuint)location, divisor);
+}
+
+// The various set_uniforms...
+#define location() glGetUniformLocation(_shader_program, name.c_str())
+void Shader::set_uniform(const std::string &name, GLint value)
+{
+	enqueue_function([name, value, this] {
+		glUniform1i(location(), value);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLuint value)
+{
+	enqueue_function([name, value, this] {
+		glUniform1ui(location(), value);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLfloat value)
+{
+	enqueue_function([name, value, this] {
+		glUniform1f(location(), value);
+	});
+}
+
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2)
+{
+	enqueue_function([name, value1, value2, this] {
+		glUniform2i(location(), value1, value2);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2)
+{
+	enqueue_function([name, value1, value2, this] {
+		glUniform2f(location(), value1, value2);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2)
+{
+	enqueue_function([name, value1, value2, this] {
+		glUniform2ui(location(), value1, value2);
+	});
+}
+
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3)
+{
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3i(location(), value1, value2, value3);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3)
+{
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3f(location(), value1, value2, value3);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3)
+{
+	enqueue_function([name, value1, value2, value3, this] {
+		glUniform3ui(location(), value1, value2, value3);
+	});
+}
+
+
+void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4)
+{
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4i(location(), value1, value2, value3, value4);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4)
+{
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4f(location(), value1, value2, value3, value4);
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4)
+{
+	enqueue_function([name, value1, value2, value3, value4, this] {
+		glUniform4ui(location(), value1, value2, value3, value4);
+	});
+}
+
+
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values)
+{
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLint *values_copy = new GLint[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
+	enqueue_function([name, size, count, values_copy, this] {
+		switch(size)
+		{
+			case 1: glUniform1iv(location(), count, values_copy);	break;
+			case 2: glUniform2iv(location(), count, values_copy);	break;
+			case 3: glUniform3iv(location(), count, values_copy);	break;
+			case 4: glUniform4iv(location(), count, values_copy);	break;
+		}
+		delete[] values_copy;
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values)
+{
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLfloat *values_copy = new GLfloat[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
+	enqueue_function([name, size, count, values_copy, this] {
+		switch(size)
+		{
+			case 1: glUniform1fv(location(), count, values_copy);	break;
+			case 2: glUniform2fv(location(), count, values_copy);	break;
+			case 3: glUniform3fv(location(), count, values_copy);	break;
+			case 4: glUniform4fv(location(), count, values_copy);	break;
+		}
+		delete[] values_copy;
+	});
+}
+
+void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values)
+{
+	size_t number_of_values = (size_t)count * (size_t)size;
+	GLuint *values_copy = new GLuint[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * (size_t)number_of_values);
+
+	enqueue_function([name, size, count, values_copy, this] {
+		switch(size)
+		{
+			case 1: glUniform1uiv(location(), count, values_copy);	break;
+			case 2: glUniform2uiv(location(), count, values_copy);	break;
+			case 3: glUniform3uiv(location(), count, values_copy);	break;
+			case 4: glUniform4uiv(location(), count, values_copy);	break;
+		}
+		delete[] values_copy;
+	});
+}
+
+void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values)
+{
+	set_uniform_matrix(name, size, 1, transpose, values);
+}
+
+void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values)
+{
+	size_t number_of_values = (size_t)count * (size_t)size * (size_t)size;
+	GLfloat *values_copy = new GLfloat[number_of_values];
+	memcpy(values_copy, values, sizeof(*values) * number_of_values);
+
+	enqueue_function([name, size, count, transpose, values_copy, this] {
+		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
+		switch(size)
+		{
+			case 2: glUniformMatrix2fv(location(), count, glTranspose, values_copy);	break;
+			case 3: glUniformMatrix3fv(location(), count, glTranspose, values_copy);	break;
+			case 4: glUniformMatrix4fv(location(), count, glTranspose, values_copy);	break;
+		}
+		delete[] values_copy;
+	});
+}
+
+void Shader::enqueue_function(std::function<void(void)> function)
+{
+	_function_mutex.lock();
+	_enqueued_functions.push_back(function);
+	_function_mutex.unlock();
+}
+
+void Shader::flush_functions()
+{
+	_function_mutex.lock();
+	for(std::function<void(void)> function : _enqueued_functions)
+	{
+		function();
+	}
+	_enqueued_functions.clear();
+	_function_mutex.unlock();
 }

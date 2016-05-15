@@ -55,48 +55,41 @@ public:
 	static std::unique_ptr<IntermediateShader> make_rgb_filter_shader();
 
 	/*!
-		Binds this shader and configures it for output to an area of `output_width` and `output_height` pixels.
+		Queues the configuration of this shader for output to an area of `output_width` and `output_height` pixels
+		to occur upon the next `bind`.
 	*/
 	void set_output_size(unsigned int output_width, unsigned int output_height);
 
 	/*!
-		Binds this shader and sets the texture unit (as an enum, e.g. `GL_TEXTURE0`) to sample as source data.
+		Queues setting the texture unit (as an enum, e.g. `GL_TEXTURE0`) for source data to occur upon the next `bind`.
 	*/
 	void set_source_texture_unit(GLenum unit);
 
 	/*!
-		Binds this shader and sets filtering coefficients for a lowpass filter based on the cutoff.
+		Queues setting filtering coefficients for a lowpass filter based on the cutoff frequency to occur upon the next `bind`.
 	*/
 	void set_filter_coefficients(float sampling_rate, float cutoff_frequency);
 
 	/*!
-		Binds this shader and configures filtering to separate luminance and chrominance based on a colour
-		subcarrier of the given frequency.
+		Queues configuration of filtering to separate luminance and chrominance based on a colour
+		subcarrier of the given frequency to occur upon the next `bind`.
 	*/
 	void set_separation_frequency(float sampling_rate, float colour_burst_frequency);
 
 	/*!
-		Binds this shader and sets the number of colour phase cycles per sample, indicating whether output
-		geometry should be extended so that a complete colour cycle is included at both the beginning and end.
+		Queues setting of the number of colour phase cycles per sample, indicating whether output
+		geometry should be extended so that a complete colour cycle is included at both the beginning and end,
+		to occur upon the next `bind`.
 	*/
 	void set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle);
 
 	/*!
-		Binds this shader and sets the matrices that convert between RGB and chrominance/luminance.
+		Queues setting the matrices that convert between RGB and chrominance/luminance to occur on the next `bind`.
 	*/
 	void set_colour_conversion_matrices(float *fromRGB, float *toRGB);
 
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);
-
-	GLint texIDUniform;
-	GLint outputTextureSizeUniform;
-	GLint weightsUniform;
-	GLint phaseCyclesPerTickUniform;
-	GLint extensionUniform;
-	GLint rgbToLumaChromaUniform;
-	GLint lumaChromaToRGBUniform;
-	GLint offsetsUniform;
 };
 
 }
