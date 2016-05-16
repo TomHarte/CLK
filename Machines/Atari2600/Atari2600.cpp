@@ -77,14 +77,15 @@ Machine::~Machine()
 	close_output();
 }
 
-void Machine::get_output_pixel(uint8_t *pixel, int offset)
+uint8_t Machine::get_output_pixel()
 {
 	// get the playfield pixel and hence a proposed colour
+	int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
 	uint8_t playfieldPixel = _playfield[offset >> 2];
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get player and missile proposed pixels
-	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
+/*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
 	for(int c = 0; c < 2; c++)
 	{
 		const uint8_t repeatMask = _playerAndMissileSize[c]&7;
@@ -172,13 +173,10 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
 		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
-	}
+	}*/
 
-	// store colour
-//	static int lc;
-//	if(_vSyncEnabled) lc = 0; else lc += (offset == 159) ? 1 : 0;
-//	*pixel = (uint8_t)(((offset  / 10) << 4) | (((lc >> 4)&7) << 1));
-	*pixel = outputColour;
+	// return colour
+	return playfieldPixel ? playfieldColour : _backgroundColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -187,42 +185,21 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 void Machine::output_pixels(unsigned int count)
 {
-/*	const int32_t start_of_sync = 214;
-	const int32_t end_of_sync = 198;
-	const int32_t end_of_colour_burst = 188;*/
-
 	while(count--)
 	{
 		OutputState state;
 
 		switch(_horizontalTimer >> 2)
 		{
-			case 0: case 1: case 2: case 3:
-				state = OutputState::Blank;
-			break;
-
-			case 4: case 5: case 6: case 7:
-				state = OutputState::Sync;
-			break;
-
-			case 8: case 9: case 10: case 11:
-				state = OutputState::ColourBurst;
-			break;
-
-			case 12: case 13: case 14: case 15: case 16:
-				state = OutputState::Blank;
-			break;
-
-			case 17: case 18:
-				state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;
-			break;
-
-			default:
-				state = OutputState::Pixel;
-			break;
+			case 0: case 1: case 2: case 3:					state = OutputState::Blank;											break;
+			case 4: case 5: case 6: case 7:					state = OutputState::Sync;											break;
+			case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;									break;
+			case 12: case 13: case 14: case 15: case 16:	state = OutputState::Blank;											break;
+			case 17: case 18:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
+			default:										state = OutputState::Pixel;											break;
 		}
 
-		// logic: if vsync is enabled, output the opposite of the automatic hsync output
+		// if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
 		}
@@ -258,9 +235,18 @@ void Machine::output_pixels(unsigned int count)
 
 			if(state == OutputState::Pixel) {
 				_outputBuffer = _crt->allocate_write_area(160);
-				if(_outputBuffer) for(int c = 0; c < 160; c++) _outputBuffer[c] = (uint8_t)rand();
 			} else {
 				_outputBuffer = nullptr;
+			}
+		}
+
+		if(state == OutputState::Pixel)
+		{
+			uint8_t colour = get_output_pixel();
+			if(_outputBuffer)
+			{
+				*_outputBuffer = colour;
+				_outputBuffer++;
 			}
 		}
 
@@ -274,18 +260,13 @@ void Machine::output_pixels(unsigned int count)
 			increment_object_counter(2);
 			increment_object_counter(3);
 			increment_object_counter(4);
-		}
-
-		// assumption here: signed shifts right; otherwise it's just
-		// an attempt to avoid both the % operator and a conditional
-		_horizontalTimer--;
-		const int32_t sign_extension = _horizontalTimer >> 31;
-		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
-
-		if(!_horizontalTimer)
-			_vBlankExtend = false;*/
+		}*/
 
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
+		if(!_horizontalTimer)
+		{
+			_vBlankExtend = false;
+		}
 	}
 }
 
