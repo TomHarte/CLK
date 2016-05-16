@@ -48,6 +48,10 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _backgroundColour;
 		uint8_t _playfield[40];
 
+		// playfield outputs
+		uint8_t _playfieldPixel;		// the pixel currently being output
+		uint8_t _nextPlayfieldPixel;	// the next pixel to be output; latched ahead of time
+
 		// player registers
 		uint8_t _playerColour[2];
 		uint8_t _playerReflection[2];

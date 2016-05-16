@@ -80,8 +80,12 @@ Machine::~Machine()
 uint8_t Machine::get_output_pixel()
 {
 	// get the playfield pixel and hence a proposed colour
-	int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
-	uint8_t playfieldPixel = _playfield[offset >> 2];
+	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
+	if(!(offset&3))
+	{
+		_playfieldPixel = _nextPlayfieldPixel;
+		_nextPlayfieldPixel = _playfield[(1 + (offset >> 2))%40];
+	}
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get player and missile proposed pixels
@@ -176,7 +180,7 @@ uint8_t Machine::get_output_pixel()
 	}*/
 
 	// return colour
-	return playfieldPixel ? playfieldColour : _backgroundColour;
+	return _playfieldPixel ? playfieldColour : _backgroundColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -249,6 +253,15 @@ void Machine::output_pixels(unsigned int count)
 				_outputBuffer++;
 			}
 		}
+		else
+		{
+			// fetch this for the entire blank period just to ensure it's in place when needed
+			if(!(_horizontalTimer&3))
+			{
+				unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
+				_nextPlayfieldPixel = _playfield[(offset >> 2)%40];
+			}
+		}
 
 /*		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			uint8_t throwaway_pixel;
@@ -266,6 +279,7 @@ void Machine::output_pixels(unsigned int count)
 		if(!_horizontalTimer)
 		{
 			_vBlankExtend = false;
+			set_ready_line(false);
 		}
 	}
 }
@@ -277,13 +291,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 1;
 
+	// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
+	// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
+	// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
+	// skips to the end of the line.
 	if(operation == CPU6502::BusOperation::Ready) {
 		unsigned int distance_to_end_of_ready = horizontalTimerPeriod - _horizontalTimer;
 		cycles_run_for = distance_to_end_of_ready / 3;
-		output_pixels(distance_to_end_of_ready);
-	} else {
-		output_pixels(3);
 	}
+
+	output_pixels(cycles_run_for * 3);
 
 //	if(_hMoveWillCount) {
 //		_hMoveCounter = 0x0f;
@@ -291,9 +308,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		_hMoveIsCounting = true;
 //		_hMoveWillCount = false;
 //	}
-
-	if(!_horizontalTimer)
-		set_ready_line(false);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -557,6 +571,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
+
+//	output_pixels(cycles_run_for * 3);
 
 	return cycles_run_for;
 }
