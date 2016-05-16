@@ -11,7 +11,9 @@
 #include <stdio.h>
 
 using namespace Atari2600;
-static const int horizontalTimerReload = 227;
+namespace {
+	static const unsigned int horizontalTimerPeriod = 228;
+}
 
 Machine::Machine() :
 	_horizontalTimer(0),
@@ -185,57 +187,63 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 
 void Machine::output_pixels(unsigned int count)
 {
-	const int32_t start_of_sync = 214;
+/*	const int32_t start_of_sync = 214;
 	const int32_t end_of_sync = 198;
-	const int32_t end_of_colour_burst = 188;
+	const int32_t end_of_colour_burst = 188;*/
 
 	while(count--)
 	{
 		OutputState state;
 
-		// update hmove
-		if(!(_horizontalTimer&3)) {
-
-			if(_hMoveFlags) {
-				const uint8_t counterValue = _hMoveCounter ^ 0x7;
-				for(int c = 0; c < 5; c++) {
-					if(counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
-					if(_hMoveFlags&(1 << c)) increment_object_counter(c);
-				}
-			}
-
-			if(_hMoveIsCounting) {
-				_hMoveIsCounting = !!_hMoveCounter;
-				_hMoveCounter = (_hMoveCounter-1)&0xf;
-			}
-		}
-
-
-		// blank is decoded as 68 counts; sync and colour burst as 16 counts
-
-		// 4 blank
-		// 4 sync
-		// 9 'blank'; colour burst after 4
-		// 40 pixels
-
-		// it'll be about 43 cycles from start of hsync to start of visible frame, so...
-		// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			if(_vBlankEnabled) {
+		switch(_horizontalTimer >> 2)
+		{
+			case 0: case 1: case 2: case 3:
 				state = OutputState::Blank;
-			} else {
+			break;
+
+			case 4: case 5: case 6: case 7:
+				state = OutputState::Sync;
+			break;
+
+			case 8: case 9: case 10: case 11:
+				state = OutputState::ColourBurst;
+			break;
+
+			case 12: case 13: case 14: case 15: case 16:
+				state = OutputState::Blank;
+			break;
+
+			case 17: case 18:
+				state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;
+			break;
+
+			default:
 				state = OutputState::Pixel;
-			}
+			break;
 		}
-		else if(_horizontalTimer < end_of_colour_burst) state = OutputState::Blank;
-		else if(_horizontalTimer < end_of_sync) state = OutputState::ColourBurst;
-		else if(_horizontalTimer < start_of_sync) state = OutputState::Sync;
-		else state = OutputState::Blank;
 
 		// logic: if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
 		}
+
+		// update hmove
+//		if(!(_horizontalTimer&3)) {
+//
+//			if(_hMoveFlags) {
+//				const uint8_t counterValue = _hMoveCounter ^ 0x7;
+//				for(int c = 0; c < 5; c++) {
+//					if(counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
+//					if(_hMoveFlags&(1 << c)) increment_object_counter(c);
+//				}
+//			}
+//
+//			if(_hMoveIsCounting) {
+//				_hMoveIsCounting = !!_hMoveCounter;
+//				_hMoveCounter = (_hMoveCounter-1)&0xf;
+//			}
+//		}
+
 
 		_lastOutputStateDuration++;
 		if(state != _lastOutputState) {
@@ -250,12 +258,13 @@ void Machine::output_pixels(unsigned int count)
 
 			if(state == OutputState::Pixel) {
 				_outputBuffer = _crt->allocate_write_area(160);
+				if(_outputBuffer) for(int c = 0; c < 160; c++) _outputBuffer[c] = (uint8_t)rand();
 			} else {
 				_outputBuffer = nullptr;
 			}
 		}
 
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
+/*		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			uint8_t throwaway_pixel;
 			get_output_pixel(_outputBuffer ? &_outputBuffer[_lastOutputStateDuration] : &throwaway_pixel, 159 - _horizontalTimer);
 
@@ -274,7 +283,9 @@ void Machine::output_pixels(unsigned int count)
 		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
 
 		if(!_horizontalTimer)
-			_vBlankExtend = false;
+			_vBlankExtend = false;*/
+
+		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 	}
 }
 
@@ -284,24 +295,23 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = 227;//horizontalTimerReload;
 
 	if(operation == CPU6502::BusOperation::Ready) {
-		unsigned int distance_to_end_of_ready = (_horizontalTimer - ready_line_disable_time + horizontalTimerReload + 1)%(horizontalTimerReload + 1);
+		unsigned int distance_to_end_of_ready = horizontalTimerPeriod - _horizontalTimer;
 		cycles_run_for = distance_to_end_of_ready / 3;
 		output_pixels(distance_to_end_of_ready);
 	} else {
 		output_pixels(3);
 	}
 
-	if(_hMoveWillCount) {
-		_hMoveCounter = 0x0f;
-		_hMoveFlags = 0x1f;
-		_hMoveIsCounting = true;
-		_hMoveWillCount = false;
-	}
+//	if(_hMoveWillCount) {
+//		_hMoveCounter = 0x0f;
+//		_hMoveFlags = 0x1f;
+//		_hMoveIsCounting = true;
+//		_hMoveWillCount = false;
+//	}
 
-	if(_horizontalTimer == ready_line_disable_time)
+	if(!_horizontalTimer)
 		set_ready_line(false);
 
 	if(operation != CPU6502::BusOperation::Ready) {

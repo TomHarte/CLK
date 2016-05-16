@@ -66,7 +66,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _ballGraphicsEnableDelay;
 
 		// graphics output
-		int32_t _horizontalTimer;
+		unsigned int _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
 		bool _vBlankExtend;
 		uint8_t _hMoveCounter;
