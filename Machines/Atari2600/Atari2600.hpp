@@ -16,6 +16,8 @@
 
 namespace Atari2600 {
 
+const unsigned int number_of_upcoming_events = 8;
+
 class Machine: public CPU6502::Processor<Machine> {
 
 	public:
@@ -64,7 +66,7 @@ class Machine: public CPU6502::Processor<Machine> {
 			unsigned int updates;
 			uint8_t playfieldOutput;
 			OutputState state;
-		} _upcomingEvents[4];
+		} _upcomingEvents[number_of_upcoming_events];
 		unsigned int _upcomingEventsPointer;
 
 		uint8_t _playfieldOutput;

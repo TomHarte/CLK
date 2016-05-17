@@ -80,14 +80,21 @@ Machine::~Machine()
 
 void Machine::update_upcoming_event()
 {
-	_upcomingEvents[_upcomingEventsPointer].updates = 0;
-
-	unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-	if(!(offset&3))
+	// grab the background now, for display in four clocks
+	if(!(_horizontalTimer&3))
 	{
-		_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::Playfield;
-		_upcomingEvents[_upcomingEventsPointer].playfieldOutput = _playfield[(offset >> 2)%40];
+		unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
+		_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].updates |= Event::Action::Playfield;
+		_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].playfieldOutput = _playfield[(offset >> 2)%40];
 	}
+
+	// the ball becomes visible whenever it hits zero, regardless of whether its status
+	// is the result of a counter rollover or a programmatic reset
+	if(!_objectCounter[4] && _ballGraphicsEnable&2)
+	{
+	}
+
+	// the players and missles become visible only upon overflow to zero
 }
 
 uint8_t Machine::get_output_pixel()
@@ -227,14 +234,12 @@ void Machine::output_pixels(unsigned int count)
 			update_upcoming_event();
 		}
 
-		// advance, hitting the state that will become active now
-		_upcomingEventsPointer = (_upcomingEventsPointer + 1)&3;
-
-		// apply any queued changes
+		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
 		{
 			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldOutput;
 		}
+		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 
 		// read that state
 		state = _upcomingEvents[_upcomingEventsPointer].state;
@@ -268,6 +273,9 @@ void Machine::output_pixels(unsigned int count)
 				_outputBuffer++;
 			}
 		}
+
+		// advance
+		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
 		// update hmove
 //		if(!(_horizontalTimer&3)) {
