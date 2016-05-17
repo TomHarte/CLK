@@ -21,7 +21,6 @@ Machine::Machine() :
 	_lastOutputState(OutputState::Sync),
 	_piaTimerStatus(0xff),
 	_rom(nullptr),
-	_hMoveWillCount(false),
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
 	_upcomingEventsPointer(0)
@@ -555,7 +554,21 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x2a:
 						_vBlankExtend = true;
-						_hMoveWillCount = true;
+
+						// clear any ongoing moves
+						if(_hMoveFlags)
+						{
+							for(int c = 0; c < number_of_upcoming_events; c++)
+							{
+								_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
+							}
+						}
+
+						// schedule new moves
+						_hMoveFlags = 0x1f;
+						_hMoveCounter = 15;
+						_upcomingEvents[(_upcomingEventsPointer + 15)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+						_upcomingEvents[(_upcomingEventsPointer + 17)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 					break;
 					case 0x2b:
 						_objectMotion[0] =

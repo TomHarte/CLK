@@ -16,7 +16,7 @@
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 8;
+const unsigned int number_of_upcoming_events = 18;
 
 class Machine: public CPU6502::Processor<Machine> {
 
@@ -61,11 +61,14 @@ class Machine: public CPU6502::Processor<Machine> {
 		struct Event {
 			enum Action {
 				Playfield		= 1 << 0,
-				Ball			= 1 << 1
+				Ball			= 1 << 1,
+				HMoveCompare	= 1 << 2,
+				HMoveDecrement	= 1 << 3
 			};
-			unsigned int updates;
+			int updates;
 			uint8_t playfieldOutput;
 			OutputState state;
+			Event() : updates(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
 		unsigned int _upcomingEventsPointer;
 
@@ -95,10 +98,14 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
 		bool _vBlankExtend;
+
+		// horizontal motion control
 		uint8_t _hMoveCounter;
-		bool _hMoveIsCounting, _hMoveWillCount;
-		uint8_t _objectCounter[5], _objectMotion[5];
 		uint8_t _hMoveFlags;
+		uint8_t _objectMotion[5];
+
+		// object counters
+		uint8_t _objectCounter[5];
 
 		// joystick state
 		uint8_t _piaDataDirection[2];
