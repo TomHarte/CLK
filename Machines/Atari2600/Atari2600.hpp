@@ -60,8 +60,8 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		struct Event {
 			enum Action {
-				OutputSate		= 1 << 0,
-				Playfield		= 1 << 1,
+				Playfield		= 1 << 0,
+				Ball			= 1 << 1
 			};
 			unsigned int updates;
 			uint8_t playfieldOutput;
@@ -70,6 +70,9 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _upcomingEventsPointer;
 
 		uint8_t _playfieldOutput;
+		struct {
+			uint8_t ball;
+		} _pixelCounters;
 
 		// player registers
 		uint8_t _playerColour[2];

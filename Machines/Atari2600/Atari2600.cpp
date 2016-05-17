@@ -80,21 +80,26 @@ Machine::~Machine()
 
 void Machine::update_upcoming_event()
 {
+	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
+
 	// grab the background now, for display in four clocks
 	if(!(_horizontalTimer&3))
 	{
 		unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-		_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].updates |= Event::Action::Playfield;
-		_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].playfieldOutput = _playfield[(offset >> 2)%40];
+		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Playfield;
+		_upcomingEvents[upcomingEventsPointerPlus4].playfieldOutput = _playfield[(offset >> 2)%40];
 	}
 
 	// the ball becomes visible whenever it hits zero, regardless of whether its status
 	// is the result of a counter rollover or a programmatic reset
-	if(!_objectCounter[4] && _ballGraphicsEnable&2)
+	if(!_objectCounter[4])
 	{
+		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Ball;
 	}
+	_objectCounter[4] = (_objectCounter[4] + 1)%160;
 
-	// the players and missles become visible only upon overflow to zero
+	// the players and missles become visible only upon overflow to zero, so schedule for
+	// 5/6 clocks ahead from 159
 }
 
 uint8_t Machine::get_output_pixel()
@@ -105,12 +110,12 @@ uint8_t Machine::get_output_pixel()
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get the ball proposed colour
-//	uint8_t ballPixel = 0;
-//	if(_ballGraphicsEnable&2) {
-//		int ballIndex = _objectCounter[4];
-//		int ballSize = 1 << ((_playfieldControl >> 4)&3);
-//		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
-//	}
+	uint8_t ballPixel = 0;
+	if(_ballGraphicsEnable&2) {
+		int ballSize = 1 << ((_playfieldControl >> 4)&3);
+		ballPixel = (_pixelCounters.ball < ballSize) ? 1 : 0;
+	}
+	_pixelCounters.ball ++;
 
 	// get player and missile proposed pixels
 /*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
@@ -196,7 +201,7 @@ uint8_t Machine::get_output_pixel()
 	}*/
 
 	// return colour
-	return _playfieldOutput ? playfieldColour : _backgroundColour;
+	return (_playfieldOutput | ballPixel) ? playfieldColour : _backgroundColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -236,9 +241,9 @@ void Machine::output_pixels(unsigned int count)
 
 		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
-		{
 			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldOutput;
-		}
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Ball)
+			_pixelCounters.ball = 0;
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 
 		// read that state
