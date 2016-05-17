@@ -241,8 +241,39 @@ void Machine::output_pixels(unsigned int count)
 		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
 			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldOutput;
+
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Ball)
 			_pixelCounters.ball = 0;
+
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
+		{
+			for(int c = 0; c < 5; c++)
+			{
+				if((_objectMotion[c]^8^_hMoveCounter) == 0xf)
+				{
+					_hMoveFlags &= ~(1 << c);
+				}
+			}
+			if(_hMoveFlags)
+			{
+				if(_hMoveCounter) _hMoveCounter--;
+				_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+				_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
+			} else printf("\n");
+		}
+
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
+		{
+			for(int c = 0; c < 5; c++)
+			{
+				if(_hMoveFlags & (1 << c))
+				{
+					_objectCounter[c] = (_objectCounter[c] + 1)%160;
+				}
+			}
+			printf("[%d] %d ", _objectMotion[4], _objectCounter[4]);
+		}
+
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 
 		// read that state
@@ -538,7 +569,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x22:
 					case 0x23:
 					case 0x24:
-						_objectMotion[decodedAddress - 0x20] = *value;
+						_objectMotion[decodedAddress - 0x20] = (*value) & 0xf;
 					break;
 
 					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
@@ -568,7 +599,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_hMoveFlags = 0x1f;
 						_hMoveCounter = 15;
 						_upcomingEvents[(_upcomingEventsPointer + 15)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
-						_upcomingEvents[(_upcomingEventsPointer + 17)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 					break;
 					case 0x2b:
 						_objectMotion[0] =
