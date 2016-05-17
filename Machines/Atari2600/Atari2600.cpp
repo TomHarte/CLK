@@ -23,7 +23,8 @@ Machine::Machine() :
 	_rom(nullptr),
 	_hMoveWillCount(false),
 	_piaDataValue{0xff, 0xff},
-	_tiaInputValue{0xff, 0xff}
+	_tiaInputValue{0xff, 0xff},
+	_upcomingEventsPointer(0)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
@@ -77,16 +78,32 @@ Machine::~Machine()
 	close_output();
 }
 
-uint8_t Machine::get_output_pixel()
+void Machine::update_upcoming_event()
 {
-	// get the playfield pixel and hence a proposed colour
-	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
+	_upcomingEvents[_upcomingEventsPointer].updates = 0;
+
+	unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
 	if(!(offset&3))
 	{
-		_playfieldPixel = _nextPlayfieldPixel;
-		_nextPlayfieldPixel = _playfield[(1 + (offset >> 2))%40];
+		_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::Playfield;
+		_upcomingEvents[_upcomingEventsPointer].playfieldOutput = _playfield[(offset >> 2)%40];
 	}
+}
+
+uint8_t Machine::get_output_pixel()
+{
+	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
+
+	// get the playfield pixel and hence a proposed colour
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
+
+	// get the ball proposed colour
+//	uint8_t ballPixel = 0;
+//	if(_ballGraphicsEnable&2) {
+//		int ballIndex = _objectCounter[4];
+//		int ballSize = 1 << ((_playfieldControl >> 4)&3);
+//		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
+//	}
 
 	// get player and missile proposed pixels
 /*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
@@ -141,14 +158,6 @@ uint8_t Machine::get_output_pixel()
 		}
 	}
 
-	// get the ball proposed colour
-	uint8_t ballPixel = 0;
-	if(_ballGraphicsEnable&2) {
-		int ballIndex = _objectCounter[4] - 4;
-		int ballSize = 1 << ((_playfieldControl >> 4)&3);
-		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
-	}
-
 	// accumulate collisions
 	if(playerPixels[0] | playerPixels[1]) {
 		_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
@@ -180,12 +189,12 @@ uint8_t Machine::get_output_pixel()
 	}*/
 
 	// return colour
-	return _playfieldPixel ? playfieldColour : _backgroundColour;
+	return _playfieldOutput ? playfieldColour : _backgroundColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
 // this is faster than the straightforward +1)%160 per profiling
-#define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
+//#define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
 
 void Machine::output_pixels(unsigned int count)
 {
@@ -193,19 +202,71 @@ void Machine::output_pixels(unsigned int count)
 	{
 		OutputState state;
 
+		// determine which output will start this cycle; all outputs are delayed by 4 CLKs momentarily...
 		switch(_horizontalTimer >> 2)
 		{
-			case 0: case 1: case 2: case 3:					state = OutputState::Blank;											break;
-			case 4: case 5: case 6: case 7:					state = OutputState::Sync;											break;
-			case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;									break;
-			case 12: case 13: case 14: case 15: case 16:	state = OutputState::Blank;											break;
-			case 17: case 18:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
+			case 227: case 0: case 1: case 2:				state = OutputState::Blank;											break;
+			case 3: case 4: case 5: case 6:					state = OutputState::Sync;											break;
+			case 7: case 8: case 9: case 10:				state = OutputState::ColourBurst;									break;
+			case 11: case 12: case 13: case 14: case 15:	state = OutputState::Blank;											break;
+			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
 			default:										state = OutputState::Pixel;											break;
 		}
 
 		// if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
+		}
+
+		// write that state as the one that will become effective in four clocks
+		_upcomingEvents[_upcomingEventsPointer].state = state;
+
+		// grab pixel state if desired
+		if(state == OutputState::Pixel)
+		{
+			update_upcoming_event();
+		}
+
+		// advance, hitting the state that will become active now
+		_upcomingEventsPointer = (_upcomingEventsPointer + 1)&3;
+
+		// apply any queued changes
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
+		{
+			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldOutput;
+		}
+
+		// read that state
+		state = _upcomingEvents[_upcomingEventsPointer].state;
+
+		// decide what that means needs to be communicated to the CRT
+		_lastOutputStateDuration++;
+		if(state != _lastOutputState) {
+			switch(_lastOutputState) {
+				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
+				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
+				case OutputState::ColourBurst:	_crt->output_colour_burst(_lastOutputStateDuration, 96, 0);	break;
+				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
+			}
+			_lastOutputStateDuration = 0;
+			_lastOutputState = state;
+
+			if(state == OutputState::Pixel) {
+				_outputBuffer = _crt->allocate_write_area(160);
+			} else {
+				_outputBuffer = nullptr;
+			}
+		}
+
+		// decide on a pixel colour if that's what's happening
+		if(state == OutputState::Pixel)
+		{
+			uint8_t colour = get_output_pixel();
+			if(_outputBuffer)
+			{
+				*_outputBuffer = colour;
+				_outputBuffer++;
+			}
 		}
 
 		// update hmove
@@ -225,43 +286,24 @@ void Machine::output_pixels(unsigned int count)
 //			}
 //		}
 
-
-		_lastOutputStateDuration++;
-		if(state != _lastOutputState) {
-			switch(_lastOutputState) {
-				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
-				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
-				case OutputState::ColourBurst:	_crt->output_colour_burst(_lastOutputStateDuration, 96, 0);	break;
-				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
-			}
-			_lastOutputStateDuration = 0;
-			_lastOutputState = state;
-
-			if(state == OutputState::Pixel) {
-				_outputBuffer = _crt->allocate_write_area(160);
-			} else {
-				_outputBuffer = nullptr;
-			}
-		}
-
-		if(state == OutputState::Pixel)
-		{
-			uint8_t colour = get_output_pixel();
-			if(_outputBuffer)
-			{
-				*_outputBuffer = colour;
-				_outputBuffer++;
-			}
-		}
-		else
-		{
+//		if(state == OutputState::Pixel)
+//		{
+//			uint8_t colour = get_output_pixel();
+//			if(_outputBuffer)
+//			{
+//				*_outputBuffer = colour;
+//				_outputBuffer++;
+//			}
+//		}
+//		else
+//		{
 			// fetch this for the entire blank period just to ensure it's in place when needed
-			if(!(_horizontalTimer&3))
-			{
-				unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-				_nextPlayfieldPixel = _playfield[(offset >> 2)%40];
-			}
-		}
+//			if(!(_horizonta	lTimer&3))
+//			{
+//				unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
+//				_nextPlayfieldPixel = _playfield[(offset >> 2)%40];
+//			}
+//		}
 
 /*		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
 			uint8_t throwaway_pixel;
@@ -275,6 +317,7 @@ void Machine::output_pixels(unsigned int count)
 			increment_object_counter(4);
 		}*/
 
+		// advance horizontal timer, perform reset actions if requested
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{

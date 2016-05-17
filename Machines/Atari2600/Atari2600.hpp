@@ -48,9 +48,26 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _backgroundColour;
 		uint8_t _playfield[40];
 
-		// playfield outputs
-		uint8_t _playfieldPixel;		// the pixel currently being output
-		uint8_t _nextPlayfieldPixel;	// the next pixel to be output; latched ahead of time
+		// delayed clock events
+		enum OutputState {
+			Sync,
+			Blank,
+			ColourBurst,
+			Pixel
+		};
+
+		struct Event {
+			enum Action {
+				OutputSate		= 1 << 0,
+				Playfield		= 1 << 1,
+			};
+			unsigned int updates;
+			uint8_t playfieldOutput;
+			OutputState state;
+		} _upcomingEvents[4];
+		unsigned int _upcomingEventsPointer;
+
+		uint8_t _playfieldOutput;
 
 		// player registers
 		uint8_t _playerColour[2];
@@ -86,15 +103,9 @@ class Machine: public CPU6502::Processor<Machine> {
 		// collisions
 		uint8_t _collisions[8];
 
-		enum OutputState {
-			Sync,
-			Blank,
-			ColourBurst,
-			Pixel
-		};
-
 		void output_pixels(unsigned int count);
 		uint8_t get_output_pixel();
+		void update_upcoming_event();
 		Outputs::CRT::CRT *_crt;
 
 		// latched output state
