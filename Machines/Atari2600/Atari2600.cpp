@@ -77,7 +77,7 @@ Machine::~Machine()
 	close_output();
 }
 
-void Machine::update_upcoming_event()
+void Machine::update_upcoming_events()
 {
 	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
 
@@ -98,10 +98,9 @@ void Machine::update_upcoming_event()
 	}
 	_objectCounter[4] = (_objectCounter[4] + 1)%160;
 
+	// check for player and missle triggers
 	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
-
-	// check for player and missle triggers
 	for(int c = 0; c < 4; c++)
 	{
 		// the players and missles become visible only upon overflow to zero, so schedule for
@@ -114,6 +113,8 @@ void Machine::update_upcoming_event()
 		}
 		else
 		{
+			// otherwise visibility is determined by an appropriate repeat mask and hitting any of 12, 28 or 60,
+			// in which case the counter reset (and hence the start of drawing) will occur in 4/5 cycles
 			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 			if(
 				( _objectCounter[c] == 12 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
@@ -126,6 +127,8 @@ void Machine::update_upcoming_event()
 				_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
 			}
 		}
+
+		_objectCounter[c] = (_objectCounter[c] + 1)%160;
 	}
 }
 
@@ -136,7 +139,7 @@ uint8_t Machine::get_output_pixel()
 	// get the playfield pixel and hence a proposed colour
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
-	// get the ball proposed colour
+	// get the ball proposed state
 	uint8_t ballPixel = 0;
 	if(_ballGraphicsEnable&2) {
 		int ballSize = 1 << ((_playfieldControl >> 4)&3);
@@ -145,6 +148,29 @@ uint8_t Machine::get_output_pixel()
 	_pixelCounter[4] ++;
 
 	// deal with the sprites
+	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
+	for(int c = 0; c < 2; c++)
+	{
+		if(_playerGraphics[c]) {
+			// figure out player colour
+			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
+			if(_pixelCounter[c] < 8)
+				playerPixels[c] = (_playerGraphics[c] >> (_pixelCounter[c] ^ flipMask)) &1;
+		}
+		uint8_t repeatMask = _playerAndMissileSize[c] & 7;
+		switch(repeatMask)
+		{
+			default:
+				_pixelCounter[c]++;
+			break;
+			case 5:
+				_pixelCounter[c] += ((_objectCounter[c] >> 1)&1);
+			break;
+			case 7:
+				_pixelCounter[c] += ((_objectCounter[c] >> 2)&1);
+			break;
+		}
+	}
 
 
 	// get player and missile proposed pixels
@@ -219,19 +245,19 @@ uint8_t Machine::get_output_pixel()
 	}
 
 	if(missilePixels[0] & missilePixels[1])
-		_collisions[7] |= (1 << 6);
+		_collisions[7] |= (1 << 6);*/
 
 	// apply appropriate priority to pick a colour
-	playfieldPixel |= ballPixel;
+	uint8_t playfieldPixel = _playfieldOutput | ballPixel;
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
 		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
-	}*/
+	}
 
 	// return colour
-	return (_playfieldOutput | ballPixel) ? playfieldColour : _backgroundColour;
+	return outputColour;
 }
 
 // in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
@@ -270,11 +296,9 @@ void Machine::output_pixels(unsigned int count)
 		// write that state as the one that will become effective in four clocks
 		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
 
-		// grab pixel state if desired
+		// grab background colour and schedule pixel counter resets
 		if(state == OutputState::Pixel)
-		{
-			update_upcoming_event();
-		}
+			update_upcoming_events();
 
 		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
