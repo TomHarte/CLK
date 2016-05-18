@@ -217,7 +217,7 @@ void Machine::output_pixels(unsigned int count)
 	{
 		OutputState state;
 
-		// determine which output will start in four cycles
+		// determine which output state will be active in four cycles from now
 		switch(_horizontalTimer >> 2)
 		{
 			case 56: case 0: case 1: case 2:				state = OutputState::Blank;											break;
@@ -233,6 +233,11 @@ void Machine::output_pixels(unsigned int count)
 		// if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
+		}
+
+		// honour the vertical blank flag
+		if(_vBlankEnabled && state == OutputState::Pixel) {
+			state = OutputState::Blank;
 		}
 
 		// write that state as the one that will become effective in four clocks
@@ -351,13 +356,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	output_pixels(cycles_run_for * 3);
-
-//	if(_hMoveWillCount) {
-//		_hMoveCounter = 0x0f;
-//		_hMoveFlags = 0x1f;
-//		_hMoveIsCounting = true;
-//		_hMoveWillCount = false;
-//	}
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
