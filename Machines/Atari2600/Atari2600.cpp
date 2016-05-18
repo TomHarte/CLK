@@ -157,77 +157,32 @@ uint8_t Machine::get_output_pixel()
 			if(_pixelCounter[c] < 8)
 				playerPixels[c] = (_playerGraphics[c] >> (_pixelCounter[c] ^ flipMask)) &1;
 		}
+
+		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
+			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
+			missilePixels[c] = (_pixelCounter[c+2] < missileSize) ? 1 : 0;
+		}
+
 		uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 		switch(repeatMask)
 		{
 			default:
 				_pixelCounter[c]++;
+				_pixelCounter[c+2]++;
 			break;
 			case 5:
 				_pixelCounter[c] += ((_objectCounter[c] >> 1)&1);
+				_pixelCounter[c+2] += ((_objectCounter[c+2] >> 1)&1);
 			break;
 			case 7:
 				_pixelCounter[c] += ((_objectCounter[c] >> 2)&1);
+				_pixelCounter[c+2] += ((_objectCounter[c+2] >> 2)&1);
 			break;
-		}
-	}
-
-
-	// get player and missile proposed pixels
-/*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
-	for(int c = 0; c < 2; c++)
-	{
-		const uint8_t repeatMask = _playerAndMissileSize[c]&7;
-		if(_playerGraphics[c]) {
-			// figure out player colour
-			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
-
-			int relativeTimer = _objectCounter[c] - 5;
-			switch (repeatMask)
-			{
-				case 0: break;
-				default:
-					if(repeatMask&4 && relativeTimer >= 64) relativeTimer -= 64;
-					else if(repeatMask&2 && relativeTimer >= 32) relativeTimer -= 32;
-					else if(repeatMask&1 && relativeTimer >= 16) relativeTimer -= 16;
-				break;
-				case 5:
-					relativeTimer >>= 1;
-				break;
-				case 7:
-					relativeTimer >>= 2;
-				break;
-			}
-
-			if(relativeTimer >= 0 && relativeTimer < 8)
-				playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
-		}
-
-		// figure out missile colour
-		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
-			int missileIndex = _objectCounter[2+c] - 4;
-			switch (repeatMask)
-			{
-				case 0: break;
-				default:
-					if(repeatMask&4 && missileIndex >= 64) missileIndex -= 64;
-					else if(repeatMask&2 && missileIndex >= 32) missileIndex -= 32;
-					else if(repeatMask&1 && missileIndex >= 16) missileIndex -= 16;
-				break;
-				case 5:
-					missileIndex >>= 1;
-				break;
-				case 7:
-					missileIndex >>= 2;
-				break;
-			}
-			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-			missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize) ? 1 : 0;
 		}
 	}
 
 	// accumulate collisions
-	if(playerPixels[0] | playerPixels[1]) {
+/*	if(playerPixels[0] | playerPixels[1]) {
 		_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
 		_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
 
