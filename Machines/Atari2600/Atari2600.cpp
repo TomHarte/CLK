@@ -95,14 +95,38 @@ void Machine::update_upcoming_event()
 	{
 		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::ResetPixelCounter;
 		_upcomingEvents[upcomingEventsPointerPlus4].pixelCounterMask |= (1 << 4);
-//		_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::ResetPixelCounter;
-//		_upcomingEvents[_upcomingEventsPointer].pixelCounterMask |= (1 << 4);
 	}
 	_objectCounter[4] = (_objectCounter[4] + 1)%160;
-//	printf("-%d- ", _objectCounter[4]);
 
-	// the players and missles become visible only upon overflow to zero, so schedule for
-	// 5/6 clocks ahead from 159
+	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
+
+	// check for player and missle triggers
+	for(int c = 0; c < 4; c++)
+	{
+		// the players and missles become visible only upon overflow to zero, so schedule for
+		// 5/6 clocks ahead from 159
+		if(_objectCounter[c] == 159)
+		{
+			unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus6 : upcomingEventsPointerPlus5;
+			_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
+			_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
+		}
+		else
+		{
+			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
+			if(
+				( _objectCounter[c] == 12 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
+				( _objectCounter[c] == 28 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
+				( _objectCounter[c] == 60 && ((repeatMask == 4) || (repeatMask == 6)) )
+			)
+			{
+				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
+				_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
+				_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
+			}
+		}
+	}
 }
 
 uint8_t Machine::get_output_pixel()
@@ -119,6 +143,9 @@ uint8_t Machine::get_output_pixel()
 		ballPixel = (_pixelCounter[4] < ballSize) ? 1 : 0;
 	}
 	_pixelCounter[4] ++;
+
+	// deal with the sprites
+
 
 	// get player and missile proposed pixels
 /*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
@@ -507,7 +534,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					break;
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
-					case 0x14: _objectCounter[decodedAddress - 0x10] = 0;		break;
+					case 0x14:
+						_objectCounter[decodedAddress - 0x10] = 0;
+					break;
 
 					case 0x1c:
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;
