@@ -129,6 +129,7 @@ void Machine::update_upcoming_events()
 		}
 
 		_objectCounter[c] = (_objectCounter[c] + 1)%160;
+//		if(c == 0) printf(".");
 	}
 }
 
@@ -243,11 +244,6 @@ void Machine::output_pixels(unsigned int count)
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
 		}
 
-		// honour the vertical blank flag
-		if(_vBlankEnabled && state == OutputState::Pixel) {
-			state = OutputState::Blank;
-		}
-
 		// write that state as the one that will become effective in four clocks
 		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
 
@@ -293,7 +289,8 @@ void Machine::output_pixels(unsigned int count)
 				if(_hMoveFlags & (1 << c))
 				{
 					_objectCounter[c] = (_objectCounter[c] + 1)%160;
-					_pixelCounter[c] ++;
+					_pixelCounter[c] ++; // TODO: this isn't always a straight increment
+//					if(c == 0) printf("+");
 				}
 			}
 		}
@@ -301,10 +298,16 @@ void Machine::output_pixels(unsigned int count)
 
 		// read that state
 		state = _upcomingEvents[_upcomingEventsPointer].state;
+		OutputState actingState = state;
+
+		// honour the vertical blank flag
+		if(_vBlankEnabled && state == OutputState::Pixel) {
+			actingState = OutputState::Blank;
+		}
 
 		// decide what that means needs to be communicated to the CRT
 		_lastOutputStateDuration++;
-		if(state != _lastOutputState) {
+		if(actingState != _lastOutputState) {
 			switch(_lastOutputState) {
 				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
 				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
@@ -312,9 +315,9 @@ void Machine::output_pixels(unsigned int count)
 				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
 			}
 			_lastOutputStateDuration = 0;
-			_lastOutputState = state;
+			_lastOutputState = actingState;
 
-			if(state == OutputState::Pixel) {
+			if(actingState == OutputState::Pixel) {
 				_outputBuffer = _crt->allocate_write_area(160);
 			} else {
 				_outputBuffer = nullptr;
@@ -339,6 +342,7 @@ void Machine::output_pixels(unsigned int count)
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{
+//			printf("\n");
 			_vBlankExtend = false;
 			set_ready_line(false);
 		}
