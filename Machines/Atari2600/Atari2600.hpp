@@ -60,22 +60,22 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		struct Event {
 			enum Action {
-				Playfield		= 1 << 0,
-				Ball			= 1 << 1,
-				HMoveCompare	= 1 << 2,
-				HMoveDecrement	= 1 << 3
+				Playfield			= 1 << 0,
+				ResetPixelCounter	= 1 << 1,
+				HMoveCompare		= 1 << 2,
+				HMoveDecrement		= 1 << 3,
 			};
 			int updates;
+
+			int pixelCounterMask;
 			uint8_t playfieldOutput;
 			OutputState state;
-			Event() : updates(0) {}
+
+			Event() : updates(0), pixelCounterMask(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
 		unsigned int _upcomingEventsPointer;
 
 		uint8_t _playfieldOutput;
-		struct {
-			uint8_t ball;
-		} _pixelCounters;
 
 		// player registers
 		uint8_t _playerColour[2];
@@ -106,6 +106,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// object counters
 		uint8_t _objectCounter[5];
+		uint8_t _pixelCounter[5];
 
 		// joystick state
 		uint8_t _piaDataDirection[2];

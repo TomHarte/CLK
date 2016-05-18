@@ -93,7 +93,10 @@ void Machine::update_upcoming_event()
 	// is the result of a counter rollover or a programmatic reset
 	if(!_objectCounter[4])
 	{
-		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Ball;
+		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::ResetPixelCounter;
+		_upcomingEvents[upcomingEventsPointerPlus4].pixelCounterMask |= (1 << 4);
+//		_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::ResetPixelCounter;
+//		_upcomingEvents[_upcomingEventsPointer].pixelCounterMask |= (1 << 4);
 	}
 	_objectCounter[4] = (_objectCounter[4] + 1)%160;
 //	printf("-%d- ", _objectCounter[4]);
@@ -113,9 +116,9 @@ uint8_t Machine::get_output_pixel()
 	uint8_t ballPixel = 0;
 	if(_ballGraphicsEnable&2) {
 		int ballSize = 1 << ((_playfieldControl >> 4)&3);
-		ballPixel = (_pixelCounters.ball < ballSize) ? 1 : 0;
+		ballPixel = (_pixelCounter[4] < ballSize) ? 1 : 0;
 	}
-	_pixelCounters.ball ++;
+	_pixelCounter[4] ++;
 
 	// get player and missile proposed pixels
 /*	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
@@ -214,15 +217,16 @@ void Machine::output_pixels(unsigned int count)
 	{
 		OutputState state;
 
-		// determine which output will start this cycle; all outputs are delayed by 4 CLKs momentarily...
+		// determine which output will start in four cycles
 		switch(_horizontalTimer >> 2)
 		{
-			case 227: case 0: case 1: case 2:				state = OutputState::Blank;											break;
+			case 56: case 0: case 1: case 2:				state = OutputState::Blank;											break;
 			case 3: case 4: case 5: case 6:					state = OutputState::Sync;											break;
 			case 7: case 8: case 9: case 10:				state = OutputState::ColourBurst;									break;
 			case 11: case 12: case 13:
-			case 14: case 15: case 16:						state = OutputState::Blank;											break;
-			case 17: case 18:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
+			case 14: case 15:								state = OutputState::Blank;											break;
+
+			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
 			default:										state = OutputState::Pixel;											break;
 		}
 
@@ -232,12 +236,11 @@ void Machine::output_pixels(unsigned int count)
 		}
 
 		// write that state as the one that will become effective in four clocks
-		_upcomingEvents[_upcomingEventsPointer].state = state;
+		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
 
 		// grab pixel state if desired
 		if(state == OutputState::Pixel)
 		{
-
 			update_upcoming_event();
 		}
 
@@ -245,8 +248,15 @@ void Machine::output_pixels(unsigned int count)
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
 			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldOutput;
 
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Ball)
-			_pixelCounters.ball = 0;
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ResetPixelCounter)
+		{
+			for(int c = 0; c < 5; c++)
+			{
+				if(_upcomingEvents[_upcomingEventsPointer].pixelCounterMask & (1 << c))
+					_pixelCounter[c] = 0;
+			}
+			_upcomingEvents[_upcomingEventsPointer].pixelCounterMask = 0;
+		}
 
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
 		{
@@ -262,7 +272,7 @@ void Machine::output_pixels(unsigned int count)
 				if(_hMoveCounter) _hMoveCounter--;
 				_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
 				_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
-			} //else printf("\n");
+			}
 		}
 
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
@@ -272,15 +282,9 @@ void Machine::output_pixels(unsigned int count)
 				if(_hMoveFlags & (1 << c))
 				{
 					_objectCounter[c] = (_objectCounter[c] + 1)%160;
-					if(c == 4)
-					{
-//						printf("[%d] ", _objectCounter[4]);
-						_pixelCounters.ball++; // TODO: generalise this, obviously.
-					}
+					_pixelCounter[c] ++;
 				}
 			}
-//			if(_hMoveFlags & (1 << 4))
-//				printf("%d ", _objectCounter[4]);
 		}
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 
@@ -320,61 +324,12 @@ void Machine::output_pixels(unsigned int count)
 		// advance
 		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
-		// update hmove
-//		if(!(_horizontalTimer&3)) {
-//
-//			if(_hMoveFlags) {
-//				const uint8_t counterValue = _hMoveCounter ^ 0x7;
-//				for(int c = 0; c < 5; c++) {
-//					if(counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
-//					if(_hMoveFlags&(1 << c)) increment_object_counter(c);
-//				}
-//			}
-//
-//			if(_hMoveIsCounting) {
-//				_hMoveIsCounting = !!_hMoveCounter;
-//				_hMoveCounter = (_hMoveCounter-1)&0xf;
-//			}
-//		}
-
-//		if(state == OutputState::Pixel)
-//		{
-//			uint8_t colour = get_output_pixel();
-//			if(_outputBuffer)
-//			{
-//				*_outputBuffer = colour;
-//				_outputBuffer++;
-//			}
-//		}
-//		else
-//		{
-			// fetch this for the entire blank period just to ensure it's in place when needed
-//			if(!(_horizonta	lTimer&3))
-//			{
-//				unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-//				_nextPlayfieldPixel = _playfield[(offset >> 2)%40];
-//			}
-//		}
-
-/*		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			uint8_t throwaway_pixel;
-			get_output_pixel(_outputBuffer ? &_outputBuffer[_lastOutputStateDuration] : &throwaway_pixel, 159 - _horizontalTimer);
-
-			// increment all graphics counters
-			increment_object_counter(0);
-			increment_object_counter(1);
-			increment_object_counter(2);
-			increment_object_counter(3);
-			increment_object_counter(4);
-		}*/
-
 		// advance horizontal timer, perform reset actions if requested
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{
 			_vBlankExtend = false;
 			set_ready_line(false);
-//			printf("\n");
 		}
 	}
 }
@@ -608,8 +563,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_hMoveFlags = 0x1f;
 						_hMoveCounter = 15;
 						_upcomingEvents[(_upcomingEventsPointer + 15)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
-//						_objectCounter[4] = (_objectCounter[4] + 8)%160;
-						printf("%d: ", _objectMotion[4]);
 					break;
 					case 0x2b:
 						_objectMotion[0] =
