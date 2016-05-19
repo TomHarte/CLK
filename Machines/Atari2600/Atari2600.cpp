@@ -80,6 +80,10 @@ Machine::~Machine()
 void Machine::update_upcoming_events()
 {
 	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus7 = (_upcomingEventsPointer + 7)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus8 = (_upcomingEventsPointer + 8)%number_of_upcoming_events;
 
 	// grab the background now, for display in four clocks
 	if(!(_horizontalTimer&3))
@@ -93,14 +97,12 @@ void Machine::update_upcoming_events()
 	// is the result of a counter rollover or a programmatic reset
 	if(!_objectCounter[4])
 	{
-		_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::ResetPixelCounter;
-		_upcomingEvents[upcomingEventsPointerPlus4].pixelCounterMask |= (1 << 4);
+		_upcomingEvents[upcomingEventsPointerPlus6].updates |= Event::Action::ResetPixelCounter;
+		_upcomingEvents[upcomingEventsPointerPlus6].pixelCounterMask |= (1 << 4);
 	}
 	_objectCounter[4] = (_objectCounter[4] + 1)%160;
 
 	// check for player and missle triggers
-	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
-	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
 	for(int c = 0; c < 4; c++)
 	{
 		// the players and missles become visible only upon overflow to zero, so schedule for
@@ -160,7 +162,7 @@ uint8_t Machine::get_output_pixel()
 
 		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
 			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-			missilePixels[c] = ((_pixelCounter[c+2] >> 2) < missileSize) ? 1 : 0;
+			missilePixels[c] = (_pixelCounter[c+2] < missileSize) ? 1 : 0;
 		}
 
 		uint8_t repeatMask = _playerAndMissileSize[c] & 7;
@@ -168,17 +170,15 @@ uint8_t Machine::get_output_pixel()
 		{
 			default:
 				_pixelCounter[c] += 4;
-				_pixelCounter[c+2] += 4;
 			break;
 			case 5:
 				_pixelCounter[c] += 2;
-				_pixelCounter[c+2] += 2;
 			break;
 			case 7:
 				_pixelCounter[c] += 1;
-				_pixelCounter[c+2] += 1;
 			break;
 		}
+		_pixelCounter[c+2] ++;
 	}
 
 	// accumulate collisions
