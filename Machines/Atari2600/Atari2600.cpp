@@ -268,7 +268,7 @@ void Machine::output_pixels(unsigned int count)
 		{
 			for(int c = 0; c < 5; c++)
 			{
-				if(((_objectMotion[c] >> 4)^8^_hMoveCounter) == 0xf)
+				if(((_objectMotion[c] >> 4)^_hMoveCounter) == 7)
 				{
 					_hMoveFlags &= ~(1 << c);
 				}
@@ -569,7 +569,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						// schedule new moves
 						_hMoveFlags = 0x1f;
 						_hMoveCounter = 15;
-						_upcomingEvents[(_upcomingEventsPointer + 15)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+
+						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
+						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
+						// in five cycles from now
+						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
 					break;
 					case 0x2b:
 						_objectMotion[0] =
