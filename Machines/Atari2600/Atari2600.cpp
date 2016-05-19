@@ -167,8 +167,8 @@ uint8_t Machine::get_output_pixel()
 		switch(repeatMask)
 		{
 			default:
-				_pixelCounter[c]+=4;
-				_pixelCounter[c+2]+=4;
+				_pixelCounter[c] += 4;
+				_pixelCounter[c+2] += 4;
 			break;
 			case 5:
 				_pixelCounter[c] += 2;
@@ -268,7 +268,7 @@ void Machine::output_pixels(unsigned int count)
 		{
 			for(int c = 0; c < 5; c++)
 			{
-				if((_objectMotion[c]^8^_hMoveCounter) == 0xf)
+				if(((_objectMotion[c] >> 4)^8^_hMoveCounter) == 0xf)
 				{
 					_hMoveFlags &= ~(1 << c);
 				}
@@ -540,7 +540,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x22:
 					case 0x23:
 					case 0x24:
-						_objectMotion[decodedAddress - 0x20] = (*value) >> 4;
+						_objectMotion[decodedAddress - 0x20] = *value;
 					break;
 
 					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;

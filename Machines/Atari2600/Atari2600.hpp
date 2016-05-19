@@ -106,7 +106,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// object counters
 		uint8_t _objectCounter[5];
-		uint8_t _pixelCounter[5];
+		int _pixelCounter[5];
 
 		// joystick state
 		uint8_t _piaDataDirection[2];
