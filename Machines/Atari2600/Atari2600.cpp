@@ -115,7 +115,7 @@ void Machine::update_upcoming_events()
 		{
 			// otherwise visibility is determined by an appropriate repeat mask and hitting any of 12, 28 or 60,
 			// in which case the counter reset (and hence the start of drawing) will occur in 4/5 cycles
-			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
+			uint8_t repeatMask = _playerAndMissileSize[c&3] & 7;
 			if(
 				( _objectCounter[c] == 12 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
 				( _objectCounter[c] == 28 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
@@ -129,7 +129,6 @@ void Machine::update_upcoming_events()
 		}
 
 		_objectCounter[c] = (_objectCounter[c] + 1)%160;
-//		if(c == 0) printf(".");
 	}
 }
 
@@ -290,7 +289,6 @@ void Machine::output_pixels(unsigned int count)
 				{
 					_objectCounter[c] = (_objectCounter[c] + 1)%160;
 					_pixelCounter[c] ++; // TODO: this isn't always a straight increment
-//					if(c == 0) printf("+");
 				}
 			}
 		}
@@ -342,7 +340,6 @@ void Machine::output_pixels(unsigned int count)
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{
-//			printf("\n");
 			_vBlankExtend = false;
 			set_ready_line(false);
 		}
@@ -543,7 +540,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x22:
 					case 0x23:
 					case 0x24:
-						_objectMotion[decodedAddress - 0x20] = (*value) & 0xf;
+						_objectMotion[decodedAddress - 0x20] = (*value) >> 4;
 					break;
 
 					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
