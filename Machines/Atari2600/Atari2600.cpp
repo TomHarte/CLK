@@ -117,9 +117,9 @@ void Machine::update_upcoming_events()
 			// in which case the counter reset (and hence the start of drawing) will occur in 4/5 cycles
 			uint8_t repeatMask = _playerAndMissileSize[c&1] & 7;
 			if(
-				( _objectCounter[c] == 12 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
-				( _objectCounter[c] == 28 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
-				( _objectCounter[c] == 60 && ((repeatMask == 4) || (repeatMask == 6)) )
+				( _objectCounter[c] == 16 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
+				( _objectCounter[c] == 32 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
+				( _objectCounter[c] == 64 && ((repeatMask == 4) || (repeatMask == 6)) )
 			)
 			{
 				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
