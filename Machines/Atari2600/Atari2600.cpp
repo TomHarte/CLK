@@ -115,7 +115,7 @@ void Machine::update_upcoming_events()
 		{
 			// otherwise visibility is determined by an appropriate repeat mask and hitting any of 12, 28 or 60,
 			// in which case the counter reset (and hence the start of drawing) will occur in 4/5 cycles
-			uint8_t repeatMask = _playerAndMissileSize[c&3] & 7;
+			uint8_t repeatMask = _playerAndMissileSize[c&1] & 7;
 			if(
 				( _objectCounter[c] == 12 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
 				( _objectCounter[c] == 28 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
@@ -154,29 +154,29 @@ uint8_t Machine::get_output_pixel()
 		if(_playerGraphics[c]) {
 			// figure out player colour
 			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
-			if(_pixelCounter[c] < 8)
-				playerPixels[c] = (_playerGraphics[c] >> (_pixelCounter[c] ^ flipMask)) &1;
+			if(_pixelCounter[c] < 32)
+				playerPixels[c] = (_playerGraphics[c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) &1;
 		}
 
 		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
 			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-			missilePixels[c] = (_pixelCounter[c+2] < missileSize) ? 1 : 0;
+			missilePixels[c] = ((_pixelCounter[c+2] >> 2) < missileSize) ? 1 : 0;
 		}
 
 		uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 		switch(repeatMask)
 		{
 			default:
-				_pixelCounter[c]++;
-				_pixelCounter[c+2]++;
+				_pixelCounter[c]+=4;
+				_pixelCounter[c+2]+=4;
 			break;
 			case 5:
-				_pixelCounter[c] += ((_objectCounter[c] >> 1)&1);
-				_pixelCounter[c+2] += ((_objectCounter[c+2] >> 1)&1);
+				_pixelCounter[c] += 2;
+				_pixelCounter[c+2] += 2;
 			break;
 			case 7:
-				_pixelCounter[c] += ((_objectCounter[c] >> 2)&1);
-				_pixelCounter[c+2] += ((_objectCounter[c+2] >> 2)&1);
+				_pixelCounter[c] += 1;
+				_pixelCounter[c+2] += 1;
 			break;
 		}
 	}
