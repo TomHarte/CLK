@@ -206,25 +206,25 @@ uint8_t Machine::get_output_pixel()
 	}
 
 	// accumulate collisions
-/*	if(playerPixels[0] | playerPixels[1]) {
+	if(playerPixels[0] | playerPixels[1]) {
 		_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
 		_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
 
-		_collisions[2] |= ((playfieldPixel & playerPixels[0]) << 7)		| ((ballPixel & playerPixels[0]) << 6);
-		_collisions[3] |= ((playfieldPixel & playerPixels[1]) << 7)		| ((ballPixel & playerPixels[1]) << 6);
+		_collisions[2] |= ((_playfieldOutput & playerPixels[0]) << 7)	| ((ballPixel & playerPixels[0]) << 6);
+		_collisions[3] |= ((_playfieldOutput & playerPixels[1]) << 7)	| ((ballPixel & playerPixels[1]) << 6);
 
 		_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7);
 	}
 
-	if(playfieldPixel | ballPixel) {
-		_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
-		_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
+	if(_playfieldOutput | ballPixel) {
+		_collisions[4] |= ((_playfieldOutput & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
+		_collisions[5] |= ((_playfieldOutput & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
 
-		_collisions[6] |= ((playfieldPixel & ballPixel) << 7);
+		_collisions[6] |= ((_playfieldOutput & ballPixel) << 7);
 	}
 
 	if(missilePixels[0] & missilePixels[1])
-		_collisions[7] |= (1 << 6);*/
+		_collisions[7] |= (1 << 6);
 
 	// apply appropriate priority to pick a colour
 	uint8_t playfieldPixel = _playfieldOutput | ballPixel;
