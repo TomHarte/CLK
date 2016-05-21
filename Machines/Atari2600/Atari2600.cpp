@@ -79,6 +79,9 @@ Machine::~Machine()
 
 void Machine::update_timers(int mask)
 {
+	unsigned int upcomingEventsPointerPlus1 = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus2 = (_upcomingEventsPointer + 2)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus3 = (_upcomingEventsPointer + 3)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
@@ -91,8 +94,8 @@ void Machine::update_timers(int mask)
 		if(!(_horizontalTimer&3))
 		{
 			unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-			_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Playfield;
-			_upcomingEvents[upcomingEventsPointerPlus4].playfieldOutput = _playfield[(offset >> 2)%40];
+			_upcomingEvents[upcomingEventsPointerPlus2].updates |= Event::Action::Playfield;
+			_upcomingEvents[upcomingEventsPointerPlus2].playfieldOutput = _playfield[(offset >> 2)%40];
 		}
 	}
 
@@ -102,8 +105,8 @@ void Machine::update_timers(int mask)
 	{
 		if(!_objectCounter[4])
 		{
-			_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::ResetPixelCounter;
-			_upcomingEvents[upcomingEventsPointerPlus4].pixelCounterMask |= (1 << 4);
+			_upcomingEvents[upcomingEventsPointerPlus2].updates |= Event::Action::ResetPixelCounter;
+			_upcomingEvents[upcomingEventsPointerPlus2].pixelCounterMask |= (1 << 4);
 		}
 		_objectCounter[4] = (_objectCounter[4] + 1)%160;
 		_pixelCounter[4] ++;
@@ -118,7 +121,8 @@ void Machine::update_timers(int mask)
 			// 5/6 clocks ahead from 159
 			if(_objectCounter[c] == 159)
 			{
-				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus6 : upcomingEventsPointerPlus5;
+				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus4 : upcomingEventsPointerPlus3;
+//				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus6 : upcomingEventsPointerPlus5;
 				_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
 				_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
 			}
@@ -133,7 +137,8 @@ void Machine::update_timers(int mask)
 					( _objectCounter[c] == 64 && ((repeatMask == 4) || (repeatMask == 6)) )
 				)
 				{
-					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
+					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus3 : upcomingEventsPointerPlus2;
+//					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
 					_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
 					_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
 				}
@@ -257,6 +262,10 @@ void Machine::output_pixels(unsigned int count)
 			default:										state = OutputState::Pixel;											break;
 		}
 
+		// grab background colour and schedule pixel counter resets
+		if(state == OutputState::Pixel)
+			update_timers(~0);
+
 		// if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
 			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
@@ -264,10 +273,6 @@ void Machine::output_pixels(unsigned int count)
 
 		// write that state as the one that will become effective in four clocks
 		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
-
-		// grab background colour and schedule pixel counter resets
-		if(state == OutputState::Pixel)
-			update_timers(~0);
 
 		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
