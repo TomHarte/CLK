@@ -118,7 +118,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		void output_pixels(unsigned int count);
 		uint8_t get_output_pixel();
-		void update_upcoming_events();
+		void update_timers(int mask);
 		Outputs::CRT::CRT *_crt;
 
 		// latched output state
