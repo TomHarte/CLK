@@ -80,8 +80,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		// player registers
 		uint8_t _playerColour[2];
 		uint8_t _playerReflection[2];
-		uint8_t _playerGraphicsLatch[2], _playerGraphics[2];
-		uint8_t _playerGraphicsLatchEnable[2];
+		uint8_t _playerGraphics[2][2];
+		uint8_t _playerGraphicsSelector[2];
 		bool _playerStart[2];
 
 		// player + missile registers

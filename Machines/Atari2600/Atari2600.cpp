@@ -191,7 +191,7 @@ uint8_t Machine::get_output_pixel()
 			// figure out player colour
 			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
 			if(_pixelCounter[c] < 32)
-				playerPixels[c] = (_playerGraphics[c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) &1;
+				playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) &1;
 		}
 
 		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
@@ -535,10 +535,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_ballGraphicsEnable = _ballGraphicsEnableLatch;
 					case 0x1b: {
 						int index = decodedAddress - 0x1b;
-						_playerGraphicsLatch[index] = *value;
-						if(!(_playerGraphicsLatchEnable[index]&1))
-							_playerGraphics[index] = _playerGraphicsLatch[index];
-						_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
+						_playerGraphics[0][index] = *value;
+						_playerGraphics[1][index^1] = _playerGraphics[0][index^1];
 					} break;
 					case 0x1d: _missileGraphicsEnable[0] = *value;	break;
 					case 0x1e: _missileGraphicsEnable[1] = *value;	break;
@@ -556,8 +554,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_objectMotion[decodedAddress - 0x20] = *value;
 					break;
 
-					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
-					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
+					case 0x25: _playerGraphicsSelector[0] = (*value)&1;	break;
+					case 0x26: _playerGraphicsSelector[1] = (*value)&1;	break;
 					case 0x27: _ballGraphicsEnableDelay = *value;		break;
 
 					case 0x28:
