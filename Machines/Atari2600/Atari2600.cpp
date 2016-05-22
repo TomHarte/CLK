@@ -195,7 +195,7 @@ uint8_t Machine::get_output_pixel()
 				playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) &1;
 		}
 
-		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
+		if((_missileGraphicsEnable[c]&2) && !_missileGraphicsReset[c]) {
 			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
 			missilePixels[c] = (_pixelCounter[c+2] < missileSize) ? 1 : 0;
 		}
@@ -578,9 +578,25 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x28:
 					case 0x29:
-						if(!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
-							_objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
-						_missileGraphicsReset[decodedAddress - 0x28] = *value;
+					{
+						int index = decodedAddress - 0x28;
+						if(!(*value&0x02) && _missileGraphicsReset[index])
+						{
+							_objectCounter[index + 2] = _objectCounter[index];
+
+							uint8_t repeatMask = _playerAndMissileSize[index] & 7;
+							int extra_offset;
+							switch(repeatMask)
+							{
+								default:	extra_offset = 3;	break;
+								case 5:		extra_offset = 6;	break;
+								case 7:		extra_offset = 10;	break;
+							}
+
+							_objectCounter[index + 2] = (_objectCounter[index + 2] + extra_offset)%160;
+						}
+						_missileGraphicsReset[index] = (*value) & 0x02;
+					}
 					break;
 
 					case 0x2a:
