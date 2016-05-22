@@ -597,6 +597,7 @@ template <class T> class Processor {
 
 						case CycleFetchOperation: {
 							_lastOperationPC = _pc;
+//							printf("%04x\n", _pc.full);
 							_pc.full++;
 							read_op(_operation, _lastOperationPC.full);
 

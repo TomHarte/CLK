@@ -61,14 +61,16 @@ class Machine: public CPU6502::Processor<Machine> {
 		struct Event {
 			enum Action {
 				Playfield			= 1 << 0,
-				ResetPixelCounter	= 1 << 1,
-				HMoveCompare		= 1 << 2,
-				HMoveDecrement		= 1 << 3,
+
+				ResetPixelCounter	= 1 << 3,
+
+				HMoveCompare		= 1 << 4,
+				HMoveDecrement		= 1 << 5,
 			};
 			int updates;
 
 			int pixelCounterMask;
-			uint8_t playfieldOutput;
+			uint8_t playfieldOutput, player0Output, player1Output;
 			OutputState state;
 
 			Event() : updates(0), pixelCounterMask(0) {}
@@ -91,8 +93,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _missileGraphicsEnable[2], _missileGraphicsReset[2];
 
 		// ball registers
-		uint8_t _ballGraphicsEnable, _ballGraphicsEnableLatch;
-		uint8_t _ballGraphicsEnableDelay;
+		uint8_t _ballGraphicsEnable[2];
+		uint8_t _ballGraphicsSelector;
 
 		// graphics output
 		unsigned int _horizontalTimer;

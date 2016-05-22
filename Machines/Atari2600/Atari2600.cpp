@@ -79,6 +79,8 @@ Machine::~Machine()
 
 void Machine::update_timers(int mask)
 {
+//	if(_vBlankExtend) printf(".");
+
 //	unsigned int upcomingEventsPointerPlus1 = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus2 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus3 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
@@ -153,15 +155,9 @@ void Machine::update_timers(int mask)
 			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 			switch(repeatMask)
 			{
-				default:
-					_pixelCounter[c] += 4;
-				break;
-				case 5:
-					_pixelCounter[c] += 2;
-				break;
-				case 7:
-					_pixelCounter[c] += 1;
-				break;
+				default:	_pixelCounter[c] += 4;	break;
+				case 5:		_pixelCounter[c] += 2;	break;
+				case 7:		_pixelCounter[c] += 1;	break;
 			}
 			_objectCounter[c] = (_objectCounter[c] + 1)%160;
 		}
@@ -183,7 +179,7 @@ uint8_t Machine::get_output_pixel()
 
 	// get the ball proposed state
 	uint8_t ballPixel = 0;
-	if(_ballGraphicsEnable&2) {
+	if(_ballGraphicsEnable[_ballGraphicsSelector]&2) {
 		int ballSize = 1 << ((_playfieldControl >> 4)&3);
 		ballPixel = (_pixelCounter[4] < ballSize) ? 1 : 0;
 	}
@@ -231,10 +227,10 @@ uint8_t Machine::get_output_pixel()
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
-		if(missilePixels[1]) outputColour = _playerColour[1];
-		if(missilePixels[0]) outputColour = _playerColour[0];
-//		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
-//		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
+//		if(missilePixels[1]) outputColour = _playerColour[1];
+//		if(missilePixels[0]) outputColour = _playerColour[0];
+		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
+		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
 	// return colour
@@ -263,6 +259,10 @@ void Machine::output_pixels(unsigned int count)
 			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
 			default:										state = OutputState::Pixel;											break;
 		}
+//		if(!(_horizontalTimer&3) && _vBlankExtend)
+//		{
+//			printf("%c", 'a' + state);
+//		}
 
 		// grab background colour and schedule pixel counter resets
 		if(state == OutputState::Pixel)
@@ -305,11 +305,20 @@ void Machine::output_pixels(unsigned int count)
 				_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
 				_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 			}
+//			else
+//			{
+//				_vBlankExtend = false;
+//			}
 		}
 
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
 		{
 			update_timers(_hMoveFlags);
+//			for(int c = 0; c < 5; c++)
+//			{
+//				printf("%c", _hMoveFlags & (1 << c) ? 'X' : '-');
+//			}
+//			printf(" ");
 		}
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 
@@ -382,6 +391,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	output_pixels(cycles_run_for * 3);
+
+//	printf("/%d/", _horizontalTimer);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -458,10 +469,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x02:
 //						printf("%d\n", _horizontalTimer);
+//						printf("W");
 						if(_horizontalTimer) set_ready_line(true);
 					break;
 					case 0x03:
-						_horizontalTimer = 0;
+						_horizontalTimer = 0;	// TODO: this should be delayed by four cycles, affecting phase;
+												// need to fix wait logic.
 					break;
 
 					case 0x04:
@@ -539,7 +552,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					break;
 
 					case 0x1c:
-						_ballGraphicsEnable = _ballGraphicsEnableLatch;
+						_ballGraphicsEnable[1] = _ballGraphicsEnable[0];
 					case 0x1b: {
 						int index = decodedAddress - 0x1b;
 						_playerGraphics[0][index] = *value;
@@ -548,9 +561,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1d: _missileGraphicsEnable[0] = *value;	break;
 					case 0x1e: _missileGraphicsEnable[1] = *value;	break;
 					case 0x1f:
-						_ballGraphicsEnableLatch = *value;
-						if(!(_ballGraphicsEnableDelay&1))
-							_ballGraphicsEnable = _ballGraphicsEnableLatch;
+						_ballGraphicsEnable[0] = *value;
 					break;
 
 					case 0x20:
@@ -561,9 +572,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_objectMotion[decodedAddress - 0x20] = *value;
 					break;
 
-					case 0x25: _playerGraphicsSelector[0] = (*value)&1;	break;
-					case 0x26: _playerGraphicsSelector[1] = (*value)&1;	break;
-					case 0x27: _ballGraphicsEnableDelay = *value;		break;
+					case 0x25: _playerGraphicsSelector[0]	= (*value)&1;	break;
+					case 0x26: _playerGraphicsSelector[1]	= (*value)&1;	break;
+					case 0x27: _ballGraphicsSelector		= (*value)&1;	break;
 
 					case 0x28:
 					case 0x29:
@@ -587,6 +598,31 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						// schedule new moves
 						_hMoveFlags = 0x1f;
 						_hMoveCounter = 15;
+
+//						static int lc = 0;
+//						lc++;
+//						if(lc == 2813)
+//							printf("{%d}", lc);
+
+//						printf("/%d/", _horizontalTimer);
+//						printf("%d [", _horizontalTimer);
+//						for(int c = 0; c < 5; c++)
+//						{
+//							printf("%d ", _objectMotion[c] >> 4);
+//						}
+//						printf("]");
+//						printf("[");
+//						for(int c = 0; c < 5; c++)
+//						{
+//							printf("%d ", _objectCounter[c]);
+//						}
+//						printf("]\n");
+
+//						for(int c = 0; c < 5; c++)
+//						{
+//							if(_objectMotion[c] >> 4)
+//								printf("!");
+//						}
 
 						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
 						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
@@ -622,6 +658,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x01:
 					case 0x03:
 						// TODO: port DDR
+						printf("!!!DDR!!!");
 					break;
 					case 0x04:
 						returnValue &= _piaTimerValue >> _piaTimerShift;
