@@ -223,12 +223,10 @@ uint8_t Machine::get_output_pixel()
 		_collisions[7] |= (1 << 6);
 
 	// apply appropriate priority to pick a colour
-	uint8_t playfieldPixel = _playfieldOutput;// | ballPixel;
+	uint8_t playfieldPixel = _playfieldOutput | ballPixel;
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
-//		if(missilePixels[1]) outputColour = _playerColour[1];
-//		if(missilePixels[0]) outputColour = _playerColour[0];
 		if(playerPixels[1] || missilePixels[1]) outputColour = _playerColour[1];
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
