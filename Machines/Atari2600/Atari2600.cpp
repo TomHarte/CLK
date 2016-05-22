@@ -378,6 +378,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 1;
+	unsigned int additional_pixels = 0;
 
 	// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
 	// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
@@ -386,9 +387,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(operation == CPU6502::BusOperation::Ready) {
 		unsigned int distance_to_end_of_ready = horizontalTimerPeriod - _horizontalTimer;
 		cycles_run_for = distance_to_end_of_ready / 3;
+		additional_pixels = distance_to_end_of_ready % 3;
 	}
 
-	output_pixels(cycles_run_for * 3);
+	output_pixels(additional_pixels + cycles_run_for * 3);
 
 //	printf("/%d/", _horizontalTimer);
 
@@ -471,8 +473,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(_horizontalTimer) set_ready_line(true);
 					break;
 					case 0x03:
-						_horizontalTimer = 0;	// TODO: this should be delayed by four cycles, affecting phase;
-												// need to fix wait logic.
+						// Reset is delayed by four cycles.
+						_horizontalTimer = horizontalTimerPeriod - 4;
 					break;
 
 					case 0x04:
@@ -699,7 +701,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		_piaTimerStatus |= 0xc0;
 	}
 
-//	output_pixels(cycles_run_for * 3);
+//	output_pixels(additional_pixels + cycles_run_for * 3);
 
 	return cycles_run_for;
 }
