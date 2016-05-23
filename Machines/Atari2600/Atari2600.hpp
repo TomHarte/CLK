@@ -64,14 +64,17 @@ class Machine: public CPU6502::Processor<Machine> {
 
 				ResetPixelCounter	= 1 << 3,
 
-				HMoveCompare		= 1 << 4,
-				HMoveDecrement		= 1 << 5,
+				HMoveSetup			= 1 << 4,
+				HMoveCompare		= 1 << 5,
+				HMoveDecrement		= 1 << 6,
 			};
 			int updates;
 
 			int pixelCounterMask;
-			uint8_t playfieldOutput, player0Output, player1Output;
 			OutputState state;
+
+			uint8_t playfieldOutput, playerOutput[2];
+			uint8_t ballPixel;
 
 			Event() : updates(0), pixelCounterMask(0) {}
 		} _upcomingEvents[number_of_upcoming_events];

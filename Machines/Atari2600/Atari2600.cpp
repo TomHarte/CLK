@@ -79,16 +79,9 @@ Machine::~Machine()
 
 void Machine::update_timers(int mask)
 {
-//	if(_vBlankExtend) printf(".");
-
-//	unsigned int upcomingEventsPointerPlus1 = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
-	unsigned int upcomingEventsPointerPlus2 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
-	unsigned int upcomingEventsPointerPlus3 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
-	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
-//	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
-//	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
-//	unsigned int upcomingEventsPointerPlus7 = (_upcomingEventsPointer + 7)%number_of_upcoming_events;
-//	unsigned int upcomingEventsPointerPlus8 = (_upcomingEventsPointer + 8)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
+	unsigned int upcomingEventsPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
 
 	// grab the background now, for display in four clocks
 	if(mask & (1 << 5))
@@ -96,8 +89,8 @@ void Machine::update_timers(int mask)
 		if(!(_horizontalTimer&3))
 		{
 			unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-			_upcomingEvents[upcomingEventsPointerPlus2].updates |= Event::Action::Playfield;
-			_upcomingEvents[upcomingEventsPointerPlus2].playfieldOutput = _playfield[(offset >> 2)%40];
+			_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Playfield;
+			_upcomingEvents[upcomingEventsPointerPlus4].playfieldOutput = _playfield[(offset >> 2)%40];
 		}
 	}
 
@@ -107,8 +100,8 @@ void Machine::update_timers(int mask)
 	{
 		if(!_objectCounter[4])
 		{
-			_upcomingEvents[upcomingEventsPointerPlus2].updates |= Event::Action::ResetPixelCounter;
-			_upcomingEvents[upcomingEventsPointerPlus2].pixelCounterMask |= (1 << 4);
+			_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::ResetPixelCounter;
+			_upcomingEvents[upcomingEventsPointerPlus4].pixelCounterMask |= (1 << 4);
 		}
 		_objectCounter[4] = (_objectCounter[4] + 1)%160;
 		_pixelCounter[4] ++;
@@ -123,8 +116,7 @@ void Machine::update_timers(int mask)
 			// 5/6 clocks ahead from 159
 			if(_objectCounter[c] == 159)
 			{
-				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus4 : upcomingEventsPointerPlus3;
-//				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus6 : upcomingEventsPointerPlus5;
+				unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus6 : upcomingEventsPointerPlus5;
 				_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
 				_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
 			}
@@ -139,8 +131,7 @@ void Machine::update_timers(int mask)
 					( _objectCounter[c] == 64 && ((repeatMask == 4) || (repeatMask == 6)) )
 				)
 				{
-					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus3 : upcomingEventsPointerPlus2;
-//					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
+					unsigned int actionSlot = (c < 2) ? upcomingEventsPointerPlus5 : upcomingEventsPointerPlus4;
 					_upcomingEvents[actionSlot].updates |= Event::Action::ResetPixelCounter;
 					_upcomingEvents[actionSlot].pixelCounterMask |= (1 << c);
 				}
@@ -148,6 +139,7 @@ void Machine::update_timers(int mask)
 		}
 	}
 
+	// update the pixel counters
 	for(int c = 0; c < 2; c++)
 	{
 		if(mask & (1 << c))
@@ -168,6 +160,23 @@ void Machine::update_timers(int mask)
 			_pixelCounter[c+2] ++;
 		}
 	}
+
+	// determine the pixel masks
+//	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
+//	for(int c = 0; c < 2; c++)
+//	{
+//		if(_playerGraphics[c]) {
+//			// figure out player colour
+//			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
+//			if(_pixelCounter[c] < 32)
+//				playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) &1;
+//		}
+//
+//		if((_missileGraphicsEnable[c]&2) && !_missileGraphicsReset[c]) {
+//			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
+//			missilePixels[c] = (_pixelCounter[c+2] < missileSize) ? 1 : 0;
+//		}
+//	}
 }
 
 uint8_t Machine::get_output_pixel()
@@ -288,6 +297,25 @@ void Machine::output_pixels(unsigned int count)
 			_upcomingEvents[_upcomingEventsPointer].pixelCounterMask = 0;
 		}
 
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
+		{
+			_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
+			_vBlankExtend = true;
+
+			// clear any ongoing moves
+			if(_hMoveFlags)
+			{
+				for(int c = 0; c < number_of_upcoming_events; c++)
+				{
+					_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
+				}
+			}
+
+			// schedule new moves
+			_hMoveFlags = 0x1f;
+			_hMoveCounter = 15;
+		}
+
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
 		{
 			for(int c = 0; c < 5; c++)
@@ -303,10 +331,6 @@ void Machine::output_pixels(unsigned int count)
 				_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
 				_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 			}
-//			else
-//			{
-//				_vBlankExtend = false;
-//			}
 		}
 
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
@@ -600,50 +624,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					break;
 
 					case 0x2a:
-						_vBlankExtend = true;
-
-						// clear any ongoing moves
-						if(_hMoveFlags)
-						{
-							for(int c = 0; c < number_of_upcoming_events; c++)
-							{
-								_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
-							}
-						}
-
-						// schedule new moves
-						_hMoveFlags = 0x1f;
-						_hMoveCounter = 15;
-
-//						static int lc = 0;
-//						lc++;
-//						if(lc == 2813)
-//							printf("{%d}", lc);
-
-//						printf("/%d/", _horizontalTimer);
-//						printf("%d [", _horizontalTimer);
-//						for(int c = 0; c < 5; c++)
-//						{
-//							printf("%d ", _objectMotion[c] >> 4);
-//						}
-//						printf("]");
-//						printf("[");
-//						for(int c = 0; c < 5; c++)
-//						{
-//							printf("%d ", _objectCounter[c]);
-//						}
-//						printf("]\n");
-
-//						for(int c = 0; c < 5; c++)
-//						{
-//							if(_objectMotion[c] >> 4)
-//								printf("!");
-//						}
-
 						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
 						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
 						// in five cycles from now
-						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveSetup;
 					break;
 					case 0x2b:
 						_objectMotion[0] =
