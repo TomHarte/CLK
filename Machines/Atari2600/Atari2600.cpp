@@ -23,7 +23,8 @@ Machine::Machine() :
 	_rom(nullptr),
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
-	_upcomingEventsPointer(0)
+	_upcomingEventsPointer(0),
+	_upcomingPixelsPointer(0)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
@@ -83,6 +84,8 @@ void Machine::update_timers(int mask)
 	unsigned int upcomingEventsPointerPlus1 = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 	unsigned int upcomingEventsPointerPlus2 = (_upcomingEventsPointer + 2)%number_of_upcoming_events;
 
+	unsigned int upcomingPixelsPointerPlus4 = (_upcomingPixelsPointer + 4)%number_of_upcoming_events;
+
 	// grab the background now, for display in four clocks
 	if(mask & (1 << 5))
 	{
@@ -90,7 +93,7 @@ void Machine::update_timers(int mask)
 		{
 			unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
 			_upcomingEvents[upcomingEventsPointerPlus4].updates |= Event::Action::Playfield;
-			_upcomingEvents[upcomingEventsPointerPlus4].pixels |= _playfield[(offset >> 2)%40] << 5;
+			_upcomingEvents[upcomingEventsPointerPlus4].playfieldPixel = _playfield[(offset >> 2)%40];
 		}
 	}
 
@@ -102,7 +105,7 @@ void Machine::update_timers(int mask)
 
 		if(_pixelCounter[4] < 8 && _ballGraphicsEnable[_ballGraphicsSelector]&2) {
 			int ballSize = 1 << ((_playfieldControl >> 4)&3);
-			_upcomingEvents[upcomingEventsPointerPlus4].pixels |= (_pixelCounter[4] < ballSize) ? (1 << 4) : 0;
+			_upcomingPixels[upcomingPixelsPointerPlus4] |= (_pixelCounter[4] < ballSize) ? (1 << 4) : 0;
 		}
 
 		_objectCounter[4] = (_objectCounter[4] + 1)%160;
@@ -146,12 +149,15 @@ void Machine::update_timers(int mask)
 	{
 		if(mask & (1 << c))
 		{
+			int lastSpriteCounter = _spriteCounter[c];
+			_spriteCounter[c]++;
+
 			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 			switch(repeatMask)
 			{
-				default:	_pixelCounter[c] += 4;	break;
-				case 5:		_pixelCounter[c] += 2;	break;
-				case 7:		_pixelCounter[c] += 1;	break;
+				default:	_pixelCounter[c] ++;	break;
+				case 5:		_pixelCounter[c] += ((lastSpriteCounter ^ _spriteCounter[c]) >> 1)&1;	break;
+				case 7:		_pixelCounter[c] += ((lastSpriteCounter ^ _spriteCounter[c]) >> 2)&1;	break;
 			}
 			_objectCounter[c] = (_objectCounter[c] + 1)%160;
 		}
@@ -174,19 +180,23 @@ void Machine::update_timers(int mask)
 		_upcomingEvents[_upcomingEventsPointer].pixelCounterMask = 0;
 	}
 
+	// reload the playfield pixel if appropriate
+	if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
+	{
+		_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldPixel;
+	}
+
 	// determine the pixel masks
 	for(int c = 0; c < 2; c++)
 	{
-		if(_playerGraphics[c]) {
-			// figure out player colour
+		if(_playerGraphics[c] && _pixelCounter[c] < 32) {
 			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
-			if(_pixelCounter[c] < 32)
-				_upcomingEvents[upcomingEventsPointerPlus4].pixels |= ((_playerGraphics[_playerGraphicsSelector[c]][c] >> ((_pixelCounter[c] >> 2) ^ flipMask)) & 1) << c;
+			_upcomingPixels[upcomingPixelsPointerPlus4] |= ((_playerGraphics[_playerGraphicsSelector[c]][c] >> (_pixelCounter[c] ^ flipMask)) & 1) << c;
 		}
 
 		if(_pixelCounter[c+2] < 8 && (_missileGraphicsEnable[c]&2) && !_missileGraphicsReset[c]) {
 			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-			_upcomingEvents[upcomingEventsPointerPlus4].pixels |= ((_pixelCounter[c+2] < missileSize) ? 1 : 0) << (c + 2);
+			_upcomingPixels[upcomingPixelsPointerPlus4] |= ((_pixelCounter[c+2] < missileSize) ? 1 : 0) << (c + 2);
 		}
 	}
 }
@@ -199,18 +209,18 @@ uint8_t Machine::get_output_pixel()
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
 	// get the ball proposed state
-	uint8_t ballPixel = (_upcomingEvents[_upcomingEventsPointer].pixels >> 4) & 1;
+	uint8_t ballPixel = (_upcomingPixels[_upcomingPixelsPointer] >> 4) & 1;
 
 	// deal with the sprites
 	uint8_t playerPixels[2] =
 	{
-		static_cast<uint8_t>((_upcomingEvents[_upcomingEventsPointer].pixels >> 0) & 1),
-		static_cast<uint8_t>((_upcomingEvents[_upcomingEventsPointer].pixels >> 1) & 1)
+		static_cast<uint8_t>((_upcomingPixels[_upcomingPixelsPointer] >> 0) & 1),
+		static_cast<uint8_t>((_upcomingPixels[_upcomingPixelsPointer] >> 1) & 1)
 	};
 	uint8_t missilePixels[2] =
 	{
-		static_cast<uint8_t>((_upcomingEvents[_upcomingEventsPointer].pixels >> 2) & 1),
-		static_cast<uint8_t>((_upcomingEvents[_upcomingEventsPointer].pixels >> 3) & 1),
+		static_cast<uint8_t>((_upcomingPixels[_upcomingPixelsPointer] >> 2) & 1),
+		static_cast<uint8_t>((_upcomingPixels[_upcomingPixelsPointer] >> 3) & 1),
 	};
 
 	// accumulate collisions
@@ -243,6 +253,10 @@ uint8_t Machine::get_output_pixel()
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
+	// update pixel chain
+	_upcomingPixels[_upcomingPixelsPointer] = 0;
+	_upcomingPixelsPointer = (_upcomingPixelsPointer + 1)%number_of_upcoming_events;
+
 	// return colour
 	return outputColour;
 }
@@ -269,12 +283,7 @@ void Machine::output_pixels(unsigned int count)
 			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
 			default:										state = OutputState::Pixel;											break;
 		}
-//		if(!(_horizontalTimer&3) && _vBlankExtend)
-//		{
-//			printf("%c", 'a' + state);
-//		}
-
-		// grab background colour and schedule pixel counter resets
+		// update pixel timers
 		if(state == OutputState::Pixel)
 			update_timers(~0);
 
@@ -287,9 +296,6 @@ void Machine::output_pixels(unsigned int count)
 		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
 
 		// apply any queued changes and flush the record
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
-			_playfieldOutput = (_upcomingEvents[_upcomingEventsPointer].pixels >> 5)&1;
-
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
 		{
 			_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
@@ -329,12 +335,8 @@ void Machine::output_pixels(unsigned int count)
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
 		{
 			update_timers(_hMoveFlags);
-//			for(int c = 0; c < 5; c++)
-//			{
-//				printf("%c", _hMoveFlags & (1 << c) ? 'X' : '-');
-//			}
-//			printf(" ");
 		}
+
 		// read that state
 		state = _upcomingEvents[_upcomingEventsPointer].state;
 		OutputState actingState = state;
@@ -376,7 +378,6 @@ void Machine::output_pixels(unsigned int count)
 
 		// advance
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
-		_upcomingEvents[_upcomingEventsPointer].pixels = 0;
 		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
 		// advance horizontal timer, perform reset actions if requested

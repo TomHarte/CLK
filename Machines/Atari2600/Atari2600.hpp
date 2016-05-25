@@ -72,11 +72,14 @@ class Machine: public CPU6502::Processor<Machine> {
 
 			int pixelCounterMask;
 			OutputState state;
-			uint8_t pixels;
+			uint8_t playfieldPixel;
 
-			Event() : updates(0), pixelCounterMask(0), pixels(0) {}
+			Event() : updates(0), pixelCounterMask(0), playfieldPixel(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
 		unsigned int _upcomingEventsPointer;
+
+		uint8_t _upcomingPixels[number_of_upcoming_events];
+		unsigned int _upcomingPixelsPointer;
 
 		uint8_t _playfieldOutput;
 
@@ -109,7 +112,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// object counters
 		uint8_t _objectCounter[5];
-		int _pixelCounter[5];
+		int _pixelCounter[5], _spriteCounter[2];
 
 		// joystick state
 		uint8_t _piaDataDirection[2];
