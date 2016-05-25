@@ -16,7 +16,7 @@
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 6;
+const unsigned int number_of_upcoming_events = 7;
 
 class Machine: public CPU6502::Processor<Machine> {
 
@@ -61,25 +61,19 @@ class Machine: public CPU6502::Processor<Machine> {
 		struct Event {
 			enum Action {
 				Playfield			= 1 << 0,
-
-				ResetPixelCounter	= 1 << 3,
-
-				HMoveSetup			= 1 << 4,
-				HMoveCompare		= 1 << 5,
-				HMoveDecrement		= 1 << 6,
+				HMoveSetup			= 1 << 1,
+				HMoveCompare		= 1 << 2,
+				HMoveDecrement		= 1 << 3,
 			};
 			int updates;
 
-			int pixelCounterMask;
 			OutputState state;
+			int pixelCounterResetMask;
 			uint8_t playfieldPixel;
 
-			Event() : updates(0), pixelCounterMask(0), playfieldPixel(0) {}
+			Event() : updates(0), pixelCounterResetMask(~0), playfieldPixel(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
 		unsigned int _upcomingEventsPointer;
-
-		uint8_t _upcomingPixels[number_of_upcoming_events];
-		unsigned int _upcomingPixelsPointer;
 
 		uint8_t _playfieldOutput;
 
@@ -108,11 +102,12 @@ class Machine: public CPU6502::Processor<Machine> {
 		// horizontal motion control
 		uint8_t _hMoveCounter;
 		uint8_t _hMoveFlags;
-		uint8_t _objectMotion[5];
 
 		// object counters
-		uint8_t _objectCounter[5];
-		int _pixelCounter[5], _spriteCounter[2];
+		struct {
+			int count, pixel, broad_pixel;
+			uint8_t motion;
+		} _objectCounter[5];
 
 		// joystick state
 		uint8_t _piaDataDirection[2];
