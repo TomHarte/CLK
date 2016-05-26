@@ -83,15 +83,12 @@ void Machine::update_timers(int mask)
 	unsigned int upcomingPointerPlus5 = (_upcomingEventsPointer + 5)%number_of_upcoming_events;
 	unsigned int upcomingPointerPlus6 = (_upcomingEventsPointer + 6)%number_of_upcoming_events;
 
-	// grab the background now, for display in four clocks
-	if(mask & (1 << 5))
+	// grab the background now, for application in four clocks
+	if(mask & (1 << 5) && !(_horizontalTimer&3))
 	{
-		if(!(_horizontalTimer&3))
-		{
-			unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
-			_upcomingEvents[upcomingPointerPlus4].updates |= Event::Action::Playfield;
-			_upcomingEvents[upcomingPointerPlus4].playfieldPixel = _playfield[(offset >> 2)%40];
-		}
+		unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
+		_upcomingEvents[upcomingPointerPlus4].updates |= Event::Action::Playfield;
+		_upcomingEvents[upcomingPointerPlus4].playfieldPixel = _playfield[(offset >> 2)%40];
 	}
 
 	if(mask & (1 << 4))
@@ -99,8 +96,6 @@ void Machine::update_timers(int mask)
 		// the ball becomes visible whenever it hits zero, regardless of whether its status
 		// is the result of a counter rollover or a programmatic reset
 		if(!_objectCounter[4].count) _upcomingEvents[upcomingPointerPlus4].pixelCounterResetMask &= ~(1 << 4);
-		_objectCounter[4].count = (_objectCounter[4].count + 1)%160;
-		_objectCounter[4].pixel ++;
 	}
 
 	// check for player and missle triggers
@@ -136,25 +131,27 @@ void Machine::update_timers(int mask)
 	// update the pixel counters
 	for(int c = 0; c < 2; c++)
 	{
-		if(mask & (1 << c))
+		if(mask&(1 << c))
 		{
-			int last_broad_pixel = _objectCounter[c].broad_pixel;
 			_objectCounter[c].broad_pixel++;
 
 			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
 			switch(repeatMask)
 			{
 				default:	_objectCounter[c].pixel ++;	break;
-				case 5:		_objectCounter[c].pixel += ((last_broad_pixel ^ _objectCounter[c].broad_pixel) >> 1)&1;	break;
-				case 7:		_objectCounter[c].pixel += ((last_broad_pixel ^ _objectCounter[c].broad_pixel) >> 2)&1;	break;
+				case 5:		_objectCounter[c].pixel += _objectCounter[c].broad_pixel&1;	break;
+				case 7:		_objectCounter[c].pixel += ((_objectCounter[c].broad_pixel | (_objectCounter[c].broad_pixel >> 1))^1)&1;	break;
 			}
 			_objectCounter[c].count = (_objectCounter[c].count + 1)%160;
 		}
+	}
 
-		if(mask & (1 << (c + 2)))
+	for(int c = 2; c < 5; c++)
+	{
+		if(mask&(1 << c))
 		{
-			_objectCounter[c+2].count = (_objectCounter[c+2].count + 1)%160;
-			_objectCounter[c+2].pixel ++;
+			_objectCounter[c].count = (_objectCounter[c].count + 1)%160;
+			_objectCounter[c].pixel ++;
 		}
 	}
 }
@@ -244,9 +241,13 @@ void Machine::output_pixels(unsigned int count)
 			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
 			default:										state = OutputState::Pixel;											break;
 		}
+
 		// update pixel timers
 		if(state == OutputState::Pixel)
+		{
 			update_timers(~0);
+			_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::ClockPixels;
+		}
 
 		// if vsync is enabled, output the opposite of the automatic hsync output
 		if(_vSyncEnabled) {
@@ -296,6 +297,10 @@ void Machine::output_pixels(unsigned int count)
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
 		{
 			update_timers(_hMoveFlags);
+		}
+
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ClockPixels)
+		{
 		}
 
 		// apply any resets
@@ -386,8 +391,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	output_pixels(additional_pixels + cycles_run_for * 3);
-
-//	printf("/%d/", _horizontalTimer);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 

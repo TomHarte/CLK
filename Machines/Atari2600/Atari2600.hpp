@@ -61,15 +61,19 @@ class Machine: public CPU6502::Processor<Machine> {
 		struct Event {
 			enum Action {
 				Playfield			= 1 << 0,
-				HMoveSetup			= 1 << 1,
-				HMoveCompare		= 1 << 2,
-				HMoveDecrement		= 1 << 3,
+				ClockPixels			= 1 << 1,
+
+				HMoveSetup			= 1 << 2,
+				HMoveCompare		= 1 << 3,
+				HMoveDecrement		= 1 << 4,
 			};
 			int updates;
 
 			OutputState state;
 			int pixelCounterResetMask;
 			uint8_t playfieldPixel;
+
+			int pixelCounters[5];
 
 			Event() : updates(0), pixelCounterResetMask(~0), playfieldPixel(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
@@ -105,8 +109,10 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// object counters
 		struct {
-			int count, pixel, broad_pixel;
-			uint8_t motion;
+			int count;			// the counter value, multiplied by four, counting phase
+			int pixel;			// for non-sprite objects, a count of cycles since the last counter reset; for sprite objects a count of pixels so far elapsed
+			int broad_pixel;	// for sprite objects, a count of cycles since the last counter reset; otherwise unused
+			uint8_t motion;		// the value stored to this counter's motion register
 		} _objectCounter[5];
 
 		// joystick state
