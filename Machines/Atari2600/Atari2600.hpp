@@ -16,7 +16,7 @@
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 7;
+const unsigned int number_of_upcoming_events = 6;
 
 class Machine: public CPU6502::Processor<Machine> {
 
@@ -49,6 +49,9 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
 		uint8_t _playfield[40];
+
+		// ... and derivatives
+		int _ballSize, _missileSize[2];
 
 		// delayed clock events
 		enum OutputState {
@@ -83,7 +86,7 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// player registers
 		uint8_t _playerColour[2];
-		uint8_t _playerReflection[2];
+		uint8_t _playerReflectionMask[2];
 		uint8_t _playerGraphics[2][2];
 		uint8_t _playerGraphicsSelector[2];
 		bool _playerStart[2];
@@ -92,7 +95,8 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playerAndMissileSize[2];
 
 		// missile registers
-		uint8_t _missileGraphicsEnable[2], _missileGraphicsReset[2];
+		uint8_t _missileGraphicsEnable[2];
+		bool _missileGraphicsReset[2];
 
 		// ball registers
 		uint8_t _ballGraphicsEnable[2];
@@ -132,6 +136,10 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _lastOutputStateDuration;
 		OutputState _lastOutputState;
 		uint8_t *_outputBuffer;
+
+		// lookup table for collision reporting
+		uint8_t _reportedCollisions[32][8];
+		void setup_reported_collisions();
 };
 
 }
