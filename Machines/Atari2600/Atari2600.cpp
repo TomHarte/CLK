@@ -23,7 +23,8 @@ Machine::Machine() :
 	_rom(nullptr),
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
-	_upcomingEventsPointer(0)
+	_upcomingEventsPointer(0),
+	_objectCounterPointer(0)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
@@ -80,9 +81,14 @@ Machine::~Machine()
 
 void Machine::update_timers(int mask)
 {
-	unsigned int upcomingPointerPlus1 = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
-	unsigned int upcomingPointerPlus2 = (_upcomingEventsPointer + 2)%number_of_upcoming_events;
 	unsigned int upcomingPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
+
+	_objectCounterPointer = (_objectCounterPointer + 1)%number_of_recorded_counters;
+	ObjectCounter *oneClockAgo = _objectCounter[(_objectCounterPointer - 1 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *fourClocksAgo = _objectCounter[(_objectCounterPointer - 4 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *fiveClocksAgo = _objectCounter[(_objectCounterPointer - 5 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *sixClocksAgo = _objectCounter[(_objectCounterPointer - 6 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *now = _objectCounter[_objectCounterPointer];
 
 	// grab the background now, for application in four clocks
 	if(mask & (1 << 5) && !(_horizontalTimer&3))
@@ -95,8 +101,15 @@ void Machine::update_timers(int mask)
 	if(mask & (1 << 4))
 	{
 		// the ball becomes visible whenever it hits zero, regardless of whether its status
-		// is the result of a counter rollover or a programmatic reset
-		if(!_objectCounter[4].count) _objectCounter[4].pixel = 0;
+		// is the result of a counter rollover or a programmatic reset, and there's a four
+		// clock delay on that triggering the start signal
+		now[4].count = (oneClockAgo[4].count + 1)%160;
+		now[4].pixel = oneClockAgo[4].pixel + 1;
+		if(!fourClocksAgo[4].count) now[4].pixel = 0;
+	}
+	else
+	{
+		now[4] = oneClockAgo[4];
 	}
 
 	// check for player and missle triggers
@@ -104,89 +117,80 @@ void Machine::update_timers(int mask)
 	{
 		if(mask & (1 << c))
 		{
-			// the players and missles become visible only upon overflow to zero, so schedule for
-			// 1/2 clocks ahead from 159
-			if(_objectCounter[c].count == 159)
+			// update the count
+			now[c].count = (oneClockAgo[c].count + 1)%160;
+
+			uint8_t repeatMask = _playerAndMissileSize[c&1] & 7;
+			ObjectCounter *rollover;
+			ObjectCounter *equality;
+
+			if(c < 2)
 			{
-				unsigned int actionSlot = (c < 2) ? upcomingPointerPlus2 : upcomingPointerPlus1;
-				_upcomingEvents[actionSlot].pixelCounterResetMask &= ~(1 << c);
+				// update the pixel
+				now[c].broad_pixel = oneClockAgo[c].broad_pixel + 1;
+				switch(repeatMask)
+				{
+					default:	now[c].pixel = oneClockAgo[c].pixel + 1;	break;
+					case 5:		now[c].pixel = oneClockAgo[c].pixel + (now[c].broad_pixel&1);	break;
+					case 7:		now[c].pixel = oneClockAgo[c].pixel + (((now[c].broad_pixel | (now[c].broad_pixel >> 1))^1)&1);	break;
+				}
+
+				// check for a rollover six clocks ago or equality five clocks ago
+				rollover = sixClocksAgo;
+				equality = fiveClocksAgo;
 			}
 			else
 			{
-				// otherwise visibility is determined by an appropriate repeat mask and hitting any of 12, 28 or 60,
-				// in which case the counter reset (and hence the start of drawing) will occur in 4/5 cycles
-				uint8_t repeatMask = _playerAndMissileSize[c&1] & 7;
-				if(
-					( _objectCounter[c].count == 16 && ((repeatMask == 1) || (repeatMask == 3)) ) ||
-					( _objectCounter[c].count == 32 && ((repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6)) ) ||
-					( _objectCounter[c].count == 64 && ((repeatMask == 4) || (repeatMask == 6)) )
-				)
-				{
-					if(c < 2)
-					{
-						_upcomingEvents[upcomingPointerPlus1].pixelCounterResetMask &= ~(1 << c);
-					}
-					else
-					{
-						_objectCounter[c].pixel = 0;
-					}
-				}
+				// update the pixel
+				now[c].pixel = oneClockAgo[c].pixel + 1;
+
+				// check for a rollover five clocks ago or equality four clocks ago
+				rollover = fiveClocksAgo;
+				equality = fourClocksAgo;
 			}
-		}
-	}
 
-	// update the pixel counters
-	for(int c = 0; c < 2; c++)
-	{
-		_upcomingEvents[upcomingPointerPlus4].pixelCounters[c] = _objectCounter[c].pixel;
-		if(mask&(1 << c))
-		{
-			_objectCounter[c].broad_pixel++;
-
-			uint8_t repeatMask = _playerAndMissileSize[c] & 7;
-			switch(repeatMask)
+			if(
+				(rollover[c].count == 159) ||
+				(_hasSecondCopy[c&1] && equality[c].count == 16) ||
+				(_hasThirdCopy[c&1] && equality[c].count == 32) ||
+				(_hasFourthCopy[c&1] && equality[c].count == 64)
+			)
 			{
-				default:	_objectCounter[c].pixel ++;	break;
-				case 5:		_objectCounter[c].pixel += _objectCounter[c].broad_pixel&1;	break;
-				case 7:		_objectCounter[c].pixel += ((_objectCounter[c].broad_pixel | (_objectCounter[c].broad_pixel >> 1))^1)&1;	break;
+				now[c].pixel = 0;
+				now[c].broad_pixel = 0;
 			}
-			_objectCounter[c].count = (_objectCounter[c].count + 1)%160;
 		}
-	}
-
-	for(int c = 2; c < 5; c++)
-	{
-		_upcomingEvents[upcomingPointerPlus4].pixelCounters[c] = _objectCounter[c].pixel;
-		if(mask&(1 << c))
+		else
 		{
-			_objectCounter[c].count = (_objectCounter[c].count + 1)%160;
-			_objectCounter[c].pixel ++;
+			now[c] = oneClockAgo[c];
 		}
 	}
 }
 
 uint8_t Machine::get_output_pixel()
 {
-	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
+	ObjectCounter *now = _objectCounter[_objectCounterPointer];
 
-	// get the playfield pixel and hence a proposed colour
+	// get the playfield pixel
+	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
 	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
 
+	// ball pixel
 	uint8_t ballPixel = 0;
-	if(_upcomingEvents[_upcomingEventsPointer].pixelCounters[4] < _ballSize) {
+	if(now[4].pixel < _ballSize) {
 		ballPixel = _ballGraphicsEnable[_ballGraphicsSelector];
 	}
 
-	// determine the pixel masks
+	// determine the player and missile pixels
 	uint8_t playerPixels[2] = { 0, 0 };
 	uint8_t missilePixels[2] = { 0, 0 };
 	for(int c = 0; c < 2; c++)
 	{
-		if(_playerGraphics[c] && _upcomingEvents[_upcomingEventsPointer].pixelCounters[c] < 8) {
-			playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> (_upcomingEvents[_upcomingEventsPointer].pixelCounters[c] ^ _playerReflectionMask[c])) & 1;
+		if(_playerGraphics[c] && now[c].pixel < 8) {
+			playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> (now[c].pixel ^ _playerReflectionMask[c])) & 1;
 		}
 
-		if(_upcomingEvents[_upcomingEventsPointer].pixelCounters[c+2] < _missileSize[c] && !_missileGraphicsReset[c]) {
+		if(!_missileGraphicsReset[c] && now[c+2].pixel < _missileSize[c]) {
 			missilePixels[c] = _missileGraphicsEnable[c];
 		}
 	}
@@ -217,7 +221,7 @@ uint8_t Machine::get_output_pixel()
 
 void Machine::setup_reported_collisions()
 {
-	for(int c = 0; c < 32; c++)
+	for(int c = 0; c < 64; c++)
 	{
 		memset(_reportedCollisions[c], 0, 8);
 
@@ -247,11 +251,6 @@ void Machine::setup_reported_collisions()
 			_reportedCollisions[c][7] |= (1 << 6);
 	}
 }
-
-
-// in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
-// this is faster than the straightforward +1)%160 per profiling
-//#define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
 
 void Machine::output_pixels(unsigned int count)
 {
@@ -310,7 +309,7 @@ void Machine::output_pixels(unsigned int count)
 		{
 			for(int c = 0; c < 5; c++)
 			{
-				if(((_objectCounter[c].motion >> 4)^_hMoveCounter) == 7)
+				if(((_objectMotion[c] >> 4)^_hMoveCounter) == 7)
 				{
 					_hMoveFlags &= ~(1 << c);
 				}
@@ -327,19 +326,6 @@ void Machine::output_pixels(unsigned int count)
 		{
 			update_timers(_hMoveFlags);
 		}
-
-//		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ClockPixels)
-//		{
-//		}
-
-		// apply any resets
-		_objectCounter[0].pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 0) & 1;
-		_objectCounter[0].broad_pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 0) & 1;
-		_objectCounter[1].pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 1) & 1;
-		_objectCounter[1].broad_pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 1) & 1;
-		_objectCounter[2].pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 2) & 1;
-		_objectCounter[3].pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 3) & 1;
-		_objectCounter[4].pixel *= (_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask >> 4) & 1;
 
 		// reload the playfield pixel if appropriate
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
@@ -388,7 +374,6 @@ void Machine::output_pixels(unsigned int count)
 
 		// advance
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
-		_upcomingEvents[_upcomingEventsPointer].pixelCounterResetMask = ~0;
 		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
 		// advance horizontal timer, perform reset actions if requested
@@ -505,10 +490,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					break;
 
 					case 0x04:
-					case 0x05:
-						_playerAndMissileSize[decodedAddress - 0x04] = *value;
-						_missileSize[decodedAddress - 0x04] = 1 << ((*value >> 4)&3);
-					break;
+					case 0x05: {
+						int entry = decodedAddress - 0x04;
+						_playerAndMissileSize[entry] = *value;
+						_missileSize[entry] = 1 << ((*value >> 4)&3);
+
+						uint8_t repeatMask = (*value)&7;
+						_hasSecondCopy[entry] = (repeatMask == 1) || (repeatMask == 3);
+						_hasThirdCopy[entry] = (repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6);
+						_hasFourthCopy[entry] = (repeatMask == 4) || (repeatMask == 6);
+					} break;
 
 					case 0x06:
 					case 0x07: _playerColour[decodedAddress - 0x06] = *value;	break;
@@ -579,7 +570,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
 					case 0x14:
-						_objectCounter[decodedAddress - 0x10].count = 0;
+						_objectCounter[_objectCounterPointer][decodedAddress - 0x10].count = 0;
 					break;
 
 					case 0x1c:
@@ -600,7 +591,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x22:
 					case 0x23:
 					case 0x24:
-						_objectCounter[decodedAddress - 0x20].motion = *value;
+						_objectMotion[decodedAddress - 0x20] = *value;
 					break;
 
 					case 0x25: _playerGraphicsSelector[0]	= (*value)&1;	break;
@@ -613,7 +604,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						int index = decodedAddress - 0x28;
 						if(!(*value&0x02) && _missileGraphicsReset[index])
 						{
-							_objectCounter[index + 2].count = _objectCounter[index].count;
+							_objectCounter[_objectCounterPointer][index + 2].count = _objectCounter[_objectCounterPointer][index].count;
 
 							uint8_t repeatMask = _playerAndMissileSize[index] & 7;
 							int extra_offset;
@@ -624,7 +615,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 								case 7:		extra_offset = 10;	break;
 							}
 
-							_objectCounter[index + 2].count = (_objectCounter[index + 2].count + extra_offset)%160;
+							_objectCounter[_objectCounterPointer][index + 2].count = (_objectCounter[_objectCounterPointer][index + 2].count + extra_offset)%160;
 						}
 						_missileGraphicsReset[index] = !!((*value) & 0x02);
 					}
@@ -637,11 +628,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveSetup;
 					break;
 					case 0x2b:
-						_objectCounter[0].motion =
-						_objectCounter[1].motion =
-						_objectCounter[2].motion =
-						_objectCounter[3].motion =
-						_objectCounter[4].motion = 0;
+						_objectMotion[0] =
+						_objectMotion[1] =
+						_objectMotion[2] =
+						_objectMotion[3] =
+						_objectMotion[4] = 0;
 					break;
 					case 0x2c:
 						_collisions[0] = _collisions[1] = _collisions[2] = 
