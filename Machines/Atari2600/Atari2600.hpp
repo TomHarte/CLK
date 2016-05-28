@@ -49,7 +49,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		uint8_t _playfieldControl;
 		uint8_t _playfieldColour;
 		uint8_t _backgroundColour;
-		uint8_t _playfield[40];
+		uint8_t _playfield[41];
 
 		// ... and derivatives
 		int _ballSize, _missileSize[2];
@@ -90,7 +90,7 @@ class Machine: public CPU6502::Processor<Machine> {
 		unsigned int _objectCounterPointer;
 
 		// the latched playfield output
-		uint8_t _playfieldOutput;
+		uint8_t _playfieldOutput, _nextPlayfieldOutput;
 
 		// player registers
 		uint8_t _playerColour[2];
@@ -119,7 +119,6 @@ class Machine: public CPU6502::Processor<Machine> {
 		// graphics output
 		unsigned int _horizontalTimer;
 		bool _vSyncEnabled, _vBlankEnabled;
-		bool _vBlankExtend;
 
 		// horizontal motion control
 		uint8_t _hMoveCounter;
@@ -140,6 +139,8 @@ class Machine: public CPU6502::Processor<Machine> {
 
 		// latched output state
 		unsigned int _lastOutputStateDuration;
+		OutputState _stateByExtendTime[2][57];
+		OutputState *_stateByTime;
 		OutputState _lastOutputState;
 		uint8_t *_outputBuffer;
 

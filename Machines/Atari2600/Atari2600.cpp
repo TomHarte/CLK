@@ -24,11 +24,35 @@ Machine::Machine() :
 	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
 	_upcomingEventsPointer(0),
-	_objectCounterPointer(0)
+	_objectCounterPointer(0),
+	_stateByTime(_stateByExtendTime[0])
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
 	setup_reported_collisions();
+
+	for(int vbextend = 0; vbextend < 2; vbextend++)
+	{
+		for(int c = 0; c < 57; c++)
+		{
+			OutputState state;
+
+			// determine which output state will be active in four cycles from now
+			switch(c)
+			{
+				case 0: case 1: case 2: case 3:					state = OutputState::Blank;									break;
+				case 4: case 5: case 6: case 7:					state = OutputState::Sync;									break;
+				case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;							break;
+				case 12: case 13: case 14:
+				case 15: case 16:								state = OutputState::Blank;									break;
+
+				case 17: case 18:								state = vbextend ? OutputState::Blank : OutputState::Pixel;	break;
+				default:										state = OutputState::Pixel;									break;
+			}
+
+			_stateByExtendTime[vbextend][c] = state;
+		}
+	}
 }
 
 void Machine::setup_output(float aspect_ratio)
@@ -85,9 +109,11 @@ void Machine::update_timers(int mask)
 
 	_objectCounterPointer = (_objectCounterPointer + 1)%number_of_recorded_counters;
 	ObjectCounter *oneClockAgo = _objectCounter[(_objectCounterPointer - 1 + number_of_recorded_counters)%number_of_recorded_counters];
-	ObjectCounter *fourClocksAgo = _objectCounter[(_objectCounterPointer - 4 + number_of_recorded_counters)%number_of_recorded_counters];
-	ObjectCounter *fiveClocksAgo = _objectCounter[(_objectCounterPointer - 5 + number_of_recorded_counters)%number_of_recorded_counters];
-	ObjectCounter *sixClocksAgo = _objectCounter[(_objectCounterPointer - 6 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *twoClocksAgo = _objectCounter[(_objectCounterPointer - 2 + number_of_recorded_counters)%number_of_recorded_counters];
+//	ObjectCounter *threeClocksAgo = _objectCounter[(_objectCounterPointer - 3 + number_of_recorded_counters)%number_of_recorded_counters];
+//	ObjectCounter *fourClocksAgo = _objectCounter[(_objectCounterPointer - 4 + number_of_recorded_counters)%number_of_recorded_counters];
+//	ObjectCounter *fiveClocksAgo = _objectCounter[(_objectCounterPointer - 5 + number_of_recorded_counters)%number_of_recorded_counters];
+//	ObjectCounter *sixClocksAgo = _objectCounter[(_objectCounterPointer - 6 + number_of_recorded_counters)%number_of_recorded_counters];
 	ObjectCounter *now = _objectCounter[_objectCounterPointer];
 
 	// grab the background now, for application in four clocks
@@ -105,7 +131,7 @@ void Machine::update_timers(int mask)
 		// clock delay on that triggering the start signal
 		now[4].count = (oneClockAgo[4].count + 1)%160;
 		now[4].pixel = oneClockAgo[4].pixel + 1;
-		if(!fourClocksAgo[4].count) now[4].pixel = 0;
+		if(!now[4].count) now[4].pixel = 0;
 	}
 	else
 	{
@@ -136,8 +162,8 @@ void Machine::update_timers(int mask)
 				}
 
 				// check for a rollover six clocks ago or equality five clocks ago
-				rollover = sixClocksAgo;
-				equality = fiveClocksAgo;
+				rollover = twoClocksAgo;
+				equality = oneClockAgo;
 			}
 			else
 			{
@@ -145,8 +171,8 @@ void Machine::update_timers(int mask)
 				now[c].pixel = oneClockAgo[c].pixel + 1;
 
 				// check for a rollover five clocks ago or equality four clocks ago
-				rollover = fiveClocksAgo;
-				equality = fourClocksAgo;
+				rollover = oneClockAgo;
+				equality = now;
 			}
 
 			if(
@@ -256,40 +282,10 @@ void Machine::output_pixels(unsigned int count)
 {
 	while(count--)
 	{
-		OutputState state;
-
-		// determine which output state will be active in four cycles from now
-		switch(_horizontalTimer >> 2)
-		{
-			case 56: case 0: case 1: case 2:				state = OutputState::Blank;											break;
-			case 3: case 4: case 5: case 6:					state = OutputState::Sync;											break;
-			case 7: case 8: case 9: case 10:				state = OutputState::ColourBurst;									break;
-			case 11: case 12: case 13:
-			case 14: case 15:								state = OutputState::Blank;											break;
-
-			case 16: case 17:								state = _vBlankExtend ? OutputState::Blank : OutputState::Pixel;	break;
-			default:										state = OutputState::Pixel;											break;
-		}
-
-		// update pixel timers
-		if(state == OutputState::Pixel)
-		{
-			update_timers(~0);
-		}
-
-		// if vsync is enabled, output the opposite of the automatic hsync output
-		if(_vSyncEnabled) {
-			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
-		}
-
-		// write that state as the one that will become effective in four clocks
-		_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].state = state;
-
 		// apply any queued changes and flush the record
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
 		{
-			_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
-			_vBlankExtend = true;
+			_stateByTime = _stateByExtendTime[1];
 
 			// clear any ongoing moves
 			if(_hMoveFlags)
@@ -303,6 +299,9 @@ void Machine::output_pixels(unsigned int count)
 			// schedule new moves
 			_hMoveFlags = 0x1f;
 			_hMoveCounter = 15;
+
+			// follow-through into a compare immediately
+			_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
 		}
 
 		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
@@ -326,25 +325,36 @@ void Machine::output_pixels(unsigned int count)
 		{
 			update_timers(_hMoveFlags);
 		}
+		_upcomingEvents[_upcomingEventsPointer].updates = 0;
+		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
-		// reload the playfield pixel if appropriate
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::Playfield)
+		// determine which output state is currently active
+		OutputState primary_state = _stateByTime[_horizontalTimer >> 2];
+		OutputState effective_state = primary_state;
+
+		// update pixel timers
+		if(primary_state == OutputState::Pixel) update_timers(~0);
+
+		// update the background chain
+		if(_horizontalTimer >= 64 && _horizontalTimer <= 160+64 && !(_horizontalTimer&3))
 		{
-			_playfieldOutput = _upcomingEvents[_upcomingEventsPointer].playfieldPixel;
+			_playfieldOutput = _nextPlayfieldOutput;
+			_nextPlayfieldOutput = _playfield[(_horizontalTimer - 64) >> 2];
 		}
 
-		// read that state
-		state = _upcomingEvents[_upcomingEventsPointer].state;
-		OutputState actingState = state;
+		// if vsync is enabled, output the opposite of the automatic hsync output
+		if(_vSyncEnabled) {
+			effective_state = (effective_state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
+		}
 
 		// honour the vertical blank flag
-		if(_vBlankEnabled && state == OutputState::Pixel) {
-			actingState = OutputState::Blank;
+		if(_vBlankEnabled && effective_state == OutputState::Pixel) {
+			effective_state = OutputState::Blank;
 		}
 
 		// decide what that means needs to be communicated to the CRT
 		_lastOutputStateDuration++;
-		if(actingState != _lastOutputState) {
+		if(effective_state != _lastOutputState) {
 			switch(_lastOutputState) {
 				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
 				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
@@ -352,9 +362,9 @@ void Machine::output_pixels(unsigned int count)
 				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
 			}
 			_lastOutputStateDuration = 0;
-			_lastOutputState = actingState;
+			_lastOutputState = effective_state;
 
-			if(actingState == OutputState::Pixel) {
+			if(effective_state == OutputState::Pixel) {
 				_outputBuffer = _crt->allocate_write_area(160);
 			} else {
 				_outputBuffer = nullptr;
@@ -362,7 +372,7 @@ void Machine::output_pixels(unsigned int count)
 		}
 
 		// decide on a pixel colour if that's what's happening
-		if(state == OutputState::Pixel)
+		if(effective_state == OutputState::Pixel)
 		{
 			uint8_t colour = get_output_pixel();
 			if(_outputBuffer)
@@ -372,16 +382,13 @@ void Machine::output_pixels(unsigned int count)
 			}
 		}
 
-		// advance
-		_upcomingEvents[_upcomingEventsPointer].updates = 0;
-		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
-
-		// advance horizontal timer, perform reset actions if requested
+		// advance horizontal timer, perform reset actions if desired
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{
-			_vBlankExtend = false;
+			_stateByTime = _stateByExtendTime[0];
 			set_ready_line(false);
+//			printf("\n");
 		}
 	}
 }
@@ -391,8 +398,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	set_reset_line(false);
 
 	uint8_t returnValue = 0xff;
-	unsigned int cycles_run_for = 1;
-	unsigned int additional_pixels = 0;
+	unsigned int cycles_run_for = 3;
 
 	// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
 	// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
@@ -400,11 +406,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	// skips to the end of the line.
 	if(operation == CPU6502::BusOperation::Ready) {
 		unsigned int distance_to_end_of_ready = horizontalTimerPeriod - _horizontalTimer;
-		cycles_run_for = distance_to_end_of_ready / 3;
-		additional_pixels = distance_to_end_of_ready % 3;
+		cycles_run_for = distance_to_end_of_ready;
 	}
 
-	output_pixels(additional_pixels + cycles_run_for * 3);
+	output_pixels(2);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -482,7 +487,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x02:
 //						printf("%d\n", _horizontalTimer);
 //						printf("W");
-						if(_horizontalTimer) set_ready_line(true);
+//						if(_horizontalTimer)
+						set_ready_line(true);
 					break;
 					case 0x03:
 						// Reset is delayed by four cycles.
@@ -691,17 +697,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_piaTimerValue >= cycles_run_for) {
-		_piaTimerValue -= cycles_run_for;
+	if(_piaTimerValue >= cycles_run_for / 3) {
+		_piaTimerValue -= cycles_run_for / 3;
 	} else {
-		_piaTimerValue += 0xff - cycles_run_for;
+		_piaTimerValue += 0xff - cycles_run_for / 3;
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
 
-//	output_pixels(additional_pixels + cycles_run_for * 3);
+	output_pixels(cycles_run_for - 2);
 
-	return cycles_run_for;
+	return cycles_run_for / 3;
 }
 
 void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
