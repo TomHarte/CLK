@@ -110,10 +110,6 @@ void Machine::update_timers(int mask)
 	_objectCounterPointer = (_objectCounterPointer + 1)%number_of_recorded_counters;
 	ObjectCounter *oneClockAgo = _objectCounter[(_objectCounterPointer - 1 + number_of_recorded_counters)%number_of_recorded_counters];
 	ObjectCounter *twoClocksAgo = _objectCounter[(_objectCounterPointer - 2 + number_of_recorded_counters)%number_of_recorded_counters];
-//	ObjectCounter *threeClocksAgo = _objectCounter[(_objectCounterPointer - 3 + number_of_recorded_counters)%number_of_recorded_counters];
-//	ObjectCounter *fourClocksAgo = _objectCounter[(_objectCounterPointer - 4 + number_of_recorded_counters)%number_of_recorded_counters];
-//	ObjectCounter *fiveClocksAgo = _objectCounter[(_objectCounterPointer - 5 + number_of_recorded_counters)%number_of_recorded_counters];
-//	ObjectCounter *sixClocksAgo = _objectCounter[(_objectCounterPointer - 6 + number_of_recorded_counters)%number_of_recorded_counters];
 	ObjectCounter *now = _objectCounter[_objectCounterPointer];
 
 	// grab the background now, for application in four clocks
@@ -325,6 +321,13 @@ void Machine::output_pixels(unsigned int count)
 		{
 			update_timers(_hMoveFlags);
 		}
+
+		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ResetCounter)
+		{
+			_objectCounter[_objectCounterPointer][_upcomingEvents[_upcomingEventsPointer].counter].count = 0;
+		}
+
+		// zero out current update event, progress to next
 		_upcomingEvents[_upcomingEventsPointer].updates = 0;
 		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
@@ -342,13 +345,11 @@ void Machine::output_pixels(unsigned int count)
 			_nextPlayfieldOutput = _playfield[(_horizontalTimer - 64) >> 2];
 		}
 
-		// if vsync is enabled, output the opposite of the automatic hsync output
+		// if vsync is enabled, output the opposite of the automatic hsync output;
+		// also	honour the vertical blank flag
 		if(_vSyncEnabled) {
 			effective_state = (effective_state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
-		}
-
-		// honour the vertical blank flag
-		if(_vBlankEnabled && effective_state == OutputState::Pixel) {
+		} else if(_vBlankEnabled && effective_state == OutputState::Pixel) {
 			effective_state = OutputState::Blank;
 		}
 
@@ -388,7 +389,6 @@ void Machine::output_pixels(unsigned int count)
 		{
 			_stateByTime = _stateByExtendTime[0];
 			set_ready_line(false);
-//			printf("\n");
 		}
 	}
 }
@@ -409,7 +409,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		cycles_run_for = distance_to_end_of_ready;
 	}
 
-	output_pixels(2);
+	output_pixels(cycles_run_for);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -485,10 +485,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 					case 0x02:
-//						printf("%d\n", _horizontalTimer);
-//						printf("W");
-//						if(_horizontalTimer)
-						set_ready_line(true);
+						if(_horizontalTimer) set_ready_line(true);
 					break;
 					case 0x03:
 						// Reset is delayed by four cycles.
@@ -576,7 +573,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
 					case 0x14:
-						_objectCounter[_objectCounterPointer][decodedAddress - 0x10].count = 0;
+						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].updates |= Event::Action::ResetCounter;
+						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].counter = decodedAddress - 0x10;
 					break;
 
 					case 0x1c:
@@ -607,6 +605,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x28:
 					case 0x29:
 					{
+						// TODO: this should properly mean setting a flag and propagating later, I think?
 						int index = decodedAddress - 0x28;
 						if(!(*value&0x02) && _missileGraphicsReset[index])
 						{
@@ -704,8 +703,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
-
-	output_pixels(cycles_run_for - 2);
 
 	return cycles_run_for / 3;
 }

@@ -65,15 +65,17 @@ class Machine: public CPU6502::Processor<Machine> {
 		struct Event {
 			enum Action {
 				Playfield			= 1 << 0,
+				ResetCounter		= 1 << 1,
 
-				HMoveSetup			= 1 << 1,
-				HMoveCompare		= 1 << 2,
-				HMoveDecrement		= 1 << 3,
+				HMoveSetup			= 1 << 2,
+				HMoveCompare		= 1 << 3,
+				HMoveDecrement		= 1 << 4,
 			};
 			int updates;
 
 			OutputState state;
 			uint8_t playfieldPixel;
+			int counter;
 
 			Event() : updates(0), playfieldPixel(0) {}
 		} _upcomingEvents[number_of_upcoming_events];
