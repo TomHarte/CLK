@@ -141,7 +141,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine: public CPU6502::Processor<Machine>, Tape::Delegate, CRTMachine::Machine {
+class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, Tape::Delegate {
 
 	public:
 

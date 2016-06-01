@@ -35,7 +35,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		int _shift_counters[2];
 };
 
-class Machine: public CPU6502::Processor<Machine>, CRTMachine::Machine {
+class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 
 	public:
 		Machine();

@@ -7,16 +7,15 @@
 //
 
 #import "CSMachine.h"
-#include "CRT.hpp"
-#include "Speaker.hpp"
+#include "CRTMachine.hpp"
 
 @interface CSMachine (Subclassing)
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate;
-- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)performAsync:(dispatch_block_t)action;
 - (void)performSync:(dispatch_block_t)action;
+
+- (CRTMachine::Machine * const)machine;
+
 - (void)setupOutputWithAspectRatio:(float)aspectRatio;
-- (void)closeOutput;
 
 @end
