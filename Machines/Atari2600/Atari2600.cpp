@@ -802,6 +802,7 @@ void Atari2600::Speaker::set_volume(int channel, uint8_t volume)
 void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
 {
 	_divider[channel] = divider & 0x1f;
+	_divider_counter[channel] = 0;
 }
 
 void Atari2600::Speaker::set_control(int channel, uint8_t control)
@@ -816,12 +817,21 @@ void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *ta
 		target[c] = 0;
 		for(int channel = 0; channel < 2; channel++)
 		{
-			if(!_control[channel])
+			switch(_control[channel])
 			{
-				target[c] += _volume[channel] * 1024;
-			}
-			else
-			{
+				case 0x0: case 0xb:
+					target[c] += _volume[channel] * 1024;
+				break;
+
+				case 0x4: case 0x5:
+					_divider_counter[channel] ++;
+					target[c] += _volume[channel] * 1024 * ((_divider_counter[channel] / (_divider[channel]+1))&1);
+				break;
+
+				case 0xc: case 0xd:
+					_divider_counter[channel] ++;
+					target[c] += _volume[channel] * 1024 * ((_divider_counter[channel] / ((_divider[channel]+1)*3))&1);
+				break;
 			}
 		}
 	}

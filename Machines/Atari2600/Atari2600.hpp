@@ -32,7 +32,9 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		uint8_t _volume[2];
 		uint8_t _divider[2];
 		uint8_t _control[2];
-		int _shift_counters[2];
+		int _shift_counter[2];
+		int _divider_counter[2];
+		int _output_state[2];
 };
 
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
