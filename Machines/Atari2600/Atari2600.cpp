@@ -25,7 +25,8 @@ Machine::Machine() :
 	_tiaInputValue{0xff, 0xff},
 	_upcomingEventsPointer(0),
 	_objectCounterPointer(0),
-	_stateByTime(_stateByExtendTime[0])
+	_stateByTime(_stateByExtendTime[0]),
+	_cycles_since_speaker_update(0)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
@@ -414,6 +415,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	output_pixels(cycles_run_for);
+	_cycles_since_speaker_update += cycles_run_for;
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -449,10 +451,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				returnValue &= _ram[address&0x7f];
 			} else {
 				_ram[address&0x7f] = *value;
-//				if((address&0x7f) == (0x9a&0x7f))
-//				{
-//					printf("[9a] <- %02x\n", *value);
-//				}
 			}
 		}
 
@@ -498,6 +496,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x03:
 						// Reset is delayed by four cycles.
 						_horizontalTimer = horizontalTimerPeriod - 4;
+
+						// TODO: audio will now be out of synchronisation — fix
 					break;
 
 					case 0x04:
@@ -583,6 +583,21 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x14:
 						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].updates |= Event::Action::ResetCounter;
 						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].counter = decodedAddress - 0x10;
+					break;
+
+					case 0x15: case 0x16:
+						update_audio();
+						_speaker.set_control(decodedAddress - 0x15, *value);
+					break;
+
+					case 0x17: case 0x18:
+						update_audio();
+						_speaker.set_divider(decodedAddress - 0x17, *value);
+					break;
+
+					case 0x19: case 0x1a:
+						update_audio();
+						_speaker.set_volume(decodedAddress - 0x19, *value);
 					break;
 
 					case 0x1c:
@@ -764,4 +779,54 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 	_romPages[1] = &_rom[1024 & romMask];
 	_romPages[2] = &_rom[2048 & romMask];
 	_romPages[3] = &_rom[3072 & romMask];
+}
+
+#pragma mark - Audio
+
+void Machine::update_audio()
+{
+	_speaker.run_for_cycles(_cycles_since_speaker_update / 114);
+	_cycles_since_speaker_update %= 114;
+}
+
+void Machine::synchronise()
+{
+	update_audio();
+}
+
+void Atari2600::Speaker::set_volume(int channel, uint8_t volume)
+{
+	_volume[channel] = volume & 0xf;
+}
+
+void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
+{
+	_divider[channel] = divider & 0x1f;
+}
+
+void Atari2600::Speaker::set_control(int channel, uint8_t control)
+{
+	_control[channel] = control & 0xf;
+}
+
+void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+{
+	for(unsigned int c = 0; c < number_of_samples; c++)
+	{
+		target[c] = 0;
+		for(int channel = 0; channel < 2; channel++)
+		{
+			if(!_control[channel])
+			{
+				target[c] += _volume[channel] * 1024;
+			}
+			else
+			{
+			}
+		}
+	}
+}
+
+void Atari2600::Speaker::skip_samples(unsigned int number_of_samples)
+{
 }

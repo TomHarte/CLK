@@ -48,7 +48,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise() {}
+		void synchronise();
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
@@ -159,9 +159,13 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		uint8_t get_output_pixel();
 		void update_timers(int mask);
 
-		// Outputs
+		// outputs
 		Outputs::CRT::CRT *_crt;
 		Speaker _speaker;
+
+		// speaker backlog accumlation counter
+		unsigned int _cycles_since_speaker_update;
+		void update_audio();
 
 		// latched output state
 		unsigned int _lastOutputStateDuration;
