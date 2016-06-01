@@ -19,7 +19,6 @@
 - (void)runForNumberOfCycles:(int)numberOfCycles {
 	@synchronized(self) {
 		_electron.run_for_cycles(numberOfCycles);
-		_electron.update_output();
 	}
 }
 

@@ -24,6 +24,18 @@ class Speaker {
 				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
 		};
 
+		int get_ideal_clock_rate_in_range(int minimum, int maximum)
+		{
+			// return exactly the input rate if possible
+			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
+
+			// if the input rate is lower, return the minimum
+			if(_input_cycles_per_second < minimum) return minimum;
+
+			// otherwise, return the maximum
+			return maximum;
+		}
+
 		void set_output_rate(int cycles_per_second, int buffer_size)
 		{
 			_output_cycles_per_second = cycles_per_second;

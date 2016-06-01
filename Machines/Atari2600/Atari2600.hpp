@@ -10,31 +10,52 @@
 #define Atari2600_cpp
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
+#include "../CRTMachine.hpp"
 #include <stdint.h>
 #include "Atari2600Inputs.h"
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 6;
+const unsigned int number_of_upcoming_events = 16;
 const unsigned int number_of_recorded_counters = 7;
 
-class Machine: public CPU6502::Processor<Machine> {
+class Speaker: public ::Outputs::Filter<Speaker> {
+	public:
+		void set_volume(int channel, uint8_t volume);
+		void set_divider(int channel, uint8_t divider);
+		void set_control(int channel, uint8_t control);
+
+		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void skip_samples(unsigned int number_of_samples);
+
+	private:
+		uint8_t _volume[2];
+		uint8_t _divider[2];
+		uint8_t _control[2];
+		int _shift_counters[2];
+};
+
+class Machine: public CPU6502::Processor<Machine>, CRTMachine::Machine {
 
 	public:
 		Machine();
 		~Machine();
-
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(size_t length, const uint8_t *data);
 		void switch_region();
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
 
-		Outputs::CRT::CRT *get_crt() { return _crt; }
-		void setup_output(float aspect_ratio);
-		void close_output();
+		// to satisfy CPU6502::Processor
+		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		void synchronise() {}
+
+		// to satisfy CRTMachine::Machine
+		virtual void setup_output(float aspect_ratio);
+		virtual void close_output();
+		virtual Outputs::CRT::CRT *get_crt() { return _crt; }
+		virtual Outputs::Speaker *get_speaker() { return &_speaker; }
+		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 	private:
 		uint8_t *_rom, *_romPages[4], _ram[128];
@@ -137,7 +158,10 @@ class Machine: public CPU6502::Processor<Machine> {
 		void output_pixels(unsigned int count);
 		uint8_t get_output_pixel();
 		void update_timers(int mask);
+
+		// Outputs
 		Outputs::CRT::CRT *_crt;
+		Speaker _speaker;
 
 		// latched output state
 		unsigned int _lastOutputStateDuration;

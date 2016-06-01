@@ -71,6 +71,8 @@ void Machine::setup_output(float aspect_ratio)
 			"return (float(y) / 14.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
+
+	_speaker.set_input_rate(2 * 263 * 60);
 }
 
 void Machine::switch_region()
@@ -89,6 +91,8 @@ void Machine::switch_region()
 			"return (float(y) / 14.0) * (1.0 - amplitude) + step(4, (iPhase + 2u) & 15u) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
+
+	_speaker.set_input_rate(2 * 312 * 50);
 }
 
 void Machine::close_output()
@@ -445,6 +449,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				returnValue &= _ram[address&0x7f];
 			} else {
 				_ram[address&0x7f] = *value;
+//				if((address&0x7f) == (0x9a&0x7f))
+//				{
+//					printf("[9a] <- %02x\n", *value);
+//				}
 			}
 		}
 
@@ -585,7 +593,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_playerGraphics[1][index^1] = _playerGraphics[0][index^1];
 					} break;
 					case 0x1d:
-					case 0x1e: _missileGraphicsEnable[decodedAddress - 0x1d] = ((*value) >> 1)&1;	break;
+					case 0x1e:
+						_missileGraphicsEnable[decodedAddress - 0x1d] = ((*value) >> 1)&1;
+//						printf("e:%02x <- %c\n", decodedAddress - 0x1d, ((*value)&1) ? 'E' : '-');
+					break;
 					case 0x1f:
 						_ballGraphicsEnable[0] = ((*value) >> 1)&1;
 					break;
@@ -623,15 +634,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							_objectCounter[_objectCounterPointer][index + 2].count = (_objectCounter[_objectCounterPointer][index + 2].count + extra_offset)%160;
 						}
 						_missileGraphicsReset[index] = !!((*value) & 0x02);
+//						printf("r:%02x <- %c\n", decodedAddress - 0x28, ((*value)&2) ? 'R' : '-');
 					}
 					break;
 
-					case 0x2a:
+					case 0x2a: {
 						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
 						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
 						// in five cycles from now
+//						int start_pause = ((_horizontalTimer + 3)&3) + 4;
 						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveSetup;
-					break;
+					} break;
 					case 0x2b:
 						_objectMotion[0] =
 						_objectMotion[1] =

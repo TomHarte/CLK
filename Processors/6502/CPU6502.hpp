@@ -67,9 +67,12 @@ extern const uint8_t JamOpcode;
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
-	order to provde the bus on which the 6502 operates. Additional functionality can be provided by the host machine by providing
-	a jam handler and inserting jam opcodes where appropriate; that will cause call outs when the program counter reaches those
-	addresses. @c return_from_subroutine can be used to exit from a jammed state.
+	order to provide the bus on which the 6502 operates and @c synchronise(), which is called upon completion of a continuous run
+	of cycles to allow a subclass to bring any on-demand activities up to date.
+
+	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
+	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
+	jammed state.
 */
 template <class T> class Processor {
 	public:
@@ -597,7 +600,7 @@ template <class T> class Processor {
 
 						case CycleFetchOperation: {
 							_lastOperationPC = _pc;
-//							printf("%04x\n", _pc.full);
+//							printf("%04x	x:%02x\n", _pc.full, _x);
 							_pc.full++;
 							read_op(_operation, _lastOperationPC.full);
 
@@ -1041,15 +1044,17 @@ template <class T> class Processor {
 						_ready_is_active = true;
 					}
 				}
-
-				_cycles_left_to_run = number_of_cycles;
-				_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
-				_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
-				_nextAddress = nextAddress;
-				_nextBusOperation = nextBusOperation;
-				_busAddress = busAddress;
-				_busValue = busValue;
 			}
+
+			_cycles_left_to_run = number_of_cycles;
+			_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
+			_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
+			_nextAddress = nextAddress;
+			_nextBusOperation = nextBusOperation;
+			_busAddress = busAddress;
+			_busValue = busValue;
+
+			static_cast<T *>(this)->synchronise();
 		}
 
 		/*!
