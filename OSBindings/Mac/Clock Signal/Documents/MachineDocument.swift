@@ -34,8 +34,11 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		// bind the content aspect ratio to remain 4:3 from now on
+		// bind the content aspect ratio to remain 4:3 from now on as a default
 		aController.window?.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
+
+		// provide the audio queue
+		self.machine().audioQueue = self.audioQueue
 	}
 
 	override func close() {
