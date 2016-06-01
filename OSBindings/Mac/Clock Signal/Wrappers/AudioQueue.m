@@ -85,20 +85,21 @@ static void audioOutputCallback(
 	[(__bridge AudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
 }
 
-- (instancetype)init
+- (instancetype)initWithSamplingRate:(Float64)samplingRate
 {
 	self = [super init];
 
 	if(self)
 	{
 		_writeLock = [[NSConditionLock alloc] initWithCondition:AudioQueueCanProceed];
+		_samplingRate = samplingRate;
 
 		/*
 			Describe a mono, 16bit, 44.1Khz audio format
 		*/
 		AudioStreamBasicDescription outputDescription;
 
-		outputDescription.mSampleRate = 44100;
+		outputDescription.mSampleRate = samplingRate;
 
 		outputDescription.mFormatID = kAudioFormatLinearPCM;
 		outputDescription.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger;
@@ -113,13 +114,13 @@ static void audioOutputCallback(
 
 		// create an audio output queue along those lines
 		if(!AudioQueueNewOutput(
-			&outputDescription,
-			audioOutputCallback,
-			(__bridge void *)(self),
-			NULL,
-			kCFRunLoopCommonModes,
-			0,
-			&_audioQueue))
+				&outputDescription,
+				audioOutputCallback,
+				(__bridge void *)(self),
+				NULL,
+				kCFRunLoopCommonModes,
+				0,
+				&_audioQueue))
 		{
 			UInt32 bufferBytes = AudioQueueBufferLength * sizeof(int16_t);
 
@@ -137,6 +138,11 @@ static void audioOutputCallback(
 	}
 
 	return self;
+}
+
+- (instancetype)init
+{
+	return [self initWithSamplingRate:[[self class] preferredSamplingRate]];
 }
 
 - (void)dealloc
@@ -188,6 +194,30 @@ static void audioOutputCallback(
 - (NSInteger)writeLockCondition
 {
 	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanProceed : AudioQueueWait;
+}
+
++ (AudioDeviceID)defaultOutputDevice
+{
+	AudioObjectPropertyAddress address;
+	address.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
+	address.mScope = kAudioObjectPropertyScopeGlobal;
+	address.mElement = kAudioObjectPropertyElementMaster;
+
+	AudioDeviceID deviceID;
+	UInt32 size = sizeof(AudioDeviceID);
+	return AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &address, 0, NULL, &size, &deviceID) ? 0 : deviceID;
+}
+
++ (Float64)preferredSamplingRate
+{
+	AudioObjectPropertyAddress address;
+	address.mSelector = kAudioDevicePropertyNominalSampleRate;
+	address.mScope = kAudioObjectPropertyScopeGlobal;
+	address.mElement = kAudioObjectPropertyElementMaster;
+
+	Float64 samplingRate;
+	UInt32 size = sizeof(Float64);
+	return AudioHardwareServiceGetPropertyData([self defaultOutputDevice], &address, 0, NULL, &size, &samplingRate) ? 0.0 : samplingRate;
 }
 
 @end

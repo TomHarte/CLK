@@ -16,9 +16,12 @@ class ElectronDocument: MachineDocument {
 		return electron
 	}
 
+	override func aspectRatio() -> NSSize {
+		return NSSize(width: 11.0, height: 10.0)
+	}
+
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
-		aController.window?.contentAspectRatio = NSSize(width: 11.0, height: 10.0)
 
 		self.intendedCyclesPerSecond = 2000000
 
@@ -28,10 +31,6 @@ class ElectronDocument: MachineDocument {
 		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
 			self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
 		}
-
-		openGLView.performWithGLContext({
-			self.electron.setView(self.openGLView, aspectRatio: 11.0 / 10.0)
-		})
 
 		establishStoredOptions()
 	}

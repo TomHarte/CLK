@@ -17,6 +17,10 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		return nil
 	}
 
+	func aspectRatio() -> NSSize {
+		return NSSize(width: 4.0, height: 3.0)
+	}
+
 	@IBOutlet weak var openGLView: CSOpenGLView! {
 		didSet {
 			openGLView.delegate = self
@@ -29,16 +33,24 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		optionsPanel?.setIsVisible(true)
 	}
 
-	lazy var audioQueue = AudioQueue()
+	var audioQueue : AudioQueue! = nil
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		// bind the content aspect ratio to remain 4:3 from now on as a default
-		aController.window?.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
+		// establish the output aspect ratio and audio
+		let displayAspectRatio = self.aspectRatio()
+		aController.window?.contentAspectRatio = displayAspectRatio
+		openGLView.performWithGLContext({
+			self.machine().setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
+		})
 
-		// provide the audio queue
+		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
+		let maximumSamplingRate = AudioQueue.preferredSamplingRate()
+		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
 		self.machine().audioQueue = self.audioQueue
+		self.machine().setAudioSamplingRate(selectedSamplingRate)
 	}
 
 	override func close() {

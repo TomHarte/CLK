@@ -21,11 +21,6 @@ class Atari2600Document: MachineDocument {
 		self.intendedCyclesPerSecond = 1194720
 	}
 
-	override func windowControllerDidLoadNib(aController: NSWindowController) {
-		super.windowControllerDidLoadNib(aController)
-		atari2600.setView(openGLView, aspectRatio: 4.0 / 3.0)
-	}
-
 	override class func autosavesInPlace() -> Bool {
 		return true
 	}

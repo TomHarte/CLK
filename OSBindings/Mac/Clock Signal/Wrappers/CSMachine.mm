@@ -34,8 +34,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 	if(self) {
 		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
-		_speakerDelegate.machine = self;
-		[self setSpeakerDelegate:&_speakerDelegate sampleRate:44100];
 	}
 
 	return self;
@@ -47,6 +45,24 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 			self.machine->close_output();
 		}
 	}];
+}
+
+- (int)idealSamplingRateFromRange:(NSRange)range {
+	@synchronized(self) {
+		Outputs::Speaker *speaker = self.machine->get_speaker();
+		if(speaker)
+		{
+			return speaker->get_ideal_clock_rate_in_range((int)range.location, (int)(range.location + range.length));
+		}
+		return (int)range.location;
+	}
+}
+
+- (void)setAudioSamplingRate:(int)samplingRate {
+	@synchronized(self) {
+		_speakerDelegate.machine = self;
+		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate];
+	}
 }
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
