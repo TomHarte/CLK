@@ -11,6 +11,12 @@ import AudioToolbox
 
 class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, NSWindowDelegate {
 
+	lazy var actionLock = NSLock()
+	lazy var drawLock = NSLock()
+	func machine() -> CSMachine! {
+		return nil
+	}
+
 	@IBOutlet weak var openGLView: CSOpenGLView! {
 		didSet {
 			openGLView.delegate = self
@@ -30,6 +36,17 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 
 		// bind the content aspect ratio to remain 4:3 from now on
 		aController.window?.contentAspectRatio = NSSize(width: 4.0, height: 3.0)
+	}
+
+	override func close() {
+		actionLock.lock()
+		drawLock.lock()
+		openGLView.invalidate()
+		openGLView.openGLContext!.makeCurrentContext()
+		actionLock.unlock()
+		drawLock.unlock()
+
+		super.close()
 	}
 
 	var intendedCyclesPerSecond: Int64 = 0
@@ -62,8 +79,20 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		lastTime = time
 	}
 
-	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {}
-	func runForNumberOfCycles(numberOfCycles: Int32) {}
+	// MARK: CSOpenGLViewDelegate
+	func runForNumberOfCycles(numberOfCycles: Int32) {
+		if actionLock.tryLock() {
+			self.machine().runForNumberOfCycles(numberOfCycles)
+			actionLock.unlock()
+		}
+	}
+
+	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		if drawLock.tryLock() {
+			self.machine().drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+			drawLock.unlock()
+		}
+	}
 
 	// MARK: CSOpenGLViewResponderDelegate
 	func keyDown(event: NSEvent) {}

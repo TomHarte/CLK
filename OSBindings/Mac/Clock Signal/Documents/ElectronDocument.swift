@@ -12,21 +12,24 @@ import AudioToolbox
 class ElectronDocument: MachineDocument {
 
 	private lazy var electron = CSElectron()
+	override func machine() -> CSMachine! {
+		return electron
+	}
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		self.intendedCyclesPerSecond = 2000000
 		aController.window?.contentAspectRatio = NSSize(width: 11.0, height: 10.0)
+		if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
+			self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
+		}
+		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
+			self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
+		}
 		openGLView.performWithGLContext({
-			if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
-				self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
-			}
-			if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
-				self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
-			}
 			self.electron.setView(self.openGLView, aspectRatio: 11.0 / 10.0)
-			self.electron.audioQueue = self.audioQueue
 		})
+		self.electron.audioQueue = self.audioQueue
 		establishStoredOptions()
 	}
 
@@ -58,19 +61,6 @@ class ElectronDocument: MachineDocument {
 		electron.setROM(data, slot: 15)
 	}
 
-	lazy var actionLock = NSLock()
-	lazy var drawLock = NSLock()
-	override func close() {
-		actionLock.lock()
-		drawLock.lock()
-		openGLView.invalidate()
-		openGLView.openGLContext!.makeCurrentContext()
-		actionLock.unlock()
-		drawLock.unlock()
-
-		super.close()
-	}
-
 	// MARK: IBActions
 	@IBOutlet var displayTypeButton: NSPopUpButton!
 	@IBAction func setDisplayType(sender: NSPopUpButton!) {
@@ -100,21 +90,6 @@ class ElectronDocument: MachineDocument {
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
 		self.displayTypeButton.selectItemAtIndex(displayType)
-	}
-
-	// MARK: CSOpenGLViewDelegate
-	override func runForNumberOfCycles(numberOfCycles: Int32) {
-		if actionLock.tryLock() {
-			electron.runForNumberOfCycles(numberOfCycles)
-			actionLock.unlock()
-		}
-	}
-
-	override func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
-		if drawLock.tryLock() {
-			electron.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
-			drawLock.unlock()
-		}
 	}
 
 	// MARK: NSWindowDelegate
