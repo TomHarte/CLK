@@ -798,9 +798,9 @@ void Machine::synchronise()
 
 Atari2600::Speaker::Speaker()
 {
-	_poly4_counter[0] = _poly4_counter[1] =
-	_poly5_counter[0] = _poly5_counter[1] =
-	_poly9_counter[0] = _poly9_counter[1] = ~0;
+	_poly4_counter[0] = _poly4_counter[1] = 0x00f;
+	_poly5_counter[0] = _poly5_counter[1] = 0x01f;
+	_poly9_counter[0] = _poly9_counter[1] = 0x1ff;
 }
 
 Atari2600::Speaker::~Speaker()
@@ -821,13 +821,11 @@ void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
 void Atari2600::Speaker::set_control(int channel, uint8_t control)
 {
 	_control[channel] = control & 0xf;
-//	_shift_counter[channel] = ~0;
-//	printf("%d\n", _control[channel]);
 }
 
 #define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
 #define advance_poly5(c) _poly5_counter[channel] = (_poly5_counter[channel] >> 1) | (((_poly5_counter[channel] << 4) ^ (_poly5_counter[channel] << 2))&0x010)
-#define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x200)
+#define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x100)
 
 
 void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
