@@ -11,7 +11,7 @@
 
 #define AudioQueueNumAudioBuffers	4
 #define AudioQueueStreamLength		1024
-#define AudioQueueBufferLength		256
+#define AudioQueueBufferLength		512
 
 enum {
 	AudioQueueCanProceed,

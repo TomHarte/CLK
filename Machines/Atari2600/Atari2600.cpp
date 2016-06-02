@@ -73,7 +73,7 @@ void Machine::setup_output(float aspect_ratio)
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
 
-	_speaker.set_input_rate(2 * 263 * 60);
+	_speaker.set_input_rate(1194720 / 38);
 }
 
 void Machine::switch_region()
@@ -93,7 +93,7 @@ void Machine::switch_region()
 		"}");
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 
-	_speaker.set_input_rate(2 * 312 * 50);
+//	_speaker.set_input_rate(2 * 312 * 50);
 }
 
 void Machine::close_output()
@@ -692,6 +692,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						printf("!!!DDR!!!");
 					break;
 					case 0x04:
+					case 0x06:
 						returnValue &= _piaTimerValue >> _piaTimerShift;
 
 						if(_writtenPiaTimerShift != _piaTimerShift) {
@@ -700,8 +701,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 					break;
 					case 0x05:
+					case 0x07:
 						returnValue &= _piaTimerStatus;
-						_piaTimerStatus &= ~0x40;
+						_piaTimerStatus &= ~0x80;
 					break;
 				}
 			} else {
@@ -711,9 +713,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x05:
 					case 0x06:
 					case 0x07:
-						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);
-						_piaTimerValue = (unsigned int)(*value << _piaTimerShift);
-						_piaTimerStatus &= ~0xc0;
+						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
+						_piaTimerValue = (unsigned int)(*value) << _piaTimerShift;
+						_piaTimerStatus &= ~0x40;
 					break;
 				}
 			}
@@ -727,7 +729,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(_piaTimerValue >= cycles_run_for / 3) {
 		_piaTimerValue -= cycles_run_for / 3;
 	} else {
-		_piaTimerValue += 0xff - cycles_run_for / 3;
+		_piaTimerValue = 0x100 + ((_piaTimerValue - (cycles_run_for / 3)) >> _piaTimerShift);
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
@@ -794,6 +796,17 @@ void Machine::synchronise()
 	update_audio();
 }
 
+Atari2600::Speaker::Speaker()
+{
+	_poly4_counter[0] = _poly4_counter[1] =
+	_poly5_counter[0] = _poly5_counter[1] =
+	_poly9_counter[0] = _poly9_counter[1] = ~0;
+}
+
+Atari2600::Speaker::~Speaker()
+{
+}
+
 void Atari2600::Speaker::set_volume(int channel, uint8_t volume)
 {
 	_volume[channel] = volume & 0xf;
@@ -808,7 +821,14 @@ void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
 void Atari2600::Speaker::set_control(int channel, uint8_t control)
 {
 	_control[channel] = control & 0xf;
+//	_shift_counter[channel] = ~0;
+//	printf("%d\n", _control[channel]);
 }
+
+#define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
+#define advance_poly5(c) _poly5_counter[channel] = (_poly5_counter[channel] >> 1) | (((_poly5_counter[channel] << 4) ^ (_poly5_counter[channel] << 2))&0x010)
+#define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x200)
+
 
 void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
@@ -817,22 +837,89 @@ void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *ta
 		target[c] = 0;
 		for(int channel = 0; channel < 2; channel++)
 		{
+			_divider_counter[channel] ++;
+			int level = 0;
 			switch(_control[channel])
 			{
-				case 0x0: case 0xb:
-					target[c] += _volume[channel] * 1024;
+				case 0x0: case 0xb:	// constant 1
+					level = 1;
 				break;
 
-				case 0x4: case 0x5:
-					_divider_counter[channel] ++;
-					target[c] += _volume[channel] * 1024 * ((_divider_counter[channel] / (_divider[channel]+1))&1);
+				case 0x4: case 0x5:	// div2 tone
+					level = (_divider_counter[channel] / (_divider[channel]+1))&1;
 				break;
 
-				case 0xc: case 0xd:
-					_divider_counter[channel] ++;
-					target[c] += _volume[channel] * 1024 * ((_divider_counter[channel] / ((_divider[channel]+1)*3))&1);
+				case 0xc: case 0xd:	// div6 tone
+					level = (_divider_counter[channel] / ((_divider[channel]+1)*3))&1;
+				break;
+
+				case 0x6: case 0xa:	// div31 tone
+					level = (_divider_counter[channel] / (_divider[channel]+1))%30 <= 18;
+				break;
+
+				case 0xe:			// div93 tone
+					level = (_divider_counter[channel] / ((_divider[channel]+1)*3))%30 <= 18;
+				break;
+
+				case 0x1:			// 4-bit poly
+					level = _poly4_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly4(channel);
+					}
+				break;
+
+				case 0x2:			// 4-bit poly div31
+					level = _poly4_counter[channel]&1;
+					if(_divider_counter[channel]%(30*(_divider[channel]+1)) == 18)
+					{
+						advance_poly4(channel);
+					}
+				break;
+
+				case 0x3:			// 5/4-bit poly
+					level = _output_state[channel];
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						if(_poly5_counter[channel]&1)
+						{
+							_output_state[channel] = _poly4_counter[channel]&1;
+							advance_poly4(channel);
+						}
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0x7: case 0x9:	// 5-bit poly
+					level = _poly5_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0xf:			// 5-bit poly div6
+					level = _poly5_counter[channel]&1;
+					if(_divider_counter[channel] == (_divider[channel]+1)*3)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0x8:			// 9-bit poly
+					level = _poly9_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly9(channel);
+					}
 				break;
 			}
+
+			target[c] += _volume[channel] * 1024 * level;
 		}
 	}
 }

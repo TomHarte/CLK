@@ -21,6 +21,9 @@ const unsigned int number_of_recorded_counters = 7;
 
 class Speaker: public ::Outputs::Filter<Speaker> {
 	public:
+		Speaker();
+		~Speaker();
+
 		void set_volume(int channel, uint8_t volume);
 		void set_divider(int channel, uint8_t divider);
 		void set_control(int channel, uint8_t control);
@@ -32,9 +35,16 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		uint8_t _volume[2];
 		uint8_t _divider[2];
 		uint8_t _control[2];
-		int _shift_counter[2];
-		int _divider_counter[2];
+
+		int _poly4_counter[2];
+		int _poly5_counter[2];
+		int _poly9_counter[2];
 		int _output_state[2];
+
+		int _divider_counter[2];
+
+		int _pattern_periods[16];
+		int _patterns[16][512];
 };
 
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {

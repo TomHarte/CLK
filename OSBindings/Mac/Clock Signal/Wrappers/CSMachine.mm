@@ -70,7 +70,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 		Outputs::Speaker *speaker = self.machine->get_speaker();
 		if(speaker)
 		{
-			speaker->set_output_rate(sampleRate, 256);
+			speaker->set_output_rate(sampleRate, 512);
 			speaker->set_delegate(delegate);
 			return YES;
 		}
