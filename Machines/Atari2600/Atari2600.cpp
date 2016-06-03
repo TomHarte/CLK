@@ -283,57 +283,63 @@ void Machine::output_pixels(unsigned int count)
 {
 	while(count--)
 	{
-		// apply any queued changes and flush the record
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
+		if(_upcomingEvents[_upcomingEventsPointer].updates)
 		{
-			_stateByTime = _stateByExtendTime[1];
-
-			// clear any ongoing moves
-			if(_hMoveFlags)
+			// apply any queued changes and flush the record
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
 			{
-				for(int c = 0; c < number_of_upcoming_events; c++)
+				// schedule an extended left border
+				_stateByTime = _stateByExtendTime[1];
+
+				// clear any ongoing moves
+				if(_hMoveFlags)
 				{
-					_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
+					for(int c = 0; c < number_of_upcoming_events; c++)
+					{
+						_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
+					}
+				}
+
+				// schedule new moves
+				_hMoveFlags = 0x1f;
+				_hMoveCounter = 15;
+
+				// follow-through into a compare immediately
+				_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
+			}
+
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
+			{
+				for(int c = 0; c < 5; c++)
+				{
+					if(((_objectMotion[c] >> 4)^_hMoveCounter) == 7)
+					{
+						_hMoveFlags &= ~(1 << c);
+					}
+				}
+				if(_hMoveFlags)
+				{
+					if(_hMoveCounter) _hMoveCounter--;
+					_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+					_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 				}
 			}
 
-			// schedule new moves
-			_hMoveFlags = 0x1f;
-			_hMoveCounter = 15;
-
-			// follow-through into a compare immediately
-			_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
-		}
-
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
-		{
-			for(int c = 0; c < 5; c++)
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
 			{
-				if(((_objectMotion[c] >> 4)^_hMoveCounter) == 7)
-				{
-					_hMoveFlags &= ~(1 << c);
-				}
+				update_timers(_hMoveFlags);
 			}
-			if(_hMoveFlags)
+
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ResetCounter)
 			{
-				if(_hMoveCounter) _hMoveCounter--;
-				_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
-				_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
+				_objectCounter[_objectCounterPointer][_upcomingEvents[_upcomingEventsPointer].counter].count = 0;
 			}
+
+			// zero out current update event
+			_upcomingEvents[_upcomingEventsPointer].updates = 0;
 		}
 
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
-		{
-			update_timers(_hMoveFlags);
-		}
-
-		if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ResetCounter)
-		{
-			_objectCounter[_objectCounterPointer][_upcomingEvents[_upcomingEventsPointer].counter].count = 0;
-		}
-
-		// zero out current update event, progress to next
-		_upcomingEvents[_upcomingEventsPointer].updates = 0;
+		//  progress to next event
 		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
 		// determine which output state is currently active
@@ -392,6 +398,7 @@ void Machine::output_pixels(unsigned int count)
 		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
 		{
+			// switch back to a normal length left border
 			_stateByTime = _stateByExtendTime[0];
 			set_ready_line(false);
 		}

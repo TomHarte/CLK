@@ -16,7 +16,7 @@
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 16;
+const unsigned int number_of_upcoming_events = 6;
 const unsigned int number_of_recorded_counters = 7;
 
 class Speaker: public ::Outputs::Filter<Speaker> {

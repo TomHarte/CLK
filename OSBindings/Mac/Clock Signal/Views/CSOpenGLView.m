@@ -34,7 +34,9 @@
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
 
-	_serialDispatchQueue = dispatch_queue_create("", DISPATCH_QUEUE_SERIAL);
+	// create a serial dispatch queue
+	_serialDispatchQueue = dispatch_queue_create("OpenGLView", DISPATCH_QUEUE_SERIAL);
+//	dispatch_set_target_queue(_serialDispatchQueue, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0));
 
 	// set the clear colour
 	[self.openGLContext makeCurrentContext];
@@ -63,20 +65,21 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		BOOL didSkip = _hasSkipped;
 		dispatch_async(_serialDispatchQueue, ^{
 			[self.delegate openGLView:self didUpdateToTime:time didSkipPreviousUpdate:didSkip frequency:frequency];
-			[self drawViewOnlyIfDirty:YES];
 			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
 		});
 		_hasSkipped = NO;
+		NSLog(@"+");
 	}
 	else
 	{
 		_hasSkipped = YES;
+		NSLog(@"-");
 	}
 
 	// Draw the display only if a previous draw is not still ongoing. -drawViewOnlyIfDirty: is guaranteed
 	// to be safe to call concurrently with -openGLView:updateToTime: so there's no need to worry about
 	// the above interrupting the below or vice versa.
-	if(_hasSkipped && !OSAtomicTestAndSet(drawingMask, &_updateIsOngoing))
+	if(!OSAtomicTestAndSet(drawingMask, &_updateIsOngoing))
 	{
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			[self drawViewOnlyIfDirty:YES];
