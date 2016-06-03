@@ -267,7 +267,7 @@ void Machine::setup_reported_collisions()
 			_reportedCollisions[c][7] |= ((playerPixels[0] & playerPixels[1]) << 7);
 		}
 
-		if(_playfieldOutput | ballPixel) {
+		if(playfieldPixel | ballPixel) {
 			_reportedCollisions[c][4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
 			_reportedCollisions[c][5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
 
