@@ -56,7 +56,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
 {
 	const uint32_t processingMask = 0x01;
-	const uint32_t drawingMask = 0x02;
 
 	// Always post an -openGLView:didUpdateToTime: if a previous one isn't still ongoing. This is the hook upon which the substantial processing occurs.
 	if(!OSAtomicTestAndSet(processingMask, &_updateIsOngoing))
@@ -68,24 +67,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
 		});
 		_hasSkipped = NO;
-		NSLog(@"+");
 	}
 	else
 	{
 		_hasSkipped = YES;
-		NSLog(@"-");
 	}
 
-	// Draw the display only if a previous draw is not still ongoing. -drawViewOnlyIfDirty: is guaranteed
-	// to be safe to call concurrently with -openGLView:updateToTime: so there's no need to worry about
-	// the above interrupting the below or vice versa.
-	if(!OSAtomicTestAndSet(drawingMask, &_updateIsOngoing))
-	{
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-			[self drawViewOnlyIfDirty:YES];
-			OSAtomicTestAndClear(drawingMask, &_updateIsOngoing);
-		});
-	}
+	// Draw the display now regardless of other activity.
+	[self drawViewOnlyIfDirty:YES];
 }
 
 - (void)invalidate

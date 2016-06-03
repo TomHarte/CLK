@@ -86,9 +86,10 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 				skippedFrames = 0
 			}
 
-			if skippedFrames > 4 {
-				numberOfCycles = min(numberOfCycles, Int64(Double(intendedCyclesPerSecond) * frequency))
-			}
+			// run for at most three frames up to and until that causes overshoots in the
+			// permitted processing window for at least four consecutive frames, in which
+			// case limit to one
+			numberOfCycles = min(numberOfCycles, Int64(Double(intendedCyclesPerSecond) * frequency * ((skippedFrames > 4) ? 3.0 : 1.0)))
 			runForNumberOfCycles(Int32(numberOfCycles))
 		}
 		lastTime = time
