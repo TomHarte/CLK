@@ -734,6 +734,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		_piaTimerStatus |= 0xc0;
 	}
 
+//	static unsigned int total_cycles = 0;
+//	total_cycles += cycles_run_for / 3;
+//	static time_t logged_time = 0;
+//	time_t time_now = time(nullptr);
+//	if(time_now - logged_time > 0)
+//	{
+//		printf("[c] %ld : %d\n", time_now - logged_time, total_cycles);
+//		total_cycles = 0;
+//		logged_time = time_now;
+//	}
+
 	return cycles_run_for / 3;
 }
 
@@ -787,7 +798,20 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 
 void Machine::update_audio()
 {
-	_speaker.run_for_cycles(_cycles_since_speaker_update / 114);
+	unsigned int audio_cycles = _cycles_since_speaker_update / 114;
+
+//	static unsigned int total_cycles = 0;
+//	total_cycles += audio_cycles;
+//	static time_t logged_time = 0;
+//	time_t time_now = time(nullptr);
+//	if(time_now - logged_time > 0)
+//	{
+//		printf("[s] %ld : %d\n", time_now - logged_time, total_cycles);
+//		total_cycles = 0;
+//		logged_time = time_now;
+//	}
+
+	_speaker.run_for_cycles(audio_cycles);
 	_cycles_since_speaker_update %= 114;
 }
 
