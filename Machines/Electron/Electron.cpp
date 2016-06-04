@@ -450,7 +450,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return cycles;
 }
 
-void Machine::update_output()
+void Machine::synchronise()
 {
 	update_display();
 	update_audio();

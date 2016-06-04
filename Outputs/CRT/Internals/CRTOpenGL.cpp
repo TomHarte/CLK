@@ -108,6 +108,7 @@ namespace {
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_output_mutex(new std::mutex),
+	_draw_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
 	_composite_src_output_y(0),
 	_cleared_composite_output_y(0),
@@ -172,8 +173,8 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
-	// lock down any further work on the current frame
-	_output_mutex->lock();
+	// lock down any other draw_frames
+	_draw_mutex->lock();
 
 	// establish essentials
 	if(!output_shader_program)
@@ -195,21 +196,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glDeleteSync(_fence);
 	}
 
-	// release the mapping, giving up on trying to draw if data has been lost
-	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer);
-
-	// bind and flush the source array buffer
-	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer);
-
-	// determine how many lines are newly reclaimed; they'll need to be cleared
-	Range clearing_zones[2];
-
-	// the clearing zones for the composite output Y are calculated with a fixed offset of '1' which has the effect of clearing
-	// one ahead of the expected drawing area this frame; that's because the current _composite_src_output_y may or may not have been
-	// written to during the last update, so we want it to have been cleared during the last update.
-	int number_of_clearing_zones	= getCircularRanges(&_cleared_composite_output_y, &_composite_src_output_y, IntermediateBufferHeight, 1, 1, clearing_zones);
-	uint16_t completed_texture_y	= _buffer_builder->get_and_finalise_current_line();
-
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
 	{
@@ -228,6 +214,24 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		framebuffer = std::move(new_framebuffer);
 	}
 
+	// lock out the machine emulation until data is copied
+	_output_mutex->lock();
+
+	// release the mapping, giving up on trying to draw if data has been lost
+	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer);
+
+	// bind and flush the source array buffer
+	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer);
+
+	// determine how many lines are newly reclaimed; they'll need to be cleared
+	Range clearing_zones[2];
+
+	// the clearing zones for the composite output Y are calculated with a fixed offset of '1' which has the effect of clearing
+	// one ahead of the expected drawing area this frame; that's because the current _composite_src_output_y may or may not have been
+	// written to during the last update, so we want it to have been cleared during the last update.
+	int number_of_clearing_zones	= getCircularRanges(&_cleared_composite_output_y, &_composite_src_output_y, IntermediateBufferHeight, 1, 1, clearing_zones);
+	uint16_t completed_texture_y	= _buffer_builder->get_and_finalise_current_line();
+
 	// upload new source pixels
 	if(completed_texture_y)
 	{
@@ -238,6 +242,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 							formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
 							_buffer_builder->get_image_pointer());
 	}
+
+	// data having been grabbed, allow the machine to continue
+	_output_mutex->unlock();
 
 	struct RenderStage {
 		OpenGL::TextureTarget *const target;
@@ -330,7 +337,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	framebuffer->draw((float)output_width / (float)output_height);
 
 	_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-	_output_mutex->unlock();
+	_draw_mutex->unlock();
 }
 
 void OpenGLOutputBuilder::reset_all_OpenGL_state()

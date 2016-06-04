@@ -11,7 +11,9 @@
 #include <stdio.h>
 
 using namespace Atari2600;
-static const int horizontalTimerReload = 227;
+namespace {
+	static const unsigned int horizontalTimerPeriod = 228;
+}
 
 Machine::Machine() :
 	_horizontalTimer(0),
@@ -19,12 +21,39 @@ Machine::Machine() :
 	_lastOutputState(OutputState::Sync),
 	_piaTimerStatus(0xff),
 	_rom(nullptr),
-	_hMoveWillCount(false),
 	_piaDataValue{0xff, 0xff},
-	_tiaInputValue{0xff, 0xff}
+	_tiaInputValue{0xff, 0xff},
+	_upcomingEventsPointer(0),
+	_objectCounterPointer(0),
+	_stateByTime(_stateByExtendTime[0]),
+	_cycles_since_speaker_update(0)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
+	setup_reported_collisions();
+
+	for(int vbextend = 0; vbextend < 2; vbextend++)
+	{
+		for(int c = 0; c < 57; c++)
+		{
+			OutputState state;
+
+			// determine which output state will be active in four cycles from now
+			switch(c)
+			{
+				case 0: case 1: case 2: case 3:					state = OutputState::Blank;									break;
+				case 4: case 5: case 6: case 7:					state = OutputState::Sync;									break;
+				case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;							break;
+				case 12: case 13: case 14:
+				case 15: case 16:								state = OutputState::Blank;									break;
+
+				case 17: case 18:								state = vbextend ? OutputState::Blank : OutputState::Pixel;	break;
+				default:										state = OutputState::Pixel;									break;
+			}
+
+			_stateByExtendTime[vbextend][c] = state;
+		}
+	}
 }
 
 void Machine::setup_output(float aspect_ratio)
@@ -43,6 +72,8 @@ void Machine::setup_output(float aspect_ratio)
 			"return (float(y) / 14.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
+
+	_speaker.set_input_rate(1194720 / 38);
 }
 
 void Machine::switch_region()
@@ -61,6 +92,8 @@ void Machine::switch_region()
 			"return (float(y) / 14.0) * (1.0 - amplitude) + step(4, (iPhase + 2u) & 15u) * amplitude * cos(phase + phaseOffset);"
 		"}");
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
+
+//	_speaker.set_input_rate(2 * 312 * 50);
 }
 
 void Machine::close_output()
@@ -75,96 +108,133 @@ Machine::~Machine()
 	close_output();
 }
 
-void Machine::get_output_pixel(uint8_t *pixel, int offset)
+void Machine::update_timers(int mask)
 {
-	// get the playfield pixel and hence a proposed colour
-	uint8_t playfieldPixel = _playfield[offset >> 2];
-	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
+	unsigned int upcomingPointerPlus4 = (_upcomingEventsPointer + 4)%number_of_upcoming_events;
 
-	// get player and missile proposed pixels
-	uint8_t playerPixels[2] = {0, 0}, missilePixels[2] = {0, 0};
-	for(int c = 0; c < 2; c++)
+	_objectCounterPointer = (_objectCounterPointer + 1)%number_of_recorded_counters;
+	ObjectCounter *oneClockAgo = _objectCounter[(_objectCounterPointer - 1 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *twoClocksAgo = _objectCounter[(_objectCounterPointer - 2 + number_of_recorded_counters)%number_of_recorded_counters];
+	ObjectCounter *now = _objectCounter[_objectCounterPointer];
+
+	// grab the background now, for application in four clocks
+	if(mask & (1 << 5) && !(_horizontalTimer&3))
 	{
-		const uint8_t repeatMask = _playerAndMissileSize[c]&7;
-		if(_playerGraphics[c]) {
-			// figure out player colour
-			int flipMask = (_playerReflection[c]&0x8) ? 0 : 7;
-
-			int relativeTimer = _objectCounter[c] - 5;
-			switch (repeatMask)
-			{
-				case 0: break;
-				default:
-					if(repeatMask&4 && relativeTimer >= 64) relativeTimer -= 64;
-					else if(repeatMask&2 && relativeTimer >= 32) relativeTimer -= 32;
-					else if(repeatMask&1 && relativeTimer >= 16) relativeTimer -= 16;
-				break;
-				case 5:
-					relativeTimer >>= 1;
-				break;
-				case 7:
-					relativeTimer >>= 2;
-				break;
-			}
-
-			if(relativeTimer >= 0 && relativeTimer < 8)
-				playerPixels[c] = (_playerGraphics[c] >> (relativeTimer ^ flipMask)) &1;
-		}
-
-		// figure out missile colour
-		if((_missileGraphicsEnable[c]&2) && !(_missileGraphicsReset[c]&2)) {
-			int missileIndex = _objectCounter[2+c] - 4;
-			switch (repeatMask)
-			{
-				case 0: break;
-				default:
-					if(repeatMask&4 && missileIndex >= 64) missileIndex -= 64;
-					else if(repeatMask&2 && missileIndex >= 32) missileIndex -= 32;
-					else if(repeatMask&1 && missileIndex >= 16) missileIndex -= 16;
-				break;
-				case 5:
-					missileIndex >>= 1;
-				break;
-				case 7:
-					missileIndex >>= 2;
-				break;
-			}
-			int missileSize = 1 << ((_playerAndMissileSize[c] >> 4)&3);
-			missilePixels[c] = (missileIndex >= 0 && missileIndex < missileSize) ? 1 : 0;
-		}
+		unsigned int offset = 4 + _horizontalTimer - (horizontalTimerPeriod - 160);
+		_upcomingEvents[upcomingPointerPlus4].updates |= Event::Action::Playfield;
+		_upcomingEvents[upcomingPointerPlus4].playfieldPixel = _playfield[(offset >> 2)%40];
 	}
 
-	// get the ball proposed colour
+	if(mask & (1 << 4))
+	{
+		// the ball becomes visible whenever it hits zero, regardless of whether its status
+		// is the result of a counter rollover or a programmatic reset, and there's a four
+		// clock delay on that triggering the start signal
+		now[4].count = (oneClockAgo[4].count + 1)%160;
+		now[4].pixel = oneClockAgo[4].pixel + 1;
+		if(!now[4].count) now[4].pixel = 0;
+	}
+	else
+	{
+		now[4] = oneClockAgo[4];
+	}
+
+	// check for player and missle triggers
+	for(int c = 0; c < 4; c++)
+	{
+		if(mask & (1 << c))
+		{
+			// update the count
+			now[c].count = (oneClockAgo[c].count + 1)%160;
+
+			uint8_t repeatMask = _playerAndMissileSize[c&1] & 7;
+			ObjectCounter *rollover;
+			ObjectCounter *equality;
+
+			if(c < 2)
+			{
+				// update the pixel
+				now[c].broad_pixel = oneClockAgo[c].broad_pixel + 1;
+				switch(repeatMask)
+				{
+					default:	now[c].pixel = oneClockAgo[c].pixel + 1;	break;
+					case 5:		now[c].pixel = oneClockAgo[c].pixel + (now[c].broad_pixel&1);	break;
+					case 7:		now[c].pixel = oneClockAgo[c].pixel + (((now[c].broad_pixel | (now[c].broad_pixel >> 1))^1)&1);	break;
+				}
+
+				// check for a rollover six clocks ago or equality five clocks ago
+				rollover = twoClocksAgo;
+				equality = oneClockAgo;
+			}
+			else
+			{
+				// update the pixel
+				now[c].pixel = oneClockAgo[c].pixel + 1;
+
+				// check for a rollover five clocks ago or equality four clocks ago
+				rollover = oneClockAgo;
+				equality = now;
+			}
+
+			if(
+				(rollover[c].count == 159) ||
+				(_hasSecondCopy[c&1] && equality[c].count == 16) ||
+				(_hasThirdCopy[c&1] && equality[c].count == 32) ||
+				(_hasFourthCopy[c&1] && equality[c].count == 64)
+			)
+			{
+				now[c].pixel = 0;
+				now[c].broad_pixel = 0;
+			}
+		}
+		else
+		{
+			now[c] = oneClockAgo[c];
+		}
+	}
+}
+
+uint8_t Machine::get_output_pixel()
+{
+	ObjectCounter *now = _objectCounter[_objectCounterPointer];
+
+	// get the playfield pixel
+	unsigned int offset = _horizontalTimer - (horizontalTimerPeriod - 160);
+	uint8_t playfieldColour = ((_playfieldControl&6) == 2) ? _playerColour[offset / 80] : _playfieldColour;
+
+	// ball pixel
 	uint8_t ballPixel = 0;
-	if(_ballGraphicsEnable&2) {
-		int ballIndex = _objectCounter[4] - 4;
-		int ballSize = 1 << ((_playfieldControl >> 4)&3);
-		ballPixel = (ballIndex >= 0 && ballIndex < ballSize) ? 1 : 0;
+	if(now[4].pixel < _ballSize) {
+		ballPixel = _ballGraphicsEnable[_ballGraphicsSelector];
+	}
+
+	// determine the player and missile pixels
+	uint8_t playerPixels[2] = { 0, 0 };
+	uint8_t missilePixels[2] = { 0, 0 };
+	for(int c = 0; c < 2; c++)
+	{
+		if(_playerGraphics[c] && now[c].pixel < 8) {
+			playerPixels[c] = (_playerGraphics[_playerGraphicsSelector[c]][c] >> (now[c].pixel ^ _playerReflectionMask[c])) & 1;
+		}
+
+		if(!_missileGraphicsReset[c] && now[c+2].pixel < _missileSize[c]) {
+			missilePixels[c] = _missileGraphicsEnable[c];
+		}
 	}
 
 	// accumulate collisions
-	if(playerPixels[0] | playerPixels[1]) {
-		_collisions[0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
-		_collisions[1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
-
-		_collisions[2] |= ((playfieldPixel & playerPixels[0]) << 7)		| ((ballPixel & playerPixels[0]) << 6);
-		_collisions[3] |= ((playfieldPixel & playerPixels[1]) << 7)		| ((ballPixel & playerPixels[1]) << 6);
-
-		_collisions[7] |= ((playerPixels[0] & playerPixels[1]) << 7);
-	}
-
-	if(playfieldPixel | ballPixel) {
-		_collisions[4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
-		_collisions[5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
-
-		_collisions[6] |= ((playfieldPixel & ballPixel) << 7);
-	}
-
-	if(missilePixels[0] & missilePixels[1])
-		_collisions[7] |= (1 << 6);
+	int pixel_mask = playerPixels[0] | (playerPixels[1] << 1) | (missilePixels[0] << 2) | (missilePixels[1] << 3) | (ballPixel << 4) | (_playfieldOutput << 5);
+	_collisions[0] |= _reportedCollisions[pixel_mask][0];
+	_collisions[1] |= _reportedCollisions[pixel_mask][1];
+	_collisions[2] |= _reportedCollisions[pixel_mask][2];
+	_collisions[3] |= _reportedCollisions[pixel_mask][3];
+	_collisions[4] |= _reportedCollisions[pixel_mask][4];
+	_collisions[5] |= _reportedCollisions[pixel_mask][5];
+	_collisions[6] |= _reportedCollisions[pixel_mask][6];
+	_collisions[7] |= _reportedCollisions[pixel_mask][7];
 
 	// apply appropriate priority to pick a colour
-	playfieldPixel |= ballPixel;
+	uint8_t playfieldPixel = _playfieldOutput | ballPixel;
 	uint8_t outputColour = playfieldPixel ? playfieldColour : _backgroundColour;
 
 	if(!(_playfieldControl&0x04) || !playfieldPixel) {
@@ -172,73 +242,131 @@ void Machine::get_output_pixel(uint8_t *pixel, int offset)
 		if(playerPixels[0] || missilePixels[0]) outputColour = _playerColour[0];
 	}
 
-	// store colour
-//	static int lc;
-//	if(_vSyncEnabled) lc = 0; else lc += (offset == 159) ? 1 : 0;
-//	*pixel = (uint8_t)(((offset  / 10) << 4) | (((lc >> 4)&7) << 1));
-	*pixel = outputColour;
+	// return colour
+	return outputColour;
 }
 
-// in imputing the knowledge that all we're dealing with is the rollover from 159 to 0,
-// this is faster than the straightforward +1)%160 per profiling
-#define increment_object_counter(c) _objectCounter[c] = (_objectCounter[c]+1)&~((158-_objectCounter[c]) >> 8)
+void Machine::setup_reported_collisions()
+{
+	for(int c = 0; c < 64; c++)
+	{
+		memset(_reportedCollisions[c], 0, 8);
+
+		int playerPixels[2] = { c&1, (c >> 1)&1 };
+		int missilePixels[2] = { (c >> 2)&1, (c >> 3)&1 };
+		int ballPixel = (c >> 4)&1;
+		int playfieldPixel = (c >> 5)&1;
+
+		if(playerPixels[0] | playerPixels[1]) {
+			_reportedCollisions[c][0] |= ((missilePixels[0] & playerPixels[1]) << 7)	| ((missilePixels[0] & playerPixels[0]) << 6);
+			_reportedCollisions[c][1] |= ((missilePixels[1] & playerPixels[0]) << 7)	| ((missilePixels[1] & playerPixels[1]) << 6);
+
+			_reportedCollisions[c][2] |= ((playfieldPixel & playerPixels[0]) << 7)	| ((ballPixel & playerPixels[0]) << 6);
+			_reportedCollisions[c][3] |= ((playfieldPixel & playerPixels[1]) << 7)	| ((ballPixel & playerPixels[1]) << 6);
+
+			_reportedCollisions[c][7] |= ((playerPixels[0] & playerPixels[1]) << 7);
+		}
+
+		if(playfieldPixel | ballPixel) {
+			_reportedCollisions[c][4] |= ((playfieldPixel & missilePixels[0]) << 7)	| ((ballPixel & missilePixels[0]) << 6);
+			_reportedCollisions[c][5] |= ((playfieldPixel & missilePixels[1]) << 7)	| ((ballPixel & missilePixels[1]) << 6);
+
+			_reportedCollisions[c][6] |= ((playfieldPixel & ballPixel) << 7);
+		}
+
+		if(missilePixels[0] & missilePixels[1])
+			_reportedCollisions[c][7] |= (1 << 6);
+	}
+}
 
 void Machine::output_pixels(unsigned int count)
 {
-	const int32_t start_of_sync = 214;
-	const int32_t end_of_sync = 198;
-	const int32_t end_of_colour_burst = 188;
-
 	while(count--)
 	{
-		OutputState state;
+		if(_upcomingEvents[_upcomingEventsPointer].updates)
+		{
+			// apply any queued changes and flush the record
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveSetup)
+			{
+				// schedule an extended left border
+				_stateByTime = _stateByExtendTime[1];
 
-		// update hmove
-		if(!(_horizontalTimer&3)) {
+				// clear any ongoing moves
+				if(_hMoveFlags)
+				{
+					for(int c = 0; c < number_of_upcoming_events; c++)
+					{
+						_upcomingEvents[c].updates &= ~(Event::Action::HMoveCompare | Event::Action::HMoveDecrement);
+					}
+				}
 
-			if(_hMoveFlags) {
-				const uint8_t counterValue = _hMoveCounter ^ 0x7;
-				for(int c = 0; c < 5; c++) {
-					if(counterValue == (_objectMotion[c] >> 4)) _hMoveFlags &= ~(1 << c);
-					if(_hMoveFlags&(1 << c)) increment_object_counter(c);
+				// schedule new moves
+				_hMoveFlags = 0x1f;
+				_hMoveCounter = 15;
+
+				// follow-through into a compare immediately
+				_upcomingEvents[_upcomingEventsPointer].updates |= Event::Action::HMoveCompare;
+			}
+
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveCompare)
+			{
+				for(int c = 0; c < 5; c++)
+				{
+					if(((_objectMotion[c] >> 4)^_hMoveCounter) == 7)
+					{
+						_hMoveFlags &= ~(1 << c);
+					}
+				}
+				if(_hMoveFlags)
+				{
+					if(_hMoveCounter) _hMoveCounter--;
+					_upcomingEvents[(_upcomingEventsPointer+4)%number_of_upcoming_events].updates |= Event::Action::HMoveCompare;
+					_upcomingEvents[(_upcomingEventsPointer+2)%number_of_upcoming_events].updates |= Event::Action::HMoveDecrement;
 				}
 			}
 
-			if(_hMoveIsCounting) {
-				_hMoveIsCounting = !!_hMoveCounter;
-				_hMoveCounter = (_hMoveCounter-1)&0xf;
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::HMoveDecrement)
+			{
+				update_timers(_hMoveFlags);
 			}
+
+			if(_upcomingEvents[_upcomingEventsPointer].updates & Event::Action::ResetCounter)
+			{
+				_objectCounter[_objectCounterPointer][_upcomingEvents[_upcomingEventsPointer].counter].count = 0;
+			}
+
+			// zero out current update event
+			_upcomingEvents[_upcomingEventsPointer].updates = 0;
 		}
 
+		//  progress to next event
+		_upcomingEventsPointer = (_upcomingEventsPointer + 1)%number_of_upcoming_events;
 
-		// blank is decoded as 68 counts; sync and colour burst as 16 counts
+		// determine which output state is currently active
+		OutputState primary_state = _stateByTime[_horizontalTimer >> 2];
+		OutputState effective_state = primary_state;
 
-		// 4 blank
-		// 4 sync
-		// 9 'blank'; colour burst after 4
-		// 40 pixels
+		// update pixel timers
+		if(primary_state == OutputState::Pixel) update_timers(~0);
 
-		// it'll be about 43 cycles from start of hsync to start of visible frame, so...
-		// guesses, until I can find information: 26 cycles blank, 16 sync, 40 blank, 160 pixels
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			if(_vBlankEnabled) {
-				state = OutputState::Blank;
-			} else {
-				state = OutputState::Pixel;
-			}
+		// update the background chain
+		if(_horizontalTimer >= 64 && _horizontalTimer <= 160+64 && !(_horizontalTimer&3))
+		{
+			_playfieldOutput = _nextPlayfieldOutput;
+			_nextPlayfieldOutput = _playfield[(_horizontalTimer - 64) >> 2];
 		}
-		else if(_horizontalTimer < end_of_colour_burst) state = OutputState::Blank;
-		else if(_horizontalTimer < end_of_sync) state = OutputState::ColourBurst;
-		else if(_horizontalTimer < start_of_sync) state = OutputState::Sync;
-		else state = OutputState::Blank;
 
-		// logic: if vsync is enabled, output the opposite of the automatic hsync output
+		// if vsync is enabled, output the opposite of the automatic hsync output;
+		// also	honour the vertical blank flag
 		if(_vSyncEnabled) {
-			state = (state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
+			effective_state = (effective_state = OutputState::Sync) ? OutputState::Blank : OutputState::Sync;
+		} else if(_vBlankEnabled && effective_state == OutputState::Pixel) {
+			effective_state = OutputState::Blank;
 		}
 
+		// decide what that means needs to be communicated to the CRT
 		_lastOutputStateDuration++;
-		if(state != _lastOutputState) {
+		if(effective_state != _lastOutputState) {
 			switch(_lastOutputState) {
 				case OutputState::Blank:		_crt->output_blank(_lastOutputStateDuration);				break;
 				case OutputState::Sync:			_crt->output_sync(_lastOutputStateDuration);				break;
@@ -246,35 +374,34 @@ void Machine::output_pixels(unsigned int count)
 				case OutputState::Pixel:		_crt->output_data(_lastOutputStateDuration,	1);				break;
 			}
 			_lastOutputStateDuration = 0;
-			_lastOutputState = state;
+			_lastOutputState = effective_state;
 
-			if(state == OutputState::Pixel) {
+			if(effective_state == OutputState::Pixel) {
 				_outputBuffer = _crt->allocate_write_area(160);
 			} else {
 				_outputBuffer = nullptr;
 			}
 		}
 
-		if(_horizontalTimer < (_vBlankExtend ? 152 : 160)) {
-			uint8_t throwaway_pixel;
-			get_output_pixel(_outputBuffer ? &_outputBuffer[_lastOutputStateDuration] : &throwaway_pixel, 159 - _horizontalTimer);
-
-			// increment all graphics counters
-			increment_object_counter(0);
-			increment_object_counter(1);
-			increment_object_counter(2);
-			increment_object_counter(3);
-			increment_object_counter(4);
+		// decide on a pixel colour if that's what's happening
+		if(effective_state == OutputState::Pixel)
+		{
+			uint8_t colour = get_output_pixel();
+			if(_outputBuffer)
+			{
+				*_outputBuffer = colour;
+				_outputBuffer++;
+			}
 		}
 
-		// assumption here: signed shifts right; otherwise it's just
-		// an attempt to avoid both the % operator and a conditional
-		_horizontalTimer--;
-		const int32_t sign_extension = _horizontalTimer >> 31;
-		_horizontalTimer = (_horizontalTimer&~sign_extension) | (sign_extension&horizontalTimerReload);
-
+		// advance horizontal timer, perform reset actions if desired
+		_horizontalTimer = (_horizontalTimer + 1) % horizontalTimerPeriod;
 		if(!_horizontalTimer)
-			_vBlankExtend = false;
+		{
+			// switch back to a normal length left border
+			_stateByTime = _stateByExtendTime[0];
+			set_ready_line(false);
+		}
 	}
 }
 
@@ -283,26 +410,19 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	set_reset_line(false);
 
 	uint8_t returnValue = 0xff;
-	unsigned int cycles_run_for = 1;
-	const int32_t ready_line_disable_time = 227;//horizontalTimerReload;
+	unsigned int cycles_run_for = 3;
 
+	// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
+	// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
+	// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
+	// skips to the end of the line.
 	if(operation == CPU6502::BusOperation::Ready) {
-		unsigned int distance_to_end_of_ready = (_horizontalTimer - ready_line_disable_time + horizontalTimerReload + 1)%(horizontalTimerReload + 1);
-		cycles_run_for = distance_to_end_of_ready / 3;
-		output_pixels(distance_to_end_of_ready);
-	} else {
-		output_pixels(3);
+		unsigned int distance_to_end_of_ready = horizontalTimerPeriod - _horizontalTimer;
+		cycles_run_for = distance_to_end_of_ready;
 	}
 
-	if(_hMoveWillCount) {
-		_hMoveCounter = 0x0f;
-		_hMoveFlags = 0x1f;
-		_hMoveIsCounting = true;
-		_hMoveWillCount = false;
-	}
-
-	if(_horizontalTimer == ready_line_disable_time)
-		set_ready_line(false);
+	output_pixels(cycles_run_for);
+	_cycles_since_speaker_update += cycles_run_for;
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -378,14 +498,26 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x01:	_vBlankEnabled = !!(*value & 0x02);	break;
 
 					case 0x02:
-						set_ready_line(true);
+						if(_horizontalTimer) set_ready_line(true);
 					break;
 					case 0x03:
-						_horizontalTimer = 0;
+						// Reset is delayed by four cycles.
+						_horizontalTimer = horizontalTimerPeriod - 4;
+
+						// TODO: audio will now be out of synchronisation — fix
 					break;
 
 					case 0x04:
-					case 0x05: _playerAndMissileSize[decodedAddress - 0x04] = *value;	break;
+					case 0x05: {
+						int entry = decodedAddress - 0x04;
+						_playerAndMissileSize[entry] = *value;
+						_missileSize[entry] = 1 << ((*value >> 4)&3);
+
+						uint8_t repeatMask = (*value)&7;
+						_hasSecondCopy[entry] = (repeatMask == 1) || (repeatMask == 3);
+						_hasThirdCopy[entry] = (repeatMask == 2) || (repeatMask == 3) || (repeatMask == 6);
+						_hasFourthCopy[entry] = (repeatMask == 4) || (repeatMask == 6);
+					} break;
 
 					case 0x06:
 					case 0x07: _playerColour[decodedAddress - 0x06] = *value;	break;
@@ -395,6 +527,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x0a: {
 						uint8_t old_playfield_control = _playfieldControl;
 						_playfieldControl = *value;
+						_ballSize = 1 << ((_playfieldControl >> 4)&3);
 
 						// did the mirroring bit change?
 						if((_playfieldControl^old_playfield_control)&1) {
@@ -406,7 +539,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 					} break;
 					case 0x0b:
-					case 0x0c: _playerReflection[decodedAddress - 0x0b] = *value;	break;
+					case 0x0c: _playerReflectionMask[decodedAddress - 0x0b] = (*value)&8 ? 0 : 7;	break;
 
 					case 0x0d:
 						_playfield[0] = ((*value) >> 4)&1;
@@ -454,23 +587,40 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					break;
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
-					case 0x14: _objectCounter[decodedAddress - 0x10] = 0;		break;
+					case 0x14:
+						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].updates |= Event::Action::ResetCounter;
+						_upcomingEvents[(_upcomingEventsPointer + 4)%number_of_upcoming_events].counter = decodedAddress - 0x10;
+					break;
+
+					case 0x15: case 0x16:
+						update_audio();
+						_speaker.set_control(decodedAddress - 0x15, *value);
+					break;
+
+					case 0x17: case 0x18:
+						update_audio();
+						_speaker.set_divider(decodedAddress - 0x17, *value);
+					break;
+
+					case 0x19: case 0x1a:
+						update_audio();
+						_speaker.set_volume(decodedAddress - 0x19, *value);
+					break;
 
 					case 0x1c:
-						_ballGraphicsEnable = _ballGraphicsEnableLatch;
+						_ballGraphicsEnable[1] = _ballGraphicsEnable[0];
 					case 0x1b: {
 						int index = decodedAddress - 0x1b;
-						_playerGraphicsLatch[index] = *value;
-						if(!(_playerGraphicsLatchEnable[index]&1))
-							_playerGraphics[index] = _playerGraphicsLatch[index];
-						_playerGraphics[index^1] = _playerGraphicsLatch[index^1];
+						_playerGraphics[0][index] = *value;
+						_playerGraphics[1][index^1] = _playerGraphics[0][index^1];
 					} break;
-					case 0x1d: _missileGraphicsEnable[0] = *value;	break;
-					case 0x1e: _missileGraphicsEnable[1] = *value;	break;
+					case 0x1d:
+					case 0x1e:
+						_missileGraphicsEnable[decodedAddress - 0x1d] = ((*value) >> 1)&1;
+//						printf("e:%02x <- %c\n", decodedAddress - 0x1d, ((*value)&1) ? 'E' : '-');
+					break;
 					case 0x1f:
-						_ballGraphicsEnableLatch = *value;
-						if(!(_ballGraphicsEnableDelay&1))
-							_ballGraphicsEnable = _ballGraphicsEnableLatch;
+						_ballGraphicsEnable[0] = ((*value) >> 1)&1;
 					break;
 
 					case 0x20:
@@ -481,21 +631,42 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_objectMotion[decodedAddress - 0x20] = *value;
 					break;
 
-					case 0x25: _playerGraphicsLatchEnable[0] = *value;	break;
-					case 0x26: _playerGraphicsLatchEnable[1] = *value;	break;
-					case 0x27: _ballGraphicsEnableDelay = *value;		break;
+					case 0x25: _playerGraphicsSelector[0]	= (*value)&1;	break;
+					case 0x26: _playerGraphicsSelector[1]	= (*value)&1;	break;
+					case 0x27: _ballGraphicsSelector		= (*value)&1;	break;
 
 					case 0x28:
 					case 0x29:
-						if(!(*value&0x02) && _missileGraphicsReset[decodedAddress - 0x28]&0x02)
-							_objectCounter[decodedAddress - 0x26] = _objectCounter[decodedAddress - 0x28];  // TODO: +3 for normal, +6 for double, +10 for quad
-						_missileGraphicsReset[decodedAddress - 0x28] = *value;
+					{
+						// TODO: this should properly mean setting a flag and propagating later, I think?
+						int index = decodedAddress - 0x28;
+						if(!(*value&0x02) && _missileGraphicsReset[index])
+						{
+							_objectCounter[_objectCounterPointer][index + 2].count = _objectCounter[_objectCounterPointer][index].count;
+
+							uint8_t repeatMask = _playerAndMissileSize[index] & 7;
+							int extra_offset;
+							switch(repeatMask)
+							{
+								default:	extra_offset = 3;	break;
+								case 5:		extra_offset = 6;	break;
+								case 7:		extra_offset = 10;	break;
+							}
+
+							_objectCounter[_objectCounterPointer][index + 2].count = (_objectCounter[_objectCounterPointer][index + 2].count + extra_offset)%160;
+						}
+						_missileGraphicsReset[index] = !!((*value) & 0x02);
+//						printf("r:%02x <- %c\n", decodedAddress - 0x28, ((*value)&2) ? 'R' : '-');
+					}
 					break;
 
-					case 0x2a:
-						_vBlankExtend = true;
-						_hMoveWillCount = true;
-					break;
+					case 0x2a: {
+						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
+						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
+						// in five cycles from now
+//						int start_pause = ((_horizontalTimer + 3)&3) + 4;
+						_upcomingEvents[(_upcomingEventsPointer + 5)%number_of_upcoming_events].updates |= Event::Action::HMoveSetup;
+					} break;
 					case 0x2b:
 						_objectMotion[0] =
 						_objectMotion[1] =
@@ -525,8 +696,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x01:
 					case 0x03:
 						// TODO: port DDR
+						printf("!!!DDR!!!");
 					break;
 					case 0x04:
+					case 0x06:
 						returnValue &= _piaTimerValue >> _piaTimerShift;
 
 						if(_writtenPiaTimerShift != _piaTimerShift) {
@@ -535,8 +708,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						}
 					break;
 					case 0x05:
+					case 0x07:
 						returnValue &= _piaTimerStatus;
-						_piaTimerStatus &= ~0x40;
+						_piaTimerStatus &= ~0x80;
 					break;
 				}
 			} else {
@@ -546,9 +720,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x05:
 					case 0x06:
 					case 0x07:
-						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);
-						_piaTimerValue = (unsigned int)(*value << _piaTimerShift);
-						_piaTimerStatus &= ~0xc0;
+						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
+						_piaTimerValue = (unsigned int)(*value) << _piaTimerShift;
+						_piaTimerStatus &= ~0x40;
 					break;
 				}
 			}
@@ -559,15 +733,26 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_piaTimerValue >= cycles_run_for) {
-		_piaTimerValue -= cycles_run_for;
+	if(_piaTimerValue >= cycles_run_for / 3) {
+		_piaTimerValue -= cycles_run_for / 3;
 	} else {
-		_piaTimerValue += 0xff - cycles_run_for;
+		_piaTimerValue = 0x100 + ((_piaTimerValue - (cycles_run_for / 3)) >> _piaTimerShift);
 		_piaTimerShift = 0;
 		_piaTimerStatus |= 0xc0;
 	}
 
-	return cycles_run_for;
+//	static unsigned int total_cycles = 0;
+//	total_cycles += cycles_run_for / 3;
+//	static time_t logged_time = 0;
+//	time_t time_now = time(nullptr);
+//	if(time_now - logged_time > 0)
+//	{
+//		printf("[c] %ld : %d\n", time_now - logged_time, total_cycles);
+//		total_cycles = 0;
+//		logged_time = time_now;
+//	}
+
+	return cycles_run_for / 3;
 }
 
 void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
@@ -614,4 +799,160 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 	_romPages[1] = &_rom[1024 & romMask];
 	_romPages[2] = &_rom[2048 & romMask];
 	_romPages[3] = &_rom[3072 & romMask];
+}
+
+#pragma mark - Audio
+
+void Machine::update_audio()
+{
+	unsigned int audio_cycles = _cycles_since_speaker_update / 114;
+
+//	static unsigned int total_cycles = 0;
+//	total_cycles += audio_cycles;
+//	static time_t logged_time = 0;
+//	time_t time_now = time(nullptr);
+//	if(time_now - logged_time > 0)
+//	{
+//		printf("[s] %ld : %d\n", time_now - logged_time, total_cycles);
+//		total_cycles = 0;
+//		logged_time = time_now;
+//	}
+
+	_speaker.run_for_cycles(audio_cycles);
+	_cycles_since_speaker_update %= 114;
+}
+
+void Machine::synchronise()
+{
+	update_audio();
+}
+
+Atari2600::Speaker::Speaker()
+{
+	_poly4_counter[0] = _poly4_counter[1] = 0x00f;
+	_poly5_counter[0] = _poly5_counter[1] = 0x01f;
+	_poly9_counter[0] = _poly9_counter[1] = 0x1ff;
+}
+
+Atari2600::Speaker::~Speaker()
+{
+}
+
+void Atari2600::Speaker::set_volume(int channel, uint8_t volume)
+{
+	_volume[channel] = volume & 0xf;
+}
+
+void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
+{
+	_divider[channel] = divider & 0x1f;
+	_divider_counter[channel] = 0;
+}
+
+void Atari2600::Speaker::set_control(int channel, uint8_t control)
+{
+	_control[channel] = control & 0xf;
+}
+
+#define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
+#define advance_poly5(c) _poly5_counter[channel] = (_poly5_counter[channel] >> 1) | (((_poly5_counter[channel] << 4) ^ (_poly5_counter[channel] << 2))&0x010)
+#define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x100)
+
+
+void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+{
+	for(unsigned int c = 0; c < number_of_samples; c++)
+	{
+		target[c] = 0;
+		for(int channel = 0; channel < 2; channel++)
+		{
+			_divider_counter[channel] ++;
+			int level = 0;
+			switch(_control[channel])
+			{
+				case 0x0: case 0xb:	// constant 1
+					level = 1;
+				break;
+
+				case 0x4: case 0x5:	// div2 tone
+					level = (_divider_counter[channel] / (_divider[channel]+1))&1;
+				break;
+
+				case 0xc: case 0xd:	// div6 tone
+					level = (_divider_counter[channel] / ((_divider[channel]+1)*3))&1;
+				break;
+
+				case 0x6: case 0xa:	// div31 tone
+					level = (_divider_counter[channel] / (_divider[channel]+1))%30 <= 18;
+				break;
+
+				case 0xe:			// div93 tone
+					level = (_divider_counter[channel] / ((_divider[channel]+1)*3))%30 <= 18;
+				break;
+
+				case 0x1:			// 4-bit poly
+					level = _poly4_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly4(channel);
+					}
+				break;
+
+				case 0x2:			// 4-bit poly div31
+					level = _poly4_counter[channel]&1;
+					if(_divider_counter[channel]%(30*(_divider[channel]+1)) == 18)
+					{
+						advance_poly4(channel);
+					}
+				break;
+
+				case 0x3:			// 5/4-bit poly
+					level = _output_state[channel];
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						if(_poly5_counter[channel]&1)
+						{
+							_output_state[channel] = _poly4_counter[channel]&1;
+							advance_poly4(channel);
+						}
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0x7: case 0x9:	// 5-bit poly
+					level = _poly5_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0xf:			// 5-bit poly div6
+					level = _poly5_counter[channel]&1;
+					if(_divider_counter[channel] == (_divider[channel]+1)*3)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly5(channel);
+					}
+				break;
+
+				case 0x8:			// 9-bit poly
+					level = _poly9_counter[channel]&1;
+					if(_divider_counter[channel] == _divider[channel]+1)
+					{
+						_divider_counter[channel] = 0;
+						advance_poly9(channel);
+					}
+				break;
+			}
+
+			target[c] += _volume[channel] * 1024 * level;
+		}
+	}
+}
+
+void Atari2600::Speaker::skip_samples(unsigned int number_of_samples)
+{
 }

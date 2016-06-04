@@ -13,7 +13,12 @@
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
+
+- (int)idealSamplingRateFromRange:(NSRange)range;
+- (void)setAudioSamplingRate:(int)samplingRate;
+
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
+- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
 @property (nonatomic, weak) AudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;

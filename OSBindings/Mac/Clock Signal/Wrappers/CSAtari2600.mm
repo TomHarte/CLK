@@ -49,16 +49,6 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	}
 }
 
-- (void)runForNumberOfCycles:(int)numberOfCycles {
-	@synchronized(self) {
-		_atari2600.run_for_cycles(numberOfCycles);
-	}
-}
-
-- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_atari2600.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
-}
-
 - (void)setROM:(NSData *)rom {
 	@synchronized(self) {
 		_atari2600.set_rom(rom.length, (const uint8_t *)rom.bytes);
@@ -79,16 +69,14 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	@synchronized(self) {
-		_atari2600.setup_output(aspectRatio);
+		[super setupOutputWithAspectRatio:aspectRatio];
 		_atari2600.get_crt()->set_delegate(&_crtDelegate);
 		_crtDelegate.atari2600 = self;
 	}
 }
 
-- (void)closeOutput {
-	@synchronized(self) {
-		_atari2600.close_output();
-	}
+- (CRTMachine::Machine * const)machine {
+	return &_atari2600;
 }
 
 @end

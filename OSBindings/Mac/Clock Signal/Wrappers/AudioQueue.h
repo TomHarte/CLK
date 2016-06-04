@@ -10,6 +10,11 @@
 
 @interface AudioQueue : NSObject
 
+- (instancetype)initWithSamplingRate:(Float64)samplingRate;
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
+
+@property (nonatomic, readonly) Float64 samplingRate;
+
++ (Float64)preferredSamplingRate;
 
 @end

@@ -16,11 +16,8 @@
 	Electron::Machine _electron;
 }
 
-- (void)runForNumberOfCycles:(int)numberOfCycles {
-	@synchronized(self) {
-		_electron.run_for_cycles(numberOfCycles);
-		_electron.update_output();
-	}
+- (CRTMachine::Machine * const)machine {
+	return &_electron;
 }
 
 - (void)setOSROM:(nonnull NSData *)rom {
@@ -41,10 +38,6 @@
 	}
 }
 
-- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_electron.get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
-}
-
 - (BOOL)openUEFAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {
@@ -57,24 +50,13 @@
 	}
 }
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
+- (void)clearAllKeys {
 	@synchronized(self) {
-		_electron.get_speaker()->set_output_rate(sampleRate, 256);
-		_electron.get_speaker()->set_delegate(delegate);
-		return YES;
+		_electron.clear_all_keys();
 	}
 }
 
-- (void)clearAllKeys {
-//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
-		@synchronized(self) {
-			_electron.clear_all_keys();
-		}
-//	});
-}
-
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
-//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 	@synchronized(self) {
 		switch(key)
 		{
@@ -152,34 +134,19 @@
 			break;
 		}
 	}
-//	});
 }
 
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
-//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
-		@synchronized(self) {
-			_useFastLoadingHack = useFastLoadingHack;
-			_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
-		}
-//	});
+	@synchronized(self) {
+		_useFastLoadingHack = useFastLoadingHack;
+		_electron.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
 }
 
 - (void)setUseTelevisionOutput:(BOOL)useTelevisionOutput {
 	@synchronized(self) {
 		_useTelevisionOutput = useTelevisionOutput;
 		_electron.get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
-	}
-}
-
-- (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	@synchronized(self) {
-		_electron.setup_output(aspectRatio);
-	}
-}
-
-- (void)closeOutput {
-	@synchronized(self) {
-		_electron.close_output();
 	}
 }
 

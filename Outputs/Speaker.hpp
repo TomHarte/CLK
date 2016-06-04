@@ -24,6 +24,18 @@ class Speaker {
 				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
 		};
 
+		int get_ideal_clock_rate_in_range(int minimum, int maximum)
+		{
+			// return exactly the input rate if possible
+			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
+
+			// if the input rate is lower, return the minimum
+			if(_input_cycles_per_second < minimum) return minimum;
+
+			// otherwise, return the maximum
+			return maximum;
+		}
+
 		void set_output_rate(int cycles_per_second, int buffer_size)
 		{
 			_output_cycles_per_second = cycles_per_second;
@@ -76,20 +88,16 @@ template <class T> class Filter: public Speaker {
 		{
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
-			// TODO: what if output rate is greater than input rate?
-
-			// fill up as much of the input buffer as possible
-			while(input_cycles)
+			// if input and output rates exactly match, just accumulate results and pass on
+			if(_input_cycles_per_second == _output_cycles_per_second)
 			{
-				unsigned int cycles_to_read = (unsigned int)std::min((int)input_cycles, _number_of_taps - _input_buffer_depth);
-				static_cast<T *>(this)->get_samples(cycles_to_read, &_input_buffer.get()[_input_buffer_depth]);
-				input_cycles -= cycles_to_read;
-				_input_buffer_depth += cycles_to_read;
-
-				if(_input_buffer_depth == _number_of_taps)
+				while(input_cycles)
 				{
-					_buffer_in_progress.get()[_buffer_in_progress_pointer] = _filter->apply(_input_buffer.get());
-					_buffer_in_progress_pointer++;
+					unsigned int cycles_to_read = (unsigned int)(_buffer_size - _buffer_in_progress_pointer);
+					if(cycles_to_read > input_cycles) cycles_to_read = input_cycles;
+
+					static_cast<T *>(this)->get_samples(cycles_to_read, &_buffer_in_progress.get()[_buffer_in_progress_pointer]);
+					_buffer_in_progress_pointer += cycles_to_read;
 
 					// announce to delegate if full
 					if(_buffer_in_progress_pointer == _buffer_size)
@@ -101,24 +109,60 @@ template <class T> class Filter: public Speaker {
 						}
 					}
 
-					// If the next loop around is going to reuse some of the samples just collected, use a memmove to
-					// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
-					// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-					uint64_t steps = _stepper->step();
-					if(steps < _number_of_taps)
+					input_cycles -= cycles_to_read;
+				}
+
+				return;
+			}
+
+			// if the output rate is less than the input rate, use the filter
+			if(_input_cycles_per_second > _output_cycles_per_second)
+			{
+				while(input_cycles)
+				{
+					unsigned int cycles_to_read = (unsigned int)std::min((int)input_cycles, _number_of_taps - _input_buffer_depth);
+					static_cast<T *>(this)->get_samples(cycles_to_read, &_input_buffer.get()[_input_buffer_depth]);
+					input_cycles -= cycles_to_read;
+					_input_buffer_depth += cycles_to_read;
+
+					if(_input_buffer_depth == _number_of_taps)
 					{
-						int16_t *input_buffer = _input_buffer.get();
-						memmove(input_buffer, &input_buffer[steps], sizeof(int16_t)  * ((size_t)_number_of_taps - (size_t)steps));
-						_input_buffer_depth -= steps;
-					}
-					else
-					{
-						if(steps > _number_of_taps)
-							static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)_number_of_taps);
-						_input_buffer_depth = 0;
+						_buffer_in_progress.get()[_buffer_in_progress_pointer] = _filter->apply(_input_buffer.get());
+						_buffer_in_progress_pointer++;
+
+						// announce to delegate if full
+						if(_buffer_in_progress_pointer == _buffer_size)
+						{
+							_buffer_in_progress_pointer = 0;
+							if(_delegate)
+							{
+								_delegate->speaker_did_complete_samples(this, _buffer_in_progress.get(), _buffer_size);
+							}
+						}
+
+						// If the next loop around is going to reuse some of the samples just collected, use a memmove to
+						// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
+						// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
+						uint64_t steps = _stepper->step();
+						if(steps < _number_of_taps)
+						{
+							int16_t *input_buffer = _input_buffer.get();
+							memmove(input_buffer, &input_buffer[steps], sizeof(int16_t)  * ((size_t)_number_of_taps - (size_t)steps));
+							_input_buffer_depth -= steps;
+						}
+						else
+						{
+							if(steps > _number_of_taps)
+								static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)_number_of_taps);
+							_input_buffer_depth = 0;
+						}
 					}
 				}
+
+				return;
 			}
+
+			// TODO: input rate is less than output rate
 		}
 
 	private:

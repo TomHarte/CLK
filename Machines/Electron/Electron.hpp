@@ -10,9 +10,8 @@
 #define Electron_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Outputs/Speaker.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../CRTMachine.hpp"
 #include <stdint.h>
 
 namespace Electron {
@@ -142,13 +141,11 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
+class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, Tape::Delegate {
 
 	public:
 
 		Machine();
-
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
@@ -156,15 +153,21 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();
 
-		void setup_output(float aspect_ratio);
-		void close_output();
-		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
-		Outputs::Speaker *get_speaker() { return &_speaker; }
-
-		virtual void tape_did_change_interrupt_status(Tape *tape);
-
-		void update_output();
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+
+		// to satisfy CPU6502::Processor
+		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		void synchronise();
+
+		// to satisfy CRTMachine::Machine
+		virtual void setup_output(float aspect_ratio);
+		virtual void close_output();
+		virtual Outputs::CRT::CRT *get_crt() { return _crt.get(); }
+		virtual Outputs::Speaker *get_speaker() { return &_speaker; }
+		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+
+		// to satisfy Tape::Delegate
+		virtual void tape_did_change_interrupt_status(Tape *tape);
 
 	private:
 
@@ -215,12 +218,12 @@ class Machine: public CPU6502::Processor<Machine>, Tape::Delegate {
 		uint8_t *_current_output_target, *_initial_output_target;
 		unsigned int _current_output_divider;
 
-		// Tape.
+		// Tape
 		Tape _tape;
 		bool _use_fast_tape_hack;
 		bool _fast_load_is_in_data;
 
-		// Outputs.
+		// Outputs
 		std::unique_ptr<Outputs::CRT::CRT> _crt;
 		Speaker _speaker;
 };

@@ -269,7 +269,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 				"), vec3(1.0))"
 			");"
 
-			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 4.0, 4.0);"
+			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
 			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
 		"}", false, false);
 }
