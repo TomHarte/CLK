@@ -784,16 +784,16 @@
 		4B55CE481C3B3B0C0093A61B /* Wrappers */ = {
 			isa = PBXGroup;
 			children = (
+				4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */,
+				4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */,
 				4B55CE491C3B3B0C0093A61B /* CSAtari2600.h */,
 				4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */,
+				4B55CE521C3B7ABF0093A61B /* CSElectron.h */,
+				4B55CE531C3B7ABF0093A61B /* CSElectron.mm */,
 				4B55CE4C1C3B3BDA0093A61B /* CSMachine.h */,
 				4B55CE4D1C3B3BDA0093A61B /* CSMachine.mm */,
 				4B55CE4F1C3B78A80093A61B /* CSMachine+Subclassing.h */,
-				4B55CE521C3B7ABF0093A61B /* CSElectron.h */,
-				4B55CE531C3B7ABF0093A61B /* CSElectron.mm */,
 				4BAE587D1C447B7A005B9AF0 /* KeyCodes.h */,
-				4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */,
-				4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */,
 			);
 			path = Wrappers;
 			sourceTree = "<group>";

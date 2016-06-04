@@ -11,11 +11,7 @@
 
 @interface CSMachine (Subclassing)
 
-- (void)performAsync:(dispatch_block_t)action;
-- (void)performSync:(dispatch_block_t)action;
-
 - (CRTMachine::Machine * const)machine;
-
 - (void)setupOutputWithAspectRatio:(float)aspectRatio;
 
 @end

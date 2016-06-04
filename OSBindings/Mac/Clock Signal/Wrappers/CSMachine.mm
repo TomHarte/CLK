@@ -22,21 +22,10 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
-	dispatch_queue_t _serialDispatchQueue;
 }
 
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
-}
-
-- (instancetype)init {
-	self = [super init];
-
-	if(self) {
-		_serialDispatchQueue = dispatch_queue_create("Machine queue", DISPATCH_QUEUE_SERIAL);
-	}
-
-	return self;
 }
 
 - (void)dealloc {
@@ -82,14 +71,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	@synchronized(self) {
 		self.machine->run_for_cycles(numberOfCycles);
 	}
-}
-
-- (void)performSync:(dispatch_block_t)action {
-	dispatch_sync(_serialDispatchQueue, action);
-}
-
-- (void)performAsync:(dispatch_block_t)action {
-	dispatch_async(_serialDispatchQueue, action);
 }
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
