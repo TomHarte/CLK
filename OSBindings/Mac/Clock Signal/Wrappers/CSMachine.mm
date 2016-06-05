@@ -43,7 +43,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 		{
 			return speaker->get_ideal_clock_rate_in_range((int)range.location, (int)(range.location + range.length));
 		}
-		return (int)range.location;
+		return 0;
 	}
 }
 

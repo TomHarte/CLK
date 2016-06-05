@@ -20,6 +20,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return 1;
 }
 
+#pragma mark - Setup
+
 void Machine::setup_output(float aspect_ratio)
 {
 	_mos6560 = std::unique_ptr<MOS::MOS6560>(new MOS::MOS6560());
@@ -28,16 +30,17 @@ void Machine::setup_output(float aspect_ratio)
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 {
 	uint8_t *target = nullptr;
+	size_t max_length = 0x2000;
 	switch(slot)
 	{
-		case ROMSlotKernel:		target = _kernelROM;	break;
-		case ROMSlotCharacters:	target = _characterROM;	break;
-		case ROMSlotBASIC:		target = _basicROM;		break;
+		case ROMSlotKernel:		target = _kernelROM;							break;
+		case ROMSlotCharacters:	target = _characterROM;	max_length = 0x1000;	break;
+		case ROMSlotBASIC:		target = _basicROM;								break;
 	}
 
 	if(target)
 	{
-		size_t length_to_copy = std::max((size_t)0x1000, length);
+		size_t length_to_copy = std::min(max_length, length);
 		memcpy(target, data, length_to_copy);
 	}
 }

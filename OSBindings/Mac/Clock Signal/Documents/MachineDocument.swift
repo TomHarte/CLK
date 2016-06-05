@@ -48,9 +48,11 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = AudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
-		audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
-		self.machine().audioQueue = self.audioQueue
-		self.machine().setAudioSamplingRate(selectedSamplingRate)
+		if selectedSamplingRate > 0 {
+			audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
+			self.machine().audioQueue = self.audioQueue
+			self.machine().setAudioSamplingRate(selectedSamplingRate)
+		}
 	}
 
 	override func close() {

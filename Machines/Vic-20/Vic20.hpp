@@ -41,8 +41,9 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 
 	private:
 		uint8_t _characterROM[0x1000];
-		uint8_t _basicROM[0x1000];
-		uint8_t _kernelROM[0x1000];
+		uint8_t _basicROM[0x2000];
+		uint8_t _kernelROM[0x2000];
+		uint8_t _ram[0x1000];
 
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 };
