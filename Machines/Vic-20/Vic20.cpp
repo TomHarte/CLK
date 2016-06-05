@@ -13,10 +13,38 @@
 using namespace Vic20;
 
 Machine::Machine()
-{}
+{
+	set_reset_line(true);
+}
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	set_reset_line(false);
+
+	if(isReadOperation(operation))
+	{
+		uint8_t returnValue = 0xff;
+
+		if(address < sizeof(_ram))
+			returnValue &= _ram[address];
+
+		if(address >= 0x8000 && address < 0x9000)
+			returnValue &= _characterROM[address&0x0fff];
+
+		if(address >= 0xc000 && address < 0xe000)
+			returnValue &= _basicROM[address&0x1fff];
+
+		if(address >= 0xe000)
+			returnValue &= _kernelROM[address&0x1fff];
+
+		*value = returnValue;
+	}
+	else
+	{
+		if(address < sizeof(_ram))
+			_ram[address] = *value;
+	}
+
 	return 1;
 }
 
