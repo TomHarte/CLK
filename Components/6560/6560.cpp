@@ -19,3 +19,17 @@ MOS6560::MOS6560() :
 			"return vec3(1.0);"
 		"}");
 }
+
+void MOS6560::set_register(int address, uint8_t value)
+{
+	printf("%02x -> %d\n", value, address);
+}
+
+uint16_t MOS6560::get_address()
+{
+	return 0;
+}
+
+void MOS6560::set_graphics_value(uint8_t value)
+{
+}

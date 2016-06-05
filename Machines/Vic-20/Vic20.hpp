@@ -45,6 +45,14 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		uint8_t _kernelROM[0x2000];
 		uint8_t _ram[0x2000];
 
+		inline uint8_t read_memory(uint16_t address) {
+			if(address < sizeof(_ram)) return _ram[address];
+			else if(address >= 0x8000 && address < 0x9000) return _characterROM[address&0x0fff];
+			else if(address >= 0xc000 && address < 0xe000) return _basicROM[address&0x1fff];
+			else if(address >= 0xe000) return _kernelROM[address&0x1fff];
+			return 0xff;
+		}
+
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 };
 

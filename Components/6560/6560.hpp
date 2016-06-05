@@ -18,6 +18,11 @@ class MOS6560 {
 		MOS6560();
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
 
+		uint16_t get_address();
+		void set_graphics_value(uint8_t value);
+
+		void set_register(int address, uint8_t value);
+
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> _crt;
 };

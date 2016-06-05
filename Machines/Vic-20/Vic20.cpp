@@ -21,28 +21,22 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	set_reset_line(false);
 
+	// run the phase-1 part of this cycle, in which the VIC accesses memory
+	_mos6560->set_graphics_value(read_memory(_mos6560->get_address()));
+
+	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
 	{
-		uint8_t returnValue = 0xff;
-
-		if(address < sizeof(_ram))
-			returnValue &= _ram[address];
-
-		if(address >= 0x8000 && address < 0x9000)
-			returnValue &= _characterROM[address&0x0fff];
-
-		if(address >= 0xc000 && address < 0xe000)
-			returnValue &= _basicROM[address&0x1fff];
-
-		if(address >= 0xe000)
-			returnValue &= _kernelROM[address&0x1fff];
-
-		*value = returnValue;
+		*value = read_memory(address);
 	}
 	else
 	{
-		if(address < sizeof(_ram))
-			_ram[address] = *value;
+		if(address < sizeof(_ram)) _ram[address] = *value;
+		else if((address&0xfff0) == 0x9000)
+		{
+			_mos6560->set_register(address - 0x9000, *value);
+		}
+		// TODO: the 6522
 	}
 
 	return 1;
