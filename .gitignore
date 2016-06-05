@@ -19,8 +19,7 @@ DerivedData
 .DS_Store
 
 # Exclude system ROMs
-OSBindings/Mac/Clock Signal/Resources/Electron/*
-OSBindings/Mac/Clock Signal/Resources/Vic20/*
+ROMImages/*
 
 # CocoaPods
 #

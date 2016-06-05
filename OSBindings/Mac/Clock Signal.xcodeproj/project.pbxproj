@@ -32,16 +32,6 @@
 		4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B73C71B1D036C030074D992 /* Vic20Document.xib */; };
 		4B886FF21D03B517004291C3 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B886FF01D03B517004291C3 /* Vic20.cpp */; };
 		4B886FF51D03B61E004291C3 /* CSVic20.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B886FF41D03B61E004291C3 /* CSVic20.mm */; };
-		4B8870021D03BFEC004291C3 /* basic.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FF81D03BFEC004291C3 /* basic.bin */; };
-		4B8870031D03BFEC004291C3 /* characters-danish.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FF91D03BFEC004291C3 /* characters-danish.bin */; };
-		4B8870041D03BFEC004291C3 /* characters-english.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFA1D03BFEC004291C3 /* characters-english.bin */; };
-		4B8870051D03BFEC004291C3 /* characters-japanese.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFB1D03BFEC004291C3 /* characters-japanese.bin */; };
-		4B8870061D03BFEC004291C3 /* characters-swedish.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFC1D03BFEC004291C3 /* characters-swedish.bin */; };
-		4B8870071D03BFEC004291C3 /* kernel-danish.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFD1D03BFEC004291C3 /* kernel-danish.bin */; };
-		4B8870081D03BFEC004291C3 /* kernel-japanese.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFE1D03BFEC004291C3 /* kernel-japanese.bin */; };
-		4B8870091D03BFEC004291C3 /* kernel-ntsc.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B886FFF1D03BFEC004291C3 /* kernel-ntsc.bin */; };
-		4B88700A1D03BFEC004291C3 /* kernel-pal.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B8870001D03BFEC004291C3 /* kernel-pal.bin */; };
-		4B88700B1D03BFEC004291C3 /* kernel-swedish.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B8870011D03BFEC004291C3 /* kernel-swedish.bin */; };
 		4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* TimingTests.swift */; };
 		4BB298EE1B587D8400A49093 /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E01B587D8300A49093 /* 6502_functional_test.bin */; };
 		4BB298EF1B587D8400A49093 /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E11B587D8300A49093 /* AllSuiteA.bin */; };
@@ -325,9 +315,7 @@
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
-		4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BCB70B31C947DDC005B1712 /* plus1.rom */; };
-		4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85C1C3E1C2500C43F01 /* basic.rom */; };
-		4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */ = {isa = PBXBuildFile; fileRef = 4BE5F85D1C3E1C2500C43F01 /* os.rom */; };
+		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -393,16 +381,6 @@
 		4B886FF11D03B517004291C3 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Vic20.hpp; path = "Vic-20/Vic20.hpp"; sourceTree = "<group>"; };
 		4B886FF31D03B61E004291C3 /* CSVic20.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSVic20.h; sourceTree = "<group>"; };
 		4B886FF41D03B61E004291C3 /* CSVic20.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSVic20.mm; sourceTree = "<group>"; };
-		4B886FF81D03BFEC004291C3 /* basic.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = basic.bin; sourceTree = "<group>"; };
-		4B886FF91D03BFEC004291C3 /* characters-danish.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "characters-danish.bin"; sourceTree = "<group>"; };
-		4B886FFA1D03BFEC004291C3 /* characters-english.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "characters-english.bin"; sourceTree = "<group>"; };
-		4B886FFB1D03BFEC004291C3 /* characters-japanese.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "characters-japanese.bin"; sourceTree = "<group>"; };
-		4B886FFC1D03BFEC004291C3 /* characters-swedish.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "characters-swedish.bin"; sourceTree = "<group>"; };
-		4B886FFD1D03BFEC004291C3 /* kernel-danish.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "kernel-danish.bin"; sourceTree = "<group>"; };
-		4B886FFE1D03BFEC004291C3 /* kernel-japanese.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "kernel-japanese.bin"; sourceTree = "<group>"; };
-		4B886FFF1D03BFEC004291C3 /* kernel-ntsc.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "kernel-ntsc.bin"; sourceTree = "<group>"; };
-		4B8870001D03BFEC004291C3 /* kernel-pal.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "kernel-pal.bin"; sourceTree = "<group>"; };
-		4B8870011D03BFEC004291C3 /* kernel-swedish.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "kernel-swedish.bin"; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimingTests.swift; sourceTree = "<group>"; };
 		4BAE587D1C447B7A005B9AF0 /* KeyCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeyCodes.h; sourceTree = "<group>"; };
 		4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Clock SignalTests-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -706,9 +684,7 @@
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
-		4BCB70B31C947DDC005B1712 /* plus1.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = plus1.rom; sourceTree = "<group>"; };
-		4BE5F85C1C3E1C2500C43F01 /* basic.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = basic.rom; sourceTree = "<group>"; };
-		4BE5F85D1C3E1C2500C43F01 /* os.rom */ = {isa = PBXFileReference; lastKnownFileType = file; path = os.rom; sourceTree = "<group>"; };
+		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -889,23 +865,6 @@
 				4B886FF11D03B517004291C3 /* Vic20.hpp */,
 			);
 			name = "Vic-20";
-			sourceTree = "<group>";
-		};
-		4B886FF71D03BFEC004291C3 /* Vic20 */ = {
-			isa = PBXGroup;
-			children = (
-				4B886FF81D03BFEC004291C3 /* basic.bin */,
-				4B886FF91D03BFEC004291C3 /* characters-danish.bin */,
-				4B886FFA1D03BFEC004291C3 /* characters-english.bin */,
-				4B886FFB1D03BFEC004291C3 /* characters-japanese.bin */,
-				4B886FFC1D03BFEC004291C3 /* characters-swedish.bin */,
-				4B886FFD1D03BFEC004291C3 /* kernel-danish.bin */,
-				4B886FFE1D03BFEC004291C3 /* kernel-japanese.bin */,
-				4B886FFF1D03BFEC004291C3 /* kernel-ntsc.bin */,
-				4B8870001D03BFEC004291C3 /* kernel-pal.bin */,
-				4B8870011D03BFEC004291C3 /* kernel-swedish.bin */,
-			);
-			path = Vic20;
 			sourceTree = "<group>";
 		};
 		4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */ = {
@@ -1302,20 +1261,9 @@
 		4BE5F85A1C3E1C2500C43F01 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				4B886FF71D03BFEC004291C3 /* Vic20 */,
-				4BE5F85B1C3E1C2500C43F01 /* Electron */,
+				4BC9DF441D044FCA00F44158 /* ROMImages */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		4BE5F85B1C3E1C2500C43F01 /* Electron */ = {
-			isa = PBXGroup;
-			children = (
-				4BCB70B31C947DDC005B1712 /* plus1.rom */,
-				4BE5F85C1C3E1C2500C43F01 /* basic.rom */,
-				4BE5F85D1C3E1C2500C43F01 /* os.rom */,
-			);
-			path = Electron;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1427,24 +1375,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B8870021D03BFEC004291C3 /* basic.bin in Resources */,
 				4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */,
-				4B88700B1D03BFEC004291C3 /* kernel-swedish.bin in Resources */,
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
-				4BE5F85F1C3E1C2500C43F01 /* os.rom in Resources */,
-				4BCB70B41C947DDC005B1712 /* plus1.rom in Resources */,
-				4B8870071D03BFEC004291C3 /* kernel-danish.bin in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
-				4B8870031D03BFEC004291C3 /* characters-danish.bin in Resources */,
 				4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */,
-				4B8870041D03BFEC004291C3 /* characters-english.bin in Resources */,
-				4B88700A1D03BFEC004291C3 /* kernel-pal.bin in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
-				4B8870051D03BFEC004291C3 /* characters-japanese.bin in Resources */,
-				4B8870091D03BFEC004291C3 /* kernel-ntsc.bin in Resources */,
-				4B8870061D03BFEC004291C3 /* characters-swedish.bin in Resources */,
-				4BE5F85E1C3E1C2500C43F01 /* basic.rom in Resources */,
-				4B8870081D03BFEC004291C3 /* kernel-japanese.bin in Resources */,
+				4BC9DF451D044FCA00F44158 /* ROMImages in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

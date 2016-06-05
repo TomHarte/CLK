@@ -20,16 +20,20 @@ class ElectronDocument: MachineDocument {
 		return NSSize(width: 11.0, height: 10.0)
 	}
 
+	private func rom(name: String) -> NSData? {
+		return dataForResource(name, ofType: "rom", inDirectory:  "ROMImages/Electron")
+	}
+
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
 		self.intendedCyclesPerSecond = 2000000
 
-		if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
-			self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
+		if let os = rom("os") {
+			self.electron.setOSROM(os)
 		}
-		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
-			self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
+		if let basic = rom("basic") {
+			self.electron.setBASICROM(basic)
 		}
 
 		establishStoredOptions()
@@ -57,8 +61,8 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
-		if let plus1Path = NSBundle.mainBundle().pathForResource("plus1", ofType: "rom") {
-			electron.setROM(NSData(contentsOfFile: plus1Path)!, slot: 12)
+		if let plus1ROM = rom("plus1") {
+			electron.setROM(plus1ROM, slot: 12)
 		}
 		electron.setROM(data, slot: 15)
 	}

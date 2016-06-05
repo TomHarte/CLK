@@ -95,6 +95,15 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		lastTime = time
 	}
 
+	// MARK: Utilities for children
+	func dataForResource(name : String, ofType type: String, inDirectory directory: String) -> NSData? {
+		if let path = NSBundle.mainBundle().pathForResource(name, ofType: type, inDirectory: directory) {
+			return NSData(contentsOfFile: path)
+		}
+
+		return nil
+	}
+
 	// MARK: CSOpenGLViewDelegate
 	func runForNumberOfCycles(numberOfCycles: Int32) {
 		if actionLock.tryLock() {
