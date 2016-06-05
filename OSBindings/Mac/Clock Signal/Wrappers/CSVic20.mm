@@ -27,7 +27,7 @@
 - (void)setCharactersROM:(nonnull NSData *)rom {
 }
 
-- (void)setROM:(nonnull NSData *)rom address:(uint16_t)address {
+- (void)setPRG:(nonnull NSData *)rom address:(uint16_t)address {
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {

@@ -42,6 +42,6 @@ class Vic20Document: MachineDocument {
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
-		print("\(data.length)")
+		vic20.setPRG(data)
 	}
 }
