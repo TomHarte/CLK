@@ -56,8 +56,8 @@ void MOS6560::set_register(int address, uint8_t value)
 		break;
 	}
 
-	printf("%02x: %02x\n", address, value);
-	printf("%04x %04x [%d by %d from %d, %d]\n", _character_cell_start_address, _video_matrix_start_address, _number_of_columns, _number_of_rows, _first_column_location, _first_row_location);
+//	printf("%02x: %02x\n", address, value);
+//	printf("%04x %04x [%d by %d from %d, %d]\n", _character_cell_start_address, _video_matrix_start_address, _number_of_columns, _number_of_rows, _first_column_location, _first_row_location);
 }
 
 uint16_t MOS6560::get_address()
@@ -65,6 +65,6 @@ uint16_t MOS6560::get_address()
 	return 0x1c;
 }
 
-void MOS6560::set_graphics_value(uint8_t value)
+void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 {
 }
