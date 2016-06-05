@@ -39,7 +39,14 @@ class MOS6560 {
 
 		enum State {
 			Sync, ColourBurst, Border, Pixels
-		};
+		} _this_state, _output_state;
+		unsigned int _cycles_in_state;
+
+		uint8_t _character_code, _character_colour;
+
+		uint8_t *pixel_pointer;
+
+		void output_border(unsigned int number_of_cycles);
 };
 
 }
