@@ -114,4 +114,9 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	func keyDown(event: NSEvent) {}
 	func keyUp(event: NSEvent) {}
 	func flagsChanged(newModifiers: NSEvent) {}
+
+	// MARK: NSDocument overrides
+	override func dataOfType(typeName: String) throws -> NSData {
+		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
+	}
 }

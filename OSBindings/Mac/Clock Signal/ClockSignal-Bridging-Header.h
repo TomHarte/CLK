@@ -3,8 +3,10 @@
 //
 
 #import "CSMachine.h"
+
 #import "CSAtari2600.h"
 #import "CSElectron.h"
+#import "CSVic20.h"
 
 #import	"CSOpenGLView.h"
 #import "AudioQueue.h"
