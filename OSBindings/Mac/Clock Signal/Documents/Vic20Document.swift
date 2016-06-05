@@ -21,4 +21,16 @@ class Vic20Document: MachineDocument {
 		self.intendedCyclesPerSecond = 1022727
 		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt
 	}
+
+	override class func autosavesInPlace() -> Bool {
+		return true
+	}
+
+	override var windowNibName: String? {
+		return "Vic20Document"
+	}
+
+	override func readFromData(data: NSData, ofType typeName: String) throws {
+		print("\(data.length)")
+	}
 }

@@ -86,7 +86,7 @@
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>Vic20Document</string>
+			<string>$(PRODUCT_MODULE_NAME).Vic20Document</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
