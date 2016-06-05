@@ -316,6 +316,7 @@
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
+		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -686,6 +687,8 @@
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
 		4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
+		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
+		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1148,6 +1151,7 @@
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
 				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
 				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
+				4BC9DF4A1D04691600F44158 /* Components */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
 				4B366DFD1B5C165F0026627B /* Outputs */,
 				4BB73EDD1B587CA500552FC2 /* Processors */,
@@ -1258,6 +1262,32 @@
 				4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */,
 			);
 			path = Shaders;
+			sourceTree = "<group>";
+		};
+		4BC9DF4A1D04691600F44158 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				4BC9DF4B1D04691600F44158 /* 6522 */,
+				4BC9DF4C1D04691600F44158 /* 6560 */,
+			);
+			name = Components;
+			path = ../../Components;
+			sourceTree = "<group>";
+		};
+		4BC9DF4B1D04691600F44158 /* 6522 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = 6522;
+			sourceTree = "<group>";
+		};
+		4BC9DF4C1D04691600F44158 /* 6560 */ = {
+			isa = PBXGroup;
+			children = (
+				4BC9DF4D1D04691600F44158 /* 6560.cpp */,
+				4BC9DF4E1D04691600F44158 /* 6560.hpp */,
+			);
+			path = 6560;
 			sourceTree = "<group>";
 		};
 		4BE5F85A1C3E1C2500C43F01 /* Resources */ = {
@@ -1674,6 +1704,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B55CE541C3B7ABF0093A61B /* CSElectron.mm in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
