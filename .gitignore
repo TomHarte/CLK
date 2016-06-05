@@ -18,8 +18,9 @@ DerivedData
 *.xcuserstate
 .DS_Store
 
-# Exclude Electron ROMs
+# Exclude system ROMs
 OSBindings/Mac/Clock Signal/Resources/Electron/*
+OSBindings/Mac/Clock Signal/Resources/Vic20/*
 
 # CocoaPods
 #
