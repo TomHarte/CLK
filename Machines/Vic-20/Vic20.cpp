@@ -31,7 +31,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
-		if(address < sizeof(_ram)) _ram[address] = *value;
+		uint8_t *ram = ram_pointer(address);
+		if(ram) *ram = *value;
 		else if((address&0xfff0) == 0x9000)
 		{
 			_mos6560->set_register(address - 0x9000, *value);
