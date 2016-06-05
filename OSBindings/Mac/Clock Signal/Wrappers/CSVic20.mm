@@ -18,16 +18,24 @@
 	return &_vic20;
 }
 
+- (void)setROM:(nonnull NSData *)rom slot:(Vic20::ROMSlot)slot {
+	_vic20.set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
+}
+
 - (void)setKernelROM:(nonnull NSData *)rom {
+	[self setROM:rom slot:Vic20::ROMSlotKernel];
 }
 
 - (void)setBASICROM:(nonnull NSData *)rom {
+	[self setROM:rom slot:Vic20::ROMSlotBASIC];
 }
 
 - (void)setCharactersROM:(nonnull NSData *)rom {
+	[self setROM:rom slot:Vic20::ROMSlotCharacters];
 }
 
-- (void)setPRG:(nonnull NSData *)rom address:(uint16_t)address {
+- (void)setPRG:(nonnull NSData *)prg {
+	_vic20.add_prg(prg.length, (const uint8_t *)prg.bytes);
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {

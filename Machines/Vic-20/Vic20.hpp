@@ -14,8 +14,18 @@
 
 namespace Vic20 {
 
+enum ROMSlot {
+	ROMSlotKernel,
+	ROMSlotBASIC,
+	ROMSlotCharacters,
+};
+
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 	public:
+
+		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+		void add_prg(size_t length, const uint8_t *data);
+
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void synchronise() {}

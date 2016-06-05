@@ -14,6 +14,6 @@
 - (void)setKernelROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
 - (void)setCharactersROM:(nonnull NSData *)rom;
-- (void)setPRG:(nonnull NSData *)rom;
+- (void)setPRG:(nonnull NSData *)prg;
 
 @end

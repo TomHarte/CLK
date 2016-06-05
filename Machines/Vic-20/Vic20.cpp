@@ -14,3 +14,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	return 1;
 }
+
+void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
+{
+}
+
+void Machine::add_prg(size_t length, const uint8_t *data)
+{
+}
