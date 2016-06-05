@@ -8,6 +8,14 @@
 
 #import "CSVic20.h"
 
-@implementation CSVic20
+#import "Vic20.hpp"
+
+@implementation CSVic20 {
+	Vic20::Machine _vic20;
+}
+
+- (CRTMachine::Machine * const)machine {
+	return &_vic20;
+}
 
 @end

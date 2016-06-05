@@ -7,3 +7,10 @@
 //
 
 #include "Vic20.hpp"
+
+using namespace Vic20;
+
+unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
+{
+	return 1;
+}
