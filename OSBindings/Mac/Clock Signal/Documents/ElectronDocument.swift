@@ -21,7 +21,7 @@ class ElectronDocument: MachineDocument {
 	}
 
 	private func rom(name: String) -> NSData? {
-		return dataForResource(name, ofType: "rom", inDirectory:  "ROMImages/Electron")
+		return dataForResource(name, ofType: "rom", inDirectory: "ROMImages/Electron")
 	}
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
@@ -29,10 +29,8 @@ class ElectronDocument: MachineDocument {
 
 		self.intendedCyclesPerSecond = 2000000
 
-		if let os = rom("os") {
+		if let os = rom("os"), basic = rom("basic") {
 			self.electron.setOSROM(os)
-		}
-		if let basic = rom("basic") {
 			self.electron.setBASICROM(basic)
 		}
 
@@ -96,26 +94,5 @@ class ElectronDocument: MachineDocument {
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
 		self.displayTypeButton.selectItemAtIndex(displayType)
-	}
-
-	// MARK: NSWindowDelegate
-	func windowDidResignKey(notification: NSNotification) {
-		electron.clearAllKeys()
-	}
-
-	// MARK: CSOpenGLViewResponderDelegate
-	override func keyDown(event: NSEvent) {
-		electron.setKey(event.keyCode, isPressed: true)
-	}
-
-	override func keyUp(event: NSEvent) {
-		electron.setKey(event.keyCode, isPressed: false)
-	}
-
-	override func flagsChanged(newModifiers: NSEvent) {
-		electron.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
-		electron.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
-		electron.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
-		electron.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
 	}
 }

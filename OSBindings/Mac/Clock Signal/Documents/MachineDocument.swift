@@ -119,13 +119,36 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		}
 	}
 
-	// MARK: CSOpenGLViewResponderDelegate
-	func keyDown(event: NSEvent) {}
-	func keyUp(event: NSEvent) {}
-	func flagsChanged(newModifiers: NSEvent) {}
-
 	// MARK: NSDocument overrides
 	override func dataOfType(typeName: String) throws -> NSData {
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
+	}
+
+	// MARK: Key forwarding
+	private func withKeyboardMachine(action: (CSKeyboardMachine) -> ()) {
+		if let keyboardMachine = self.machine() as? CSKeyboardMachine {
+			action(keyboardMachine)
+		}
+	}
+
+	func windowDidResignKey(notification: NSNotification) {
+		self.withKeyboardMachine { $0.clearAllKeys() }
+	}
+
+	func keyDown(event: NSEvent) {
+		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
+	}
+
+	func keyUp(event: NSEvent) {
+		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
+	}
+
+	func flagsChanged(newModifiers: NSEvent) {
+		self.withKeyboardMachine {
+			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
+			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
+			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
+			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
+		}
 	}
 }

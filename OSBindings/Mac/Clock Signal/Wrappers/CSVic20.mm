@@ -18,4 +18,22 @@
 	return &_vic20;
 }
 
+- (void)setKernelROM:(nonnull NSData *)rom {
+}
+
+- (void)setBASICROM:(nonnull NSData *)rom {
+}
+
+- (void)setCharactersROM:(nonnull NSData *)rom {
+}
+
+- (void)setROM:(nonnull NSData *)rom address:(uint16_t)address {
+}
+
+- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+}
+
+- (void)clearAllKeys {
+}
+
 @end

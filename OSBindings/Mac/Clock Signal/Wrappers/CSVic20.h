@@ -7,7 +7,13 @@
 //
 
 #import "CSMachine.h"
+#import "CSKeyboardMachine.h"
 
-@interface CSVic20 : CSMachine
+@interface CSVic20 : CSMachine <CSKeyboardMachine>
+
+- (void)setKernelROM:(nonnull NSData *)rom;
+- (void)setBASICROM:(nonnull NSData *)rom;
+- (void)setCharactersROM:(nonnull NSData *)rom;
+- (void)setROM:(nonnull NSData *)rom address:(uint16_t)address;
 
 @end

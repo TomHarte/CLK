@@ -685,6 +685,7 @@
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
+		4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -796,6 +797,7 @@
 				4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */,
 				4B55CE521C3B7ABF0093A61B /* CSElectron.h */,
 				4B55CE531C3B7ABF0093A61B /* CSElectron.mm */,
+				4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */,
 				4B55CE4C1C3B3BDA0093A61B /* CSMachine.h */,
 				4B55CE4D1C3B3BDA0093A61B /* CSMachine.mm */,
 				4B55CE4F1C3B78A80093A61B /* CSMachine+Subclassing.h */,
