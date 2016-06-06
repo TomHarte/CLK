@@ -188,7 +188,8 @@ uint16_t MOS6560::get_address()
 		*/
 		if(_column_counter&1)
 		{
-			return _character_cell_start_address + (_character_code*8) + (_row_counter&7);
+			// TODO: don't add 0x8000. That's a hack.
+			return 0x8000 + (_character_cell_start_address + (_character_code*8) + (_row_counter&7));
 		}
 		else
 		{
@@ -203,6 +204,10 @@ uint16_t MOS6560::get_address()
 
 void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 {
+	// TODO: this isn't correct, as _character_value will be
+	// accessed second, then output will roll over. Probably it's
+	// correct (given the delays upstream) to output all 8 on an &1
+	// and to adjust the signalling to the CRT above?
 	if(_this_state == State::Pixels)
 	{
 		if(_column_counter&1)
@@ -211,10 +216,10 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 
 			if(pixel_pointer)
 			{
-				pixel_pointer[0] = ((value >> 7)&1) * 15;
-				pixel_pointer[1] = ((value >> 6)&1) * 15;
-				pixel_pointer[2] = ((value >> 5)&1) * 15;
-				pixel_pointer[3] = ((value >> 4)&1) * 15;
+				pixel_pointer[0] = ((_character_value >> 7)&1) * 15;
+				pixel_pointer[1] = ((_character_value >> 6)&1) * 15;
+				pixel_pointer[2] = ((_character_value >> 5)&1) * 15;
+				pixel_pointer[3] = ((_character_value >> 4)&1) * 15;
 				pixel_pointer += 4;
 			}
 		}
@@ -222,10 +227,10 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 		{
 			if(pixel_pointer)
 			{
-				pixel_pointer[0] = ((value >> 3)&1) * 15;
-				pixel_pointer[1] = ((value >> 2)&1) * 15;
-				pixel_pointer[2] = ((value >> 1)&1) * 15;
-				pixel_pointer[3] = ((value >> 0)&1) * 15;
+				pixel_pointer[0] = ((_character_value >> 3)&1) * 15;
+				pixel_pointer[1] = ((_character_value >> 2)&1) * 15;
+				pixel_pointer[2] = ((_character_value >> 1)&1) * 15;
+				pixel_pointer[3] = ((_character_value >> 0)&1) * 15;
 				pixel_pointer += 4;
 			}
 
