@@ -97,14 +97,6 @@ void MOS6560::output_border(unsigned int number_of_cycles)
 
 uint16_t MOS6560::get_address()
 {
-	// determine output state; colour burst and sync timing are currently a guess
-	if(_horizontal_counter > 61) _this_state = State::ColourBurst;
-	else if(_horizontal_counter > 57) _this_state = State::Sync;
-	else
-	{
-		_this_state = (_column_counter >= 0 && _row_counter >= 0) ? State::Pixels : State::Border;
-	}
-
 	_horizontal_counter++;
 	if(_horizontal_counter == 65)
 	{
@@ -123,16 +115,38 @@ uint16_t MOS6560::get_address()
 			_row_counter++;
 			if(_row_counter == _number_of_rows*8) _row_counter = -1;
 		}
-		else if(_vertical_counter >= _first_row_location * 2) _row_counter = 0;
+		else if(_vertical_counter >= _first_row_location * 2)
+		{
+			_video_matrix_line_address_counter = _video_matrix_start_address;
+			_row_counter = 0;
+		}
 	}
 
 	if(_column_counter >= 0)
 	{
 		_column_counter++;
 		if(_column_counter == _number_of_columns*2)
+		{
 			_column_counter = -1;
+			if((_row_counter&7) == 7)
+			{
+				_video_matrix_line_address_counter = _video_matrix_address_counter;
+			}
+		}
 	}
-	else if(_horizontal_counter == _first_column_location) _column_counter = 0;
+	else if(_horizontal_counter == _first_column_location)
+	{
+		_column_counter = 0;
+		_video_matrix_address_counter = _video_matrix_line_address_counter;
+	}
+
+	// determine output state; colour burst and sync timing are currently a guess
+	if(_horizontal_counter > 61) _this_state = State::ColourBurst;
+	else if(_horizontal_counter > 57) _this_state = State::Sync;
+	else
+	{
+		_this_state = (_column_counter >= 0 && _row_counter >= 0) ? State::Pixels : State::Border;
+	}
 
 	// update the CRT
 	if(_this_state != _output_state)
@@ -172,11 +186,16 @@ uint16_t MOS6560::get_address()
 			reading from unconnected address space, such as $9100-$910f, you can
 			read the data fetched by the videochip on the previous clock cycle.)
 		*/
-		// TODO: increment this address
 		if(_column_counter&1)
-			return _character_cell_start_address + _character_code*8;
+		{
+			return _character_cell_start_address + (_character_code*8) + (_row_counter&7);
+		}
 		else
-			return _video_matrix_start_address;
+		{
+			uint16_t result = _video_matrix_address_counter;
+			_video_matrix_address_counter++;
+			return result;
+		}
 	}
 
 	return 0x1c;
@@ -188,15 +207,28 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 	{
 		if(_column_counter&1)
 		{
-			// TODO: output proper pixels here
+			_character_value = value;
+
 			if(pixel_pointer)
 			{
-				*pixel_pointer = (uint8_t)rand();
-				pixel_pointer++;
+				pixel_pointer[0] = ((value >> 7)&1) * 15;
+				pixel_pointer[1] = ((value >> 6)&1) * 15;
+				pixel_pointer[2] = ((value >> 5)&1) * 15;
+				pixel_pointer[3] = ((value >> 4)&1) * 15;
+				pixel_pointer += 4;
 			}
 		}
 		else
 		{
+			if(pixel_pointer)
+			{
+				pixel_pointer[0] = ((value >> 3)&1) * 15;
+				pixel_pointer[1] = ((value >> 2)&1) * 15;
+				pixel_pointer[2] = ((value >> 1)&1) * 15;
+				pixel_pointer[3] = ((value >> 0)&1) * 15;
+				pixel_pointer += 4;
+			}
+
 			_character_code = value;
 			_character_colour = colour_value;
 		}

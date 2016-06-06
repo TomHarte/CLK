@@ -36,13 +36,14 @@ class MOS6560 {
 		int _horizontal_counter, _vertical_counter;
 
 		int _column_counter, _row_counter;
+		uint16_t _video_matrix_address_counter, _video_matrix_line_address_counter;
 
 		enum State {
 			Sync, ColourBurst, Border, Pixels
 		} _this_state, _output_state;
 		unsigned int _cycles_in_state;
 
-		uint8_t _character_code, _character_colour;
+		uint8_t _character_code, _character_colour, _character_value;
 
 		uint8_t *pixel_pointer;
 
