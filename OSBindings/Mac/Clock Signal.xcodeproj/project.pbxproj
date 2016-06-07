@@ -317,6 +317,7 @@
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
+		4BCA98C31D065CA20062F44C /* 6522.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA98C11D065CA20062F44C /* 6522.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -689,6 +690,8 @@
 		4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
 		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
 		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
+		4BCA98C11D065CA20062F44C /* 6522.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6522.cpp; sourceTree = "<group>"; };
+		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1277,6 +1280,8 @@
 		4BC9DF4B1D04691600F44158 /* 6522 */ = {
 			isa = PBXGroup;
 			children = (
+				4BCA98C11D065CA20062F44C /* 6522.cpp */,
+				4BCA98C21D065CA20062F44C /* 6522.hpp */,
 			);
 			path = 6522;
 			sourceTree = "<group>";
@@ -1720,6 +1725,7 @@
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
+				4BCA98C31D065CA20062F44C /* 6522.cpp in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,

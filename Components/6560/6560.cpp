@@ -30,8 +30,20 @@ using namespace MOS;
     15 - 1111   Light yellow
 */
 
+/*
+	0 -> green
+	1 -> green
+	2 -> browny yellow
+	3 -> browny red
+	4 -> purple
+	5 -> purple
+	6 -> cyan
+	7 -> green
+	8 -> green
+*/
+
 MOS6560::MOS6560() :
-	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 65*4, 1, 1)),
+	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 65*4, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
 	_horizontal_counter(0),
 	_vertical_counter(0)
 {
@@ -41,8 +53,8 @@ MOS6560::MOS6560() :
 			"uint c = texture(texID, coordinate).r;"
 			"float y = 0.75 + (float(c & 8u) / 8.0) * 0.25 * step(1, c);"
 
-			"uint iPhase = c & 7u;"
-			"float phaseOffset = float(iPhase + 3u) / 7.0;"	// TODO: appropriate phaseOffset
+			"uint iPhase = 8u;"
+			"float phaseOffset = 6.283185308 * (float(iPhase)) / 7.0;"	// TODO: appropriate phaseOffset
 
 			"return mix(step(1, c) * y, step(2, c) * step(mod(phase + phaseOffset, 6.283185308), 3.141592654), amplitude);"
 		"}");
