@@ -22,6 +22,7 @@ class MOS6560 {
 		void set_graphics_value(uint8_t value, uint8_t colour_value);
 
 		void set_register(int address, uint8_t value);
+		uint8_t get_register(int address);
 
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> _crt;
@@ -46,6 +47,8 @@ class MOS6560 {
 		uint8_t _character_code, _character_colour, _character_value;
 
 		uint8_t *pixel_pointer;
+
+		uint8_t _registers[16];
 
 		void output_border(unsigned int number_of_cycles);
 };

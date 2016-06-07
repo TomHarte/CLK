@@ -29,6 +29,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(isReadOperation(operation))
 	{
 		*value = read_memory(address);
+		if((address&0xfff0) == 0x9000)
+		{
+			*value = _mos6560->get_register(address - 0x9000);
+		}
 	}
 	else
 	{

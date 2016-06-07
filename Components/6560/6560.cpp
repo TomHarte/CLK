@@ -50,6 +50,7 @@ MOS6560::MOS6560() :
 
 void MOS6560::set_register(int address, uint8_t value)
 {
+	_registers[address] = value;
 	switch(address)
 	{
 		case 0x0:
@@ -98,6 +99,12 @@ void MOS6560::set_register(int address, uint8_t value)
 		break;
 	}
 }
+
+uint8_t MOS6560::get_register(int address)
+{
+	return _registers[address];
+}
+
 
 void MOS6560::output_border(unsigned int number_of_cycles)
 {

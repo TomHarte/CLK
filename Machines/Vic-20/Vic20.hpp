@@ -46,12 +46,12 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 
 		uint8_t _userBASICMemory[0x0400];
 		uint8_t _screenMemory[0x1000];
-		uint8_t _colorMemory[0x0200];
+		uint8_t _colorMemory[0x0400];
 
 		inline uint8_t *ram_pointer(uint16_t address) {
 			if(address < sizeof(_userBASICMemory)) return &_userBASICMemory[address];
 			if(address >= 0x1000 && address < 0x2000) return &_screenMemory[address&0x0fff];
-			if(address >= 0x9400 && address < 0x9600) return &_colorMemory[0x01ff];
+			if(address >= 0x9400 && address < 0x9800) return &_colorMemory[0x03ff];	// TODO: make this 4-bit
 			return nullptr;
 		}
 
