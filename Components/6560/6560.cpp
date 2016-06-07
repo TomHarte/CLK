@@ -31,14 +31,20 @@ using namespace MOS;
 */
 
 MOS6560::MOS6560() :
-	_crt(new Outputs::CRT::CRT(65 * 4, 4, Outputs::CRT::DisplayType::NTSC60, 1)),
+	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 65*4, 1, 1)),
 	_horizontal_counter(0),
 	_vertical_counter(0)
 {
-	_crt->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+	_crt->set_composite_sampling_function(
+		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 		"{"
-			"return vec3(texture(sampler, coordinate).r / 15.0);"
+			"uint c = texture(texID, coordinate).r;"
+			"float y = 0.75 + (float(c & 8u) / 8.0) * 0.25 * step(1, c);"
+
+			"uint iPhase = c & 7u;"
+			"float phaseOffset = float(iPhase + 3u) / 7.0;"	// TODO: appropriate phaseOffset
+
+			"return mix(step(1, c) * y, step(2, c) * step(mod(phase + phaseOffset, 6.283185308), 3.141592654), amplitude);"
 		"}");
 }
 
@@ -68,6 +74,11 @@ void MOS6560::set_register(int address, uint8_t value)
 		case 0x5:
 			_character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
 			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x0400) | ((value & 0xf0) << 5));
+		break;
+
+		case 0xe:
+			_auxiliary_colour = value >> 4;
+			// TODO: sound amplitude
 		break;
 
 		case 0xf:
@@ -206,7 +217,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 {
 	// TODO: this isn't correct, as _character_value will be
 	// accessed second, then output will roll over. Probably it's
-	// correct (given the delays upstream) to output all 8 on an &1
+	// correct (given the delays upstream) to output all 8 on an &1 
 	// and to adjust the signalling to the CRT above?
 	if(_this_state == State::Pixels)
 	{
@@ -216,24 +227,35 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 
 			if(pixel_pointer)
 			{
-				pixel_pointer[0] = ((_character_value >> 7)&1) * 15;
-				pixel_pointer[1] = ((_character_value >> 6)&1) * 15;
-				pixel_pointer[2] = ((_character_value >> 5)&1) * 15;
-				pixel_pointer[3] = ((_character_value >> 4)&1) * 15;
-				pixel_pointer += 4;
+				uint8_t cell_colour = _character_colour & 0x7;
+				if(!(_character_colour&0x8))
+				{
+					pixel_pointer[0] = ((_character_value >> 7)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[1] = ((_character_value >> 6)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[2] = ((_character_value >> 5)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[3] = ((_character_value >> 4)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[4] = ((_character_value >> 3)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[5] = ((_character_value >> 2)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[6] = ((_character_value >> 1)&1) ? cell_colour : _backgroundColour;
+					pixel_pointer[7] = ((_character_value >> 0)&1) ? cell_colour : _backgroundColour;
+				}
+				else
+				{
+					uint8_t colours[4] = {_backgroundColour, _borderColour, cell_colour, _auxiliary_colour};
+					pixel_pointer[0] =
+					pixel_pointer[1] = colours[(_character_value >> 6)&3];
+					pixel_pointer[2] =
+					pixel_pointer[3] = colours[(_character_value >> 4)&3];
+					pixel_pointer[4] =
+					pixel_pointer[5] = colours[(_character_value >> 2)&3];
+					pixel_pointer[6] =
+					pixel_pointer[7] = colours[(_character_value >> 0)&3];
+				}
+				pixel_pointer += 8;
 			}
 		}
 		else
 		{
-			if(pixel_pointer)
-			{
-				pixel_pointer[0] = ((_character_value >> 3)&1) * 15;
-				pixel_pointer[1] = ((_character_value >> 2)&1) * 15;
-				pixel_pointer[2] = ((_character_value >> 1)&1) * 15;
-				pixel_pointer[3] = ((_character_value >> 0)&1) * 15;
-				pixel_pointer += 4;
-			}
-
 			_character_code = value;
 			_character_colour = colour_value;
 		}
