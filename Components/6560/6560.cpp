@@ -133,7 +133,7 @@ uint16_t MOS6560::get_address()
 			_row_counter++;
 			if(_row_counter == _number_of_rows*8) _row_counter = -1;
 		}
-		else if(_vertical_counter >= _first_row_location * 2)
+		else if(_vertical_counter == _first_row_location * 2)
 		{
 			_video_matrix_line_address_counter = _video_matrix_start_address;
 			_row_counter = 0;
