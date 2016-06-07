@@ -33,6 +33,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			*value = _mos6560->get_register(address - 0x9000);
 		}
+		else if((address&0xfff0) == 0x9110)
+		{
+			*value = _userPortVIA->get_register(address - 0x9110);
+		}
+		else if((address&0xfff0) == 0x9120)
+		{
+			*value = _keyboardVIA->get_register(address - 0x9120);
+		}
 	}
 	else
 	{
@@ -42,6 +50,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			_mos6560->set_register(address - 0x9000, *value);
 		}
+		else if((address&0xfff0) == 0x9110)
+		{
+			_userPortVIA->set_register(address - 0x9110, *value);
+		}
+		else if((address&0xfff0) == 0x9120)
+		{
+			_keyboardVIA->set_register(address - 0x9120, *value);
+		}
+
 		// TODO: the 6522
 	}
 

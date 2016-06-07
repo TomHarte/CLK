@@ -43,7 +43,7 @@ using namespace MOS;
 */
 
 MOS6560::MOS6560() :
-	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 65*4, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
+	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
 	_horizontal_counter(0),
 	_vertical_counter(0)
 {

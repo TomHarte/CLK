@@ -11,6 +11,7 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Components/6560/6560.hpp"
+#include "../../Components/6522/6522.hpp"
 #include "../CRTMachine.hpp"
 
 namespace Vic20 {
@@ -19,6 +20,12 @@ enum ROMSlot {
 	ROMSlotKernel,
 	ROMSlotBASIC,
 	ROMSlotCharacters,
+};
+
+class UserPortVIA: public MOS::MOS6522<UserPortVIA> {
+};
+
+class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 };
 
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
@@ -65,6 +72,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		}
 
 		std::unique_ptr<MOS::MOS6560> _mos6560;
+		std::unique_ptr<UserPortVIA> _userPortVIA;
+		std::unique_ptr<KeyboardVIA> _keyboardVIA;
 };
 
 }

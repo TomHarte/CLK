@@ -10,15 +10,3 @@
 
 using namespace MOS;
 
-MOS6522::MOS6522()
-{
-}
-
-void MOS6522::set_register(int address, uint8_t value)
-{
-}
-
-uint8_t MOS6522::get_register(int address)
-{
-	return 0xff;
-}
