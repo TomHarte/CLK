@@ -31,8 +31,8 @@ using namespace MOS;
 */
 
 /*
-	0 -> green
-	1 -> green
+	0 -> purple
+	1 -> purple
 	2 -> browny yellow
 	3 -> browny red
 	4 -> purple
@@ -53,10 +53,10 @@ MOS6560::MOS6560() :
 			"uint c = texture(texID, coordinate).r;"
 			"float y = 0.75 + (float(c & 8u) / 8.0) * 0.25 * step(1, c);"
 
-			"uint iPhase = 8u;"
-			"float phaseOffset = 6.283185308 * (float(iPhase)) / 7.0;"	// TODO: appropriate phaseOffset
+			"uint iPhase = c & 7u;"
+			"float phaseOffset = 6.283185308 * float(iPhase + 8u) / 8.0;"	// TODO: appropriate phaseOffset
 
-			"return mix(step(1, c) * y, step(2, c) * step(mod(phase + phaseOffset, 6.283185308), 3.141592654), amplitude);"
+			"return mix(step(1, c) * y, step(2, c) * sin(phase + phaseOffset), amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
 		"}");
 }
 
