@@ -12,7 +12,9 @@
 
 using namespace Vic20;
 
-Machine::Machine()
+Machine::Machine() :
+	_userPortVIA(new UserPortVIA()),
+	_keyboardVIA(new KeyboardVIA())
 {
 	set_reset_line(true);
 }
@@ -58,10 +60,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			_keyboardVIA->set_register(address - 0x9120, *value);
 		}
-
-		// TODO: the 6522
 	}
 
+	_userPortVIA->run_for_cycles(1);
+	_keyboardVIA->run_for_cycles(1);
 	return 1;
 }
 

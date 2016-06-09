@@ -56,12 +56,14 @@ MOS6560::MOS6560() :
 			"uint iPhase = c & 7u;"
 			"float phaseOffset = 6.283185308 * float(iPhase + 8u) / 8.0;"	// TODO: appropriate phaseOffset
 
-			"return mix(step(1, c) * y, step(2, c) * sin(phase + phaseOffset), amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
+			// sin(phase + phaseOffset)
+			"return mix(step(1, c) * y, step(2, c) * step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0, amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
 		"}");
 }
 
 void MOS6560::set_register(int address, uint8_t value)
 {
+	address &= 0xf;
 	_registers[address] = value;
 	switch(address)
 	{
@@ -114,7 +116,13 @@ void MOS6560::set_register(int address, uint8_t value)
 
 uint8_t MOS6560::get_register(int address)
 {
-	return _registers[address];
+	address &= 0xf;
+	switch(address)
+	{
+		default: return _registers[address];
+		case 0x03: return ((_vertical_counter >> 1) & 0x80) | (_registers[3] & 0x7f);
+		case 0x04: return _vertical_counter & 0xff;
+	}
 }
 
 
