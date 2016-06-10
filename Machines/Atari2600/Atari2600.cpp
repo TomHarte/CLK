@@ -721,7 +721,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x06:
 					case 0x07:
 						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						_piaTimerValue = (unsigned int)(*value) << _piaTimerShift;
+						_piaTimerValue = ((unsigned int)(*value) << _piaTimerShift) | ((1 << _piaTimerShift)-1);
 						_piaTimerStatus &= ~0x40;
 					break;
 				}
