@@ -28,7 +28,7 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA> {
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 };
 
-class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
+class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, public MOS::MOS6522Delegate {
 	public:
 		Machine();
 
@@ -45,6 +45,9 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		virtual Outputs::CRT::CRT *get_crt() { return _mos6560->get_crt(); }
 		virtual Outputs::Speaker *get_speaker() { return nullptr; }	// TODO
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+
+		// to satisfy MOS::MOS6522::Delegate
+		virtual void mos6522_did_change_interrupt_status(void *mos6522);
 
 	private:
 		uint8_t _characterROM[0x1000];

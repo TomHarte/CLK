@@ -16,6 +16,8 @@ Machine::Machine() :
 	_userPortVIA(new UserPortVIA()),
 	_keyboardVIA(new KeyboardVIA())
 {
+	_userPortVIA->set_delegate(this);
+	_keyboardVIA->set_delegate(this);
 	set_reset_line(true);
 }
 
@@ -66,6 +68,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_userPortVIA->run_for_cycles(1);
 	_keyboardVIA->run_for_cycles(1);
 	return 1;
+}
+
+#pragma mark - 6522 delegate
+
+void Machine::mos6522_did_change_interrupt_status(void *mos6522)
+{
+	bool irq = _userPortVIA->get_interrupt_line() || _keyboardVIA->get_interrupt_line();
+	printf("IRQ: %s\n", irq ? "e" : "-");
+	set_irq_line(irq);
 }
 
 #pragma mark - Setup

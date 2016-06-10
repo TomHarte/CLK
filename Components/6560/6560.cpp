@@ -120,8 +120,8 @@ uint8_t MOS6560::get_register(int address)
 	switch(address)
 	{
 		default: return _registers[address];
-		case 0x03: return ((_vertical_counter >> 1) & 0x80) | (_registers[3] & 0x7f);
-		case 0x04: return _vertical_counter & 0xff;
+		case 0x03: return (uint8_t)(_vertical_counter << 7) | (_registers[3] & 0x7f);
+		case 0x04: return (_vertical_counter >> 1) & 0xff;
 	}
 }
 
