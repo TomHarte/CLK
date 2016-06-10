@@ -57,7 +57,7 @@ MOS6560::MOS6560() :
 			"float phaseOffset = 6.283185308 * float(iPhase + 8u) / 8.0;"	// TODO: appropriate phaseOffset
 
 			// sin(phase + phaseOffset)
-			"return mix(step(1, c) * y, step(2, c) * step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0, amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
+			"return mix(step(1, c) * y, step(2, c) * step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0 - 1.0, amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
 		"}");
 }
 
@@ -226,8 +226,7 @@ uint16_t MOS6560::get_address()
 		*/
 		if(_column_counter&1)
 		{
-			// TODO: don't add 0x8000. That's a hack.
-			return 0x8000 + (_character_cell_start_address + (_character_code*8) + (_row_counter&7));
+			return _character_cell_start_address + (_character_code*8) + (_row_counter&7);
 		}
 		else
 		{
