@@ -88,7 +88,7 @@ void MOS6560::set_register(int address, uint8_t value)
 
 		case 0x5:
 			_character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
-			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x0400) | ((value & 0xf0) << 5));
+			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 		break;
 
 		case 0xe:

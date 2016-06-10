@@ -27,8 +27,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();
-	if(!(video_address&0x1000)) video_address += 0x8000;
-	_mos6560->set_graphics_value(read_memory(video_address), _colorMemory[video_address & 0x03ff]);
+	uint8_t video_value = 0xff; // TODO
+	if(!(video_address&0x2000))
+	{
+		video_value = _characterROM[video_address & 0x0fff];
+	}
+	else
+	{
+		video_address &= 0x1fff;
+		if(video_address < sizeof(_userBASICMemory)) video_value = _userBASICMemory[video_address];
+		else if(video_address >= 0x1000 && video_address < 0x2000) video_value = _screenMemory[video_address&0x0fff];
+	}
+	_mos6560->set_graphics_value(video_value, _colorMemory[video_address & 0x03ff]);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
