@@ -39,6 +39,13 @@
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+	@synchronized(self) {
+		switch(key)
+		{
+			case VK_ANSI_2:		_vic20.set_key_state(Vic20::Key::Key2, isPressed);	break;
+			case VK_ANSI_4:		_vic20.set_key_state(Vic20::Key::Key4, isPressed);	break;
+		}
+	}
 }
 
 - (void)clearAllKeys {

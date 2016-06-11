@@ -6,8 +6,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "CSMachine.h"
-#import "KeyCodes.h"
+#import "CSMachine.h"
 #import "CSKeyboardMachine.h"
 
 @interface CSElectron : CSMachine <CSKeyboardMachine>

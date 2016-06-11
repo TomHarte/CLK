@@ -22,10 +22,47 @@ enum ROMSlot {
 	ROMSlotCharacters,
 };
 
+
+#define key(line, mask) (((mask) << 3) | (line))
+
+enum Key: uint16_t {
+	Key2	= key(7, 0x80),		Key4	= key(7, 0x40)
+};
+
 class UserPortVIA: public MOS::MOS6522<UserPortVIA> {
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
+	public:
+		void set_key_state(Key key, bool isPressed) {
+			if(isPressed)
+				_columns[key & 0x07] &= ~(key >> 3);
+			else
+				_columns[key & 0x07] |= (key >> 3);
+		}
+
+		// to satisfy MOS::MOS6522
+		uint8_t get_port_input(int port) {
+			if(!port) {
+				uint8_t result = 0xff;
+				for(int c = 0; c < 8; c++)
+				{
+					if(!(_activation_mask&(1 << c))) result &= _columns[c];
+				}
+				return result;
+			}
+
+			return 0xff;
+		}
+
+		void set_port_output(int port, uint8_t value) {
+			if(port) _activation_mask = value;
+		}
+
+		KeyboardVIA() : _columns{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
+	private:
+		uint8_t _columns[8];
+		uint8_t _activation_mask;
 };
 
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, public MOS::MOS6522Delegate {
@@ -34,6 +71,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
+		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);

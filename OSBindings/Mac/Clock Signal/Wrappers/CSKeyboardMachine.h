@@ -6,6 +6,8 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
+#import "KeyCodes.h"
+
 @protocol CSKeyboardMachine <NSObject>
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
