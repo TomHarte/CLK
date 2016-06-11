@@ -63,7 +63,6 @@
 			case VK_ANSI_I:		_vic20.set_key_state(Vic20::Key::KeyI, isPressed);	break;
 			case VK_ANSI_O:		_vic20.set_key_state(Vic20::Key::KeyO, isPressed);	break;
 			case VK_ANSI_P:		_vic20.set_key_state(Vic20::Key::KeyP, isPressed);	break;
-
 			case VK_ANSI_A:		_vic20.set_key_state(Vic20::Key::KeyA, isPressed);	break;
 			case VK_ANSI_S:		_vic20.set_key_state(Vic20::Key::KeyS, isPressed);	break;
 			case VK_ANSI_D:		_vic20.set_key_state(Vic20::Key::KeyD, isPressed);	break;
@@ -73,7 +72,6 @@
 			case VK_ANSI_J:		_vic20.set_key_state(Vic20::Key::KeyI, isPressed);	break;
 			case VK_ANSI_K:		_vic20.set_key_state(Vic20::Key::KeyK, isPressed);	break;
 			case VK_ANSI_L:		_vic20.set_key_state(Vic20::Key::KeyL, isPressed);	break;
-
 			case VK_ANSI_Z:		_vic20.set_key_state(Vic20::Key::KeyZ, isPressed);	break;
 			case VK_ANSI_X:		_vic20.set_key_state(Vic20::Key::KeyX, isPressed);	break;
 			case VK_ANSI_C:		_vic20.set_key_state(Vic20::Key::KeyC, isPressed);	break;
@@ -81,9 +79,56 @@
 			case VK_ANSI_B:		_vic20.set_key_state(Vic20::Key::KeyB, isPressed);	break;
 			case VK_ANSI_N:		_vic20.set_key_state(Vic20::Key::KeyN, isPressed);	break;
 			case VK_ANSI_M:		_vic20.set_key_state(Vic20::Key::KeyM, isPressed);	break;
+
+			case VK_Space:		_vic20.set_key_state(Vic20::Key::KeySpace, isPressed);		break;
+			case VK_Return:		_vic20.set_key_state(Vic20::Key::KeyReturn, isPressed);		break;
+			case VK_Delete:		_vic20.set_key_state(Vic20::Key::KeyDelete, isPressed);		break;
+
+			case VK_ANSI_Comma:		_vic20.set_key_state(Vic20::Key::KeyComma, isPressed);		break;
+			case VK_ANSI_Period:	_vic20.set_key_state(Vic20::Key::KeyFullStop, isPressed);		break;
+
+			case VK_ANSI_Minus:		_vic20.set_key_state(Vic20::Key::KeyDash, isPressed);		break;
+			case VK_ANSI_Equal:		_vic20.set_key_state(Vic20::Key::KeyEquals, isPressed);		break;
+
+			case VK_ANSI_Semicolon:	_vic20.set_key_state(Vic20::Key::KeyColon, isPressed);		break;
+			case VK_ANSI_Quote:		_vic20.set_key_state(Vic20::Key::KeySemicolon, isPressed);		break;
+
+			case VK_ANSI_Slash:			_vic20.set_key_state(Vic20::Key::KeySlash, isPressed);		break;
+
+			case VK_Shift:
+				// Yuck
+				_vic20.set_key_state(Vic20::Key::KeyLShift, isPressed);
+				_vic20.set_key_state(Vic20::Key::KeyRShift, isPressed);
+			break;
+
+			case VK_Option:
+				_vic20.set_key_state(Vic20::Key::KeyCBM, isPressed);
+			break;
+
+			case VK_Control:
+				_vic20.set_key_state(Vic20::Key::KeyControl, isPressed);
+			break;
+
+//			default: printf("%02x\n", key); break;
 		}
 	}
 }
+
+// Not yet mapped:
+//	KeyHome
+//	KeyF7
+//	KeyAt
+//	KeyUp
+//	KeyF5
+//	KeyF3
+//	KeyF1
+//	KeyRunStop
+//	KeyDown
+//	KeyRight
+//	KeyLeft
+//	KeyAsterisk
+//	KeyPlus
+//	KeyGBP
 
 - (void)clearAllKeys {
 }
