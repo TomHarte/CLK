@@ -39,77 +39,57 @@
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+	static NSDictionary<NSNumber *, NSNumber *> *vicKeysByKeys = @{
+		@(VK_ANSI_1):	@(Vic20::Key::Key1),	@(VK_ANSI_2):	@(Vic20::Key::Key2),
+		@(VK_ANSI_3):	@(Vic20::Key::Key3),	@(VK_ANSI_4):	@(Vic20::Key::Key4),
+		@(VK_ANSI_5):	@(Vic20::Key::Key5),	@(VK_ANSI_6):	@(Vic20::Key::Key6),
+		@(VK_ANSI_7):	@(Vic20::Key::Key7),	@(VK_ANSI_8):	@(Vic20::Key::Key8),
+		@(VK_ANSI_9):	@(Vic20::Key::Key9),	@(VK_ANSI_0):	@(Vic20::Key::Key0),
+
+		@(VK_ANSI_Q):	@(Vic20::Key::KeyQ),	@(VK_ANSI_W):	@(Vic20::Key::KeyW),
+		@(VK_ANSI_E):	@(Vic20::Key::KeyE),	@(VK_ANSI_R):	@(Vic20::Key::KeyR),
+		@(VK_ANSI_T):	@(Vic20::Key::KeyT),	@(VK_ANSI_Y):	@(Vic20::Key::KeyY),
+		@(VK_ANSI_U):	@(Vic20::Key::KeyU),	@(VK_ANSI_I):	@(Vic20::Key::KeyI),
+		@(VK_ANSI_O):	@(Vic20::Key::KeyO),	@(VK_ANSI_P):	@(Vic20::Key::KeyP),
+		@(VK_ANSI_A):	@(Vic20::Key::KeyA),	@(VK_ANSI_S):	@(Vic20::Key::KeyS),
+		@(VK_ANSI_D):	@(Vic20::Key::KeyD),	@(VK_ANSI_F):	@(Vic20::Key::KeyF),
+		@(VK_ANSI_G):	@(Vic20::Key::KeyG),	@(VK_ANSI_H):	@(Vic20::Key::KeyH),
+		@(VK_ANSI_J):	@(Vic20::Key::KeyJ),	@(VK_ANSI_K):	@(Vic20::Key::KeyK),
+		@(VK_ANSI_L):	@(Vic20::Key::KeyL),	@(VK_ANSI_Z):	@(Vic20::Key::KeyZ),
+		@(VK_ANSI_X):	@(Vic20::Key::KeyX),	@(VK_ANSI_C):	@(Vic20::Key::KeyC),
+		@(VK_ANSI_V):	@(Vic20::Key::KeyV),	@(VK_ANSI_B):	@(Vic20::Key::KeyB),
+		@(VK_ANSI_N):	@(Vic20::Key::KeyN),	@(VK_ANSI_M):	@(Vic20::Key::KeyM),
+
+		@(VK_Space):			@(Vic20::Key::KeySpace),
+		@(VK_Return):			@(Vic20::Key::KeyReturn),
+		@(VK_Delete):			@(Vic20::Key::KeyDelete),
+		@(VK_ANSI_Comma):		@(Vic20::Key::KeyComma),
+		@(VK_ANSI_Period):		@(Vic20::Key::KeyFullStop),
+		@(VK_ANSI_Minus):		@(Vic20::Key::KeyDash),
+		@(VK_ANSI_Equal):		@(Vic20::Key::KeyEquals),
+		@(VK_ANSI_Semicolon):	@(Vic20::Key::KeyColon),
+		@(VK_ANSI_Quote):		@(Vic20::Key::KeySemicolon),
+		@(VK_ANSI_Slash):		@(Vic20::Key::KeySlash),
+		@(VK_Option):			@(Vic20::Key::KeyCBM),
+		@(VK_Control):			@(Vic20::Key::KeyControl),
+	};
+
 	@synchronized(self) {
 		switch(key)
 		{
-			case VK_ANSI_1:		_vic20.set_key_state(Vic20::Key::Key1, isPressed);	break;
-			case VK_ANSI_2:		_vic20.set_key_state(Vic20::Key::Key2, isPressed);	break;
-			case VK_ANSI_3:		_vic20.set_key_state(Vic20::Key::Key3, isPressed);	break;
-			case VK_ANSI_4:		_vic20.set_key_state(Vic20::Key::Key4, isPressed);	break;
-			case VK_ANSI_5:		_vic20.set_key_state(Vic20::Key::Key5, isPressed);	break;
-			case VK_ANSI_6:		_vic20.set_key_state(Vic20::Key::Key6, isPressed);	break;
-			case VK_ANSI_7:		_vic20.set_key_state(Vic20::Key::Key7, isPressed);	break;
-			case VK_ANSI_8:		_vic20.set_key_state(Vic20::Key::Key8, isPressed);	break;
-			case VK_ANSI_9:		_vic20.set_key_state(Vic20::Key::Key9, isPressed);	break;
-			case VK_ANSI_0:		_vic20.set_key_state(Vic20::Key::Key0, isPressed);	break;
-
-			case VK_ANSI_Q:		_vic20.set_key_state(Vic20::Key::KeyQ, isPressed);	break;
-			case VK_ANSI_W:		_vic20.set_key_state(Vic20::Key::KeyW, isPressed);	break;
-			case VK_ANSI_E:		_vic20.set_key_state(Vic20::Key::KeyE, isPressed);	break;
-			case VK_ANSI_R:		_vic20.set_key_state(Vic20::Key::KeyR, isPressed);	break;
-			case VK_ANSI_T:		_vic20.set_key_state(Vic20::Key::KeyT, isPressed);	break;
-			case VK_ANSI_Y:		_vic20.set_key_state(Vic20::Key::KeyY, isPressed);	break;
-			case VK_ANSI_U:		_vic20.set_key_state(Vic20::Key::KeyU, isPressed);	break;
-			case VK_ANSI_I:		_vic20.set_key_state(Vic20::Key::KeyI, isPressed);	break;
-			case VK_ANSI_O:		_vic20.set_key_state(Vic20::Key::KeyO, isPressed);	break;
-			case VK_ANSI_P:		_vic20.set_key_state(Vic20::Key::KeyP, isPressed);	break;
-			case VK_ANSI_A:		_vic20.set_key_state(Vic20::Key::KeyA, isPressed);	break;
-			case VK_ANSI_S:		_vic20.set_key_state(Vic20::Key::KeyS, isPressed);	break;
-			case VK_ANSI_D:		_vic20.set_key_state(Vic20::Key::KeyD, isPressed);	break;
-			case VK_ANSI_F:		_vic20.set_key_state(Vic20::Key::KeyF, isPressed);	break;
-			case VK_ANSI_G:		_vic20.set_key_state(Vic20::Key::KeyG, isPressed);	break;
-			case VK_ANSI_H:		_vic20.set_key_state(Vic20::Key::KeyH, isPressed);	break;
-			case VK_ANSI_J:		_vic20.set_key_state(Vic20::Key::KeyI, isPressed);	break;
-			case VK_ANSI_K:		_vic20.set_key_state(Vic20::Key::KeyK, isPressed);	break;
-			case VK_ANSI_L:		_vic20.set_key_state(Vic20::Key::KeyL, isPressed);	break;
-			case VK_ANSI_Z:		_vic20.set_key_state(Vic20::Key::KeyZ, isPressed);	break;
-			case VK_ANSI_X:		_vic20.set_key_state(Vic20::Key::KeyX, isPressed);	break;
-			case VK_ANSI_C:		_vic20.set_key_state(Vic20::Key::KeyC, isPressed);	break;
-			case VK_ANSI_V:		_vic20.set_key_state(Vic20::Key::KeyV, isPressed);	break;
-			case VK_ANSI_B:		_vic20.set_key_state(Vic20::Key::KeyB, isPressed);	break;
-			case VK_ANSI_N:		_vic20.set_key_state(Vic20::Key::KeyN, isPressed);	break;
-			case VK_ANSI_M:		_vic20.set_key_state(Vic20::Key::KeyM, isPressed);	break;
-
-			case VK_Space:		_vic20.set_key_state(Vic20::Key::KeySpace, isPressed);		break;
-			case VK_Return:		_vic20.set_key_state(Vic20::Key::KeyReturn, isPressed);		break;
-			case VK_Delete:		_vic20.set_key_state(Vic20::Key::KeyDelete, isPressed);		break;
-
-			case VK_ANSI_Comma:		_vic20.set_key_state(Vic20::Key::KeyComma, isPressed);		break;
-			case VK_ANSI_Period:	_vic20.set_key_state(Vic20::Key::KeyFullStop, isPressed);		break;
-
-			case VK_ANSI_Minus:		_vic20.set_key_state(Vic20::Key::KeyDash, isPressed);		break;
-			case VK_ANSI_Equal:		_vic20.set_key_state(Vic20::Key::KeyEquals, isPressed);		break;
-
-			case VK_ANSI_Semicolon:	_vic20.set_key_state(Vic20::Key::KeyColon, isPressed);		break;
-			case VK_ANSI_Quote:		_vic20.set_key_state(Vic20::Key::KeySemicolon, isPressed);		break;
-
-			case VK_ANSI_Slash:			_vic20.set_key_state(Vic20::Key::KeySlash, isPressed);		break;
+			default: {
+				NSNumber *targetKey = vicKeysByKeys[@(key)];
+				if(targetKey)
+				{
+					_vic20.set_key_state((Vic20::Key)targetKey.integerValue, isPressed);
+				}
+			} break;
 
 			case VK_Shift:
 				// Yuck
 				_vic20.set_key_state(Vic20::Key::KeyLShift, isPressed);
 				_vic20.set_key_state(Vic20::Key::KeyRShift, isPressed);
 			break;
-
-			case VK_Option:
-				_vic20.set_key_state(Vic20::Key::KeyCBM, isPressed);
-			break;
-
-			case VK_Control:
-				_vic20.set_key_state(Vic20::Key::KeyControl, isPressed);
-			break;
-
-//			default: printf("%02x\n", key); break;
 		}
 	}
 }
