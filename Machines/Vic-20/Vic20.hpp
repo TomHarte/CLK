@@ -51,9 +51,15 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 	public:
 		void set_key_state(Key key, bool isPressed) {
 			if(isPressed)
+			{
 				_columns[key & 7] &= ~(key >> 3);
+//				printf("!!!\n");
+			}
 			else
+			{
 				_columns[key & 7] |= (key >> 3);
+//				printf("???\n");
+			}
 		}
 
 		// to satisfy MOS::MOS6522
@@ -76,7 +82,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 		void set_port_output(int port, uint8_t value) {
 			if(port)
 				_activation_mask = value;
-//			printf("%d <= %02x\n", port, value);
+//			printf("<- %02x\n", port, value);
 		}
 
 		KeyboardVIA() : _columns{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}

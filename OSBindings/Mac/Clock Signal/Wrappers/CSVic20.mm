@@ -71,8 +71,8 @@
 			case VK_ANSI_G:		_vic20.set_key_state(Vic20::Key::KeyG, isPressed);	break;
 			case VK_ANSI_H:		_vic20.set_key_state(Vic20::Key::KeyH, isPressed);	break;
 			case VK_ANSI_J:		_vic20.set_key_state(Vic20::Key::KeyI, isPressed);	break;
-			case VK_ANSI_K:		_vic20.set_key_state(Vic20::Key::KeyO, isPressed);	break;
-			case VK_ANSI_L:		_vic20.set_key_state(Vic20::Key::KeyP, isPressed);	break;
+			case VK_ANSI_K:		_vic20.set_key_state(Vic20::Key::KeyK, isPressed);	break;
+			case VK_ANSI_L:		_vic20.set_key_state(Vic20::Key::KeyL, isPressed);	break;
 
 			case VK_ANSI_Z:		_vic20.set_key_state(Vic20::Key::KeyZ, isPressed);	break;
 			case VK_ANSI_X:		_vic20.set_key_state(Vic20::Key::KeyX, isPressed);	break;

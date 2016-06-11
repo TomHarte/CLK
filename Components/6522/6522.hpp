@@ -38,11 +38,11 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d <- %02x\n", this, address, value);
 			switch(address)
 			{
-				case 0x00:
+				case 0x0:
 					_registers.output[1] = value;
 					static_cast<T *>(this)->set_port_output(1, value);	// TODO: handshake
 				break;
-				case 0x01:
+				case 0x1:
 					_registers.output[0] = value;
 					static_cast<T *>(this)->set_port_output(0, value);	// TODO: handshake
 				break;
@@ -52,16 +52,16 @@ template <class T> class MOS6522 {
 					static_cast<T *>(this)->set_port_output(0, value);
 				break;
 
-				case 0x02:
+				case 0x2:
 					_registers.data_direction[1] = value;
 				break;
-				case 0x03:
+				case 0x3:
 					_registers.data_direction[0] = value;
 				break;
 
 				// Timer 1
-				case 0x06:	case 0x04:	_registers.timer_latch[0] = (_registers.timer_latch[0]&0xff00) | value;	break;
-				case 0x05:	case 0x07:
+				case 0x6:	case 0x4:	_registers.timer_latch[0] = (_registers.timer_latch[0]&0xff00) | value;	break;
+				case 0x5:	case 0x7:
 					_registers.timer_latch[0] = (_registers.timer_latch[0]&0x00ff) | (uint16_t)(value << 8);
 					_registers.interrupt_flags &= ~InterruptFlag::Timer1;
 					if(address == 0x05)
@@ -73,8 +73,8 @@ template <class T> class MOS6522 {
 				break;
 
 				// Timer 2
-				case 0x08:	_registers.timer_latch[1] = value;	break;
-				case 0x09:
+				case 0x8:	_registers.timer_latch[1] = value;	break;
+				case 0x9:
 					_registers.interrupt_flags &= ~InterruptFlag::Timer2;
 					_registers.timer[1] = _registers.timer_latch[1] | (uint16_t)(value << 8);
 					_timer_is_running[1] = true;
@@ -109,36 +109,37 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-				case 0x00:	return (_registers.auxiliary_control & 0x40) ? _registers.input[1] : static_cast<T *>(this)->get_port_input(1);
-				case 0x0f:	// TODO: no handshake
-				case 0x01:	return (_registers.auxiliary_control & 0x80) ? _registers.input[0] : static_cast<T *>(this)->get_port_input(0);
+//				case 0x0:	return (_registers.auxiliary_control & 0x40) ? _registers.input[1] : static_cast<T *>(this)->get_port_input(1);
+				case 0x0:	return _registers.output[1];//static_cast<T *>(this)->get_port_input(1);
+				case 0xf:	// TODO: handshake, latching
+				case 0x1:	return static_cast<T *>(this)->get_port_input(0);
 
-				case 0x02:	return _registers.data_direction[1];
-				case 0x03:	return _registers.data_direction[0];
+				case 0x2:	return _registers.data_direction[1];
+				case 0x3:	return _registers.data_direction[0];
 
 				// Timer 1
-				case 0x04:
+				case 0x4:
 					_registers.interrupt_flags &= ~InterruptFlag::Timer1;
 					reevaluate_interrupts();
 				return _registers.timer[0] & 0x00ff;
-				case 0x05:	return _registers.timer[0] >> 8;
-				case 0x06:	return _registers.timer_latch[0] & 0x00ff;
-				case 0x07:	return _registers.timer_latch[0] >> 8;
+				case 0x5:	return _registers.timer[0] >> 8;
+				case 0x6:	return _registers.timer_latch[0] & 0x00ff;
+				case 0x7:	return _registers.timer_latch[0] >> 8;
 
 				// Timer 2
-				case 0x08:
+				case 0x8:
 					_registers.interrupt_flags &= ~InterruptFlag::Timer2;
 					reevaluate_interrupts();
 				return _registers.timer[1] & 0x00ff;
-				case 0x09:	return _registers.timer[1] >> 8;
+				case 0x9:	return _registers.timer[1] >> 8;
 
-				case 0x0a:	return _registers.shift;
+				case 0xa:	return _registers.shift;
 
-				case 0x0b:	return _registers.auxiliary_control;
-				case 0x0c:	return _registers.peripheral_control;
+				case 0xb:	return _registers.auxiliary_control;
+				case 0xc:	return _registers.peripheral_control;
 
-				case 0x0d:	return _registers.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
-				case 0x0e:	return _registers.interrupt_enable | 0x80;
+				case 0xd:	return _registers.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
+				case 0xe:	return _registers.interrupt_enable | 0x80;
 			}
 
 			return 0xff;
