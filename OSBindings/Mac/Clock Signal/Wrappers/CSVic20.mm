@@ -83,6 +83,8 @@
 				{
 					_vic20.set_key_state((Vic20::Key)targetKey.integerValue, isPressed);
 				}
+				else
+					NSLog(@"Unmapped: %02x", key);
 			} break;
 
 			case VK_Shift:

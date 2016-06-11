@@ -94,6 +94,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, public MOS::MOS6522Delegate {
 	public:
 		Machine();
+		~Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
@@ -118,6 +119,9 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 		uint8_t _basicROM[0x2000];
 		uint8_t _kernelROM[0x2000];
 
+		uint8_t *_rom;
+		uint16_t _rom_address, _rom_length;
+
 		uint8_t _userBASICMemory[0x0400];
 		uint8_t _screenMemory[0x1000];
 		uint8_t _colorMemory[0x0400];
@@ -135,6 +139,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 			else if(address >= 0x8000 && address < 0x9000) return _characterROM[address&0x0fff];
 			else if(address >= 0xc000 && address < 0xe000) return _basicROM[address&0x1fff];
 			else if(address >= 0xe000) return _kernelROM[address&0x1fff];
+			else if(address >= _rom_address && address < _rom_address+_rom_length) return _rom[address - _rom_address];
 			return 0xff;
 		}
 

@@ -14,11 +14,17 @@ using namespace Vic20;
 
 Machine::Machine() :
 	_userPortVIA(new UserPortVIA()),
-	_keyboardVIA(new KeyboardVIA())
+	_keyboardVIA(new KeyboardVIA()),
+	_rom(nullptr)
 {
 	_userPortVIA->set_delegate(this);
 	_keyboardVIA->set_delegate(this);
 	set_reset_line(true);
+}
+
+Machine::~Machine()
+{
+	delete[] _rom;
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -115,4 +121,11 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 
 void Machine::add_prg(size_t length, const uint8_t *data)
 {
+	if(length > 2)
+	{
+		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
+		_rom_length = (uint16_t)(length - 2);
+		_rom = new uint8_t[length - 2];
+		memcpy(_rom, &data[2], length - 2);
+	}
 }
