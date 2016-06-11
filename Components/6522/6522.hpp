@@ -40,13 +40,18 @@ template <class T> class MOS6522 {
 			{
 				case 0x00:
 					_registers.output[1] = value;
+					static_cast<T *>(this)->set_port_output(1, value);	// TODO: handshake
 				break;
 				case 0x01:
 					_registers.output[0] = value;
+					static_cast<T *>(this)->set_port_output(0, value);	// TODO: handshake
 				break;
 				case 0xf:
+					// No handshake, so write directly
 					_registers.output[0] = value;
+					static_cast<T *>(this)->set_port_output(0, value);
 				break;
+
 				case 0x02:
 					_registers.data_direction[1] = value;
 				break;
@@ -104,11 +109,12 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-				case 0x00:	return _registers.input[1];
-				case 0x01:	return _registers.input[0];
+				case 0x00:	return (_registers.auxiliary_control & 0x40) ? _registers.input[1] : static_cast<T *>(this)->get_port_input(1);
+				case 0x0f:	// TODO: no handshake
+				case 0x01:	return (_registers.auxiliary_control & 0x80) ? _registers.input[0] : static_cast<T *>(this)->get_port_input(0);
+
 				case 0x02:	return _registers.data_direction[1];
 				case 0x03:	return _registers.data_direction[0];
-				case 0x0f:	return _registers.input[1];
 
 				// Timer 1
 				case 0x04:
@@ -138,6 +144,10 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
+		void set_control_line_input(int port, int line, bool value)
+		{
+		}
+
 		void run_for_cycles(unsigned int number_of_cycles)
 		{
 			_registers.timer[0] -= number_of_cycles;
@@ -157,9 +167,7 @@ template <class T> class MOS6522 {
 
 				// TODO: reload shouldn't occur for a further 1.5 cycles
 				if(_registers.auxiliary_control&0x40)
-				{
 					_registers.timer[0] = _registers.timer_latch[0];
-				}
 				else
 					_timer_is_running[0] = false;
 			}
@@ -183,6 +191,12 @@ template <class T> class MOS6522 {
 		{}
 
 	private:
+		// Intended to be overwritten
+		uint8_t get_port_input(int port)				{	return 0xff;	}
+		void set_port_output(int port, uint8_t value)	{}
+
+		// Delegate and communications
+		MOS6522Delegate *_delegate;
 		bool _last_posted_interrupt_status;
 		inline void reevaluate_interrupts()
 		{
@@ -194,8 +208,7 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		MOS6522Delegate *_delegate;
-
+		// The registers
 		struct Registers {
 			uint8_t output[2], input[2], data_direction[2];
 			uint16_t timer[2], timer_latch[2];
@@ -203,11 +216,14 @@ template <class T> class MOS6522 {
 			uint8_t auxiliary_control, peripheral_control;
 			uint8_t interrupt_flags, interrupt_enable;
 
+			// "A  low  reset  (RES)  input  clears  all  R6522  internal registers to logic 0"
 			Registers() :
-				data_direction{0, 0},
-				interrupt_enable(0) {}
+				output{0, 0}, input{0, 0}, data_direction{0, 0},
+				auxiliary_control(0), peripheral_control(0),
+				interrupt_flags(0), interrupt_enable(0) {}
 		} _registers;
 
+		// Internal state other than the registers
 		bool _timer_is_running[2];
 };
 

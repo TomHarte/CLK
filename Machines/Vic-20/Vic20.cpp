@@ -85,7 +85,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
 	bool irq = _userPortVIA->get_interrupt_line() || _keyboardVIA->get_interrupt_line();
-	printf("IRQ: %s\n", irq ? "e" : "-");
 	set_irq_line(irq);
 }
 
