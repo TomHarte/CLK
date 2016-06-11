@@ -85,7 +85,7 @@ template <class T> class MOS6522 {
 
 				// Interrupt control
 				case 0xd:
-					_registers.interrupt_flags = value;	// TODO: really?
+					_registers.interrupt_flags &= ~value;
 					reevaluate_interrupts();
 				break;
 				case 0xe:
