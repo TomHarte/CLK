@@ -35,6 +35,7 @@ template <class T> class MOS6522 {
 		void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
+//			printf("6522 %p: %d <- %02x\n", this, address, value);
 			switch(address)
 			{
 				case 0x00:
@@ -88,8 +89,10 @@ template <class T> class MOS6522 {
 					reevaluate_interrupts();
 				break;
 				case 0xe:
-					if(value&0x80) value = ~value;
-					_registers.interrupt_enable = value;
+					if(value&0x80)
+						_registers.interrupt_enable |= value;
+					else
+						_registers.interrupt_enable &= ~value;
 					reevaluate_interrupts();
 				break;
 			}
@@ -98,6 +101,7 @@ template <class T> class MOS6522 {
 		uint8_t get_register(int address)
 		{
 			address &= 0xf;
+//			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
 				case 0x00:	return _registers.input[1];
@@ -128,7 +132,7 @@ template <class T> class MOS6522 {
 				case 0x0c:	return _registers.peripheral_control;
 
 				case 0x0d:	return _registers.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
-				case 0x0e:	return ~_registers.interrupt_enable;
+				case 0x0e:	return _registers.interrupt_enable | 0x80;
 			}
 
 			return 0xff;
@@ -199,7 +203,9 @@ template <class T> class MOS6522 {
 			uint8_t auxiliary_control, peripheral_control;
 			uint8_t interrupt_flags, interrupt_enable;
 
-			Registers() : data_direction{0, 0} {}
+			Registers() :
+				data_direction{0, 0},
+				interrupt_enable(0) {}
 		} _registers;
 
 		bool _timer_is_running[2];
