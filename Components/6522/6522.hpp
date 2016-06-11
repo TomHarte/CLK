@@ -32,15 +32,6 @@ template <class T> class MOS6522 {
 		};
 
 	public:
-		void set_delegate(MOS6522Delegate *delegate)
-		{
-			_delegate = delegate;
-		}
-
-		MOS6522() :
-			_timer_is_running{false, false}
-		{}
-
 		void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
@@ -97,7 +88,7 @@ template <class T> class MOS6522 {
 					reevaluate_interrupts();
 				break;
 				case 0xe:
-					if(!(value&0x80)) value = ~value;
+					if(value&0x80) value = ~value;
 					_registers.interrupt_enable = value;
 					reevaluate_interrupts();
 				break;
@@ -136,8 +127,8 @@ template <class T> class MOS6522 {
 				case 0x0b:	return _registers.auxiliary_control;
 				case 0x0c:	return _registers.peripheral_control;
 
-				case 0x0d:	return _registers.interrupt_flags;
-				case 0x0e:	return _registers.interrupt_enable;
+				case 0x0d:	return _registers.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
+				case 0x0e:	return ~_registers.interrupt_enable;
 			}
 
 			return 0xff;
@@ -173,14 +164,30 @@ template <class T> class MOS6522 {
 
 		bool get_interrupt_line()
 		{
-			uint8_t interrupt_status = _registers.interrupt_flags & (~_registers.interrupt_enable) & 0x7f;
+			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
 			return !!interrupt_status;
 		}
 
+		void set_delegate(MOS6522Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+		MOS6522() :
+			_timer_is_running{false, false},
+			_last_posted_interrupt_status(false)
+		{}
+
 	private:
+		bool _last_posted_interrupt_status;
 		inline void reevaluate_interrupts()
 		{
-			if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+			bool new_interrupt_status = get_interrupt_line();
+			if(new_interrupt_status != _last_posted_interrupt_status)
+			{
+				_last_posted_interrupt_status = new_interrupt_status;
+				if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+			}
 		}
 
 		MOS6522Delegate *_delegate;
