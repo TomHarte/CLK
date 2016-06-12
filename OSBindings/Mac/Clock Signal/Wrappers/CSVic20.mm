@@ -86,6 +86,11 @@
 		@(VK_DownArrow):			@(Vic20::Key::KeyDown),
 	};
 
+	// Not yet mapped:
+	//	KeyHome
+	//	KeyPlus
+	//	KeyGBP
+
 	@synchronized(self) {
 		switch(key)
 		{
@@ -108,12 +113,10 @@
 	}
 }
 
-// Not yet mapped:
-//	KeyHome
-//	KeyPlus
-//	KeyGBP
-
 - (void)clearAllKeys {
+	@synchronized(self) {
+		_vic20.clear_all_keys();
+	}
 }
 
 @end

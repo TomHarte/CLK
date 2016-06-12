@@ -51,15 +51,13 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 	public:
 		void set_key_state(Key key, bool isPressed) {
 			if(isPressed)
-			{
 				_columns[key & 7] &= ~(key >> 3);
-//				printf("!!!\n");
-			}
 			else
-			{
 				_columns[key & 7] |= (key >> 3);
-//				printf("???\n");
-			}
+		}
+
+		void clear_all_keys() {
+			memset(_columns, 0xff, sizeof(_columns));
 		}
 
 		// to satisfy MOS::MOS6522
@@ -71,8 +69,6 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 					if(!(_activation_mask&(1 << c)))
 						result &= _columns[c];
 				}
-//				if(_activation_mask)
-//					printf("%02x => %02x\n", _activation_mask, result);
 				return result;
 			}
 
@@ -82,10 +78,11 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 		void set_port_output(int port, uint8_t value) {
 			if(port)
 				_activation_mask = value;
-//			printf("<- %02x\n", port, value);
 		}
 
-		KeyboardVIA() : _columns{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
+		KeyboardVIA() {
+			clear_all_keys();
+		}
 	private:
 		uint8_t _columns[8];
 		uint8_t _activation_mask;
@@ -99,6 +96,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
+		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
