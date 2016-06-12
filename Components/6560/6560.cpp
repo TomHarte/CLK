@@ -133,6 +133,7 @@ uint16_t MOS6560::get_address()
 
 		if(_vertical_counter == 261)
 		{
+			_frame_colour_burst_phase ^= 128;
 			_vertical_counter = 0;
 			_row_counter = -1;
 		}
@@ -181,7 +182,7 @@ uint16_t MOS6560::get_address()
 		switch(_output_state)
 		{
 			case State::Sync:			_crt->output_sync(_cycles_in_state * 4);				break;
-			case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, 0, 0);	break;
+			case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _frame_colour_burst_phase, 0);	break;
 			case State::Border:			output_border(_cycles_in_state * 4);					break;
 			case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);				break;
 		}
