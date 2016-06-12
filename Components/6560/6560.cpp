@@ -52,6 +52,9 @@ MOS6560::MOS6560() :
 	{
 		_colours[c] = (uint8_t)((luminances[c] << 4) | ntsc_chrominances[c]);
 	}
+
+	// show the middle 90%
+	_crt->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 }
 
 void MOS6560::set_register(int address, uint8_t value)
