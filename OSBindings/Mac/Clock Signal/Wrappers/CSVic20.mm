@@ -72,6 +72,18 @@
 		@(VK_ANSI_Slash):		@(Vic20::Key::KeySlash),
 		@(VK_Option):			@(Vic20::Key::KeyCBM),
 		@(VK_Control):			@(Vic20::Key::KeyControl),
+
+		@(VK_F1):	@(Vic20::Key::KeyF1),	@(VK_F3):	@(Vic20::Key::KeyF3),
+		@(VK_F5):	@(Vic20::Key::KeyF5),	@(VK_F7):	@(Vic20::Key::KeyF7),
+
+		@(VK_ANSI_Grave):			@(Vic20::Key::KeyLeft),
+		@(VK_Tab):					@(Vic20::Key::KeyRunStop),
+		@(VK_ANSI_LeftBracket):		@(Vic20::Key::KeyAt),
+		@(VK_ANSI_RightBracket):	@(Vic20::Key::KeyAsterisk),
+		@(VK_ANSI_Backslash):		@(Vic20::Key::KeyUp),
+
+		@(VK_RightArrow):			@(Vic20::Key::KeyRight),
+		@(VK_DownArrow):			@(Vic20::Key::KeyDown),
 	};
 
 	@synchronized(self) {
@@ -98,17 +110,6 @@
 
 // Not yet mapped:
 //	KeyHome
-//	KeyF7
-//	KeyAt
-//	KeyUp
-//	KeyF5
-//	KeyF3
-//	KeyF1
-//	KeyRunStop
-//	KeyDown
-//	KeyRight
-//	KeyLeft
-//	KeyAsterisk
 //	KeyPlus
 //	KeyGBP
 
