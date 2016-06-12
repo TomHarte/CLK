@@ -10,38 +10,6 @@
 
 using namespace MOS;
 
-/*
-     0 - 0000   Black
-     1 - 0001   White
-     2 - 0010   Red
-     3 - 0011   Cyan
-     4 - 0100   Purple
-     5 - 0101   Green
-     6 - 0110   Blue
-     7 - 0111   Yellow
-
-     8 - 1000   Orange
-     9 - 1001   Light orange
-    10 - 1010   Pink
-    11 - 1011   Light cyan
-    12 - 1100   Light purple
-    13 - 1101   Light green
-    14 - 1110   Light blue
-    15 - 1111   Light yellow
-*/
-
-/*
-	0 -> purple
-	1 -> purple
-	2 -> browny yellow
-	3 -> browny red
-	4 -> purple
-	5 -> purple
-	6 -> cyan
-	7 -> green
-	8 -> green
-*/
-
 MOS6560::MOS6560() :
 	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YUV, 228, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
 	_horizontal_counter(0),
@@ -52,10 +20,11 @@ MOS6560::MOS6560() :
 		"{"
 			"uint c = texture(texID, coordinate).r;"
 			"float y = float(c >> 4) / 4.0;"
-			"float phaseOffset = float(c & 15u) / 16.0;"
+			"uint yC = c & 15u;"
+			"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
 
-//			"float chroma = step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0 - 1.0;"
-			"float chroma = cos(phase + phaseOffset);"
+//			"float chroma = 2.0*step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654) - 1.0;"
+			"float chroma = step(yC, 15) * cos(phase + phaseOffset);"
 			"return mix(y, chroma, amplitude);"
 		"}");
 
@@ -71,8 +40,8 @@ MOS6560::MOS6560() :
 		2, 1, 2, 1,
 		2, 3, 2, 3
 	};
-	uint8_t chrominances[16] = {	// range is 0–15
-		0, 0, 5, 13, 2, 10, 0, 8,
+	uint8_t chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
+		15, 15, 5, 13, 2, 10, 0, 8,
 		6, 7, 5, 13, 2, 10, 0, 8,
 	};
 	for(int c = 0; c < 16; c++)
