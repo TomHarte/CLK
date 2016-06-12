@@ -49,6 +49,7 @@ class MOS6560 {
 		uint8_t *pixel_pointer;
 
 		uint8_t _registers[16];
+		uint8_t _colours[16];
 
 		void output_border(unsigned int number_of_cycles);
 };
