@@ -43,18 +43,28 @@ using namespace MOS;
 */
 
 MOS6560::MOS6560() :
-	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
+	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YUV, 228, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
 	_horizontal_counter(0),
 	_vertical_counter(0)
 {
 	_crt->set_composite_sampling_function(
+		"float angles[8] = float[]("
+			"2.356194490192345,"	// orange
+			"2.748893571891069,"	// light yellow
+			"1.963495408493621,"	// red
+			"5.105088062083414,"	// cyan
+			"0.785398163397448,"	// purple
+			"3.926990816987241,"	// green
+			"0.0,"					// blue
+			"3.141592653589793"		// yellow
+			");"
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 		"{"
 			"uint c = texture(texID, coordinate).r;"
 			"float y = 0.75 + (float(c & 8u) / 8.0) * 0.25 * step(1, c);"
 
 			"uint iPhase = c & 7u;"
-			"float phaseOffset = 6.283185308 * float(iPhase + 8u) / 8.0;"	// TODO: appropriate phaseOffset
+			"float phaseOffset = angles[iPhase];"
 
 			// sin(phase + phaseOffset)
 			"return mix(step(1, c) * y, step(2, c) * step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0 - 1.0, amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
