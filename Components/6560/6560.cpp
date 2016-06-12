@@ -83,7 +83,7 @@ void MOS6560::set_register(int address, uint8_t value)
 
 		case 0x3:
 			_number_of_rows = (value >> 1)&0x3f;
-			_wide_characters = !!(value&0x01);
+			_tall_characters = !!(value&0x01);
 		break;
 
 		case 0x5:
@@ -151,7 +151,7 @@ uint16_t MOS6560::get_address()
 		if(_row_counter >= 0)
 		{
 			_row_counter++;
-			if(_row_counter == _number_of_rows*8) _row_counter = -1;
+			if(_row_counter == _number_of_rows*(_tall_characters ? 16 : 8)) _row_counter = -1;
 		}
 		else if(_vertical_counter == _first_row_location * 2)
 		{
@@ -166,7 +166,7 @@ uint16_t MOS6560::get_address()
 		if(_column_counter == _number_of_columns*2)
 		{
 			_column_counter = -1;
-			if((_row_counter&7) == 7)
+			if((_row_counter&(_tall_characters ? 15 : 7)) == (_tall_characters ? 15 : 7))
 			{
 				_video_matrix_line_address_counter = _video_matrix_address_counter;
 			}
@@ -226,7 +226,7 @@ uint16_t MOS6560::get_address()
 		*/
 		if(_column_counter&1)
 		{
-			return _character_cell_start_address + (_character_code*8) + (_row_counter&7);
+			return _character_cell_start_address + (_character_code*(_tall_characters ? 16 : 8)) + (_row_counter&(_tall_characters ? 15 : 7));
 		}
 		else
 		{
