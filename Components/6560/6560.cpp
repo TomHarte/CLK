@@ -58,6 +58,27 @@ MOS6560::MOS6560() :
 			"float chroma = cos(phase + phaseOffset);"
 			"return mix(y, chroma, amplitude);"
 		"}");
+
+	// set up colours table
+	// 0
+	// 2, 6, 9, B,
+	// 4, 5, 8, A, C, E
+	// 3, 7, D, F
+	// 1
+	uint8_t luminances[16] = {		// range is 0–4
+		0, 4, 1, 3,
+		2, 2, 1, 3,
+		2, 1, 2, 1,
+		2, 3, 2, 3
+	};
+	uint8_t chrominances[16] = {	// range is 0–15
+		0, 0, 5, 13, 2, 10, 0, 8,
+		6, 7, 5, 13, 2, 10, 0, 8,
+	};
+	for(int c = 0; c < 16; c++)
+	{
+		_colours[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
+	}
 }
 
 void MOS6560::set_register(int address, uint8_t value)
