@@ -11,7 +11,7 @@
 using namespace MOS;
 
 MOS6560::MOS6560() :
-	_crt(new Outputs::CRT::CRT(65*4, 4, 261, Outputs::CRT::ColourSpace::YUV, 228, 1, 1)),	// TODO: turn 261 back into 263 once vertical sync exists
+	_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
 	_horizontal_counter(0),
 	_vertical_counter(0)
 {
@@ -24,8 +24,8 @@ MOS6560::MOS6560() :
 			"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
 
 //			"float chroma = 2.0*step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654) - 1.0;"
-			"float chroma = step(yC, 15) * cos(phase + phaseOffset);"
-			"return mix(y, chroma, amplitude);"
+			"float chroma = cos(phase + phaseOffset);"
+			"return mix(y, step(yC, 14) * chroma, amplitude);"
 		"}");
 
 	// set up colours table
@@ -40,13 +40,17 @@ MOS6560::MOS6560() :
 		2, 1, 2, 1,
 		2, 3, 2, 3
 	};
-	uint8_t chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
-		15, 15, 5, 13, 2, 10, 0, 8,
-		6, 7, 5, 13, 2, 10, 0, 8,
+//	uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
+//		15, 15, 5, 13, 2, 10, 0, 8,
+//		6, 7, 5, 13, 2, 10, 0, 8,
+//	};
+	uint8_t ntsc_chrominances[16] = {
+		15, 15, 2, 10, 4, 12, 6, 14,
+		0, 8, 2, 10, 4, 12, 6, 14,
 	};
 	for(int c = 0; c < 16; c++)
 	{
-		_colours[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
+		_colours[c] = (uint8_t)((luminances[c] << 4) | ntsc_chrominances[c]);
 	}
 }
 
@@ -175,6 +179,9 @@ uint16_t MOS6560::get_address()
 	{
 		_this_state = (_column_counter >= 0 && _row_counter >= 0) ? State::Pixels : State::Border;
 	}
+
+	// apply vertical sync
+	if(_vertical_counter < 3) _this_state = State::Sync;
 
 	// update the CRT
 	if(_this_state != _output_state)
