@@ -48,26 +48,53 @@ MOS6560::MOS6560() :
 	_vertical_counter(0)
 {
 	_crt->set_composite_sampling_function(
-		"float angles[8] = float[]("
-			"2.356194490192345,"	// orange
-			"2.748893571891069,"	// light yellow
+		"float angles[16] = float[]("
+			"0.0,"					// black
+			"0.0,"					// white
 			"1.963495408493621,"	// red
 			"5.105088062083414,"	// cyan
 			"0.785398163397448,"	// purple
 			"3.926990816987241,"	// green
 			"0.0,"					// blue
-			"3.141592653589793"		// yellow
+			"3.141592653589793,"	// yellow
+
+			"2.356194490192345,"	// orange
+			"2.748893571891069,"	// light yellow
+			"1.963495408493621,"	// light red
+			"5.105088062083414,"	// light cyan
+			"0.785398163397448,"	// light purple
+			"3.926990816987241,"	// light green
+			"0.0,"					// light blue
+			"3.141592653589793"		// light yellow
+			");"
+		"float brightnesses[16] = float[]("
+			"0.0 / 255.0,"
+			"255.0 / 255.0,"
+			"79.6875 / 255.0,"
+			"159.375 / 255.0,"
+			"95.625 / 255.0,"
+			"127.5 / 255.0,"
+			"63.75 / 255.0,"
+			"191.25 / 255.0,"
+
+			"95.625 / 255.0,"
+			"63.75 / 255.0,"
+			"127.5 / 255.0,"
+			"189.375 / 255.0,"
+			"135.625 / 255.0,"
+			"191.25 / 255.0,"
+			"119.53125 / 255.0,"
+			"159.375 / 255.0"
 			");"
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 		"{"
 			"uint c = texture(texID, coordinate).r;"
-			"float y = 0.75 + (float(c & 8u) / 8.0) * 0.25 * step(1, c);"
+			"float y = brightnesses[c];"
+			"float phaseOffset = angles[c];"
 
-			"uint iPhase = c & 7u;"
-			"float phaseOffset = angles[iPhase];"
-
-			// sin(phase + phaseOffset)
-			"return mix(step(1, c) * y, step(2, c) * step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0 - 1.0, amplitude);" // TODO: square wave (step(3.141592654, mod(phase + phaseOffset, 6.283185308))?)
+//			"float chroma = step(3.141592654, mod(phase + phaseOffset, 6.283185308)) * 2.0 - 1.0;"
+			"float chroma = cos(phase + phaseOffset);"
+			"return mix(y, chroma, amplitude);"
 		"}");
 }
 
