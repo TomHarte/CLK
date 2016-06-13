@@ -10,13 +10,26 @@
 #define _560_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
+#include "../../Outputs/Speaker.hpp"
 
 namespace MOS {
+
+class MOS6560Speaker: public ::Outputs::Filter<MOS6560Speaker> {
+	public:
+		MOS6560Speaker();
+
+		void set_volume(uint8_t volume);
+		void set_control(int channel, uint8_t volume);
+
+		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void skip_samples(unsigned int number_of_samples);
+};
 
 class MOS6560 {
 	public:
 		MOS6560();
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
+		Outputs::Speaker *get_speaker() { return &_speaker; }
 
 		uint16_t get_address();
 		void set_graphics_value(uint8_t value, uint8_t colour_value);
@@ -26,6 +39,7 @@ class MOS6560 {
 
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> _crt;
+		MOS6560Speaker _speaker;
 
 		bool _interlaced, _tall_characters;
 		uint8_t _first_column_location, _first_row_location;
@@ -54,6 +68,9 @@ class MOS6560 {
 		bool _is_odd_frame;
 
 		void output_border(unsigned int number_of_cycles);
+
+		unsigned int _cycles_since_speaker_update;
+		void update_audio();
 };
 
 }

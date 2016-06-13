@@ -14,6 +14,7 @@ MOS6560::MOS6560() :
 	_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
 	_horizontal_counter(0),
 	_vertical_counter(0),
+	_cycles_since_speaker_update(0),
 	_is_odd_frame(false)
 {
 	_crt->set_composite_sampling_function(
@@ -56,6 +57,7 @@ MOS6560::MOS6560() :
 
 	// show the middle 90%
 	_crt->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+	_speaker.set_input_rate(63920.4375);	// assuming NTSC; clock rate / 16
 }
 
 void MOS6560::set_register(int address, uint8_t value)
@@ -88,9 +90,18 @@ void MOS6560::set_register(int address, uint8_t value)
 			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 		break;
 
+		case 0xa:
+		case 0xb:
+		case 0xc:
+		case 0xd:
+			update_audio();
+			_speaker.set_control(address - 0xa, value);
+		break;
+
 		case 0xe:
+			update_audio();
 			_auxiliary_colour = _colours[value >> 4];
-			// TODO: sound amplitude
+			_speaker.set_volume(value & 0xf);
 		break;
 
 		case 0xf:
@@ -122,7 +133,6 @@ uint8_t MOS6560::get_register(int address)
 	}
 }
 
-
 void MOS6560::output_border(unsigned int number_of_cycles)
 {
 	uint8_t *colour_pointer = _crt->allocate_write_area(1);
@@ -132,6 +142,8 @@ void MOS6560::output_border(unsigned int number_of_cycles)
 
 uint16_t MOS6560::get_address()
 {
+	_cycles_since_speaker_update++;
+
 	_horizontal_counter++;
 	if(_horizontal_counter == 65)
 	{
@@ -296,4 +308,38 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 			_character_colour = colour_value;
 		}
 	}
+}
+
+void MOS6560::update_audio()
+{
+//	_speaker.run_for_cycles(_cycles_since_speaker_update >> 4);
+	_cycles_since_speaker_update &= 15;
+}
+
+#pragma mark - Audio
+
+MOS6560Speaker::MOS6560Speaker()
+{
+}
+
+void MOS6560Speaker::set_volume(uint8_t volume)
+{
+//	printf("Volume is %d\n", volume);
+}
+
+void MOS6560Speaker::set_control(int channel, uint8_t volume)
+{
+	// NTSC: 1022727
+//N: bass switch,    R: freq f=Phi2/256/(255-$900a)  NTSC: Phi2=14318181/14 Hz
+//O: alto switch,    S: freq f=Phi2/128/(255-$900b)  PAL:  Phi2=4433618/4 Hz
+//P: soprano switch, T: freq f=Phi2/64/(255-$900c)
+//Q: noise switch,   U: freq f=Phi2/32/(255-$900d)
+}
+
+void MOS6560Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+{
+}
+
+void MOS6560Speaker::skip_samples(unsigned int number_of_samples)
+{
 }

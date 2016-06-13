@@ -106,7 +106,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output() {}
 		virtual Outputs::CRT::CRT *get_crt() { return _mos6560->get_crt(); }
-		virtual Outputs::Speaker *get_speaker() { return nullptr; }	// TODO
+		virtual Outputs::Speaker *get_speaker() { return _mos6560->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy MOS::MOS6522::Delegate
