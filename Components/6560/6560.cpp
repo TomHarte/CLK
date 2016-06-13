@@ -139,7 +139,7 @@ uint16_t MOS6560::get_address()
 		_vertical_counter++;
 		_column_counter = -1;
 
-		if(_vertical_counter == _interlaced ? 261 : (_is_odd_frame ? 262 : 263))
+		if(_vertical_counter == (_interlaced ? (_is_odd_frame ? 262 : 263) : 261))
 		{
 			_is_odd_frame ^= true;
 			_vertical_counter = 0;
