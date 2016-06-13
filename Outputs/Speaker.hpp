@@ -24,7 +24,7 @@ class Speaker {
 				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
 		};
 
-		int get_ideal_clock_rate_in_range(int minimum, int maximum)
+		float get_ideal_clock_rate_in_range(float minimum, float maximum)
 		{
 			// return exactly the input rate if possible
 			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
@@ -36,7 +36,7 @@ class Speaker {
 			return maximum;
 		}
 
-		void set_output_rate(int cycles_per_second, int buffer_size)
+		void set_output_rate(float cycles_per_second, int buffer_size)
 		{
 			_output_cycles_per_second = cycles_per_second;
 			if(_buffer_size != buffer_size)
@@ -58,7 +58,7 @@ class Speaker {
 			_delegate = delegate;
 		}
 
-		void set_input_rate(int cycles_per_second)
+		void set_input_rate(float cycles_per_second)
 		{
 			_input_cycles_per_second = cycles_per_second;
 			set_needs_updated_filter_coefficients();
@@ -74,7 +74,7 @@ class Speaker {
 		bool _coefficients_are_dirty;
 		Delegate *_delegate;
 
-		int _input_cycles_per_second, _output_cycles_per_second;
+		float _input_cycles_per_second, _output_cycles_per_second;
 
 		void set_needs_updated_filter_coefficients()
 		{
@@ -181,7 +181,7 @@ template <class T> class Filter: public Speaker {
 			}
 			else
 			{
-				_number_of_taps = (_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second;
+				_number_of_taps = (int)ceilf((_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second);
 				_number_of_taps *= 2;
 				_number_of_taps |= 1;
 			}
@@ -190,7 +190,7 @@ template <class T> class Filter: public Speaker {
 			_buffer_in_progress_pointer = 0;
 
 			_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
-			_filter = std::unique_ptr<SignalProcessing::FIRFilter>(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (unsigned int)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
+			_filter = std::unique_ptr<SignalProcessing::FIRFilter>(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
 
 			_input_buffer = std::unique_ptr<int16_t>(new int16_t[_number_of_taps]);
 			_input_buffer_depth = 0;

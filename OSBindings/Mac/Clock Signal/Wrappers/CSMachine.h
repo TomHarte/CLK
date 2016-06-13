@@ -14,8 +14,8 @@
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
 
-- (int)idealSamplingRateFromRange:(NSRange)range;
-- (void)setAudioSamplingRate:(int)samplingRate;
+- (float)idealSamplingRateFromRange:(NSRange)range;
+- (void)setAudioSamplingRate:(float)samplingRate;
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;

@@ -36,25 +36,25 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	}];
 }
 
-- (int)idealSamplingRateFromRange:(NSRange)range {
+- (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
 		Outputs::Speaker *speaker = self.machine->get_speaker();
 		if(speaker)
 		{
-			return speaker->get_ideal_clock_rate_in_range((int)range.location, (int)(range.location + range.length));
+			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
 		return 0;
 	}
 }
 
-- (void)setAudioSamplingRate:(int)samplingRate {
+- (void)setAudioSamplingRate:(float)samplingRate {
 	@synchronized(self) {
 		_speakerDelegate.machine = self;
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate];
 	}
 }
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(int)sampleRate {
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate {
 	@synchronized(self) {
 		Outputs::Speaker *speaker = self.machine->get_speaker();
 		if(speaker)
