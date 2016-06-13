@@ -13,7 +13,8 @@ using namespace MOS;
 MOS6560::MOS6560() :
 	_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
 	_horizontal_counter(0),
-	_vertical_counter(0)
+	_vertical_counter(0),
+	_is_odd_frame(false)
 {
 	_crt->set_composite_sampling_function(
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
@@ -140,7 +141,7 @@ uint16_t MOS6560::get_address()
 
 		if(_vertical_counter == 261)
 		{
-			_frame_colour_burst_phase ^= 128;
+			_is_odd_frame ^= true;
 			_vertical_counter = 0;
 			_row_counter = -1;
 		}
@@ -184,17 +185,26 @@ uint16_t MOS6560::get_address()
 	}
 
 	// apply vertical sync
-	if(_vertical_counter < 3) _this_state = State::Sync;
+	if(
+		(_vertical_counter < 3 && (_is_odd_frame || !_interlaced)) ||
+		(_interlaced &&
+			(
+				(_vertical_counter == 0 && _horizontal_counter > 32) ||
+				(_vertical_counter == 1) || (_vertical_counter == 2) ||
+				(_vertical_counter == 3 && _horizontal_counter <= 32)
+			)
+		))
+		_this_state = State::Sync;
 
 	// update the CRT
 	if(_this_state != _output_state)
 	{
 		switch(_output_state)
 		{
-			case State::Sync:			_crt->output_sync(_cycles_in_state * 4);				break;
-			case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _frame_colour_burst_phase, 0);	break;
-			case State::Border:			output_border(_cycles_in_state * 4);					break;
-			case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);				break;
+			case State::Sync:			_crt->output_sync(_cycles_in_state * 4);										break;
+			case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _is_odd_frame ? 128 : 0, 0);	break;
+			case State::Border:			output_border(_cycles_in_state * 4);											break;
+			case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);										break;
 		}
 		_output_state = _this_state;
 		_cycles_in_state = 0;
