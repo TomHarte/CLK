@@ -24,8 +24,8 @@ MOS6560::MOS6560() :
 			"uint yC = c & 15u;"
 			"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
 
-//			"float chroma = 2.0*step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654) - 1.0;"
-			"float chroma = cos(phase + phaseOffset);"
+			"float chroma = step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654);"
+//			"float chroma = cos(phase + phaseOffset);"
 			"return mix(y, step(yC, 14) * chroma, amplitude);"
 		"}");
 
