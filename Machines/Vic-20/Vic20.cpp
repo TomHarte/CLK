@@ -13,12 +13,10 @@
 using namespace Vic20;
 
 Machine::Machine() :
-	_userPortVIA(new UserPortVIA()),
-	_keyboardVIA(new KeyboardVIA()),
 	_rom(nullptr)
 {
-	_userPortVIA->set_delegate(this);
-	_keyboardVIA->set_delegate(this);
+	_userPortVIA.set_delegate(this);
+	_keyboardVIA.set_delegate(this);
 	set_reset_line(true);
 }
 
@@ -56,11 +54,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else if((address&0xfff0) == 0x9110)
 		{
-			*value = _userPortVIA->get_register(address - 0x9110);
+			*value = _userPortVIA.get_register(address - 0x9110);
 		}
 		else if((address&0xfff0) == 0x9120)
 		{
-			*value = _keyboardVIA->get_register(address - 0x9120);
+			*value = _keyboardVIA.get_register(address - 0x9120);
 		}
 	}
 	else
@@ -73,16 +71,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else if((address&0xfff0) == 0x9110)
 		{
-			_userPortVIA->set_register(address - 0x9110, *value);
+			_userPortVIA.set_register(address - 0x9110, *value);
 		}
 		else if((address&0xfff0) == 0x9120)
 		{
-			_keyboardVIA->set_register(address - 0x9120, *value);
+			_keyboardVIA.set_register(address - 0x9120, *value);
 		}
 	}
 
-	_userPortVIA->run_for_cycles(1);
-	_keyboardVIA->run_for_cycles(1);
+	_userPortVIA.run_for_cycles(1);
+	_keyboardVIA.run_for_cycles(1);
 	return 1;
 }
 
@@ -90,7 +88,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	bool irq = _userPortVIA->get_interrupt_line() || _keyboardVIA->get_interrupt_line();
+	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
 	set_irq_line(irq);
 }
 

@@ -95,8 +95,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
-		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
-		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
+		void set_key_state(Key key, bool isPressed) { _keyboardVIA.set_key_state(key, isPressed); }
+		void clear_all_keys() { _keyboardVIA.clear_all_keys(); }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -142,8 +142,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 		}
 
 		std::unique_ptr<MOS::MOS6560> _mos6560;
-		std::unique_ptr<UserPortVIA> _userPortVIA;
-		std::unique_ptr<KeyboardVIA> _keyboardVIA;
+		UserPortVIA _userPortVIA;
+		KeyboardVIA _keyboardVIA;
 };
 
 }
