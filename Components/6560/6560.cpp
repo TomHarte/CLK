@@ -57,7 +57,7 @@ MOS6560::MOS6560() :
 
 	// show the middle 90%
 	_crt->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
-	_speaker.set_input_rate(63920.4375);	// assuming NTSC; clock rate / 16
+	_speaker.set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
 }
 
 void MOS6560::set_register(int address, uint8_t value)
@@ -312,7 +312,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 
 void MOS6560::update_audio()
 {
-//	_speaker.run_for_cycles(_cycles_since_speaker_update >> 4);
+	_speaker.run_for_cycles(_cycles_since_speaker_update >> 4);
 	_cycles_since_speaker_update &= 15;
 }
 
@@ -324,22 +324,39 @@ MOS6560Speaker::MOS6560Speaker()
 
 void MOS6560Speaker::set_volume(uint8_t volume)
 {
-//	printf("Volume is %d\n", volume);
+	_volume = volume;
+	printf("Volume: %d\n", volume);
 }
 
-void MOS6560Speaker::set_control(int channel, uint8_t volume)
+void MOS6560Speaker::set_control(int channel, uint8_t value)
 {
-	// NTSC: 1022727
-//N: bass switch,    R: freq f=Phi2/256/(255-$900a)  NTSC: Phi2=14318181/14 Hz
-//O: alto switch,    S: freq f=Phi2/128/(255-$900b)  PAL:  Phi2=4433618/4 Hz
-//P: soprano switch, T: freq f=Phi2/64/(255-$900c)
-//Q: noise switch,   U: freq f=Phi2/32/(255-$900d)
+	_control_registers[channel] = value;
+	printf("Control %02x: %d\n", channel, value);
 }
+
+#define shift(r) _shift_registers[r] = (uint8_t)((_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7));
+#define update(r, m) _counters[r]++; if((_counters[r] >> m) == 0xff) { shift(r); _counters[r] = _control_registers[r]&0x7f; }
 
 void MOS6560Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
+//  - $900d: cpuclock/32 (?)
+
+	for(unsigned int c = 0; c < number_of_samples; c++)
+	{
+		update(0, 2);
+		update(1, 1);
+		update(2, 0);
+
+		target[c] = ((_shift_registers[0]&1) + (_shift_registers[1]&1) + (_shift_registers[2]&1)) * _volume * 700;
+	}
 }
 
 void MOS6560Speaker::skip_samples(unsigned int number_of_samples)
 {
+	for(unsigned int c = 0; c < number_of_samples; c++)
+	{
+		update(0, 2);
+		update(1, 1);
+		update(2, 0);
+	}
 }

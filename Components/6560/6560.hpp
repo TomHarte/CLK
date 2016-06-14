@@ -19,10 +19,16 @@ class MOS6560Speaker: public ::Outputs::Filter<MOS6560Speaker> {
 		MOS6560Speaker();
 
 		void set_volume(uint8_t volume);
-		void set_control(int channel, uint8_t volume);
+		void set_control(int channel, uint8_t value);
 
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 		void skip_samples(unsigned int number_of_samples);
+
+	private:
+		unsigned int _counters[4];
+		uint8_t _shift_registers[4];
+		uint8_t _control_registers[4];
+		uint8_t _volume;
 };
 
 class MOS6560 {
