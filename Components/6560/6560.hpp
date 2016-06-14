@@ -40,6 +40,8 @@ class MOS6560 {
 		uint16_t get_address();
 		void set_graphics_value(uint8_t value, uint8_t colour_value);
 
+		void synchronise() { update_audio(); }
+
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 

@@ -123,7 +123,14 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
 		_rom_length = (uint16_t)(length - 2);
-		_rom = new uint8_t[length - 2];
-		memcpy(_rom, &data[2], length - 2);
+		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
+		{
+			memcpy(&_screenMemory[_rom_address - 0x1000], &data[2], length - 2);
+		}
+		else
+		{
+			_rom = new uint8_t[length - 2];
+			memcpy(_rom, &data[2], length - 2);
+		}
 	}
 }

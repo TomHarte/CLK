@@ -312,30 +312,32 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 
 void MOS6560::update_audio()
 {
-	_speaker.run_for_cycles(_cycles_since_speaker_update >> 4);
-	_cycles_since_speaker_update &= 15;
+	_speaker.run_for_cycles(_cycles_since_speaker_update >> 2);
+	_cycles_since_speaker_update &= 3;
 }
 
 #pragma mark - Audio
 
-MOS6560Speaker::MOS6560Speaker()
+MOS6560Speaker::MOS6560Speaker() :
+	_volume(0),
+	_control_registers{0, 0, 0, 0},
+	_shift_registers{0, 0, 0, 0},
+	_counters{0, 1, 2, 0}
 {
 }
 
 void MOS6560Speaker::set_volume(uint8_t volume)
 {
 	_volume = volume;
-	printf("Volume: %d\n", volume);
 }
 
 void MOS6560Speaker::set_control(int channel, uint8_t value)
 {
 	_control_registers[channel] = value;
-	printf("Control %02x: %d\n", channel, value);
 }
 
 #define shift(r) _shift_registers[r] = (uint8_t)((_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7));
-#define update(r, m) _counters[r]++; if((_counters[r] >> m) == 0xff) { shift(r); _counters[r] = _control_registers[r]&0x7f; }
+#define update(r, m) _counters[r]++; if((_counters[r] >> m) == 0x7f) { shift(r); _counters[r] = _control_registers[r]&0x7f; }
 
 void MOS6560Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
@@ -360,3 +362,6 @@ void MOS6560Speaker::skip_samples(unsigned int number_of_samples)
 		update(2, 0);
 	}
 }
+
+#undef shift
+#undef update

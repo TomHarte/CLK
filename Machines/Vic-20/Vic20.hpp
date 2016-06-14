@@ -100,7 +100,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise() {}
+		void synchronise() { _mos6560->synchronise(); }
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
