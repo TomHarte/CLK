@@ -320,7 +320,7 @@ MOS6560Speaker::MOS6560Speaker() :
 	_volume(0),
 	_control_registers{0, 0, 0, 0},
 	_shift_registers{0, 0, 0, 0},
-	_counters{0, 1, 2, 0}
+	_counters{2, 1, 0, 0}	// create a slight phase offset for the three channels
 {
 }
 
