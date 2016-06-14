@@ -10,7 +10,7 @@
 @import AudioToolbox;
 
 #define AudioQueueNumAudioBuffers	4
-#define AudioQueueStreamLength		1024
+#define AudioQueueStreamLength		4096
 #define AudioQueueBufferLength		512
 
 enum {

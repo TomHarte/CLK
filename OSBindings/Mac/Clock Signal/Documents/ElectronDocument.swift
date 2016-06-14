@@ -20,16 +20,18 @@ class ElectronDocument: MachineDocument {
 		return NSSize(width: 11.0, height: 10.0)
 	}
 
+	private func rom(name: String) -> NSData? {
+		return dataForResource(name, ofType: "rom", inDirectory: "ROMImages/Electron")
+	}
+
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
 		self.intendedCyclesPerSecond = 2000000
 
-		if let osPath = NSBundle.mainBundle().pathForResource("os", ofType: "rom") {
-			self.electron.setOSROM(NSData(contentsOfFile: osPath)!)
-		}
-		if let basicPath = NSBundle.mainBundle().pathForResource("basic", ofType: "rom") {
-			self.electron.setBASICROM(NSData(contentsOfFile: basicPath)!)
+		if let os = rom("os"), basic = rom("basic") {
+			self.electron.setOSROM(os)
+			self.electron.setBASICROM(basic)
 		}
 
 		establishStoredOptions()
@@ -57,8 +59,8 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func readFromData(data: NSData, ofType typeName: String) throws {
-		if let plus1Path = NSBundle.mainBundle().pathForResource("plus1", ofType: "rom") {
-			electron.setROM(NSData(contentsOfFile: plus1Path)!, slot: 12)
+		if let plus1ROM = rom("plus1") {
+			electron.setROM(plus1ROM, slot: 12)
 		}
 		electron.setROM(data, slot: 15)
 	}
@@ -92,26 +94,5 @@ class ElectronDocument: MachineDocument {
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
 		self.displayTypeButton.selectItemAtIndex(displayType)
-	}
-
-	// MARK: NSWindowDelegate
-	func windowDidResignKey(notification: NSNotification) {
-		electron.clearAllKeys()
-	}
-
-	// MARK: CSOpenGLViewResponderDelegate
-	override func keyDown(event: NSEvent) {
-		electron.setKey(event.keyCode, isPressed: true)
-	}
-
-	override func keyUp(event: NSEvent) {
-		electron.setKey(event.keyCode, isPressed: false)
-	}
-
-	override func flagsChanged(newModifiers: NSEvent) {
-		electron.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
-		electron.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
-		electron.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
-		electron.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
 	}
 }

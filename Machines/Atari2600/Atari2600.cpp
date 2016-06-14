@@ -69,7 +69,7 @@ void Machine::setup_output(float aspect_ratio)
 			"uint iPhase = (c >> 4);"
 
 			"float phaseOffset = 6.283185308 * float(iPhase - 1u) / 13.0;"
-			"return (float(y) / 14.0) * (1.0 - amplitude) + step(1, iPhase) * amplitude * cos(phase + phaseOffset);"
+			"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
 
@@ -89,7 +89,7 @@ void Machine::switch_region()
 			"uint direction = iPhase & 1u;"
 			"float phaseOffset = float(7u - direction) + (float(direction) - 0.5) * 2.0 * float(iPhase >> 1);"
 			"phaseOffset *= 6.283185308 / 12.0;"
-			"return (float(y) / 14.0) * (1.0 - amplitude) + step(4, (iPhase + 2u) & 15u) * amplitude * cos(phase + phaseOffset);"
+			"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
 		"}");
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 

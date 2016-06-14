@@ -48,9 +48,11 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = AudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
-		audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
-		self.machine().audioQueue = self.audioQueue
-		self.machine().setAudioSamplingRate(selectedSamplingRate)
+		if selectedSamplingRate > 0 {
+			audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
+			self.machine().audioQueue = self.audioQueue
+			self.machine().setAudioSamplingRate(selectedSamplingRate)
+		}
 	}
 
 	override func close() {
@@ -95,6 +97,15 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		lastTime = time
 	}
 
+	// MARK: Utilities for children
+	func dataForResource(name : String, ofType type: String, inDirectory directory: String) -> NSData? {
+		if let path = NSBundle.mainBundle().pathForResource(name, ofType: type, inDirectory: directory) {
+			return NSData(contentsOfFile: path)
+		}
+
+		return nil
+	}
+
 	// MARK: CSOpenGLViewDelegate
 	func runForNumberOfCycles(numberOfCycles: Int32) {
 		if actionLock.tryLock() {
@@ -110,8 +121,36 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		}
 	}
 
-	// MARK: CSOpenGLViewResponderDelegate
-	func keyDown(event: NSEvent) {}
-	func keyUp(event: NSEvent) {}
-	func flagsChanged(newModifiers: NSEvent) {}
+	// MARK: NSDocument overrides
+	override func dataOfType(typeName: String) throws -> NSData {
+		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
+	}
+
+	// MARK: Key forwarding
+	private func withKeyboardMachine(action: (CSKeyboardMachine) -> ()) {
+		if let keyboardMachine = self.machine() as? CSKeyboardMachine {
+			action(keyboardMachine)
+		}
+	}
+
+	func windowDidResignKey(notification: NSNotification) {
+		self.withKeyboardMachine { $0.clearAllKeys() }
+	}
+
+	func keyDown(event: NSEvent) {
+		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
+	}
+
+	func keyUp(event: NSEvent) {
+		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
+	}
+
+	func flagsChanged(newModifiers: NSEvent) {
+		self.withKeyboardMachine {
+			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
+			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
+			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
+			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
+		}
+	}
 }
