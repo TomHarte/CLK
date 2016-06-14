@@ -377,6 +377,10 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	unsigned int horizontal_scan_period = _horizontal_flywheel->get_scan_period();
 	unsigned int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
+	// make sure that the requested range is visible
+	if(first_cycle_after_sync < horizontal_retrace_period) first_cycle_after_sync = (int)horizontal_retrace_period;
+	if(first_cycle_after_sync + number_of_cycles > horizontal_scan_period) number_of_cycles = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
+
 	float start_x = (float)((unsigned)first_cycle_after_sync - horizontal_retrace_period) / (float)horizontal_scan_period;
 	float width = (float)number_of_cycles / (float)horizontal_scan_period;
 
@@ -384,6 +388,13 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	unsigned int vertical_period = _vertical_flywheel->get_standard_period();
 	unsigned int vertical_scan_period = _vertical_flywheel->get_scan_period();
 	unsigned int vertical_retrace_period = vertical_period - vertical_scan_period;
+
+	// make sure that the requested range is visible
+//	if((unsigned)first_line_after_sync * horizontal_period < vertical_retrace_period)
+//		first_line_after_sync = (vertical_retrace_period + horizontal_period - 1) / horizontal_period;
+//	if((first_line_after_sync + number_of_lines) * horizontal_period > vertical_scan_period)
+//		number_of_lines = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
+
 	float start_y = (float)(((unsigned)first_line_after_sync * horizontal_period) - vertical_retrace_period) / (float)vertical_scan_period;
 	float height = (float)((unsigned)number_of_lines * horizontal_period) / vertical_scan_period;
 

@@ -25,8 +25,8 @@ MOS6560::MOS6560() :
 			"uint yC = c & 15u;"
 			"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
 
-			"float chroma = step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654);"
-//			"float chroma = cos(phase + phaseOffset);"
+//			"float chroma = step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654);"
+			"float chroma = cos(phase + phaseOffset);"
 			"return mix(y, step(yC, 14) * chroma, amplitude);"
 		"}");
 
@@ -37,10 +37,8 @@ MOS6560::MOS6560() :
 	// 3, 7, D, F
 	// 1
 	uint8_t luminances[16] = {		// range is 0–4
-		0, 4, 1, 3,
-		2, 2, 1, 3,
-		2, 1, 2, 1,
-		2, 3, 2, 3
+		0, 4, 1, 3, 2, 2, 1, 3,
+		2, 1, 2, 1, 2, 3, 2, 3
 	};
 //	uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
 //		15, 15, 5, 13, 2, 10, 0, 8,
@@ -55,8 +53,8 @@ MOS6560::MOS6560() :
 		_colours[c] = (uint8_t)((luminances[c] << 4) | ntsc_chrominances[c]);
 	}
 
-	// show the middle 90%
-	_crt->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+	// show only the centre
+	_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
 	_speaker.set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
 }
 
