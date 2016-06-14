@@ -1,7 +1,7 @@
 # CLK
 An attempt to unify various bits of emulation; features:
 * a best-in-class emulation of the Acorn Electron; and
-* a mediocre emulation of the Atari 2600.
+* mediocre emulations of the Atari 2600 and Commodore Vic-20.
 
 All code is motivated by a signals processing approach and a distinction between execution units and bus logic.
 
