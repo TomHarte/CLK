@@ -14,40 +14,64 @@
 
 namespace MOS {
 
-class MOS6560Speaker: public ::Outputs::Filter<MOS6560Speaker> {
-	public:
-		MOS6560Speaker();
+/*!
+	The 6560 is a video and audio output chip; it therefore vends both a @c CRT and a @c Speaker.
 
-		void set_volume(uint8_t volume);
-		void set_control(int channel, uint8_t value);
+	To run the 6560 for a cycle, the caller should call @c get_address, make the requested bus access
+	and call @c set_graphics_value with the result.
 
-		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
-
-	private:
-		unsigned int _counters[4];
-		uint8_t _shift_registers[4];
-		uint8_t _control_registers[4];
-		uint8_t _volume;
-};
-
+	@c set_register and @c get_register provide register access.
+*/
 class MOS6560 {
 	public:
 		MOS6560();
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 
+		/*!
+			Impliedly runs the 6560 for a single cycle, returning the next address that it puts on the bus.
+		*/
 		uint16_t get_address();
+
+		/*!
+			An owning machine should determine the state of the data bus as a result of the access implied
+			by @c get_address and supply it to set_graphics_value.
+		*/
 		void set_graphics_value(uint8_t value, uint8_t colour_value);
 
-		void synchronise() { update_audio(); }
+		/*!
+			Causes the 6560 to flush as much pending CRT and speaker communications as possible.
+		*/
+		inline void synchronise() { update_audio(); }
 
+		/*!
+			Writes to a 6560 register.
+		*/
 		void set_register(int address, uint8_t value);
+
+		/*
+			Reads from a 6560 register.
+		*/
 		uint8_t get_register(int address);
 
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> _crt;
-		MOS6560Speaker _speaker;
+		class Speaker: public ::Outputs::Filter<Speaker> {
+			public:
+				Speaker();
+
+				void set_volume(uint8_t volume);
+				void set_control(int channel, uint8_t value);
+
+				void get_samples(unsigned int number_of_samples, int16_t *target);
+				void skip_samples(unsigned int number_of_samples);
+
+			private:
+				unsigned int _counters[4];
+				unsigned int _shift_registers[4];
+				uint8_t _control_registers[4];
+				uint8_t _volume;
+		} _speaker;
 
 		bool _interlaced, _tall_characters;
 		uint8_t _first_column_location, _first_row_location;
