@@ -25,7 +25,6 @@ MOS6560::MOS6560() :
 			"uint yC = c & 15u;"
 			"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
 
-//			"float chroma = step(mod(phase + phaseOffset + 0.785398163397448, 6.283185308), 3.141592654);"
 			"float chroma = cos(phase + phaseOffset);"
 			"return mix(y, step(yC, 14) * chroma, amplitude);"
 		"}");
@@ -108,7 +107,7 @@ void MOS6560::set_register(int address, uint8_t value)
 				output_border(_cycles_in_state * 4);
 				_cycles_in_state = 0;
 			}
-			_invertedCells = !!((value >> 3)&1);
+			_invertedCells = !((value >> 3)&1);
 			_borderColour = _colours[value & 0x07];
 			_backgroundColour = _colours[value >> 4];
 		break;
@@ -140,12 +139,17 @@ void MOS6560::output_border(unsigned int number_of_cycles)
 
 uint16_t MOS6560::get_address()
 {
+	// keep track of the amount of time since the speaker was updated; lazy updates are applied
 	_cycles_since_speaker_update++;
 
+	// keep track of internal time relative to this scanline
 	_horizontal_counter++;
+
+	// check for end of scanline
 	if(_horizontal_counter == 65)
 	{
 		_horizontal_counter = 0;
+
 		_vertical_counter++;
 		_column_counter = -1;
 
@@ -276,14 +280,25 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 				uint8_t cell_colour = _colours[_character_colour & 0x7];
 				if(!(_character_colour&0x8))
 				{
-					pixel_pointer[0] = ((_character_value >> 7)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[1] = ((_character_value >> 6)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[2] = ((_character_value >> 5)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[3] = ((_character_value >> 4)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[4] = ((_character_value >> 3)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[5] = ((_character_value >> 2)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[6] = ((_character_value >> 1)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[7] = ((_character_value >> 0)&1) ? cell_colour : _backgroundColour;
+					uint8_t colours[2];
+					if(_invertedCells)
+					{
+						colours[0] = cell_colour;
+						colours[1] = _backgroundColour;
+					}
+					else
+					{
+						colours[0] = _backgroundColour;
+						colours[1] = cell_colour;
+					}
+					pixel_pointer[0] = colours[(_character_value >> 7)&1];
+					pixel_pointer[1] = colours[(_character_value >> 6)&1];
+					pixel_pointer[2] = colours[(_character_value >> 5)&1];
+					pixel_pointer[3] = colours[(_character_value >> 4)&1];
+					pixel_pointer[4] = colours[(_character_value >> 3)&1];
+					pixel_pointer[5] = colours[(_character_value >> 2)&1];
+					pixel_pointer[6] = colours[(_character_value >> 1)&1];
+					pixel_pointer[7] = colours[(_character_value >> 0)&1];
 				}
 				else
 				{
@@ -316,20 +331,19 @@ void MOS6560::update_audio()
 
 #pragma mark - Audio
 
-MOS6560Speaker::MOS6560Speaker() :
+MOS6560::Speaker::Speaker() :
 	_volume(0),
 	_control_registers{0, 0, 0, 0},
 	_shift_registers{0, 0, 0, 0},
 	_counters{2, 1, 0, 0}	// create a slight phase offset for the three channels
-{
-}
+{}
 
-void MOS6560Speaker::set_volume(uint8_t volume)
+void MOS6560::Speaker::set_volume(uint8_t volume)
 {
 	_volume = volume;
 }
 
-void MOS6560Speaker::set_control(int channel, uint8_t value)
+void MOS6560::Speaker::set_control(int channel, uint8_t value)
 {
 	_control_registers[channel] = value;
 }
@@ -402,11 +416,11 @@ static uint8_t noise_pattern[] = {
 	0xf0, 0xe1, 0xe0, 0x78, 0x70, 0x38, 0x3c, 0x3e, 0x1e, 0x3c, 0x1e, 0x1c, 0x70, 0x3c, 0x38, 0x3f,
 };
 
-#define shift(r) _shift_registers[r] = (uint8_t)((_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7));
+#define shift(r) _shift_registers[r] = (_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7);
 #define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191;
 #define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x7f) { up(r); _counters[r] = _control_registers[r]&0x7f; }
 
-void MOS6560Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+void MOS6560::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
 	for(unsigned int c = 0; c < number_of_samples; c++)
 	{
@@ -424,7 +438,7 @@ void MOS6560Speaker::get_samples(unsigned int number_of_samples, int16_t *target
 	}
 }
 
-void MOS6560Speaker::skip_samples(unsigned int number_of_samples)
+void MOS6560::Speaker::skip_samples(unsigned int number_of_samples)
 {
 	for(unsigned int c = 0; c < number_of_samples; c++)
 	{
