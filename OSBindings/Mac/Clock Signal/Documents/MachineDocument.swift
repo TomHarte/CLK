@@ -33,7 +33,7 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		optionsPanel?.setIsVisible(true)
 	}
 
-	var audioQueue : AudioQueue! = nil
+	var audioQueue : CSAudioQueue! = nil
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -46,10 +46,10 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		})
 
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
-		let maximumSamplingRate = AudioQueue.preferredSamplingRate()
+		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
-			audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
+			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
 			self.machine().audioQueue = self.audioQueue
 			self.machine().setAudioSamplingRate(selectedSamplingRate)
 		}

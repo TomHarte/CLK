@@ -6,7 +6,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#import "AudioQueue.h"
+#import "CSAudioQueue.h"
 @import AudioToolbox;
 
 #define AudioQueueNumAudioBuffers	4
@@ -19,7 +19,7 @@ enum {
 	AudioQueueIsInvalidated
 };
 
-@implementation AudioQueue
+@implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
 	AudioQueueBufferRef _audioBuffers[AudioQueueNumAudioBuffers];
@@ -84,7 +84,7 @@ static void audioOutputCallback(
 	AudioQueueRef inAQ,
 	AudioQueueBufferRef inBuffer)
 {
-	[(__bridge AudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+	[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
 }
 
 - (instancetype)initWithSamplingRate:(Float64)samplingRate

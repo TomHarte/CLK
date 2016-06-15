@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "CSOpenGLView.h"
-#import "AudioQueue.h"
+#import "CSAudioQueue.h"
 
 @interface CSMachine : NSObject
 
@@ -20,7 +20,7 @@
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
-@property (nonatomic, weak) AudioQueue *audioQueue;
+@property (nonatomic, weak) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 
 @end

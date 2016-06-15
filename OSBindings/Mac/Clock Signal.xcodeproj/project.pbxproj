@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
-		4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */; };
+		4B0EBFB81C487F2F00A11F35 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
@@ -342,8 +342,8 @@
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
-		4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioQueue.h; sourceTree = "<group>"; };
-		4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AudioQueue.m; sourceTree = "<group>"; };
+		4B0EBFB61C487F2F00A11F35 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
+		4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
 		4B1414571B58879D00E04248 /* CPU6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPU6502.cpp; sourceTree = "<group>"; };
 		4B1414581B58879D00E04248 /* CPU6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502.hpp; sourceTree = "<group>"; };
@@ -797,8 +797,8 @@
 		4B55CE481C3B3B0C0093A61B /* Wrappers */ = {
 			isa = PBXGroup;
 			children = (
-				4B0EBFB61C487F2F00A11F35 /* AudioQueue.h */,
-				4B0EBFB71C487F2F00A11F35 /* AudioQueue.m */,
+				4B0EBFB61C487F2F00A11F35 /* CSAudioQueue.h */,
+				4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */,
 				4B55CE491C3B3B0C0093A61B /* CSAtari2600.h */,
 				4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */,
 				4B55CE521C3B7ABF0093A61B /* CSElectron.h */,
@@ -1718,7 +1718,7 @@
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
 				4B55CE4B1C3B3B0C0093A61B /* CSAtari2600.mm in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
-				4B0EBFB81C487F2F00A11F35 /* AudioQueue.m in Sources */,
+				4B0EBFB81C487F2F00A11F35 /* CSAudioQueue.m in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
 				4B886FF51D03B61E004291C3 /* CSVic20.mm in Sources */,
 				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,

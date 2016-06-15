@@ -10,4 +10,4 @@
 #import "CSVic20.h"
 
 #import	"CSOpenGLView.h"
-#import "AudioQueue.h"
+#import "CSAudioQueue.h"

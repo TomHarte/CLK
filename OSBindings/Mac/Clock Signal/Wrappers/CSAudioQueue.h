@@ -8,13 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
-@class AudioQueue;
+@class CSAudioQueue;
 
 @protocol AudioQueueDelegate
-- (void)audioQueueDidCompleteBuffer:(nonnull AudioQueue *)audioQueue;
+- (void)audioQueueDidCompleteBuffer:(nonnull CSAudioQueue *)audioQueue;
 @end
 
-@interface AudioQueue : NSObject
+@interface CSAudioQueue : NSObject
 
 - (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate;
 - (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
