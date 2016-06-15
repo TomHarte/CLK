@@ -8,19 +8,20 @@
 
 /* Begin PBXBuildFile section */
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
-		4B0EBFB81C487F2F00A11F35 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
 		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
+		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
+		4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53961D117D36003C6002 /* CSMachine.mm */; };
+		4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
+		4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539C1D117D36003C6002 /* CSElectron.mm */; };
+		4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539E1D117D36003C6002 /* CSVic20.mm */; };
 		4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2E2D931C399D1200138695 /* ElectronDocument.xib */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
-		4B55CE4B1C3B3B0C0093A61B /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */; };
-		4B55CE4E1C3B3BDA0093A61B /* CSMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE4D1C3B3BDA0093A61B /* CSMachine.mm */; };
-		4B55CE541C3B7ABF0093A61B /* CSElectron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE531C3B7ABF0093A61B /* CSElectron.mm */; };
 		4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE561C3B7D360093A61B /* Atari2600Document.swift */; };
 		4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE571C3B7D360093A61B /* ElectronDocument.swift */; };
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
@@ -31,7 +32,6 @@
 		4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B73C7191D036BD90074D992 /* Vic20Document.swift */; };
 		4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B73C71B1D036C030074D992 /* Vic20Document.xib */; };
 		4B886FF21D03B517004291C3 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B886FF01D03B517004291C3 /* Vic20.cpp */; };
-		4B886FF51D03B61E004291C3 /* CSVic20.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B886FF41D03B61E004291C3 /* CSVic20.mm */; };
 		4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* TimingTests.swift */; };
 		4BB298EE1B587D8400A49093 /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E01B587D8300A49093 /* 6502_functional_test.bin */; };
 		4BB298EF1B587D8400A49093 /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E11B587D8300A49093 /* AllSuiteA.bin */; };
@@ -342,8 +342,6 @@
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
-		4B0EBFB61C487F2F00A11F35 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
-		4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
 		4B1414571B58879D00E04248 /* CPU6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPU6502.cpp; sourceTree = "<group>"; };
 		4B1414581B58879D00E04248 /* CPU6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502.hpp; sourceTree = "<group>"; };
@@ -354,19 +352,25 @@
 		4B2409531C45AB05004DA684 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Speaker.cpp; path = ../../Outputs/Speaker.cpp; sourceTree = "<group>"; };
 		4B2409541C45AB05004DA684 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = ../../Outputs/Speaker.hpp; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
+		4B2A53901D117D36003C6002 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
+		4B2A53911D117D36003C6002 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
+		4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
+		4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Subclassing.h"; sourceTree = "<group>"; };
+		4B2A53951D117D36003C6002 /* CSMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSMachine.h; sourceTree = "<group>"; };
+		4B2A53961D117D36003C6002 /* CSMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSMachine.mm; sourceTree = "<group>"; };
+		4B2A53971D117D36003C6002 /* KeyCodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeyCodes.h; sourceTree = "<group>"; };
+		4B2A53991D117D36003C6002 /* CSAtari2600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAtari2600.h; sourceTree = "<group>"; };
+		4B2A539A1D117D36003C6002 /* CSAtari2600.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSAtari2600.mm; sourceTree = "<group>"; };
+		4B2A539B1D117D36003C6002 /* CSElectron.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSElectron.h; sourceTree = "<group>"; };
+		4B2A539C1D117D36003C6002 /* CSElectron.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSElectron.mm; sourceTree = "<group>"; };
+		4B2A539D1D117D36003C6002 /* CSVic20.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSVic20.h; sourceTree = "<group>"; };
+		4B2A539E1D117D36003C6002 /* CSVic20.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSVic20.mm; sourceTree = "<group>"; };
 		4B2E2D941C399D1200138695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ElectronDocument.xib; sourceTree = "<group>"; };
 		4B2E2D971C3A06EC00138695 /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
 		4B2E2D981C3A06EC00138695 /* Atari2600.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Atari2600.hpp; sourceTree = "<group>"; };
 		4B2E2D991C3A06EC00138695 /* Atari2600Inputs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Atari2600Inputs.h; sourceTree = "<group>"; };
 		4B2E2D9B1C3A070400138695 /* Electron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Electron.cpp; path = Electron/Electron.cpp; sourceTree = "<group>"; };
 		4B2E2D9C1C3A070400138695 /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Electron.hpp; path = Electron/Electron.hpp; sourceTree = "<group>"; };
-		4B55CE491C3B3B0C0093A61B /* CSAtari2600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAtari2600.h; sourceTree = "<group>"; };
-		4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSAtari2600.mm; sourceTree = "<group>"; };
-		4B55CE4C1C3B3BDA0093A61B /* CSMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSMachine.h; sourceTree = "<group>"; };
-		4B55CE4D1C3B3BDA0093A61B /* CSMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSMachine.mm; sourceTree = "<group>"; };
-		4B55CE4F1C3B78A80093A61B /* CSMachine+Subclassing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Subclassing.h"; sourceTree = "<group>"; };
-		4B55CE521C3B7ABF0093A61B /* CSElectron.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSElectron.h; sourceTree = "<group>"; };
-		4B55CE531C3B7ABF0093A61B /* CSElectron.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSElectron.mm; sourceTree = "<group>"; };
 		4B55CE561C3B7D360093A61B /* Atari2600Document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Atari2600Document.swift; sourceTree = "<group>"; };
 		4B55CE571C3B7D360093A61B /* ElectronDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ElectronDocument.swift; sourceTree = "<group>"; };
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
@@ -381,10 +385,7 @@
 		4B73C71C1D036C030074D992 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Document.xib"; sourceTree = SOURCE_ROOT; };
 		4B886FF01D03B517004291C3 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Vic20.cpp; path = "Vic-20/Vic20.cpp"; sourceTree = "<group>"; };
 		4B886FF11D03B517004291C3 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Vic20.hpp; path = "Vic-20/Vic20.hpp"; sourceTree = "<group>"; };
-		4B886FF31D03B61E004291C3 /* CSVic20.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSVic20.h; sourceTree = "<group>"; };
-		4B886FF41D03B61E004291C3 /* CSVic20.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSVic20.mm; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimingTests.swift; sourceTree = "<group>"; };
-		4BAE587D1C447B7A005B9AF0 /* KeyCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeyCodes.h; sourceTree = "<group>"; };
 		4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Clock SignalTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		4BB297E01B587D8300A49093 /* 6502_functional_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = 6502_functional_test.bin; sourceTree = "<group>"; };
 		4BB297E11B587D8300A49093 /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = AllSuiteA.bin; sourceTree = "<group>"; };
@@ -687,7 +688,6 @@
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
-		4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
 		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
 		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
 		4BCA98C11D065CA20062F44C /* 6522.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6522.cpp; sourceTree = "<group>"; };
@@ -765,6 +765,41 @@
 			path = ../../SignalProcessing;
 			sourceTree = "<group>";
 		};
+		4B2A538F1D117D36003C6002 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				4B2A53901D117D36003C6002 /* CSAudioQueue.h */,
+				4B2A53911D117D36003C6002 /* CSAudioQueue.m */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		4B2A53921D117D36003C6002 /* Machine */ = {
+			isa = PBXGroup;
+			children = (
+				4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */,
+				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
+				4B2A53951D117D36003C6002 /* CSMachine.h */,
+				4B2A53961D117D36003C6002 /* CSMachine.mm */,
+				4B2A53971D117D36003C6002 /* KeyCodes.h */,
+				4B2A53981D117D36003C6002 /* Wrappers */,
+			);
+			path = Machine;
+			sourceTree = "<group>";
+		};
+		4B2A53981D117D36003C6002 /* Wrappers */ = {
+			isa = PBXGroup;
+			children = (
+				4B2A53991D117D36003C6002 /* CSAtari2600.h */,
+				4B2A539A1D117D36003C6002 /* CSAtari2600.mm */,
+				4B2A539B1D117D36003C6002 /* CSElectron.h */,
+				4B2A539C1D117D36003C6002 /* CSElectron.mm */,
+				4B2A539D1D117D36003C6002 /* CSVic20.h */,
+				4B2A539E1D117D36003C6002 /* CSVic20.mm */,
+			);
+			path = Wrappers;
+			sourceTree = "<group>";
+		};
 		4B2E2D961C3A06EC00138695 /* Atari2600 */ = {
 			isa = PBXGroup;
 			children = (
@@ -792,26 +827,6 @@
 				4B2409541C45AB05004DA684 /* Speaker.hpp */,
 			);
 			name = Outputs;
-			sourceTree = "<group>";
-		};
-		4B55CE481C3B3B0C0093A61B /* Wrappers */ = {
-			isa = PBXGroup;
-			children = (
-				4B0EBFB61C487F2F00A11F35 /* CSAudioQueue.h */,
-				4B0EBFB71C487F2F00A11F35 /* CSAudioQueue.m */,
-				4B55CE491C3B3B0C0093A61B /* CSAtari2600.h */,
-				4B55CE4A1C3B3B0C0093A61B /* CSAtari2600.mm */,
-				4B55CE521C3B7ABF0093A61B /* CSElectron.h */,
-				4B55CE531C3B7ABF0093A61B /* CSElectron.mm */,
-				4BC9DF461D04565200F44158 /* CSKeyboardMachine.h */,
-				4B55CE4C1C3B3BDA0093A61B /* CSMachine.h */,
-				4B55CE4D1C3B3BDA0093A61B /* CSMachine.mm */,
-				4B55CE4F1C3B78A80093A61B /* CSMachine+Subclassing.h */,
-				4B886FF31D03B61E004291C3 /* CSVic20.h */,
-				4B886FF41D03B61E004291C3 /* CSVic20.mm */,
-				4BAE587D1C447B7A005B9AF0 /* KeyCodes.h */,
-			);
-			path = Wrappers;
 			sourceTree = "<group>";
 		};
 		4B55CE551C3B7D360093A61B /* Documents */ = {
@@ -1177,16 +1192,17 @@
 		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXGroup;
 			children = (
-				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
+				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BB73EAD1B587A5100552FC2 /* Info.plist */,
 				4BB73EA11B587A5100552FC2 /* AppDelegate.swift */,
 				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
+				4B2A538F1D117D36003C6002 /* Audio */,
 				4B55CE551C3B7D360093A61B /* Documents */,
-				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
+				4B2A53921D117D36003C6002 /* Machine */,
+				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
-				4B55CE481C3B3B0C0093A61B /* Wrappers */,
 			);
 			path = "Clock Signal";
 			sourceTree = "<group>";
@@ -1711,31 +1727,31 @@
 			files = (
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
-				4B55CE541C3B7ABF0093A61B /* CSElectron.mm in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B886FF21D03B517004291C3 /* Vic20.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
-				4B55CE4B1C3B3B0C0093A61B /* CSAtari2600.mm in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
-				4B0EBFB81C487F2F00A11F35 /* CSAudioQueue.m in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
-				4B886FF51D03B61E004291C3 /* CSVic20.mm in Sources */,
 				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4BCA98C31D065CA20062F44C /* 6522.cpp in Sources */,
+				4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
-				4B55CE4E1C3B3BDA0093A61B /* CSMachine.mm in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
+				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
+				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
+				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
+				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
