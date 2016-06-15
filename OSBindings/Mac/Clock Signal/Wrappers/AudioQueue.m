@@ -36,6 +36,8 @@ enum {
 
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
+	[self.delegate audioQueueDidCompleteBuffer:self];
+
 	[_writeLock lock];
 
 	const unsigned int writeLead = _audioStreamWritePosition - _audioStreamReadPosition;
@@ -95,7 +97,7 @@ static void audioOutputCallback(
 		_samplingRate = samplingRate;
 
 		/*
-			Describe a mono, 16bit, 44.1Khz audio format
+			Describe a mono 16bit stream of the requested sampling rate
 		*/
 		AudioStreamBasicDescription outputDescription;
 
@@ -196,6 +198,8 @@ static void audioOutputCallback(
 	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanProceed : AudioQueueWait;
 }
 
+#pragma mark - Sampling Rate getters
+
 + (AudioDeviceID)defaultOutputDevice
 {
 	AudioObjectPropertyAddress address;
@@ -205,7 +209,7 @@ static void audioOutputCallback(
 
 	AudioDeviceID deviceID;
 	UInt32 size = sizeof(AudioDeviceID);
-	return AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &address, 0, NULL, &size, &deviceID) ? 0 : deviceID;
+	return AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &deviceID) ? 0 : deviceID;
 }
 
 + (Float64)preferredSamplingRate
@@ -217,7 +221,7 @@ static void audioOutputCallback(
 
 	Float64 samplingRate;
 	UInt32 size = sizeof(Float64);
-	return AudioHardwareServiceGetPropertyData([self defaultOutputDevice], &address, 0, NULL, &size, &samplingRate) ? 0.0 : samplingRate;
+	return AudioObjectGetPropertyData([self defaultOutputDevice], &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &samplingRate) ? 0.0 : samplingRate;
 }
 
 @end
