@@ -20,7 +20,7 @@
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
-@property (nonatomic, weak) CSAudioQueue *audioQueue;
+@property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 
 @end
