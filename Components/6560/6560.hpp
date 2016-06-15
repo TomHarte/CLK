@@ -81,6 +81,7 @@ class MOS6560 {
 		bool _invertedCells;
 
 		int _horizontal_counter, _vertical_counter;
+		bool _did_output_graphics;
 
 		int _column_counter, _row_counter;
 		uint16_t _video_matrix_address_counter, _video_matrix_line_address_counter;

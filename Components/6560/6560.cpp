@@ -107,7 +107,7 @@ void MOS6560::set_register(int address, uint8_t value)
 				output_border(_cycles_in_state * 4);
 				_cycles_in_state = 0;
 			}
-			_invertedCells = !!((value >> 3)&1);
+			_invertedCells = !((value >> 3)&1);
 			_borderColour = _colours[value & 0x07];
 			_backgroundColour = _colours[value >> 4];
 		break;
@@ -142,10 +142,14 @@ uint16_t MOS6560::get_address()
 	// keep track of the amount of time since the speaker was updated; lazy updates are applied
 	_cycles_since_speaker_update++;
 
+	// keep track of internal time relative to this scanline
 	_horizontal_counter++;
+
+	// check for end of scanline
 	if(_horizontal_counter == 65)
 	{
 		_horizontal_counter = 0;
+
 		_vertical_counter++;
 		_column_counter = -1;
 
@@ -276,14 +280,25 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 				uint8_t cell_colour = _colours[_character_colour & 0x7];
 				if(!(_character_colour&0x8))
 				{
-					pixel_pointer[0] = ((_character_value >> 7)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[1] = ((_character_value >> 6)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[2] = ((_character_value >> 5)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[3] = ((_character_value >> 4)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[4] = ((_character_value >> 3)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[5] = ((_character_value >> 2)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[6] = ((_character_value >> 1)&1) ? cell_colour : _backgroundColour;
-					pixel_pointer[7] = ((_character_value >> 0)&1) ? cell_colour : _backgroundColour;
+					uint8_t colours[2];
+					if(_invertedCells)
+					{
+						colours[0] = cell_colour;
+						colours[1] = _backgroundColour;
+					}
+					else
+					{
+						colours[0] = _backgroundColour;
+						colours[1] = cell_colour;
+					}
+					pixel_pointer[0] = colours[(_character_value >> 7)&1];
+					pixel_pointer[1] = colours[(_character_value >> 6)&1];
+					pixel_pointer[2] = colours[(_character_value >> 5)&1];
+					pixel_pointer[3] = colours[(_character_value >> 4)&1];
+					pixel_pointer[4] = colours[(_character_value >> 3)&1];
+					pixel_pointer[5] = colours[(_character_value >> 2)&1];
+					pixel_pointer[6] = colours[(_character_value >> 1)&1];
+					pixel_pointer[7] = colours[(_character_value >> 0)&1];
 				}
 				else
 				{
