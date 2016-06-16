@@ -11,3 +11,4 @@
 
 #import	"CSOpenGLView.h"
 #import "CSAudioQueue.h"
+#import "CSBestEffortUpdater.h"

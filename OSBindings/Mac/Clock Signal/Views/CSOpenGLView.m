@@ -12,9 +12,6 @@
 
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
-	uint32_t _updateIsOngoing;
-	BOOL _hasSkipped;
-	dispatch_queue_t _serialDispatchQueue;
 }
 
 - (void)prepareOpenGL
@@ -34,10 +31,6 @@
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
 
-	// create a serial dispatch queue
-	_serialDispatchQueue = dispatch_queue_create("OpenGLView", DISPATCH_QUEUE_SERIAL);
-//	dispatch_set_target_queue(_serialDispatchQueue, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0));
-
 	// set the clear colour
 	[self.openGLContext makeCurrentContext];
 	glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -55,24 +48,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
 {
-	const uint32_t processingMask = 0x01;
-
-	// Always post an -openGLView:didUpdateToTime: if a previous one isn't still ongoing. This is the hook upon which the substantial processing occurs.
-	if(!OSAtomicTestAndSet(processingMask, &_updateIsOngoing))
-	{
-		CVTimeStamp time = *now;
-		BOOL didSkip = _hasSkipped;
-		dispatch_async(_serialDispatchQueue, ^{
-			[self.delegate openGLView:self didUpdateToTime:time didSkipPreviousUpdate:didSkip frequency:frequency];
-			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
-		});
-		_hasSkipped = NO;
-	}
-	else
-	{
-		_hasSkipped = YES;
-	}
-
 	// Draw the display now regardless of other activity.
 	[self drawViewOnlyIfDirty:YES];
 }

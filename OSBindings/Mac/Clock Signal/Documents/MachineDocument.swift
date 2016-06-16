@@ -9,7 +9,7 @@
 import Cocoa
 import AudioToolbox
 
-class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, NSWindowDelegate {
+class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, CSBestEffortUpdaterDelegate, NSWindowDelegate {
 
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
@@ -33,7 +33,12 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		optionsPanel?.setIsVisible(true)
 	}
 
-	var audioQueue : CSAudioQueue! = nil
+	var audioQueue: CSAudioQueue! = nil
+	lazy var bestEffortUpdater: CSBestEffortUpdater = {
+		let updater = CSBestEffortUpdater()
+		updater.delegate = self
+		return updater
+	}()
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -66,36 +71,39 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		super.close()
 	}
 
-	var intendedCyclesPerSecond: Int64 = 0
-	private var cycleCountError: Int64 = 0
-	private var lastTime: CVTimeStamp?
-	private var skippedFrames = 0
-	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp, didSkipPreviousUpdate : Bool, frequency : Double) {
-		if let lastTime = lastTime {
-			// perform (time passed in seconds) * (intended cycles per second), converting and
-			// maintaining an error count to deal with underflow
-			let videoTimeScale64 = Int64(time.videoTimeScale)
-			let videoTimeCount = ((time.videoTime - lastTime.videoTime) * intendedCyclesPerSecond) + cycleCountError
-			cycleCountError = videoTimeCount % videoTimeScale64
-			var numberOfCycles = videoTimeCount / videoTimeScale64
-
-			// if the emulation has fallen behind then silently limit the request;
-			// some actions — e.g. the host computer waking after sleep — may give us a
-			// prohibitive backlog
-			if didSkipPreviousUpdate {
-				skippedFrames++
-			} else {
-				skippedFrames = 0
-			}
-
-			// run for at most three frames up to and until that causes overshoots in the
-			// permitted processing window for at least four consecutive frames, in which
-			// case limit to one
-			numberOfCycles = min(numberOfCycles, Int64(Double(intendedCyclesPerSecond) * frequency * ((skippedFrames > 4) ? 3.0 : 1.0)))
-			runForNumberOfCycles(Int32(numberOfCycles))
-		}
-		lastTime = time
+	final func bestEffortUpdater(bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
+		runForNumberOfCycles(Int32(cycles))
 	}
+//	var intendedCyclesPerSecond: Int64 = 0
+//	private var cycleCountError: Int64 = 0
+//	private var lastTime: CVTimeStamp?
+//	private var skippedFrames = 0
+//	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp, didSkipPreviousUpdate : Bool, frequency : Double) {
+//		if let lastTime = lastTime {
+//			// perform (time passed in seconds) * (intended cycles per second), converting and
+//			// maintaining an error count to deal with underflow
+//			let videoTimeScale64 = Int64(time.videoTimeScale)
+//			let videoTimeCount = ((time.videoTime - lastTime.videoTime) * intendedCyclesPerSecond) + cycleCountError
+//			cycleCountError = videoTimeCount % videoTimeScale64
+//			var numberOfCycles = videoTimeCount / videoTimeScale64
+//
+//			// if the emulation has fallen behind then silently limit the request;
+//			// some actions — e.g. the host computer waking after sleep — may give us a
+//			// prohibitive backlog
+//			if didSkipPreviousUpdate {
+//				skippedFrames++
+//			} else {
+//				skippedFrames = 0
+//			}
+//
+//			// run for at most three frames up to and until that causes overshoots in the
+//			// permitted processing window for at least four consecutive frames, in which
+//			// case limit to one
+//			numberOfCycles = min(numberOfCycles, Int64(Double(intendedCyclesPerSecond) * frequency * ((skippedFrames > 4) ? 3.0 : 1.0)))
+//			runForNumberOfCycles(Int32(numberOfCycles))
+//		}
+//		lastTime = time
+//	}
 
 	// MARK: Utilities for children
 	func dataForResource(name : String, ofType type: String, inDirectory directory: String) -> NSData? {
@@ -115,6 +123,7 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 	}
 
 	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		bestEffortUpdater.update()
 		if drawLock.tryLock() {
 			self.machine().drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
 			drawLock.unlock()

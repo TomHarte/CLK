@@ -18,7 +18,7 @@ class Atari2600Document: MachineDocument {
 	// MARK: NSDocument overrides
 	override init() {
 		super.init()
-		self.intendedCyclesPerSecond = 1194720
+		self.bestEffortUpdater.clockRate = 1194720
 	}
 
 	override class func autosavesInPlace() -> Bool {

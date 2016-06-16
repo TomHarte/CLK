@@ -27,7 +27,7 @@ class ElectronDocument: MachineDocument {
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		self.intendedCyclesPerSecond = 2000000
+		self.bestEffortUpdater.clockRate = 2000000
 
 		if let os = rom("os"), basic = rom("basic") {
 			self.electron.setOSROM(os)
