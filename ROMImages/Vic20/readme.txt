@@ -4,7 +4,7 @@ Expected files:
 
 basic.bin
 characters-english.bin
-kernel-ntsc.rom
+kernel-ntsc.bin
 
 Likely to be desired in the future:
 
