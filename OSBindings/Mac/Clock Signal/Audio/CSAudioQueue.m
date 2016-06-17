@@ -9,7 +9,7 @@
 #import "CSAudioQueue.h"
 @import AudioToolbox;
 
-#define AudioQueueBufferMaxLength		2048
+#define AudioQueueBufferMaxLength		8192
 #define AudioQueueNumAudioBuffers		3
 #define AudioQueueMaxStreamLength		(AudioQueueBufferMaxLength*AudioQueueNumAudioBuffers)
 
