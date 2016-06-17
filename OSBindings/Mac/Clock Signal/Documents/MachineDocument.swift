@@ -9,8 +9,14 @@
 import Cocoa
 import AudioToolbox
 
-class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, NSWindowDelegate {
-
+class MachineDocument:
+	NSDocument,
+	NSWindowDelegate,
+	CSOpenGLViewDelegate,
+	CSOpenGLViewResponderDelegate,
+	CSBestEffortUpdaterDelegate,
+	CSAudioQueueDelegate
+{
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
 	func machine() -> CSMachine! {
@@ -33,7 +39,12 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		optionsPanel?.setIsVisible(true)
 	}
 
-	var audioQueue : AudioQueue! = nil
+	private var audioQueue: CSAudioQueue! = nil
+	private lazy var bestEffortUpdater: CSBestEffortUpdater = {
+		let updater = CSBestEffortUpdater()
+		updater.delegate = self
+		return updater
+	}()
 
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -46,13 +57,16 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		})
 
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
-		let maximumSamplingRate = AudioQueue.preferredSamplingRate()
+		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
-			audioQueue = AudioQueue(samplingRate: Float64(selectedSamplingRate))
+			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
+			audioQueue.delegate = self
 			self.machine().audioQueue = self.audioQueue
-			self.machine().setAudioSamplingRate(selectedSamplingRate)
+			self.machine().setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.bufferSize / 2)
 		}
+
+		self.bestEffortUpdater.clockRate = self.machine().clockRate
 	}
 
 	override func close() {
@@ -66,35 +80,17 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		super.close()
 	}
 
-	var intendedCyclesPerSecond: Int64 = 0
-	private var cycleCountError: Int64 = 0
-	private var lastTime: CVTimeStamp?
-	private var skippedFrames = 0
-	final func openGLView(view: CSOpenGLView, didUpdateToTime time: CVTimeStamp, didSkipPreviousUpdate : Bool, frequency : Double) {
-		if let lastTime = lastTime {
-			// perform (time passed in seconds) * (intended cycles per second), converting and
-			// maintaining an error count to deal with underflow
-			let videoTimeScale64 = Int64(time.videoTimeScale)
-			let videoTimeCount = ((time.videoTime - lastTime.videoTime) * intendedCyclesPerSecond) + cycleCountError
-			cycleCountError = videoTimeCount % videoTimeScale64
-			var numberOfCycles = videoTimeCount / videoTimeScale64
+	// MARK: CSBestEffortUpdaterDelegate
+	final func bestEffortUpdater(bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
+		runForNumberOfCycles(Int32(cycles))
+	}
 
-			// if the emulation has fallen behind then silently limit the request;
-			// some actions — e.g. the host computer waking after sleep — may give us a
-			// prohibitive backlog
-			if didSkipPreviousUpdate {
-				skippedFrames++
-			} else {
-				skippedFrames = 0
-			}
-
-			// run for at most three frames up to and until that causes overshoots in the
-			// permitted processing window for at least four consecutive frames, in which
-			// case limit to one
-			numberOfCycles = min(numberOfCycles, Int64(Double(intendedCyclesPerSecond) * frequency * ((skippedFrames > 4) ? 3.0 : 1.0)))
-			runForNumberOfCycles(Int32(numberOfCycles))
+	func runForNumberOfCycles(numberOfCycles: Int32) {
+		let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
+		if actionLock.tryLock() {
+			self.machine().runForNumberOfCycles(cyclesToRunFor)
+			actionLock.unlock()
 		}
-		lastTime = time
 	}
 
 	// MARK: Utilities for children
@@ -106,15 +102,14 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		return nil
 	}
 
-	// MARK: CSOpenGLViewDelegate
-	func runForNumberOfCycles(numberOfCycles: Int32) {
-		if actionLock.tryLock() {
-			self.machine().runForNumberOfCycles(numberOfCycles)
-			actionLock.unlock()
-		}
+	// MARK: CSAudioQueueDelegate
+	final func audioQueueDidCompleteBuffer(audioQueue: CSAudioQueue) {
+		bestEffortUpdater.update()
 	}
 
-	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+	// MARK: CSOpenGLViewDelegate
+	final func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		bestEffortUpdater.update()
 		if drawLock.tryLock() {
 			self.machine().drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
 			drawLock.unlock()

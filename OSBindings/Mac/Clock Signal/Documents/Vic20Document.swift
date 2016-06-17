@@ -18,8 +18,6 @@ class Vic20Document: MachineDocument {
 	// MARK: NSDocument overrides
 	override init() {
 		super.init()
-		self.intendedCyclesPerSecond = 1022727
-		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt
 
 		if let kernel = rom("kernel-ntsc"), basic = rom("basic"), characters = rom("characters-english") {
 			vic20.setKernelROM(kernel)

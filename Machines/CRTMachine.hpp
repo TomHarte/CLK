@@ -23,6 +23,16 @@ class Machine {
 		virtual Outputs::Speaker *get_speaker() = 0;
 
 		virtual void run_for_cycles(int number_of_cycles) = 0;
+
+		virtual double get_clock_rate() = 0;
+		class Delegate {
+			public:
+				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
+		};
+		void set_delegate(Delegate *delegate) { this->delegate = delegate; }
+
+	protected:
+		Delegate *delegate;
 };
 
 }

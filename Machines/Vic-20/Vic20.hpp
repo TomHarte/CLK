@@ -108,6 +108,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, p
 		virtual Outputs::CRT::CRT *get_crt() { return _mos6560->get_crt(); }
 		virtual Outputs::Speaker *get_speaker() { return _mos6560->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual double get_clock_rate() { return 1022727; }
+		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

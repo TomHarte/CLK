@@ -8,19 +8,26 @@
 
 #import <Foundation/Foundation.h>
 #import "CSOpenGLView.h"
-#import "AudioQueue.h"
+#import "CSAudioQueue.h"
+
+@class CSMachine;
+@protocol CSMachineDelegate
+- (void)machineDidChangeClockRate:(CSMachine *)machine;
+@end
 
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
-- (void)setAudioSamplingRate:(float)samplingRate;
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize;
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
-@property (nonatomic, weak) AudioQueue *audioQueue;
+@property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
+@property (nonatomic, weak) id<CSMachineDelegate> delegate;
+@property (nonatomic, readonly) double clockRate;
 
 @end

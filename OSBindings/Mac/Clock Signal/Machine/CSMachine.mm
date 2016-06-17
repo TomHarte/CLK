@@ -47,19 +47,19 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	}
 }
 
-- (void)setAudioSamplingRate:(float)samplingRate {
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
 		_speakerDelegate.machine = self;
-		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate];
+		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize];
 	}
 }
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate {
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
 		Outputs::Speaker *speaker = self.machine->get_speaker();
 		if(speaker)
 		{
-			speaker->set_output_rate(sampleRate, 512);
+			speaker->set_output_rate(sampleRate, (int)bufferSize);
 			speaker->set_delegate(delegate);
 			return YES;
 		}
@@ -86,6 +86,10 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
 	self.machine->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+}
+
+- (double)clockRate {
+	return self.machine->get_clock_rate();
 }
 
 @end

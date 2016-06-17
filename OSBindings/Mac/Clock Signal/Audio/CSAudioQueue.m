@@ -6,12 +6,12 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#import "AudioQueue.h"
+#import "CSAudioQueue.h"
 @import AudioToolbox;
 
-#define AudioQueueNumAudioBuffers	4
-#define AudioQueueStreamLength		4096
-#define AudioQueueBufferLength		512
+#define AudioQueueBufferMaxLength		8192
+#define AudioQueueNumAudioBuffers		3
+#define AudioQueueMaxStreamLength		(AudioQueueBufferMaxLength*AudioQueueNumAudioBuffers)
 
 enum {
 	AudioQueueCanProceed,
@@ -19,23 +19,29 @@ enum {
 	AudioQueueIsInvalidated
 };
 
-@implementation AudioQueue
+@implementation CSAudioQueue
 {
+	NSUInteger _bufferLength;
+	NSUInteger _streamLength;
+
 	AudioQueueRef _audioQueue;
 	AudioQueueBufferRef _audioBuffers[AudioQueueNumAudioBuffers];
+
 	unsigned int _audioStreamReadPosition, _audioStreamWritePosition;
-	int16_t _audioStream[AudioQueueStreamLength];
+	int16_t _audioStream[AudioQueueMaxStreamLength];
+
 	NSConditionLock *_writeLock;
 	BOOL _isInvalidated;
 	int _dequeuedCount;
 }
-
 
 #pragma mark -
 #pragma mark AudioQueue callbacks and setup; for pushing audio out
 
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
+	[self.delegate audioQueueDidCompleteBuffer:self];
+
 	[_writeLock lock];
 
 	const unsigned int writeLead = _audioStreamWritePosition - _audioStreamReadPosition;
@@ -44,15 +50,15 @@ enum {
 	// TODO: if write lead is too great, skip some audio
 	if(writeLead >= audioDataSampleSize)
 	{
-		size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamReadPosition % AudioQueueStreamLength);
+		size_t samplesBeforeOverflow = _streamLength - (_audioStreamReadPosition % _streamLength);
 		if(audioDataSampleSize <= samplesBeforeOverflow)
 		{
-			memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % AudioQueueStreamLength], buffer->mAudioDataByteSize);
+			memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % _streamLength], buffer->mAudioDataByteSize);
 		}
 		else
 		{
 			const size_t bytesRemaining = samplesBeforeOverflow * sizeof(int16_t);
-			memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % AudioQueueStreamLength], bytesRemaining);
+			memcpy(buffer->mAudioData, &_audioStream[_audioStreamReadPosition % _streamLength], bytesRemaining);
 			memcpy(buffer->mAudioData, &_audioStream[0], buffer->mAudioDataByteSize - bytesRemaining);
 		}
 		_audioStreamReadPosition += audioDataSampleSize;
@@ -82,7 +88,7 @@ static void audioOutputCallback(
 	AudioQueueRef inAQ,
 	AudioQueueBufferRef inBuffer)
 {
-	[(__bridge AudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+	[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
 }
 
 - (instancetype)initWithSamplingRate:(Float64)samplingRate
@@ -94,8 +100,13 @@ static void audioOutputCallback(
 		_writeLock = [[NSConditionLock alloc] initWithCondition:AudioQueueCanProceed];
 		_samplingRate = samplingRate;
 
+		// determine buffer sizes
+		_bufferLength = AudioQueueBufferMaxLength;
+		while((Float64)_bufferLength*50.0 > samplingRate) _bufferLength >>= 1;
+		_streamLength = _bufferLength * AudioQueueNumAudioBuffers;
+
 		/*
-			Describe a mono, 16bit, 44.1Khz audio format
+			Describe a mono 16bit stream of the requested sampling rate
 		*/
 		AudioStreamBasicDescription outputDescription;
 
@@ -122,7 +133,7 @@ static void audioOutputCallback(
 				0,
 				&_audioQueue))
 		{
-			UInt32 bufferBytes = AudioQueueBufferLength * sizeof(int16_t);
+			UInt32 bufferBytes = (UInt32)(_bufferLength * sizeof(int16_t));
 
 			int c = AudioQueueNumAudioBuffers;
 			while(c--)
@@ -166,18 +177,18 @@ static void audioOutputCallback(
 	while(1)
 	{
 		[_writeLock lockWhenCondition:AudioQueueCanProceed];
-		if((_audioStreamReadPosition + AudioQueueStreamLength) - _audioStreamWritePosition >= lengthInSamples)
+		if((_audioStreamReadPosition + _streamLength) - _audioStreamWritePosition >= lengthInSamples)
 		{
-			size_t samplesBeforeOverflow = AudioQueueStreamLength - (_audioStreamWritePosition % AudioQueueStreamLength);
+			size_t samplesBeforeOverflow = _streamLength - (_audioStreamWritePosition % _streamLength);
 
 			if(samplesBeforeOverflow < lengthInSamples)
 			{
-				memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, samplesBeforeOverflow * sizeof(int16_t));
+				memcpy(&_audioStream[_audioStreamWritePosition % _streamLength], buffer, samplesBeforeOverflow * sizeof(int16_t));
 				memcpy(&_audioStream[0], &buffer[samplesBeforeOverflow], (lengthInSamples - samplesBeforeOverflow) * sizeof(int16_t));
 			}
 			else
 			{
-				memcpy(&_audioStream[_audioStreamWritePosition % AudioQueueStreamLength], buffer, lengthInSamples * sizeof(int16_t));
+				memcpy(&_audioStream[_audioStreamWritePosition % _streamLength], buffer, lengthInSamples * sizeof(int16_t));
 			}
 
 			_audioStreamWritePosition += lengthInSamples;
@@ -193,8 +204,10 @@ static void audioOutputCallback(
 
 - (NSInteger)writeLockCondition
 {
-	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (AudioQueueStreamLength - AudioQueueBufferLength)) ? AudioQueueCanProceed : AudioQueueWait;
+	return ((_audioStreamWritePosition - _audioStreamReadPosition) < (_streamLength - _bufferLength)) ? AudioQueueCanProceed : AudioQueueWait;
 }
+
+#pragma mark - Sampling Rate getters
 
 + (AudioDeviceID)defaultOutputDevice
 {
@@ -205,7 +218,7 @@ static void audioOutputCallback(
 
 	AudioDeviceID deviceID;
 	UInt32 size = sizeof(AudioDeviceID);
-	return AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &address, 0, NULL, &size, &deviceID) ? 0 : deviceID;
+	return AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &deviceID) ? 0 : deviceID;
 }
 
 + (Float64)preferredSamplingRate
@@ -217,7 +230,12 @@ static void audioOutputCallback(
 
 	Float64 samplingRate;
 	UInt32 size = sizeof(Float64);
-	return AudioHardwareServiceGetPropertyData([self defaultOutputDevice], &address, 0, NULL, &size, &samplingRate) ? 0.0 : samplingRate;
+	return AudioObjectGetPropertyData([self defaultOutputDevice], &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &samplingRate) ? 0.0 : samplingRate;
+}
+
+- (NSUInteger)bufferSize
+{
+	return _bufferLength;
 }
 
 @end
