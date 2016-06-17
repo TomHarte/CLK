@@ -9,9 +9,9 @@
 #import "CSAudioQueue.h"
 @import AudioToolbox;
 
-#define AudioQueueNumAudioBuffers	4
-#define AudioQueueStreamLength		4096
-#define AudioQueueBufferLength		512
+#define AudioQueueStreamLength		768
+#define AudioQueueBufferLength		256
+#define AudioQueueNumAudioBuffers	(AudioQueueStreamLength/AudioQueueBufferLength)
 
 enum {
 	AudioQueueCanProceed,
@@ -29,7 +29,6 @@ enum {
 	BOOL _isInvalidated;
 	int _dequeuedCount;
 }
-
 
 #pragma mark -
 #pragma mark AudioQueue callbacks and setup; for pushing audio out
@@ -222,6 +221,11 @@ static void audioOutputCallback(
 	Float64 samplingRate;
 	UInt32 size = sizeof(Float64);
 	return AudioObjectGetPropertyData([self defaultOutputDevice], &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &samplingRate) ? 0.0 : samplingRate;
+}
+
++ (NSUInteger)bufferSize
+{
+	return AudioQueueBufferLength;
 }
 
 @end

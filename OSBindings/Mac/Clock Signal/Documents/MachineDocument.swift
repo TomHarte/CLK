@@ -9,8 +9,14 @@
 import Cocoa
 import AudioToolbox
 
-class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDelegate, CSBestEffortUpdaterDelegate, NSWindowDelegate {
-
+class MachineDocument:
+	NSDocument,
+	NSWindowDelegate,
+	CSOpenGLViewDelegate,
+	CSOpenGLViewResponderDelegate,
+	CSBestEffortUpdaterDelegate,
+	CSAudioQueueDelegate
+{
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
 	func machine() -> CSMachine! {
@@ -55,8 +61,9 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
 			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
+			audioQueue.delegate = self
 			self.machine().audioQueue = self.audioQueue
-			self.machine().setAudioSamplingRate(selectedSamplingRate)
+			self.machine().setAudioSamplingRate(selectedSamplingRate, bufferSize:CSAudioQueue.bufferSize() / 2)
 		}
 
 		self.bestEffortUpdater.clockRate = self.machine().clockRate
@@ -73,8 +80,16 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		super.close()
 	}
 
+	// MARK: CSBestEffortUpdaterDelegate
 	final func bestEffortUpdater(bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
 		runForNumberOfCycles(Int32(cycles))
+	}
+
+	func runForNumberOfCycles(numberOfCycles: Int32) {
+		if actionLock.tryLock() {
+			self.machine().runForNumberOfCycles(numberOfCycles)
+			actionLock.unlock()
+		}
 	}
 
 	// MARK: Utilities for children
@@ -86,15 +101,13 @@ class MachineDocument: NSDocument, CSOpenGLViewDelegate, CSOpenGLViewResponderDe
 		return nil
 	}
 
-	// MARK: CSOpenGLViewDelegate
-	func runForNumberOfCycles(numberOfCycles: Int32) {
-		if actionLock.tryLock() {
-			self.machine().runForNumberOfCycles(numberOfCycles)
-			actionLock.unlock()
-		}
+	// MARK: CSAudioQueueDelegate
+	final func audioQueueDidCompleteBuffer(audioQueue: CSAudioQueue) {
+		bestEffortUpdater.update()
 	}
 
-	func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+	// MARK: CSOpenGLViewDelegate
+	final func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
 		bestEffortUpdater.update()
 		if drawLock.tryLock() {
 			self.machine().drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)

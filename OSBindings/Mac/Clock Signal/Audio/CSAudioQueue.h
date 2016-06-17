@@ -10,7 +10,7 @@
 
 @class CSAudioQueue;
 
-@protocol AudioQueueDelegate
+@protocol CSAudioQueueDelegate
 - (void)audioQueueDidCompleteBuffer:(nonnull CSAudioQueue *)audioQueue;
 @end
 
@@ -20,8 +20,9 @@
 - (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
 
 @property (nonatomic, readonly) Float64 samplingRate;
-@property (nonatomic, weak) id<AudioQueueDelegate> delegate;
+@property (nonatomic, weak) id<CSAudioQueueDelegate> delegate;
 
 + (Float64)preferredSamplingRate;
++ (NSUInteger)bufferSize;
 
 @end
