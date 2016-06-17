@@ -165,6 +165,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, T
 		virtual Outputs::CRT::CRT *get_crt() { return _crt.get(); }
 		virtual Outputs::Speaker *get_speaker() { return &_speaker; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual double get_clock_rate() { return 2000000; }
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);

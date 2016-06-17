@@ -47,9 +47,8 @@
 				NSUInteger integerCyclesToRunFor = (NSUInteger)cyclesToRunFor;
 
 				[self.delegate bestEffortUpdater:self runForCycles:integerCyclesToRunFor didSkipPreviousUpdate:_hasSkipped];
-
-				_previousTimeInterval = timeInterval;
 			}
+			_previousTimeInterval = timeInterval;
 			_hasSkipped = NO;
 			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
 		});

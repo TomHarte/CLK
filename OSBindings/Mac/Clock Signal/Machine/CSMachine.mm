@@ -88,4 +88,8 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	self.machine->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
+- (double)clockRate {
+	return self.machine->get_clock_rate();
+}
+
 @end

@@ -10,6 +10,11 @@
 #import "CSOpenGLView.h"
 #import "CSAudioQueue.h"
 
+@class CSMachine;
+@protocol CSMachineDelegate
+- (void)machineDidChangeClockRate:(CSMachine *)machine;
+@end
+
 @interface CSMachine : NSObject
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
@@ -22,5 +27,7 @@
 
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
+@property (nonatomic, weak) id<CSMachineDelegate> delegate;
+@property (nonatomic, readonly) double clockRate;
 
 @end
