@@ -63,7 +63,7 @@ class MachineDocument:
 			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
 			audioQueue.delegate = self
 			self.machine().audioQueue = self.audioQueue
-			self.machine().setAudioSamplingRate(selectedSamplingRate, bufferSize:CSAudioQueue.bufferSize() / 2)
+			self.machine().setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.bufferSize / 2)
 		}
 
 		self.bestEffortUpdater.clockRate = self.machine().clockRate
@@ -86,8 +86,9 @@ class MachineDocument:
 	}
 
 	func runForNumberOfCycles(numberOfCycles: Int32) {
+		let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
 		if actionLock.tryLock() {
-			self.machine().runForNumberOfCycles(numberOfCycles)
+			self.machine().runForNumberOfCycles(cyclesToRunFor)
 			actionLock.unlock()
 		}
 	}
