@@ -10,6 +10,7 @@ import Cocoa
 
 class DocumentController: NSDocumentController {
 	override func newDocument(sender: AnyObject?) {
-		super.newDocument(sender)
+		let window = NSWindow(contentViewController: NewDocumentViewController())
+		window.makeKeyAndOrderFront(self)
 	}
 }

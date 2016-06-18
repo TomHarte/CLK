@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		4B013E0A1D15F4B000004DC4 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B013E091D15F4B000004DC4 /* DocumentController.swift */; };
+		4B013E0F1D15FCAE00004DC4 /* NewDocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B013E0D1D15FCAE00004DC4 /* NewDocumentViewController.swift */; };
+		4B013E101D15FCAE00004DC4 /* NewDocumentViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B013E0E1D15FCAE00004DC4 /* NewDocumentViewController.xib */; };
+		4B013E121D16057D00004DC4 /* NewDocumentItem.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B013E111D16057D00004DC4 /* NewDocumentItem.xib */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
@@ -343,6 +346,9 @@
 
 /* Begin PBXFileReference section */
 		4B013E091D15F4B000004DC4 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
+		4B013E0D1D15FCAE00004DC4 /* NewDocumentViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewDocumentViewController.swift; sourceTree = "<group>"; };
+		4B013E0E1D15FCAE00004DC4 /* NewDocumentViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = NewDocumentViewController.xib; sourceTree = "<group>"; };
+		4B013E111D16057D00004DC4 /* NewDocumentItem.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = NewDocumentItem.xib; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* CRTMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTMachine.hpp; sourceTree = "<group>"; };
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
@@ -735,6 +741,9 @@
 			isa = PBXGroup;
 			children = (
 				4B013E091D15F4B000004DC4 /* DocumentController.swift */,
+				4B013E0D1D15FCAE00004DC4 /* NewDocumentViewController.swift */,
+				4B013E0E1D15FCAE00004DC4 /* NewDocumentViewController.xib */,
+				4B013E111D16057D00004DC4 /* NewDocumentItem.xib */,
 			);
 			path = "Document Controller";
 			sourceTree = "<group>";
@@ -1464,8 +1473,10 @@
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
 				4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */,
+				4B013E121D16057D00004DC4 /* NewDocumentItem.xib in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
 				4BC9DF451D044FCA00F44158 /* ROMImages in Resources */,
+				4B013E101D15FCAE00004DC4 /* NewDocumentViewController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1772,6 +1783,7 @@
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4BCA98C31D065CA20062F44C /* 6522.cpp in Sources */,
+				4B013E0F1D15FCAE00004DC4 /* NewDocumentViewController.swift in Sources */,
 				4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
