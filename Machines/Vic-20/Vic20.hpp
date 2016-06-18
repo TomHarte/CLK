@@ -44,10 +44,10 @@ enum Key: uint16_t {
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
 };
 
-class UserPortVIA: public MOS::MOS6522<UserPortVIA> {
+class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 };
 
-class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
+class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		void set_key_state(Key key, bool isPressed) {
 			if(isPressed)
@@ -88,7 +88,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA> {
 		uint8_t _activation_mask;
 };
 
-class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, public MOS::MOS6522Delegate {
+class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, public MOS::MOS6522IRQDelegate::Delegate {
 	public:
 		Machine();
 		~Machine();

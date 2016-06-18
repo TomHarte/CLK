@@ -14,11 +14,6 @@
 
 namespace MOS {
 
-class MOS6522Delegate {
-	public:
-		virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
-};
-
 template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
@@ -181,11 +176,6 @@ template <class T> class MOS6522 {
 			return !!interrupt_status;
 		}
 
-		void set_delegate(MOS6522Delegate *delegate)
-		{
-			_delegate = delegate;
-		}
-
 		MOS6522() :
 			_timer_is_running{false, false},
 			_last_posted_interrupt_status(false)
@@ -197,7 +187,6 @@ template <class T> class MOS6522 {
 		void set_port_output(int port, uint8_t value)	{}
 
 		// Delegate and communications
-		MOS6522Delegate *_delegate;
 		bool _last_posted_interrupt_status;
 		inline void reevaluate_interrupts()
 		{
@@ -205,7 +194,7 @@ template <class T> class MOS6522 {
 			if(new_interrupt_status != _last_posted_interrupt_status)
 			{
 				_last_posted_interrupt_status = new_interrupt_status;
-				if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+				static_cast<T *>(this)->set_interrupt_status(new_interrupt_status);
 			}
 		}
 
@@ -226,6 +215,27 @@ template <class T> class MOS6522 {
 
 		// Internal state other than the registers
 		bool _timer_is_running[2];
+};
+
+class MOS6522IRQDelegate {
+	public:
+		class Delegate {
+			public:
+				virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
+		};
+
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+		void set_interrupt_status(bool new_status)
+		{
+			if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+		}
+
+	private:
+		Delegate *_delegate;
 };
 
 }
