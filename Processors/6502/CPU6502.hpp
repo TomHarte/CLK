@@ -1058,6 +1058,13 @@ template <class T> class Processor {
 		}
 
 		/*!
+			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+
+			Users of the 6502 template may override this.
+		*/
+		void synchronise() {}
+
+		/*!
 			Gets the value of a register.
 
 			@see set_value_of_register
