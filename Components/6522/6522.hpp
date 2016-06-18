@@ -150,28 +150,39 @@ template <class T> class MOS6522 {
 			{
 				if(_is_phase2)
 				{
-					_registers.timer[0] --;
-					_registers.timer[1] --;
+					_registers.last_timer[0] = _registers.timer[0];
+					_registers.last_timer[1] = _registers.timer[1];
 
-					if(!_registers.timer[1] && _timer_is_running[1])
+					if(_registers.timer_needs_reload)
+					{
+						_registers.timer_needs_reload = false;
+						_registers.timer[0] = _registers.timer_latch[0];
+					}
+					else
+						_registers.timer[0] --;
+
+					_registers.timer[1] --;
+				}
+				else
+				{
+					// IRQ is raised on the half cycle after overflow
+					if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])
 					{
 						_timer_is_running[1] = false;
 						_registers.interrupt_flags |= InterruptFlag::Timer2;
 						reevaluate_interrupts();
 					}
 
-					if(!_registers.timer[0] && _timer_is_running[0])
+					if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])
 					{
 						_registers.interrupt_flags |= InterruptFlag::Timer1;
 						reevaluate_interrupts();
 
-						// TODO: reload shouldn't occur for a further 1.5 cycles
 						if(_registers.auxiliary_control&0x40)
-							_registers.timer[0] = _registers.timer_latch[0];
+							_registers.timer_needs_reload = true;
 						else
 							_timer_is_running[0] = false;
 					}
-					// TODO: lots of other status effects
 				}
 
 				_is_phase2 ^= true;
@@ -214,16 +225,18 @@ template <class T> class MOS6522 {
 		// The registers
 		struct Registers {
 			uint8_t output[2], input[2], data_direction[2];
-			uint16_t timer[2], timer_latch[2];
+			uint16_t timer[2], timer_latch[2], last_timer[2];
 			uint8_t shift;
 			uint8_t auxiliary_control, peripheral_control;
 			uint8_t interrupt_flags, interrupt_enable;
+			bool timer_needs_reload;
 
 			// "A  low  reset  (RES)  input  clears  all  R6522  internal registers to logic 0"
 			Registers() :
 				output{0, 0}, input{0, 0}, data_direction{0, 0},
 				auxiliary_control(0), peripheral_control(0),
-				interrupt_flags(0), interrupt_enable(0) {}
+				interrupt_flags(0), interrupt_enable(0),
+				last_timer{0, 0}, timer_needs_reload(false) {}
 		} _registers;
 
 		// Internal state other than the registers

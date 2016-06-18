@@ -49,7 +49,12 @@ class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
 
 - (void)runForHalfCycles:(NSUInteger)numberOfHalfCycles
 {
-	_via.run_for_half_cycles(numberOfHalfCycles);
+	_via.run_for_half_cycles((int)numberOfHalfCycles);
+}
+
+- (BOOL)irqLine
+{
+	return _via.irq_line;
 }
 
 @end
