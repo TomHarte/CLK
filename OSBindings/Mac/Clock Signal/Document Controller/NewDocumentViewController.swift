@@ -9,9 +9,6 @@
 import Cocoa
 
 class NewDocumentCollectionViewItem: NSCollectionViewItem {
-
-	@IBOutlet var backgroundImageView: NSImageView!
-
 }
 
 class NewDocumentViewController: NSViewController {
@@ -19,6 +16,7 @@ class NewDocumentViewController: NSViewController {
 	@IBOutlet var collectionView : NSCollectionView!
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do view setup here.
+
+		collectionView.maxNumberOfRows = 1
     }
 }

@@ -6,7 +6,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NewDocumentCollectionViewItem" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="backgroundImageView" destination="lue-fk-ggq" id="o3A-xa-GXH"/>
+                <outlet property="imageView" destination="lue-fk-ggq" id="qxp-c8-ncE"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
