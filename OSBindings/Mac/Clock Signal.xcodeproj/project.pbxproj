@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4B013E0A1D15F4B000004DC4 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B013E091D15F4B000004DC4 /* DocumentController.swift */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
@@ -341,6 +342,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4B013E091D15F4B000004DC4 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* CRTMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTMachine.hpp; sourceTree = "<group>"; };
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
@@ -729,6 +731,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4B013E081D15F4B000004DC4 /* Document Controller */ = {
+			isa = PBXGroup;
+			children = (
+				4B013E091D15F4B000004DC4 /* DocumentController.swift */,
+			);
+			path = "Document Controller";
+			sourceTree = "<group>";
+		};
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
 			isa = PBXGroup;
 			children = (
@@ -1209,6 +1219,7 @@
 				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
 				4B2A538F1D117D36003C6002 /* Audio */,
 				4B55CE551C3B7D360093A61B /* Documents */,
+				4B013E081D15F4B000004DC4 /* Document Controller */,
 				4B2A53921D117D36003C6002 /* Machine */,
 				4BD5F1961D1352A000631CD1 /* Updater */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
@@ -1754,6 +1765,7 @@
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
+				4B013E0A1D15F4B000004DC4 /* DocumentController.swift in Sources */,
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
 				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
