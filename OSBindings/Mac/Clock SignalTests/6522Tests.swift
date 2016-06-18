@@ -26,8 +26,30 @@ class MOS6522Tests: XCTestCase {
 			$0.runForHalfCycles(10)
 
 			// check that the timer has gone down by 5
-			XCTAssert($0.valueForRegister(4) == 5, "Low order byte of timer should be 5; was \($0.valueForRegister(4))")
-			XCTAssert($0.valueForRegister(5) == 0, "High order byte of timer should be 0; was \($0.valueForRegister(5))")
+			XCTAssert($0.valueForRegister(4) == 5, "Low order byte should be 5; was \($0.valueForRegister(4))")
+			XCTAssert($0.valueForRegister(5) == 0, "High order byte should be 0; was \($0.valueForRegister(5))")
+		}
+	}
+
+	func testTimerLatches() {
+		with6522 {
+			// set timer 2 to $1020
+			$0.setValue(0x10, forRegister: 8)
+			$0.setValue(0x20, forRegister: 9)
+
+			// change the low-byte latch
+			$0.setValue(0x40, forRegister: 8)
+
+			// chek that the new latched value hasn't been copied
+			XCTAssert($0.valueForRegister(8) == 0x10, "Low order byte should be 0x10; was \($0.valueForRegister(8))")
+			XCTAssert($0.valueForRegister(9) == 0x20, "High order byte should be 0x20; was \($0.valueForRegister(9))")
+
+			// write the low-byte latch
+			$0.setValue(0x50, forRegister: 9)
+
+			// chek that the latched value has been copied
+			XCTAssert($0.valueForRegister(8) == 0x40, "Low order byte should be 0x50; was \($0.valueForRegister(8))")
+			XCTAssert($0.valueForRegister(9) == 0x50, "High order byte should be 0x40; was \($0.valueForRegister(9))")
 		}
 	}
 
@@ -43,26 +65,29 @@ class MOS6522Tests: XCTestCase {
 			$0.runForHalfCycles(32)
 
 			// check that the timer has gone down to 0 but not yet triggered an interrupt
-			XCTAssert($0.valueForRegister(4) == 0, "Low order byte of timer should be 0; was \($0.valueForRegister(4))")
-			XCTAssert($0.valueForRegister(5) == 0, "High order byte of timer should be 0; was \($0.valueForRegister(5))")
+			XCTAssert($0.valueForRegister(4) == 0, "Low order byte should be 0; was \($0.valueForRegister(4))")
+			XCTAssert($0.valueForRegister(5) == 0, "High order byte should be 0; was \($0.valueForRegister(5))")
 			XCTAssert(!$0.irqLine, "IRQ should not yet be active")
 
 			// check that two half-cycles later the timer is $ffff but IRQ still hasn't triggered
 			$0.runForHalfCycles(2)
-			XCTAssert($0.valueForRegister(4) == 0xff, "Low order byte of timer should be 0xff; was \($0.valueForRegister(4))")
-			XCTAssert($0.valueForRegister(5) == 0xff, "High order byte of timer should be 0xff; was \($0.valueForRegister(5))")
+			XCTAssert($0.valueForRegister(4) == 0xff, "Low order byte should be 0xff; was \($0.valueForRegister(4))")
+			XCTAssert($0.valueForRegister(5) == 0xff, "High order byte should be 0xff; was \($0.valueForRegister(5))")
 			XCTAssert(!$0.irqLine, "IRQ should not yet be active")
 
-			// check that one half-cycle later the timer is still $ffff and IRQ has triggered
+			// check that one half-cycle later the timer is still $ffff and IRQ has triggered...
 			$0.runForHalfCycles(1)
 			XCTAssert($0.irqLine, "IRQ should be active")
-			XCTAssert($0.valueForRegister(4) == 0xff, "Low order byte of timer should be 0xff; was \($0.valueForRegister(4))")
-			XCTAssert($0.valueForRegister(5) == 0xff, "High order byte of timer should be 0xff; was \($0.valueForRegister(5))")
+			XCTAssert($0.valueForRegister(4) == 0xff, "Low order byte should be 0xff; was \($0.valueForRegister(4))")
+			XCTAssert($0.valueForRegister(5) == 0xff, "High order byte should be 0xff; was \($0.valueForRegister(5))")
+
+			// ... but that reading the timer cleared the interrupt
+			XCTAssert(!$0.irqLine, "IRQ should be active")
 
 			// check that one half-cycles later the timer has reloaded
 			$0.runForHalfCycles(1)
-			XCTAssert($0.valueForRegister(4) == 0x10, "Low order byte of timer should be 0x10; was \($0.valueForRegister(4))")
-			XCTAssert($0.valueForRegister(5) == 0x00, "High order byte of timer should be 0x00; was \($0.valueForRegister(5))")
+			XCTAssert($0.valueForRegister(4) == 0x10, "Low order byte should be 0x10; was \($0.valueForRegister(4))")
+			XCTAssert($0.valueForRegister(5) == 0x00, "High order byte should be 0x00; was \($0.valueForRegister(5))")
 		}
 	}
 }
