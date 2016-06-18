@@ -98,7 +98,7 @@ class MOS6522Tests: XCTestCase {
 	func testDataDirection() {
 		with6522 {
 			// set low four bits of register B as output, the top four as input
-			$0.setValue(0x0f, forRegister: 2)
+			$0.setValue(0xf0, forRegister: 2)
 
 			// ask to output 0x8c
 			$0.setValue(0x8c, forRegister: 0)

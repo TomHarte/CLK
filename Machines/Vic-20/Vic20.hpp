@@ -75,9 +75,9 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			return 0xff;
 		}
 
-		void set_port_output(int port, uint8_t value) {
+		void set_port_output(int port, uint8_t value, uint8_t mask) {
 			if(port)
-				_activation_mask = value;
+				_activation_mask = (value & mask) | (~mask);
 		}
 
 		KeyboardVIA() {

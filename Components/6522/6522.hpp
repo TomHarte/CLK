@@ -35,17 +35,17 @@ template <class T> class MOS6522 {
 			{
 				case 0x0:
 					_registers.output[1] = value;
-					static_cast<T *>(this)->set_port_output(1, value);	// TODO: handshake
-				break;
-				case 0x1:
-					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(1, value, _registers.data_direction[1]);	// TODO: handshake
 				break;
 				case 0xf:
-					// No handshake, so write directly
+				case 0x1:
 					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value);
+					static_cast<T *>(this)->set_port_output(0, value, _registers.data_direction[0]);	// TODO: handshake
 				break;
+//					// No handshake, so write directly
+//					_registers.output[0] = value;
+//					static_cast<T *>(this)->set_port_output(0, value);
+//				break;
 
 				case 0x2:
 					_registers.data_direction[1] = value;
@@ -104,10 +104,9 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-//				case 0x0:	return (_registers.auxiliary_control & 0x40) ? _registers.input[1] : static_cast<T *>(this)->get_port_input(1);
-				case 0x0:	return _registers.output[1];//static_cast<T *>(this)->get_port_input(1);
+				case 0x0:	return get_port_input(1, _registers.data_direction[1], _registers.output[1]);
 				case 0xf:	// TODO: handshake, latching
-				case 0x1:	return static_cast<T *>(this)->get_port_input(0);
+				case 0x1:	return get_port_input(0, _registers.data_direction[0], _registers.output[0]);
 
 				case 0x2:	return _registers.data_direction[1];
 				case 0x3:	return _registers.data_direction[0];
@@ -202,10 +201,17 @@ template <class T> class MOS6522 {
 		{}
 
 	private:
-		// Intended to be overridden
-		uint8_t get_port_input(int port)				{	return 0xff;	}
-		void set_port_output(int port, uint8_t value)	{}
+		// Expected to be overridden
+		uint8_t get_port_input(int port)										{	return 0xff;	}
+		void set_port_output(int port, uint8_t value, uint8_t direction_mask)	{}
 //		void set_interrupt_status(bool status)			{}
+
+		// Input/output multiplexer
+		uint8_t get_port_input(int port, uint8_t output_mask, uint8_t output)
+		{
+			uint8_t input = static_cast<T *>(this)->get_port_input(port);
+			return (input & ~output_mask) | (output & output_mask);
+		}
 
 		// Phase toggle
 		bool _is_phase2;
