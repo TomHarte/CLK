@@ -33,14 +33,14 @@ Gw
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                 </button>
-                <scrollView autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yqg-ne-lyj">
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yqg-ne-lyj">
                     <rect key="frame" x="0.0" y="49" width="480" height="223"/>
                     <clipView key="contentView" id="xcg-pF-ASw">
-                        <rect key="frame" x="1" y="1" width="478" height="221"/>
+                        <rect key="frame" x="0.0" y="0.0" width="480" height="223"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <collectionView id="jC7-eb-wC4">
-                                <rect key="frame" x="0.0" y="0.0" width="478" height="221"/>
+                                <rect key="frame" x="0.0" y="0.0" width="480" height="223"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="primaryBackgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </collectionView>
