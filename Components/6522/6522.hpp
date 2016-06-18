@@ -144,30 +144,38 @@ template <class T> class MOS6522 {
 		{
 		}
 
-		void run_for_cycles(unsigned int number_of_cycles)
+		void run_for_half_cycles(unsigned int number_of_cycles)
 		{
-			_registers.timer[0] -= number_of_cycles;
-			_registers.timer[1] -= number_of_cycles;
-
-			if(!_registers.timer[1] && _timer_is_running[1])
+			while(number_of_cycles--)
 			{
-				_timer_is_running[1] = false;
-				_registers.interrupt_flags |= InterruptFlag::Timer2;
-				reevaluate_interrupts();
-			}
+				if(_is_phase2)
+				{
+					_registers.timer[0] --;
+					_registers.timer[1] --;
 
-			if(!_registers.timer[0] && _timer_is_running[0])
-			{
-				_registers.interrupt_flags |= InterruptFlag::Timer1;
-				reevaluate_interrupts();
+					if(!_registers.timer[1] && _timer_is_running[1])
+					{
+						_timer_is_running[1] = false;
+						_registers.interrupt_flags |= InterruptFlag::Timer2;
+						reevaluate_interrupts();
+					}
 
-				// TODO: reload shouldn't occur for a further 1.5 cycles
-				if(_registers.auxiliary_control&0x40)
-					_registers.timer[0] = _registers.timer_latch[0];
-				else
-					_timer_is_running[0] = false;
+					if(!_registers.timer[0] && _timer_is_running[0])
+					{
+						_registers.interrupt_flags |= InterruptFlag::Timer1;
+						reevaluate_interrupts();
+
+						// TODO: reload shouldn't occur for a further 1.5 cycles
+						if(_registers.auxiliary_control&0x40)
+							_registers.timer[0] = _registers.timer_latch[0];
+						else
+							_timer_is_running[0] = false;
+					}
+					// TODO: lots of other status effects
+				}
+
+				_is_phase2 ^= true;
 			}
-			// TODO: lots of other status effects
 		}
 
 		bool get_interrupt_line()
@@ -178,13 +186,18 @@ template <class T> class MOS6522 {
 
 		MOS6522() :
 			_timer_is_running{false, false},
-			_last_posted_interrupt_status(false)
+			_last_posted_interrupt_status(false),
+			_is_phase2(false)
 		{}
 
 	private:
-		// Intended to be overwritten
+		// Intended to be overridden
 		uint8_t get_port_input(int port)				{	return 0xff;	}
 		void set_port_output(int port, uint8_t value)	{}
+//		void set_interrupt_status(bool status)			{}
+
+		// Phase toggle
+		bool _is_phase2;
 
 		// Delegate and communications
 		bool _last_posted_interrupt_status;
