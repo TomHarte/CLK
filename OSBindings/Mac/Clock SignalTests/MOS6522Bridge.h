@@ -11,6 +11,8 @@
 @interface MOS6522Bridge : NSObject
 
 @property (nonatomic, readonly) BOOL irqLine;
+@property (nonatomic) uint8_t portBInput;
+@property (nonatomic) uint8_t portAInput;
 
 - (void)setValue:(uint8_t)value forRegister:(NSUInteger)registerNumber;
 - (uint8_t)valueForRegister:(NSUInteger)registerNumber;

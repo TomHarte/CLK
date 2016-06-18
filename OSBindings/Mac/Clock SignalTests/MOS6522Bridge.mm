@@ -15,10 +15,17 @@ class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
 	public:
 		MOS6522Bridge *bridge;
 		bool irq_line;
+		uint8_t port_a_value;
+		uint8_t port_b_value;
 
 		void set_interrupt_status(bool new_status)
 		{
 			irq_line = new_status;
+		}
+
+		uint8_t get_port_input(int port)
+		{
+			return port ? port_b_value : port_a_value;
 		}
 };
 
@@ -55,6 +62,26 @@ class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
 - (BOOL)irqLine
 {
 	return _via.irq_line;
+}
+
+- (void)setPortAInput:(uint8_t)portAInput
+{
+	_via.port_a_value = portAInput;
+}
+
+- (uint8_t)portAInput
+{
+	return _via.port_a_value;
+}
+
+- (void)setPortBInput:(uint8_t)portBInput
+{
+	_via.port_b_value = portBInput;
+}
+
+- (uint8_t)portBInput
+{
+	return _via.port_b_value;
 }
 
 @end

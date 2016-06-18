@@ -16,6 +16,8 @@ class MOS6522Tests: XCTestCase {
 		action(bridge)
 	}
 
+	// MARK: Timer tests
+
 	func testTimerCount() {
 		with6522 {
 			// set timer 1 to a value of $000a
@@ -88,6 +90,24 @@ class MOS6522Tests: XCTestCase {
 			$0.runForHalfCycles(1)
 			XCTAssert($0.valueForRegister(4) == 0x10, "Low order byte should be 0x10; was \($0.valueForRegister(4))")
 			XCTAssert($0.valueForRegister(5) == 0x00, "High order byte should be 0x00; was \($0.valueForRegister(5))")
+		}
+	}
+
+
+	// MARK: Data direction tests
+	func testDataDirection() {
+		with6522 {
+			// set low four bits of register B as output, the top four as input
+			$0.setValue(0x0f, forRegister: 2)
+
+			// ask to output 0x8c
+			$0.setValue(0x8c, forRegister: 0)
+
+			// set current input as 0xda
+			$0.portBInput = 0xda
+
+			// test that the result of reading register B is therefore 0x8a
+			XCTAssert($0.valueForRegister(0) == 0x8a, "Data direction register should mix input and output; got \($0.valueForRegister(0))")
 		}
 	}
 }
