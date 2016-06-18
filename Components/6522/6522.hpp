@@ -14,11 +14,6 @@
 
 namespace MOS {
 
-class MOS6522Delegate {
-	public:
-		virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
-};
-
 template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
@@ -40,17 +35,17 @@ template <class T> class MOS6522 {
 			{
 				case 0x0:
 					_registers.output[1] = value;
-					static_cast<T *>(this)->set_port_output(1, value);	// TODO: handshake
-				break;
-				case 0x1:
-					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(1, value, _registers.data_direction[1]);	// TODO: handshake
 				break;
 				case 0xf:
-					// No handshake, so write directly
+				case 0x1:
 					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value);
+					static_cast<T *>(this)->set_port_output(0, value, _registers.data_direction[0]);	// TODO: handshake
 				break;
+//					// No handshake, so write directly
+//					_registers.output[0] = value;
+//					static_cast<T *>(this)->set_port_output(0, value);
+//				break;
 
 				case 0x2:
 					_registers.data_direction[1] = value;
@@ -109,10 +104,9 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-//				case 0x0:	return (_registers.auxiliary_control & 0x40) ? _registers.input[1] : static_cast<T *>(this)->get_port_input(1);
-				case 0x0:	return _registers.output[1];//static_cast<T *>(this)->get_port_input(1);
+				case 0x0:	return get_port_input(1, _registers.data_direction[1], _registers.output[1]);
 				case 0xf:	// TODO: handshake, latching
-				case 0x1:	return static_cast<T *>(this)->get_port_input(0);
+				case 0x1:	return get_port_input(0, _registers.data_direction[0], _registers.output[0]);
 
 				case 0x2:	return _registers.data_direction[1];
 				case 0x3:	return _registers.data_direction[0];
@@ -149,30 +143,49 @@ template <class T> class MOS6522 {
 		{
 		}
 
-		void run_for_cycles(unsigned int number_of_cycles)
+		void run_for_half_cycles(unsigned int number_of_cycles)
 		{
-			_registers.timer[0] -= number_of_cycles;
-			_registers.timer[1] -= number_of_cycles;
-
-			if(!_registers.timer[1] && _timer_is_running[1])
+			while(number_of_cycles--)
 			{
-				_timer_is_running[1] = false;
-				_registers.interrupt_flags |= InterruptFlag::Timer2;
-				reevaluate_interrupts();
-			}
+				if(_is_phase2)
+				{
+					_registers.last_timer[0] = _registers.timer[0];
+					_registers.last_timer[1] = _registers.timer[1];
 
-			if(!_registers.timer[0] && _timer_is_running[0])
-			{
-				_registers.interrupt_flags |= InterruptFlag::Timer1;
-				reevaluate_interrupts();
+					if(_registers.timer_needs_reload)
+					{
+						_registers.timer_needs_reload = false;
+						_registers.timer[0] = _registers.timer_latch[0];
+					}
+					else
+						_registers.timer[0] --;
 
-				// TODO: reload shouldn't occur for a further 1.5 cycles
-				if(_registers.auxiliary_control&0x40)
-					_registers.timer[0] = _registers.timer_latch[0];
+					_registers.timer[1] --;
+				}
 				else
-					_timer_is_running[0] = false;
+				{
+					// IRQ is raised on the half cycle after overflow
+					if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])
+					{
+						_timer_is_running[1] = false;
+						_registers.interrupt_flags |= InterruptFlag::Timer2;
+						reevaluate_interrupts();
+					}
+
+					if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])
+					{
+						_registers.interrupt_flags |= InterruptFlag::Timer1;
+						reevaluate_interrupts();
+
+						if(_registers.auxiliary_control&0x40)
+							_registers.timer_needs_reload = true;
+						else
+							_timer_is_running[0] = false;
+					}
+				}
+
+				_is_phase2 ^= true;
 			}
-			// TODO: lots of other status effects
 		}
 
 		bool get_interrupt_line()
@@ -181,23 +194,29 @@ template <class T> class MOS6522 {
 			return !!interrupt_status;
 		}
 
-		void set_delegate(MOS6522Delegate *delegate)
-		{
-			_delegate = delegate;
-		}
-
 		MOS6522() :
 			_timer_is_running{false, false},
-			_last_posted_interrupt_status(false)
+			_last_posted_interrupt_status(false),
+			_is_phase2(false)
 		{}
 
 	private:
-		// Intended to be overwritten
-		uint8_t get_port_input(int port)				{	return 0xff;	}
-		void set_port_output(int port, uint8_t value)	{}
+		// Expected to be overridden
+		uint8_t get_port_input(int port)										{	return 0xff;	}
+		void set_port_output(int port, uint8_t value, uint8_t direction_mask)	{}
+//		void set_interrupt_status(bool status)			{}
+
+		// Input/output multiplexer
+		uint8_t get_port_input(int port, uint8_t output_mask, uint8_t output)
+		{
+			uint8_t input = static_cast<T *>(this)->get_port_input(port);
+			return (input & ~output_mask) | (output & output_mask);
+		}
+
+		// Phase toggle
+		bool _is_phase2;
 
 		// Delegate and communications
-		MOS6522Delegate *_delegate;
 		bool _last_posted_interrupt_status;
 		inline void reevaluate_interrupts()
 		{
@@ -205,27 +224,50 @@ template <class T> class MOS6522 {
 			if(new_interrupt_status != _last_posted_interrupt_status)
 			{
 				_last_posted_interrupt_status = new_interrupt_status;
-				if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+				static_cast<T *>(this)->set_interrupt_status(new_interrupt_status);
 			}
 		}
 
 		// The registers
 		struct Registers {
 			uint8_t output[2], input[2], data_direction[2];
-			uint16_t timer[2], timer_latch[2];
+			uint16_t timer[2], timer_latch[2], last_timer[2];
 			uint8_t shift;
 			uint8_t auxiliary_control, peripheral_control;
 			uint8_t interrupt_flags, interrupt_enable;
+			bool timer_needs_reload;
 
 			// "A  low  reset  (RES)  input  clears  all  R6522  internal registers to logic 0"
 			Registers() :
 				output{0, 0}, input{0, 0}, data_direction{0, 0},
 				auxiliary_control(0), peripheral_control(0),
-				interrupt_flags(0), interrupt_enable(0) {}
+				interrupt_flags(0), interrupt_enable(0),
+				last_timer{0, 0}, timer_needs_reload(false) {}
 		} _registers;
 
 		// Internal state other than the registers
 		bool _timer_is_running[2];
+};
+
+class MOS6522IRQDelegate {
+	public:
+		class Delegate {
+			public:
+				virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
+		};
+
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+		void set_interrupt_status(bool new_status)
+		{
+			if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+		}
+
+	private:
+		Delegate *_delegate;
 };
 
 }

@@ -313,6 +313,8 @@
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
+		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
+		4BC751B61D157EB3006C31D9 /* MOS6522Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B51D157EB3006C31D9 /* MOS6522Bridge.mm */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
@@ -685,6 +687,9 @@
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
 		4BC3B7511CD1956900F86E85 /* OutputShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OutputShader.hpp; sourceTree = "<group>"; };
+		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
+		4BC751B41D157EB3006C31D9 /* MOS6522Bridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MOS6522Bridge.h; sourceTree = "<group>"; };
+		4BC751B51D157EB3006C31D9 /* MOS6522Bridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MOS6522Bridge.mm; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -1214,15 +1219,18 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
-				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BB297DF1B587D8200A49093 /* Clock SignalTests-Bridging-Header.h */,
-				4B1414631B588A1100E04248 /* Test Binaries */,
+				4BC751B41D157EB3006C31D9 /* MOS6522Bridge.h */,
 				4BB297E21B587D8300A49093 /* TestMachine.h */,
+				4BC751B51D157EB3006C31D9 /* MOS6522Bridge.mm */,
 				4BB297E31B587D8300A49093 /* TestMachine.mm */,
+				4BB73EB81B587A5100552FC2 /* Info.plist */,
+				4BC751B11D157E61006C31D9 /* 6522Tests.swift */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
-				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B92EAC91B7C112B00246143 /* TimingTests.swift */,
+				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
+				4B1414631B588A1100E04248 /* Test Binaries */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -1774,10 +1782,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BC751B61D157EB3006C31D9 /* MOS6522Bridge.mm in Sources */,
 				4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */,
 				4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */,
 				4B92EACA1B7C112B00246143 /* TimingTests.swift in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
+				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4BB298F01B587D8400A49093 /* TestMachine.mm in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,

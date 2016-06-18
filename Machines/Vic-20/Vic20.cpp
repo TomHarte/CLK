@@ -79,8 +79,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	_userPortVIA.run_for_cycles(1);
-	_keyboardVIA.run_for_cycles(1);
+	_userPortVIA.run_for_half_cycles(2);
+	_keyboardVIA.run_for_half_cycles(2);
 	return 1;
 }
 
