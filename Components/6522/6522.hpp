@@ -14,6 +14,17 @@
 
 namespace MOS {
 
+/*!
+	Implements the template for an emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
+
+	The VIA provides:
+		* two timers, each of which may trigger interrupts and one of which may repeat;
+		* two digial input/output ports; and
+		* a serial-to-parallel shifter.
+
+	Consumers should derive their own curiously-recurring-template-pattern subclass of MOS6522,
+	implementing bus communications as required for the specific machine.
+*/
 template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
@@ -27,6 +38,7 @@ template <class T> class MOS6522 {
 		};
 
 	public:
+		/*! Sets a register value. */
 		void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
@@ -98,6 +110,7 @@ template <class T> class MOS6522 {
 			}
 		}
 
+		/*! Gets a register value. */
 		uint8_t get_register(int address)
 		{
 			address &= 0xf;
@@ -143,6 +156,16 @@ template <class T> class MOS6522 {
 		{
 		}
 
+		/*!
+			Runs for a specified number of half cycles.
+
+			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
+			1.5 cycles after the timer hits zero. It is therefore necessary to emulate at half-cycle precision.
+
+			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
+			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
+			that which occurs during phase-2.
+		*/
 		void run_for_half_cycles(unsigned int number_of_cycles)
 		{
 			while(number_of_cycles--)
@@ -188,6 +211,7 @@ template <class T> class MOS6522 {
 			}
 		}
 
+		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
 		bool get_interrupt_line()
 		{
 			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
@@ -249,6 +273,10 @@ template <class T> class MOS6522 {
 		bool _timer_is_running[2];
 };
 
+/*!
+	Provided for optional composition with @c MOS6522, @c MOS6522IRQDelegate provides for a delegate
+	that will receive IRQ line change notifications.
+*/
 class MOS6522IRQDelegate {
 	public:
 		class Delegate {

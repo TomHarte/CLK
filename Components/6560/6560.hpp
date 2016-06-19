@@ -15,9 +15,9 @@
 namespace MOS {
 
 /*!
-	The 6560 is a video and audio output chip; it therefore vends both a @c CRT and a @c Speaker.
+	The 6560 Video Interface Chip ('VIC') is a video and audio output chip; it therefore vends both a @c CRT and a @c Speaker.
 
-	To run the 6560 for a cycle, the caller should call @c get_address, make the requested bus access
+	To run the VIC for a cycle, the caller should call @c get_address, make the requested bus access
 	and call @c set_graphics_value with the result.
 
 	@c set_register and @c get_register provide register access.
