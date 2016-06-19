@@ -25,6 +25,9 @@
 Gw
 </string>
                     </buttonCell>
+                    <connections>
+                        <action selector="cancel:" target="-2" id="R98-Ly-PTv"/>
+                    </connections>
                 </button>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="S0t-jz-90X">
                     <rect key="frame" x="379" y="7" width="87" height="32"/>
@@ -32,6 +35,9 @@ Gw
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="choose:" target="-2" id="bH5-mV-1dk"/>
+                    </connections>
                 </button>
                 <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yqg-ne-lyj">
                     <rect key="frame" x="0.0" y="49" width="480" height="223"/>

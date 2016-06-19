@@ -7,6 +7,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="NewDocumentCollectionViewItem" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="imageView" destination="lue-fk-ggq" id="qxp-c8-ncE"/>
+                <outlet property="view" destination="c22-O7-iKe" id="bBD-4H-IEg"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -19,21 +20,12 @@
                     <rect key="frame" x="0.0" y="0.0" width="133" height="100"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="bbG-eN-EPy"/>
                 </imageView>
-                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pbi-i1-bym">
-                    <rect key="frame" x="26" y="32" width="81" height="32"/>
-                    <buttonCell key="cell" type="push" title="Button" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Hy3-Io-1Vy">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                </button>
             </subviews>
             <constraints>
                 <constraint firstAttribute="trailing" secondItem="lue-fk-ggq" secondAttribute="trailing" id="5sf-8g-jJP"/>
-                <constraint firstItem="pbi-i1-bym" firstAttribute="centerX" secondItem="lue-fk-ggq" secondAttribute="centerX" id="BNJ-zE-omT"/>
                 <constraint firstItem="lue-fk-ggq" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="DOq-OY-Rjo"/>
                 <constraint firstItem="lue-fk-ggq" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="Psg-E6-wL3"/>
                 <constraint firstAttribute="bottom" secondItem="lue-fk-ggq" secondAttribute="bottom" id="iUl-FS-M7d"/>
-                <constraint firstItem="pbi-i1-bym" firstAttribute="centerY" secondItem="lue-fk-ggq" secondAttribute="centerY" id="rsG-D8-hxs"/>
             </constraints>
         </customView>
     </objects>
