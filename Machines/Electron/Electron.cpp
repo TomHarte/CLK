@@ -1058,7 +1058,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 
 int Machine::get_typer_delay()
 {
-	return get_reset_line() ? 4*625*25*128 : 0;	// wait four seconds if resetting
+	return get_reset_line() ? 625*25*128 : 0;	// wait one second if resetting
 }
 
 int Machine::get_typer_frequency()
