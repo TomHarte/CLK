@@ -19,9 +19,7 @@ Machine::Machine() :
 	_horizontalTimer(0),
 	_lastOutputStateDuration(0),
 	_lastOutputState(OutputState::Sync),
-	_piaTimerStatus(0xff),
 	_rom(nullptr),
-	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
 	_upcomingEventsPointer(0),
 	_objectCounterPointer(0),
@@ -455,9 +453,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// check for a RAM access
 		if((address&0x1280) == 0x80) {
 			if(isReadOperation(operation)) {
-				returnValue &= _ram[address&0x7f];
+				returnValue &= _mos6532.get_ram(address);
 			} else {
-				_ram[address&0x7f] = *value;
+				_mos6532.set_ram(address, *value);
 			}
 		}
 
@@ -687,44 +685,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// check for a PIA access
 		if((address&0x1280) == 0x280) {
 			if(isReadOperation(operation)) {
-				const uint8_t decodedAddress = address & 0xf;
-				switch(address & 0xf) {
-					case 0x00:
-					case 0x02:
-						returnValue &= _piaDataValue[decodedAddress / 2];
-					break;
-					case 0x01:
-					case 0x03:
-						// TODO: port DDR
-						printf("!!!DDR!!!");
-					break;
-					case 0x04:
-					case 0x06:
-						returnValue &= _piaTimerValue >> _piaTimerShift;
-
-						if(_writtenPiaTimerShift != _piaTimerShift) {
-							_piaTimerShift = _writtenPiaTimerShift;
-							_piaTimerValue <<= _writtenPiaTimerShift;
-						}
-					break;
-					case 0x05:
-					case 0x07:
-						returnValue &= _piaTimerStatus;
-						_piaTimerStatus &= ~0x80;
-					break;
-				}
+				returnValue &= _mos6532.get_register(address);
 			} else {
-				const uint8_t decodedAddress = address & 0x0f;
-				switch(decodedAddress) {
-					case 0x04:
-					case 0x05:
-					case 0x06:
-					case 0x07:
-						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						_piaTimerValue = ((unsigned int)(*value) << _piaTimerShift) | ((1 << _piaTimerShift)-1);
-						_piaTimerStatus &= ~0x40;
-					break;
-				}
+				_mos6532.set_register(address, *value);
 			}
 		}
 
@@ -733,24 +696,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_piaTimerValue >= cycles_run_for / 3) {
-		_piaTimerValue -= cycles_run_for / 3;
-	} else {
-		_piaTimerValue = 0x100 + ((_piaTimerValue - (cycles_run_for / 3)) >> _piaTimerShift);
-		_piaTimerShift = 0;
-		_piaTimerStatus |= 0xc0;
-	}
-
-//	static unsigned int total_cycles = 0;
-//	total_cycles += cycles_run_for / 3;
-//	static time_t logged_time = 0;
-//	time_t time_now = time(nullptr);
-//	if(time_now - logged_time > 0)
-//	{
-//		printf("[c] %ld : %d\n", time_now - logged_time, total_cycles);
-//		total_cycles = 0;
-//		logged_time = time_now;
-//	}
+	_mos6532.run_for_cycles(cycles_run_for / 3);
 
 	return cycles_run_for / 3;
 }
@@ -758,15 +704,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
 {
 	switch (input) {
-		case Atari2600DigitalInputJoy1Up:		if(state) _piaDataValue[0] &= ~0x10; else _piaDataValue[0] |= 0x10; break;
-		case Atari2600DigitalInputJoy1Down:		if(state) _piaDataValue[0] &= ~0x20; else _piaDataValue[0] |= 0x20; break;
-		case Atari2600DigitalInputJoy1Left:		if(state) _piaDataValue[0] &= ~0x40; else _piaDataValue[0] |= 0x40; break;
-		case Atari2600DigitalInputJoy1Right:	if(state) _piaDataValue[0] &= ~0x80; else _piaDataValue[0] |= 0x80; break;
+		case Atari2600DigitalInputJoy1Up:		_mos6532.update_port_input(0, 0x10, state);	break;
+		case Atari2600DigitalInputJoy1Down:		_mos6532.update_port_input(0, 0x20, state);	break;
+		case Atari2600DigitalInputJoy1Left:		_mos6532.update_port_input(0, 0x40, state);	break;
+		case Atari2600DigitalInputJoy1Right:	_mos6532.update_port_input(0, 0x80, state);	break;
 
-		case Atari2600DigitalInputJoy2Up:		if(state) _piaDataValue[0] &= ~0x01; else _piaDataValue[0] |= 0x01; break;
-		case Atari2600DigitalInputJoy2Down:		if(state) _piaDataValue[0] &= ~0x02; else _piaDataValue[0] |= 0x02; break;
-		case Atari2600DigitalInputJoy2Left:		if(state) _piaDataValue[0] &= ~0x04; else _piaDataValue[0] |= 0x04; break;
-		case Atari2600DigitalInputJoy2Right:	if(state) _piaDataValue[0] &= ~0x08; else _piaDataValue[0] |= 0x08; break;
+		case Atari2600DigitalInputJoy2Up:		_mos6532.update_port_input(0, 0x01, state);	break;
+		case Atari2600DigitalInputJoy2Down:		_mos6532.update_port_input(0, 0x02, state);	break;
+		case Atari2600DigitalInputJoy2Left:		_mos6532.update_port_input(0, 0x04, state);	break;
+		case Atari2600DigitalInputJoy2Right:	_mos6532.update_port_input(0, 0x08, state);	break;
 
 		// TODO: latching
 		case Atari2600DigitalInputJoy1Fire:		if(state) _tiaInputValue[0] &= ~0x80; else _tiaInputValue[0] |= 0x80; break;

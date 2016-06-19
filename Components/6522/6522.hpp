@@ -15,15 +15,15 @@
 namespace MOS {
 
 /*!
-	Implements the template for an emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
+	Implements a template for emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
 
 	The VIA provides:
 		* two timers, each of which may trigger interrupts and one of which may repeat;
 		* two digial input/output ports; and
 		* a serial-to-parallel shifter.
 
-	Consumers should derive their own curiously-recurring-template-pattern subclass of MOS6522,
-	implementing bus communications as required for the specific machine.
+	Consumers should derive their own curiously-recurring-template-pattern subclass,
+	implementing bus communications as required.
 */
 template <class T> class MOS6522 {
 	private:
@@ -39,7 +39,7 @@ template <class T> class MOS6522 {
 
 	public:
 		/*! Sets a register value. */
-		void set_register(int address, uint8_t value)
+		inline void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d <- %02x\n", this, address, value);
@@ -111,7 +111,7 @@ template <class T> class MOS6522 {
 		}
 
 		/*! Gets a register value. */
-		uint8_t get_register(int address)
+		inline uint8_t get_register(int address)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d\n", this, address);
@@ -152,7 +152,7 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		void set_control_line_input(int port, int line, bool value)
+		inline void set_control_line_input(int port, int line, bool value)
 		{
 		}
 
@@ -166,7 +166,7 @@ template <class T> class MOS6522 {
 			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
 			that which occurs during phase-2.
 		*/
-		void run_for_half_cycles(unsigned int number_of_cycles)
+		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
 			while(number_of_cycles--)
 			{
@@ -212,7 +212,7 @@ template <class T> class MOS6522 {
 		}
 
 		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
-		bool get_interrupt_line()
+		inline bool get_interrupt_line()
 		{
 			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
 			return !!interrupt_status;
