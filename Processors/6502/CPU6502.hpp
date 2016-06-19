@@ -1151,6 +1151,16 @@ template <class T> class Processor {
 		}
 
 		/*!
+			Gets the current level of the RST line.
+
+			@returns @c true if the line is logically active; @c false otherwise.
+		*/
+		inline bool get_reset_line()
+		{
+			return _reset_line_is_enabled;
+		}
+
+		/*!
 			Sets the current level of the IRQ line.
 
 			@param active @c true if the line is logically active; @c false otherwise.

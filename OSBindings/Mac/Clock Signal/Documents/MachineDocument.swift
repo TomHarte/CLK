@@ -80,6 +80,14 @@ class MachineDocument:
 		super.close()
 	}
 
+	// MARK: the pasteboard
+	func paste(sender: AnyObject!) {
+		let pasteboard = NSPasteboard.generalPasteboard()
+		if let string = pasteboard.stringForType(NSPasteboardTypeString) {
+			self.machine().paste(string)
+		}
+	}
+
 	// MARK: CSBestEffortUpdaterDelegate
 	final func bestEffortUpdater(bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
 		runForNumberOfCycles(Int32(cycles))

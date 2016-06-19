@@ -8,6 +8,7 @@
 
 #import "CSMachine.h"
 #import "CSMachine+Subclassing.h"
+#include "Typer.hpp"
 
 @interface CSMachine()
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -90,6 +91,12 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 - (double)clockRate {
 	return self.machine->get_clock_rate();
+}
+
+- (void)paste:(NSString *)paste {
+	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(self.machine);
+	if(typeRecipient)
+		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
 
 @end

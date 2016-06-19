@@ -138,7 +138,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 
 int Machine::get_typer_delay()
 {
-	return 1*263*60*65;	// wait two seconds
+	return get_reset_line() ? 1*263*60*65 : 0;	// wait two seconds if resetting
 }
 
 int Machine::get_typer_frequency()
@@ -173,102 +173,58 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 
 		{KeySpace, TerminateSequence},				// space
 
-		{KeyLShift, Key1, TerminateSequence},		// !
-		{KeyLShift, Key2, TerminateSequence},		// "
-		{KeyLShift, Key3, TerminateSequence},		// #
-		{KeyLShift, Key4, TerminateSequence},		// $
-		{KeyLShift, Key5, TerminateSequence},		// %
-		{KeyLShift, Key6, TerminateSequence},		// &
-		{KeyLShift, Key7, TerminateSequence},		// '
-		{KeyLShift, Key8, TerminateSequence},		// (
-		{KeyLShift, Key9, TerminateSequence},		// )
+		{KeyLShift, Key1, TerminateSequence},	{KeyLShift, Key2, TerminateSequence},		// !, "
+		{KeyLShift, Key3, TerminateSequence},	{KeyLShift, Key4, TerminateSequence},		// #, $
+		{KeyLShift, Key5, TerminateSequence},	{KeyLShift, Key6, TerminateSequence},		// %, &
+		{KeyLShift, Key7, TerminateSequence},	{KeyLShift, Key8, TerminateSequence},		// ', (
+		{KeyLShift, Key9, TerminateSequence},	{KeyAsterisk, TerminateSequence},			// ), *
+		{KeyPlus, TerminateSequence},			{KeyComma, TerminateSequence},				// +, ,
+		{KeyDash, TerminateSequence},			{KeyFullStop, TerminateSequence},			// -, .
+		{KeySlash, TerminateSequence},			// /
 
-		{KeyAsterisk, TerminateSequence},			// *
-		{KeyPlus, TerminateSequence},				// +
-		{KeyComma, TerminateSequence},				// ,
-		{KeyDash, TerminateSequence},				// -
-		{KeyFullStop, TerminateSequence},			// .
-		{KeySlash, TerminateSequence},				// /
+		{Key0, TerminateSequence},				{Key1, TerminateSequence},					// 0, 1
+		{Key2, TerminateSequence},				{Key3, TerminateSequence},					// 2, 3
+		{Key4, TerminateSequence},				{Key5, TerminateSequence},					// 4, 5
+		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
+		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
 
-		{Key0, TerminateSequence},		// 0
-		{Key1, TerminateSequence},		// 1
-		{Key2, TerminateSequence},		// 2
-		{Key3, TerminateSequence},		// 3
-		{Key4, TerminateSequence},		// 4
-		{Key5, TerminateSequence},		// 5
-		{Key6, TerminateSequence},		// 6
-		{Key7, TerminateSequence},		// 7
-		{Key8, TerminateSequence},		// 8
-		{Key9, TerminateSequence},		// 9
-
-		{KeyColon, TerminateSequence},					// :
-		{KeySemicolon, TerminateSequence},				// ;
-		{KeyLShift, KeyComma, TerminateSequence},		// <
-		{KeyEquals, TerminateSequence},					// =
-		{KeyLShift, KeyFullStop, TerminateSequence},	// >
-		{KeyLShift, KeySlash, TerminateSequence},		// ?
+		{KeyColon, TerminateSequence},					{KeySemicolon, TerminateSequence},		// :, ;
+		{KeyLShift, KeyComma, TerminateSequence},		{KeyEquals, TerminateSequence},			// <, =
+		{KeyLShift, KeyFullStop, TerminateSequence},	{KeyLShift, KeySlash, TerminateSequence},		// >, ?
 		{KeyAt, TerminateSequence},						// @
 
-		{KeyA, TerminateSequence},					// A
-		{KeyB, TerminateSequence},					// B
-		{KeyC, TerminateSequence},					// C
-		{KeyD, TerminateSequence},					// D
-		{KeyE, TerminateSequence},					// E
-		{KeyF, TerminateSequence},					// F
-		{KeyG, TerminateSequence},					// G
-		{KeyH, TerminateSequence},					// H
-		{KeyI, TerminateSequence},					// I
-		{KeyJ, TerminateSequence},					// J
-		{KeyK, TerminateSequence},					// K
-		{KeyL, TerminateSequence},					// L
-		{KeyM, TerminateSequence},					// M
-		{KeyN, TerminateSequence},					// N
-		{KeyO, TerminateSequence},					// O
-		{KeyP, TerminateSequence},					// P
-		{KeyQ, TerminateSequence},					// Q
-		{KeyR, TerminateSequence},					// R
-		{KeyS, TerminateSequence},					// S
-		{KeyT, TerminateSequence},					// T
-		{KeyU, TerminateSequence},					// U
-		{KeyV, TerminateSequence},					// V
-		{KeyW, TerminateSequence},					// W
-		{KeyX, TerminateSequence},					// X
-		{KeyY, TerminateSequence},					// Y
-		{KeyZ, TerminateSequence},					// Z
+		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
+		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
+		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
+		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
+		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
+		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
 
-		{KeyLShift, KeyColon, TerminateSequence},		// [
-		{NotMapped},									// '\'
-		{KeyLShift, KeyFullStop, TerminateSequence},	// ]
-		{NotMapped},									// ^
-		{NotMapped},									// _
-		{NotMapped},									// `
+		{KeyLShift, KeyColon, TerminateSequence},		{NotMapped},	// [, '\'
+		{KeyLShift, KeyFullStop, TerminateSequence},	{NotMapped},	// ], ^
+		{NotMapped},									{NotMapped},	// _, `
 
-		{KeyLShift, KeyA, TerminateSequence},					// A
-		{KeyLShift, KeyB, TerminateSequence},					// B
-		{KeyLShift, KeyC, TerminateSequence},					// C
-		{KeyLShift, KeyD, TerminateSequence},					// D
-		{KeyLShift, KeyE, TerminateSequence},					// E
-		{KeyLShift, KeyF, TerminateSequence},					// F
-		{KeyLShift, KeyG, TerminateSequence},					// G
-		{KeyLShift, KeyH, TerminateSequence},					// H
-		{KeyLShift, KeyI, TerminateSequence},					// I
-		{KeyLShift, KeyJ, TerminateSequence},					// J
-		{KeyLShift, KeyK, TerminateSequence},					// K
-		{KeyLShift, KeyL, TerminateSequence},					// L
-		{KeyLShift, KeyM, TerminateSequence},					// M
-		{KeyLShift, KeyN, TerminateSequence},					// N
-		{KeyLShift, KeyO, TerminateSequence},					// O
-		{KeyLShift, KeyP, TerminateSequence},					// P
-		{KeyLShift, KeyQ, TerminateSequence},					// Q
-		{KeyLShift, KeyR, TerminateSequence},					// R
-		{KeyLShift, KeyS, TerminateSequence},					// S
-		{KeyLShift, KeyT, TerminateSequence},					// T
-		{KeyLShift, KeyU, TerminateSequence},					// U
-		{KeyLShift, KeyV, TerminateSequence},					// V
-		{KeyLShift, KeyW, TerminateSequence},					// W
-		{KeyLShift, KeyX, TerminateSequence},					// X
-		{KeyLShift, KeyY, TerminateSequence},					// Y
-		{KeyLShift, KeyZ, TerminateSequence},					// Z
+		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
+		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
+		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
+		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
+		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
+		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
+//		{KeyLShift, KeyA, TerminateSequence},					{KeyLShift, KeyB, TerminateSequence},					// a, b
+//		{KeyLShift, KeyC, TerminateSequence},					{KeyLShift, KeyD, TerminateSequence},					// c, d
+//		{KeyLShift, KeyE, TerminateSequence},					{KeyLShift, KeyF, TerminateSequence},					// e, f
+//		{KeyLShift, KeyG, TerminateSequence},					{KeyLShift, KeyH, TerminateSequence},					// g, h
+//		{KeyLShift, KeyI, TerminateSequence},					{KeyLShift, KeyJ, TerminateSequence},					// i, j
+//		{KeyLShift, KeyK, TerminateSequence},					{KeyLShift, KeyL, TerminateSequence},					// k, l
+//		{KeyLShift, KeyM, TerminateSequence},					{KeyLShift, KeyN, TerminateSequence},					// m, n
+//		{KeyLShift, KeyO, TerminateSequence},					{KeyLShift, KeyP, TerminateSequence},					// o, p
+//		{KeyLShift, KeyQ, TerminateSequence},					{KeyLShift, KeyR, TerminateSequence},					// q, r
+//		{KeyLShift, KeyS, TerminateSequence},					{KeyLShift, KeyT, TerminateSequence},					// s, t
+//		{KeyLShift, KeyU, TerminateSequence},					{KeyLShift, KeyV, TerminateSequence},					// u, v
+//		{KeyLShift, KeyW, TerminateSequence},					{KeyLShift, KeyX, TerminateSequence},					// w, x
+//		{KeyLShift, KeyY, TerminateSequence},					{KeyLShift, KeyZ, TerminateSequence},					// y, z
 
 	};
 	Key *key_sequence = nullptr;
@@ -277,12 +233,17 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
 	{
 		key_sequence = key_sequences[character];
-	}
 
-	if(key_sequence && key_sequence[phase] != NotMapped)
-	{
-		set_key_state(key_sequence[phase], true);
-		return key_sequence[phase+1] == TerminateSequence;
+		if(key_sequence[0] != NotMapped)
+		{
+			if(phase > 0)
+			{
+				set_key_state(key_sequence[phase-1], true);
+				return key_sequence[phase] == TerminateSequence;
+			}
+			else
+				return false;
+		}
 	}
 
 	return true;
