@@ -81,6 +81,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	_userPortVIA.run_for_half_cycles(2);
 	_keyboardVIA.run_for_half_cycles(2);
+	if(_typer) _typer->update(1);
 	return 1;
 }
 
@@ -125,7 +126,8 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 		_rom_length = (uint16_t)(length - 2);
 		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
 		{
-			memcpy(&_screenMemory[_rom_address - 0x1000], &data[2], length - 2);
+			set_typer_for_string("run\n");
+//			memcpy(&_screenMemory[_rom_address - 0x1000], &data[2], length - 2);
 		}
 		else
 		{
@@ -133,4 +135,29 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 			memcpy(_rom, &data[2], length - 2);
 		}
 	}
+}
+
+#pragma mark - Typer
+
+int Machine::get_typer_delay()
+{
+	return 263*60*65 / 2;	// wait half a second
+}
+
+int Machine::get_typer_frequency()
+{
+	return 2*263*65;	// accept a new character every two fields
+}
+
+void Machine::typer_set_next_character(::Utility::Typer *typer, char character)
+{
+	clear_all_keys();
+	switch(character)
+	{
+		case 'r':	set_key_state(Key::KeyR, true);			break;
+		case 'u':	set_key_state(Key::KeyU, true);			break;
+		case 'n':	set_key_state(Key::KeyN, true);			break;
+		case '\n':	set_key_state(Key::KeyReturn, true);	break;
+	}
+	printf(".");
 }
