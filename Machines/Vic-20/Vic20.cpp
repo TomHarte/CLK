@@ -126,14 +126,11 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 		_rom_length = (uint16_t)(length - 2);
 		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
 		{
-			set_typer_for_string("run\n");
-//			memcpy(&_screenMemory[_rom_address - 0x1000], &data[2], length - 2);
+			set_typer_for_string("RUN\n");
 		}
-		else
-		{
-			_rom = new uint8_t[length - 2];
-			memcpy(_rom, &data[2], length - 2);
-		}
+
+		_rom = new uint8_t[length - 2];
+		memcpy(_rom, &data[2], length - 2);
 	}
 }
 
@@ -141,7 +138,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 
 int Machine::get_typer_delay()
 {
-	return 263*60*65 / 2;	// wait half a second
+	return 1*263*60*65;	// wait two seconds
 }
 
 int Machine::get_typer_frequency()
@@ -149,15 +146,144 @@ int Machine::get_typer_frequency()
 	return 2*263*65;	// accept a new character every two fields
 }
 
-void Machine::typer_set_next_character(::Utility::Typer *typer, char character)
+bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
 {
-	clear_all_keys();
-	switch(character)
+	// If there's a 'ROM' installed that can never be accessed, assume that this typing was scheduled because
+	// it should be in RAM. So copy it there.
+	if(_rom && _rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
 	{
-		case 'r':	set_key_state(Key::KeyR, true);			break;
-		case 'u':	set_key_state(Key::KeyU, true);			break;
-		case 'n':	set_key_state(Key::KeyN, true);			break;
-		case '\n':	set_key_state(Key::KeyReturn, true);	break;
+		memcpy(&_screenMemory[_rom_address - 0x1000], _rom, _rom_length);
+		delete[] _rom;
+		_rom = nullptr;
 	}
-	printf(".");
+
+	if(!phase) clear_all_keys();
+
+	// The following table is arranged in ASCII order
+	Key key_sequences[][3] = {
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{KeyDelete, TerminateSequence},
+		{NotMapped},
+		{KeyReturn, TerminateSequence},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+
+		{KeySpace, TerminateSequence},				// space
+
+		{KeyLShift, Key1, TerminateSequence},		// !
+		{KeyLShift, Key2, TerminateSequence},		// "
+		{KeyLShift, Key3, TerminateSequence},		// #
+		{KeyLShift, Key4, TerminateSequence},		// $
+		{KeyLShift, Key5, TerminateSequence},		// %
+		{KeyLShift, Key6, TerminateSequence},		// &
+		{KeyLShift, Key7, TerminateSequence},		// '
+		{KeyLShift, Key8, TerminateSequence},		// (
+		{KeyLShift, Key9, TerminateSequence},		// )
+
+		{KeyAsterisk, TerminateSequence},			// *
+		{KeyPlus, TerminateSequence},				// +
+		{KeyComma, TerminateSequence},				// ,
+		{KeyDash, TerminateSequence},				// -
+		{KeyFullStop, TerminateSequence},			// .
+		{KeySlash, TerminateSequence},				// /
+
+		{Key0, TerminateSequence},		// 0
+		{Key1, TerminateSequence},		// 1
+		{Key2, TerminateSequence},		// 2
+		{Key3, TerminateSequence},		// 3
+		{Key4, TerminateSequence},		// 4
+		{Key5, TerminateSequence},		// 5
+		{Key6, TerminateSequence},		// 6
+		{Key7, TerminateSequence},		// 7
+		{Key8, TerminateSequence},		// 8
+		{Key9, TerminateSequence},		// 9
+
+		{KeyColon, TerminateSequence},					// :
+		{KeySemicolon, TerminateSequence},				// ;
+		{KeyLShift, KeyComma, TerminateSequence},		// <
+		{KeyEquals, TerminateSequence},					// =
+		{KeyLShift, KeyFullStop, TerminateSequence},	// >
+		{KeyLShift, KeySlash, TerminateSequence},		// ?
+		{KeyAt, TerminateSequence},						// @
+
+		{KeyA, TerminateSequence},					// A
+		{KeyB, TerminateSequence},					// B
+		{KeyC, TerminateSequence},					// C
+		{KeyD, TerminateSequence},					// D
+		{KeyE, TerminateSequence},					// E
+		{KeyF, TerminateSequence},					// F
+		{KeyG, TerminateSequence},					// G
+		{KeyH, TerminateSequence},					// H
+		{KeyI, TerminateSequence},					// I
+		{KeyJ, TerminateSequence},					// J
+		{KeyK, TerminateSequence},					// K
+		{KeyL, TerminateSequence},					// L
+		{KeyM, TerminateSequence},					// M
+		{KeyN, TerminateSequence},					// N
+		{KeyO, TerminateSequence},					// O
+		{KeyP, TerminateSequence},					// P
+		{KeyQ, TerminateSequence},					// Q
+		{KeyR, TerminateSequence},					// R
+		{KeyS, TerminateSequence},					// S
+		{KeyT, TerminateSequence},					// T
+		{KeyU, TerminateSequence},					// U
+		{KeyV, TerminateSequence},					// V
+		{KeyW, TerminateSequence},					// W
+		{KeyX, TerminateSequence},					// X
+		{KeyY, TerminateSequence},					// Y
+		{KeyZ, TerminateSequence},					// Z
+
+		{KeyLShift, KeyColon, TerminateSequence},		// [
+		{NotMapped},									// '\'
+		{KeyLShift, KeyFullStop, TerminateSequence},	// ]
+		{NotMapped},									// ^
+		{NotMapped},									// _
+		{NotMapped},									// `
+
+		{KeyLShift, KeyA, TerminateSequence},					// A
+		{KeyLShift, KeyB, TerminateSequence},					// B
+		{KeyLShift, KeyC, TerminateSequence},					// C
+		{KeyLShift, KeyD, TerminateSequence},					// D
+		{KeyLShift, KeyE, TerminateSequence},					// E
+		{KeyLShift, KeyF, TerminateSequence},					// F
+		{KeyLShift, KeyG, TerminateSequence},					// G
+		{KeyLShift, KeyH, TerminateSequence},					// H
+		{KeyLShift, KeyI, TerminateSequence},					// I
+		{KeyLShift, KeyJ, TerminateSequence},					// J
+		{KeyLShift, KeyK, TerminateSequence},					// K
+		{KeyLShift, KeyL, TerminateSequence},					// L
+		{KeyLShift, KeyM, TerminateSequence},					// M
+		{KeyLShift, KeyN, TerminateSequence},					// N
+		{KeyLShift, KeyO, TerminateSequence},					// O
+		{KeyLShift, KeyP, TerminateSequence},					// P
+		{KeyLShift, KeyQ, TerminateSequence},					// Q
+		{KeyLShift, KeyR, TerminateSequence},					// R
+		{KeyLShift, KeyS, TerminateSequence},					// S
+		{KeyLShift, KeyT, TerminateSequence},					// T
+		{KeyLShift, KeyU, TerminateSequence},					// U
+		{KeyLShift, KeyV, TerminateSequence},					// V
+		{KeyLShift, KeyW, TerminateSequence},					// W
+		{KeyLShift, KeyX, TerminateSequence},					// X
+		{KeyLShift, KeyY, TerminateSequence},					// Y
+		{KeyLShift, KeyZ, TerminateSequence},					// Z
+
+	};
+	Key *key_sequence = nullptr;
+
+	character &= 0x7f;
+	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
+	{
+		key_sequence = key_sequences[character];
+	}
+
+	if(key_sequence && key_sequence[phase] != NotMapped)
+	{
+		set_key_state(key_sequence[phase], true);
+		return key_sequence[phase+1] == TerminateSequence;
+	}
+
+	return true;
 }

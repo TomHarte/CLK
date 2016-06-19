@@ -44,6 +44,8 @@ enum Key: uint16_t {
 	KeyI		= key(1, 0x10),		KeyP		= key(1, 0x20),		KeyAsterisk		= key(1, 0x40),		KeyReturn	= key(1, 0x80),
 	Key1		= key(0, 0x01),		Key3		= key(0, 0x02),		Key5			= key(0, 0x04),		Key7		= key(0, 0x08),
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
+
+	TerminateSequence = 0,	NotMapped = 0xffff
 };
 
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
@@ -124,7 +126,7 @@ class Machine:
 		// for Utility::TypeRecipient
 		virtual int get_typer_delay();
 		virtual int get_typer_frequency();
-		virtual void typer_set_next_character(Utility::Typer *typer, char character);
+		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
 
 	private:
 		uint8_t _characterROM[0x1000];

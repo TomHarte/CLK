@@ -12,7 +12,7 @@
 using namespace Utility;
 
 Typer::Typer(const char *string, int delay, int frequency, Delegate *delegate) :
-	_counter(-delay), _frequency(frequency), _string(strdup(string)), _string_pointer(0), _delegate(delegate) {}
+	_counter(-delay), _frequency(frequency), _string(strdup(string)), _string_pointer(0), _delegate(delegate), _phase(0) {}
 
 void Typer::update(int duration)
 {
@@ -20,24 +20,35 @@ void Typer::update(int duration)
 	{
 		if(_counter < 0 && _counter + duration >= 0)
 		{
-			_delegate->typer_set_next_character(this, _string[_string_pointer]);
-			_string_pointer++;
+			type_next_character();
 		}
 
 		_counter += duration;
 		while(_counter > _frequency)
 		{
 			_counter -= _frequency;
-			_delegate->typer_set_next_character(this, _string[_string_pointer]);
-			_string_pointer++;
-
-			if(!_string[_string_pointer])
-			{
-				free(_string);
-				_string = nullptr;
-				return;
-			}
+			type_next_character();
 		}
+	}
+}
+
+void Typer::type_next_character()
+{
+	if(_delegate->typer_set_next_character(this, _string[_string_pointer], _phase))
+	{
+		_phase = 0;
+		if(!_string[_string_pointer])
+		{
+			free(_string);
+			_string = nullptr;
+			return;
+		}
+
+		_string_pointer++;
+	}
+	else
+	{
+		_phase++;
 	}
 }
 

@@ -17,7 +17,7 @@ class Typer {
 	public:
 		class Delegate {
 			public:
-				virtual void typer_set_next_character(Typer *typer, char character) = 0;
+				virtual bool typer_set_next_character(Typer *typer, char character, int phase) = 0;
 		};
 
 		Typer(const char *string, int delay, int frequency, Delegate *delegate);
@@ -28,8 +28,11 @@ class Typer {
 		char *_string;
 		int _frequency;
 		int _counter;
+		int _phase;
 		Delegate *_delegate;
 		size_t _string_pointer;
+
+		void type_next_character();
 };
 
 class TypeRecipient: public Typer::Delegate {
