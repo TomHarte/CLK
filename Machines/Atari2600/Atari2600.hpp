@@ -59,8 +59,12 @@ class PIA: public MOS::MOS6532<PIA> {
 
 		inline void update_port_input(int port, uint8_t mask, bool set)
 		{
-			if(set) _portValues[port] |= mask; else _portValues[port] &= ~mask;
+			if(set) _portValues[port] &= ~mask; else _portValues[port] |= mask;
 		}
+
+		PIA() :
+			_portValues{0xff, 0xff}
+		{}
 
 	private:
 		uint8_t _portValues[2];
@@ -78,6 +82,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		void switch_region();
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
+		void set_switch_is_enabled(Atari2600Switch input, bool state);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);

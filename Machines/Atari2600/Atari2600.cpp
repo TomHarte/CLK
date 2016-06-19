@@ -722,6 +722,18 @@ void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
 	}
 }
 
+void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
+{
+	switch(input) {
+		case Atari2600SwitchReset:					_mos6532.update_port_input(1, 0x01, state);	break;
+		case Atari2600SwitchSelect:					_mos6532.update_port_input(1, 0x02, state);	break;
+		case Atari2600SwitchColour:					_mos6532.update_port_input(1, 0x08, state);	break;
+		case Atari2600SwitchLeftPlayerDifficulty:	_mos6532.update_port_input(1, 0x40, state);	break;
+		case Atari2600SwitchRightPlayerDifficulty:	_mos6532.update_port_input(1, 0x80, state);	break;
+	}
+}
+
+
 void Machine::set_rom(size_t length, const uint8_t *data)
 {
 	_rom_size = 1024;
