@@ -8,17 +8,28 @@
 
 import Cocoa
 
+private class Machine {
+	init(name: String, imageName: String) {
+		self.name = name
+		self.imageName = imageName
+	}
+	var name: String = ""
+	var imageName: String = ""
+}
+
 class NewDocumentCollectionViewItem: NSCollectionViewItem {
 	override var representedObject: AnyObject? {
 		didSet {
-			if let filename = representedObject as? String, imageView = imageView {
-				imageView.image = NSImage(named: filename)
+			if let machine = representedObject as? Machine, imageView = imageView, textField = textField {
+				imageView.image = NSImage(named: machine.imageName)
+				textField.stringValue = machine.name
 			}
 		}
 	}
 
-	override var selected: Bool {
+/*	override var selected: Bool {
 		didSet {
+			print("\(selected)")
 			var colour: NSColor!
 			var lineColour: NSColor!
  
@@ -35,22 +46,24 @@ class NewDocumentCollectionViewItem: NSCollectionViewItem {
 				box.fillColor = colour
 			}
 		}
-	}
+	}*/
 }
 
-class NewDocumentViewController: NSViewController {
-
+class NewDocumentViewController: NSViewController, NSCollectionViewDelegate {
 	@IBOutlet var collectionView : NSCollectionView!
-	var collectionViewItems : [String] = []
+	private var collectionViewItems : [Machine]!
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-		collectionView.minItemSize = NSSize(width: 200, height: 150)
+		collectionView.minItemSize = NSSize(width: 200, height: 180)
 
 		let itemCopy: NewDocumentCollectionViewItem! = NewDocumentCollectionViewItem().copyWithZone(nil) as! NewDocumentCollectionViewItem
 		collectionView.itemPrototype = itemCopy
-		collectionView.content = ["ElectronBASIC", "Vic20BASIC"]
+		collectionView.content = [
+			Machine(name: "Acorn Electron", imageName: "ElectronBASIC"),
+			Machine(name: "Commodore Vic-20", imageName: "Vic20BASIC")
+		]
     }
 
 	@IBAction func cancel(sender : AnyObject!) {

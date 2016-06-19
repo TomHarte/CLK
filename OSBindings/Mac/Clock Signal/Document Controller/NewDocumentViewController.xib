@@ -45,10 +45,13 @@ Gw
                         <rect key="frame" x="0.0" y="0.0" width="480" height="223"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <collectionView id="jC7-eb-wC4">
+                            <collectionView selectable="YES" allowsMultipleSelection="YES" id="jC7-eb-wC4">
                                 <rect key="frame" x="0.0" y="0.0" width="480" height="223"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="primaryBackgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <connections>
+                                    <outlet property="delegate" destination="-2" id="zYt-a3-tUC"/>
+                                </connections>
                             </collectionView>
                         </subviews>
                     </clipView>

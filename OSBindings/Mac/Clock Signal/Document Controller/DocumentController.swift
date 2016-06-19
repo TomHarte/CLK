@@ -11,6 +11,7 @@ import Cocoa
 class DocumentController: NSDocumentController {
 	override func newDocument(sender: AnyObject?) {
 		let window = NSWindow(contentViewController: NewDocumentViewController())
+		window.title = "Choose a Machine"
 		window.makeKeyAndOrderFront(self)
 	}
 }
