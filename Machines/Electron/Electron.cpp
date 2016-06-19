@@ -447,6 +447,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		update_audio();
 	_tape.run_for_cycles(cycles);
 
+	if(_typer) _typer->update(cycles);
+
 	return cycles;
 }
 
@@ -1050,4 +1052,99 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 			}
 		}
 	}
+}
+
+#pragma mark - Typer
+
+int Machine::get_typer_delay()
+{
+	return get_reset_line() ? 625*25*128 : 0;	// wait one second if resetting
+}
+
+int Machine::get_typer_frequency()
+{
+	return 625*128;	// accept a new character every frame
+}
+
+bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
+{
+	if(!phase) clear_all_keys();
+
+	// The following table is arranged in ASCII order
+	Key key_sequences[][3] = {
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{KeyDelete, TerminateSequence},
+		{NotMapped},
+		{KeyReturn, TerminateSequence},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+
+		{KeySpace, TerminateSequence},				// space
+
+		{KeyShift, Key1, TerminateSequence},			{KeyShift, Key2, TerminateSequence},		// !, "
+		{KeyShift, Key3, TerminateSequence},			{KeyShift, Key4, TerminateSequence},		// #, $
+		{KeyShift, Key5, TerminateSequence},			{KeyShift, Key6, TerminateSequence},		// %, &
+		{KeyShift, Key7, TerminateSequence},			{KeyShift, Key8, TerminateSequence},		// ', (
+		{KeyShift, Key9, TerminateSequence},			{KeyShift, KeyColon, TerminateSequence},	// ), *
+		{KeyShift, KeySemiColon, TerminateSequence},	{KeyComma, TerminateSequence},				// +, ,
+		{KeyMinus, TerminateSequence},					{KeyFullStop, TerminateSequence},			// -, .
+		{KeySlash, TerminateSequence},			// /
+
+		{Key0, TerminateSequence},				{Key1, TerminateSequence},					// 0, 1
+		{Key2, TerminateSequence},				{Key3, TerminateSequence},					// 2, 3
+		{Key4, TerminateSequence},				{Key5, TerminateSequence},					// 4, 5
+		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
+		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
+
+		{KeyColon, TerminateSequence},					{KeySemiColon, TerminateSequence},		// :, ;
+		{KeyShift, KeyComma, TerminateSequence},		{KeyShift, KeyMinus, TerminateSequence},			// <, =
+		{KeyShift, KeyFullStop, TerminateSequence},		{KeyShift, KeySlash, TerminateSequence},		// >, ?
+		{NotMapped},						// @
+
+		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
+		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
+		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
+		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
+		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
+		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
+
+		{NotMapped},		{KeyControl, KeyRight, TerminateSequence},	// [, '\'
+		{NotMapped},		{KeyShift, KeyLeft, TerminateSequence},	// ], ^
+		{KeyShift, KeyDown, TerminateSequence},		{NotMapped},	// _, `
+
+		{KeyShift, KeyA, TerminateSequence},	{KeyShift, KeyB, TerminateSequence},	{KeyShift, KeyC, TerminateSequence},	{KeyShift, KeyD, TerminateSequence},	// a, b, c, d
+		{KeyShift, KeyE, TerminateSequence},	{KeyShift, KeyF, TerminateSequence},	{KeyShift, KeyG, TerminateSequence},	{KeyShift, KeyH, TerminateSequence},	// e, f, g, h
+		{KeyShift, KeyI, TerminateSequence},	{KeyShift, KeyJ, TerminateSequence},	{KeyShift, KeyK, TerminateSequence},	{KeyShift, KeyL, TerminateSequence},	// i, j, k, l
+		{KeyShift, KeyM, TerminateSequence},	{KeyShift, KeyN, TerminateSequence},	{KeyShift, KeyO, TerminateSequence},	{KeyShift, KeyP, TerminateSequence},	// m, n, o, p
+		{KeyShift, KeyQ, TerminateSequence},	{KeyShift, KeyR, TerminateSequence},	{KeyShift, KeyS, TerminateSequence},	{KeyShift, KeyT, TerminateSequence},	// q, r, s, t
+		{KeyShift, KeyU, TerminateSequence},	{KeyShift, KeyV, TerminateSequence},	{KeyShift, KeyW, TerminateSequence},	{KeyShift, KeyX, TerminateSequence},	// u, v, w, x
+		{KeyShift, KeyY, TerminateSequence},	{KeyShift, KeyZ, TerminateSequence},	// y, z
+
+		{KeyControl, KeyUp, TerminateSequence},		{KeyShift, KeyRight, TerminateSequence},	// {, |
+		{KeyControl, KeyDown, TerminateSequence},	{KeyControl, KeyLeft, TerminateSequence},	// }, ~
+	};
+	Key *key_sequence = nullptr;
+
+	character &= 0x7f;
+	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
+	{
+		key_sequence = key_sequences[character];
+
+		if(key_sequence[0] != NotMapped)
+		{
+			if(phase > 0)
+			{
+				set_key_state(key_sequence[phase-1], true);
+				return key_sequence[phase] == TerminateSequence;
+			}
+			else
+				return false;
+		}
+	}
+
+	return true;
 }

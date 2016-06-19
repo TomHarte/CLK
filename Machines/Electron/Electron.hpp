@@ -11,8 +11,11 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+
 #include "../CRTMachine.hpp"
-#include <stdint.h>
+#include "../Typer.hpp"
+
+#include <cstdint>
 
 namespace Electron {
 
@@ -54,7 +57,9 @@ enum Key: uint16_t {
 	KeyZ			= 0x00c0 | 0x08,	KeyA			= 0x00c0 | 0x04,	KeyQ			= 0x00c0 | 0x02,	Key1			= 0x00c0 | 0x01,
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
-	KeyBreak		= 0xffff
+	KeyBreak		= 0xffff,
+
+	TerminateSequence = 0, NotMapped		= 0xfffe,
 };
 
 class Tape {
@@ -141,10 +146,13 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, Tape::Delegate {
+class Machine:
+	public CPU6502::Processor<Machine>,
+	public CRTMachine::Machine,
+	Tape::Delegate,
+	public Utility::TypeRecipient {
 
 	public:
-
 		Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
@@ -169,6 +177,11 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, T
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);
+
+		// for Utility::TypeRecipient
+		virtual int get_typer_delay();
+		virtual int get_typer_frequency();
+		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
 
 	private:
 
