@@ -31,7 +31,7 @@ template <class T> class MOS6532 {
 
 		inline void set_register(int address, uint8_t value)
 		{
-			const uint8_t decodedAddress = address & 0x0f;
+			const uint8_t decodedAddress = address & 0x07;
 			switch(decodedAddress) {
 				case 0x00:
 				case 0x02:
@@ -57,7 +57,7 @@ template <class T> class MOS6532 {
 
 		inline uint8_t get_register(int address)
 		{
-			const uint8_t decodedAddress = address & 0xf;
+			const uint8_t decodedAddress = address & 0x7;
 			switch(decodedAddress) {
 				case 0x00:
 				case 0x02:
