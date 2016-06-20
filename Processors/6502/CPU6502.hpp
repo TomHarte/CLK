@@ -31,7 +31,7 @@ enum Register {
 /*
 	Flags as defined on the 6502; can be used to decode the result of @c get_flags or to form a value for @c set_flags.
 */
-enum Flag {
+enum Flag: uint8_t {
 	Sign		= 0x80,
 	Overflow	= 0x40,
 	Always		= 0x20,
