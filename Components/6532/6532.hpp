@@ -50,7 +50,7 @@ template <class T> class MOS6532 {
 				case 0x07:
 					_timer.writtenShift = _timer.activeShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
 					_timer.value = ((unsigned int)(value) << _timer.activeShift) | ((1 << _timer.activeShift)-1);
-					_timer.status &= ~0x40;
+					_timer.status &= ~0x80;
 				break;
 			}
 		}
@@ -89,7 +89,7 @@ template <class T> class MOS6532 {
 				case 0x07:
 				{
 					uint8_t value = _timer.status;
-					_timer.status &= ~0x80;
+					_timer.status &= ~0x40;
 					return value;
 				}
 				break;
@@ -103,7 +103,8 @@ template <class T> class MOS6532 {
 			if(_timer.value >= number_of_cycles) {
 				_timer.value -= number_of_cycles;
 			} else {
-				_timer.value = 0x100 + ((_timer.value - (number_of_cycles / 3)) >> _timer.activeShift);
+				number_of_cycles -= _timer.value;
+				_timer.value = 0x100 - number_of_cycles;
 				_timer.activeShift = 0;
 				_timer.status |= 0xc0;
 			}
