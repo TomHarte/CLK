@@ -447,7 +447,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		update_audio();
 	_tape.run_for_cycles(cycles);
 
-	if(_typer) _typer->update(cycles);
+	if(_typer) _typer->update((int)cycles);
 
 	return cycles;
 }
