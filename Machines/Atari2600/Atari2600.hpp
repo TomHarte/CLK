@@ -9,9 +9,12 @@
 #ifndef Atari2600_cpp
 #define Atari2600_cpp
 
-#include "../../Processors/6502/CPU6502.hpp"
-#include "../CRTMachine.hpp"
 #include <stdint.h>
+
+#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Components/6532/6532.hpp"
+#include "../CRTMachine.hpp"
+
 #include "Atari2600Inputs.h"
 
 namespace Atari2600 {
@@ -47,6 +50,28 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		int _patterns[16][512];
 };
 
+class PIA: public MOS::MOS6532<PIA> {
+	public:
+		inline uint8_t get_port_input(int port)
+		{
+			return _portValues[port];
+		}
+
+		inline void update_port_input(int port, uint8_t mask, bool set)
+		{
+			if(set) _portValues[port] &= ~mask; else _portValues[port] |= mask;
+		}
+
+		PIA() :
+			_portValues{0xff, 0xff}
+		{}
+
+	private:
+		uint8_t _portValues[2];
+
+};
+
+
 class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 
 	public:
@@ -57,6 +82,7 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		void switch_region();
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
+		void set_switch_is_enabled(Atari2600Switch input, bool state);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -72,13 +98,11 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		// TODO: different rate for PAL
 
 	private:
-		uint8_t *_rom, *_romPages[4], _ram[128];
+		uint8_t *_rom, *_romPages[4];
 		size_t _rom_size;
 
-		// the timer
-		unsigned int _piaTimerValue;
-		unsigned int _piaTimerShift, _writtenPiaTimerShift;
-		uint8_t _piaTimerStatus;
+		// the RIOT
+		PIA _mos6532;
 
 		// playfield registers
 		uint8_t _playfieldControl;
@@ -162,8 +186,6 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		uint8_t _hMoveFlags;
 
 		// joystick state
-		uint8_t _piaDataDirection[2];
-		uint8_t _piaDataValue[2];
 		uint8_t _tiaInputValue[2];
 
 		// collisions

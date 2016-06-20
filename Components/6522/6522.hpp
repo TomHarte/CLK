@@ -14,6 +14,17 @@
 
 namespace MOS {
 
+/*!
+	Implements a template for emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
+
+	The VIA provides:
+		* two timers, each of which may trigger interrupts and one of which may repeat;
+		* two digial input/output ports; and
+		* a serial-to-parallel shifter.
+
+	Consumers should derive their own curiously-recurring-template-pattern subclass,
+	implementing bus communications as required.
+*/
 template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
@@ -27,7 +38,8 @@ template <class T> class MOS6522 {
 		};
 
 	public:
-		void set_register(int address, uint8_t value)
+		/*! Sets a register value. */
+		inline void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d <- %02x\n", this, address, value);
@@ -98,7 +110,8 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		uint8_t get_register(int address)
+		/*! Gets a register value. */
+		inline uint8_t get_register(int address)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d\n", this, address);
@@ -139,11 +152,21 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		void set_control_line_input(int port, int line, bool value)
+		inline void set_control_line_input(int port, int line, bool value)
 		{
 		}
 
-		void run_for_half_cycles(unsigned int number_of_cycles)
+		/*!
+			Runs for a specified number of half cycles.
+
+			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
+			1.5 cycles after the timer hits zero. It is therefore necessary to emulate at half-cycle precision.
+
+			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
+			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
+			that which occurs during phase-2.
+		*/
+		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
 			while(number_of_cycles--)
 			{
@@ -188,7 +211,8 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		bool get_interrupt_line()
+		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
+		inline bool get_interrupt_line()
 		{
 			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
 			return !!interrupt_status;
@@ -249,6 +273,10 @@ template <class T> class MOS6522 {
 		bool _timer_is_running[2];
 };
 
+/*!
+	Provided for optional composition with @c MOS6522, @c MOS6522IRQDelegate provides for a delegate
+	that will receive IRQ line change notifications.
+*/
 class MOS6522IRQDelegate {
 	public:
 		class Delegate {

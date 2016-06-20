@@ -27,6 +27,14 @@ typedef enum  {
 	Atari2600DigitalInputJoy2Fire,
 } Atari2600DigitalInput;
 
+typedef enum  {
+	Atari2600SwitchReset,
+	Atari2600SwitchSelect,
+	Atari2600SwitchColour,
+	Atari2600SwitchLeftPlayerDifficulty,
+	Atari2600SwitchRightPlayerDifficulty
+} Atari2600Switch;
+
 #ifdef __cplusplus
 }
 #endif

@@ -79,4 +79,46 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	return &_atari2600;
 }
 
+#pragma mark - Switches
+
+- (void)setColourButton:(BOOL)colourButton {
+	_colourButton = colourButton;
+	@synchronized(self) {
+		_atari2600.set_switch_is_enabled(Atari2600SwitchColour, colourButton);
+	}
+}
+
+- (void)setLeftPlayerDifficultyButton:(BOOL)leftPlayerDifficultyButton {
+	_leftPlayerDifficultyButton = leftPlayerDifficultyButton;
+	@synchronized(self) {
+		_atari2600.set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
+	}
+}
+
+- (void)setRightPlayerDifficultyButton:(BOOL)rightPlayerDifficultyButton {
+	_rightPlayerDifficultyButton = rightPlayerDifficultyButton;
+	@synchronized(self) {
+		_atari2600.set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
+	}
+}
+
+- (void)toggleSwitch:(Atari2600Switch)toggleSwitch {
+	@synchronized(self) {
+		_atari2600.set_switch_is_enabled(toggleSwitch, true);
+	}
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+		@synchronized(self) {
+			_atari2600.set_switch_is_enabled(toggleSwitch, false);
+		}
+	});
+}
+
+- (void)pressResetButton {
+	[self toggleSwitch:Atari2600SwitchReset];
+}
+
+- (void)pressSelectButton {
+	[self toggleSwitch:Atari2600SwitchSelect];
+}
+
 @end

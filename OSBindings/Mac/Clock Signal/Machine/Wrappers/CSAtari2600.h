@@ -15,4 +15,10 @@
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 - (void)setResetLineEnabled:(BOOL)enabled;
 
+@property (nonatomic, assign) BOOL colourButton;
+@property (nonatomic, assign) BOOL leftPlayerDifficultyButton;
+@property (nonatomic, assign) BOOL rightPlayerDifficultyButton;
+- (void)pressResetButton;
+- (void)pressSelectButton;
+
 @end
