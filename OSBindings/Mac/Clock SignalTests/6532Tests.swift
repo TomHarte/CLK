@@ -32,6 +32,7 @@ class MOS6532Tests: XCTestCase {
 		}
 	}
 
+	// TODO: the test below makes the assumption that divider phase is flexible; verify
 	func testEightTickTimer() {
 		with6532 {
 			// set a count of 28 at eight-clock intervals
