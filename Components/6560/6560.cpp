@@ -429,12 +429,14 @@ void MOS6560::Speaker::get_samples(unsigned int number_of_samples, int16_t *targ
 		update(2, 0, shift);
 		update(3, 1, increment);
 
+		// this sums the output of all three sounds channels plus a DC offset for volume;
+		// TODO: what's the real ratio of this stuff?
 		target[c] = (
 			(_shift_registers[0]&1) +
 			(_shift_registers[1]&1) +
 			(_shift_registers[2]&1) +
 			((noise_pattern[_shift_registers[3] >> 3] >> (_shift_registers[3]&7))&(_control_registers[3] >> 7)&1)
-		) * _volume * 700;
+		) * _volume * 700 + _volume * 44;
 	}
 }
 
