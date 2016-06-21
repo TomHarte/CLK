@@ -38,10 +38,12 @@ template <class T> class MOS6532 {
 				case 0x00: case 0x02:
 					_port[decodedAddress / 2].output = value;
 					static_cast<T *>(this)->set_port_output(decodedAddress / 2, _port[decodedAddress/2].output, _port[decodedAddress / 2].output_mask);
+					set_port_did_change(decodedAddress / 2);
 				break;
 				case 0x01: case 0x03:
 					_port[decodedAddress / 2].output_mask = value;
 					static_cast<T *>(this)->set_port_output(decodedAddress / 2, _port[decodedAddress/2].output, _port[decodedAddress / 2].output_mask);
+					set_port_did_change(decodedAddress / 2);
 				break;
 
 				// The timer and edge detect control
@@ -125,7 +127,10 @@ template <class T> class MOS6532 {
 		}
 
 		MOS6532() :
-			_interrupt_status(0), _port{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}}, _a7_interrupt({.last_port_value = 0, .enabled = false})
+			_interrupt_status(0),
+			_port{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}},
+			_a7_interrupt({.last_port_value = 0, .enabled = false}),
+			_interrupt_line(false)
 		{}
 
 		inline void set_port_did_change(int port)
@@ -147,6 +152,11 @@ template <class T> class MOS6532 {
 					}
 				}
 			}
+		}
+
+		inline bool get_inerrupt_line()
+		{
+			return _interrupt_line;
 		}
 
 	private:
@@ -173,6 +183,7 @@ template <class T> class MOS6532 {
 			Timer = 0x80,
 			PA7 = 0x40
 		};
+		bool _interrupt_line;
 
 		// expected to be overridden
 		uint8_t get_port_input(int port)										{	return 0xff;	}
@@ -181,10 +192,10 @@ template <class T> class MOS6532 {
 
 		inline void evaluate_interrupts()
 		{
-			set_irq_line(
+			_interrupt_line =
 				((_interrupt_status&InterruptFlag::Timer) && _timer.interrupt_enabled) ||
-				((_interrupt_status&InterruptFlag::PA7) && _a7_interrupt.enabled)
-			);
+				((_interrupt_status&InterruptFlag::PA7) && _a7_interrupt.enabled);
+			set_irq_line(_interrupt_line);
 		}
 };
 

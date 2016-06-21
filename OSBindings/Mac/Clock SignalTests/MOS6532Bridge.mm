@@ -32,4 +32,9 @@ class VanillaRIOT: public MOS::MOS6532<VanillaRIOT> {
 	_riot.run_for_cycles((int)numberOfCycles);
 }
 
+- (BOOL)irqLine
+{
+	return _riot.get_inerrupt_line();
+}
+
 @end
