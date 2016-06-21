@@ -58,6 +58,7 @@ class MachineDocument:
 		})
 
 		setupClockRate()
+		self.machine().delegate = self
 	}
 
 	func machineDidChangeClockRate(machine: CSMachine!) {
