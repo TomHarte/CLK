@@ -60,6 +60,7 @@ class PIA: public MOS::MOS6532<PIA> {
 		inline void update_port_input(int port, uint8_t mask, bool set)
 		{
 			if(set) _portValues[port] &= ~mask; else _portValues[port] |= mask;
+			set_port_did_change(port);
 		}
 
 		PIA() :
