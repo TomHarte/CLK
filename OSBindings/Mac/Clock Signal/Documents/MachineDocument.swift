@@ -12,6 +12,7 @@ import AudioToolbox
 class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
+	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
 	CSBestEffortUpdaterDelegate,
@@ -56,6 +57,14 @@ class MachineDocument:
 			self.machine().setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
+		setupClockRate()
+	}
+
+	func machineDidChangeClockRate(machine: CSMachine!) {
+		setupClockRate()
+	}
+
+	private func setupClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))

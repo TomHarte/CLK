@@ -12,6 +12,7 @@
 
 @interface CSMachine()
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
+- (void)machineDidChangeClockRate;
 @end
 
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
@@ -21,12 +22,35 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	}
 };
 
+struct MachineDelegate: CRTMachine::Machine::Delegate {
+	__weak CSMachine *machine;
+	void machine_did_change_clock_rate(CRTMachine::Machine *sender) {
+		[machine machineDidChangeClockRate];
+	}
+};
+
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
+	MachineDelegate _machineDelegate;
+}
+
+- (instancetype)init {
+	self = [super init];
+	if(self)
+	{
+		_machineDelegate.machine = self;
+		self.machine->set_delegate(&_machineDelegate);
+		_speakerDelegate.machine = self;
+	}
+	return self;
 }
 
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
+}
+
+- (void)machineDidChangeClockRate {
+	[self.delegate machineDidChangeClockRate:self];
 }
 
 - (void)dealloc {
@@ -50,7 +74,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
-		_speakerDelegate.machine = self;
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize];
 	}
 }

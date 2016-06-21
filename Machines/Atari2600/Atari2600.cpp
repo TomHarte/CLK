@@ -24,7 +24,8 @@ Machine::Machine() :
 	_upcomingEventsPointer(0),
 	_objectCounterPointer(0),
 	_stateByTime(_stateByExtendTime[0]),
-	_cycles_since_speaker_update(0)
+	_cycles_since_speaker_update(0),
+	_is_pal_region(false)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
 	set_reset_line(true);
@@ -71,7 +72,7 @@ void Machine::setup_output(float aspect_ratio)
 		"}");
 	_crt->set_output_device(Outputs::CRT::Television);
 
-	_speaker.set_input_rate(1194720 / 38);
+	_speaker.set_input_rate((float)(get_clock_rate() / 38.0));
 }
 
 void Machine::switch_region()
@@ -90,8 +91,9 @@ void Machine::switch_region()
 			"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
 		"}");
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
-
-//	_speaker.set_input_rate(2 * 312 * 50);
+	_is_pal_region = true;
+	if(delegate) delegate->machine_did_change_clock_rate(this);
+	_speaker.set_input_rate((float)(get_clock_rate() / 38.0));
 }
 
 void Machine::close_output()
@@ -104,6 +106,11 @@ Machine::~Machine()
 {
 	delete[] _rom;
 	close_output();
+}
+
+double Machine::get_clock_rate()
+{
+	return _is_pal_region ? 1182298 : 1194720;
 }
 
 void Machine::update_timers(int mask)
@@ -733,7 +740,6 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
 	}
 }
 
-
 void Machine::set_rom(size_t length, const uint8_t *data)
 {
 	_rom_size = 1024;
@@ -815,7 +821,6 @@ void Atari2600::Speaker::set_control(int channel, uint8_t control)
 #define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
 #define advance_poly5(c) _poly5_counter[channel] = (_poly5_counter[channel] >> 1) | (((_poly5_counter[channel] << 4) ^ (_poly5_counter[channel] << 2))&0x010)
 #define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x100)
-
 
 void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
