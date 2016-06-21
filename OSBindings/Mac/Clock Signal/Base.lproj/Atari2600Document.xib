@@ -68,7 +68,7 @@
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="3qw-C1-NYW">
                         <rect key="frame" x="18" y="58" width="164" height="18"/>
-                        <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="UP7-mf-IKo">
+                        <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="UP7-mf-IKo">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
@@ -78,7 +78,7 @@
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="Xbc-cw-Sc2">
                         <rect key="frame" x="18" y="38" width="164" height="18"/>
-                        <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="wlJ-8s-PEh">
+                        <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="wlJ-8s-PEh">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
@@ -88,7 +88,7 @@
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="kPV-Tm-TTc">
                         <rect key="frame" x="18" y="18" width="164" height="18"/>
-                        <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="F05-cA-66S">
+                        <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="F05-cA-66S">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>

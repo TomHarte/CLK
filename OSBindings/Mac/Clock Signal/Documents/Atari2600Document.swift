@@ -28,6 +28,17 @@ class Atari2600Document: MachineDocument {
 		atari2600.setROM(data)
 	}
 
+	override func windowControllerDidLoadNib(aController: NSWindowController) {
+		super.windowControllerDidLoadNib(aController)
+
+		// push whatever settings the switches have in the NIB into the emulation
+		pushSwitchValues()
+
+		// show the options window but ensure the OpenGL view is key
+		showOptions(self)
+		self.openGLView.window?.makeKeyWindow()
+	}
+
 	// MARK: CSOpenGLViewResponderDelegate
 	private func inputForKey(event: NSEvent) -> Atari2600DigitalInput? {
 		switch event.keyCode {
@@ -72,6 +83,10 @@ class Atari2600Document: MachineDocument {
 	@IBOutlet var rightPlayerDifficultyButton: NSButton!
 
 	@IBAction func optionDidChange(sender: AnyObject!) {
+		pushSwitchValues()
+	}
+
+	private func pushSwitchValues() {
 		atari2600.colourButton = colourButton.state == NSOnState
 		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == NSOnState
 		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == NSOnState
