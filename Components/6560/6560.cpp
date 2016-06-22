@@ -60,31 +60,31 @@ MOS6560::MOS6560() :
 void MOS6560::set_register(int address, uint8_t value)
 {
 	address &= 0xf;
-	_registers[address] = value;
+	_registers.direct_values[address] = value;
 	switch(address)
 	{
 		case 0x0:
-			_interlaced = !!(value&0x80);
-			_first_column_location = value & 0x7f;
+			_registers.interlaced = !!(value&0x80);
+			_registers.first_column_location = value & 0x7f;
 		break;
 
 		case 0x1:
-			_first_row_location = value;
+			_registers.first_row_location = value;
 		break;
 
 		case 0x2:
-			_number_of_columns = value & 0x7f;
-			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+			_registers.number_of_columns = value & 0x7f;
+			_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 		break;
 
 		case 0x3:
-			_number_of_rows = (value >> 1)&0x3f;
-			_tall_characters = !!(value&0x01);
+			_registers.number_of_rows = (value >> 1)&0x3f;
+			_registers.tall_characters = !!(value&0x01);
 		break;
 
 		case 0x5:
-			_character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
-			_video_matrix_start_address = (uint16_t)((_video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+			_registers.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
+			_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 		break;
 
 		case 0xa:
@@ -97,7 +97,7 @@ void MOS6560::set_register(int address, uint8_t value)
 
 		case 0xe:
 			update_audio();
-			_auxiliary_colour = _colours[value >> 4];
+			_registers.auxiliary_colour = _colours[value >> 4];
 			_speaker.set_volume(value & 0xf);
 		break;
 
@@ -107,9 +107,9 @@ void MOS6560::set_register(int address, uint8_t value)
 				output_border(_cycles_in_state * 4);
 				_cycles_in_state = 0;
 			}
-			_invertedCells = !((value >> 3)&1);
-			_borderColour = _colours[value & 0x07];
-			_backgroundColour = _colours[value >> 4];
+			_registers.invertedCells = !((value >> 3)&1);
+			_registers.borderColour = _colours[value & 0x07];
+			_registers.backgroundColour = _colours[value >> 4];
 		break;
 
 		// TODO: audio, primarily
@@ -124,8 +124,8 @@ uint8_t MOS6560::get_register(int address)
 	address &= 0xf;
 	switch(address)
 	{
-		default: return _registers[address];
-		case 0x03: return (uint8_t)(_vertical_counter << 7) | (_registers[3] & 0x7f);
+		default: return _registers.direct_values[address];
+		case 0x03: return (uint8_t)(_vertical_counter << 7) | (_registers.direct_values[3] & 0x7f);
 		case 0x04: return (_vertical_counter >> 1) & 0xff;
 	}
 }
@@ -133,7 +133,7 @@ uint8_t MOS6560::get_register(int address)
 void MOS6560::output_border(unsigned int number_of_cycles)
 {
 	uint8_t *colour_pointer = _crt->allocate_write_area(1);
-	if(colour_pointer) *colour_pointer = _borderColour;
+	if(colour_pointer) *colour_pointer = _registers.borderColour;
 	_crt->output_level(number_of_cycles);
 }
 
@@ -144,64 +144,62 @@ uint16_t MOS6560::get_address()
 
 	// keep track of internal time relative to this scanline
 	_horizontal_counter++;
-
-	// check for end of scanline
 	if(_horizontal_counter == 65)
 	{
-		_horizontal_counter = 0;
-
-		_vertical_counter++;
-		_column_counter = -1;
-
-		if(_vertical_counter == (_interlaced ? (_is_odd_frame ? 262 : 263) : 261))
+		if(_horizontal_drawing_latch)
 		{
-			_is_odd_frame ^= true;
-			_vertical_counter = 0;
-			_row_counter = -1;
-		}
-
-		if(_row_counter >= 0)
-		{
-			_row_counter++;
-			if(_row_counter == _number_of_rows*(_tall_characters ? 16 : 8)) _row_counter = -1;
-		}
-		else if(_vertical_counter == _first_row_location * 2)
-		{
-			_video_matrix_line_address_counter = _video_matrix_start_address;
-			_row_counter = 0;
-		}
-	}
-
-	if(_column_counter >= 0)
-	{
-		_column_counter++;
-		if(_column_counter == _number_of_columns*2)
-		{
-			_column_counter = -1;
-			if((_row_counter&(_tall_characters ? 15 : 7)) == (_tall_characters ? 15 : 7))
-			{
-				_video_matrix_line_address_counter = _video_matrix_address_counter;
+			_current_character_row++;
+			if(
+				(_current_character_row == 16) ||
+				(_current_character_row == 8 && !_registers.tall_characters)
+			) {
+				_current_character_row = 0;
+				_video_matrix_address_counter += _columns_this_line;
+				_current_row++;
 			}
+
+			_current_column = 0;
+			_columns_this_line = -1;
+		}
+
+		_horizontal_counter = 0;
+		_horizontal_drawing_latch = false;
+
+		_vertical_counter ++;
+		if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : 261))
+		{
+			_vertical_counter = 0;
+
+			_is_odd_frame ^= true;
+			_current_row = 0;
+			_rows_this_field = -1;
+			_vertical_drawing_latch = false;
+			_video_matrix_address_counter = 0;
+			_current_character_row = 0;
 		}
 	}
-	else if(_horizontal_counter == _first_column_location)
-	{
-		_column_counter = 0;
-		_video_matrix_address_counter = _video_matrix_line_address_counter;
-	}
+
+	// check for vertical starting events
+	if(_vertical_drawing_latch && _rows_this_field < 0) _rows_this_field = _registers.number_of_rows;
+	_vertical_drawing_latch |= _registers.first_row_location == (_vertical_counter >> 1);	// TODO: this test should be delayed a cycle
+
+	// check for horizontal starting events
+	if(_horizontal_drawing_latch && _columns_this_line < 0) _columns_this_line = _registers.number_of_columns;
+	_horizontal_drawing_latch |=
+		_vertical_drawing_latch && (_current_row < _rows_this_field) && (_horizontal_counter == _registers.first_column_location);
 
 	// determine output state; colour burst and sync timing are currently a guess
 	if(_horizontal_counter > 61) _this_state = State::ColourBurst;
 	else if(_horizontal_counter > 57) _this_state = State::Sync;
 	else
 	{
-		_this_state = (_column_counter >= 0 && _row_counter >= 0) ? State::Pixels : State::Border;
+		_this_state = (_horizontal_drawing_latch && _current_column < _columns_this_line*2) ? State::Pixels : State::Border;
 	}
 
 	// apply vertical sync
 	if(
-		(_vertical_counter < 3 && (_is_odd_frame || !_interlaced)) ||
-		(_interlaced &&
+		(_vertical_counter < 3 && (_is_odd_frame || !_registers.interlaced)) ||
+		(_registers.interlaced &&
 			(
 				(_vertical_counter == 0 && _horizontal_counter > 32) ||
 				(_vertical_counter == 1) || (_vertical_counter == 2) ||
@@ -235,7 +233,7 @@ uint16_t MOS6560::get_address()
 	if(_this_state == State::Pixels)
 	{
 		/*
-			Per http://tinyvga.com/6561 :
+			Per http:tinyvga.com/6561 :
 
 			The basic video timing is very simple.  For
 			every character the VIC-I is about to display, it first fetches the
@@ -248,15 +246,13 @@ uint16_t MOS6560::get_address()
 			reading from unconnected address space, such as $9100-$910f, you can
 			read the data fetched by the videochip on the previous clock cycle.)
 		*/
-		if(_column_counter&1)
+		if(_current_column&1)
 		{
-			return _character_cell_start_address + (_character_code*(_tall_characters ? 16 : 8)) + (_row_counter&(_tall_characters ? 15 : 7));
+			return _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
 		}
 		else
 		{
-			uint16_t result = _video_matrix_address_counter;
-			_video_matrix_address_counter++;
-			return result;
+			return (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter + (_current_column >> 1));
 		}
 	}
 
@@ -271,7 +267,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 	// and to adjust the signalling to the CRT above?
 	if(_this_state == State::Pixels)
 	{
-		if(_column_counter&1)
+		if(_current_column&1)
 		{
 			_character_value = value;
 
@@ -281,14 +277,14 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 				if(!(_character_colour&0x8))
 				{
 					uint8_t colours[2];
-					if(_invertedCells)
+					if(_registers.invertedCells)
 					{
 						colours[0] = cell_colour;
-						colours[1] = _backgroundColour;
+						colours[1] = _registers.backgroundColour;
 					}
 					else
 					{
-						colours[0] = _backgroundColour;
+						colours[0] = _registers.backgroundColour;
 						colours[1] = cell_colour;
 					}
 					pixel_pointer[0] = colours[(_character_value >> 7)&1];
@@ -302,7 +298,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 				}
 				else
 				{
-					uint8_t colours[4] = {_backgroundColour, _borderColour, cell_colour, _auxiliary_colour};
+					uint8_t colours[4] = {_registers.backgroundColour, _registers.borderColour, cell_colour, _registers.auxiliary_colour};
 					pixel_pointer[0] =
 					pixel_pointer[1] = colours[(_character_value >> 6)&3];
 					pixel_pointer[2] =
@@ -320,6 +316,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 			_character_code = value;
 			_character_colour = colour_value;
 		}
+		_current_column++;
 	}
 }
 
