@@ -28,6 +28,14 @@ class MOS6560 {
 		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
 		Outputs::Speaker *get_speaker() { return &_speaker; }
 
+		enum OutputMode {
+			PAL, NTSC
+		};
+		/*!
+			Sets the output mode to either PAL or NTSC.
+		*/
+		void set_output_mode(OutputMode output_mode);
+
 		/*!
 			Impliedly runs the 6560 for a single cycle, returning the next address that it puts on the bus.
 		*/
@@ -103,15 +111,10 @@ class MOS6560 {
 		int _rows_this_field, _columns_this_line;
 
 		// current drawing position counter
-		int _current_column;
+		int _pixel_line_cycle, _column_counter;
 		int _current_row;
 		uint16_t _current_character_row;
-		uint16_t _video_matrix_address_counter;
-
-		// address counters
-//		uint16_t _
-//		int _column_counter, _row_counter;
-//		uint16_t _video_matrix_address_counter, _video_matrix_line_address_counter;
+		uint16_t _video_matrix_address_counter, _base_video_matrix_address_counter;
 
 		// data latched from the bus
 		uint8_t _character_code, _character_colour, _character_value;
@@ -123,6 +126,12 @@ class MOS6560 {
 
 		uint8_t *pixel_pointer;
 		void output_border(unsigned int number_of_cycles);
+
+		struct {
+			int cycles_per_line;
+			int lines_per_progressive_field;
+			bool supports_interlacing;
+		} _timing;
 };
 
 }

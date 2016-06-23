@@ -29,33 +29,58 @@ MOS6560::MOS6560() :
 			"return mix(y, step(yC, 14) * chroma, amplitude);"
 		"}");
 
-	// set up colours table
-	// 0
-	// 2, 6, 9, B,
-	// 4, 5, 8, A, C, E
-	// 3, 7, D, F
-	// 1
-	uint8_t luminances[16] = {		// range is 0–4
-		0, 4, 1, 3, 2, 2, 1, 3,
-		2, 1, 2, 1, 2, 3, 2, 3
-	};
-//	uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
-//		15, 15, 5, 13, 2, 10, 0, 8,
-//		6, 7, 5, 13, 2, 10, 0, 8,
-//	};
-	uint8_t ntsc_chrominances[16] = {
-		15, 15, 2, 10, 4, 12, 6, 14,
-		0, 8, 2, 10, 4, 12, 6, 14,
-	};
-	for(int c = 0; c < 16; c++)
-	{
-		_colours[c] = (uint8_t)((luminances[c] << 4) | ntsc_chrominances[c]);
-	}
+	// default to NTSC
+	set_output_mode(OutputMode::NTSC);
 
 	// show only the centre
 	_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
 	_speaker.set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
 }
+
+void MOS6560::set_output_mode(OutputMode output_mode)
+{
+	uint8_t luminances[16] = {		// range is 0–4
+		0, 4, 1, 3, 2, 2, 1, 3,
+		2, 1, 2, 1, 2, 3, 2, 3
+	};
+	uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
+		15, 15, 5, 13, 2, 10, 0, 8,
+		6, 7, 5, 13, 2, 10, 0, 8,
+	};
+	uint8_t ntsc_chrominances[16] = {
+		15, 15, 2, 10, 4, 12, 6, 14,
+		0, 8, 2, 10, 4, 12, 6, 14,
+	};
+	uint8_t *chrominances;
+	Outputs::CRT::DisplayType display_type;
+
+	switch(output_mode)
+	{
+		case OutputMode::PAL:
+			chrominances = pal_chrominances;
+			display_type = Outputs::CRT::PAL50;
+			_timing.cycles_per_line = 71;
+			_timing.lines_per_progressive_field = 312;
+			_timing.supports_interlacing = false;
+		break;
+
+		case OutputMode::NTSC:
+			chrominances = ntsc_chrominances;
+			display_type = Outputs::CRT::NTSC60;
+			_timing.cycles_per_line = 65;
+			_timing.lines_per_progressive_field = 261;
+			_timing.supports_interlacing = true;
+		break;
+	}
+
+	_crt->set_new_display_type((unsigned int)(_timing.cycles_per_line*4), display_type);
+	for(int c = 0; c < 16; c++)
+	{
+		_colours[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
+	}
+}
+
+// TODO: set clock rate
 
 void MOS6560::set_register(int address, uint8_t value)
 {
@@ -64,7 +89,7 @@ void MOS6560::set_register(int address, uint8_t value)
 	switch(address)
 	{
 		case 0x0:
-			_registers.interlaced = !!(value&0x80);
+			_registers.interlaced = !!(value&0x80) && _timing.supports_interlacing;
 			_registers.first_column_location = value & 0x7f;
 		break;
 
@@ -142,9 +167,12 @@ uint16_t MOS6560::get_address()
 	// keep track of the amount of time since the speaker was updated; lazy updates are applied
 	_cycles_since_speaker_update++;
 
+	// keep an old copy of the vertical count because that test is a cycle later than the actual changes
+	int previous_vertical_counter = _vertical_counter;
+
 	// keep track of internal time relative to this scanline
 	_horizontal_counter++;
-	if(_horizontal_counter == 65)
+	if(_horizontal_counter == _timing.cycles_per_line)
 	{
 		if(_horizontal_drawing_latch)
 		{
@@ -154,19 +182,19 @@ uint16_t MOS6560::get_address()
 				(_current_character_row == 8 && !_registers.tall_characters)
 			) {
 				_current_character_row = 0;
-				_video_matrix_address_counter += _columns_this_line;
 				_current_row++;
 			}
 
-			_current_column = 0;
+			_pixel_line_cycle = -1;
 			_columns_this_line = -1;
+			_column_counter = -1;
 		}
 
 		_horizontal_counter = 0;
 		_horizontal_drawing_latch = false;
 
 		_vertical_counter ++;
-		if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : 261))
+		if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : _timing.lines_per_progressive_field))
 		{
 			_vertical_counter = 0;
 
@@ -174,26 +202,60 @@ uint16_t MOS6560::get_address()
 			_current_row = 0;
 			_rows_this_field = -1;
 			_vertical_drawing_latch = false;
-			_video_matrix_address_counter = 0;
+			_base_video_matrix_address_counter = 0;
 			_current_character_row = 0;
 		}
 	}
 
 	// check for vertical starting events
-	if(_vertical_drawing_latch && _rows_this_field < 0) _rows_this_field = _registers.number_of_rows;
-	_vertical_drawing_latch |= _registers.first_row_location == (_vertical_counter >> 1);	// TODO: this test should be delayed a cycle
+	_vertical_drawing_latch |= _registers.first_row_location == (previous_vertical_counter >> 1);
+	_horizontal_drawing_latch |= _vertical_drawing_latch && (_horizontal_counter == _registers.first_column_location);
 
-	// check for horizontal starting events
-	if(_horizontal_drawing_latch && _columns_this_line < 0) _columns_this_line = _registers.number_of_columns;
-	_horizontal_drawing_latch |=
-		_vertical_drawing_latch && (_current_row < _rows_this_field) && (_horizontal_counter == _registers.first_column_location);
+	if(_pixel_line_cycle >= 0) _pixel_line_cycle++;
+	switch(_pixel_line_cycle)
+	{
+		case -1:
+			if(_horizontal_drawing_latch)
+			{
+				_pixel_line_cycle = 0;
+				_video_matrix_address_counter = _base_video_matrix_address_counter;
+			}
+		break;
+		case 1:	_columns_this_line = _registers.number_of_columns;	break;
+		case 2:	if(_rows_this_field < 0) _rows_this_field = _registers.number_of_rows;	break;
+		case 3: if(_current_row < _rows_this_field) _column_counter = 0;	break;
+	}
 
+	uint16_t fetch_address = 0x1c;
+	if(_column_counter >= 0 && _column_counter < _columns_this_line*2)
+	{
+		if(_column_counter&1)
+		{
+			fetch_address = _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
+		}
+		else
+		{
+			fetch_address = (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter);
+			_video_matrix_address_counter++;
+			if(
+				(_current_character_row == 15) ||
+				(_current_character_row == 7 && !_registers.tall_characters)
+			) {
+				_base_video_matrix_address_counter = _video_matrix_address_counter;
+			}
+		}
+	}
+	return fetch_address;
+}
+
+void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
+{
 	// determine output state; colour burst and sync timing are currently a guess
-	if(_horizontal_counter > 61) _this_state = State::ColourBurst;
-	else if(_horizontal_counter > 57) _this_state = State::Sync;
+	if(_horizontal_counter > _timing.cycles_per_line-4) _this_state = State::ColourBurst;
+	else if(_horizontal_counter > _timing.cycles_per_line-7) _this_state = State::Sync;
 	else
 	{
-		_this_state = (_horizontal_drawing_latch && _current_column < _columns_this_line*2) ? State::Pixels : State::Border;
+		_this_state = (_column_counter >= 0 && _column_counter < _columns_this_line*2) ? State::Pixels : State::Border;
 	}
 
 	// apply vertical sync
@@ -229,45 +291,9 @@ uint16_t MOS6560::get_address()
 	}
 	_cycles_in_state++;
 
-	// compute the address
 	if(_this_state == State::Pixels)
 	{
-		/*
-			Per http:tinyvga.com/6561 :
-
-			The basic video timing is very simple.  For
-			every character the VIC-I is about to display, it first fetches the
-			character code and colour, then the character appearance (from the
-			character generator memory).  The character codes are read on every
-			raster line, thus making every line a "bad line".  When the raster
-			beam is outside of the text window, the videochip reads from $001c for
-			most time.  (Some videochips read from $181c instead.)  The address
-			occasionally varies, but it might also be due to a flaky bus.  (By
-			reading from unconnected address space, such as $9100-$910f, you can
-			read the data fetched by the videochip on the previous clock cycle.)
-		*/
-		if(_current_column&1)
-		{
-			return _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
-		}
-		else
-		{
-			return (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter + (_current_column >> 1));
-		}
-	}
-
-	return 0x1c;
-}
-
-void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
-{
-	// TODO: this isn't correct, as _character_value will be
-	// accessed second, then output will roll over. Probably it's
-	// correct (given the delays upstream) to output all 8 on an &1
-	// and to adjust the signalling to the CRT above?
-	if(_this_state == State::Pixels)
-	{
-		if(_current_column&1)
+		if(_column_counter&1)
 		{
 			_character_value = value;
 
@@ -316,7 +342,8 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 			_character_code = value;
 			_character_colour = colour_value;
 		}
-		_current_column++;
+
+		_column_counter++;
 	}
 }
 
