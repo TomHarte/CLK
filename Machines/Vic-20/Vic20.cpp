@@ -47,35 +47,36 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
 	{
-		*value = read_memory(address);
-		if((address&0xfff0) == 0x9000)
+		uint8_t result = read_memory(address);
+		if((address&0xff00) == 0x9000)
 		{
-			*value = _mos6560->get_register(address - 0x9000);
+			result &= _mos6560->get_register(address);
 		}
-		else if((address&0xfff0) == 0x9110)
+		if((address&0xfc10) == 0x9010)
 		{
-			*value = _userPortVIA.get_register(address - 0x9110);
+			result &= _userPortVIA.get_register(address);
 		}
-		else if((address&0xfff0) == 0x9120)
+		if((address&0xfc20) == 0x9020)
 		{
-			*value = _keyboardVIA.get_register(address - 0x9120);
+			result &= _keyboardVIA.get_register(address);
 		}
+		*value = result;
 	}
 	else
 	{
 		uint8_t *ram = ram_pointer(address);
 		if(ram) *ram = *value;
-		else if((address&0xfff0) == 0x9000)
+		if((address&0xff00) == 0x9000)
 		{
-			_mos6560->set_register(address - 0x9000, *value);
+			_mos6560->set_register(address, *value);
 		}
-		else if((address&0xfff0) == 0x9110)
+		if((address&0xfc10) == 0x9010)
 		{
-			_userPortVIA.set_register(address - 0x9110, *value);
+			_userPortVIA.set_register(address, *value);
 		}
-		else if((address&0xfff0) == 0x9120)
+		if((address&0xfc20) == 0x9020)
 		{
-			_keyboardVIA.set_register(address - 0x9120, *value);
+			_keyboardVIA.set_register(address, *value);
 		}
 	}
 
