@@ -12,8 +12,10 @@ import AudioToolbox
 class ElectronDocument: MachineDocument {
 
 	private lazy var electron = CSElectron()
-	override func machine() -> CSMachine! {
-		return electron
+	override var machine: CSMachine! {
+		get {
+			return electron
+		}
 	}
 
 	override func aspectRatio() -> NSSize {

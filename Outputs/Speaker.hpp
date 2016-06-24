@@ -41,7 +41,7 @@ class Speaker {
 			_output_cycles_per_second = cycles_per_second;
 			if(_buffer_size != buffer_size)
 			{
-				_buffer_in_progress = std::unique_ptr<int16_t>(new int16_t[buffer_size]);
+				_buffer_in_progress.reset(new int16_t[buffer_size]);
 				_buffer_size = buffer_size;
 			}
 			set_needs_updated_filter_coefficients();
@@ -189,10 +189,10 @@ template <class T> class Filter: public Speaker {
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
 
-			_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
-			_filter = std::unique_ptr<SignalProcessing::FIRFilter>(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
+			_stepper.reset(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
+			_filter.reset(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
 
-			_input_buffer = std::unique_ptr<int16_t>(new int16_t[_number_of_taps]);
+			_input_buffer.reset(new int16_t[_number_of_taps]);
 			_input_buffer_depth = 0;
 		}
 };

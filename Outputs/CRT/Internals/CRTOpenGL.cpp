@@ -122,16 +122,16 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_last_output_height(0),
 	_fence(nullptr)
 {
-	_buffer_builder = std::unique_ptr<CRTInputBufferBuilder>(new CRTInputBufferBuilder(buffer_depth));
+	_buffer_builder.reset(new CRTInputBufferBuilder(buffer_depth));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
 
 	// Create intermediate textures and bind to slots 0, 1 and 2
-	compositeTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
-	separatedTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit));
-	filteredYTexture	= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_y_texture_unit));
-	filteredTexture		= std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
+	compositeTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
+	separatedTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit));
+	filteredYTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_y_texture_unit));
+	filteredTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
 
 	// create the surce texture
 	glGenTextures(1, &textureName);
@@ -199,7 +199,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// make sure there's a target to draw to
 	if(!framebuffer || framebuffer->get_height() != output_height || framebuffer->get_width() != output_width)
 	{
-		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer = std::unique_ptr<OpenGL::TextureTarget>(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
+		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
 		if(framebuffer)
 		{
 			new_framebuffer->bind_framebuffer();

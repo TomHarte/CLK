@@ -98,7 +98,7 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_mos6560 = std::unique_ptr<MOS::MOS6560>(new MOS::MOS6560());
+	_mos6560.reset(new MOS::MOS6560());
 }
 
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)

@@ -39,7 +39,7 @@ class TypeRecipient: public Typer::Delegate {
 	public:
 		void set_typer_for_string(const char *string)
 		{
-			_typer = std::unique_ptr<Typer>(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
+			_typer.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
 		}
 
 	protected:
