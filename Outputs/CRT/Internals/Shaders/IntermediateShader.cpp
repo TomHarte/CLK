@@ -86,7 +86,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
 
-	std::unique_ptr<IntermediateShader> shader = std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader, fragment_shader, bindings));
+	std::unique_ptr<IntermediateShader> shader(new IntermediateShader(vertex_shader, fragment_shader, bindings));
 	free(vertex_shader);
 
 	return shader;

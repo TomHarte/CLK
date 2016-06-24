@@ -60,7 +60,7 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
+	_crt.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -927,7 +927,7 @@ inline void Tape::get_next_tape_pulse()
 	}
 	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
 	{
-		_input.pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));
+		_input.pulse_stepper.reset(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));
 	}
 }
 
