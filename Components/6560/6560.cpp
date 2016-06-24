@@ -137,7 +137,7 @@ void MOS6560::set_register(int address, uint8_t value)
 			_registers.backgroundColour = _colours[value >> 4];
 		break;
 
-		// TODO: audio, primarily
+		// TODO: the lightpen, etc
 
 		default:
 		break;
@@ -250,6 +250,9 @@ uint16_t MOS6560::get_address()
 
 void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 {
+	// TODO: there should be a further two-cycle delay on pixels being output; the reverse bit should
+	// divide the byte it is set for 3:1 and then continue as usual.
+
 	// determine output state; colour burst and sync timing are currently a guess
 	if(_horizontal_counter > _timing.cycles_per_line-4) _this_state = State::ColourBurst;
 	else if(_horizontal_counter > _timing.cycles_per_line-7) _this_state = State::Sync;
