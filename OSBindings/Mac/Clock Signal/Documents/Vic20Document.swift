@@ -11,8 +11,10 @@ import Foundation
 class Vic20Document: MachineDocument {
 
 	private lazy var vic20 = CSVic20()
-	override func machine() -> CSMachine! {
-		return vic20
+	override var machine: CSMachine! {
+		get {
+			return vic20
+		}
 	}
 
 	// MARK: NSDocument overrides

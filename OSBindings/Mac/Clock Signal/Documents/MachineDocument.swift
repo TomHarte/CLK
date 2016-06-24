@@ -20,8 +20,10 @@ class MachineDocument:
 {
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
-	func machine() -> CSMachine! {
-		return nil
+	var machine: CSMachine! {
+		get {
+			return nil
+		}
 	}
 
 	func aspectRatio() -> NSSize {
@@ -54,11 +56,11 @@ class MachineDocument:
 		let displayAspectRatio = self.aspectRatio()
 		aController.window?.contentAspectRatio = displayAspectRatio
 		openGLView.performWithGLContext({
-			self.machine().setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
+			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
 		setupClockRate()
-		self.machine().delegate = self
+		self.machine.delegate = self
 	}
 
 	func machineDidChangeClockRate(machine: CSMachine!) {
@@ -68,15 +70,15 @@ class MachineDocument:
 	private func setupClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = self.machine().idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let selectedSamplingRate = self.machine.idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
 			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
 			audioQueue.delegate = self
-			self.machine().audioQueue = self.audioQueue
-			self.machine().setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.bufferSize / 2)
+			self.machine.audioQueue = self.audioQueue
+			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.bufferSize / 2)
 		}
 
-		self.bestEffortUpdater.clockRate = self.machine().clockRate
+		self.bestEffortUpdater.clockRate = self.machine.clockRate
 	}
 
 	override func close() {
@@ -94,7 +96,7 @@ class MachineDocument:
 	func paste(sender: AnyObject!) {
 		let pasteboard = NSPasteboard.generalPasteboard()
 		if let string = pasteboard.stringForType(NSPasteboardTypeString) {
-			self.machine().paste(string)
+			self.machine.paste(string)
 		}
 	}
 
@@ -106,7 +108,7 @@ class MachineDocument:
 	func runForNumberOfCycles(numberOfCycles: Int32) {
 		let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
 		if actionLock.tryLock() {
-			self.machine().runForNumberOfCycles(cyclesToRunFor)
+			self.machine.runForNumberOfCycles(cyclesToRunFor)
 			actionLock.unlock()
 		}
 	}
@@ -129,7 +131,7 @@ class MachineDocument:
 	final func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
 		bestEffortUpdater.update()
 		if drawLock.tryLock() {
-			self.machine().drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+			self.machine.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
 			drawLock.unlock()
 		}
 	}
@@ -141,7 +143,7 @@ class MachineDocument:
 
 	// MARK: Key forwarding
 	private func withKeyboardMachine(action: (CSKeyboardMachine) -> ()) {
-		if let keyboardMachine = self.machine() as? CSKeyboardMachine {
+		if let keyboardMachine = self.machine as? CSKeyboardMachine {
 			action(keyboardMachine)
 		}
 	}

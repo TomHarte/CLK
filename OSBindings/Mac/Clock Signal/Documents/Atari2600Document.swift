@@ -11,8 +11,10 @@ import Cocoa
 class Atari2600Document: MachineDocument {
 
 	private var atari2600 = CSAtari2600()
-	override func machine() -> CSMachine? {
-		return atari2600
+	override var machine: CSMachine! {
+		get {
+			return atari2600
+		}
 	}
 
 	// MARK: NSDocument overrides
