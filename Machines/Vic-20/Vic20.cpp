@@ -90,8 +90,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
-	set_irq_line(irq);
+//	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
+	set_nmi_line(_userPortVIA.get_interrupt_line());
+	set_irq_line(_keyboardVIA.get_interrupt_line());
 }
 
 #pragma mark - Setup
