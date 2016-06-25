@@ -320,6 +320,7 @@
 		4BC751B61D157EB3006C31D9 /* MOS6522Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B51D157EB3006C31D9 /* MOS6522Bridge.mm */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
+		4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
@@ -701,6 +702,8 @@
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
+		4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommodoreTAP.hpp; sourceTree = "<group>"; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
 		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
 		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
@@ -900,6 +903,8 @@
 				4B69FB451C4D950F00B5F0AA /* libz.tbd */,
 				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
 				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
+				4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */,
+				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -1793,6 +1798,7 @@
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
+				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 			);
