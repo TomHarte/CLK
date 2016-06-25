@@ -135,6 +135,18 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 	}
 }
 
+#pragma mar - Tape
+
+void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+{
+	tape->get_next_pulse();
+	tape->get_next_pulse();
+	tape->get_next_pulse();
+	tape->get_next_pulse();
+	tape->get_next_pulse();
+	tape->get_next_pulse();
+}
+
 #pragma mark - Typer
 
 int Machine::get_typer_delay()

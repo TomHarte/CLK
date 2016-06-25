@@ -98,7 +98,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>NSDocumentClass</key>
-			<string>Vic20Document</string>
+			<string>$(PRODUCT_MODULE_NAME).Vic20Document</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>

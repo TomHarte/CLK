@@ -8,9 +8,9 @@
 
 #import "CSElectron.h"
 
-#import "Electron.hpp"
+#include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
-#import "TapeUEF.hpp"
+#include "TapeUEF.hpp"
 
 @implementation CSElectron {
 	Electron::Machine _electron;
