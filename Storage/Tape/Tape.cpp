@@ -51,10 +51,13 @@ void TapePlayer::run_for_cycles(unsigned int number_of_cycles)
 {
 	if(has_tape())
 	{
-		_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
-		if(_input.time_into_pulse == _input.current_pulse.length.length)
+		while(number_of_cycles--)
 		{
-			run_for_input_pulse();
+			_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
+			while(_input.time_into_pulse >= _input.current_pulse.length.length)
+			{
+				run_for_input_pulse();
+			}
 		}
 	}
 }

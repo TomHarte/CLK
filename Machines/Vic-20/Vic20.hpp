@@ -49,24 +49,6 @@ enum Key: uint16_t {
 	TerminateSequence = 0,	NotMapped = 0xffff
 };
 
-class Tape {
-	public:
-		void set_motor_control(bool enabled);
-		void set_tape_output(bool set);
-		bool get_tape_input();
-		bool has_tape();
-
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
-		void run_for_cycles(int number_of_cycles);
-
-	private:
-		struct {
-			Storage::Tape::Pulse current_pulse;
-			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
-			uint32_t time_into_pulse;
-		} _input;
-};
-
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 };
 
@@ -112,11 +94,36 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		uint8_t _activation_mask;
 };
 
+class Tape: public Storage::TapePlayer {
+	public:
+		Tape();
+
+		void set_motor_control(bool enabled);
+		void set_tape_output(bool set);
+		inline bool get_input() { return _input_level; }
+
+		class Delegate {
+			public:
+				virtual void tape_did_change_input(Tape *tape) = 0;
+		};
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+	private:
+		Delegate *_delegate;
+		virtual void process_input_pulse(Storage::Tape::Pulse pulse);
+		bool _input_level;
+};
+
+
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
-	public Utility::TypeRecipient {
+	public Utility::TypeRecipient,
+	public Tape::Delegate {
 
 	public:
 		Machine();
@@ -150,6 +157,9 @@ class Machine:
 		virtual int get_typer_frequency();
 		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
 
+		// for Tape::Delegate
+		virtual void tape_did_change_input(Tape *tape);
+
 	private:
 		uint8_t _characterROM[0x1000];
 		uint8_t _basicROM[0x2000];
@@ -182,6 +192,7 @@ class Machine:
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 		UserPortVIA _userPortVIA;
 		KeyboardVIA _keyboardVIA;
+		Tape _tape;
 };
 
 }

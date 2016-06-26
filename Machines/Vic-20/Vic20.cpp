@@ -17,6 +17,7 @@ Machine::Machine() :
 {
 	_userPortVIA.set_delegate(this);
 	_keyboardVIA.set_delegate(this);
+	_tape.set_delegate(this);
 	set_reset_line(true);
 }
 
@@ -83,6 +84,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_userPortVIA.run_for_half_cycles(2);
 	_keyboardVIA.run_for_half_cycles(2);
 	if(_typer) _typer->update(1);
+	_tape.run_for_cycles(1);
 	return 1;
 }
 
@@ -140,12 +142,12 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 
 void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
-	tape->get_next_pulse();
-	tape->get_next_pulse();
-	tape->get_next_pulse();
-	tape->get_next_pulse();
-	tape->get_next_pulse();
-	tape->get_next_pulse();
+	_tape.set_tape(tape);
+}
+
+void Machine::tape_did_change_input(Tape *tape)
+{
+	_keyboardVIA.set_control_line(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Typer
@@ -261,4 +263,21 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 	}
 
 	return true;
+}
+
+#pragma mark - Tape
+
+Tape::Tape() : TapePlayer(1022727) {}
+
+void Tape::set_motor_control(bool enabled) {}
+void Tape::set_tape_output(bool set) {}
+
+void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+{
+	bool new_input_level = pulse.type == Storage::Tape::Pulse::Low;
+	if(_input_level != new_input_level)
+	{
+		_input_level = new_input_level;
+		if(_delegate) _delegate->tape_did_change_input(this);
+	}
 }

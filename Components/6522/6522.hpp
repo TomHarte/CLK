@@ -178,6 +178,7 @@ template <class T> class MOS6522 {
 						_registers.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
 						reevaluate_interrupts();
 					}
+					_control_inputs[port].line_one = value;
 				break;
 
 				case Line::Two:
