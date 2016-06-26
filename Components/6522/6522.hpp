@@ -166,7 +166,7 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		inline void set_control_line_input(Port port, Line line, bool value)
+		inline void set_control_line(Port port, Line line, bool value)
 		{
 			switch(line)
 			{
@@ -258,6 +258,7 @@ template <class T> class MOS6522 {
 		// Expected to be overridden
 		uint8_t get_port_input(Port port)										{	return 0xff;	}
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
+		bool get_control_line(Port port, Line line)								{	return true;	}
 //		void set_interrupt_status(bool status)			{}
 
 		// Input/output multiplexer

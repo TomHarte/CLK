@@ -901,35 +901,14 @@ void Speaker::set_is_enabled(bool is_enabled)
 */
 
 Tape::Tape() :
+	TapePlayer(2000000),
 	_is_running(false),
 	_data_register(0),
 	_delegate(nullptr),
 	_output({.bits_remaining_until_empty = 0, .cycles_into_pulse = 0}),
 	_last_posted_interrupt_status(0),
-	_interrupt_status(0) {}
-
-void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
-{
-	_tape = tape;
-	get_next_tape_pulse();
-}
-
-inline void Tape::get_next_tape_pulse()
-{
-	_input.time_into_pulse = 0;
-	if(_tape)
-		_input.current_pulse = _tape->get_next_pulse();
-	else
-	{
-		_input.current_pulse.length.length = 1;
-		_input.current_pulse.length.clock_rate = 1;
-		_input.current_pulse.type = Storage::Tape::Pulse::Zero;
-	}
-	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
-	{
-		_input.pulse_stepper.reset(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));
-	}
-}
+	_interrupt_status(0)
+{}
 
 inline void Tape::push_tape_bit(uint16_t bit)
 {
@@ -992,18 +971,16 @@ inline uint8_t Tape::get_data_register()
 	return (uint8_t)(_data_register >> 2);
 }
 
-inline void Tape::run_for_input_pulse()
+inline void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 {
-	get_next_tape_pulse();
-
 	_crossings[0] = _crossings[1];
 	_crossings[1] = _crossings[2];
 	_crossings[2] = _crossings[3];
 
 	_crossings[3] = Tape::Unrecognised;
-	if(_input.current_pulse.type != Storage::Tape::Pulse::Zero)
+	if(pulse.type != Storage::Tape::Pulse::Zero)
 	{
-		float pulse_length = (float)_input.current_pulse.length.length / (float)_input.current_pulse.length.clock_rate;
+		float pulse_length = (float)pulse.length.length / (float)pulse.length.clock_rate;
 		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
 		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
 	}
@@ -1030,16 +1007,9 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 	{
 		if(_is_in_input_mode)
 		{
-			if(_is_running && _tape != nullptr)
+			if(_is_running)
 			{
-				while(number_of_cycles--)
-				{
-					_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
-					if(_input.time_into_pulse == _input.current_pulse.length.length)
-					{
-						run_for_input_pulse();
-					}
-				}
+				TapePlayer::run_for_cycles(number_of_cycles);
 			}
 		}
 		else

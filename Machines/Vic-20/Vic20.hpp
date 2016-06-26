@@ -49,11 +49,33 @@ enum Key: uint16_t {
 	TerminateSequence = 0,	NotMapped = 0xffff
 };
 
+class Tape {
+	public:
+		void set_motor_control(bool enabled);
+		void set_tape_output(bool set);
+		bool get_tape_input();
+		bool has_tape();
+
+		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void run_for_cycles(int number_of_cycles);
+
+	private:
+		struct {
+			Storage::Tape::Pulse current_pulse;
+			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
+			uint32_t time_into_pulse;
+		} _input;
+};
+
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
+		KeyboardVIA() {
+			clear_all_keys();
+		}
+
 		void set_key_state(Key key, bool isPressed) {
 			if(isPressed)
 				_columns[key & 7] &= ~(key >> 3);
@@ -85,9 +107,6 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				_activation_mask = (value & mask) | (~mask);
 		}
 
-		KeyboardVIA() {
-			clear_all_keys();
-		}
 	private:
 		uint8_t _columns[8];
 		uint8_t _activation_mask;
