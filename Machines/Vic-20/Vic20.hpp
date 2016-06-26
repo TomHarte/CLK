@@ -50,6 +50,13 @@ enum Key: uint16_t {
 };
 
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
+	public:
+		uint8_t get_port_input(Port port) {
+			if(!port) {
+				return 0x00;	// TODO: bit 6 should be high if there is no tape, low otherwise
+			}
+			return 0xff;
+		}
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
