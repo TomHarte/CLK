@@ -43,6 +43,11 @@ template <class T> class MOS6522 {
 			B = 1
 		};
 
+		enum Line {
+			One = 0,
+			Two = 1
+		};
+
 		/*! Sets a register value. */
 		inline void set_register(int address, uint8_t value)
 		{
@@ -98,7 +103,10 @@ template <class T> class MOS6522 {
 
 				// Control
 				case 0xb: _registers.auxiliary_control = value;		break;
-				case 0xc: _registers.peripheral_control = value;	break;
+				case 0xc:
+					_registers.peripheral_control = value;
+					printf("Peripheral control %02x\n", value);
+				break;
 
 				// Interrupt control
 				case 0xd:
@@ -111,6 +119,7 @@ template <class T> class MOS6522 {
 					else
 						_registers.interrupt_enable &= ~value;
 					reevaluate_interrupts();
+					printf("Interrupt mask -> %02x\n", _registers.interrupt_enable);
 				break;
 			}
 		}
@@ -157,8 +166,24 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		inline void set_control_line_input(Port port, int line, bool value)
+		inline void set_control_line_input(Port port, Line line, bool value)
 		{
+			switch(line)
+			{
+				case Line::One:
+					if(	value != _control_inputs[port].line_one &&
+						value == !!(_registers.peripheral_control & (port ? 0x10 : 0x01))
+					)
+					{
+						_registers.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
+						reevaluate_interrupts();
+					}
+				break;
+
+				case Line::Two:
+					// TODO
+				break;
+			}
 		}
 
 		/*!
@@ -273,6 +298,11 @@ template <class T> class MOS6522 {
 				interrupt_flags(0), interrupt_enable(0),
 				last_timer{0, 0}, timer_needs_reload(false) {}
 		} _registers;
+
+		// control state
+		struct {
+			bool line_one, line_two;
+		} _control_inputs[2];
 
 		// Internal state other than the registers
 		bool _timer_is_running[2];
