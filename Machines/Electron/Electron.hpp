@@ -62,15 +62,11 @@ enum Key: uint16_t {
 	TerminateSequence = 0, NotMapped		= 0xfffe,
 };
 
-class Tape {
+class Tape: public Storage::TapePlayer {
 	public:
 		Tape();
 
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
-		inline bool has_tape()
-		{
-			return (bool)_tape;
-		}
+		inline void run_for_cycles(unsigned int number_of_cycles);
 
 		inline uint8_t get_data_register();
 		inline void set_data_register(uint8_t value);
@@ -85,23 +81,16 @@ class Tape {
 		};
 		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
 
-		inline void run_for_cycles(unsigned int number_of_cycles);
-		inline void run_for_input_pulse();
-
 		inline void set_is_running(bool is_running) { _is_running = is_running; }
 		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
 		inline void set_is_in_input_mode(bool is_in_input_mode);
 
 	private:
+		void process_input_pulse(Storage::Tape::Pulse pulse);
 		inline void push_tape_bit(uint16_t bit);
 		inline void get_next_tape_pulse();
 
-		std::shared_ptr<Storage::Tape> _tape;
-
 		struct {
-			Storage::Tape::Pulse current_pulse;
-			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
-			uint32_t time_into_pulse;
 			int minimum_bits_until_full;
 		} _input;
 		struct {

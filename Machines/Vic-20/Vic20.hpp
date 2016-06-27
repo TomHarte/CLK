@@ -10,6 +10,7 @@
 #define Vic20_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 #include "../../Components/6560/6560.hpp"
 #include "../../Components/6522/6522.hpp"
 
@@ -49,10 +50,21 @@ enum Key: uint16_t {
 };
 
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
+	public:
+		uint8_t get_port_input(Port port) {
+			if(!port) {
+				return 0x00;	// TODO: bit 6 should be high if there is no tape, low otherwise
+			}
+			return 0xff;
+		}
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
+		KeyboardVIA() {
+			clear_all_keys();
+		}
+
 		void set_key_state(Key key, bool isPressed) {
 			if(isPressed)
 				_columns[key & 7] &= ~(key >> 3);
@@ -65,7 +77,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		}
 
 		// to satisfy MOS::MOS6522
-		uint8_t get_port_input(int port) {
+		uint8_t get_port_input(Port port) {
 			if(!port) {
 				uint8_t result = 0xff;
 				for(int c = 0; c < 8; c++)
@@ -79,24 +91,46 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			return 0xff;
 		}
 
-		void set_port_output(int port, uint8_t value, uint8_t mask) {
+		void set_port_output(Port port, uint8_t value, uint8_t mask) {
 			if(port)
 				_activation_mask = (value & mask) | (~mask);
 		}
 
-		KeyboardVIA() {
-			clear_all_keys();
-		}
 	private:
 		uint8_t _columns[8];
 		uint8_t _activation_mask;
 };
 
+class Tape: public Storage::TapePlayer {
+	public:
+		Tape();
+
+		void set_motor_control(bool enabled);
+		void set_tape_output(bool set);
+		inline bool get_input() { return _input_level; }
+
+		class Delegate {
+			public:
+				virtual void tape_did_change_input(Tape *tape) = 0;
+		};
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+	private:
+		Delegate *_delegate;
+		virtual void process_input_pulse(Storage::Tape::Pulse pulse);
+		bool _input_level;
+};
+
+
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
-	public Utility::TypeRecipient {
+	public Utility::TypeRecipient,
+	public Tape::Delegate {
 
 	public:
 		Machine();
@@ -104,6 +138,8 @@ class Machine:
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
+		void set_tape(std::shared_ptr<Storage::Tape> tape);
+
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA.set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA.clear_all_keys(); }
 
@@ -127,6 +163,9 @@ class Machine:
 		virtual int get_typer_delay();
 		virtual int get_typer_frequency();
 		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+
+		// for Tape::Delegate
+		virtual void tape_did_change_input(Tape *tape);
 
 	private:
 		uint8_t _characterROM[0x1000];
@@ -160,6 +199,7 @@ class Machine:
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 		UserPortVIA _userPortVIA;
 		KeyboardVIA _keyboardVIA;
+		Tape _tape;
 };
 
 }

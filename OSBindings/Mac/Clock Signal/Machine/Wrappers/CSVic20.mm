@@ -8,7 +8,8 @@
 
 #import "CSVic20.h"
 
-#import "Vic20.hpp"
+#include "Vic20.hpp"
+#include "CommodoreTAP.hpp"
 
 @implementation CSVic20 {
 	Vic20::Machine _vic20;
@@ -19,7 +20,9 @@
 }
 
 - (void)setROM:(nonnull NSData *)rom slot:(Vic20::ROMSlot)slot {
-	_vic20.set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
+	@synchronized(self) {
+		_vic20.set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
+	}
 }
 
 - (void)setKernelROM:(nonnull NSData *)rom {
@@ -34,8 +37,23 @@
 	[self setROM:rom slot:Vic20::ROMSlotCharacters];
 }
 
+- (BOOL)openTAPAtURL:(NSURL *)URL {
+	@synchronized(self) {
+		try {
+			std::shared_ptr<Storage::CommodoreTAP> tape(new Storage::CommodoreTAP([URL fileSystemRepresentation]));
+			_vic20.set_tape(tape);
+			return YES;
+		} catch(int exception) {
+			return NO;
+		}
+	}
+}
+
+
 - (void)setPRG:(nonnull NSData *)prg {
-	_vic20.add_prg(prg.length, (const uint8_t *)prg.bytes);
+	@synchronized(self) {
+		_vic20.add_prg(prg.length, (const uint8_t *)prg.bytes);
+	}
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {

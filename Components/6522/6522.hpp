@@ -38,6 +38,16 @@ template <class T> class MOS6522 {
 		};
 
 	public:
+		enum Port {
+			A = 0,
+			B = 1
+		};
+
+		enum Line {
+			One = 0,
+			Two = 1
+		};
+
 		/*! Sets a register value. */
 		inline void set_register(int address, uint8_t value)
 		{
@@ -47,12 +57,18 @@ template <class T> class MOS6522 {
 			{
 				case 0x0:
 					_registers.output[1] = value;
-					static_cast<T *>(this)->set_port_output(1, value, _registers.data_direction[1]);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 				case 0xf:
 				case 0x1:
 					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value, _registers.data_direction[0]);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
 //					_registers.output[0] = value;
@@ -93,7 +109,9 @@ template <class T> class MOS6522 {
 
 				// Control
 				case 0xb: _registers.auxiliary_control = value;		break;
-				case 0xc: _registers.peripheral_control = value;	break;
+				case 0xc:
+					_registers.peripheral_control = value;
+				break;
 
 				// Interrupt control
 				case 0xd:
@@ -117,9 +135,15 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-				case 0x0:	return get_port_input(1, _registers.data_direction[1], _registers.output[1]);
+				case 0x0:
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::B, _registers.data_direction[1], _registers.output[1]);
 				case 0xf:	// TODO: handshake, latching
-				case 0x1:	return get_port_input(0, _registers.data_direction[0], _registers.output[0]);
+				case 0x1:
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::A, _registers.data_direction[0], _registers.output[0]);
 
 				case 0x2:	return _registers.data_direction[1];
 				case 0x3:	return _registers.data_direction[0];
@@ -152,8 +176,25 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		inline void set_control_line_input(int port, int line, bool value)
+		inline void set_control_line(Port port, Line line, bool value)
 		{
+			switch(line)
+			{
+				case Line::One:
+					if(	value != _control_inputs[port].line_one &&
+						value == !!(_registers.peripheral_control & (port ? 0x10 : 0x01))
+					)
+					{
+						_registers.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
+						reevaluate_interrupts();
+					}
+					_control_inputs[port].line_one = value;
+				break;
+
+				case Line::Two:
+					// TODO
+				break;
+			}
 		}
 
 		/*!
@@ -226,12 +267,13 @@ template <class T> class MOS6522 {
 
 	private:
 		// Expected to be overridden
-		uint8_t get_port_input(int port)										{	return 0xff;	}
-		void set_port_output(int port, uint8_t value, uint8_t direction_mask)	{}
+		uint8_t get_port_input(Port port)										{	return 0xff;	}
+		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
+		bool get_control_line(Port port, Line line)								{	return true;	}
 //		void set_interrupt_status(bool status)			{}
 
 		// Input/output multiplexer
-		uint8_t get_port_input(int port, uint8_t output_mask, uint8_t output)
+		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output)
 		{
 			uint8_t input = static_cast<T *>(this)->get_port_input(port);
 			return (input & ~output_mask) | (output & output_mask);
@@ -268,6 +310,11 @@ template <class T> class MOS6522 {
 				interrupt_flags(0), interrupt_enable(0),
 				last_timer{0, 0}, timer_needs_reload(false) {}
 		} _registers;
+
+		// control state
+		struct {
+			bool line_one, line_two;
+		} _control_inputs[2];
 
 		// Internal state other than the registers
 		bool _timer_is_running[2];

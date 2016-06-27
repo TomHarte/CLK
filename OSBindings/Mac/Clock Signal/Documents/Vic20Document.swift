@@ -36,6 +36,20 @@ class Vic20Document: MachineDocument {
 		return "Vic20Document"
 	}
 
+	override func readFromURL(url: NSURL, ofType typeName: String) throws {
+		if let pathExtension = url.pathExtension {
+			switch pathExtension.lowercaseString {
+				case "tap":
+					vic20.openTAPAtURL(url)
+					return
+				default: break;
+			}
+		}
+
+		let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
+		try self.readFromFileWrapper(fileWrapper, ofType: typeName)
+	}
+
 	// MARK: machine setup
 	private func rom(name: String) -> NSData? {
 		return dataForResource(name, ofType: "bin", inDirectory: "ROMImages/Vic20")

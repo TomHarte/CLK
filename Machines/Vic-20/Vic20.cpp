@@ -17,6 +17,7 @@ Machine::Machine() :
 {
 	_userPortVIA.set_delegate(this);
 	_keyboardVIA.set_delegate(this);
+	_tape.set_delegate(this);
 	set_reset_line(true);
 }
 
@@ -83,6 +84,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_userPortVIA.run_for_half_cycles(2);
 	_keyboardVIA.run_for_half_cycles(2);
 	if(_typer) _typer->update(1);
+	_tape.run_for_cycles(1);
 	return 1;
 }
 
@@ -90,8 +92,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
-	set_irq_line(irq);
+//	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
+	set_nmi_line(_userPortVIA.get_interrupt_line());
+	set_irq_line(_keyboardVIA.get_interrupt_line());
 }
 
 #pragma mark - Setup
@@ -133,6 +136,19 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 		_rom = new uint8_t[length - 2];
 		memcpy(_rom, &data[2], length - 2);
 	}
+}
+
+#pragma mar - Tape
+
+void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+{
+	_tape.set_tape(tape);
+	set_typer_for_string("LOAD\n");
+}
+
+void Machine::tape_did_change_input(Tape *tape)
+{
+	_keyboardVIA.set_control_line(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Typer
@@ -248,4 +264,21 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 	}
 
 	return true;
+}
+
+#pragma mark - Tape
+
+Tape::Tape() : TapePlayer(1022727) {}
+
+void Tape::set_motor_control(bool enabled) {}
+void Tape::set_tape_output(bool set) {}
+
+void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+{
+	bool new_input_level = pulse.type == Storage::Tape::Pulse::Low;
+	if(_input_level != new_input_level)
+	{
+		_input_level = new_input_level;
+		if(_delegate) _delegate->tape_did_change_input(this);
+	}
 }
