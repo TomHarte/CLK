@@ -146,6 +146,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
 	_tape.set_tape(tape);
+	set_typer_for_string("LOAD\n");
 }
 
 void Machine::tape_did_change_input(Tape *tape)
