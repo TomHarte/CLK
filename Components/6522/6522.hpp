@@ -111,7 +111,6 @@ template <class T> class MOS6522 {
 				case 0xb: _registers.auxiliary_control = value;		break;
 				case 0xc:
 					_registers.peripheral_control = value;
-					printf("Peripheral control %02x\n", value);
 				break;
 
 				// Interrupt control
@@ -125,7 +124,6 @@ template <class T> class MOS6522 {
 					else
 						_registers.interrupt_enable &= ~value;
 					reevaluate_interrupts();
-					printf("[%p] Interrupt mask -> %02x\n", this, _registers.interrupt_enable);
 				break;
 			}
 		}
