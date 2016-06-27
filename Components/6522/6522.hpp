@@ -58,11 +58,17 @@ template <class T> class MOS6522 {
 				case 0x0:
 					_registers.output[1] = value;
 					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 				case 0xf:
 				case 0x1:
 					_registers.output[0] = value;
 					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
 //					_registers.output[0] = value;
@@ -119,7 +125,7 @@ template <class T> class MOS6522 {
 					else
 						_registers.interrupt_enable &= ~value;
 					reevaluate_interrupts();
-					printf("Interrupt mask -> %02x\n", _registers.interrupt_enable);
+					printf("[%p] Interrupt mask -> %02x\n", this, _registers.interrupt_enable);
 				break;
 			}
 		}
@@ -131,9 +137,15 @@ template <class T> class MOS6522 {
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-				case 0x0:	return get_port_input(Port::B, _registers.data_direction[1], _registers.output[1]);
+				case 0x0:
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::B, _registers.data_direction[1], _registers.output[1]);
 				case 0xf:	// TODO: handshake, latching
-				case 0x1:	return get_port_input(Port::A, _registers.data_direction[0], _registers.output[0]);
+				case 0x1:
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::A, _registers.data_direction[0], _registers.output[0]);
 
 				case 0x2:	return _registers.data_direction[1];
 				case 0x3:	return _registers.data_direction[0];

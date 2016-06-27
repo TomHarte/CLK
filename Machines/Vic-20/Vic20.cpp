@@ -19,6 +19,9 @@ Machine::Machine() :
 	_keyboardVIA.set_delegate(this);
 	_tape.set_delegate(this);
 	set_reset_line(true);
+
+	printf("User port: %p\n", &_userPortVIA);
+	printf("Keyboard: %p\n", &_keyboardVIA);
 }
 
 Machine::~Machine()
