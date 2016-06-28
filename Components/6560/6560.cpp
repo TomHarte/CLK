@@ -60,6 +60,7 @@ void MOS6560::set_output_mode(OutputMode output_mode)
 			chrominances = pal_chrominances;
 			display_type = Outputs::CRT::PAL50;
 			_timing.cycles_per_line = 71;
+			_timing.line_counter_increment_offset = 0;
 			_timing.lines_per_progressive_field = 312;
 			_timing.supports_interlacing = false;
 		break;
@@ -68,6 +69,7 @@ void MOS6560::set_output_mode(OutputMode output_mode)
 			chrominances = ntsc_chrominances;
 			display_type = Outputs::CRT::NTSC60;
 			_timing.cycles_per_line = 65;
+			_timing.line_counter_increment_offset = 65 - 36;	// TODO: 36 is from memory; need to look up.
 			_timing.lines_per_progressive_field = 261;
 			_timing.supports_interlacing = true;
 		break;
@@ -147,11 +149,12 @@ void MOS6560::set_register(int address, uint8_t value)
 uint8_t MOS6560::get_register(int address)
 {
 	address &= 0xf;
+	int current_line = (_full_frame_counter + _timing.line_counter_increment_offset) / _timing.cycles_per_line;
 	switch(address)
 	{
 		default: return _registers.direct_values[address];
-		case 0x03: return (uint8_t)(_vertical_counter << 7) | (_registers.direct_values[3] & 0x7f);
-		case 0x04: return (_vertical_counter >> 1) & 0xff;
+		case 0x03: return (uint8_t)(current_line << 7) | (_registers.direct_values[3] & 0x7f);
+		case 0x04: return (current_line >> 1) & 0xff;
 	}
 }
 
@@ -172,6 +175,7 @@ uint16_t MOS6560::get_address()
 
 	// keep track of internal time relative to this scanline
 	_horizontal_counter++;
+	_full_frame_counter++;
 	if(_horizontal_counter == _timing.cycles_per_line)
 	{
 		if(_horizontal_drawing_latch)
@@ -197,6 +201,7 @@ uint16_t MOS6560::get_address()
 		if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : _timing.lines_per_progressive_field))
 		{
 			_vertical_counter = 0;
+			_full_frame_counter = 0;
 
 			_is_odd_frame ^= true;
 			_current_row = 0;
