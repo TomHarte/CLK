@@ -455,11 +455,17 @@ template <class T> class Processor {
 
 		int _cycles_left_to_run;
 
-		bool _ready_line_is_enabled;
-		bool _reset_line_is_enabled;
-		bool _irq_line_is_enabled, _irq_request_history[2];
-		bool _nmi_line_is_enabled;
+		enum InterruptRequestFlags: uint8_t {
+			Reset		= 0x80,
+			IRQ			= 0x40,
+			NMI			= 0x20,
+		};
+		uint8_t _interrupt_requests;
+
 		bool _ready_is_active;
+		bool _ready_line_is_enabled;
+
+		bool _irq_line_is_enabled, _irq_request_history;
 
 		/*!
 			Gets the program representing an RST response.
@@ -528,8 +534,8 @@ template <class T> class Processor {
 			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
 			_interruptFlag(Flag::Interrupt),
 			_s(0),
-			_nextBusOperation(BusOperation::None)
-
+			_nextBusOperation(BusOperation::None),
+			_interrupt_requests(0)
 		{
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
@@ -576,13 +582,15 @@ template <class T> class Processor {
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
 		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
-		if(_reset_line_is_enabled) {\
-			schedule_program(get_reset_program());\
-		} else if(_nmi_line_is_enabled) {\
-			_nmi_line_is_enabled = false;\
-			schedule_program(get_nmi_program());\
-		} else if(_irq_request_history[0]) {\
-			schedule_program(get_irq_program());\
+		if(_interrupt_requests) {\
+			if(_interrupt_requests & InterruptRequestFlags::Reset) {\
+				schedule_program(get_reset_program());\
+			} else if(_interrupt_requests & InterruptRequestFlags::NMI) {\
+				_interrupt_requests &= ~InterruptRequestFlags::NMI;\
+				schedule_program(get_nmi_program());\
+			} else if(_interrupt_requests & InterruptRequestFlags::IRQ) {\
+				schedule_program(get_irq_program());\
+			} \
 		} else {\
 			schedule_program(fetch_decode_execute);\
 		}\
@@ -602,8 +610,8 @@ template <class T> class Processor {
 				while (!_ready_is_active && number_of_cycles > 0) {
 
 					if(nextBusOperation != BusOperation::None) {
-						_irq_request_history[0] = _irq_request_history[1];
-						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
+						_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);
+						_irq_request_history = _irq_line_is_enabled && !_interruptFlag;
 						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
 						nextBusOperation = BusOperation::None;
 					}
@@ -1171,7 +1179,7 @@ template <class T> class Processor {
 		*/
 		inline void set_reset_line(bool active)
 		{
-			_reset_line_is_enabled = active;
+			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 		}
 
 		/*!
@@ -1181,7 +1189,7 @@ template <class T> class Processor {
 		*/
 		inline bool get_reset_line()
 		{
-			return _reset_line_is_enabled;
+			return !!(_interrupt_requests & InterruptRequestFlags::Reset);
 		}
 
 		/*!
@@ -1202,7 +1210,7 @@ template <class T> class Processor {
 		inline void set_nmi_line(bool active)
 		{
 			// NMI is edge triggered, not level
-			_nmi_line_is_enabled |= active;
+			_interrupt_requests |= (active ? InterruptRequestFlags::NMI : 0);
 		}
 
 		/*!
