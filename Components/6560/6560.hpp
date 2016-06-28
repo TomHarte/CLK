@@ -104,7 +104,7 @@ class MOS6560 {
 		unsigned int _cycles_in_state;
 
 		// counters that cover an entire field
-		int _horizontal_counter, _vertical_counter;
+		int _horizontal_counter, _vertical_counter, _full_frame_counter;
 
 		// latches dictating start and length of drawing
 		bool _vertical_drawing_latch, _horizontal_drawing_latch;
@@ -129,6 +129,7 @@ class MOS6560 {
 
 		struct {
 			int cycles_per_line;
+			int line_counter_increment_offset;
 			int lines_per_progressive_field;
 			bool supports_interlacing;
 		} _timing;
