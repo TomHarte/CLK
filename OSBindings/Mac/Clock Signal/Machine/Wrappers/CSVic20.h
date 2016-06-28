@@ -8,8 +8,9 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
+#import "CSCommonOptions.h"
 
-@interface CSVic20 : CSMachine <CSKeyboardMachine>
+@interface CSVic20 : CSMachine <CSKeyboardMachine, CSCommonOptions>
 
 - (void)setKernelROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
@@ -17,5 +18,7 @@
 
 - (void)setPRG:(nonnull NSData *)prg;
 - (BOOL)openTAPAtURL:(nonnull NSURL *)URL;
+
+@property (nonatomic, assign) BOOL useFastLoadingHack;
 
 @end

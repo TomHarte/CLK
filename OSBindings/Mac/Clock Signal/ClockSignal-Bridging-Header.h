@@ -4,6 +4,7 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
+#import "CSCommonOptions.h"
 
 #import "CSAtari2600.h"
 #import "CSElectron.h"

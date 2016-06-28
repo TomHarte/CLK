@@ -17,6 +17,11 @@ class ElectronDocument: MachineDocument {
 			return electron
 		}
 	}
+	override var name: String! {
+		get {
+			return "electron"
+		}
+	}
 
 	override func aspectRatio() -> NSSize {
 		return NSSize(width: 11.0, height: 10.0)
@@ -33,8 +38,6 @@ class ElectronDocument: MachineDocument {
 			self.electron.setOSROM(os)
 			self.electron.setBASICROM(basic)
 		}
-
-		establishStoredOptions()
 	}
 
 	override var windowNibName: String? {
@@ -69,24 +72,13 @@ class ElectronDocument: MachineDocument {
 		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
 
-	@IBOutlet var fastLoadingButton: NSButton!
-	@IBAction func setFastLoading(sender: NSButton!) {
-		electron.useFastLoadingHack = sender.state == NSOnState
-		NSUserDefaults.standardUserDefaults().setBool(electron.useFastLoadingHack, forKey: self.fastLoadingUserDefaultsKey)
-	}
-
 	private let displayTypeUserDefaultsKey = "electron.displayType"
-	private let fastLoadingUserDefaultsKey = "electron.fastLoading"
-	private func establishStoredOptions() {
+	override func establishStoredOptions() {
+		super.establishStoredOptions()
 		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
 		standardUserDefaults.registerDefaults([
 			displayTypeUserDefaultsKey: 0,
-			fastLoadingUserDefaultsKey: true
 		])
-
-		let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
-		electron.useFastLoadingHack = useFastLoadingHack
-		self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
 
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)

@@ -30,6 +30,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	set_reset_line(false);
 
+	// test for PC at F92F
+	if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
+	{
+		// advance time on the tape and the VIAs until an interrupt is signalled
+		while(!_userPortVIA.get_interrupt_line() && !_keyboardVIA.get_interrupt_line())
+		{
+			_userPortVIA.run_for_half_cycles(2);
+			_keyboardVIA.run_for_half_cycles(2);
+			_tape.run_for_cycles(1);
+		}
+	}
+
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();
 	uint8_t video_value = 0xff; // TODO
@@ -92,7 +104,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-//	bool irq = _userPortVIA.get_interrupt_line() || _keyboardVIA.get_interrupt_line();
 	set_nmi_line(_userPortVIA.get_interrupt_line());
 	set_irq_line(_keyboardVIA.get_interrupt_line());
 }

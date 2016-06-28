@@ -16,6 +16,11 @@ class Vic20Document: MachineDocument {
 			return vic20
 		}
 	}
+	override var name: String! {
+		get {
+			return "vic20"
+		}
+	}
 
 	// MARK: NSDocument overrides
 	override init() {
