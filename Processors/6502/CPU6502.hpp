@@ -120,7 +120,9 @@ template <class T> class Processor {
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
-			OperationSetFlagsFromA,						CycleReadRSTLow,					CycleReadRSTHigh,						CycleScheduleJam
+			OperationSetFlagsFromA,
+			CycleReadRSTLow,							CycleReadRSTHigh,					CycleReadNMILow,						CycleReadNMIHigh,
+			CycleScheduleJam
 		};
 
 #define JAM {CycleFetchOperand, CycleScheduleJam, OperationMoveToNextProgram}
@@ -496,6 +498,24 @@ template <class T> class Processor {
 			return reset;
 		}
 
+		/*!
+			Gets the program representing an NMI response.
+
+			@returns The program representing an NMI response.
+		*/
+		inline const MicroOp *get_nmi_program() {
+			static const MicroOp reset[] = {
+				CyclePushPCH,
+				CyclePushPCL,
+				OperationSetOperandFromFlags,
+				CyclePushOperand,
+				CycleReadNMILow,
+				CycleReadNMIHigh,
+				OperationMoveToNextProgram
+			};
+			return reset;
+		}
+
 	protected:
 		Processor() :
 			_scheduleProgramsReadPointer(0),
@@ -558,11 +578,13 @@ template <class T> class Processor {
 		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
 		if(_reset_line_is_enabled) {\
 			schedule_program(get_reset_program());\
+		} else if(_nmi_line_is_enabled) {\
+			_nmi_line_is_enabled = false;\
+			schedule_program(get_nmi_program());\
+		} else if(_irq_request_history[0]) {\
+			schedule_program(get_irq_program());\
 		} else {\
-			if(_irq_request_history[0])\
-				schedule_program(get_irq_program());\
-			else\
-				schedule_program(fetch_decode_execute);\
+			schedule_program(fetch_decode_execute);\
 		}\
 		op;\
 	}
@@ -649,6 +671,8 @@ template <class T> class Processor {
 						case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
 						case CycleReadFromPC:				throwaway_read(_pc.full);										break;
 
+						case CycleReadNMILow:				read_mem(_pc.bytes.low, 0xfffa);									break;
+						case CycleReadNMIHigh:				read_mem(_pc.bytes.high, 0xfffb);									break;
 						case CycleReadRSTLow:				read_mem(_pc.bytes.low, 0xfffc);									break;
 						case CycleReadRSTHigh:				read_mem(_pc.bytes.high, 0xfffd);									break;
 						case CycleSetIReadBRKLow:			_interruptFlag = Flag::Interrupt; read_mem(_pc.bytes.low, 0xfffe);	break;
@@ -1177,9 +1201,8 @@ template <class T> class Processor {
 		*/
 		inline void set_nmi_line(bool active)
 		{
-			// TODO: NMI is edge triggered, not level, and in any case _nmi_line_is_enabled
-			// is not honoured elsewhere. So NMI is yet to be implemented.
-			_nmi_line_is_enabled = active;
+			// NMI is edge triggered, not level
+			_nmi_line_is_enabled |= active;
 		}
 
 		/*!
