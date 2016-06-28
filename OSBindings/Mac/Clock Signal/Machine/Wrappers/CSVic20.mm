@@ -137,4 +137,11 @@
 	}
 }
 
+- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	@synchronized(self) {
+		_useFastLoadingHack = useFastLoadingHack;
+		_vic20.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
+}
+
 @end

@@ -16,6 +16,11 @@ class Atari2600Document: MachineDocument {
 			return atari2600
 		}
 	}
+	override var name: String! {
+		get {
+			return "atari2600"
+		}
+	}
 
 	// MARK: NSDocument overrides
 	override class func autosavesInPlace() -> Bool {

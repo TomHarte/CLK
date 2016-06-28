@@ -4,8 +4,9 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9532"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="Atari2600Document" customModule="Clock_Signal" customModuleProvider="target">
+        <customObject id="-2" userLabel="File's Owner" customClass="Vic20Document" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="fastLoadingButton" destination="sBT-cU-h7s" id="gWf-9E-D7l"/>
                 <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
                 <outlet property="optionsPanel" destination="ota-g7-hOL" id="zeO-di-9i3"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
@@ -48,7 +49,7 @@
             <value key="maxSize" type="size" width="200" height="83"/>
             <view key="contentView" id="7Pv-WL-2Rq">
                 <rect key="frame" x="0.0" y="0.0" width="200" height="83"/>
-                <autoresizingMask key="autoresizingMask"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="sBT-cU-h7s">
                         <rect key="frame" x="18" y="47" width="164" height="18"/>
@@ -56,10 +57,13 @@
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
+                        <connections>
+                            <action selector="setFastLoading:" target="-2" id="ctR-h1-CYI"/>
+                        </connections>
                     </button>
                     <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MlB-rE-TXV">
                         <rect key="frame" x="18" y="17" width="165" height="26"/>
-                        <popUpButtonCell key="cell" type="push" title="Danish Machine" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="38Y-Wm-1uo" id="UIu-uz-pTu">
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="UIu-uz-pTu">
                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="menu"/>
                             <menu key="menu" id="ajo-u0-WGk">
@@ -83,7 +87,7 @@
                     <constraint firstAttribute="trailing" secondItem="MlB-rE-TXV" secondAttribute="trailing" constant="20" id="v18-62-uee"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="129" y="46.5"/>
+            <point key="canvasLocation" x="-2" y="6.5"/>
         </window>
     </objects>
 </document>

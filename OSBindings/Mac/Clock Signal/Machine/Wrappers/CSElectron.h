@@ -8,8 +8,9 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
+#import "CSCommonOptions.h"
 
-@interface CSElectron : CSMachine <CSKeyboardMachine>
+@interface CSElectron : CSMachine <CSKeyboardMachine, CSCommonOptions>
 
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;

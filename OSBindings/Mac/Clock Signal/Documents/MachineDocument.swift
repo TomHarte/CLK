@@ -25,6 +25,11 @@ class MachineDocument:
 			return nil
 		}
 	}
+	var name: String! {
+		get {
+			return nil
+		}
+	}
 
 	func aspectRatio() -> NSSize {
 		return NSSize(width: 4.0, height: 3.0)
@@ -61,6 +66,7 @@ class MachineDocument:
 
 		setupClockRate()
 		self.machine.delegate = self
+		establishStoredOptions()
 	}
 
 	func machineDidChangeClockRate(machine: CSMachine!) {
@@ -166,6 +172,35 @@ class MachineDocument:
 			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
 			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
 			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
+		}
+	}
+
+	// MARK: IBActions
+	var fastLoadingUserDefaultsKey: String {
+		get {
+			return "\(self.name).fastLoading"
+		}
+	}
+
+	@IBOutlet var fastLoadingButton: NSButton!
+	@IBAction func setFastLoading(sender: NSButton!) {
+		if let commonOptionsMachine = machine as? CSCommonOptions {
+			let useFastLoadingHack = sender.state == NSOnState
+			commonOptionsMachine.useFastLoadingHack = useFastLoadingHack
+			NSUserDefaults.standardUserDefaults().setBool(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
+		}
+	}
+
+	func establishStoredOptions() {
+		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
+		standardUserDefaults.registerDefaults([
+			fastLoadingUserDefaultsKey: true
+		])
+
+		if let commonOptionsMachine = machine as? CSCommonOptions {
+			let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
+			commonOptionsMachine.useFastLoadingHack = useFastLoadingHack
+			self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
 		}
 	}
 }

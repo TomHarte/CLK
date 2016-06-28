@@ -143,6 +143,8 @@ class Machine:
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA.set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA.clear_all_keys(); }
 
+		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void synchronise() { _mos6560->synchronise(); }
@@ -199,7 +201,10 @@ class Machine:
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 		UserPortVIA _userPortVIA;
 		KeyboardVIA _keyboardVIA;
+
+		// Tape
 		Tape _tape;
+		bool _use_fast_tape_hack;
 };
 
 }
