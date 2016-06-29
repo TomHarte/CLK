@@ -18,7 +18,6 @@ Machine::Machine() :
 	_userPortVIA.set_delegate(this);
 	_keyboardVIA.set_delegate(this);
 	_tape.set_delegate(this);
-	set_reset_line(true);
 }
 
 Machine::~Machine()
@@ -28,8 +27,6 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	set_reset_line(false);
-
 	// test for PC at F92F
 	if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 	{

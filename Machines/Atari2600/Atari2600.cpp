@@ -28,7 +28,6 @@ Machine::Machine() :
 	_is_pal_region(false)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
-	set_reset_line(true);
 	setup_reported_collisions();
 
 	for(int vbextend = 0; vbextend < 2; vbextend++)
@@ -414,8 +413,6 @@ void Machine::output_pixels(unsigned int count)
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	set_reset_line(false);
-
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 3;
 

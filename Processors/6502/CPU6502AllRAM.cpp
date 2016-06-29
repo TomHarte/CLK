@@ -16,6 +16,7 @@ AllRAMProcessor::AllRAMProcessor() : _timestamp(0) {}
 
 int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	set_power_on(false);
 	_timestamp++;
 
 	if(isReadOperation(operation)) {

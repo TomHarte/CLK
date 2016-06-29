@@ -69,7 +69,7 @@ void MOS6560::set_output_mode(OutputMode output_mode)
 			chrominances = ntsc_chrominances;
 			display_type = Outputs::CRT::NTSC60;
 			_timing.cycles_per_line = 65;
-			_timing.line_counter_increment_offset = 65 - 36;	// TODO: 36 is from memory; need to look up.
+			_timing.line_counter_increment_offset = 65 - 33;	// TODO: this is a bit of a hack; separate vertical and horizontal counting
 			_timing.lines_per_progressive_field = 261;
 			_timing.supports_interlacing = true;
 		break;

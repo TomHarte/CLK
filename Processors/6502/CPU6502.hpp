@@ -459,6 +459,8 @@ template <class T> class Processor {
 			Reset		= 0x80,
 			IRQ			= 0x40,
 			NMI			= 0x20,
+
+			PowerOn		= 0x10,
 		};
 		uint8_t _interrupt_requests;
 
@@ -539,7 +541,7 @@ template <class T> class Processor {
 			_interruptFlag(Flag::Interrupt),
 			_s(0),
 			_nextBusOperation(BusOperation::None),
-			_interrupt_requests(0)
+			_interrupt_requests(InterruptRequestFlags::PowerOn)
 		{
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
@@ -587,7 +589,8 @@ template <class T> class Processor {
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
 		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
 		if(_interrupt_requests) {\
-			if(_interrupt_requests & InterruptRequestFlags::Reset) {\
+			if(_interrupt_requests & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
+				_interrupt_requests &= ~InterruptRequestFlags::PowerOn;\
 				schedule_program(get_reset_program());\
 			} else if(_interrupt_requests & InterruptRequestFlags::NMI) {\
 				_interrupt_requests &= ~InterruptRequestFlags::NMI;\
@@ -1194,6 +1197,15 @@ template <class T> class Processor {
 		inline bool get_reset_line()
 		{
 			return !!(_interrupt_requests & InterruptRequestFlags::Reset);
+		}
+
+		/*!
+			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
+			reset at the first opportunity. Use @c set_power_on to disable that behaviour.
+		*/
+		inline void set_power_on(bool active)
+		{
+			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::PowerOn) | (active ? InterruptRequestFlags::PowerOn : 0);
 		}
 
 		/*!
