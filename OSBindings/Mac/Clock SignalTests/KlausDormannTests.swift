@@ -47,6 +47,7 @@ class KlausDormannTests: XCTestCase {
 					if newPC == oldPC {
 						let error = errorForTrapAddress(oldPC)
 						XCTAssert(error == nil, "Failed with error \(error)")
+						return
 					}
 				}
 			}

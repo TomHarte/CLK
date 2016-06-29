@@ -12,11 +12,13 @@
 
 using namespace CPU6502;
 
-AllRAMProcessor::AllRAMProcessor() : _timestamp(0) {}
+AllRAMProcessor::AllRAMProcessor() : _timestamp(0)
+{
+	set_power_on(false);
+}
 
 int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	set_power_on(false);
 	_timestamp++;
 
 	if(isReadOperation(operation)) {
