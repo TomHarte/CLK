@@ -493,6 +493,8 @@ template <class T> class Processor {
 		*/
 		inline const MicroOp *get_irq_program() {
 			static const MicroOp reset[] = {
+				CycleFetchOperand,
+				CycleFetchOperand,
 				CyclePushPCH,
 				CyclePushPCL,
 				OperationSetOperandFromFlags,
@@ -511,6 +513,8 @@ template <class T> class Processor {
 		*/
 		inline const MicroOp *get_nmi_program() {
 			static const MicroOp reset[] = {
+				CycleFetchOperand,
+				CycleFetchOperand,
 				CyclePushPCH,
 				CyclePushPCL,
 				OperationSetOperandFromFlags,

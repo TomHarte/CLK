@@ -41,5 +41,7 @@ extern const uint8_t CSTestMachineJamOpcode;
 @property (nonatomic, readonly) BOOL isJammed;
 @property (nonatomic, readonly) uint32_t timestamp;
 @property (nonatomic, weak) id <CSTestMachineJamHandler> jamHandler;
+@property (nonatomic, assign) BOOL irqLine;
+@property (nonatomic, assign) BOOL nmiLine;
 
 @end

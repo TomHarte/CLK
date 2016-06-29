@@ -9,7 +9,7 @@
 import Foundation
 import XCTest
 
-class TimingTests: XCTestCase, CSTestMachineJamHandler {
+class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 
 	private var endTime: UInt32 = 0
 
