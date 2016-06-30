@@ -192,7 +192,13 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	if(_fence != nullptr)
 	{
-		glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+		// if the GPU is still busy, don't wait; we'll catch it next time
+		if(glClientWaitSync(_fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED)
+		{
+			_draw_mutex->unlock();
+			return;
+		}
+
 		glDeleteSync(_fence);
 	}
 
