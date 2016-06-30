@@ -163,6 +163,7 @@ void MOS6560::output_border(unsigned int number_of_cycles)
 	uint8_t *colour_pointer = _crt->allocate_write_area(1);
 	if(colour_pointer) *colour_pointer = _registers.borderColour;
 	_crt->output_level(number_of_cycles);
+//	_crt->output_blank(number_of_cycles);
 }
 
 uint16_t MOS6560::get_address()
