@@ -129,14 +129,17 @@ void MOS6560::set_register(int address, uint8_t value)
 		break;
 
 		case 0xf:
-			if(_this_state == State::Border)
+		{
+			uint8_t new_border_colour = _colours[value & 0x07];
+			if(_this_state == State::Border && new_border_colour != _registers.borderColour)
 			{
 				output_border(_cycles_in_state * 4);
 				_cycles_in_state = 0;
 			}
 			_registers.invertedCells = !((value >> 3)&1);
-			_registers.borderColour = _colours[value & 0x07];
+			_registers.borderColour = new_border_colour;
 			_registers.backgroundColour = _colours[value >> 4];
+		}
 		break;
 
 		// TODO: the lightpen, etc
