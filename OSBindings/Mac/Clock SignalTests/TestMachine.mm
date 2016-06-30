@@ -99,4 +99,14 @@ class MachineJamHandler: public CPU6502::AllRAMProcessor::JamHandler {
 	return _processor.get_timestamp();
 }
 
+- (void)setIrqLine:(BOOL)irqLine {
+	_irqLine = irqLine;
+	_processor.set_irq_line(irqLine);
+}
+
+- (void)setNmiLine:(BOOL)nmiLine {
+	_nmiLine = nmiLine;
+	_processor.set_nmi_line(nmiLine);
+}
+
 @end

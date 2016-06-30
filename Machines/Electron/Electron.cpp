@@ -55,7 +55,6 @@ Machine::Machine() :
 		memset(_roms[c], 0xff, 16384);
 
 	_tape.set_delegate(this);
-	set_reset_line(true);
 }
 
 void Machine::setup_output(float aspect_ratio)
@@ -86,7 +85,6 @@ void Machine::close_output()
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	unsigned int cycles = 1;
-	set_reset_line(false);
 
 	if(address < 0x8000)
 	{
