@@ -95,6 +95,7 @@ template <class T> class Processor {
 			CycleSetIReadBRKLow,						CycleReadBRKHigh,
 			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CycleNoWritePush,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
@@ -478,9 +479,9 @@ template <class T> class Processor {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
 				CycleFetchOperand,
-				CyclePullOperand,
-				CyclePullOperand,
-				CyclePullOperand,
+				CycleNoWritePush,
+				CycleNoWritePush,
+				CycleNoWritePush,
 				CycleReadRSTLow,
 				CycleReadRSTHigh,
 				OperationMoveToNextProgram
@@ -680,6 +681,12 @@ template <class T> class Processor {
 						case CyclePushPCL:					push(_pc.bytes.low);											break;
 						case CyclePushOperand:				push(_operand);													break;
 						case CyclePushA:					push(_a);														break;
+						case CycleNoWritePush:
+						{
+							uint16_t targetAddress = _s | 0x100; _s--;
+							read_mem(_operand, targetAddress);
+						}
+						break;
 
 #undef push
 
