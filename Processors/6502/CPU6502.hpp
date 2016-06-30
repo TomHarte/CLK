@@ -92,7 +92,11 @@ template <class T> class Processor {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			CycleSetIReadBRKLow,						CycleReadBRKHigh,
+			OperationSetI,
+
+			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
+			CycleReadVectorLow,							CycleReadVectorHigh,
+
 			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
 			CycleNoWritePush,
@@ -122,7 +126,6 @@ template <class T> class Processor {
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
 			OperationSetFlagsFromA,
-			CycleReadRSTLow,							CycleReadRSTHigh,					CycleReadNMILow,						CycleReadNMIHigh,
 			CycleScheduleJam
 		};
 
@@ -272,7 +275,7 @@ template <class T> class Processor {
 
 			static const MicroOp operations[256][10] = {
 
-			/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, CycleSetIReadBRKLow, CycleReadBRKHigh),
+			/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 			/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 			/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
 			/* 0x04 NOP zpg */		ZeroNop(),																/* 0x05 ORA zpg */		ZeroRead(OperationORA),
@@ -481,9 +484,10 @@ template <class T> class Processor {
 				CycleFetchOperand,
 				CycleNoWritePush,
 				CycleNoWritePush,
+				OperationRSTPickVector,
 				CycleNoWritePush,
-				CycleReadRSTLow,
-				CycleReadRSTHigh,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
 				OperationMoveToNextProgram
 			};
 			return reset;
@@ -500,10 +504,12 @@ template <class T> class Processor {
 				CycleFetchOperand,
 				CyclePushPCH,
 				CyclePushPCL,
+				OperationBRKPickVector,
 				OperationSetOperandFromFlags,
 				CyclePushOperand,
-				CycleSetIReadBRKLow,
-				CycleReadBRKHigh,
+				OperationSetI,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
 				OperationMoveToNextProgram
 			};
 			return reset;
@@ -520,10 +526,11 @@ template <class T> class Processor {
 				CycleFetchOperand,
 				CyclePushPCH,
 				CyclePushPCL,
+				OperationNMIPickVector,
 				OperationSetOperandFromFlags,
 				CyclePushOperand,
-				CycleReadNMILow,
-				CycleReadNMIHigh,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
 				OperationMoveToNextProgram
 			};
 			return reset;
@@ -693,12 +700,16 @@ template <class T> class Processor {
 						case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
 						case CycleReadFromPC:				throwaway_read(_pc.full);										break;
 
-						case CycleReadNMILow:				read_mem(_pc.bytes.low, 0xfffa);									break;
-						case CycleReadNMIHigh:				read_mem(_pc.bytes.high, 0xfffb);									break;
-						case CycleReadRSTLow:				read_mem(_pc.bytes.low, 0xfffc);									break;
-						case CycleReadRSTHigh:				read_mem(_pc.bytes.high, 0xfffd);									break;
-						case CycleSetIReadBRKLow:			_interruptFlag = Flag::Interrupt; read_mem(_pc.bytes.low, 0xfffe);	break;
-						case CycleReadBRKHigh:				read_mem(_pc.bytes.high, 0xffff);									break;
+						case OperationBRKPickVector:
+							// NMI can usurp BRK-vector operations
+							nextAddress.full = (_interrupt_requests & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
+							_interrupt_requests &= ~InterruptRequestFlags::NMI;	// TODO: this probably doesn't happen now?
+						break;
+						case OperationNMIPickVector:		nextAddress.full = 0xfffa;											break;
+						case OperationRSTPickVector:		nextAddress.full = 0xfffc;											break;
+						case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							break;
+						case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						break;
+						case OperationSetI:					_interruptFlag = Flag::Interrupt;									break;
 
 						case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
 						case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
