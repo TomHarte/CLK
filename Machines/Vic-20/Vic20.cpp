@@ -37,11 +37,6 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
-//			if(address >= 0x9400 && address < 0x9800) return &_colorMemory[address&0x03ff];	// TODO: make this 4-bit
-//			else if(address >= 0x8000 && address < 0x9000) return _characterROM[address&0x0fff];
-//			else if(address >= 0xc000 && address < 0xe000) return _basicROM[address&0x1fff];
-//			else if(address >= 0xe000) return _kernelROM[address&0x1fff];
-//			else if(address >= _rom_address && address < _rom_address+_rom_length) return _rom[address - _rom_address];
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)

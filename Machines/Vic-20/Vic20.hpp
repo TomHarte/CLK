@@ -199,23 +199,6 @@ class Machine:
 		uint8_t *_processorWriteMemoryMap[64];
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
-		inline uint8_t *ram_pointer(uint16_t address) {
-			if(address < sizeof(_userBASICMemory)) return &_userBASICMemory[address];
-			if(address >= 0x1000 && address < 0x2000) return &_screenMemory[address&0x0fff];
-			if(address >= 0x9400 && address < 0x9800) return &_colorMemory[address&0x03ff];	// TODO: make this 4-bit
-			return nullptr;
-		}
-
-		inline uint8_t read_memory(uint16_t address) {
-			uint8_t *ram = ram_pointer(address);
-			if(ram) return *ram;
-			else if(address >= 0x8000 && address < 0x9000) return _characterROM[address&0x0fff];
-			else if(address >= 0xc000 && address < 0xe000) return _basicROM[address&0x1fff];
-			else if(address >= 0xe000) return _kernelROM[address&0x1fff];
-			else if(address >= _rom_address && address < _rom_address+_rom_length) return _rom[address - _rom_address];
-			return 0xff;
-		}
-
 		std::unique_ptr<MOS::MOS6560> _mos6560;
 		UserPortVIA _userPortVIA;
 		KeyboardVIA _keyboardVIA;
