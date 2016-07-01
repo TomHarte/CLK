@@ -108,9 +108,24 @@ template <class T> class MOS6522 {
 				case 0xa:	_registers.shift = value;				break;
 
 				// Control
-				case 0xb: _registers.auxiliary_control = value;		break;
+				case 0xb:
+					_registers.auxiliary_control = value;
+				break;
 				case 0xc:
+					printf("Peripheral control %02x\n", value);
 					_registers.peripheral_control = value;
+					switch(value & 0x0e)
+					{
+						default: break;
+						case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
+						case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
+					}
+					switch(value & 0xe0)
+					{
+						default: break;
+						case 0xc0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, false);		break;
+						case 0xe0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, true);		break;
+					}
 				break;
 
 				// Interrupt control
@@ -176,7 +191,7 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		inline void set_control_line(Port port, Line line, bool value)
+		inline void set_control_line_input(Port port, Line line, bool value)
 		{
 			switch(line)
 			{
@@ -270,6 +285,7 @@ template <class T> class MOS6522 {
 		uint8_t get_port_input(Port port)										{	return 0xff;	}
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
 		bool get_control_line(Port port, Line line)								{	return true;	}
+		void set_control_line_output(Port port, Line line, bool value)			{}
 //		void set_interrupt_status(bool status)			{}
 
 		// Input/output multiplexer

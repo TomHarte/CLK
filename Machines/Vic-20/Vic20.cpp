@@ -18,7 +18,44 @@ Machine::Machine() :
 	_userPortVIA.set_delegate(this);
 	_keyboardVIA.set_delegate(this);
 	_tape.set_delegate(this);
+
+	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
+	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
+	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
+
+	write_to_map(_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
+	write_to_map(_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
+	write_to_map(_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
+
+	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
+	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
+	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+	write_to_map(_processorReadMemoryMap, _characterROM, 0x8000, sizeof(_characterROM));
+	write_to_map(_processorReadMemoryMap, _basicROM, 0xc000, sizeof(_basicROM));
+	write_to_map(_processorReadMemoryMap, _kernelROM, 0xe000, sizeof(_kernelROM));
+
+	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
+	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
+	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+//			if(address >= 0x9400 && address < 0x9800) return &_colorMemory[address&0x03ff];	// TODO: make this 4-bit
+//			else if(address >= 0x8000 && address < 0x9000) return _characterROM[address&0x0fff];
+//			else if(address >= 0xc000 && address < 0xe000) return _basicROM[address&0x1fff];
+//			else if(address >= 0xe000) return _kernelROM[address&0x1fff];
+//			else if(address >= _rom_address && address < _rom_address+_rom_length) return _rom[address - _rom_address];
 }
+
+void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
+{
+	address >>= 10;
+	length >>= 10;
+	while(length--)
+	{
+		map[address] = area;
+		area += 0x400;
+		address++;
+	}
+}
+
 
 Machine::~Machine()
 {
@@ -27,66 +64,44 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	// test for PC at F92F
-	if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
-	{
-		// advance time on the tape and the VIAs until an interrupt is signalled
-		while(!_userPortVIA.get_interrupt_line() && !_keyboardVIA.get_interrupt_line())
-		{
-			_userPortVIA.run_for_half_cycles(2);
-			_keyboardVIA.run_for_half_cycles(2);
-			_tape.run_for_cycles(1);
-		}
-	}
-
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();
-	uint8_t video_value = 0xff; // TODO
-	if(!(video_address&0x2000))
-	{
-		video_value = _characterROM[video_address & 0x0fff];
-	}
-	else
-	{
-		video_address &= 0x1fff;
-		if(video_address < sizeof(_userBASICMemory)) video_value = _userBASICMemory[video_address];
-		else if(video_address >= 0x1000 && video_address < 0x2000) video_value = _screenMemory[video_address&0x0fff];
-	}
+	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO
 	_mos6560->set_graphics_value(video_value, _colorMemory[video_address & 0x03ff]);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
 	{
-		uint8_t result = read_memory(address);
-		if((address&0xff00) == 0x9000)
+		uint8_t result = _processorReadMemoryMap[address >> 10] ? _processorReadMemoryMap[address >> 10][address & 0x3ff] : 0xff;
+		if((address&0xfc00) == 0x9000)
 		{
-			result &= _mos6560->get_register(address);
-		}
-		if((address&0xfc10) == 0x9010)
-		{
-			result &= _userPortVIA.get_register(address);
-		}
-		if((address&0xfc20) == 0x9020)
-		{
-			result &= _keyboardVIA.get_register(address);
+			if((address&0xff00) == 0x9000)	result &= _mos6560->get_register(address);
+			if((address&0xfc10) == 0x9010)	result &= _userPortVIA.get_register(address);
+			if((address&0xfc20) == 0x9020)	result &= _keyboardVIA.get_register(address);
 		}
 		*value = result;
+
+		// test for PC at F92F
+		if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			// advance time on the tape and the VIAs until an interrupt is signalled
+			while(!_userPortVIA.get_interrupt_line() && !_keyboardVIA.get_interrupt_line())
+			{
+				_userPortVIA.run_for_half_cycles(2);
+				_keyboardVIA.run_for_half_cycles(2);
+				_tape.run_for_cycles(1);
+			}
+		}
 	}
 	else
 	{
-		uint8_t *ram = ram_pointer(address);
-		if(ram) *ram = *value;
-		if((address&0xff00) == 0x9000)
+		uint8_t *ram = _processorWriteMemoryMap[address >> 10];
+		if(ram) ram[address & 0x3ff] = *value;
+		if((address&0xfc00) == 0x9000)
 		{
-			_mos6560->set_register(address, *value);
-		}
-		if((address&0xfc10) == 0x9010)
-		{
-			_userPortVIA.set_register(address, *value);
-		}
-		if((address&0xfc20) == 0x9020)
-		{
-			_keyboardVIA.set_register(address, *value);
+			if((address&0xff00) == 0x9000)	_mos6560->set_register(address, *value);
+			if((address&0xfc10) == 0x9010)	_userPortVIA.set_register(address, *value);
+			if((address&0xfc20) == 0x9020)	_keyboardVIA.set_register(address, *value);
 		}
 	}
 
@@ -143,6 +158,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 
 		_rom = new uint8_t[length - 2];
 		memcpy(_rom, &data[2], length - 2);
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
 	}
 }
 
@@ -156,7 +172,7 @@ void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 
 void Machine::tape_did_change_input(Tape *tape)
 {
-	_keyboardVIA.set_control_line(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
+	_keyboardVIA.set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Typer

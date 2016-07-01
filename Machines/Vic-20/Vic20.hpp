@@ -57,6 +57,12 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 			}
 			return 0xff;
 		}
+
+		void set_control_line_output(Port port, Line line, bool value) {
+			if(port == Port::A && line == Line::Two) {
+				printf("Tape motor %s\n", value ? "on" : "off");
+			}
+		}
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
@@ -94,6 +100,12 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
 			if(port)
 				_activation_mask = (value & mask) | (~mask);
+		}
+
+		void set_control_line_output(Port port, Line line, bool value) {
+			if(port == Port::A && line == Line::Two) {
+				printf("Blah Tape motor %s\n", value ? "on" : "off");
+			}
 		}
 
 	private:
@@ -180,6 +192,12 @@ class Machine:
 		uint8_t _userBASICMemory[0x0400];
 		uint8_t _screenMemory[0x1000];
 		uint8_t _colorMemory[0x0400];
+		uint8_t _junkMemory[0x0400];
+
+		uint8_t *_videoMemoryMap[16];
+		uint8_t *_processorReadMemoryMap[64];
+		uint8_t *_processorWriteMemoryMap[64];
+		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
 		inline uint8_t *ram_pointer(uint16_t address) {
 			if(address < sizeof(_userBASICMemory)) return &_userBASICMemory[address];
