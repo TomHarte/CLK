@@ -63,7 +63,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		Outputs::Speaker *speaker = self.machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = self.machine->get_speaker();
 		if(speaker)
 		{
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
@@ -80,7 +80,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
-		Outputs::Speaker *speaker = self.machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = self.machine->get_speaker();
 		if(speaker)
 		{
 			speaker->set_output_rate(sampleRate, (int)bufferSize);

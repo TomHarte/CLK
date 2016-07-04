@@ -184,9 +184,9 @@ class MachineDocument:
 
 	@IBOutlet var fastLoadingButton: NSButton!
 	@IBAction func setFastLoading(sender: NSButton!) {
-		if let commonOptionsMachine = machine as? CSCommonOptions {
+		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = sender.state == NSOnState
-			commonOptionsMachine.useFastLoadingHack = useFastLoadingHack
+			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			NSUserDefaults.standardUserDefaults().setBool(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
 		}
 	}
@@ -197,9 +197,9 @@ class MachineDocument:
 			fastLoadingUserDefaultsKey: true
 		])
 
-		if let commonOptionsMachine = machine as? CSCommonOptions {
+		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
-			commonOptionsMachine.useFastLoadingHack = useFastLoadingHack
+			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
 		}
 	}

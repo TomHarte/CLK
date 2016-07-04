@@ -25,8 +25,8 @@ namespace MOS {
 class MOS6560 {
 	public:
 		MOS6560();
-		Outputs::CRT::CRT *get_crt() { return _crt.get(); }
-		Outputs::Speaker *get_speaker() { return &_speaker; }
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
+		std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
 
 		enum OutputMode {
 			PAL, NTSC
@@ -63,7 +63,7 @@ class MOS6560 {
 		uint8_t get_register(int address);
 
 	private:
-		std::unique_ptr<Outputs::CRT::CRT> _crt;
+		std::shared_ptr<Outputs::CRT::CRT> _crt;
 
 		// audio state
 		class Speaker: public ::Outputs::Filter<Speaker> {
@@ -81,7 +81,8 @@ class MOS6560 {
 				unsigned int _shift_registers[4];
 				uint8_t _control_registers[4];
 				uint8_t _volume;
-		} _speaker;
+		};
+		std::shared_ptr<Speaker> _speaker;
 		unsigned int _cycles_since_speaker_update;
 		void update_audio();
 

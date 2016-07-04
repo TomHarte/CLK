@@ -684,7 +684,7 @@
 		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
 		4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntermediateShader.cpp; sourceTree = "<group>"; };
 		4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IntermediateShader.hpp; sourceTree = "<group>"; };
-		4BBC34241D2208B100FFC9DF /* CSCommonOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSCommonOptions.h; sourceTree = "<group>"; };
+		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
 		4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTInputBufferBuilder.cpp; sourceTree = "<group>"; };
 		4BBF99091C8FBA6F0075DAFB /* CRTInputBufferBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTInputBufferBuilder.hpp; sourceTree = "<group>"; };
 		4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTOpenGL.cpp; sourceTree = "<group>"; };
@@ -806,7 +806,7 @@
 		4B2A53921D117D36003C6002 /* Machine */ = {
 			isa = PBXGroup;
 			children = (
-				4BBC34241D2208B100FFC9DF /* CSCommonOptions.h */,
+				4BBC34241D2208B100FFC9DF /* CSFastLoading.h */,
 				4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */,
 				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B2A53951D117D36003C6002 /* CSMachine.h */,

@@ -59,6 +59,7 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
+	_speaker.reset(new Speaker);
 	_crt.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
@@ -74,7 +75,7 @@ void Machine::setup_output(float aspect_ratio)
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
 	// run the speaker at a 2000000Hz input rate, at least for the time being.
-	_speaker.set_input_rate(2000000 / clock_rate_audio_divider);
+	_speaker->set_input_rate(2000000 / clock_rate_audio_divider);
 }
 
 void Machine::close_output()
@@ -201,7 +202,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(!isReadOperation(operation))
 						{
 							update_audio();
-							_speaker.set_divider(*value);
+							_speaker->set_divider(*value);
 							_tape.set_counter(*value);
 						}
 					break;
@@ -227,10 +228,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 							// update speaker mode
 							bool new_speaker_is_enabled = (*value & 6) == 2;
-							if(new_speaker_is_enabled != _speaker.get_is_enabled())
+							if(new_speaker_is_enabled != _speaker->get_is_enabled())
 							{
 								update_audio();
-								_speaker.set_is_enabled(new_speaker_is_enabled);
+								_speaker->set_is_enabled(new_speaker_is_enabled);
 								_tape.set_is_enabled(!new_speaker_is_enabled);
 							}
 
@@ -508,7 +509,7 @@ inline void Machine::update_audio()
 {
 	unsigned int difference = _frameCycles - _audioOutputPosition;
 	_audioOutputPosition = _frameCycles;
-	_speaker.run_for_cycles(difference / clock_rate_audio_divider);
+	_speaker->run_for_cycles(difference / clock_rate_audio_divider);
 	_audioOutputPositionError = difference % clock_rate_audio_divider;
 }
 

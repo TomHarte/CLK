@@ -56,7 +56,8 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1);
+	_speaker.reset(new Speaker);
+	_crt.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1));
 	_crt->set_output_device(Outputs::CRT::Television);
 
 	// this is the NTSC phase offset function; see below for PAL
@@ -70,7 +71,7 @@ void Machine::setup_output(float aspect_ratio)
 			"float phaseOffset = 6.283185308 * float(iPhase - 1u) / 13.0;"
 			"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 		"}");
-	_speaker.set_input_rate((float)(get_clock_rate() / 38.0));
+	_speaker->set_input_rate((float)(get_clock_rate() / 38.0));
 }
 
 void Machine::switch_region()
@@ -92,15 +93,14 @@ void Machine::switch_region()
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 
 	_is_pal_region = true;
-	_speaker.set_input_rate((float)(get_clock_rate() / 38.0));
+	_speaker->set_input_rate((float)(get_clock_rate() / 38.0));
 
 	if(delegate) delegate->machine_did_change_clock_rate(this);
 }
 
 void Machine::close_output()
 {
-	delete _crt;
-	_crt = nullptr;
+	_crt.reset();
 }
 
 Machine::~Machine()
@@ -598,17 +598,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x15: case 0x16:
 						update_audio();
-						_speaker.set_control(decodedAddress - 0x15, *value);
+						_speaker->set_control(decodedAddress - 0x15, *value);
 					break;
 
 					case 0x17: case 0x18:
 						update_audio();
-						_speaker.set_divider(decodedAddress - 0x17, *value);
+						_speaker->set_divider(decodedAddress - 0x17, *value);
 					break;
 
 					case 0x19: case 0x1a:
 						update_audio();
-						_speaker.set_volume(decodedAddress - 0x19, *value);
+						_speaker->set_volume(decodedAddress - 0x19, *value);
 					break;
 
 					case 0x1c:
@@ -781,7 +781,7 @@ void Machine::update_audio()
 //		logged_time = time_now;
 //	}
 
-	_speaker.run_for_cycles(audio_cycles);
+	_speaker->run_for_cycles(audio_cycles);
 	_cycles_since_speaker_update %= 114;
 }
 
