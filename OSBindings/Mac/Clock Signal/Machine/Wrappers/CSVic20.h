@@ -8,9 +8,9 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
-#import "CSCommonOptions.h"
+#import "CSFastLoading.h"
 
-@interface CSVic20 : CSMachine <CSKeyboardMachine, CSCommonOptions>
+@interface CSVic20 : CSMachine <CSKeyboardMachine, CSFastLoading>
 
 - (void)setKernelROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
