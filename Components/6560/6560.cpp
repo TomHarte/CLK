@@ -12,6 +12,7 @@ using namespace MOS;
 
 MOS6560::MOS6560() :
 	_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
+	_speaker(new Speaker),
 	_horizontal_counter(0),
 	_vertical_counter(0),
 	_cycles_since_speaker_update(0),
@@ -34,7 +35,7 @@ MOS6560::MOS6560() :
 
 	// show only the centre
 	_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
-	_speaker.set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
+	_speaker->set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
 }
 
 void MOS6560::set_output_mode(OutputMode output_mode)
@@ -119,13 +120,13 @@ void MOS6560::set_register(int address, uint8_t value)
 		case 0xc:
 		case 0xd:
 			update_audio();
-			_speaker.set_control(address - 0xa, value);
+			_speaker->set_control(address - 0xa, value);
 		break;
 
 		case 0xe:
 			update_audio();
 			_registers.auxiliary_colour = _colours[value >> 4];
-			_speaker.set_volume(value & 0xf);
+			_speaker->set_volume(value & 0xf);
 		break;
 
 		case 0xf:
@@ -361,7 +362,7 @@ void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
 
 void MOS6560::update_audio()
 {
-	_speaker.run_for_cycles(_cycles_since_speaker_update >> 2);
+	_speaker->run_for_cycles(_cycles_since_speaker_update >> 2);
 	_cycles_since_speaker_update &= 3;
 }
 

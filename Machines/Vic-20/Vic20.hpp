@@ -168,8 +168,8 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output() {}
-		virtual Outputs::CRT::CRT *get_crt() { return _mos6560->get_crt(); }
-		virtual Outputs::Speaker *get_speaker() { return _mos6560->get_speaker(); }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _mos6560->get_crt(); }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _mos6560->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 		virtual double get_clock_rate() { return 1022727; }
 		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt

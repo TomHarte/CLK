@@ -92,8 +92,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual Outputs::CRT::CRT *get_crt() { return _crt; }
-		virtual Outputs::Speaker *get_speaker() { return &_speaker; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 		virtual double get_clock_rate();
 		// TODO: different rate for PAL
@@ -197,8 +197,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		void update_timers(int mask);
 
 		// outputs
-		Outputs::CRT::CRT *_crt;
-		Speaker _speaker;
+		std::shared_ptr<Outputs::CRT::CRT> _crt;
+		std::shared_ptr<Speaker> _speaker;
 
 		// current mode
 		bool _is_pal_region;
