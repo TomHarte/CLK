@@ -286,7 +286,7 @@ template <class T> class MOS6522 {
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
 		bool get_control_line(Port port, Line line)								{	return true;	}
 		void set_control_line_output(Port port, Line line, bool value)			{}
-//		void set_interrupt_status(bool status)			{}
+		void set_interrupt_status(bool status)			{}
 
 		// Input/output multiplexer
 		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output)

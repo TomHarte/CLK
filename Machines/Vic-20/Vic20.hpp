@@ -63,6 +63,8 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 				printf("Tape motor %s\n", value ? "on" : "off");
 			}
 		}
+
+		using MOS6522IRQDelegate::set_interrupt_status;
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
@@ -107,6 +109,8 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				printf("Blah Tape motor %s\n", value ? "on" : "off");
 			}
 		}
+
+		using MOS6522IRQDelegate::set_interrupt_status;
 
 	private:
 		uint8_t _columns[8];
