@@ -122,6 +122,11 @@ void Machine::setup_output(float aspect_ratio)
 	_mos6560.reset(new MOS::MOS6560());
 }
 
+void Machine::close_output()
+{
+	_mos6560 = nullptr;
+}
+
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 {
 	uint8_t *target = nullptr;

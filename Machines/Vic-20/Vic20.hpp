@@ -167,7 +167,7 @@ class Machine:
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
-		virtual void close_output() {}
+		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _mos6560->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _mos6560->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }

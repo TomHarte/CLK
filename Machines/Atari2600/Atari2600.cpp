@@ -100,7 +100,7 @@ void Machine::switch_region()
 
 void Machine::close_output()
 {
-	_crt.reset();
+	_crt = nullptr;
 }
 
 Machine::~Machine()
