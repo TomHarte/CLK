@@ -32,7 +32,6 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		void set_control(int channel, uint8_t control);
 
 		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
 
 	private:
 		uint8_t _volume[2];

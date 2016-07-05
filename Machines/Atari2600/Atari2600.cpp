@@ -914,7 +914,3 @@ void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *ta
 		}
 	}
 }
-
-void Atari2600::Speaker::skip_samples(unsigned int number_of_samples)
-{
-}

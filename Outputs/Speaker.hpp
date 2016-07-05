@@ -88,6 +88,12 @@ class Speaker {
 		{
 			_coefficients_are_dirty = true;
 		}
+
+		void get_samples(unsigned int quantity, int16_t *target)	{}
+		void skip_samples(unsigned int quantity) {
+			int16_t throwaway_samples[quantity];
+			get_samples(quantity, throwaway_samples);
+		}
 };
 
 /*!
