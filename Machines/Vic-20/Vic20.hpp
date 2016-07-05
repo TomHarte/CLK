@@ -49,11 +49,20 @@ enum Key: uint16_t {
 	TerminateSequence = 0,	NotMapped = 0xffff
 };
 
+enum JoystickInput {
+	Up = 0x04,
+	Down = 0x08,
+	Left = 0x10,
+	Right = 0x80,
+	Fire = 0x20
+};
+
+
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		uint8_t get_port_input(Port port) {
 			if(!port) {
-				return 0x00;	// TODO: bit 6 should be high if there is no tape, low otherwise
+				return _portA;	// TODO: bit 6 should be high if there is no tape, low otherwise
 			}
 			return 0xff;
 		}
@@ -64,12 +73,24 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 			}
 		}
 
+		void set_joystick_state(JoystickInput input, bool value) {
+			if(input != JoystickInput::Right)
+			{
+				_portA = (_portA & ~input) | (value ? 0 : input);
+			}
+		}
+
 		using MOS6522IRQDelegate::set_interrupt_status;
+
+		UserPortVIA() : _portA(0xbf) {}
+
+	private:
+		uint8_t _portA;
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
-		KeyboardVIA() {
+		KeyboardVIA() : _portB(0xff) {
 			clear_all_keys();
 		}
 
@@ -96,7 +117,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				return result;
 			}
 
-			return 0xff;
+			return _portB;
 		}
 
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
@@ -110,9 +131,17 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			}
 		}
 
+		void set_joystick_state(JoystickInput input, bool value) {
+			if(input == JoystickInput::Right)
+			{
+				_portB = (_portB & ~input) | (value ? 0 : input);
+			}
+		}
+
 		using MOS6522IRQDelegate::set_interrupt_status;
 
 	private:
+		uint8_t _portB;
 		uint8_t _columns[8];
 		uint8_t _activation_mask;
 };
@@ -158,6 +187,10 @@ class Machine:
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA.set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA.clear_all_keys(); }
+		void set_joystick_state(JoystickInput input, bool isPressed) {
+			_userPortVIA.set_joystick_state(input, isPressed);
+			_keyboardVIA.set_joystick_state(input, isPressed);
+		}
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
 
