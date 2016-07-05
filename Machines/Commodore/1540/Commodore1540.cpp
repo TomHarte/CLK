@@ -29,7 +29,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return 1;
 }
 
-void Machine::set_rom(uint8_t *rom)
+void Machine::set_rom(const uint8_t *rom)
 {
 	memcpy(_rom, rom, sizeof(_rom));
 }

@@ -21,7 +21,7 @@ class Machine:
 	public:
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
-		void set_rom(uint8_t *rom);
+		void set_rom(const uint8_t *rom);
 
 	private:
 		uint8_t _ram[0x800];

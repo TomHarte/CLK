@@ -158,6 +158,7 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
 		case BASIC:			target = _basicROM;								break;
 		case Drive:
+			if(_c1540) _c1540->set_rom(data);
 		return;
 	}
 
