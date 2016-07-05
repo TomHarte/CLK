@@ -28,7 +28,7 @@ Machine::Machine() :
 	// wire up 6522s and serial port
 	_userPortVIA->set_serial_port(_serialPort);
 	_keyboardVIA->set_serial_port(_serialPort);
-	_serialPort->set_vias(_userPortVIA, _keyboardVIA);
+	_serialPort->set_user_port_via(_userPortVIA);
 
 	// wire up the 6522s, tape and machine
 	_userPortVIA->set_delegate(this);
@@ -322,11 +322,4 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 		_input_level = new_input_level;
 		if(_delegate) _delegate->tape_did_change_input(this);
 	}
-}
-
-#pragma mark - Serial Port
-
-void SerialPort::set_input(::Commodore::Serial::Line line, bool value)
-{
-	printf("Serial port line %d: %s\n", line, value ? "on" : "off");
 }
