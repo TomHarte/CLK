@@ -17,6 +17,14 @@
 
 namespace Outputs {
 
+/*!
+	Provides the base class for an audio output source, with an input rate (the speed at which the source will
+	provide data), an output rate (the speed at which the destination will receive data), a delegate to receive
+	the output and some help for the output in picking an appropriate rate once the input rate is known.
+
+	Intended to be a parent class, allowing descendants to pick the strategy by which input samples are mapped to
+	output samples.
+*/
 class Speaker {
 	public:
 		class Delegate {
@@ -41,7 +49,7 @@ class Speaker {
 			_output_cycles_per_second = cycles_per_second;
 			if(_buffer_size != buffer_size)
 			{
-				_buffer_in_progress = std::unique_ptr<int16_t>(new int16_t[buffer_size]);
+				_buffer_in_progress.reset(new int16_t[buffer_size]);
 				_buffer_size = buffer_size;
 			}
 			set_needs_updated_filter_coefficients();
@@ -80,8 +88,25 @@ class Speaker {
 		{
 			_coefficients_are_dirty = true;
 		}
+
+		void get_samples(unsigned int quantity, int16_t *target)	{}
+		void skip_samples(unsigned int quantity)
+		{
+			int16_t throwaway_samples[quantity];
+			get_samples(quantity, throwaway_samples);
+		}
 };
 
+/*!
+	A concrete descendant of Speaker that uses a FIR filter to map from input data to output data when scaling
+	and a copy-through buffer when input and output rates are the same.
+
+	Audio sources should use @c Filter as both a template and a parent, implementing at least
+	`get_samples(unsigned int quantity, int16_t *target)` and ideally also `skip_samples(unsigned int quantity)`
+	to provide source data.
+
+	Call `run_for_cycles(n)` to request that the next n cycles of input data are collected.
+*/
 template <class T> class Filter: public Speaker {
 	public:
 		void run_for_cycles(unsigned int input_cycles)
@@ -147,7 +172,7 @@ template <class T> class Filter: public Speaker {
 						if(steps < _number_of_taps)
 						{
 							int16_t *input_buffer = _input_buffer.get();
-							memmove(input_buffer, &input_buffer[steps], sizeof(int16_t)  * ((size_t)_number_of_taps - (size_t)steps));
+							memmove(input_buffer, &input_buffer[steps], sizeof(int16_t) * ((size_t)_number_of_taps - (size_t)steps));
 							_input_buffer_depth -= steps;
 						}
 						else
@@ -189,10 +214,10 @@ template <class T> class Filter: public Speaker {
 			_coefficients_are_dirty = false;
 			_buffer_in_progress_pointer = 0;
 
-			_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
-			_filter = std::unique_ptr<SignalProcessing::FIRFilter>(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
+			_stepper.reset(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
+			_filter.reset(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
 
-			_input_buffer = std::unique_ptr<int16_t>(new int16_t[_number_of_taps]);
+			_input_buffer.reset(new int16_t[_number_of_taps]);
 			_input_buffer_depth = 0;
 		}
 };

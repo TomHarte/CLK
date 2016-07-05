@@ -14,6 +14,17 @@
 
 namespace MOS {
 
+/*!
+	Implements a template for emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
+
+	The VIA provides:
+		* two timers, each of which may trigger interrupts and one of which may repeat;
+		* two digial input/output ports; and
+		* a serial-to-parallel shifter.
+
+	Consumers should derive their own curiously-recurring-template-pattern subclass,
+	implementing bus communications as required.
+*/
 template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
@@ -27,7 +38,18 @@ template <class T> class MOS6522 {
 		};
 
 	public:
-		void set_register(int address, uint8_t value)
+		enum Port {
+			A = 0,
+			B = 1
+		};
+
+		enum Line {
+			One = 0,
+			Two = 1
+		};
+
+		/*! Sets a register value. */
+		inline void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d <- %02x\n", this, address, value);
@@ -35,12 +57,18 @@ template <class T> class MOS6522 {
 			{
 				case 0x0:
 					_registers.output[1] = value;
-					static_cast<T *>(this)->set_port_output(1, value, _registers.data_direction[1]);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 				case 0xf:
 				case 0x1:
 					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(0, value, _registers.data_direction[0]);	// TODO: handshake
+					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
+
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
 //					_registers.output[0] = value;
@@ -80,8 +108,25 @@ template <class T> class MOS6522 {
 				case 0xa:	_registers.shift = value;				break;
 
 				// Control
-				case 0xb: _registers.auxiliary_control = value;		break;
-				case 0xc: _registers.peripheral_control = value;	break;
+				case 0xb:
+					_registers.auxiliary_control = value;
+				break;
+				case 0xc:
+					printf("Peripheral control %02x\n", value);
+					_registers.peripheral_control = value;
+					switch(value & 0x0e)
+					{
+						default: break;
+						case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
+						case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
+					}
+					switch(value & 0xe0)
+					{
+						default: break;
+						case 0xc0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, false);		break;
+						case 0xe0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, true);		break;
+					}
+				break;
 
 				// Interrupt control
 				case 0xd:
@@ -98,15 +143,22 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		uint8_t get_register(int address)
+		/*! Gets a register value. */
+		inline uint8_t get_register(int address)
 		{
 			address &= 0xf;
 //			printf("6522 %p: %d\n", this, address);
 			switch(address)
 			{
-				case 0x0:	return get_port_input(1, _registers.data_direction[1], _registers.output[1]);
+				case 0x0:
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::B, _registers.data_direction[1], _registers.output[1]);
 				case 0xf:	// TODO: handshake, latching
-				case 0x1:	return get_port_input(0, _registers.data_direction[0], _registers.output[0]);
+				case 0x1:
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					reevaluate_interrupts();
+				return get_port_input(Port::A, _registers.data_direction[0], _registers.output[0]);
 
 				case 0x2:	return _registers.data_direction[1];
 				case 0x3:	return _registers.data_direction[0];
@@ -139,11 +191,38 @@ template <class T> class MOS6522 {
 			return 0xff;
 		}
 
-		void set_control_line_input(int port, int line, bool value)
+		inline void set_control_line_input(Port port, Line line, bool value)
 		{
+			switch(line)
+			{
+				case Line::One:
+					if(	value != _control_inputs[port].line_one &&
+						value == !!(_registers.peripheral_control & (port ? 0x10 : 0x01))
+					)
+					{
+						_registers.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
+						reevaluate_interrupts();
+					}
+					_control_inputs[port].line_one = value;
+				break;
+
+				case Line::Two:
+					// TODO
+				break;
+			}
 		}
 
-		void run_for_half_cycles(unsigned int number_of_cycles)
+		/*!
+			Runs for a specified number of half cycles.
+
+			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
+			1.5 cycles after the timer hits zero. It is therefore necessary to emulate at half-cycle precision.
+
+			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
+			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
+			that which occurs during phase-2.
+		*/
+		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
 			while(number_of_cycles--)
 			{
@@ -188,7 +267,8 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		bool get_interrupt_line()
+		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
+		inline bool get_interrupt_line()
 		{
 			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
 			return !!interrupt_status;
@@ -202,12 +282,14 @@ template <class T> class MOS6522 {
 
 	private:
 		// Expected to be overridden
-		uint8_t get_port_input(int port)										{	return 0xff;	}
-		void set_port_output(int port, uint8_t value, uint8_t direction_mask)	{}
-//		void set_interrupt_status(bool status)			{}
+		uint8_t get_port_input(Port port)										{	return 0xff;	}
+		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
+		bool get_control_line(Port port, Line line)								{	return true;	}
+		void set_control_line_output(Port port, Line line, bool value)			{}
+		void set_interrupt_status(bool status)			{}
 
 		// Input/output multiplexer
-		uint8_t get_port_input(int port, uint8_t output_mask, uint8_t output)
+		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output)
 		{
 			uint8_t input = static_cast<T *>(this)->get_port_input(port);
 			return (input & ~output_mask) | (output & output_mask);
@@ -245,10 +327,19 @@ template <class T> class MOS6522 {
 				last_timer{0, 0}, timer_needs_reload(false) {}
 		} _registers;
 
+		// control state
+		struct {
+			bool line_one, line_two;
+		} _control_inputs[2];
+
 		// Internal state other than the registers
 		bool _timer_is_running[2];
 };
 
+/*!
+	Provided for optional composition with @c MOS6522, @c MOS6522IRQDelegate provides for a delegate
+	that will receive IRQ line change notifications.
+*/
 class MOS6522IRQDelegate {
 	public:
 		class Delegate {

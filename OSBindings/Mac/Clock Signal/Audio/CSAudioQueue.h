@@ -20,7 +20,7 @@
 - (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
 
 @property (nonatomic, readonly) Float64 samplingRate;
-@property (nonatomic, weak) id<CSAudioQueueDelegate> delegate;
+@property (nonatomic, weak, nullable) id<CSAudioQueueDelegate> delegate;
 
 + (Float64)preferredSamplingRate;
 @property (nonatomic, readonly) NSUInteger bufferSize;

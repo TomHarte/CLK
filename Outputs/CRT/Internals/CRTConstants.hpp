@@ -41,7 +41,10 @@ const GLsizei IntermediateBufferHeight = 1024;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = OutputVertexSize * IntermediateBufferHeight;		// i.e. the maximum number of scans of output that can be created between draws
-const GLsizeiptr SourceVertexBufferDataSize = SourceVertexSize * IntermediateBufferHeight * 2;	// (the maximum number of scans) * conservative, high guess at a maximumum number of events likely to occur within a scan
+const GLsizeiptr SourceVertexBufferDataSize = SourceVertexSize * IntermediateBufferHeight * 10;	// (the maximum number of scans) * conservative, high guess at a maximumum number of events likely to occur within a scan
+
+// TODO: when SourceVertexBufferDataSize is exhausted, the CRT keeps filling OutputVertexBufferDataSize regardless,
+// leading to empty scanlines that nevertheless clear old contents.
 
 }
 }

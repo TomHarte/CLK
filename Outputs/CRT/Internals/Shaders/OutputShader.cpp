@@ -82,7 +82,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"}",
 	sampler_type, fragment_methods, colour_expression);
 
-	std::unique_ptr<OutputShader> result = std::unique_ptr<OutputShader>(new OutputShader(vertex_shader, fragment_shader, bindings));
+	std::unique_ptr<OutputShader> result(new OutputShader(vertex_shader, fragment_shader, bindings));
 	free(vertex_shader);
 	free(fragment_shader);
 

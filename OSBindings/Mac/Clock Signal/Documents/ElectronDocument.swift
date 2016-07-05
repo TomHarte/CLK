@@ -12,8 +12,15 @@ import AudioToolbox
 class ElectronDocument: MachineDocument {
 
 	private lazy var electron = CSElectron()
-	override func machine() -> CSMachine! {
-		return electron
+	override var machine: CSMachine! {
+		get {
+			return electron
+		}
+	}
+	override var name: String! {
+		get {
+			return "electron"
+		}
 	}
 
 	override func aspectRatio() -> NSSize {
@@ -31,8 +38,6 @@ class ElectronDocument: MachineDocument {
 			self.electron.setOSROM(os)
 			self.electron.setBASICROM(basic)
 		}
-
-		establishStoredOptions()
 	}
 
 	override var windowNibName: String? {
@@ -40,9 +45,6 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func readFromURL(url: NSURL, ofType typeName: String) throws {
-		print(url)
-		print(typeName)
-
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {
 				case "uef":
@@ -70,24 +72,13 @@ class ElectronDocument: MachineDocument {
 		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
 
-	@IBOutlet var fastLoadingButton: NSButton!
-	@IBAction func setFastLoading(sender: NSButton!) {
-		electron.useFastLoadingHack = sender.state == NSOnState
-		NSUserDefaults.standardUserDefaults().setBool(electron.useFastLoadingHack, forKey: self.fastLoadingUserDefaultsKey)
-	}
-
 	private let displayTypeUserDefaultsKey = "electron.displayType"
-	private let fastLoadingUserDefaultsKey = "electron.fastLoading"
-	private func establishStoredOptions() {
+	override func establishStoredOptions() {
+		super.establishStoredOptions()
 		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
 		standardUserDefaults.registerDefaults([
 			displayTypeUserDefaultsKey: 0,
-			fastLoadingUserDefaultsKey: true
 		])
-
-		let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
-		electron.useFastLoadingHack = useFastLoadingHack
-		self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
 
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)

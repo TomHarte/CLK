@@ -38,8 +38,8 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	_sync_capacitor_charge_threshold = (int)(syncCapacityLineChargeThreshold * _cycles_per_line);
 
 	// create the two flywheels
-	_horizontal_flywheel	= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6, _cycles_per_line >> 6));
-	_vertical_flywheel		= std::unique_ptr<Flywheel>(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line, (_cycles_per_line * height_of_display) >> 3));
+	_horizontal_flywheel.reset(new Flywheel(_cycles_per_line, (millisecondsHorizontalRetraceTime * _cycles_per_line) >> 6, _cycles_per_line >> 6));
+	_vertical_flywheel.reset(new Flywheel(_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * _cycles_per_line, (_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (_cycles_per_line * height_of_display) / (_time_multiplier * _common_output_divisor);
@@ -73,13 +73,13 @@ CRT::CRT(unsigned int common_output_divisor) :
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
-	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(buffer_depth));
+	_openGL_output_builder.reset(new OpenGLOutputBuilder(buffer_depth));
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) : CRT(common_output_divisor)
 {
-	_openGL_output_builder = std::unique_ptr<OpenGLOutputBuilder>(new OpenGLOutputBuilder(buffer_depth));
+	_openGL_output_builder.reset(new OpenGLOutputBuilder(buffer_depth));
 	set_new_display_type(cycles_per_line, displayType);
 }
 

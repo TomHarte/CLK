@@ -46,12 +46,8 @@ class KlausDormannTests: XCTestCase {
 
 					if newPC == oldPC {
 						let error = errorForTrapAddress(oldPC)
-
-						if let error = error {
-							NSException(name: "Failed test", reason: error, userInfo: nil).raise()
-						} else {
-							return
-						}
+						XCTAssert(error == nil, "Failed with error \(error)")
+						return
 					}
 				}
 			}

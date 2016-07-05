@@ -11,8 +11,11 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+
 #include "../CRTMachine.hpp"
-#include <stdint.h>
+#include "../Typer.hpp"
+
+#include <cstdint>
 
 namespace Electron {
 
@@ -54,18 +57,16 @@ enum Key: uint16_t {
 	KeyZ			= 0x00c0 | 0x08,	KeyA			= 0x00c0 | 0x04,	KeyQ			= 0x00c0 | 0x02,	Key1			= 0x00c0 | 0x01,
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
-	KeyBreak		= 0xffff
+	KeyBreak		= 0xffff,
+
+	TerminateSequence = 0, NotMapped		= 0xfffe,
 };
 
-class Tape {
+class Tape: public Storage::TapePlayer {
 	public:
 		Tape();
 
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
-		inline bool has_tape()
-		{
-			return (bool)_tape;
-		}
+		inline void run_for_cycles(unsigned int number_of_cycles);
 
 		inline uint8_t get_data_register();
 		inline void set_data_register(uint8_t value);
@@ -80,23 +81,16 @@ class Tape {
 		};
 		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
 
-		inline void run_for_cycles(unsigned int number_of_cycles);
-		inline void run_for_input_pulse();
-
 		inline void set_is_running(bool is_running) { _is_running = is_running; }
 		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
 		inline void set_is_in_input_mode(bool is_in_input_mode);
 
 	private:
+		void process_input_pulse(Storage::Tape::Pulse pulse);
 		inline void push_tape_bit(uint16_t bit);
 		inline void get_next_tape_pulse();
 
-		std::shared_ptr<Storage::Tape> _tape;
-
 		struct {
-			Storage::Tape::Pulse current_pulse;
-			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
-			uint32_t time_into_pulse;
 			int minimum_bits_until_full;
 		} _input;
 		struct {
@@ -141,10 +135,13 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, Tape::Delegate {
+class Machine:
+	public CPU6502::Processor<Machine>,
+	public CRTMachine::Machine,
+	Tape::Delegate,
+	public Utility::TypeRecipient {
 
 	public:
-
 		Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
@@ -162,13 +159,18 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, T
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual Outputs::CRT::CRT *get_crt() { return _crt.get(); }
-		virtual Outputs::Speaker *get_speaker() { return &_speaker; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 		virtual double get_clock_rate() { return 2000000; }
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);
+
+		// for Utility::TypeRecipient
+		virtual int get_typer_delay();
+		virtual int get_typer_frequency();
+		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
 
 	private:
 
@@ -225,8 +227,8 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine, T
 		bool _fast_load_is_in_data;
 
 		// Outputs
-		std::unique_ptr<Outputs::CRT::CRT> _crt;
-		Speaker _speaker;
+		std::shared_ptr<Outputs::CRT::CRT> _crt;
+		std::shared_ptr<Speaker> _speaker;
 };
 
 }

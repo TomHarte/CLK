@@ -30,4 +30,6 @@
 @property (nonatomic, weak) id<CSMachineDelegate> delegate;
 @property (nonatomic, readonly) double clockRate;
 
+- (void)paste:(NSString *)string;
+
 @end

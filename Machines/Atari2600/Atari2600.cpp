@@ -19,17 +19,15 @@ Machine::Machine() :
 	_horizontalTimer(0),
 	_lastOutputStateDuration(0),
 	_lastOutputState(OutputState::Sync),
-	_piaTimerStatus(0xff),
 	_rom(nullptr),
-	_piaDataValue{0xff, 0xff},
 	_tiaInputValue{0xff, 0xff},
 	_upcomingEventsPointer(0),
 	_objectCounterPointer(0),
 	_stateByTime(_stateByExtendTime[0]),
-	_cycles_since_speaker_update(0)
+	_cycles_since_speaker_update(0),
+	_is_pal_region(false)
 {
 	memset(_collisions, 0xff, sizeof(_collisions));
-	set_reset_line(true);
 	setup_reported_collisions();
 
 	for(int vbextend = 0; vbextend < 2; vbextend++)
@@ -58,7 +56,9 @@ Machine::Machine() :
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1);
+	_speaker.reset(new Speaker);
+	_crt.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1));
+	_crt->set_output_device(Outputs::CRT::Television);
 
 	// this is the NTSC phase offset function; see below for PAL
 	_crt->set_composite_sampling_function(
@@ -71,9 +71,7 @@ void Machine::setup_output(float aspect_ratio)
 			"float phaseOffset = 6.283185308 * float(iPhase - 1u) / 13.0;"
 			"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 		"}");
-	_crt->set_output_device(Outputs::CRT::Television);
-
-	_speaker.set_input_rate(1194720 / 38);
+	_speaker->set_input_rate((float)(get_clock_rate() / 38.0));
 }
 
 void Machine::switch_region()
@@ -91,14 +89,17 @@ void Machine::switch_region()
 			"phaseOffset *= 6.283185308 / 12.0;"
 			"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
 		"}");
+
 	_crt->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
 
-//	_speaker.set_input_rate(2 * 312 * 50);
+	_is_pal_region = true;
+	_speaker->set_input_rate((float)(get_clock_rate() / 38.0));
+
+	if(delegate) delegate->machine_did_change_clock_rate(this);
 }
 
 void Machine::close_output()
 {
-	delete _crt;
 	_crt = nullptr;
 }
 
@@ -106,6 +107,11 @@ Machine::~Machine()
 {
 	delete[] _rom;
 	close_output();
+}
+
+double Machine::get_clock_rate()
+{
+	return _is_pal_region ? 1182298 : 1194720;
 }
 
 void Machine::update_timers(int mask)
@@ -407,8 +413,6 @@ void Machine::output_pixels(unsigned int count)
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	set_reset_line(false);
-
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 3;
 
@@ -455,9 +459,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// check for a RAM access
 		if((address&0x1280) == 0x80) {
 			if(isReadOperation(operation)) {
-				returnValue &= _ram[address&0x7f];
+				returnValue &= _mos6532.get_ram(address);
 			} else {
-				_ram[address&0x7f] = *value;
+				_mos6532.set_ram(address, *value);
 			}
 		}
 
@@ -594,17 +598,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					case 0x15: case 0x16:
 						update_audio();
-						_speaker.set_control(decodedAddress - 0x15, *value);
+						_speaker->set_control(decodedAddress - 0x15, *value);
 					break;
 
 					case 0x17: case 0x18:
 						update_audio();
-						_speaker.set_divider(decodedAddress - 0x17, *value);
+						_speaker->set_divider(decodedAddress - 0x17, *value);
 					break;
 
 					case 0x19: case 0x1a:
 						update_audio();
-						_speaker.set_volume(decodedAddress - 0x19, *value);
+						_speaker->set_volume(decodedAddress - 0x19, *value);
 					break;
 
 					case 0x1c:
@@ -687,44 +691,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// check for a PIA access
 		if((address&0x1280) == 0x280) {
 			if(isReadOperation(operation)) {
-				const uint8_t decodedAddress = address & 0xf;
-				switch(address & 0xf) {
-					case 0x00:
-					case 0x02:
-						returnValue &= _piaDataValue[decodedAddress / 2];
-					break;
-					case 0x01:
-					case 0x03:
-						// TODO: port DDR
-						printf("!!!DDR!!!");
-					break;
-					case 0x04:
-					case 0x06:
-						returnValue &= _piaTimerValue >> _piaTimerShift;
-
-						if(_writtenPiaTimerShift != _piaTimerShift) {
-							_piaTimerShift = _writtenPiaTimerShift;
-							_piaTimerValue <<= _writtenPiaTimerShift;
-						}
-					break;
-					case 0x05:
-					case 0x07:
-						returnValue &= _piaTimerStatus;
-						_piaTimerStatus &= ~0x80;
-					break;
-				}
+				returnValue &= _mos6532.get_register(address);
 			} else {
-				const uint8_t decodedAddress = address & 0x0f;
-				switch(decodedAddress) {
-					case 0x04:
-					case 0x05:
-					case 0x06:
-					case 0x07:
-						_writtenPiaTimerShift = _piaTimerShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						_piaTimerValue = ((unsigned int)(*value) << _piaTimerShift) | ((1 << _piaTimerShift)-1);
-						_piaTimerStatus &= ~0x40;
-					break;
-				}
+				_mos6532.set_register(address, *value);
 			}
 		}
 
@@ -733,24 +702,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_piaTimerValue >= cycles_run_for / 3) {
-		_piaTimerValue -= cycles_run_for / 3;
-	} else {
-		_piaTimerValue = 0x100 + ((_piaTimerValue - (cycles_run_for / 3)) >> _piaTimerShift);
-		_piaTimerShift = 0;
-		_piaTimerStatus |= 0xc0;
-	}
-
-//	static unsigned int total_cycles = 0;
-//	total_cycles += cycles_run_for / 3;
-//	static time_t logged_time = 0;
-//	time_t time_now = time(nullptr);
-//	if(time_now - logged_time > 0)
-//	{
-//		printf("[c] %ld : %d\n", time_now - logged_time, total_cycles);
-//		total_cycles = 0;
-//		logged_time = time_now;
-//	}
+	_mos6532.run_for_cycles(cycles_run_for / 3);
 
 	return cycles_run_for / 3;
 }
@@ -758,21 +710,32 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
 {
 	switch (input) {
-		case Atari2600DigitalInputJoy1Up:		if(state) _piaDataValue[0] &= ~0x10; else _piaDataValue[0] |= 0x10; break;
-		case Atari2600DigitalInputJoy1Down:		if(state) _piaDataValue[0] &= ~0x20; else _piaDataValue[0] |= 0x20; break;
-		case Atari2600DigitalInputJoy1Left:		if(state) _piaDataValue[0] &= ~0x40; else _piaDataValue[0] |= 0x40; break;
-		case Atari2600DigitalInputJoy1Right:	if(state) _piaDataValue[0] &= ~0x80; else _piaDataValue[0] |= 0x80; break;
+		case Atari2600DigitalInputJoy1Up:		_mos6532.update_port_input(0, 0x10, state);	break;
+		case Atari2600DigitalInputJoy1Down:		_mos6532.update_port_input(0, 0x20, state);	break;
+		case Atari2600DigitalInputJoy1Left:		_mos6532.update_port_input(0, 0x40, state);	break;
+		case Atari2600DigitalInputJoy1Right:	_mos6532.update_port_input(0, 0x80, state);	break;
 
-		case Atari2600DigitalInputJoy2Up:		if(state) _piaDataValue[0] &= ~0x01; else _piaDataValue[0] |= 0x01; break;
-		case Atari2600DigitalInputJoy2Down:		if(state) _piaDataValue[0] &= ~0x02; else _piaDataValue[0] |= 0x02; break;
-		case Atari2600DigitalInputJoy2Left:		if(state) _piaDataValue[0] &= ~0x04; else _piaDataValue[0] |= 0x04; break;
-		case Atari2600DigitalInputJoy2Right:	if(state) _piaDataValue[0] &= ~0x08; else _piaDataValue[0] |= 0x08; break;
+		case Atari2600DigitalInputJoy2Up:		_mos6532.update_port_input(0, 0x01, state);	break;
+		case Atari2600DigitalInputJoy2Down:		_mos6532.update_port_input(0, 0x02, state);	break;
+		case Atari2600DigitalInputJoy2Left:		_mos6532.update_port_input(0, 0x04, state);	break;
+		case Atari2600DigitalInputJoy2Right:	_mos6532.update_port_input(0, 0x08, state);	break;
 
 		// TODO: latching
 		case Atari2600DigitalInputJoy1Fire:		if(state) _tiaInputValue[0] &= ~0x80; else _tiaInputValue[0] |= 0x80; break;
 		case Atari2600DigitalInputJoy2Fire:		if(state) _tiaInputValue[1] &= ~0x80; else _tiaInputValue[1] |= 0x80; break;
 
 		default: break;
+	}
+}
+
+void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
+{
+	switch(input) {
+		case Atari2600SwitchReset:					_mos6532.update_port_input(1, 0x01, state);	break;
+		case Atari2600SwitchSelect:					_mos6532.update_port_input(1, 0x02, state);	break;
+		case Atari2600SwitchColour:					_mos6532.update_port_input(1, 0x08, state);	break;
+		case Atari2600SwitchLeftPlayerDifficulty:	_mos6532.update_port_input(1, 0x40, state);	break;
+		case Atari2600SwitchRightPlayerDifficulty:	_mos6532.update_port_input(1, 0x80, state);	break;
 	}
 }
 
@@ -818,7 +781,7 @@ void Machine::update_audio()
 //		logged_time = time_now;
 //	}
 
-	_speaker.run_for_cycles(audio_cycles);
+	_speaker->run_for_cycles(audio_cycles);
 	_cycles_since_speaker_update %= 114;
 }
 
@@ -857,7 +820,6 @@ void Atari2600::Speaker::set_control(int channel, uint8_t control)
 #define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
 #define advance_poly5(c) _poly5_counter[channel] = (_poly5_counter[channel] >> 1) | (((_poly5_counter[channel] << 4) ^ (_poly5_counter[channel] << 2))&0x010)
 #define advance_poly9(c) _poly9_counter[channel] = (_poly9_counter[channel] >> 1) | (((_poly9_counter[channel] << 4) ^ (_poly9_counter[channel] << 8))&0x100)
-
 
 void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
@@ -951,8 +913,4 @@ void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *ta
 			target[c] += _volume[channel] * 1024 * level;
 		}
 	}
-}
-
-void Atari2600::Speaker::skip_samples(unsigned int number_of_samples)
-{
 }

@@ -6,7 +6,13 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="Atari2600Document" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="colourButton" destination="3qw-C1-NYW" id="WAL-Is-Ux6"/>
+                <outlet property="leftPlayerDifficultyButton" destination="Xbc-cw-Sc2" id="1vg-wY-j1w"/>
                 <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
+                <outlet property="optionsPanel" destination="gsl-7V-TTU" id="BEE-05-h0B"/>
+                <outlet property="resetButton" destination="rQO-uD-fwn" id="DHc-IK-zBm"/>
+                <outlet property="rightPlayerDifficultyButton" destination="kPV-Tm-TTc" id="N2H-KG-R8Z"/>
+                <outlet property="selectButton" destination="nt7-8K-xY9" id="bu6-U1-AZb"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>
@@ -37,6 +43,89 @@
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
             </connections>
+            <point key="canvasLocation" x="272" y="446"/>
+        </window>
+        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="gsl-7V-TTU" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" HUD="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="83" y="102" width="200" height="121"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
+            <value key="minSize" type="size" width="200" height="121"/>
+            <value key="maxSize" type="size" width="200" height="121"/>
+            <view key="contentView" id="aQh-Pm-DEo">
+                <rect key="frame" x="0.0" y="0.0" width="200" height="121"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rQO-uD-fwn">
+                        <rect key="frame" x="14" y="73" width="86" height="32"/>
+                        <buttonCell key="cell" type="push" title="Reset" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="l3H-0m-aK0">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="optionWasPressed:" target="-2" id="XCT-S9-qhg"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="3qw-C1-NYW">
+                        <rect key="frame" x="18" y="58" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="UP7-mf-IKo">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="optionDidChange:" target="-2" id="jXW-nl-ePC"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="Xbc-cw-Sc2">
+                        <rect key="frame" x="18" y="38" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="wlJ-8s-PEh">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="optionDidChange:" target="-2" id="Cwv-nj-FY1"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="kPV-Tm-TTc">
+                        <rect key="frame" x="18" y="18" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="F05-cA-66S">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="optionDidChange:" target="-2" id="L4v-Zp-Ndu"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nt7-8K-xY9">
+                        <rect key="frame" x="100" y="73" width="86" height="32"/>
+                        <buttonCell key="cell" type="push" title="Select" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="8Na-Z1-EXS">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="optionWasPressed:" target="-2" id="pKQ-6M-BB4"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="3qw-C1-NYW" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="1Ri-ZO-GJy"/>
+                    <constraint firstItem="nt7-8K-xY9" firstAttribute="leading" secondItem="rQO-uD-fwn" secondAttribute="trailing" constant="12" id="46p-Z3-kgW"/>
+                    <constraint firstItem="nt7-8K-xY9" firstAttribute="top" secondItem="aQh-Pm-DEo" secondAttribute="top" constant="20" id="6Uc-12-11y"/>
+                    <constraint firstItem="Xbc-cw-Sc2" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="7es-iv-JOh"/>
+                    <constraint firstItem="kPV-Tm-TTc" firstAttribute="top" secondItem="Xbc-cw-Sc2" secondAttribute="bottom" constant="6" id="Env-nl-M2e"/>
+                    <constraint firstAttribute="trailing" secondItem="kPV-Tm-TTc" secondAttribute="trailing" constant="20" id="Fim-Ej-8Ux"/>
+                    <constraint firstAttribute="trailing" secondItem="Xbc-cw-Sc2" secondAttribute="trailing" constant="20" id="HkS-6c-WZm"/>
+                    <constraint firstItem="3qw-C1-NYW" firstAttribute="top" secondItem="nt7-8K-xY9" secondAttribute="bottom" constant="6" id="Hxq-Pm-o4G"/>
+                    <constraint firstAttribute="trailing" secondItem="nt7-8K-xY9" secondAttribute="trailing" constant="20" id="JRO-de-WQp"/>
+                    <constraint firstItem="rQO-uD-fwn" firstAttribute="top" secondItem="aQh-Pm-DEo" secondAttribute="top" constant="20" id="N3p-aY-2Nx"/>
+                    <constraint firstItem="nt7-8K-xY9" firstAttribute="width" secondItem="rQO-uD-fwn" secondAttribute="width" id="NOc-hJ-8Mm"/>
+                    <constraint firstItem="Xbc-cw-Sc2" firstAttribute="top" secondItem="3qw-C1-NYW" secondAttribute="bottom" constant="6" id="ORX-bF-2WS"/>
+                    <constraint firstItem="kPV-Tm-TTc" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="x8p-Hm-xeu"/>
+                    <constraint firstItem="rQO-uD-fwn" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="xhD-iY-vt2"/>
+                    <constraint firstAttribute="trailing" secondItem="3qw-C1-NYW" secondAttribute="trailing" constant="20" id="yff-e9-OBY"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="157" y="12.5"/>
         </window>
     </objects>
 </document>

@@ -17,6 +17,6 @@ I've hesitated on a comb since it becomes complicated with machines — includin
 
 All filtering is windowed finite impulse response, coefficients via Kaisser-Bessel, with up to 21 taps (adjacent samples are obtained from a single point via bilinear filtering where possible but that requires the adjacent coefficients to have the same sign; where that's not possible the number of taps may drop as the number of GLSL samples remains the same; it'll almost certainly be either 19 or 21 taps given the other operating conditions).
 
-† per the documentation, its 228 cycles per line make each of its pixels exactly one NTSC colour clock long. There are 228.5 NTSC colour clocks per line so its hardware would appear to produce shorter-than-specified lines (albeit still well within tolerable variation).
+† per the documentation, its 228 cycles per line make each of its pixels exactly one NTSC colour clock long. There are 227.5 NTSC colour clocks per line so its hardware would appear to produce longer-than-specified lines (albeit still well within tolerable variation).
 
 †† I suspect that a real TV will switch to a notch if adjacent colour bursts appear to keep resetting the colour oscillator, amongst other sanity checks, as analogue delay lines have a physically-fixed duration. I just need to do the same.

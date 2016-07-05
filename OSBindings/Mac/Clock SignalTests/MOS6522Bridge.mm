@@ -23,7 +23,7 @@ class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
 			irq_line = new_status;
 		}
 
-		uint8_t get_port_input(int port)
+		uint8_t get_port_input(Port port)
 		{
 			return port ? port_b_value : port_a_value;
 		}

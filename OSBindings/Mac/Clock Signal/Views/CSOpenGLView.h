@@ -53,8 +53,8 @@
 */
 @interface CSOpenGLView : NSOpenGLView
 
-@property (nonatomic, weak) id <CSOpenGLViewDelegate> delegate;
-@property (nonatomic, weak) id <CSOpenGLViewResponderDelegate> responderDelegate;
+@property (nonatomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
+@property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
 
 /*!
 	Ends the timer tracking time; should be called prior to giving up the last owning reference

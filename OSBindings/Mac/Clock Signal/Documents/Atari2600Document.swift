@@ -11,8 +11,15 @@ import Cocoa
 class Atari2600Document: MachineDocument {
 
 	private var atari2600 = CSAtari2600()
-	override func machine() -> CSMachine? {
-		return atari2600
+	override var machine: CSMachine! {
+		get {
+			return atari2600
+		}
+	}
+	override var name: String! {
+		get {
+			return "atari2600"
+		}
 	}
 
 	// MARK: NSDocument overrides
@@ -28,8 +35,18 @@ class Atari2600Document: MachineDocument {
 		atari2600.setROM(data)
 	}
 
-	// MARK: CSOpenGLViewResponderDelegate
+	override func windowControllerDidLoadNib(aController: NSWindowController) {
+		super.windowControllerDidLoadNib(aController)
 
+		// push whatever settings the switches have in the NIB into the emulation
+		pushSwitchValues()
+
+		// show the options window but ensure the OpenGL view is key
+		showOptions(self)
+		self.openGLView.window?.makeKeyWindow()
+	}
+
+	// MARK: CSOpenGLViewResponderDelegate
 	private func inputForKey(event: NSEvent) -> Atari2600DigitalInput? {
 		switch event.keyCode {
 			case 123:	return Atari2600DigitalInputJoy1Left
@@ -62,6 +79,31 @@ class Atari2600Document: MachineDocument {
 
 		if event.keyCode == 36 {
 			atari2600.setResetLineEnabled(false)
+		}
+	}
+
+	// MARK: Options
+	@IBOutlet var resetButton: NSButton!
+	@IBOutlet var selectButton: NSButton!
+	@IBOutlet var colourButton: NSButton!
+	@IBOutlet var leftPlayerDifficultyButton: NSButton!
+	@IBOutlet var rightPlayerDifficultyButton: NSButton!
+
+	@IBAction func optionDidChange(sender: AnyObject!) {
+		pushSwitchValues()
+	}
+
+	private func pushSwitchValues() {
+		atari2600.colourButton = colourButton.state == NSOnState
+		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == NSOnState
+		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == NSOnState
+	}
+
+	@IBAction func optionWasPressed(sender: NSButton!) {
+		if sender == resetButton {
+			atari2600.pressResetButton()
+		} else {
+			atari2600.pressSelectButton()
 		}
 	}
 }

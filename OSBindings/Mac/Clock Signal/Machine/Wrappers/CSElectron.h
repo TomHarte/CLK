@@ -8,8 +8,9 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
+#import "CSFastLoading.h"
 
-@interface CSElectron : CSMachine <CSKeyboardMachine>
+@interface CSElectron : CSMachine <CSKeyboardMachine, CSFastLoading>
 
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;

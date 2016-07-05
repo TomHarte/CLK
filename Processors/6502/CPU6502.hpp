@@ -31,7 +31,7 @@ enum Register {
 /*
 	Flags as defined on the 6502; can be used to decode the result of @c get_flags or to form a value for @c set_flags.
 */
-enum Flag {
+enum Flag: uint8_t {
 	Sign		= 0x80,
 	Overflow	= 0x40,
 	Always		= 0x20,
@@ -92,9 +92,14 @@ template <class T> class Processor {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			CycleSetIReadBRKLow,						CycleReadBRKHigh,
+			OperationSetI,
+
+			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
+			CycleReadVectorLow,							CycleReadVectorHigh,
+
 			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CycleNoWritePush,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
@@ -120,7 +125,8 @@ template <class T> class Processor {
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
-			OperationSetFlagsFromA,						CycleReadRSTLow,					CycleReadRSTHigh,						CycleScheduleJam
+			OperationSetFlagsFromA,
+			CycleScheduleJam
 		};
 
 #define JAM {CycleFetchOperand, CycleScheduleJam, OperationMoveToNextProgram}
@@ -269,7 +275,7 @@ template <class T> class Processor {
 
 			static const MicroOp operations[256][10] = {
 
-			/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, CycleSetIReadBRKLow, CycleReadBRKHigh),
+			/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 			/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 			/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
 			/* 0x04 NOP zpg */		ZeroNop(),																/* 0x05 ORA zpg */		ZeroRead(OperationORA),
@@ -453,11 +459,19 @@ template <class T> class Processor {
 
 		int _cycles_left_to_run;
 
-		bool _ready_line_is_enabled;
-		bool _reset_line_is_enabled;
-		bool _irq_line_is_enabled, _irq_request_history[2];
-		bool _nmi_line_is_enabled;
+		enum InterruptRequestFlags: uint8_t {
+			Reset		= 0x80,
+			IRQ			= 0x40,
+			NMI			= 0x20,
+
+			PowerOn		= 0x10,
+		};
+		uint8_t _interrupt_requests;
+
 		bool _ready_is_active;
+		bool _ready_line_is_enabled;
+
+		bool _irq_line_is_enabled, _irq_request_history;
 
 		/*!
 			Gets the program representing an RST response.
@@ -468,11 +482,12 @@ template <class T> class Processor {
 			static const MicroOp reset[] = {
 				CycleFetchOperand,
 				CycleFetchOperand,
-				CyclePullOperand,
-				CyclePullOperand,
-				CyclePullOperand,
-				CycleReadRSTLow,
-				CycleReadRSTHigh,
+				CycleNoWritePush,
+				CycleNoWritePush,
+				OperationRSTPickVector,
+				CycleNoWritePush,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
 				OperationMoveToNextProgram
 			};
 			return reset;
@@ -485,12 +500,37 @@ template <class T> class Processor {
 		*/
 		inline const MicroOp *get_irq_program() {
 			static const MicroOp reset[] = {
+				CycleFetchOperand,
+				CycleFetchOperand,
 				CyclePushPCH,
 				CyclePushPCL,
+				OperationBRKPickVector,
 				OperationSetOperandFromFlags,
 				CyclePushOperand,
-				CycleSetIReadBRKLow,
-				CycleReadBRKHigh,
+				OperationSetI,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
+				OperationMoveToNextProgram
+			};
+			return reset;
+		}
+
+		/*!
+			Gets the program representing an NMI response.
+
+			@returns The program representing an NMI response.
+		*/
+		inline const MicroOp *get_nmi_program() {
+			static const MicroOp reset[] = {
+				CycleFetchOperand,
+				CycleFetchOperand,
+				CyclePushPCH,
+				CyclePushPCL,
+				OperationNMIPickVector,
+				OperationSetOperandFromFlags,
+				CyclePushOperand,
+				CycleReadVectorLow,
+				CycleReadVectorHigh,
 				OperationMoveToNextProgram
 			};
 			return reset;
@@ -508,8 +548,8 @@ template <class T> class Processor {
 			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
 			_interruptFlag(Flag::Interrupt),
 			_s(0),
-			_nextBusOperation(BusOperation::None)
-
+			_nextBusOperation(BusOperation::None),
+			_interrupt_requests(InterruptRequestFlags::PowerOn)
 		{
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
@@ -556,13 +596,18 @@ template <class T> class Processor {
 #define checkSchedule(op) \
 	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
 		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
-		if(_reset_line_is_enabled) {\
-			schedule_program(get_reset_program());\
-		} else {\
-			if(_irq_request_history[0])\
+		if(_interrupt_requests) {\
+			if(_interrupt_requests & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
+				_interrupt_requests &= ~InterruptRequestFlags::PowerOn;\
+				schedule_program(get_reset_program());\
+			} else if(_interrupt_requests & InterruptRequestFlags::NMI) {\
+				_interrupt_requests &= ~InterruptRequestFlags::NMI;\
+				schedule_program(get_nmi_program());\
+			} else if(_interrupt_requests & InterruptRequestFlags::IRQ) {\
 				schedule_program(get_irq_program());\
-			else\
-				schedule_program(fetch_decode_execute);\
+			} \
+		} else {\
+			schedule_program(fetch_decode_execute);\
 		}\
 		op;\
 	}
@@ -580,8 +625,8 @@ template <class T> class Processor {
 				while (!_ready_is_active && number_of_cycles > 0) {
 
 					if(nextBusOperation != BusOperation::None) {
-						_irq_request_history[0] = _irq_request_history[1];
-						_irq_request_history[1] = _irq_line_is_enabled && !_interruptFlag;
+						_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);
+						_irq_request_history = _irq_line_is_enabled && !_interruptFlag;
 						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
 						nextBusOperation = BusOperation::None;
 					}
@@ -643,16 +688,28 @@ template <class T> class Processor {
 						case CyclePushPCL:					push(_pc.bytes.low);											break;
 						case CyclePushOperand:				push(_operand);													break;
 						case CyclePushA:					push(_a);														break;
+						case CycleNoWritePush:
+						{
+							uint16_t targetAddress = _s | 0x100; _s--;
+							read_mem(_operand, targetAddress);
+						}
+						break;
 
 #undef push
 
 						case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
 						case CycleReadFromPC:				throwaway_read(_pc.full);										break;
 
-						case CycleReadRSTLow:				read_mem(_pc.bytes.low, 0xfffc);									break;
-						case CycleReadRSTHigh:				read_mem(_pc.bytes.high, 0xfffd);									break;
-						case CycleSetIReadBRKLow:			_interruptFlag = Flag::Interrupt; read_mem(_pc.bytes.low, 0xfffe);	break;
-						case CycleReadBRKHigh:				read_mem(_pc.bytes.high, 0xffff);									break;
+						case OperationBRKPickVector:
+							// NMI can usurp BRK-vector operations
+							nextAddress.full = (_interrupt_requests & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
+							_interrupt_requests &= ~InterruptRequestFlags::NMI;	// TODO: this probably doesn't happen now?
+						break;
+						case OperationNMIPickVector:		nextAddress.full = 0xfffa;											break;
+						case OperationRSTPickVector:		nextAddress.full = 0xfffc;											break;
+						case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							break;
+						case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						break;
+						case OperationSetI:					_interruptFlag = Flag::Interrupt;									break;
 
 						case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
 						case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
@@ -1147,7 +1204,26 @@ template <class T> class Processor {
 		*/
 		inline void set_reset_line(bool active)
 		{
-			_reset_line_is_enabled = active;
+			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
+		}
+
+		/*!
+			Gets the current level of the RST line.
+
+			@returns @c true if the line is logically active; @c false otherwise.
+		*/
+		inline bool get_reset_line()
+		{
+			return !!(_interrupt_requests & InterruptRequestFlags::Reset);
+		}
+
+		/*!
+			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
+			reset at the first opportunity. Use @c set_power_on to disable that behaviour.
+		*/
+		inline void set_power_on(bool active)
+		{
+			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::PowerOn) | (active ? InterruptRequestFlags::PowerOn : 0);
 		}
 
 		/*!
@@ -1167,9 +1243,8 @@ template <class T> class Processor {
 		*/
 		inline void set_nmi_line(bool active)
 		{
-			// TODO: NMI is edge triggered, not level, and in any case _nmi_line_is_enabled
-			// is not honoured elsewhere. So NMI is yet to be implemented.
-			_nmi_line_is_enabled = active;
+			// NMI is edge triggered, not level
+			_interrupt_requests |= (active ? InterruptRequestFlags::NMI : 0);
 		}
 
 		/*!

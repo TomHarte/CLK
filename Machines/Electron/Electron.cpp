@@ -55,12 +55,12 @@ Machine::Machine() :
 		memset(_roms[c], 0xff, 16384);
 
 	_tape.set_delegate(this);
-	set_reset_line(true);
 }
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_crt = std::unique_ptr<Outputs::CRT::CRT>(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
+	_speaker.reset(new Speaker);
+	_crt.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	_crt->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -75,7 +75,7 @@ void Machine::setup_output(float aspect_ratio)
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
 	// run the speaker at a 2000000Hz input rate, at least for the time being.
-	_speaker.set_input_rate(2000000 / clock_rate_audio_divider);
+	_speaker->set_input_rate(2000000 / clock_rate_audio_divider);
 }
 
 void Machine::close_output()
@@ -86,7 +86,6 @@ void Machine::close_output()
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 	unsigned int cycles = 1;
-	set_reset_line(false);
 
 	if(address < 0x8000)
 	{
@@ -203,7 +202,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(!isReadOperation(operation))
 						{
 							update_audio();
-							_speaker.set_divider(*value);
+							_speaker->set_divider(*value);
 							_tape.set_counter(*value);
 						}
 					break;
@@ -229,10 +228,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 							// update speaker mode
 							bool new_speaker_is_enabled = (*value & 6) == 2;
-							if(new_speaker_is_enabled != _speaker.get_is_enabled())
+							if(new_speaker_is_enabled != _speaker->get_is_enabled())
 							{
 								update_audio();
-								_speaker.set_is_enabled(new_speaker_is_enabled);
+								_speaker->set_is_enabled(new_speaker_is_enabled);
 								_tape.set_is_enabled(!new_speaker_is_enabled);
 							}
 
@@ -447,6 +446,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		update_audio();
 	_tape.run_for_cycles(cycles);
 
+	if(_typer) _typer->update((int)cycles);
+
 	return cycles;
 }
 
@@ -508,7 +509,7 @@ inline void Machine::update_audio()
 {
 	unsigned int difference = _frameCycles - _audioOutputPosition;
 	_audioOutputPosition = _frameCycles;
-	_speaker.run_for_cycles(difference / clock_rate_audio_divider);
+	_speaker->run_for_cycles(difference / clock_rate_audio_divider);
 	_audioOutputPositionError = difference % clock_rate_audio_divider;
 }
 
@@ -899,35 +900,14 @@ void Speaker::set_is_enabled(bool is_enabled)
 */
 
 Tape::Tape() :
+	TapePlayer(2000000),
 	_is_running(false),
 	_data_register(0),
 	_delegate(nullptr),
 	_output({.bits_remaining_until_empty = 0, .cycles_into_pulse = 0}),
 	_last_posted_interrupt_status(0),
-	_interrupt_status(0) {}
-
-void Tape::set_tape(std::shared_ptr<Storage::Tape> tape)
-{
-	_tape = tape;
-	get_next_tape_pulse();
-}
-
-inline void Tape::get_next_tape_pulse()
-{
-	_input.time_into_pulse = 0;
-	if(_tape)
-		_input.current_pulse = _tape->get_next_pulse();
-	else
-	{
-		_input.current_pulse.length.length = 1;
-		_input.current_pulse.length.clock_rate = 1;
-		_input.current_pulse.type = Storage::Tape::Pulse::Zero;
-	}
-	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
-	{
-		_input.pulse_stepper = std::unique_ptr<SignalProcessing::Stepper>(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, 2000000));
-	}
-}
+	_interrupt_status(0)
+{}
 
 inline void Tape::push_tape_bit(uint16_t bit)
 {
@@ -990,18 +970,16 @@ inline uint8_t Tape::get_data_register()
 	return (uint8_t)(_data_register >> 2);
 }
 
-inline void Tape::run_for_input_pulse()
+inline void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 {
-	get_next_tape_pulse();
-
 	_crossings[0] = _crossings[1];
 	_crossings[1] = _crossings[2];
 	_crossings[2] = _crossings[3];
 
 	_crossings[3] = Tape::Unrecognised;
-	if(_input.current_pulse.type != Storage::Tape::Pulse::Zero)
+	if(pulse.type != Storage::Tape::Pulse::Zero)
 	{
-		float pulse_length = (float)_input.current_pulse.length.length / (float)_input.current_pulse.length.clock_rate;
+		float pulse_length = (float)pulse.length.length / (float)pulse.length.clock_rate;
 		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;
 		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) _crossings[3] = Tape::Long;
 	}
@@ -1028,16 +1006,9 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 	{
 		if(_is_in_input_mode)
 		{
-			if(_is_running && _tape != nullptr)
+			if(_is_running)
 			{
-				while(number_of_cycles--)
-				{
-					_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
-					if(_input.time_into_pulse == _input.current_pulse.length.length)
-					{
-						run_for_input_pulse();
-					}
-				}
+				TapePlayer::run_for_cycles(number_of_cycles);
 			}
 		}
 		else
@@ -1050,4 +1021,99 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 			}
 		}
 	}
+}
+
+#pragma mark - Typer
+
+int Machine::get_typer_delay()
+{
+	return get_reset_line() ? 625*25*128 : 0;	// wait one second if resetting
+}
+
+int Machine::get_typer_frequency()
+{
+	return 625*128;	// accept a new character every frame
+}
+
+bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
+{
+	if(!phase) clear_all_keys();
+
+	// The following table is arranged in ASCII order
+	Key key_sequences[][3] = {
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{KeyDelete, TerminateSequence},
+		{NotMapped},
+		{KeyReturn, TerminateSequence},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+
+		{KeySpace, TerminateSequence},				// space
+
+		{KeyShift, Key1, TerminateSequence},			{KeyShift, Key2, TerminateSequence},		// !, "
+		{KeyShift, Key3, TerminateSequence},			{KeyShift, Key4, TerminateSequence},		// #, $
+		{KeyShift, Key5, TerminateSequence},			{KeyShift, Key6, TerminateSequence},		// %, &
+		{KeyShift, Key7, TerminateSequence},			{KeyShift, Key8, TerminateSequence},		// ', (
+		{KeyShift, Key9, TerminateSequence},			{KeyShift, KeyColon, TerminateSequence},	// ), *
+		{KeyShift, KeySemiColon, TerminateSequence},	{KeyComma, TerminateSequence},				// +, ,
+		{KeyMinus, TerminateSequence},					{KeyFullStop, TerminateSequence},			// -, .
+		{KeySlash, TerminateSequence},			// /
+
+		{Key0, TerminateSequence},				{Key1, TerminateSequence},					// 0, 1
+		{Key2, TerminateSequence},				{Key3, TerminateSequence},					// 2, 3
+		{Key4, TerminateSequence},				{Key5, TerminateSequence},					// 4, 5
+		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
+		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
+
+		{KeyColon, TerminateSequence},					{KeySemiColon, TerminateSequence},		// :, ;
+		{KeyShift, KeyComma, TerminateSequence},		{KeyShift, KeyMinus, TerminateSequence},			// <, =
+		{KeyShift, KeyFullStop, TerminateSequence},		{KeyShift, KeySlash, TerminateSequence},		// >, ?
+		{NotMapped},						// @
+
+		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
+		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
+		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
+		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
+		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
+		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
+
+		{NotMapped},		{KeyControl, KeyRight, TerminateSequence},	// [, '\'
+		{NotMapped},		{KeyShift, KeyLeft, TerminateSequence},	// ], ^
+		{KeyShift, KeyDown, TerminateSequence},		{NotMapped},	// _, `
+
+		{KeyShift, KeyA, TerminateSequence},	{KeyShift, KeyB, TerminateSequence},	{KeyShift, KeyC, TerminateSequence},	{KeyShift, KeyD, TerminateSequence},	// a, b, c, d
+		{KeyShift, KeyE, TerminateSequence},	{KeyShift, KeyF, TerminateSequence},	{KeyShift, KeyG, TerminateSequence},	{KeyShift, KeyH, TerminateSequence},	// e, f, g, h
+		{KeyShift, KeyI, TerminateSequence},	{KeyShift, KeyJ, TerminateSequence},	{KeyShift, KeyK, TerminateSequence},	{KeyShift, KeyL, TerminateSequence},	// i, j, k, l
+		{KeyShift, KeyM, TerminateSequence},	{KeyShift, KeyN, TerminateSequence},	{KeyShift, KeyO, TerminateSequence},	{KeyShift, KeyP, TerminateSequence},	// m, n, o, p
+		{KeyShift, KeyQ, TerminateSequence},	{KeyShift, KeyR, TerminateSequence},	{KeyShift, KeyS, TerminateSequence},	{KeyShift, KeyT, TerminateSequence},	// q, r, s, t
+		{KeyShift, KeyU, TerminateSequence},	{KeyShift, KeyV, TerminateSequence},	{KeyShift, KeyW, TerminateSequence},	{KeyShift, KeyX, TerminateSequence},	// u, v, w, x
+		{KeyShift, KeyY, TerminateSequence},	{KeyShift, KeyZ, TerminateSequence},	// y, z
+
+		{KeyControl, KeyUp, TerminateSequence},		{KeyShift, KeyRight, TerminateSequence},	// {, |
+		{KeyControl, KeyDown, TerminateSequence},	{KeyControl, KeyLeft, TerminateSequence},	// }, ~
+	};
+	Key *key_sequence = nullptr;
+
+	character &= 0x7f;
+	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
+	{
+		key_sequence = key_sequences[character];
+
+		if(key_sequence[0] != NotMapped)
+		{
+			if(phase > 0)
+			{
+				set_key_state(key_sequence[phase-1], true);
+				return key_sequence[phase] == TerminateSequence;
+			}
+			else
+				return false;
+		}
+	}
+
+	return true;
 }
