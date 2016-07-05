@@ -15,7 +15,9 @@ Machine::Machine()
 {
 	_serialPortVIA.reset(new SerialPortVIA);
 	_serialPort.reset(new SerialPort);
+
 	_serialPort->set_serial_port_via(_serialPortVIA);
+	_serialPortVIA->set_serial_port(_serialPort);
 }
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus)
@@ -54,4 +56,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::set_rom(const uint8_t *rom)
 {
 	memcpy(_rom, rom, sizeof(_rom));
+}
+
+#pragma mark - 6522 delegate
+
+void Machine::mos6522_did_change_interrupt_status(void *mos6522)
+{
+	set_irq_line(_serialPortVIA->get_interrupt_line());
 }
