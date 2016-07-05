@@ -49,27 +49,82 @@ enum Key: uint16_t {
 	TerminateSequence = 0,	NotMapped = 0xffff
 };
 
+enum JoystickInput {
+	Up = 0x04,
+	Down = 0x08,
+	Left = 0x10,
+	Right = 0x80,
+	Fire = 0x20
+};
+
+class UserPortVIA;
+class KeyboardVIA;
+
+class SerialPort {
+	public:
+		void set_clock_output(bool value);
+		void set_data_output(bool value);
+		void set_attention_output(bool value);
+
+		void set_clock_input(bool value);
+		void set_data_input(bool value);
+		void set_attention_input(bool value);
+
+		void set_vias(std::shared_ptr<UserPortVIA> userPortVIA, std::shared_ptr<KeyboardVIA> keyboardVIA) {
+			_userPortVIA = userPortVIA;
+			_keyboardVIA = keyboardVIA;
+		}
+
+	private:
+		std::weak_ptr<UserPortVIA> _userPortVIA;
+		std::weak_ptr<KeyboardVIA> _keyboardVIA;
+};
+
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		uint8_t get_port_input(Port port) {
 			if(!port) {
-				return 0x00;	// TODO: bit 6 should be high if there is no tape, low otherwise
+				return _portA;	// TODO: bit 6 should be high if there is no tape, low otherwise
 			}
 			return 0xff;
 		}
 
 		void set_control_line_output(Port port, Line line, bool value) {
-			if(port == Port::A && line == Line::Two) {
-				printf("Tape motor %s\n", value ? "on" : "off");
+//			if(port == Port::A && line == Line::Two) {
+//				printf("Tape motor %s\n", value ? "on" : "off");
+//			}
+		}
+
+		void set_joystick_state(JoystickInput input, bool value) {
+			if(input != JoystickInput::Right)
+			{
+				_portA = (_portA & ~input) | (value ? 0 : input);
+			}
+		}
+
+		void set_port_output(Port port, uint8_t value, uint8_t mask) {
+			if(!port) {
+				std::shared_ptr<SerialPort> serialPort = _serialPort.lock();
+				if(serialPort) serialPort->set_attention_output(!(value&0x80));
 			}
 		}
 
 		using MOS6522IRQDelegate::set_interrupt_status;
+
+		UserPortVIA() : _portA(0xbf) {}
+
+		void set_serial_port(std::shared_ptr<SerialPort> serialPort) {
+			_serialPort = serialPort;
+		}
+
+	private:
+		uint8_t _portA;
+		std::weak_ptr<SerialPort> _serialPort;
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
-		KeyboardVIA() {
+		KeyboardVIA() : _portB(0xff) {
 			clear_all_keys();
 		}
 
@@ -96,7 +151,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				return result;
 			}
 
-			return 0xff;
+			return _portB;
 		}
 
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
@@ -105,16 +160,36 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		}
 
 		void set_control_line_output(Port port, Line line, bool value) {
-			if(port == Port::A && line == Line::Two) {
-				printf("Blah Tape motor %s\n", value ? "on" : "off");
+			if(line == Line::Two) {
+				std::shared_ptr<SerialPort> serialPort = _serialPort.lock();
+				if(serialPort) {
+					if(port == Port::A) {
+						serialPort->set_clock_output(value);
+					} else {
+						serialPort->set_data_output(value);
+					}
+				}
+			}
+		}
+
+		void set_joystick_state(JoystickInput input, bool value) {
+			if(input == JoystickInput::Right)
+			{
+				_portB = (_portB & ~input) | (value ? 0 : input);
 			}
 		}
 
 		using MOS6522IRQDelegate::set_interrupt_status;
 
+		void set_serial_port(std::shared_ptr<SerialPort> serialPort) {
+			_serialPort = serialPort;
+		}
+
 	private:
+		uint8_t _portB;
 		uint8_t _columns[8];
 		uint8_t _activation_mask;
+		std::weak_ptr<SerialPort> _serialPort;
 };
 
 class Tape: public Storage::TapePlayer {
@@ -156,8 +231,12 @@ class Machine:
 		void add_prg(size_t length, const uint8_t *data);
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 
-		void set_key_state(Key key, bool isPressed) { _keyboardVIA.set_key_state(key, isPressed); }
-		void clear_all_keys() { _keyboardVIA.clear_all_keys(); }
+		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
+		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
+		void set_joystick_state(JoystickInput input, bool isPressed) {
+			_userPortVIA->set_joystick_state(input, isPressed);
+			_keyboardVIA->set_joystick_state(input, isPressed);
+		}
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
 
@@ -204,8 +283,9 @@ class Machine:
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
 		std::unique_ptr<MOS::MOS6560> _mos6560;
-		UserPortVIA _userPortVIA;
-		KeyboardVIA _keyboardVIA;
+		std::shared_ptr<UserPortVIA> _userPortVIA;
+		std::shared_ptr<KeyboardVIA> _keyboardVIA;
+		std::shared_ptr<SerialPort> _serialPort;
 
 		// Tape
 		Tape _tape;
