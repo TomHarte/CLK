@@ -112,7 +112,7 @@ template <class T> class MOS6522 {
 					_registers.auxiliary_control = value;
 				break;
 				case 0xc:
-//					printf("Peripheral control %02x\n", value);
+					printf("Peripheral control %02x\n", value);
 					_registers.peripheral_control = value;
 					switch(value & 0x0e)
 					{

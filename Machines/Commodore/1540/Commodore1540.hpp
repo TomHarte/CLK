@@ -50,7 +50,10 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				default: break;
 				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0 : 0x01);		break;
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0 : 0x04);		break;
-				case ::Commodore::Serial::Line::Attention:	_portB = (_portB & ~0x80) | (value ? 0 : 0x80);		break;
+				case ::Commodore::Serial::Line::Attention:
+					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
+					set_control_line_input(Port::B, Line::Two, !!(value&0x80));
+				break;
 			}
 		}
 
