@@ -8,7 +8,7 @@
 
 #import "CSAtari2600.h"
 
-#import "Atari2600.hpp"
+#include "Atari2600.hpp"
 #import "CSMachine+Subclassing.h"
 
 @interface CSAtari2600 ()
