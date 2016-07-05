@@ -29,15 +29,19 @@ using namespace Commodore::Vic20;
 }
 
 - (void)setKernelROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:ROMSlotKernel];
+	[self setROM:rom slot:Kernel];
 }
 
 - (void)setBASICROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:ROMSlotBASIC];
+	[self setROM:rom slot:BASIC];
 }
 
 - (void)setCharactersROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:ROMSlotCharacters];
+	[self setROM:rom slot:Characters];
+}
+
+- (void)setDriveROM:(nonnull NSData *)rom {
+	[self setROM:rom slot:Drive];
 }
 
 - (BOOL)openTAPAtURL:(NSURL *)URL {

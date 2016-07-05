@@ -54,6 +54,9 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+
+	// TEMPORARY: attach a [diskless] 1540
+	set_disc();
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -121,6 +124,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_keyboardVIA->run_for_half_cycles(2);
 	if(_typer) _typer->update(1);
 	_tape.run_for_cycles(1);
+	if(_c1540) _c1540->run_for_cycles(1);
 	return 1;
 }
 
@@ -150,9 +154,11 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	size_t max_length = 0x2000;
 	switch(slot)
 	{
-		case ROMSlotKernel:		target = _kernelROM;							break;
-		case ROMSlotCharacters:	target = _characterROM;	max_length = 0x1000;	break;
-		case ROMSlotBASIC:		target = _basicROM;								break;
+		case Kernel:		target = _kernelROM;							break;
+		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
+		case BASIC:			target = _basicROM;								break;
+		case Drive:
+		return;
 	}
 
 	if(target)
@@ -322,4 +328,11 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 		_input_level = new_input_level;
 		if(_delegate) _delegate->tape_did_change_input(this);
 	}
+}
+
+#pragma mark - Disc
+
+void Machine::set_disc()
+{
+	_c1540.reset(new ::Commodore::C1540::Machine);
 }

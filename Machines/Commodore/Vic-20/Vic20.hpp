@@ -13,6 +13,7 @@
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../../../Components/6560/6560.hpp"
 #include "../../../Components/6522/6522.hpp"
+#include "../1540/Commodore1540.hpp"
 #include "../SerialBus.hpp"
 
 #include "../../CRTMachine.hpp"
@@ -22,9 +23,10 @@ namespace Commodore {
 namespace Vic20 {
 
 enum ROMSlot {
-	ROMSlotKernel,
-	ROMSlotBASIC,
-	ROMSlotCharacters,
+	Kernel,
+	BASIC,
+	Characters,
+	Drive
 };
 
 #define key(line, mask) (((mask) << 3) | (line))
@@ -235,6 +237,7 @@ class Machine:
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void set_disc();
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
@@ -296,6 +299,9 @@ class Machine:
 		// Tape
 		Tape _tape;
 		bool _use_fast_tape_hack;
+
+		// Disc
+		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
 };
 
 }
