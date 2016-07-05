@@ -13,6 +13,7 @@
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../../../Components/6560/6560.hpp"
 #include "../../../Components/6522/6522.hpp"
+#include "../SerialBus.hpp"
 
 #include "../../CRTMachine.hpp"
 #include "../../Typer.hpp"
@@ -25,7 +26,6 @@ enum ROMSlot {
 	ROMSlotBASIC,
 	ROMSlotCharacters,
 };
-
 
 #define key(line, mask) (((mask) << 3) | (line))
 
@@ -61,15 +61,9 @@ enum JoystickInput {
 class UserPortVIA;
 class KeyboardVIA;
 
-class SerialPort {
+class SerialPort : public ::Commodore::Serial::Port {
 	public:
-		void set_clock_output(bool value);
-		void set_data_output(bool value);
-		void set_attention_output(bool value);
-
-		void set_clock_input(bool value);
-		void set_data_input(bool value);
-		void set_attention_input(bool value);
+		void set_input(::Commodore::Serial::Line line, bool value);
 
 		void set_vias(std::shared_ptr<UserPortVIA> userPortVIA, std::shared_ptr<KeyboardVIA> keyboardVIA) {
 			_userPortVIA = userPortVIA;
@@ -106,7 +100,7 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
 			if(!port) {
 				std::shared_ptr<SerialPort> serialPort = _serialPort.lock();
-				if(serialPort) serialPort->set_attention_output(!(value&0x80));
+				if(serialPort) serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x80));
 			}
 		}
 
@@ -165,9 +159,9 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				std::shared_ptr<SerialPort> serialPort = _serialPort.lock();
 				if(serialPort) {
 					if(port == Port::A) {
-						serialPort->set_clock_output(value);
+						serialPort->set_output(::Commodore::Serial::Line::Clock, value);
 					} else {
-						serialPort->set_data_output(value);
+						serialPort->set_output(::Commodore::Serial::Line::Data, value);
 					}
 				}
 			}
@@ -287,6 +281,7 @@ class Machine:
 		std::shared_ptr<UserPortVIA> _userPortVIA;
 		std::shared_ptr<KeyboardVIA> _keyboardVIA;
 		std::shared_ptr<SerialPort> _serialPort;
+		std::shared_ptr<::Commodore::Serial::Bus> _serialBus;
 
 		// Tape
 		Tape _tape;

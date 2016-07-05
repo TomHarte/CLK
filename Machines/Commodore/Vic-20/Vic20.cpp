@@ -15,18 +15,27 @@ using namespace Commodore::Vic20;
 Machine::Machine() :
 	_rom(nullptr)
 {
+	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
 	_keyboardVIA.reset(new KeyboardVIA);
 	_serialPort.reset(new SerialPort);
+	_serialBus.reset(new ::Commodore::Serial::Bus);
 
+	// wire up the serial bus and serial port
+	_serialBus->add_port(_serialPort);
+	_serialPort->set_serial_bus(_serialBus);
+
+	// wire up 6522s and serial port
 	_userPortVIA->set_serial_port(_serialPort);
 	_keyboardVIA->set_serial_port(_serialPort);
 	_serialPort->set_vias(_userPortVIA, _keyboardVIA);
 
+	// wire up the 6522s, tape and machine
 	_userPortVIA->set_delegate(this);
 	_keyboardVIA->set_delegate(this);
 	_tape.set_delegate(this);
 
+	// establish the memory maps
 	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
@@ -317,32 +326,7 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 
 #pragma mark - Serial Port
 
-void SerialPort::set_clock_output(bool value)
+void SerialPort::set_input(::Commodore::Serial::Line line, bool value)
 {
-	printf("Serial port clock output %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_data_output(bool value)
-{
-	printf("Serial port data output %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_attention_output(bool value)
-{
-	printf("Serial port attention output %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_clock_input(bool value)
-{
-	printf("Serial port clock input %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_data_input(bool value)
-{
-	printf("Serial port data input %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_attention_input(bool value)
-{
-	printf("Serial port attention input %s\n", value ? "on" : "off");
+	printf("Serial port line %d: %s\n", line, value ? "on" : "off");
 }
