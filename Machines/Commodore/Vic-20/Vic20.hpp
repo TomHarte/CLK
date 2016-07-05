@@ -9,14 +9,15 @@
 #ifndef Vic20_hpp
 #define Vic20_hpp
 
-#include "../../Processors/6502/CPU6502.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Components/6560/6560.hpp"
-#include "../../Components/6522/6522.hpp"
+#include "../../../Processors/6502/CPU6502.hpp"
+#include "../../../Storage/Tape/Tape.hpp"
+#include "../../../Components/6560/6560.hpp"
+#include "../../../Components/6522/6522.hpp"
 
-#include "../CRTMachine.hpp"
-#include "../Typer.hpp"
+#include "../../CRTMachine.hpp"
+#include "../../Typer.hpp"
 
+namespace Commodore {
 namespace Vic20 {
 
 enum ROMSlot {
@@ -292,6 +293,7 @@ class Machine:
 		bool _use_fast_tape_hack;
 };
 
+}
 }
 
 #endif /* Vic20_hpp */

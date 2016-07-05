@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-using namespace Vic20;
+using namespace Commodore::Vic20;
 
 Machine::Machine() :
 	_rom(nullptr)
