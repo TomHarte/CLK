@@ -60,9 +60,6 @@ enum JoystickInput {
 	Fire = 0x20
 };
 
-class UserPortVIA;
-class KeyboardVIA;
-
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		uint8_t get_port_input(Port port) {

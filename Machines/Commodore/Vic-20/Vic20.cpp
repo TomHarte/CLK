@@ -335,5 +335,9 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 
 void Machine::set_disc()
 {
+	// construct the 1540
 	_c1540.reset(new ::Commodore::C1540::Machine);
+
+	// attach it to the serial bus
+	_c1540->set_serial_bus(_serialBus);
 }
