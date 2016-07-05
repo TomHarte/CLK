@@ -15,8 +15,16 @@ using namespace Vic20;
 Machine::Machine() :
 	_rom(nullptr)
 {
-	_userPortVIA.set_delegate(this);
-	_keyboardVIA.set_delegate(this);
+	_userPortVIA.reset(new UserPortVIA);
+	_keyboardVIA.reset(new KeyboardVIA);
+	_serialPort.reset(new SerialPort);
+
+	_userPortVIA->set_serial_port(_serialPort);
+	_keyboardVIA->set_serial_port(_serialPort);
+	_serialPort->set_vias(_userPortVIA, _keyboardVIA);
+
+	_userPortVIA->set_delegate(this);
+	_keyboardVIA->set_delegate(this);
 	_tape.set_delegate(this);
 
 	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
@@ -71,8 +79,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		if((address&0xfc00) == 0x9000)
 		{
 			if((address&0xff00) == 0x9000)	result &= _mos6560->get_register(address);
-			if((address&0xfc10) == 0x9010)	result &= _userPortVIA.get_register(address);
-			if((address&0xfc20) == 0x9020)	result &= _keyboardVIA.get_register(address);
+			if((address&0xfc10) == 0x9010)	result &= _userPortVIA->get_register(address);
+			if((address&0xfc20) == 0x9020)	result &= _keyboardVIA->get_register(address);
 		}
 		*value = result;
 
@@ -80,10 +88,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
 			// advance time on the tape and the VIAs until an interrupt is signalled
-			while(!_userPortVIA.get_interrupt_line() && !_keyboardVIA.get_interrupt_line())
+			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
 			{
-				_userPortVIA.run_for_half_cycles(2);
-				_keyboardVIA.run_for_half_cycles(2);
+				_userPortVIA->run_for_half_cycles(2);
+				_keyboardVIA->run_for_half_cycles(2);
 				_tape.run_for_cycles(1);
 			}
 		}
@@ -95,13 +103,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		if((address&0xfc00) == 0x9000)
 		{
 			if((address&0xff00) == 0x9000)	_mos6560->set_register(address, *value);
-			if((address&0xfc10) == 0x9010)	_userPortVIA.set_register(address, *value);
-			if((address&0xfc20) == 0x9020)	_keyboardVIA.set_register(address, *value);
+			if((address&0xfc10) == 0x9010)	_userPortVIA->set_register(address, *value);
+			if((address&0xfc20) == 0x9020)	_keyboardVIA->set_register(address, *value);
 		}
 	}
 
-	_userPortVIA.run_for_half_cycles(2);
-	_keyboardVIA.run_for_half_cycles(2);
+	_userPortVIA->run_for_half_cycles(2);
+	_keyboardVIA->run_for_half_cycles(2);
 	if(_typer) _typer->update(1);
 	_tape.run_for_cycles(1);
 	return 1;
@@ -111,8 +119,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	set_nmi_line(_userPortVIA.get_interrupt_line());
-	set_irq_line(_keyboardVIA.get_interrupt_line());
+	set_nmi_line(_userPortVIA->get_interrupt_line());
+	set_irq_line(_keyboardVIA->get_interrupt_line());
 }
 
 #pragma mark - Setup
@@ -172,7 +180,7 @@ void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 
 void Machine::tape_did_change_input(Tape *tape)
 {
-	_keyboardVIA.set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
+	_keyboardVIA->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Typer
@@ -305,4 +313,36 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 		_input_level = new_input_level;
 		if(_delegate) _delegate->tape_did_change_input(this);
 	}
+}
+
+#pragma mark - Serial Port
+
+void SerialPort::set_clock_output(bool value)
+{
+	printf("Serial port clock output %s\n", value ? "on" : "off");
+}
+
+void SerialPort::set_data_output(bool value)
+{
+	printf("Serial port data output %s\n", value ? "on" : "off");
+}
+
+void SerialPort::set_attention_output(bool value)
+{
+	printf("Serial port attention output %s\n", value ? "on" : "off");
+}
+
+void SerialPort::set_clock_input(bool value)
+{
+	printf("Serial port clock input %s\n", value ? "on" : "off");
+}
+
+void SerialPort::set_data_input(bool value)
+{
+	printf("Serial port data input %s\n", value ? "on" : "off");
+}
+
+void SerialPort::set_attention_input(bool value)
+{
+	printf("Serial port attention input %s\n", value ? "on" : "off");
 }

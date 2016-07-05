@@ -112,17 +112,17 @@ template <class T> class MOS6522 {
 					_registers.auxiliary_control = value;
 				break;
 				case 0xc:
-					printf("Peripheral control %02x\n", value);
+//					printf("Peripheral control %02x\n", value);
 					_registers.peripheral_control = value;
 					switch(value & 0x0e)
 					{
-						default: break;
+						default: printf("Unimplemented control line mode %d\n", (value >> 1)&7); break;
 						case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
 						case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
 					}
 					switch(value & 0xe0)
 					{
-						default: break;
+						default: printf("Unimplemented control line mode %d\n", (value >> 5)&7); break;
 						case 0xc0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, false);		break;
 						case 0xe0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, true);		break;
 					}
