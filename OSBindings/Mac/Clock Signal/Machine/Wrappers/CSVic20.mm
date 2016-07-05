@@ -13,6 +13,7 @@
 
 @implementation CSVic20 {
 	Vic20::Machine _vic20;
+	BOOL _joystickMode;
 }
 
 - (CRTMachine::Machine * const)machine {
@@ -109,24 +110,43 @@
 	//	KeyPlus
 	//	KeyGBP
 
-	@synchronized(self) {
-		switch(key)
-		{
-			default: {
-				NSNumber *targetKey = vicKeysByKeys[@(key)];
-				if(targetKey)
-				{
-					_vic20.set_key_state((Vic20::Key)targetKey.integerValue, isPressed);
-				}
-				else
-					NSLog(@"Unmapped: %02x", key);
-			} break;
+	if(key == VK_Tab && isPressed)
+	{
+		_joystickMode ^= YES;
+	}
 
-			case VK_Shift:
-				// Yuck
-				_vic20.set_key_state(Vic20::Key::KeyLShift, isPressed);
-				_vic20.set_key_state(Vic20::Key::KeyRShift, isPressed);
-			break;
+	@synchronized(self) {
+		if(_joystickMode)
+		{
+			switch(key)
+			{
+				case VK_UpArrow:	_vic20.set_joystick_state(Vic20::JoystickInput::Up, isPressed);		break;
+				case VK_DownArrow:	_vic20.set_joystick_state(Vic20::JoystickInput::Down, isPressed);	break;
+				case VK_LeftArrow:	_vic20.set_joystick_state(Vic20::JoystickInput::Left, isPressed);	break;
+				case VK_RightArrow:	_vic20.set_joystick_state(Vic20::JoystickInput::Right, isPressed);	break;
+				case VK_ANSI_A:		_vic20.set_joystick_state(Vic20::JoystickInput::Fire, isPressed);	break;
+			}
+		}
+		else
+		{
+			switch(key)
+			{
+				default: {
+					NSNumber *targetKey = vicKeysByKeys[@(key)];
+					if(targetKey)
+					{
+						_vic20.set_key_state((Vic20::Key)targetKey.integerValue, isPressed);
+					}
+					else
+						NSLog(@"Unmapped: %02x", key);
+				} break;
+
+				case VK_Shift:
+					// Yuck
+					_vic20.set_key_state(Vic20::Key::KeyLShift, isPressed);
+					_vic20.set_key_state(Vic20::Key::KeyRShift, isPressed);
+				break;
+			}
 		}
 	}
 }
