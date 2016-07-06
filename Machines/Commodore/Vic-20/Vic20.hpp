@@ -76,7 +76,7 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		}
 
 		void set_serial_line_state(::Commodore::Serial::Line line, bool value) {
-			printf("VIC Serial port line %d: %s\n", line, value ? "on" : "off");
+//			printf("VIC Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
 				case ::Commodore::Serial::Line::Data: _portA = (_portA & ~0x02) | (value ? 0 : 0x02);	break;

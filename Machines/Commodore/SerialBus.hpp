@@ -22,6 +22,8 @@ namespace Serial {
 		Reset
 	};
 
+	const char *StringForLine(Line line);
+
 	class Port;
 
 	class Bus {

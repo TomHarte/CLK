@@ -10,6 +10,18 @@
 
 using namespace Commodore::Serial;
 
+const char *::Commodore::Serial::StringForLine(Line line)
+{
+	switch(line)
+	{
+		case ServiceRequest: return "Service request";
+		case Attention: return "Attention";
+		case Clock: return "Clock";
+		case Data: return "Data";
+		case Reset: return "Reset";
+	}
+}
+
 void Bus::add_port(std::shared_ptr<Port> port)
 {
 	_ports.push_back(port);
@@ -39,6 +51,7 @@ void Bus::set_line_output_did_change(Line line)
 	// post an update only if one occurred
 	if(new_line_value != _line_values[line])
 	{
+		printf("[Bus] %s is %s\n", StringForLine(line), new_line_value ? "true" : "false");
 		_line_values[line] = new_line_value;
 
 		for(std::weak_ptr<Port> port : _ports)

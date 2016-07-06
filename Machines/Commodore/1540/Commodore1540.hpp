@@ -38,14 +38,14 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 					serialPort->set_output(::Commodore::Serial::Line::Clock, !(value&0x08));
 					serialPort->set_output(::Commodore::Serial::Line::Data, !(value&0x02));
 				}
-				printf("1540 serial port VIA port B: %02x\n", value);
+//				printf("1540 serial port VIA port B: %02x\n", value);
 			}
-			else
-				printf("1540 serial port VIA port A: %02x\n", value);
+//			else
+//				printf("1540 serial port VIA port A: %02x\n", value);
 		}
 
 		void set_serial_line_state(::Commodore::Serial::Line line, bool value) {
-			printf("1540 Serial port line %d: %s\n", line, value ? "on" : "off");
+//			printf("1540 Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
 				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0 : 0x01);		break;
