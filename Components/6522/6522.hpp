@@ -59,7 +59,7 @@ template <class T> class MOS6522 {
 					_registers.output[1] = value;
 					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((_registers.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 				case 0xf:
@@ -67,7 +67,7 @@ template <class T> class MOS6522 {
 					_registers.output[0] = value;
 					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((_registers.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
@@ -207,7 +207,7 @@ template <class T> class MOS6522 {
 				break;
 
 				case Line::Two:
-					// TODO: independence (?)
+					// TODO: output modes, but probably elsewhere?
 					if(	value != _control_inputs[port].line_two &&							// i.e. value has changed ...
 						!(_registers.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
 						value == !!(_registers.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
