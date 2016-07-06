@@ -52,7 +52,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
 					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
-					set_control_line_input(Port::B, Line::Two, value);
+					set_control_line_input(Port::B, Line::Two, !value);	// from active low to active high
 				break;
 			}
 		}
