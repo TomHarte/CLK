@@ -13,10 +13,13 @@ using namespace Commodore::Serial;
 void Bus::add_port(std::shared_ptr<Port> port)
 {
 	_ports.push_back(port);
+	for(int line = (int)ServiceRequest; line <= (int)Reset; line++)
+		set_line_output_did_change((Line)line);
 }
 
 void Bus::set_line_output_did_change(Line line)
 {
+	// i.e. I believe these lines to be open collector, active low
 	bool new_line_value = false;
 	for(std::weak_ptr<Port> port : _ports)
 	{
@@ -27,6 +30,7 @@ void Bus::set_line_output_did_change(Line line)
 		}
 	}
 
+	// post an update only if one occurred
 	if(new_line_value != _line_values[line])
 	{
 		_line_values[line] = new_line_value;
