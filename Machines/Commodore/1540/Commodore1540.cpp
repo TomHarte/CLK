@@ -18,6 +18,8 @@ Machine::Machine()
 
 	_serialPort->set_serial_port_via(_serialPortVIA);
 	_serialPortVIA->set_serial_port(_serialPort);
+	_serialPortVIA->set_delegate(this);
+	_driveVIA.set_delegate(this);
 }
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus)
@@ -47,8 +49,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		else
 			_serialPortVIA->set_register(address, *value);
 	}
+	else if(address >= 0x1c00 && address <= 0x1c0f)
+	{
+		if(isReadOperation(operation))
+			*value = _driveVIA.get_register(address);
+		else
+			_driveVIA.set_register(address, *value);
+	}
 
 	_serialPortVIA->run_for_half_cycles(2);
+	_driveVIA.run_for_half_cycles(2);
 
 	return 1;
 }

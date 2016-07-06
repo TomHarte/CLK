@@ -66,6 +66,11 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
 };
 
+class DriveVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQDelegate {
+	public:
+		using MOS6522IRQDelegate::set_interrupt_status;
+};
+
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
 		void set_input(::Commodore::Serial::Line line, bool value) {
@@ -101,6 +106,7 @@ class Machine:
 
 		std::shared_ptr<SerialPortVIA> _serialPortVIA;
 		std::shared_ptr<SerialPort> _serialPort;
+		DriveVIA _driveVIA;
 };
 
 }
