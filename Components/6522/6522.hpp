@@ -112,7 +112,7 @@ template <class T> class MOS6522 {
 					_registers.auxiliary_control = value;
 				break;
 				case 0xc:
-					printf("Peripheral control %02x\n", value);
+//					printf("Peripheral control %02x\n", value);
 					_registers.peripheral_control = value;
 					switch(value & 0x0e)
 					{
@@ -207,7 +207,16 @@ template <class T> class MOS6522 {
 				break;
 
 				case Line::Two:
-					// TODO
+					// TODO: independence (?)
+					if(	value != _control_inputs[port].line_two &&							// i.e. value has changed ...
+						!(_registers.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
+						value == !!(_registers.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
+					)
+					{
+						_registers.interrupt_flags |= port ? InterruptFlag::CB2ActiveEdge : InterruptFlag::CA2ActiveEdge;
+						reevaluate_interrupts();
+					}
+					_control_inputs[port].line_two = value;
 				break;
 			}
 		}
