@@ -71,7 +71,6 @@ void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint1
 	}
 }
 
-
 Machine::~Machine()
 {
 	delete[] _rom;

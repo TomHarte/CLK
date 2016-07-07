@@ -52,7 +52,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
 					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
-					set_control_line_input(Port::B, Line::Two, !value);	// truth here is active low; the 6522 takes true to be high
+					set_control_line_input(Port::A, Line::One, !value);	// truth here is active low; the 6522 takes true to be high
 				break;
 			}
 		}
@@ -66,7 +66,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
 };
 
-class DriveVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQDelegate {
+class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
 };
