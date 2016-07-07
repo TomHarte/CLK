@@ -35,8 +35,8 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
 //					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x10));
-					serialPort->set_output(::Commodore::Serial::Line::Clock, !(value&0x08));
-					serialPort->set_output(::Commodore::Serial::Line::Data, !(value&0x02));
+					serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)(value&0x08));
+					serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)(value&0x02));
 				}
 //				printf("1540 serial port VIA port B: %02x\n", value);
 			}
@@ -48,11 +48,11 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 //			printf("1540 Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
-				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
-				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
+				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x01 : 0x00);		break;
+				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x04 : 0x00);		break;
 				case ::Commodore::Serial::Line::Attention:
-					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
-					set_control_line_input(Port::A, Line::One, !value);	// truth here is active low; my 6522 takes true to be high
+					_portB = (_portB & ~0x80) | (value ? 0x80 : 0x00);
+					set_control_line_input(Port::A, Line::One, value);
 				break;
 			}
 		}
@@ -77,9 +77,9 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
-		void set_input(::Commodore::Serial::Line line, bool value) {
+		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<SerialPortVIA> serialPortVIA = _serialPortVIA.lock();
-			if(serialPortVIA) serialPortVIA->set_serial_line_state(line, value);
+			if(serialPortVIA) serialPortVIA->set_serial_line_state(line, (bool)level);
 		}
 
 		void set_serial_port_via(std::shared_ptr<SerialPortVIA> serialPortVIA) {

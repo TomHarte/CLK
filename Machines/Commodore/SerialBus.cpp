@@ -31,35 +31,35 @@ void Bus::add_port(std::shared_ptr<Port> port)
 		set_line_output_did_change((Line)line);
 
 		// ... but the new device will need to be told the current state regardless
-		port->set_input((Line)line, _line_values[line]);
+		port->set_input((Line)line, _line_levels[line]);
 	}
 }
 
 void Bus::set_line_output_did_change(Line line)
 {
-	// i.e. I believe these lines to be open collector, active low
-	bool new_line_value = false;
+	// i.e. I believe these lines to be open collector
+	LineLevel new_line_level = High;
 	for(std::weak_ptr<Port> port : _ports)
 	{
 		std::shared_ptr<Port> locked_port = port.lock();
 		if(locked_port)
 		{
-			new_line_value |= locked_port->get_output(line);
+			new_line_level = (LineLevel)((bool)new_line_level & (bool)locked_port->get_output(line));
 		}
 	}
 
 	// post an update only if one occurred
-	if(new_line_value != _line_values[line])
+	if(new_line_level != _line_levels[line])
 	{
-		printf("[Bus] %s is %s\n", StringForLine(line), new_line_value ? "true" : "false");
-		_line_values[line] = new_line_value;
+		printf("[Bus] %s is %s\n", StringForLine(line), new_line_level ? "high" : "low");
+		_line_levels[line] = new_line_level;
 
 		for(std::weak_ptr<Port> port : _ports)
 		{
 			std::shared_ptr<Port> locked_port = port.lock();
 			if(locked_port)
 			{
-				locked_port->set_input(line, new_line_value);
+				locked_port->set_input(line, new_line_level);
 			}
 		}
 	}

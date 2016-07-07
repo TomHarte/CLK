@@ -22,37 +22,42 @@ namespace Serial {
 		Reset
 	};
 
+	enum LineLevel: bool {
+		High = true,
+		Low = false
+	};
+
 	const char *StringForLine(Line line);
 
 	class Port;
 
 	class Bus {
 		public:
-			Bus() : _line_values{false, false, false, false, false} {}
+			Bus() : _line_levels{High, High, High, High, High} {}
 
 			void add_port(std::shared_ptr<Port> port);
 			void set_line_output_did_change(Line line);
 
 		private:
-			bool _line_values[5];
+			LineLevel _line_levels[5];
 			std::vector<std::weak_ptr<Port>> _ports;
 	};
 
 	class Port {
 		public:
-			Port() : _line_values{false, false, false, false, false} {}
+			Port() : _line_levels{High, High, High, High, High} {}
 
-			void set_output(Line line, bool value) {
-				_line_values[line] = value;
+			void set_output(Line line, LineLevel level) {
+				_line_levels[line] = level;
 				std::shared_ptr<Bus> bus = _serial_bus.lock();
 				if(bus) bus->set_line_output_did_change(line);
 			}
 
-			bool get_output(Line line) {
-				return _line_values[line];
+			LineLevel get_output(Line line) {
+				return _line_levels[line];
 			}
 
-			virtual void set_input(Line line, bool value) = 0;
+			virtual void set_input(Line line, LineLevel value) = 0;
 
 			inline void set_serial_bus(std::shared_ptr<Bus> serial_bus) {
 				_serial_bus = serial_bus;
@@ -60,7 +65,7 @@ namespace Serial {
 
 		private:
 			std::weak_ptr<Bus> _serial_bus;
-			bool _line_values[5];
+			LineLevel _line_levels[5];
 	};
 
 }

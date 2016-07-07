@@ -95,7 +95,7 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort)
-					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x80));
+					serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)(value&0x80));
 			}
 		}
 
@@ -154,9 +154,9 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
 					if(port == Port::A) {
-						serialPort->set_output(::Commodore::Serial::Line::Clock, value);
+						serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)value);
 					} else {
-						serialPort->set_output(::Commodore::Serial::Line::Data, value);
+						serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)value);
 					}
 				}
 			}
@@ -184,9 +184,9 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
-		void set_input(::Commodore::Serial::Line line, bool value) {
+		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<UserPortVIA> userPortVIA = _userPortVIA.lock();
-			if(userPortVIA) userPortVIA->set_serial_line_state(line, value);
+			if(userPortVIA) userPortVIA->set_serial_line_state(line, (bool)level);
 		}
 
 		void set_user_port_via(std::shared_ptr<UserPortVIA> userPortVIA) {
