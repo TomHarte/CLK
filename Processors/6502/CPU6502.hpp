@@ -666,6 +666,7 @@ template <class T> class Processor {
 						break;
 
 						case OperationDecodeOperation:
+//							printf("d %02x\n", _operation);
 							decode_operation(_operation);
 						break;
 

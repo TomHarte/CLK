@@ -96,7 +96,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		*value = result;
 
 		// test for PC at F92F
-		if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
+		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
 			// advance time on the tape and the VIAs until an interrupt is signalled
 			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
@@ -157,7 +157,11 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
 		case BASIC:			target = _basicROM;								break;
 		case Drive:
-			if(_c1540) _c1540->set_rom(data);
+			if(_c1540)
+			{
+				_c1540->set_rom(data);
+				_c1540->run_for_cycles(2000000);	// pretend it booted a couple of seconds ago
+			}
 		return;
 	}
 

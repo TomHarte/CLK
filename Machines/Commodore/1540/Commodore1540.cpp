@@ -72,5 +72,6 @@ void Machine::set_rom(const uint8_t *rom)
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
+	printf("?");
 	set_irq_line(_serialPortVIA->get_interrupt_line() || _driveVIA.get_interrupt_line());
 }

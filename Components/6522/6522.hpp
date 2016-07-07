@@ -10,6 +10,7 @@
 #define _522_hpp
 
 #include <cstdint>
+#include <typeinfo>
 #include <cstdio>
 
 namespace MOS {
@@ -52,7 +53,7 @@ template <class T> class MOS6522 {
 		inline void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
-//			printf("6522 %p: %d <- %02x\n", this, address, value);
+//			printf("6522 [%s]: %0x <- %02x\n", typeid(*this).name(), address, value);
 			switch(address)
 			{
 				case 0x0:

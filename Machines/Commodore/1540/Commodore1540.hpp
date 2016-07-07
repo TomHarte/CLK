@@ -20,7 +20,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		SerialPortVIA() : _portB(0x1f) {}
+		SerialPortVIA() : _portB(0x9f) {}
 
 		uint8_t get_port_input(Port port) {
 			if(port) {
@@ -48,8 +48,8 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 //			printf("1540 Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
-				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0 : 0x01);		break;
-				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0 : 0x04);		break;
+				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
+				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
 					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
 					set_control_line_input(Port::A, Line::One, !value);	// truth here is active low; the 6522 takes true to be high
@@ -69,6 +69,10 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
+
+		uint8_t get_port_input(Port port) {
+			return 0xff;
+		}
 };
 
 class SerialPort : public ::Commodore::Serial::Port {

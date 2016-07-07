@@ -32,7 +32,7 @@ class Vic20Document: MachineDocument {
 			vic20.setCharactersROM(characters)
 		}
 
-		if let drive = dataForResource("1540", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
+		if let drive = dataForResource("1541", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
 			vic20.setDriveROM(drive)
 		}
 	}
