@@ -24,7 +24,7 @@ void Typer::update(int duration)
 		}
 
 		_counter += duration;
-		while(_counter > _frequency)
+		while(_string && _counter > _frequency)
 		{
 			_counter -= _frequency;
 			type_next_character();
