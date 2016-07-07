@@ -94,7 +94,8 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
-				if(serialPort) serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x80));
+				if(serialPort)
+					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x80));
 			}
 		}
 

@@ -34,7 +34,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 			if(port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
-					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x10));
+//					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x10));
 					serialPort->set_output(::Commodore::Serial::Line::Clock, !(value&0x08));
 					serialPort->set_output(::Commodore::Serial::Line::Data, !(value&0x02));
 				}
@@ -52,7 +52,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
 					_portB = (_portB & ~0x80) | (value ? 0 : 0x80);
-					set_control_line_input(Port::A, Line::One, !value);	// truth here is active low; the 6522 takes true to be high
+					set_control_line_input(Port::A, Line::One, !value);	// truth here is active low; my 6522 takes true to be high
 				break;
 			}
 		}
