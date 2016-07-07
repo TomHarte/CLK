@@ -92,10 +92,11 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		}
 
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
+			// Line 7 of port A is inverted and output as serial ATN
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort)
-					serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)(value&0x80));
+					serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
 			}
 		}
 
@@ -153,10 +154,11 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			if(line == Line::Two) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
+					// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
 					if(port == Port::A) {
-						serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)value);
+						serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!value);
 					} else {
-						serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)value);
+						serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)!value);
 					}
 				}
 			}

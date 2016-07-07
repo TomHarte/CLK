@@ -144,7 +144,9 @@ using namespace Commodore::Vic20;
 						_vic20.set_key_state((Key)targetKey.integerValue, isPressed);
 					}
 					else
+					{
 						NSLog(@"Unmapped: %02x", key);
+					}
 				} break;
 
 				case VK_Shift:
