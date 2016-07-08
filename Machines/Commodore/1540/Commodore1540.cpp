@@ -30,7 +30,14 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-//	if(operation == CPU6502::BusOperation::ReadOpcode) printf("%04x\n", address);
+	static bool log = false;
+
+	if(operation == CPU6502::BusOperation::ReadOpcode)
+	{
+		log = (address >= 0xE85B && address <= 0xE907) || (address >= 0xE9C9 && address <= 0xEA2D);
+		 if(log) printf("\n%04x: ", address);
+	}
+	if(log)  printf("[%c %04x] ", isReadOperation(operation) ? 'r' : 'w', address);
 
 	if(address < 0x800)
 	{
@@ -46,6 +53,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else if(address >= 0x1800 && address <= 0x180f)
 	{
+		if(address == 0x1805)
+		{
+			printf("Timer\n");
+		}
 		if(isReadOperation(operation))
 			*value = _serialPortVIA->get_register(address);
 		else
