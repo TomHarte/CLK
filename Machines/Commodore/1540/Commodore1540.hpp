@@ -20,7 +20,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		SerialPortVIA() : _portB(0x9f) {}
+		SerialPortVIA() : _portB(0x9f), _attention_acknowledge_level(false) {}
 
 		uint8_t get_port_input(Port port) {
 			if(port) {
@@ -35,9 +35,12 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
 					printf("1540 output: %02x\n", value);
-//					serialPort->set_output(::Commodore::Serial::Line::Attention, !(value&0x10));
+					// "ATNA (Attention Acknowledge) is an output from PB4 which is sensed on the serial data line after being exclusively "ored" by the attention line and inverted"
+					_attention_acknowledge_level = !(value&0x10);
 					serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!(value&0x08));
 					serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)!(value&0x02));
+
+//					serialPort->set_output(::Commodore::Serial::Line::Data, _attention_acknowledge_level )
 				}
 //				printf("1540 serial port VIA port B: %02x\n", value);
 			}
@@ -52,6 +55,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
+					// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 					_portB = (_portB & ~0x80) | (value ? 0x00 : 0x80);
 					set_control_line_input(Port::A, Line::One, !value);
 				break;
@@ -65,6 +69,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	private:
 		uint8_t _portB;
 		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
+		bool _attention_acknowledge_level;
 };
 
 class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
@@ -72,6 +77,10 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		using MOS6522IRQDelegate::set_interrupt_status;
 
 		uint8_t get_port_input(Port port) {
+			if(port)
+			{
+				return 0x7f;	// imply not sync, write protect tab uncovered
+			}
 			return 0xff;
 		}
 };
