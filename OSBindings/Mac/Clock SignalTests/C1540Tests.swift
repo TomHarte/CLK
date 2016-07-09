@@ -23,9 +23,17 @@ class C1540Tests: XCTestCase {
 
 	// MARK: EOI
 
-	func testEOI() {
+	func testTransmission() {
 		with1540 {
-			$0.runForCycles(20)
+			// allow some booting time
+			$0.runForCycles(2000000)
+
+			// I want to be talker, so hold attention and clock low
+			$0.clockLine = false
+			$0.attentionLine = false
+			$0.runForCycles(200)
+
+			XCTAssert($0.dataLine == false, "Listener should have taken data line low")
 		}
 	}
 }

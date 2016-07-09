@@ -52,7 +52,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 
 - (void)setAttentionLine:(BOOL)attentionLine
 {
-	_serialPort->set_input(Commodore::Serial::Line::Attention, attentionLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort->set_output(Commodore::Serial::Line::Attention, attentionLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)attentionLine
@@ -62,7 +62,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 
 - (void)setDataLine:(BOOL)dataLine
 {
-	_serialPort->set_input(Commodore::Serial::Line::Data, dataLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort->set_output(Commodore::Serial::Line::Data, dataLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)dataLine
@@ -72,7 +72,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 
 - (void)setClockLine:(BOOL)clockLine
 {
-	_serialPort->set_input(Commodore::Serial::Line::Clock, clockLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort->set_output(Commodore::Serial::Line::Clock, clockLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)clockLine
