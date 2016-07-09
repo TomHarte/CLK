@@ -32,16 +32,20 @@ class C1540Tests: XCTestCase {
 		c1540.runForCycles(256)	// this isn't time limited on real hardware
 		XCTAssert(c1540.dataLine == true, "Listener should have let data line go high again")
 
-		for _ in 0..<8 {
-			// ensure the closk is true again
-			c1540.clockLine = true
-			c1540.runForCycles(40)
+		// set up for byte transfer
+		c1540.clockLine = false
+		c1540.dataLine = true
+		c1540.runForCycles(40)
 
+		// transmit bits
+		for _ in 0..<8 {
 			// load data line
 			c1540.dataLine = (shiftedValue & 1) == 0
 			shiftedValue >>= 1
 
 			// toggle clock
+			c1540.clockLine = true
+			c1540.runForCycles(40)
 			c1540.clockLine = false
 			c1540.runForCycles(40)
 		}
