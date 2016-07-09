@@ -48,9 +48,12 @@ namespace Serial {
 			Port() : _line_levels{High, High, High, High, High} {}
 
 			void set_output(Line line, LineLevel level) {
-				_line_levels[line] = level;
-				std::shared_ptr<Bus> bus = _serial_bus.lock();
-				if(bus) bus->set_line_output_did_change(line);
+				if(_line_levels[line] != level)
+				{
+					_line_levels[line] = level;
+					std::shared_ptr<Bus> bus = _serial_bus.lock();
+					if(bus) bus->set_line_output_did_change(line);
+				}
 			}
 
 			LineLevel get_output(Line line) {

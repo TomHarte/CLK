@@ -45,6 +45,7 @@ void Bus::set_line_output_did_change(Line line)
 		if(locked_port)
 		{
 			new_line_level = (LineLevel)((bool)new_line_level & (bool)locked_port->get_output(line));
+//			printf("[%s] %s is now %s\n", typeid(locked_port).name(), (bool)locked_port->get_output(line) ? "high" : "low");
 		}
 	}
 

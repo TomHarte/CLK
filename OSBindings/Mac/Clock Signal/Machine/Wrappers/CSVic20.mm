@@ -126,7 +126,7 @@ using namespace Commodore::Vic20;
 		{
 			switch(key)
 			{
-				case VK_UpArrow:	_vic20.set_joystick_state(JoystickInput::Up, isPressed);		break;
+				case VK_UpArrow:	_vic20.set_joystick_state(JoystickInput::Up, isPressed);	break;
 				case VK_DownArrow:	_vic20.set_joystick_state(JoystickInput::Down, isPressed);	break;
 				case VK_LeftArrow:	_vic20.set_joystick_state(JoystickInput::Left, isPressed);	break;
 				case VK_RightArrow:	_vic20.set_joystick_state(JoystickInput::Right, isPressed);	break;

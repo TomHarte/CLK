@@ -34,7 +34,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 			if(port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
-					printf("1540 output: %02x\n", value);
+//					printf("1540 output: %02x\n", value);
 					// "ATNA (Attention Acknowledge) is an output from PB4 which is sensed on the serial data line after being exclusively "ored" by the attention line and inverted"
 					_attention_acknowledge_level = !(value&0x10);
 					_data_level_output = (value&0x02);
@@ -79,10 +79,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 			if(serialPort) {
 				serialPort->set_output(::Commodore::Serial::Line::Data,
 					(::Commodore::Serial::LineLevel)!(_data_level_output
-					|| (_attention_level_input == _attention_acknowledge_level))
-					);
-
-//
+					|| (_attention_level_input == _attention_acknowledge_level)));
  			}
 		}
 };

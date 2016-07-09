@@ -117,15 +117,15 @@ template <class T> class MOS6522 {
 					_registers.peripheral_control = value;
 
 					// TODO: simplify below; tryig to avoid improper logging of unimplemented warnings in input mode
-					if(value & 0x08)
-					{
+//					if(value & 0x08)
+//					{
 						switch(value & 0x0e)
 						{
 							default: printf("Unimplemented control line mode %d\n", (value >> 1)&7); break;
 							case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
 							case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
 						}
-					}
+//					}
 					if(value & 0x80)
 					{
 						switch(value & 0xe0)

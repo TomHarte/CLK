@@ -30,14 +30,14 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	static bool log = false;
+/*	static bool log = false;
 
 	if(operation == CPU6502::BusOperation::ReadOpcode)
 	{
 		log = (address >= 0xE85B && address <= 0xE907) || (address >= 0xE9C9 && address <= 0xEA2D);
 		 if(log) printf("\n%04x: ", address);
 	}
-	if(log)  printf("[%c %04x] ", isReadOperation(operation) ? 'r' : 'w', address);
+	if(log)  printf("[%c %04x] ", isReadOperation(operation) ? 'r' : 'w', address);*/
 
 	if(address < 0x800)
 	{
