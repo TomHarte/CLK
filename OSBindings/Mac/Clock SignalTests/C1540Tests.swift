@@ -21,6 +21,34 @@ class C1540Tests: XCTestCase {
 		action(bridge)
 	}
 
+	private func transmit(c1540: C1540Bridge, value: Int) {
+		var shiftedValue = value
+		for _ in 1..<8 {
+			// load data line
+			c1540.dataLine = (shiftedValue & 1) == 1
+			shiftedValue >>= 1
+
+			// toggle clock
+			c1540.clockLine = false
+			c1540.runForCycles(40)
+			c1540.clockLine = true
+			c1540.runForCycles(40)
+
+			// wait up to 70 µs for an acknowledge
+			var cyclesWaited = 0
+			while c1540.clockLine == true && cyclesWaited < 140 {
+				c1540.runForCycles(1)
+				cyclesWaited = cyclesWaited + 1
+			}
+			XCTAssert(c1540.clockLine == false, "Listener should have started to acknowledge bit")
+			while c1540.clockLine == false && cyclesWaited < 140 {
+				c1540.runForCycles(1)
+				cyclesWaited = cyclesWaited + 1
+			}
+			XCTAssert(c1540.clockLine == true, "Listener should have completed acknowledging bit")
+		}
+	}
+
 	// MARK: EOI
 
 	func testTransmission() {
@@ -28,12 +56,17 @@ class C1540Tests: XCTestCase {
 			// allow some booting time
 			$0.runForCycles(2000000)
 
-			// I want to be talker, so hold attention and clock low
+			// I want to be talker, so hold attention and clock low with data high
 			$0.clockLine = false
 			$0.attentionLine = false
-			$0.runForCycles(200)
+			$0.dataLine = true
 
+			// proceed 1 ms and check that the 1540 pulled the data line low
+			$0.runForCycles(2000)
 			XCTAssert($0.dataLine == false, "Listener should have taken data line low")
+
+			// transmit LISTEN #8
+			self.transmit($0, value: 0x28)
 		}
 	}
 }
