@@ -40,7 +40,7 @@ class C1540Tests: XCTestCase {
 		// transmit bits
 		for _ in 0..<8 {
 			// load data line
-			c1540.dataLine = (shiftedValue & 1) == 0
+			c1540.dataLine = (shiftedValue & 1) == 1
 			shiftedValue >>= 1
 
 			// toggle clock
