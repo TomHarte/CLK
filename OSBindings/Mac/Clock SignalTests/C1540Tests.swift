@@ -23,30 +23,33 @@ class C1540Tests: XCTestCase {
 
 	private func transmit(c1540: C1540Bridge, value: Int) {
 		var shiftedValue = value
+
+		c1540.dataLine = true
+		c1540.runForCycles(256)
+		XCTAssert(c1540.dataLine == false, "Listener should have taken data line low for start of transmission")
+
+		c1540.clockLine = true
+		c1540.runForCycles(256)	// this isn't time limited on real hardware
+		XCTAssert(c1540.dataLine == true, "Listener should have let data line go high again")
+
 		for _ in 1..<8 {
+			// ensure the closk is true again
+			c1540.clockLine = true
+			c1540.runForCycles(40)
+
 			// load data line
-			c1540.dataLine = (shiftedValue & 1) == 1
+			c1540.dataLine = (shiftedValue & 1) == 0
 			shiftedValue >>= 1
 
 			// toggle clock
 			c1540.clockLine = false
 			c1540.runForCycles(40)
-			c1540.clockLine = true
-			c1540.runForCycles(40)
-
-			// wait up to 70 µs for an acknowledge
-			var cyclesWaited = 0
-			while c1540.clockLine == true && cyclesWaited < 140 {
-				c1540.runForCycles(1)
-				cyclesWaited = cyclesWaited + 1
-			}
-			XCTAssert(c1540.clockLine == false, "Listener should have started to acknowledge bit")
-			while c1540.clockLine == false && cyclesWaited < 140 {
-				c1540.runForCycles(1)
-				cyclesWaited = cyclesWaited + 1
-			}
-			XCTAssert(c1540.clockLine == true, "Listener should have completed acknowledging bit")
 		}
+
+		// check for acknowledgment
+		c1540.dataLine = true
+		c1540.runForCycles(1000)
+		XCTAssert(c1540.dataLine == false, "Listener should have acknowledged byte")
 	}
 
 	// MARK: EOI
@@ -62,7 +65,7 @@ class C1540Tests: XCTestCase {
 			$0.dataLine = true
 
 			// proceed 1 ms and check that the 1540 pulled the data line low
-			$0.runForCycles(2000)
+			$0.runForCycles(1000)
 			XCTAssert($0.dataLine == false, "Listener should have taken data line low")
 
 			// transmit LISTEN #8
