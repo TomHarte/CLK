@@ -120,7 +120,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 
 				PCMSegment segment;
 				segment.duration.length = number_of_bytes * 8;
-				segment.duration.clock_rate = current_speed;
+				segment.duration.clock_rate = 4000000 / (13 + current_speed);	// the speed zone divides a 4Mhz clock by 13, 14, 15 or 16; TODO: is this the right way around? Is zone 3 the fastest or the slowest?
 				segment.data.reset(new uint8_t[number_of_bytes]);
 				memcpy(segment.data.get(), &track_contents.get()[start_byte_in_current_speed], number_of_bytes);
 				segments.push_back(std::move(segment));
@@ -141,6 +141,9 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));
 	}
+
+	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which would make the
+	// above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks
 
 	return resulting_track;
 }
