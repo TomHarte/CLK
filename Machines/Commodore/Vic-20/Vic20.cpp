@@ -57,6 +57,10 @@ Machine::Machine() :
 
 	// TEMPORARY: attach a [diskless] 1540
 	set_disc();
+
+	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+	_debugPort->set_serial_bus(_serialBus);
+	_serialBus->add_port(_debugPort);
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)

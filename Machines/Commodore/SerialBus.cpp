@@ -45,14 +45,12 @@ void Bus::set_line_output_did_change(Line line)
 		if(locked_port)
 		{
 			new_line_level = (LineLevel)((bool)new_line_level & (bool)locked_port->get_output(line));
-//			printf("[%s] %s is now %s\n", typeid(locked_port).name(), (bool)locked_port->get_output(line) ? "high" : "low");
 		}
 	}
 
 	// post an update only if one occurred
 	if(new_line_level != _line_levels[line])
 	{
-		printf("[Bus] %s is %s\n", StringForLine(line), new_line_level ? "high" : "low");
 		_line_levels[line] = new_line_level;
 
 		for(std::weak_ptr<Port> port : _ports)
@@ -63,5 +61,27 @@ void Bus::set_line_output_did_change(Line line)
 				locked_port->set_input(line, new_line_level);
 			}
 		}
+	}
+}
+
+#pragma mark - The debug port
+
+void DebugPort::set_input(Line line, LineLevel value)
+{
+	_input_levels[line] = value;
+
+	printf("[Bus] %s is %s\n", StringForLine(line), value ? "high" : "low");
+	if(!_incoming_count)
+	{
+		_incoming_count = (!_input_levels[Line::Clock] && !_input_levels[Line::Data]) ? 8 : 0;
+	}
+	else
+	{
+		if(line == Line::Clock && value)
+		{
+			_incoming_byte = (_incoming_byte >> 1) | (_input_levels[Line::Data] ? 0x80 : 0x00);
+		}
+		_incoming_count--;
+		if(_incoming_count == 0) printf("[Bus] Observed %02x\n", _incoming_byte);
 	}
 }

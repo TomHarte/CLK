@@ -71,6 +71,18 @@ namespace Serial {
 			LineLevel _line_levels[5];
 	};
 
+	class DebugPort: public Port {
+		public:
+			void set_input(Line line, LineLevel value);
+
+			DebugPort() : _incoming_count(0) {}
+
+		private:
+			uint8_t _incoming_byte;
+			int _incoming_count;
+			LineLevel _input_levels[5];
+	};
+
 }
 }
 
