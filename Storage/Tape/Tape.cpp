@@ -10,7 +10,7 @@
 
 using namespace Storage;
 
-void Tape::seek(Tape::Time seek_time)
+void Tape::seek(Time seek_time)
 {
 	// TODO: as best we can
 }
