@@ -15,6 +15,7 @@
 - (void)setKernelROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
 - (void)setCharactersROM:(nonnull NSData *)rom;
+- (void)setDriveROM:(nonnull NSData *)rom;
 
 - (void)setPRG:(nonnull NSData *)prg;
 - (BOOL)openTAPAtURL:(nonnull NSURL *)URL;

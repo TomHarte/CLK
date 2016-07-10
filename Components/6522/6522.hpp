@@ -10,6 +10,7 @@
 #define _522_hpp
 
 #include <cstdint>
+#include <typeinfo>
 #include <cstdio>
 
 namespace MOS {
@@ -52,14 +53,14 @@ template <class T> class MOS6522 {
 		inline void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
-//			printf("6522 %p: %d <- %02x\n", this, address, value);
+//			printf("6522 [%s]: %0x <- %02x\n", typeid(*this).name(), address, value);
 			switch(address)
 			{
 				case 0x0:
 					_registers.output[1] = value;
 					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((_registers.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 				case 0xf:
@@ -67,7 +68,7 @@ template <class T> class MOS6522 {
 					_registers.output[0] = value;
 					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((_registers.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
@@ -114,17 +115,25 @@ template <class T> class MOS6522 {
 				case 0xc:
 //					printf("Peripheral control %02x\n", value);
 					_registers.peripheral_control = value;
-					switch(value & 0x0e)
+
+					// TODO: simplify below; trying to avoid improper logging of unimplemented warnings in input mode
+					if(value & 0x08)
 					{
-						default: printf("Unimplemented control line mode %d\n", (value >> 1)&7); break;
-						case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
-						case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
+						switch(value & 0x0e)
+						{
+							default: printf("Unimplemented control line mode %d\n", (value >> 1)&7); break;
+							case 0x0c:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, false);		break;
+							case 0x0e:	static_cast<T *>(this)->set_control_line_output(Port::A, Line::Two, true);		break;
+						}
 					}
-					switch(value & 0xe0)
+					if(value & 0x80)
 					{
-						default: printf("Unimplemented control line mode %d\n", (value >> 5)&7); break;
-						case 0xc0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, false);		break;
-						case 0xe0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, true);		break;
+						switch(value & 0xe0)
+						{
+							default: printf("Unimplemented control line mode %d\n", (value >> 5)&7); break;
+							case 0xc0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, false);		break;
+							case 0xe0:	static_cast<T *>(this)->set_control_line_output(Port::B, Line::Two, true);		break;
+						}
 					}
 				break;
 
@@ -207,7 +216,16 @@ template <class T> class MOS6522 {
 				break;
 
 				case Line::Two:
-					// TODO
+					// TODO: output modes, but probably elsewhere?
+					if(	value != _control_inputs[port].line_two &&							// i.e. value has changed ...
+						!(_registers.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
+						value == !!(_registers.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
+					)
+					{
+						_registers.interrupt_flags |= port ? InterruptFlag::CB2ActiveEdge : InterruptFlag::CA2ActiveEdge;
+						reevaluate_interrupts();
+					}
+					_control_inputs[port].line_two = value;
 				break;
 			}
 		}
@@ -284,9 +302,8 @@ template <class T> class MOS6522 {
 		// Expected to be overridden
 		uint8_t get_port_input(Port port)										{	return 0xff;	}
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
-		bool get_control_line(Port port, Line line)								{	return true;	}
 		void set_control_line_output(Port port, Line line, bool value)			{}
-		void set_interrupt_status(bool status)			{}
+		void set_interrupt_status(bool status)									{}
 
 		// Input/output multiplexer
 		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output)

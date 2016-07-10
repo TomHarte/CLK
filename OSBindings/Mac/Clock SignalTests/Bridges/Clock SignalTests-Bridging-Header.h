@@ -5,3 +5,4 @@
 #import "TestMachine.h"
 #import "MOS6522Bridge.h"
 #import "MOS6532Bridge.h"
+#import "C1540Bridge.h"

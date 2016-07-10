@@ -10,23 +10,31 @@
 
 #include <algorithm>
 
-using namespace Vic20;
+using namespace Commodore::Vic20;
 
 Machine::Machine() :
 	_rom(nullptr)
 {
+	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
 	_keyboardVIA.reset(new KeyboardVIA);
 	_serialPort.reset(new SerialPort);
+	_serialBus.reset(new ::Commodore::Serial::Bus);
 
+	// wire up the serial bus and serial port
+	Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
+
+	// wire up 6522s and serial port
 	_userPortVIA->set_serial_port(_serialPort);
 	_keyboardVIA->set_serial_port(_serialPort);
-	_serialPort->set_vias(_userPortVIA, _keyboardVIA);
+	_serialPort->set_user_port_via(_userPortVIA);
 
+	// wire up the 6522s, tape and machine
 	_userPortVIA->set_delegate(this);
 	_keyboardVIA->set_delegate(this);
 	_tape.set_delegate(this);
 
+	// establish the memory maps
 	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
@@ -45,6 +53,13 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+
+	// TEMPORARY: attach a [diskless] 1540
+//	set_disc();
+
+//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+//	_debugPort->set_serial_bus(_serialBus);
+//	_serialBus->add_port(_debugPort);
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -59,7 +74,6 @@ void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint1
 	}
 }
 
-
 Machine::~Machine()
 {
 	delete[] _rom;
@@ -67,6 +81,13 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+//	static int logCount = 0;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
+//		logCount--;
+//		printf("%04x\n", address);
+//	}
+
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();
 	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO
@@ -85,7 +106,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		*value = result;
 
 		// test for PC at F92F
-		if(_use_fast_tape_hack && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
+		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
 			// advance time on the tape and the VIAs until an interrupt is signalled
 			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
@@ -112,6 +133,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_keyboardVIA->run_for_half_cycles(2);
 	if(_typer) _typer->update(1);
 	_tape.run_for_cycles(1);
+	if(_c1540) _c1540->run_for_cycles(1);
 	return 1;
 }
 
@@ -141,9 +163,16 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	size_t max_length = 0x2000;
 	switch(slot)
 	{
-		case ROMSlotKernel:		target = _kernelROM;							break;
-		case ROMSlotCharacters:	target = _characterROM;	max_length = 0x1000;	break;
-		case ROMSlotBASIC:		target = _basicROM;								break;
+		case Kernel:		target = _kernelROM;							break;
+		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
+		case BASIC:			target = _basicROM;								break;
+		case Drive:
+			if(_c1540)
+			{
+				_c1540->set_rom(data);
+				_c1540->run_for_cycles(2000000);	// pretend it booted a couple of seconds ago
+			}
+		return;
 	}
 
 	if(target)
@@ -315,34 +344,13 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 	}
 }
 
-#pragma mark - Serial Port
+#pragma mark - Disc
 
-void SerialPort::set_clock_output(bool value)
+void Machine::set_disc()
 {
-	printf("Serial port clock output %s\n", value ? "on" : "off");
-}
+	// construct the 1540
+	_c1540.reset(new ::Commodore::C1540::Machine);
 
-void SerialPort::set_data_output(bool value)
-{
-	printf("Serial port data output %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_attention_output(bool value)
-{
-	printf("Serial port attention output %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_clock_input(bool value)
-{
-	printf("Serial port clock input %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_data_input(bool value)
-{
-	printf("Serial port data input %s\n", value ? "on" : "off");
-}
-
-void SerialPort::set_attention_input(bool value)
-{
-	printf("Serial port attention input %s\n", value ? "on" : "off");
+	// attach it to the serial bus
+	_c1540->set_serial_bus(_serialBus);
 }
