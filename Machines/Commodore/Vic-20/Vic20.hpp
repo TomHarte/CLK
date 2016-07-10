@@ -9,15 +9,18 @@
 #ifndef Vic20_hpp
 #define Vic20_hpp
 
-#include "../../../Processors/6502/CPU6502.hpp"
-#include "../../../Storage/Tape/Tape.hpp"
-#include "../../../Components/6560/6560.hpp"
-#include "../../../Components/6522/6522.hpp"
-#include "../1540/C1540.hpp"
-#include "../SerialBus.hpp"
-
 #include "../../CRTMachine.hpp"
 #include "../../Typer.hpp"
+
+#include "../../../Processors/6502/CPU6502.hpp"
+#include "../../../Components/6560/6560.hpp"
+#include "../../../Components/6522/6522.hpp"
+
+#include "../SerialBus.hpp"
+#include "../1540/C1540.hpp"
+
+#include "../../../Storage/Tape/Tape.hpp"
+#include "../../../Storage/Disk/Disk.hpp"
 
 namespace Commodore {
 namespace Vic20 {
@@ -237,7 +240,7 @@ class Machine:
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void add_prg(size_t length, const uint8_t *data);
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
-		void set_disc();
+		void set_disk(std::shared_ptr<Storage::Disk> disk);
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
