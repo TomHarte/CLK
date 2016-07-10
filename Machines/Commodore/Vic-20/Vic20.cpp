@@ -55,7 +55,7 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
 
 	// TEMPORARY: attach a [diskless] 1540
-	set_disc();
+//	set_disc();
 
 //	_debugPort.reset(new ::Commodore::Serial::DebugPort);
 //	_debugPort->set_serial_bus(_serialBus);
