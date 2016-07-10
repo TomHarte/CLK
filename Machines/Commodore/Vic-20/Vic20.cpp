@@ -54,9 +54,6 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
 
-	// TEMPORARY: attach a [diskless] 1540
-//	set_disc();
-
 //	_debugPort.reset(new ::Commodore::Serial::DebugPort);
 //	_debugPort->set_serial_bus(_serialBus);
 //	_serialBus->add_port(_debugPort);
@@ -222,7 +219,8 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
 	// attach it to the serial bus
 	_c1540->set_serial_bus(_serialBus);
 
-	// TODO: push the disk to the C1540
+	// hand it the disk
+	_c1540->set_disk(disk);
 }
 
 #pragma mark - Typer

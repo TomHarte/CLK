@@ -91,6 +91,11 @@ void Machine::set_rom(const uint8_t *rom)
 	memcpy(_rom, rom, sizeof(_rom));
 }
 
+void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
+{
+	_disk = disk;
+}
+
 #pragma mark - 6522 delegate
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
