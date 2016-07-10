@@ -19,7 +19,7 @@ G64::G64(const char *file_name)
 
 	// read and check the file signature
 	char signature[8];
-	if(fread(signature, 1, 8, _file) != 12)
+	if(fread(signature, 1, 8, _file) != 8)
 		throw ErrorNotGCR;
 
 	if(memcmp(signature, "GCR-1541", 8))
@@ -59,7 +59,8 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	if(position >= _number_of_tracks) return resulting_track;
 
 	// seek to this track's entry in the track table
-	fseek(_file, SEEK_SET, (int)((position * 4) + 0xc));
+	long offset = (long)((position * 4) + 0xc);
+	fseek(_file, offset, SEEK_SET);
 
 	// read the track offset
 	uint32_t track_offset;
