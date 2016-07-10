@@ -80,8 +80,8 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	track_length |= (uint16_t)fgetc(_file) << 8;
 
 	// grab the byte contents of this track
-	uint8_t track_contents[track_length];
-	fread(track_contents, 1, track_length, _file);
+	std::unique_ptr<uint8_t> track_contents(new uint8_t[track_length]);
+	fread(track_contents.get(), 1, track_length, _file);
 
 	// seek to this track's entry in the speed zone table
 	fseek(_file, (long)((position * 4) + 0x15c), SEEK_SET);
@@ -104,10 +104,83 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 		// read the speed zone bytes
 		uint8_t speed_zone_contents[speed_zone_length];
 		fread(speed_zone_contents, 1, speed_zone_length, _file);
+
+		// TODO: divide into individual PCMSegments (per byte, if necessary), shove into a PCMTrack
 	}
 	else
 	{
+		PCMSegment segment;
+		segment.duration.length = track_length * 8;
+		segment.duration.clock_rate = track_length * 8;
+		segment.data = std::move(track_contents);
+
+		resulting_track.reset(new PCMTrack(std::move(segment)));
 	}
 
 	return resulting_track;
+}
+
+#pragma mark - PCMTrack
+
+unsigned int greatest_common_divisor(unsigned int a, unsigned int b)
+{
+	if(a < b)
+	{
+		unsigned int swap = b;
+		b = a;
+		a = swap;
+	}
+
+	while(1) {
+		if(!a) return b;
+		if(!b) return a;
+
+		unsigned int remainder = a%b;
+		a = b;
+		b = remainder;
+	}
+}
+
+unsigned int least_common_multiple(unsigned int a, unsigned int b)
+{
+	unsigned int gcd = greatest_common_divisor(a, b);
+	return (a*b) / gcd;
+}
+
+PCMTrack::PCMTrack(std::vector<PCMSegment> segments)
+{
+	_segments = std::move(segments);
+	fix_length();
+}
+
+PCMTrack::PCMTrack(PCMSegment segment)
+{
+	_segments.push_back(std::move(segment));
+	fix_length();
+}
+
+PCMTrack::Event PCMTrack::get_next_event()
+{
+	PCMTrack::Event new_event;
+	return new_event;
+}
+
+void PCMTrack::fix_length()
+{
+	// find the least common multiple of all segment clock rates
+	_track_clock_rate = _segments[0].duration.clock_rate;
+	for(size_t c = 1; c < _segments.size(); c++)
+	{
+		_track_clock_rate = least_common_multiple(_track_clock_rate, _segments[c].duration.clock_rate);
+	}
+
+	// therby determine the total length, storing it to next_event as the divisor
+	_next_event.length.clock_rate = 0;
+	for(size_t c = 0; c < _segments.size(); c++)
+	{
+		unsigned int multiplier = _track_clock_rate / _segments[c].duration.clock_rate;
+		_next_event.length.clock_rate += _segments[c].duration.length * multiplier;
+	}
+
+	_segment_pointer = _bit_pointer = 0;
 }
