@@ -59,8 +59,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	if(position >= _number_of_tracks) return resulting_track;
 
 	// seek to this track's entry in the track table
-	long offset = (long)((position * 4) + 0xc);
-	fseek(_file, offset, SEEK_SET);
+	fseek(_file, (long)((position * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
 	uint32_t track_offset;
@@ -73,7 +72,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	if(!track_offset) return resulting_track;
 
 	// seek to the track start
-	fseek(_file, SEEK_SET, (int)track_offset);
+	fseek(_file, (int)track_offset, SEEK_SET);
 
 	// get the real track length
 	uint16_t track_length;
@@ -84,9 +83,31 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	uint8_t track_contents[track_length];
 	fread(track_contents, 1, track_length, _file);
 
-	// check for speed-zone contents
+	// seek to this track's entry in the speed zone table
+	fseek(_file, (long)((position * 4) + 0x15c), SEEK_SET);
 
-	// TODO: package track_contents and speed_zones into a PCM track
+	// read the speed zone offsrt
+	uint32_t speed_zone_offset;
+	speed_zone_offset = (uint32_t)fgetc(_file);
+	speed_zone_offset |= (uint32_t)fgetc(_file) << 8;
+	speed_zone_offset |= (uint32_t)fgetc(_file) << 16;
+	speed_zone_offset |= (uint32_t)fgetc(_file) << 24;
+
+	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
+	if(speed_zone_offset > 3)
+	{
+		// seek to start of speed zone
+		fseek(_file, (int)speed_zone_offset, SEEK_SET);
+
+		uint16_t speed_zone_length = (track_length + 3) >> 2;
+
+		// read the speed zone bytes
+		uint8_t speed_zone_contents[speed_zone_length];
+		fread(speed_zone_contents, 1, speed_zone_length, _file);
+	}
+	else
+	{
+	}
 
 	return resulting_track;
 }
