@@ -13,7 +13,7 @@
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../../../Components/6560/6560.hpp"
 #include "../../../Components/6522/6522.hpp"
-#include "../1540/Commodore1540.hpp"
+#include "../1540/C1540.hpp"
 #include "../SerialBus.hpp"
 
 #include "../../CRTMachine.hpp"

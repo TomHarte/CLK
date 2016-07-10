@@ -22,6 +22,12 @@ const char *::Commodore::Serial::StringForLine(Line line)
 	}
 }
 
+void ::Commodore::Serial::AttachPortAndBus(std::shared_ptr<Port> port, std::shared_ptr<Bus> bus)
+{
+	port->set_serial_bus(bus);
+	bus->add_port(port);
+}
+
 void Bus::add_port(std::shared_ptr<Port> port)
 {
 	_ports.push_back(port);

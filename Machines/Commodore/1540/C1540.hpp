@@ -16,6 +16,21 @@
 namespace Commodore {
 namespace C1540 {
 
+/*!
+	An implementation of the serial-port VIA in a Commodore 1540 — the VIA that facilitates all
+	IEC bus communications.
+
+	It is wired up such that Port B contains:
+		Bit 0:		data input; 1 if the line is low, 0 if it is high;
+		Bit 1:		data output; 1 if the line should be low, 0 if it should be high;
+		Bit 2:		clock input; 1 if the line is low, 0 if it is high;
+		Bit 3:		clock output; 1 if the line is low, 0 if it is high;
+		Bit 4:		attention acknowledge output; exclusive ORd with the attention input and ORd onto the data output;
+		Bits 5/6:	device select input; the 1540 will act as device 8 + [value of bits]
+		Bit 7:		attention input; 1 if the line is low, 0 if it is high
+
+	The attention input is also connected to CA1, similarly inverted — the CA1 wire will be high when the bus is low and vice versa.
+*/
 class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
@@ -34,28 +49,21 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 			if(port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 				if(serialPort) {
-//					printf("1540 output: %02x\n", value);
-					// "ATNA (Attention Acknowledge) is an output from PB4 which is sensed on the serial data line after being exclusively "ored" by the attention line and inverted"
 					_attention_acknowledge_level = !(value&0x10);
 					_data_level_output = (value&0x02);
 
 					serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!(value&0x08));
 					update_data_line();
 				}
-//				printf("1540 serial port VIA port B: %02x\n", value);
 			}
-//			else
-//				printf("1540 serial port VIA port A: %02x\n", value);
 		}
 
 		void set_serial_line_state(::Commodore::Serial::Line line, bool value) {
-//			printf("1540 Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
 				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
 				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
 				case ::Commodore::Serial::Line::Attention:
-					// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 					_attention_level_input = !value;
 					_portB = (_portB & ~0x80) | (value ? 0x00 : 0x80);
 					set_control_line_input(Port::A, Line::One, !value);
@@ -77,6 +85,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 		{
 			std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 			if(serialPort) {
+				// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 				serialPort->set_output(::Commodore::Serial::Line::Data,
 					(::Commodore::Serial::LineLevel)(!_data_level_output
 					&& (_attention_level_input != _attention_acknowledge_level)));
@@ -84,6 +93,22 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 		}
 };
 
+/*!
+	An implementation of the drive VIA in a Commodore 1540 — the VIA that is used to interface with the disk.
+
+	It is wired up such that Port B contains:
+		Bits 0/1:	head step direction (TODO)
+		Bit 2:		motor control (TODO)
+		Bit 3:		LED control (TODO)
+		Bit 4:		write protect photocell status (TODO)
+		Bits 5/6:	write density (TODO)
+		Bit 7:		0 if sync marks are currently being detected, 1 otherwise;
+
+	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
+
+	It is implied that CA2 might be used to set processor overflow, CA1 a strobe for data input, and one of the CBs being definitive on
+	whether the disk head is being told to read or write, but it's unclear and I've yet to investigate. So, TODO.
+*/
 class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
@@ -110,6 +135,9 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		}
 };
 
+/*!
+	An implementation of the C1540's serial port; this connects incoming line levels to the serial-port VIA.
+*/
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
 		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
@@ -125,16 +153,28 @@ class SerialPort : public ::Commodore::Serial::Port {
 		std::weak_ptr<SerialPortVIA> _serialPortVIA;
 };
 
+/*!
+	Provides an emulation of the C1540.
+*/
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public MOS::MOS6522IRQDelegate::Delegate {
 
 	public:
 		Machine();
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
+		/*!
+			Sets the ROM image to use for this drive; it is assumed that the buffer provided will be at least 16 kb in size.
+		*/
 		void set_rom(const uint8_t *rom);
+
+		/*!
+			Sets the serial bus to which this drive should attach itself.
+		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
+
+		// to satisfy CPU6502::Processor
+		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

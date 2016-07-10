@@ -6,7 +6,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "Commodore1540.hpp"
+#include "C1540.hpp"
 #include <string.h>
 
 using namespace Commodore::C1540;

@@ -7,7 +7,7 @@
 //
 
 #import "C1540Bridge.h"
-#include "Commodore1540.hpp"
+#include "C1540.hpp"
 
 class VanillaSerialPort: public Commodore::Serial::Port {
 	public:
@@ -35,8 +35,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 		_serialPort.reset(new VanillaSerialPort);
 
 		_c1540.set_serial_bus(_serialBus);
-		_serialBus->add_port(_serialPort);
-		_serialPort->set_serial_bus(_serialBus);
+		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 	}
 	return self;
 }

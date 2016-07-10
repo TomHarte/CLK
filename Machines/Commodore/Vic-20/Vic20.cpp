@@ -22,8 +22,7 @@ Machine::Machine() :
 	_serialBus.reset(new ::Commodore::Serial::Bus);
 
 	// wire up the serial bus and serial port
-	_serialBus->add_port(_serialPort);
-	_serialPort->set_serial_bus(_serialBus);
+	Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 
 	// wire up 6522s and serial port
 	_userPortVIA->set_serial_port(_serialPort);
