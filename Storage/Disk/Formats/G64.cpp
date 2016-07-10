@@ -36,6 +36,8 @@ G64::G64(const char *file_name)
 	_number_of_tracks = (uint8_t)fgetc(_file);
 	_maximum_track_size = (uint16_t)fgetc(_file);
 	_maximum_track_size |= (uint16_t)fgetc(_file) << 8;
+
+	get_track_at_position(0);
 }
 
 G64::~G64()
@@ -105,13 +107,36 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 		uint8_t speed_zone_contents[speed_zone_length];
 		fread(speed_zone_contents, 1, speed_zone_length, _file);
 
-		// TODO: divide into individual PCMSegments (per byte, if necessary), shove into a PCMTrack
+		// divide track into appropriately timed PCMSegments
+		std::vector<PCMSegment> segments;
+		unsigned int current_speed = speed_zone_contents[0] >> 6;
+		unsigned int start_byte_in_current_speed = 0;
+		for(unsigned int byte = 0; byte < track_length; byte ++)
+		{
+			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 -  (byte&3)*2);
+			if(byte_speed != current_speed || byte == (track_length-1))
+			{
+				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
+
+				PCMSegment segment;
+				segment.duration.length = number_of_bytes * 8;
+				segment.duration.clock_rate = current_speed;
+				segment.data.reset(new uint8_t[number_of_bytes]);
+				memcpy(segment.data.get(), &track_contents.get()[start_byte_in_current_speed], number_of_bytes);
+				segments.push_back(std::move(segment));
+
+				current_speed = byte_speed;
+				start_byte_in_current_speed = byte;
+			}
+		}
+
+		resulting_track.reset(new PCMTrack(std::move(segments)));
 	}
 	else
 	{
 		PCMSegment segment;
 		segment.duration.length = track_length * 8;
-		segment.duration.clock_rate = track_length * 8;
+		segment.duration.clock_rate = 1; // this is arbitrary; if supplying only one PCMSegment then it'll naturally fill the track
 		segment.data = std::move(track_contents);
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));
