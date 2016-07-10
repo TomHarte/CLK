@@ -48,15 +48,13 @@ class Vic20Document: MachineDocument {
 	override func readFromURL(url: NSURL, ofType typeName: String) throws {
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {
-				case "tap":
-					vic20.openTAPAtURL(url)
-					return
-				default: break;
+				case "tap":	vic20.openTAPAtURL(url)
+				case "g64":	vic20.openG64AtURL(url)
+				default:
+					let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
+					try self.readFromFileWrapper(fileWrapper, ofType: typeName)
 			}
 		}
-
-		let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
-		try self.readFromFileWrapper(fileWrapper, ofType: typeName)
 	}
 
 	// MARK: machine setup

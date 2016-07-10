@@ -11,7 +11,10 @@
 
 #include "../../../Processors/6502/CPU6502.hpp"
 #include "../../../Components/6522/6522.hpp"
+
 #include "../SerialBus.hpp"
+
+#include "../../../Storage/Disk/Disk.hpp"
 
 namespace Commodore {
 namespace C1540 {
@@ -173,6 +176,11 @@ class Machine:
 		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
+		/*!
+			Sets the disk from which this 1540 is reading data.
+		*/
+		void set_disk(std::shared_ptr<Storage::Disk> disk);
+
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
@@ -186,6 +194,8 @@ class Machine:
 		std::shared_ptr<SerialPortVIA> _serialPortVIA;
 		std::shared_ptr<SerialPort> _serialPort;
 		DriveVIA _driveVIA;
+
+		std::shared_ptr<Storage::Disk> _disk;
 };
 
 }

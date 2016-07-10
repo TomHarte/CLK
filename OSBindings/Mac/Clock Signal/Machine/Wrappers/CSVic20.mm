@@ -10,6 +10,7 @@
 
 #include "Vic20.hpp"
 #include "CommodoreTAP.hpp"
+#include "G64.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -56,6 +57,17 @@ using namespace Commodore::Vic20;
 	}
 }
 
+- (BOOL)openG64AtURL:(NSURL *)URL {
+	@synchronized(self) {
+		try {
+			std::shared_ptr<Storage::G64> disk(new Storage::G64([URL fileSystemRepresentation]));
+			_vic20.set_disk(disk);
+			return YES;
+		} catch(int exception) {
+			return NO;
+		}
+	}
+}
 
 - (void)setPRG:(nonnull NSData *)prg {
 	@synchronized(self) {

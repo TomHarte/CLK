@@ -54,9 +54,6 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
 
-	// TEMPORARY: attach a [diskless] 1540
-//	set_disc();
-
 //	_debugPort.reset(new ::Commodore::Serial::DebugPort);
 //	_debugPort->set_serial_bus(_serialBus);
 //	_serialBus->add_port(_debugPort);
@@ -212,6 +209,20 @@ void Machine::tape_did_change_input(Tape *tape)
 	_keyboardVIA->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
+#pragma mark - Disc
+
+void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
+{
+	// construct the 1540
+	_c1540.reset(new ::Commodore::C1540::Machine);
+
+	// attach it to the serial bus
+	_c1540->set_serial_bus(_serialBus);
+
+	// hand it the disk
+	_c1540->set_disk(disk);
+}
+
 #pragma mark - Typer
 
 int Machine::get_typer_delay()
@@ -344,13 +355,3 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 	}
 }
 
-#pragma mark - Disc
-
-void Machine::set_disc()
-{
-	// construct the 1540
-	_c1540.reset(new ::Commodore::C1540::Machine);
-
-	// attach it to the serial bus
-	_c1540->set_serial_bus(_serialBus);
-}
