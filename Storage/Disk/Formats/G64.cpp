@@ -161,8 +161,35 @@ PCMTrack::PCMTrack(PCMSegment segment)
 
 PCMTrack::Event PCMTrack::get_next_event()
 {
-	PCMTrack::Event new_event;
-	return new_event;
+	// find the next 1 in the input stream, keeping count of length as we go, and assuming it's going
+	// to be a flux transition
+	_next_event.type = Track::Event::FluxTransition;
+	_next_event.length.length = 0;
+	while(_segment_pointer < _segments.size())
+	{
+		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].duration.clock_rate;
+		const uint8_t *segment_data = _segments[_segment_pointer].data.get();
+		while(_bit_pointer < _segments[_segment_pointer].duration.length)
+		{
+			// for timing simplicity, bits are modelled as happening at the end of their window
+			int bit = segment_data[_bit_pointer >> 3] & (1 << (_bit_pointer&7));
+			_bit_pointer++;
+			_next_event.length.length += clock_multiplier;
+
+			if(bit) return _next_event;
+		}
+		_bit_pointer = 0;
+		_segment_pointer++;
+	}
+
+	// check whether we actually reached the index hole
+	if(_segment_pointer == _segments.size())
+	{
+		_segment_pointer = 0;
+		_next_event.type = Track::Event::IndexHole;
+	}
+
+	return _next_event;
 }
 
 void PCMTrack::fix_length()
