@@ -58,9 +58,9 @@ Machine::Machine() :
 	// TEMPORARY: attach a [diskless] 1540
 	set_disc();
 
-	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-	_debugPort->set_serial_bus(_serialBus);
-	_serialBus->add_port(_debugPort);
+//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+//	_debugPort->set_serial_bus(_serialBus);
+//	_serialBus->add_port(_debugPort);
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -82,12 +82,12 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	static int logCount = 0;
-	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
-	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
-		logCount--;
-		printf("%04x\n", address);
-	}
+//	static int logCount = 0;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
+//		logCount--;
+//		printf("%04x\n", address);
+//	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();

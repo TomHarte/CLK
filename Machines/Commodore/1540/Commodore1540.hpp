@@ -99,13 +99,13 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 			if(port)
 			{
-				if(value&4)
-				{
-					printf("Head step: %d\n", value&3);
-					printf("Motor: %s\n", value&4 ? "On" : "Off");
-					printf("LED: %s\n", value&8 ? "On" : "Off");
-					printf("Density: %d\n", (value >> 5)&3);
-				}
+//				if(value&4)
+//				{
+//					printf("Head step: %d\n", value&3);
+//					printf("Motor: %s\n", value&4 ? "On" : "Off");
+//					printf("LED: %s\n", value&8 ? "On" : "Off");
+//					printf("Density: %d\n", (value >> 5)&3);
+//				}
 			}
 		}
 };

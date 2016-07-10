@@ -295,7 +295,7 @@ class Machine:
 		std::shared_ptr<KeyboardVIA> _keyboardVIA;
 		std::shared_ptr<SerialPort> _serialPort;
 		std::shared_ptr<::Commodore::Serial::Bus> _serialBus;
-		std::shared_ptr<::Commodore::Serial::DebugPort> _debugPort;
+//		std::shared_ptr<::Commodore::Serial::DebugPort> _debugPort;
 
 		// Tape
 		Tape _tape;
