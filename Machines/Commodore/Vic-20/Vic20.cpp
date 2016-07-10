@@ -78,6 +78,13 @@ Machine::~Machine()
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	static int logCount = 0;
+	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
+		logCount--;
+		printf("%04x\n", address);
+	}
+
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	uint16_t video_address = _mos6560->get_address();
 	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO

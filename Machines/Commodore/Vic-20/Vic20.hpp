@@ -79,8 +79,8 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 //			printf("VIC Serial port line %d: %s\n", line, value ? "on" : "off");
 			switch(line) {
 				default: break;
-				case ::Commodore::Serial::Line::Data: _portA = (_portA & ~0x02) | (value ? 0 : 0x02);	break;
-				case ::Commodore::Serial::Line::Clock: _portA = (_portA & ~0x01) | (value ? 0 : 0x01);	break;
+				case ::Commodore::Serial::Line::Data: _portA = (_portA & ~0x02) | (value ? 0x02 : 0x00);	break;
+				case ::Commodore::Serial::Line::Clock: _portA = (_portA & ~0x01) | (value ? 0x01 : 0x00);	break;
 			}
 		}
 

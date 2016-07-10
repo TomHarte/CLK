@@ -78,8 +78,8 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 			std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
 			if(serialPort) {
 				serialPort->set_output(::Commodore::Serial::Line::Data,
-					(::Commodore::Serial::LineLevel)!(_data_level_output
-					|| (_attention_level_input == _attention_acknowledge_level)));
+					(::Commodore::Serial::LineLevel)(!_data_level_output
+					&& (_attention_level_input != _attention_acknowledge_level)));
  			}
 		}
 };
