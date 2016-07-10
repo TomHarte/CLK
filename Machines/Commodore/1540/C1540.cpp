@@ -13,19 +13,22 @@ using namespace Commodore::C1540;
 
 Machine::Machine()
 {
+	// create a serial port and a VIA to run it
 	_serialPortVIA.reset(new SerialPortVIA);
 	_serialPort.reset(new SerialPort);
 
+	// attach the serial port to its VIA and vice versa
 	_serialPort->set_serial_port_via(_serialPortVIA);
 	_serialPortVIA->set_serial_port(_serialPort);
+
+	// set this instance as the delegate to receive interrupt requests from both VIAs
 	_serialPortVIA->set_delegate(this);
 	_driveVIA.set_delegate(this);
 }
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus)
 {
-	_serialPort->set_serial_bus(serial_bus);
-	serial_bus->add_port(_serialPort);
+	Commodore::Serial::AttachPortAndBus(_serialPort, serial_bus);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -42,6 +45,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	if(log)  printf("[%c %04x] ", isReadOperation(operation) ? 'r' : 'w', address);*/
 
+	/*
+		Memory map (given that I'm unsure yet on any potential mirroring):
+
+			0x0000–0x07ff	RAM
+			0x1800–0x180f	the serial-port VIA
+			0x1c00–0x1c0f	the drive VIA
+			0xc000–0xffff	ROM
+	*/
 	if(address < 0x800)
 	{
 		if(isReadOperation(operation))
@@ -84,5 +95,6 @@ void Machine::set_rom(const uint8_t *rom)
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
+	// both VIAs are connected to the IRQ line
 	set_irq_line(_serialPortVIA->get_interrupt_line() || _driveVIA.get_interrupt_line());
 }
