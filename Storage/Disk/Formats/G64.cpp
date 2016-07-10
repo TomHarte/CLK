@@ -172,7 +172,8 @@ PCMTrack::Event PCMTrack::get_next_event()
 		while(_bit_pointer < _segments[_segment_pointer].duration.length)
 		{
 			// for timing simplicity, bits are modelled as happening at the end of their window
-			int bit = segment_data[_bit_pointer >> 3] & (1 << (_bit_pointer&7));
+			// TODO: should I account for the converse bit ordering? Or can I assume MSB first?
+			int bit = segment_data[_bit_pointer >> 3] & (0x80 >> (_bit_pointer&7));
 			_bit_pointer++;
 			_next_event.length.length += clock_multiplier;
 
