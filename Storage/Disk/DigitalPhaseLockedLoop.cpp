@@ -38,7 +38,7 @@ void DigitalPhaseLockedLoop::run_for_cycles(unsigned int number_of_cycles)
 		_window_offset %= _current_window_length;
 	}
 
-	// updte timing
+	// update timing
 	_next_pulse_time += number_of_cycles;
 }
 

@@ -333,6 +333,8 @@
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
+		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
+		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -737,6 +739,9 @@
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
+		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
+		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
+		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -887,13 +892,15 @@
 			isa = PBXGroup;
 			children = (
 				4B3BA0C51D318B44005DD7A7 /* C1540Bridge.h */,
-				4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */,
 				4B3BA0C71D318B44005DD7A7 /* Clock SignalTests-Bridging-Header.h */,
+				4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */,
 				4B3BA0C81D318B44005DD7A7 /* MOS6522Bridge.h */,
-				4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */,
 				4B3BA0CA1D318B44005DD7A7 /* MOS6532Bridge.h */,
-				4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */,
 				4B3BA0CC1D318B44005DD7A7 /* TestMachine.h */,
+				4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */,
+				4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */,
+				4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */,
+				4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */,
 				4B3BA0CD1D318B44005DD7A7 /* TestMachine.mm */,
 			);
 			path = Bridges;
@@ -1335,6 +1342,7 @@
 				4B1E85801D176468001EF87D /* 6532Tests.swift */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
+				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
@@ -1903,10 +1911,12 @@
 				4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */,
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
+				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine.mm in Sources */,
 				4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
+				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
 				4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */,

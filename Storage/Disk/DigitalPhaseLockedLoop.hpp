@@ -41,7 +41,7 @@ class DigitalPhaseLockedLoop {
 		*/
 		class Delegate {
 			public:
-				virtual void digital_phase_locked_loop_output_bit(bool value) = 0;
+				virtual void digital_phase_locked_loop_output_bit(int value) = 0;
 		};
 		void set_delegate(Delegate *delegate)
 		{
