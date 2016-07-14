@@ -67,7 +67,7 @@ void DigitalPhaseLockedLoop::add_pulse()
 
 	for(size_t pulse = 1; pulse < _length_of_history; pulse++)
 	{
-		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - _current_window_length;
+		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - outgoing_pulse_time;
 	}
 	_next_pulse_time -= outgoing_pulse_time;
 	_pulse_history_array[_length_of_history-1] = _next_pulse_time;
