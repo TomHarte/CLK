@@ -10,17 +10,18 @@
 
 using namespace Storage;
 
-DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(unsigned int clocks_per_bit, unsigned int tolerance, unsigned int length_of_history) :
+DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, int length_of_history) :
 	_clocks_per_bit(clocks_per_bit),
 	_tolerance(tolerance),
 	_length_of_history(length_of_history),
-	_pulse_history(new unsigned int[length_of_history]),
+	_pulse_history(new int[length_of_history]),
 	_current_window_length(clocks_per_bit),
 	_next_pulse_time(0),
 	_window_was_filled(false),
-	_window_offset(0) {}
+	_window_offset(0),
+	_samples_collected(0) {}
 
-void DigitalPhaseLockedLoop::run_for_cycles(unsigned int number_of_cycles)
+void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles)
 {
 	// check whether this triggers any 0s
 	_window_offset += number_of_cycles;
@@ -44,18 +45,40 @@ void DigitalPhaseLockedLoop::run_for_cycles(unsigned int number_of_cycles)
 
 void DigitalPhaseLockedLoop::add_pulse()
 {
-	unsigned int *const _pulse_history_array = _pulse_history.get();
+	int *const _pulse_history_array = (int *)_pulse_history.get();
 
-	// attempt a phase correction by means of adjusting the window length
-	int total_offset = 0;
-	for(size_t pulse = 0; pulse < _length_of_history; pulse++)
+	if(_samples_collected < _length_of_history)
 	{
-		total_offset += _pulse_history_array[pulse] % _current_window_length;
+		_samples_collected++;
 	}
-	_current_window_length += (unsigned int)(((total_offset - (int)(_length_of_history*_current_window_length >> 1)) >> 2) / (int)_length_of_history);
-	if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
-	if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
-	printf("Total across %d samples is %d; adjusted length to %d\n", _length_of_history, total_offset, _current_window_length);
+	else
+	{
+		// perform a linear regression
+		float sum_xy = 0;
+		float sum_x = 0;
+		float sum_y = 0;
+		float sum_x_squared = 0;
+		for(size_t pulse = 0; pulse < _length_of_history; pulse++)
+		{
+			int x = _pulse_history_array[pulse] / (int)_current_window_length;
+			int y = _pulse_history_array[pulse] % (int)_current_window_length;
+
+			sum_xy += (float)(x*y);
+			sum_x += (float)x;
+			sum_y += (float)y;
+			sum_x_squared += (float)x*x;
+		}
+
+		sum_xy /= (float)_length_of_history;
+		sum_x /= (float)_length_of_history;
+		sum_y /= (float)_length_of_history;
+		sum_x_squared /= (float)_length_of_history;
+
+		float gradient = (sum_xy - sum_x*sum_y) / (sum_x_squared - sum_x*sum_x);
+		_current_window_length += (unsigned int)(gradient / 2.0);
+		if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
+		if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
+	}
 
 	// therefore, there was a 1 in this window
 	_window_was_filled = true;
@@ -63,7 +86,7 @@ void DigitalPhaseLockedLoop::add_pulse()
 
 	// shift history one to the left, storing new value; act as though the outgoing pulse were exactly halfway through its
 	// window for adjustment purposes
-	unsigned int outgoing_pulse_time = _pulse_history_array[0] + (_current_window_length >> 1);
+	int outgoing_pulse_time = _pulse_history_array[0];//_pulse_history_array[0] + (_current_window_length >> 1);
 
 	for(size_t pulse = 1; pulse < _length_of_history; pulse++)
 	{
