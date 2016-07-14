@@ -44,20 +44,30 @@ void DigitalPhaseLockedLoop::run_for_cycles(unsigned int number_of_cycles)
 
 void DigitalPhaseLockedLoop::add_pulse()
 {
-	// TODO: linear regression to adjust _current_window_length and _next_pulse_time
+	unsigned int *const _pulse_history_array = _pulse_history.get();
 
+	// attempt a phase correction by means of adjusting the window length
+	int total_offset = 0;
+	for(size_t pulse = 0; pulse < _length_of_history; pulse++)
+	{
+		total_offset += _pulse_history_array[pulse] % _current_window_length;
+	}
+	_current_window_length += (unsigned int)(((total_offset - (int)(_length_of_history*_current_window_length >> 1)) >> 2) / (int)_length_of_history);
+	if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
+	if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
+	printf("Total across %d samples is %d; adjusted length to %d\n", _length_of_history, total_offset, _current_window_length);
 
 	// therefore, there was a 1 in this window
 	_window_was_filled = true;
 	if(_delegate) _delegate->digital_phase_locked_loop_output_bit(1);
 
-	// shift history one to the left, subtracting the outgoing pulse from
-	unsigned int *const _pulse_history_array = _pulse_history.get();
-	unsigned int outgoing_pulse_time = _pulse_history_array[0];
+	// shift history one to the left, storing new value; act as though the outgoing pulse were exactly halfway through its
+	// window for adjustment purposes
+	unsigned int outgoing_pulse_time = _pulse_history_array[0] + (_current_window_length >> 1);
 
 	for(size_t pulse = 1; pulse < _length_of_history; pulse++)
 	{
-		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - outgoing_pulse_time;
+		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - _current_window_length;
 	}
 	_next_pulse_time -= outgoing_pulse_time;
 	_pulse_history_array[_length_of_history-1] = _next_pulse_time;
