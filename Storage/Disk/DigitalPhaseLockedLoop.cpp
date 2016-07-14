@@ -54,23 +54,23 @@ void DigitalPhaseLockedLoop::add_pulse()
 	else
 	{
 		// perform a linear regression
-		float sum_xy = 0;
-		float sum_x = 0;
-		float sum_y = 0;
-		float sum_x_squared = 0;
+		int sum_xy = 0;
+		int sum_x = 0;
+		int sum_y = 0;
+		int sum_x_squared = 0;
 		for(size_t pulse = 0; pulse < _length_of_history; pulse++)
 		{
 			int x = _pulse_history_array[pulse] / (int)_current_window_length;
 			int y = _pulse_history_array[pulse] % (int)_current_window_length;
 
-			sum_xy += (float)(x*y);
-			sum_x += (float)x;
-			sum_y += (float)y;
-			sum_x_squared += (float)x*x;
+			sum_xy += x*y;
+			sum_x += x;
+			sum_y += y;
+			sum_x_squared += x*x;
 		}
 
-		float gradient = ((float)_length_of_history*sum_xy - sum_x*sum_y) / ((float)_length_of_history*sum_x_squared - sum_x*sum_x);
-		_current_window_length += (unsigned int)(gradient / 2.0);
+		int gradient = (_length_of_history*sum_xy - sum_x*sum_y) / (_length_of_history*sum_x_squared - sum_x*sum_x);
+		_current_window_length += gradient / 2;
 		if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
 		if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
 	}
