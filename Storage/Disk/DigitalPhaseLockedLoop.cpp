@@ -69,12 +69,7 @@ void DigitalPhaseLockedLoop::add_pulse()
 			sum_x_squared += (float)x*x;
 		}
 
-		sum_xy /= (float)_length_of_history;
-		sum_x /= (float)_length_of_history;
-		sum_y /= (float)_length_of_history;
-		sum_x_squared /= (float)_length_of_history;
-
-		float gradient = (sum_xy - sum_x*sum_y) / (sum_x_squared - sum_x*sum_x);
+		float gradient = ((float)_length_of_history*sum_xy - sum_x*sum_y) / ((float)_length_of_history*sum_x_squared - sum_x*sum_x);
 		_current_window_length += (unsigned int)(gradient / 2.0);
 		if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
 		if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
