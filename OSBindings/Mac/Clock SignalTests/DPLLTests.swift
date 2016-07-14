@@ -10,19 +10,33 @@ import XCTest
 
 class DPLLTests: XCTestCase {
 
-	func testPerfectInput() {
-		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, tolerance: 20, historyLength: 5)
+	func testRegularNibblesOnPLL(pll: DigitalPhaseLockedLoopBridge, bitLength: UInt) {
+		// clock in two 1s, a 0, and a 1, 200 times over
+		for _ in 0 ..< 200 {
+			pll.runForCycles(bitLength/2)
+			pll.addPulse()
+			pll.runForCycles(bitLength)
+			pll.addPulse()
+			pll.runForCycles(bitLength*2)
+			pll.addPulse()
+			pll.runForCycles(bitLength/2)
+		}
 
-		// clock in two 1s, a 0, and a 1
-		pll.runForCycles(50)
-		pll.addPulse()
-		pll.runForCycles(100)
-		pll.addPulse()
-		pll.runForCycles(200)
-		pll.addPulse()
-		pll.runForCycles(50)
-
-		XCTAssert(pll.stream == 0xd, "PLL should have clocked four bits")
+		XCTAssert((pll.stream&0xffffff) == 0xdddddd, "PLL should have synchronised and clocked repeating 0xd nibbles; got \(String(pll.stream, radix: 16, uppercase: false))")
 	}
 
+	func testPerfectInput() {
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, tolerance: 20, historyLength: 5)
+		testRegularNibblesOnPLL(pll, bitLength: 100)
+	}
+
+	func testFastButRegular() {
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, tolerance: 20, historyLength: 5)
+		testRegularNibblesOnPLL(pll, bitLength: 90)
+	}
+
+	func testSlowButRegular() {
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, tolerance: 20, historyLength: 5)
+		testRegularNibblesOnPLL(pll, bitLength: 110)
+	}
 }
