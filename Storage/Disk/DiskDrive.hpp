@@ -10,12 +10,15 @@
 #define DiskDrive_hpp
 
 #include "Disk.hpp"
+#include "DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
 
-class DiskDrive {
+class DiskDrive: public DigitalPhaseLockedLoop::Delegate {
 	public:
-		DiskDrive(unsigned int clock_rate);
+		DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minute);
+
+		void set_expected_bit_length(Time bit_length);
 
 		void set_disk(std::shared_ptr<Disk> disk);
 		bool has_disk();
@@ -26,8 +29,17 @@ class DiskDrive {
 		void step(int direction);
 		void set_motor_on(bool motor_on);
 
+		// to satisfy DigitalPhaseLockedLoop::Delegate
+		void digital_phase_locked_loop_output_bit(int value);
+
 	protected:
-		virtual void process_input_event(Track::Event event) = 0;
+		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole) = 0;
+		virtual void process_index_hole() = 0;
+
+	private:
+		Time _bit_length;
+		unsigned int _clock_rate;
+		unsigned int _revolutions_per_minute;
 };
 
 }

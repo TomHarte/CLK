@@ -7,3 +7,14 @@
 //
 
 #include "DiskDrive.hpp"
+
+using namespace Storage;
+
+DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minute) :
+	_clock_rate(clock_rate),
+	_revolutions_per_minute(revolutions_per_minute) {}
+
+void DiskDrive::set_expected_bit_length(Time bit_length)
+{
+	_bit_length = bit_length;
+}
