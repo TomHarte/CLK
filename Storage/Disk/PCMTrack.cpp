@@ -55,9 +55,9 @@ PCMTrack::Event PCMTrack::get_next_event()
 	_next_event.length.length = 0;
 	while(_segment_pointer < _segments.size())
 	{
-		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].duration.clock_rate;
+		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].length_of_a_bit.clock_rate;
 		const uint8_t *segment_data = _segments[_segment_pointer].data.get();
-		while(_bit_pointer < _segments[_segment_pointer].duration.length)
+		while(_bit_pointer < _segments[_segment_pointer].length_of_a_bit.length)
 		{
 			// for timing simplicity, bits are modelled as happening at the end of their window
 			// TODO: should I account for the converse bit ordering? Or can I assume MSB first?
@@ -84,18 +84,18 @@ PCMTrack::Event PCMTrack::get_next_event()
 void PCMTrack::fix_length()
 {
 	// find the least common multiple of all segment clock rates
-	_track_clock_rate = _segments[0].duration.clock_rate;
+	_track_clock_rate = _segments[0].length_of_a_bit.clock_rate;
 	for(size_t c = 1; c < _segments.size(); c++)
 	{
-		_track_clock_rate = least_common_multiple(_track_clock_rate, _segments[c].duration.clock_rate);
+		_track_clock_rate = least_common_multiple(_track_clock_rate, _segments[c].length_of_a_bit.clock_rate);
 	}
 
-	// therby determine the total length, storing it to next_event as the divisor
+	// therby determine the total length, storing it to next_event as the track-total divisor
 	_next_event.length.clock_rate = 0;
 	for(size_t c = 0; c < _segments.size(); c++)
 	{
-		unsigned int multiplier = _track_clock_rate / _segments[c].duration.clock_rate;
-		_next_event.length.clock_rate += _segments[c].duration.length * multiplier;
+		unsigned int multiplier = _track_clock_rate / _segments[c].length_of_a_bit.clock_rate;
+		_next_event.length.clock_rate += _segments[c].length_of_a_bit.length * _segments[c].number_of_bits * multiplier;
 	}
 
 	_segment_pointer = _bit_pointer = 0;
