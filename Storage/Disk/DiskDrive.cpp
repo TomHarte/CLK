@@ -18,3 +18,7 @@ void DiskDrive::set_expected_bit_length(Time bit_length)
 {
 	_bit_length = bit_length;
 }
+
+void DiskDrive::digital_phase_locked_loop_output_bit(int value)
+{
+}
