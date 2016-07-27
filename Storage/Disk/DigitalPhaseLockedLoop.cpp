@@ -7,6 +7,8 @@
 //
 
 #include "DigitalPhaseLockedLoop.hpp"
+#include <algorithm>
+#include <cstdlib>
 
 using namespace Storage;
 
@@ -46,43 +48,48 @@ void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles)
 void DigitalPhaseLockedLoop::add_pulse()
 {
 	int *const _pulse_history_array = (int *)_pulse_history.get();
+	int outgoing_pulse_time = 0;
 
-	if(_samples_collected < _length_of_history)
+	if(_samples_collected <= _length_of_history)
 	{
 		_samples_collected++;
 	}
 	else
 	{
-		// perform a linear regression
-		int sum_xy = 0;
-		int sum_x = 0;
-		int sum_y = 0;
-		int sum_x_squared = 0;
-		for(size_t pulse = 0; pulse < _length_of_history; pulse++)
-		{
-			int x = _pulse_history_array[pulse] / (int)_current_window_length;
-			int y = _pulse_history_array[pulse] % (int)_current_window_length;
+		outgoing_pulse_time	= _pulse_history_array[0];
 
-			sum_xy += x*y;
-			sum_x += x;
-			sum_y += y;
-			sum_x_squared += x*x;
+		// temporary: perform an exhaustive search for the ideal window length
+		int minimum_error = __INT_MAX__;
+		int ideal_length = 0;
+		for(int c = _clocks_per_bit - _tolerance; c < _clocks_per_bit + _tolerance; c++)
+		{
+			int total_error = 0;
+			const int half_window = c >> 1;
+			for(size_t pulse = 1; pulse < _length_of_history; pulse++)
+			{
+				int difference = _pulse_history_array[pulse] - _pulse_history_array[pulse-1];
+				difference += half_window;
+				const int steps = difference / c;
+				const int offset = difference%c - half_window;
+
+				total_error += abs(offset / steps);
+			}
+			if(total_error < minimum_error)
+			{
+				minimum_error = total_error;
+				ideal_length = c;
+			}
 		}
 
-		int gradient = (_length_of_history*sum_xy - sum_x*sum_y) / (_length_of_history*sum_x_squared - sum_x*sum_x);
-		_current_window_length += gradient / 2;
-		if(_current_window_length < _clocks_per_bit - _tolerance) _current_window_length = _clocks_per_bit - _tolerance;
-		if(_current_window_length > _clocks_per_bit + _tolerance) _current_window_length = _clocks_per_bit + _tolerance;
+		// use a spring mechanism to effect a lowpass filter
+		_current_window_length = ((ideal_length + (_current_window_length*3)) + 2) >> 2;
 	}
 
 	// therefore, there was a 1 in this window
 	_window_was_filled = true;
 	if(_delegate) _delegate->digital_phase_locked_loop_output_bit(1);
 
-	// shift history one to the left, storing new value; act as though the outgoing pulse were exactly halfway through its
-	// window for adjustment purposes
-	int outgoing_pulse_time = _pulse_history_array[0];//_pulse_history_array[0] + (_current_window_length >> 1);
-
+	// shift history one to the left, storing new value, potentially with a centring adjustment
 	for(size_t pulse = 1; pulse < _length_of_history; pulse++)
 	{
 		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - outgoing_pulse_time;

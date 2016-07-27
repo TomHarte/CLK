@@ -1306,7 +1306,10 @@
 				4B2409591C45DF85004DA684 /* SignalProcessing */,
 				4B69FB391C4D908A00B5F0AA /* Storage */,
 			);
+			indentWidth = 4;
 			sourceTree = "<group>";
+			tabWidth = 4;
+			usesTabs = 1;
 		};
 		4BB73E9F1B587A5100552FC2 /* Products */ = {
 			isa = PBXGroup;
