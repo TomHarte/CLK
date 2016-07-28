@@ -12,88 +12,65 @@
 
 using namespace Storage;
 
-DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, int length_of_history) :
+DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, size_t length_of_history) :
 	_clocks_per_bit(clocks_per_bit),
 	_tolerance(tolerance),
-	_length_of_history(length_of_history),
-	_pulse_history(new int[length_of_history]),
-	_current_window_length(clocks_per_bit),
-	_next_pulse_time(0),
-	_window_was_filled(false),
-	_window_offset(0),
-	_samples_collected(0) {}
+
+	_phase(0),
+	_window_length(clocks_per_bit),
+
+	_phase_error_pointer(0)
+{
+	_phase_error_history.reset(new std::vector<int>(length_of_history, 0));
+}
 
 void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles)
 {
 	// check whether this triggers any 0s
-	_window_offset += number_of_cycles;
+	_phase += number_of_cycles;
 	if(_delegate)
 	{
-		while(_window_offset > _current_window_length)
+		while(_phase > _window_length)
 		{
 			if(!_window_was_filled) _delegate->digital_phase_locked_loop_output_bit(0);
 			_window_was_filled = false;
-			_window_offset -= _current_window_length;
+			_phase -= _window_length;
 		}
 	}
 	else
 	{
-		_window_offset %= _current_window_length;
+		_phase %= _window_length;
 	}
-
-	// update timing
-	_next_pulse_time += number_of_cycles;
 }
 
 void DigitalPhaseLockedLoop::add_pulse()
 {
-	int *const _pulse_history_array = (int *)_pulse_history.get();
-	int outgoing_pulse_time = 0;
-
-	if(_samples_collected <= _length_of_history)
+	if(!_window_was_filled)
 	{
-		_samples_collected++;
+		if(_delegate) _delegate->digital_phase_locked_loop_output_bit(1);
+		_window_was_filled = true;
+		post_phase_error(_phase - (_window_length >> 1));
 	}
-	else
+}
+
+void DigitalPhaseLockedLoop::post_phase_error(int error)
+{
+	// use a simple spring mechanism as a lowpass filter for phase
+	_phase -= (error + 1) >> 1;
+
+	// use the average of the last few errors to affect frequency
+	std::vector<int> *phase_error_history = _phase_error_history.get();
+	size_t phase_error_history_size = phase_error_history->size();
+
+	(*phase_error_history)[_phase_error_pointer] = error;
+	_phase_error_pointer = (_phase_error_pointer + 1)%phase_error_history_size;
+
+	int total_error = 0;
+	for(size_t c = 0; c < phase_error_history_size; c++)
 	{
-		outgoing_pulse_time	= _pulse_history_array[0];
-
-		// temporary: perform an exhaustive search for the ideal window length
-		int minimum_error = __INT_MAX__;
-		int ideal_length = 0;
-		for(int c = _clocks_per_bit - _tolerance; c < _clocks_per_bit + _tolerance; c++)
-		{
-			int total_error = 0;
-			const int half_window = c >> 1;
-			for(size_t pulse = 1; pulse < _length_of_history; pulse++)
-			{
-				int difference = _pulse_history_array[pulse] - _pulse_history_array[pulse-1];
-				difference += half_window;
-				const int steps = difference / c;
-				const int offset = difference%c - half_window;
-
-				total_error += abs(offset / steps);
-			}
-			if(total_error < minimum_error)
-			{
-				minimum_error = total_error;
-				ideal_length = c;
-			}
-		}
-
-		// use a spring mechanism to effect a lowpass filter
-		_current_window_length = ((ideal_length + (_current_window_length*3)) + 2) >> 2;
+		total_error += (*phase_error_history)[c];
 	}
-
-	// therefore, there was a 1 in this window
-	_window_was_filled = true;
-	if(_delegate) _delegate->digital_phase_locked_loop_output_bit(1);
-
-	// shift history one to the left, storing new value, potentially with a centring adjustment
-	for(size_t pulse = 1; pulse < _length_of_history; pulse++)
-	{
-		_pulse_history_array[pulse - 1] = _pulse_history_array[pulse] - outgoing_pulse_time;
-	}
-	_next_pulse_time -= outgoing_pulse_time;
-	_pulse_history_array[_length_of_history-1] = _next_pulse_time;
+	int denominator = (int)(phase_error_history_size * 4);
+	_window_length += (total_error + (denominator >> 1)) / denominator;
+	_window_length = std::max(std::min(_window_length, _clocks_per_bit + _tolerance), _clocks_per_bit - _tolerance);
 }

@@ -40,13 +40,13 @@ class DPLLTests: XCTestCase {
 		testRegularNibblesOnPLL(pll, bitLength: 110)
 	}
 
-	func testFivePercentSinePattern() {
+	func testTwentyPercentSinePattern() {
 		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, tolerance: 20, historyLength: 3)
 		var angle = 0.0
 
 		// clock in two 1s, a 0, and a 1, 200 times over
 		for _ in 0 ..< 200 {
-			let bitLength: UInt = UInt(100 + 2 * sin(angle))
+			let bitLength: UInt = UInt(100 + 20 * sin(angle))
 
 			pll.runForCycles(bitLength/2)
 			pll.addPulse()

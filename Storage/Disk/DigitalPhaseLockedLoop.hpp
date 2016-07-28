@@ -10,6 +10,7 @@
 #define DigitalPhaseLockedLoop_hpp
 
 #include <memory>
+#include <vector>
 
 namespace Storage {
 
@@ -22,7 +23,7 @@ class DigitalPhaseLockedLoop {
 			@param tolerance The maximum tolerance for bit windows — extremes will be clocks_per_bit ± tolerance.
 			@param length_of_history The number of historic pulses to consider in locking to phase.
 		*/
-		DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, int length_of_history);
+		DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, size_t length_of_history);
 
 		/*!
 			Runs the loop, impliedly posting no pulses during that period.
@@ -51,13 +52,12 @@ class DigitalPhaseLockedLoop {
 	private:
 		Delegate *_delegate;
 
-		std::unique_ptr<int> _pulse_history;
-		int _current_window_length;
-		int _length_of_history;
-		int _samples_collected;
+		void post_phase_error(int error);
+		std::unique_ptr<std::vector<int>> _phase_error_history;
+		size_t _phase_error_pointer;
 
-		int _next_pulse_time;
-		int _window_offset;
+		int _phase;
+		int _window_length;
 		bool _window_was_filled;
 
 		int _clocks_per_bit;
