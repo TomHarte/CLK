@@ -26,19 +26,19 @@ DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance
 
 void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles)
 {
-	// check whether this triggers any 0s
 	_phase += number_of_cycles;
-	if(_delegate)
+	int windows_crossed = _phase / _window_length;
+	if(windows_crossed)
 	{
-		while(_phase > _window_length)
+		// check whether this triggers any 0s, if anybody cares
+		if(_delegate)
 		{
-			if(!_window_was_filled) _delegate->digital_phase_locked_loop_output_bit(0);
-			_window_was_filled = false;
-			_phase -= _window_length;
+			if(_window_was_filled) windows_crossed--;
+			for(int c = 0; c < windows_crossed; c++)
+				_delegate->digital_phase_locked_loop_output_bit(0);
 		}
-	}
-	else
-	{
+
+		_window_was_filled = false;
 		_phase %= _window_length;
 	}
 }
