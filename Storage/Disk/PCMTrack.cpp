@@ -33,7 +33,7 @@ PCMTrack::Event PCMTrack::get_next_event()
 	{
 		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].length_of_a_bit.clock_rate;
 		const uint8_t *segment_data = _segments[_segment_pointer].data.get();
-		while(_bit_pointer < _segments[_segment_pointer].length_of_a_bit.length)
+		while(_bit_pointer < _segments[_segment_pointer].number_of_bits)
 		{
 			// for timing simplicity, bits are modelled as happening at the end of their window
 			// TODO: should I account for the converse bit ordering? Or can I assume MSB first?
@@ -66,7 +66,7 @@ void PCMTrack::fix_length()
 		_track_clock_rate = NumberTheory::least_common_multiple(_track_clock_rate, _segments[c].length_of_a_bit.clock_rate);
 	}
 
-	// therby determine the total length, storing it to next_event as the track-total divisor
+	// thereby determine the total length, storing it to next_event as the track-total divisor
 	_next_event.length.clock_rate = 0;
 	for(size_t c = 0; c < _segments.size(); c++)
 	{

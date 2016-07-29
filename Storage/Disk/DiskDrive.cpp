@@ -11,11 +11,11 @@
 using namespace Storage;
 
 DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minute) :
-	_clock_rate(clock_rate),
+	_clock_rate(clock_rate * 16),
 	_revolutions_per_minute(revolutions_per_minute),
 	_head_position(0),
 
-	TimedEventLoop(clock_rate)
+	TimedEventLoop(clock_rate * 16)
 {}
 
 void DiskDrive::set_expected_bit_length(Time bit_length)
@@ -63,6 +63,8 @@ void DiskDrive::run_for_cycles(int number_of_cycles)
 	if(has_disk())
 	{
 		_cycles_since_index_hole += (unsigned int)number_of_cycles;
+
+		number_of_cycles *= 16;
 		_pll->run_for_cycles(number_of_cycles);
 		TimedEventLoop::run_for_cycles(number_of_cycles);
 	}
@@ -100,6 +102,7 @@ void DiskDrive::process_next_event()
 		case Track::Event::IndexHole:
 			_cycles_since_index_hole = 0;
 			process_index_hole();
+			printf("\n");
 		break;
 	}
 	get_next_event();
