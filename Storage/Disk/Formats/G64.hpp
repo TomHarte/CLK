@@ -31,8 +31,6 @@ class G64: public Disk {
 
 		uint8_t _number_of_tracks;
 		uint16_t _maximum_track_size;
-
-		Time length_of_a_bit_in_time_zone(unsigned int time_zone);
 };
 
 };

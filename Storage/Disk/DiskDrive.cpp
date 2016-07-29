@@ -57,7 +57,7 @@ void DiskDrive::set_track()
 	get_next_event();
 }
 
-void DiskDrive::run_for_cycles(unsigned int number_of_cycles)
+void DiskDrive::run_for_cycles(int number_of_cycles)
 {
 	if(has_disk())
 	{

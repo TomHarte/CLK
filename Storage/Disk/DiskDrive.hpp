@@ -24,7 +24,7 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 		void set_disk(std::shared_ptr<Disk> disk);
 		bool has_disk();
 
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for_cycles(int number_of_cycles);
 
 		bool get_is_track_zero();
 		void step(int direction);

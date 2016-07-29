@@ -47,7 +47,7 @@ void TapePlayer::get_next_pulse()
 	set_next_event_time_interval(_current_pulse.length);
 }
 
-void TapePlayer::run_for_cycles(unsigned int number_of_cycles)
+void TapePlayer::run_for_cycles(int number_of_cycles)
 {
 	if(has_tape())
 	{

@@ -15,6 +15,7 @@
 #include "../SerialBus.hpp"
 
 #include "../../../Storage/Disk/Disk.hpp"
+#include "../../../Storage/Disk/DiskDrive.hpp"
 
 namespace Commodore {
 namespace C1540 {
@@ -161,7 +162,8 @@ class SerialPort : public ::Commodore::Serial::Port {
 */
 class Machine:
 	public CPU6502::Processor<Machine>,
-	public MOS::MOS6522IRQDelegate::Delegate {
+	public MOS::MOS6522IRQDelegate::Delegate,
+	public Storage::DiskDrive {
 
 	public:
 		Machine();
@@ -179,7 +181,9 @@ class Machine:
 		/*!
 			Sets the disk from which this 1540 is reading data.
 		*/
-		void set_disk(std::shared_ptr<Storage::Disk> disk);
+//		void set_disk(std::shared_ptr<Storage::Disk> disk);
+
+		void run_for_cycles(int number_of_cycles);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -196,6 +200,10 @@ class Machine:
 		DriveVIA _driveVIA;
 
 		std::shared_ptr<Storage::Disk> _disk;
+
+		int _shift_register;
+		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_index_hole();
 };
 
 }

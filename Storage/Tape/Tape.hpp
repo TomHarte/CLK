@@ -54,7 +54,7 @@ class TapePlayer: public TimedEventLoop {
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 		bool has_tape();
 
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for_cycles(int number_of_cycles);
 		void run_for_input_pulse();
 
 	protected:

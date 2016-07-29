@@ -19,7 +19,7 @@ namespace Storage {
 	class TimedEventLoop {
 		public:
 			TimedEventLoop(unsigned int input_clock_rate);
-			void run_for_cycles(unsigned int number_of_cycles);
+			void run_for_cycles(int number_of_cycles);
 
 		protected:
 			void reset_timer();

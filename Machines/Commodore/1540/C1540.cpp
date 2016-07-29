@@ -7,11 +7,14 @@
 //
 
 #include "C1540.hpp"
-#include <string.h>
+#include <string>
+#include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 
 using namespace Commodore::C1540;
 
-Machine::Machine()
+Machine::Machine() :
+	_shift_register(0),
+	Storage::DiskDrive(1000000, 300)
 {
 	// create a serial port and a VIA to run it
 	_serialPortVIA.reset(new SerialPortVIA);
@@ -24,6 +27,9 @@ Machine::Machine()
 	// set this instance as the delegate to receive interrupt requests from both VIAs
 	_serialPortVIA->set_delegate(this);
 	_driveVIA.set_delegate(this);
+
+	// set a bit rate
+	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
 }
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus)
@@ -91,9 +97,10 @@ void Machine::set_rom(const uint8_t *rom)
 	memcpy(_rom, rom, sizeof(_rom));
 }
 
-void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
+void Machine::run_for_cycles(int number_of_cycles)
 {
-	_disk = disk;
+	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+	Storage::DiskDrive::run_for_cycles(number_of_cycles);
 }
 
 #pragma mark - 6522 delegate
@@ -103,3 +110,13 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 	// both VIAs are connected to the IRQ line
 	set_irq_line(_serialPortVIA->get_interrupt_line() || _driveVIA.get_interrupt_line());
 }
+
+#pragma mark - Disk drive
+
+void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
+{
+	_shift_register = (_shift_register >> 1) | (value << 10);
+}
+
+// the 1540 does not recognise index holes
+void Machine::process_index_hole()	{}

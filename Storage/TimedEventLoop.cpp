@@ -14,9 +14,9 @@ using namespace Storage;
 TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
 	_input_clock_rate(input_clock_rate) {}
 
-void TimedEventLoop::run_for_cycles(unsigned int number_of_cycles)
+void TimedEventLoop::run_for_cycles(int number_of_cycles)
 {
-	_time_into_interval += (unsigned int)_stepper->step(number_of_cycles);
+	_time_into_interval += (unsigned int)_stepper->step((uint64_t)number_of_cycles);
 	while(_time_into_interval >= _event_interval.length)
 	{
 		process_next_event();
