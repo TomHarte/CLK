@@ -7,33 +7,9 @@
 //
 
 #include "PCMTrack.hpp"
+#include "../../NumberTheory/Factors.hpp"
 
 using namespace Storage;
-
-unsigned int greatest_common_divisor(unsigned int a, unsigned int b)
-{
-	if(a < b)
-	{
-		unsigned int swap = b;
-		b = a;
-		a = swap;
-	}
-
-	while(1) {
-		if(!a) return b;
-		if(!b) return a;
-
-		unsigned int remainder = a%b;
-		a = b;
-		b = remainder;
-	}
-}
-
-unsigned int least_common_multiple(unsigned int a, unsigned int b)
-{
-	unsigned int gcd = greatest_common_divisor(a, b);
-	return (a*b) / gcd;
-}
 
 PCMTrack::PCMTrack(std::vector<PCMSegment> segments)
 {
@@ -87,7 +63,7 @@ void PCMTrack::fix_length()
 	_track_clock_rate = _segments[0].length_of_a_bit.clock_rate;
 	for(size_t c = 1; c < _segments.size(); c++)
 	{
-		_track_clock_rate = least_common_multiple(_track_clock_rate, _segments[c].length_of_a_bit.clock_rate);
+		_track_clock_rate = NumberTheory::least_common_multiple(_track_clock_rate, _segments[c].length_of_a_bit.clock_rate);
 	}
 
 	// therby determine the total length, storing it to next_event as the track-total divisor

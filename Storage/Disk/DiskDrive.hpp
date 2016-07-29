@@ -11,6 +11,7 @@
 
 #include "Disk.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
+#include "../../SignalProcessing/Stepper.hpp"
 
 namespace Storage {
 
@@ -40,6 +41,20 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate {
 		Time _bit_length;
 		unsigned int _clock_rate;
 		unsigned int _revolutions_per_minute;
+
+		std::shared_ptr<DigitalPhaseLockedLoop> _pll;
+		std::shared_ptr<Disk> _disk;
+		std::shared_ptr<Track> _track;
+		int _head_position;
+		unsigned int _cycles_since_index_hole;
+
+		void install_track();
+
+		struct {
+			Track::Event current_event;
+			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
+			uint32_t time_into_pulse;
+		} _input;
 };
 
 }

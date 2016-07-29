@@ -314,6 +314,7 @@
 		4BB299F71B587D8400A49093 /* txan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EB1B587D8400A49093 /* txan */; };
 		4BB299F81B587D8400A49093 /* txsn in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EC1B587D8400A49093 /* txsn */; };
 		4BB299F91B587D8400A49093 /* tyan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298ED1B587D8400A49093 /* tyan */; };
+		4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C51D4B558F00248BDF /* Factors.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
 		4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */; };
 		4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA81B587A5100552FC2 /* Assets.xcassets */; };
@@ -700,6 +701,8 @@
 		4BB298EB1B587D8400A49093 /* txan */ = {isa = PBXFileReference; lastKnownFileType = file; path = txan; sourceTree = "<group>"; };
 		4BB298EC1B587D8400A49093 /* txsn */ = {isa = PBXFileReference; lastKnownFileType = file; path = txsn; sourceTree = "<group>"; };
 		4BB298ED1B587D8400A49093 /* tyan */ = {isa = PBXFileReference; lastKnownFileType = file; path = tyan; sourceTree = "<group>"; };
+		4BB697C51D4B558F00248BDF /* Factors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Factors.cpp; path = ../../NumberTheory/Factors.cpp; sourceTree = "<group>"; };
+		4BB697C61D4B558F00248BDF /* Factors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Factors.hpp; path = ../../NumberTheory/Factors.hpp; sourceTree = "<group>"; };
 		4BB73E9E1B587A5100552FC2 /* Clock Signal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Clock Signal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BB73EA11B587A5100552FC2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4BB73EA61B587A5100552FC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/Atari2600Document.xib; sourceTree = "<group>"; };
@@ -1291,6 +1294,15 @@
 			path = "Wolfgang Lorenz 6502 test suite";
 			sourceTree = "<group>";
 		};
+		4BB697C81D4B559300248BDF /* NumberTheory */ = {
+			isa = PBXGroup;
+			children = (
+				4BB697C51D4B558F00248BDF /* Factors.cpp */,
+				4BB697C61D4B558F00248BDF /* Factors.hpp */,
+			);
+			name = NumberTheory;
+			sourceTree = "<group>";
+		};
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
@@ -1300,6 +1312,7 @@
 				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
 				4BC9DF4A1D04691600F44158 /* Components */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
+				4BB697C81D4B559300248BDF /* NumberTheory */,
 				4B366DFD1B5C165F0026627B /* Outputs */,
 				4BB73EDD1B587CA500552FC2 /* Processors */,
 				4BB73E9F1B587A5100552FC2 /* Products */,
@@ -1876,6 +1889,7 @@
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
+				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
