@@ -11,11 +11,11 @@
 
 #include "Disk.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
-#include "../../SignalProcessing/Stepper.hpp"
+#include "../TimedEventLoop.hpp"
 
 namespace Storage {
 
-class DiskDrive: public DigitalPhaseLockedLoop::Delegate {
+class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	public:
 		DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minute);
 
@@ -37,6 +37,9 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate {
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole) = 0;
 		virtual void process_index_hole() = 0;
 
+		// for TimedEventLoop
+		virtual void process_next_event();
+
 	private:
 		Time _bit_length;
 		unsigned int _clock_rate;
@@ -47,14 +50,10 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate {
 		std::shared_ptr<Track> _track;
 		int _head_position;
 		unsigned int _cycles_since_index_hole;
+		void set_track();
 
-		void install_track();
-
-		struct {
-			Track::Event current_event;
-			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
-			uint32_t time_into_pulse;
-		} _input;
+		inline void get_next_event();
+		Track::Event _current_event;
 };
 
 }
