@@ -26,6 +26,7 @@ void DiskDrive::set_expected_bit_length(Time bit_length)
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
 	int clocks_per_bit = (int)((bit_length.length * _clock_rate) / bit_length.clock_rate);
 	_pll.reset(new DigitalPhaseLockedLoop(clocks_per_bit, clocks_per_bit / 5, 3));
+	_pll->set_delegate(this);
 }
 
 void DiskDrive::set_disk(std::shared_ptr<Disk> disk)
@@ -61,7 +62,8 @@ void DiskDrive::run_for_cycles(int number_of_cycles)
 {
 	if(has_disk())
 	{
-		_cycles_since_index_hole += number_of_cycles;
+		_cycles_since_index_hole += (unsigned int)number_of_cycles;
+		_pll->run_for_cycles(number_of_cycles);
 		TimedEventLoop::run_for_cycles(number_of_cycles);
 	}
 }
