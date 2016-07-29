@@ -315,6 +315,7 @@
 		4BB299F81B587D8400A49093 /* txsn in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EC1B587D8400A49093 /* txsn */; };
 		4BB299F91B587D8400A49093 /* tyan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298ED1B587D8400A49093 /* tyan */; };
 		4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C51D4B558F00248BDF /* Factors.cpp */; };
+		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
 		4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */; };
 		4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BB73EA81B587A5100552FC2 /* Assets.xcassets */; };
@@ -703,6 +704,8 @@
 		4BB298ED1B587D8400A49093 /* tyan */ = {isa = PBXFileReference; lastKnownFileType = file; path = tyan; sourceTree = "<group>"; };
 		4BB697C51D4B558F00248BDF /* Factors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Factors.cpp; path = ../../NumberTheory/Factors.cpp; sourceTree = "<group>"; };
 		4BB697C61D4B558F00248BDF /* Factors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Factors.hpp; path = ../../NumberTheory/Factors.hpp; sourceTree = "<group>"; };
+		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
+		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
 		4BB73E9E1B587A5100552FC2 /* Clock Signal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Clock Signal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BB73EA11B587A5100552FC2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4BB73EA61B587A5100552FC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/Atari2600Document.xib; sourceTree = "<group>"; };
@@ -967,9 +970,11 @@
 		4B69FB391C4D908A00B5F0AA /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */,
+				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
+				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
-				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
 			);
 			name = Storage;
 			path = ../../Storage;
@@ -1914,6 +1919,7 @@
 				4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
+				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
