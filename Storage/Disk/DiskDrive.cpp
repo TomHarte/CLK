@@ -21,7 +21,11 @@ DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minut
 void DiskDrive::set_expected_bit_length(Time bit_length)
 {
 	_bit_length = bit_length;
-//	_pll.reset(new DigitalPhaseLockedLoop();
+
+	// this conversion doesn't need to be exact because there's a lot of variation to be taken
+	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
+	int clocks_per_bit = (int)((bit_length.length * _clock_rate) / bit_length.clock_rate);
+	_pll.reset(new DigitalPhaseLockedLoop(clocks_per_bit, clocks_per_bit / 5, 3));
 }
 
 void DiskDrive::set_disk(std::shared_ptr<Disk> disk)
