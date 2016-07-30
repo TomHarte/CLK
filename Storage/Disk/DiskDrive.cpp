@@ -100,9 +100,9 @@ void DiskDrive::process_next_event()
 			_pll->add_pulse();
 		break;
 		case Track::Event::IndexHole:
+			printf("[%d cycles]\n", _cycles_since_index_hole);
 			_cycles_since_index_hole = 0;
 			process_index_hole();
-			printf("\n");
 		break;
 	}
 	get_next_event();
