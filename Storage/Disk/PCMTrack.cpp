@@ -76,12 +76,5 @@ void PCMTrack::fix_length()
 		_next_event.length.clock_rate += _segments[c].length_of_a_bit.length * _segments[c].number_of_bits * multiplier;
 	}
 
-	uint8_t *data = _segments[0].data.get();
-	for(int c = 0; c < _segments[0].number_of_bits >> 3; c++)
-	{
-		printf("%02x.", data[c]);
-	}
-	printf("===\n");
-
 	_segment_pointer = _bit_pointer = 0;
 }

@@ -22,7 +22,6 @@ DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int clock_rate_multiplier
 void DiskDrive::set_expected_bit_length(Time bit_length)
 {
 	_bit_length = bit_length;
-	printf("expected bit length: %0.4f\n", bit_length.get_float() * 1000.0);
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
@@ -56,28 +55,6 @@ void DiskDrive::step(int direction)
 void DiskDrive::set_track()
 {
 	_track = _disk->get_track_at_position((unsigned int)_head_position);
-
-//	printf("***");
-//	int calibration = -1;
-//	int bit = 0, shift = 0;
-//	while(1)
-//	{
-//		Track::Event event = _track->get_next_event();
-//		if(event.type == Track::Event::IndexHole) break;
-//		if(calibration < 0) calibration = event.length.length;
-//
-//		int number_of_bits = event.length.length / calibration;
-//		while(number_of_bits > 1)
-//		{
-//			shift = (shift << 1)&0xff;
-//			number_of_bits--;
-//			bit++; if(bit == 8) { printf("%02x.", shift); bit = 0; }
-//		}
-//		shift = ((shift << 1) | 0x01)&0xff;
-//		bit++; if(bit == 8) { printf("%02x.", shift); bit = 0; }
-//	}
-//	printf("***\n");
-
 	reset_timer();
 	get_next_event();
 }
@@ -116,7 +93,6 @@ void DiskDrive::get_next_event()
 	event_interval.clock_rate *= _revolutions_per_minute;
 	event_interval.simplify();
 	set_next_event_time_interval(event_interval);
-//	printf("bit length: %0.4f\n", event_interval.get_float() * 1000.0);
 }
 
 void DiskDrive::process_next_event()
@@ -127,7 +103,6 @@ void DiskDrive::process_next_event()
 			_pll->add_pulse();
 		break;
 		case Track::Event::IndexHole:
-			printf("[%d cycles]\n", _cycles_since_index_hole);
 			_cycles_since_index_hole = 0;
 			process_index_hole();
 		break;

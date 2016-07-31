@@ -116,14 +116,6 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
 	_shift_register = (_shift_register << 1) | value;
-
-	static int bitCount = 0;
-	bitCount++;
-	if(bitCount == 8)
-	{
-		printf("%02x.", _shift_register&0xff);
-		bitCount = 0;
-	}
 }
 
 // the 1540 does not recognise index holes
