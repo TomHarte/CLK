@@ -39,6 +39,10 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+//	static bool log = false;
+//	if(operation == CPU6502::BusOperation::ReadOpcode) printf("%04x\n", address);
+//	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xf3be)) log = true;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && log) printf("%04x\n", address);
 //	if(operation == CPU6502::BusOperation::ReadOpcode && (address >= 0xF556 && address <= 0xF56D)) printf("%04x\n", address);
 //	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xE887)) printf("A: %02x\n", get_value_of_register(CPU6502::Register::A));
 
@@ -123,7 +127,13 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	{
 		_driveVIA.set_data_input((uint8_t)_shift_register);
 		_bit_window_offset = 0;
+		if(_driveVIA.get_should_set_overflow())
+		{
+			set_overflow_line(true);
+		}
 	}
+	else
+		set_overflow_line(false);
 }
 
 // the 1540 does not recognise index holes

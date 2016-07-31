@@ -472,6 +472,7 @@ template <class T> class Processor {
 		bool _ready_line_is_enabled;
 
 		bool _irq_line_is_enabled, _irq_request_history;
+		bool _nmi_line_is_enabled, _set_overflow_line_is_enabled;
 
 		/*!
 			Gets the program representing an RST response.
@@ -549,7 +550,10 @@ template <class T> class Processor {
 			_interruptFlag(Flag::Interrupt),
 			_s(0),
 			_nextBusOperation(BusOperation::None),
-			_interrupt_requests(InterruptRequestFlags::PowerOn)
+			_interrupt_requests(InterruptRequestFlags::PowerOn),
+			_irq_line_is_enabled(false),
+			_nmi_line_is_enabled(false),
+			_set_overflow_line_is_enabled(false)
 		{
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
@@ -1238,6 +1242,19 @@ template <class T> class Processor {
 		}
 
 		/*!
+			Sets the current level of the set overflow line.
+
+			@param active @c true if the line is logically active; @c false otherwise.
+		*/
+		inline void set_overflow_line(bool active)
+		{
+			// a leading edge will set the overflow flag
+			if(active && !_set_overflow_line_is_enabled)
+				_overflowFlag = Flag::Overflow;
+			_set_overflow_line_is_enabled = active;
+		}
+
+		/*!
 			Sets the current level of the NMI line.
 
 			@param active `true` if the line is logically active; `false` otherwise.
@@ -1245,7 +1262,9 @@ template <class T> class Processor {
 		inline void set_nmi_line(bool active)
 		{
 			// NMI is edge triggered, not level
-			_interrupt_requests |= (active ? InterruptRequestFlags::NMI : 0);
+			if(active && !_nmi_line_is_enabled)
+				_interrupt_requests |= InterruptRequestFlags::NMI;
+			_nmi_line_is_enabled = active;
 		}
 
 		/*!

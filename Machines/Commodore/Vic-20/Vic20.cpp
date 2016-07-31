@@ -169,6 +169,11 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 				_c1540->set_rom(data);
 				_c1540->run_for_cycles(2000000);	// pretend it booted a couple of seconds ago
 			}
+			else
+			{
+				_driveROM.reset(new uint8_t[length]);
+				memcpy(_driveROM.get(), data, length);
+			}
 		return;
 	}
 
@@ -221,6 +226,13 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
 
 	// hand it the disk
 	_c1540->set_disk(disk);
+
+	// install the ROM if it was previously set
+	if(_driveROM)
+	{
+		_c1540->set_rom(_driveROM.get());
+		_driveROM.reset();
+	}
 }
 
 #pragma mark - Typer

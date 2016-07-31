@@ -132,6 +132,16 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 			_port_a = value;
 		}
 
+		bool get_should_set_overflow() {
+			return _should_set_overflow;
+		}
+
+		void set_control_line_output(Port port, Line line, bool value) {
+			if(port == Port::A && line == Line::Two) {
+				_should_set_overflow = value;
+			}
+		}
+
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 			if(port)
 			{
@@ -147,6 +157,7 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 
 	private:
 		uint8_t _port_b, _port_a;
+		bool _should_set_overflow;
 };
 
 /*!
