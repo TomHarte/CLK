@@ -19,6 +19,9 @@ namespace SignalProcessing {
 	clock to sample something with another.
 
 	Uses a Bresenham-like error term internally for full-integral storage with no drift.
+
+	Pegs the beginning of both clocks to the time at which the stepper is created. So e.g. a stepper
+	that converts from an input clock of 1200 to an output clock of 2 will first fire on cycle 600.
 */
 class Stepper
 {
@@ -33,7 +36,7 @@ class Stepper
 			of steps that should be taken at the @c output_rate.
 		*/
 		Stepper(uint64_t output_rate, uint64_t input_rate) :
-			accumulated_error_(0),
+			accumulated_error_(-((int64_t)input_rate << 1)),
 			input_rate_(input_rate),
 			output_rate_(output_rate),
 			whole_step_(output_rate / input_rate),

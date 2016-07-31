@@ -17,7 +17,7 @@ namespace Storage {
 
 class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	public:
-		DiskDrive(unsigned int clock_rate, unsigned int revolutions_per_minute);
+		DiskDrive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
 
 		void set_expected_bit_length(Time bit_length);
 
@@ -43,6 +43,7 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 	private:
 		Time _bit_length;
 		unsigned int _clock_rate;
+		unsigned int _clock_rate_multiplier;
 		unsigned int _revolutions_per_minute;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> _pll;

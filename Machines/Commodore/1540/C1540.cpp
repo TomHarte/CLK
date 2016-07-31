@@ -14,7 +14,7 @@ using namespace Commodore::C1540;
 
 Machine::Machine() :
 	_shift_register(0),
-	Storage::DiskDrive(1000000, 300)
+	Storage::DiskDrive(1000000, 16, 300)
 {
 	// create a serial port and a VIA to run it
 	_serialPortVIA.reset(new SerialPortVIA);
@@ -115,7 +115,7 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
-	_shift_register = (_shift_register >> 1) | (value << 10);
+	_shift_register = (_shift_register << 1) | value;
 
 	static int bitCount = 0;
 	bitCount++;

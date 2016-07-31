@@ -22,6 +22,11 @@ struct Time {
 		length /= common_divisor;
 		clock_rate /= common_divisor;
 	}
+
+	inline float get_float()
+	{
+		return (float)length / (float)clock_rate;
+	}
 };
 
 }

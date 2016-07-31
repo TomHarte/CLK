@@ -1008,7 +1008,7 @@ inline void Tape::run_for_cycles(unsigned int number_of_cycles)
 		{
 			if(_is_running)
 			{
-				TapePlayer::run_for_cycles(number_of_cycles);
+				TapePlayer::run_for_cycles((int)number_of_cycles);
 			}
 		}
 		else

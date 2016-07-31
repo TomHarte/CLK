@@ -32,6 +32,8 @@ PCMTrack::Event PCMTrack::get_next_event()
 	while(_segment_pointer < _segments.size())
 	{
 		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].length_of_a_bit.clock_rate;
+		unsigned int bit_length = clock_multiplier * _segments[_segment_pointer].length_of_a_bit.length;
+
 		const uint8_t *segment_data = _segments[_segment_pointer].data.get();
 		while(_bit_pointer < _segments[_segment_pointer].number_of_bits)
 		{
@@ -39,7 +41,7 @@ PCMTrack::Event PCMTrack::get_next_event()
 			// TODO: should I account for the converse bit ordering? Or can I assume MSB first?
 			int bit = segment_data[_bit_pointer >> 3] & (0x80 >> (_bit_pointer&7));
 			_bit_pointer++;
-			_next_event.length.length += clock_multiplier * _segments[_segment_pointer].length_of_a_bit.length;
+			_next_event.length.length += bit_length;
 
 			if(bit) return _next_event;
 		}
@@ -73,6 +75,13 @@ void PCMTrack::fix_length()
 		unsigned int multiplier = _track_clock_rate / _segments[c].length_of_a_bit.clock_rate;
 		_next_event.length.clock_rate += _segments[c].length_of_a_bit.length * _segments[c].number_of_bits * multiplier;
 	}
+
+	uint8_t *data = _segments[0].data.get();
+	for(int c = 0; c < _segments[0].number_of_bits >> 3; c++)
+	{
+		printf("%02x.", data[c]);
+	}
+	printf("===\n");
 
 	_segment_pointer = _bit_pointer = 0;
 }
