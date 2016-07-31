@@ -106,7 +106,7 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 		Bit 3:		LED control (TODO)
 		Bit 4:		write protect photocell status (TODO)
 		Bits 5/6:	write density (TODO)
-		Bit 7:		0 if sync marks are currently being detected, 1 otherwise;
+		Bit 7:		0 if sync marks are currently being detected, 1 otherwise.
 
 	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
 
@@ -117,12 +117,19 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
 
+		// write protect tab uncovered
+		DriveVIA() : _port_b(0xff), _port_a(0xff) {}
+
 		uint8_t get_port_input(Port port) {
-			if(port)
-			{
-				return 0xff;	// imply not sync, write protect tab uncovered
-			}
-			return 0xff;
+			return port ? _port_b : _port_a;
+		}
+
+		void set_sync_detected(bool sync_detected) {
+			_port_b = (_port_b & 0x7f) | (sync_detected ? 0x00 : 0x80);
+		}
+
+		void set_data_input(uint8_t value) {
+			_port_a = value;
 		}
 
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
@@ -137,6 +144,9 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 //				}
 			}
 		}
+
+	private:
+		uint8_t _port_b, _port_a;
 };
 
 /*!
@@ -201,7 +211,7 @@ class Machine:
 
 		std::shared_ptr<Storage::Disk> _disk;
 
-		int _shift_register;
+		int _shift_register, _bit_window_offset;
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
 };

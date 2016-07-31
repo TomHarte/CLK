@@ -116,6 +116,14 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
 	_shift_register = (_shift_register << 1) | value;
+	_driveVIA.set_sync_detected((_shift_register & 0x3ff) == 0x3ff);
+	if((_shift_register & 0x7ff) == 0x7fe) _bit_window_offset = 0;
+	_bit_window_offset++;
+	if(_bit_window_offset == 8)
+	{
+		_driveVIA.set_data_input((uint8_t)_shift_register);
+		_bit_window_offset = 0;
+	}
 }
 
 // the 1540 does not recognise index holes
