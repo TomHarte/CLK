@@ -104,7 +104,8 @@ void Machine::set_rom(const uint8_t *rom)
 void Machine::run_for_cycles(int number_of_cycles)
 {
 	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
-	Storage::DiskDrive::run_for_cycles(number_of_cycles);
+	if(_driveVIA.get_motor_enabled()) // TODO: motor speed up/down
+		Storage::DiskDrive::run_for_cycles(number_of_cycles);
 }
 
 #pragma mark - 6522 delegate

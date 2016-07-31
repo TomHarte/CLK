@@ -136,6 +136,10 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 			return _should_set_overflow;
 		}
 
+		bool get_motor_enabled() {
+			return _drive_motor;
+		}
+
 		void set_control_line_output(Port port, Line line, bool value) {
 			if(port == Port::A && line == Line::Two) {
 				_should_set_overflow = value;
@@ -145,10 +149,10 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 			if(port)
 			{
+				_drive_motor = !!(value&4);
 //				if(value&4)
 //				{
-//					printf("Head step: %d\n", value&3);
-//					printf("Motor: %s\n", value&4 ? "On" : "Off");
+					printf("Head step: %d\n", value&3);
 //					printf("LED: %s\n", value&8 ? "On" : "Off");
 //					printf("Density: %d\n", (value >> 5)&3);
 //				}
@@ -158,6 +162,7 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	private:
 		uint8_t _port_b, _port_a;
 		bool _should_set_overflow;
+		bool _drive_motor;
 };
 
 /*!
