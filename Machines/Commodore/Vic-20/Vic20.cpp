@@ -165,12 +165,10 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 		case BASIC:			target = _basicROM;								break;
 		case Drive:
 			if(_c1540)
-			{
 				_c1540->set_rom(data);
-				_c1540->run_for_cycles(2000000);	// pretend it booted a couple of seconds ago
-			}
 			else
 			{
+				// if there's no 1540 now, hold onto the ROM in case one is added later
 				_driveROM.reset(new uint8_t[length]);
 				memcpy(_driveROM.get(), data, length);
 			}
@@ -233,13 +231,15 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
 		_c1540->set_rom(_driveROM.get());
 		_driveROM.reset();
 	}
+
+	set_typer_for_string("LOAD\"*\",8,1\n");
 }
 
 #pragma mark - Typer
 
 int Machine::get_typer_delay()
 {
-	return get_reset_line() ? 1*263*60*65 : 0;	// wait two seconds if resetting
+	return get_is_resetting() ? 1*263*60*65 : 0;	// wait a second if resetting
 }
 
 int Machine::get_typer_frequency()

@@ -1213,13 +1213,13 @@ template <class T> class Processor {
 		}
 
 		/*!
-			Gets the current level of the RST line.
+			Gets whether the 6502 would reset at the next opportunity.
 
 			@returns @c true if the line is logically active; @c false otherwise.
 		*/
-		inline bool get_reset_line()
+		inline bool get_is_resetting()
 		{
-			return !!(_interrupt_requests & InterruptRequestFlags::Reset);
+			return !!(_interrupt_requests & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
 		}
 
 		/*!

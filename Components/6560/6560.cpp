@@ -255,7 +255,7 @@ uint16_t MOS6560::get_address()
 			}
 		}
 	}
-	return fetch_address;
+	return fetch_address & 0x3fff;
 }
 
 void MOS6560::set_graphics_value(uint8_t value, uint8_t colour_value)
