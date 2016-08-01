@@ -115,10 +115,20 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 */
 class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
+		class Delegate {
+			public:
+				virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
+				virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
+		};
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
 		using MOS6522IRQDelegate::set_interrupt_status;
 
 		// write protect tab uncovered
-		DriveVIA() : _port_b(0xff), _port_a(0xff) {}
+		DriveVIA() : _port_b(0xff), _port_a(0xff), _delegate(nullptr) {}
 
 		uint8_t get_port_input(Port port) {
 			return port ? _port_b : _port_a;
@@ -152,10 +162,23 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 				_drive_motor = !!(value&4);
 //				if(value&4)
 //				{
-					printf("Head step: %d\n", value&3);
+
+				int step_difference = ((value&3) - (_previous_port_b_output&3))&3;
+				if(step_difference)
+				{
+					if(_delegate) _delegate->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+				}
+
+				int density_difference = (_previous_port_b_output^value) & (3 << 5);
+				if(density_difference && _delegate)
+				{
+					_delegate->drive_via_did_set_data_density(this, (value >> 5)&3);
+				}
 //					printf("LED: %s\n", value&8 ? "On" : "Off");
 //					printf("Density: %d\n", (value >> 5)&3);
 //				}
+
+				_previous_port_b_output = value;
 			}
 		}
 
@@ -163,6 +186,8 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		uint8_t _port_b, _port_a;
 		bool _should_set_overflow;
 		bool _drive_motor;
+		uint8_t _previous_port_b_output;
+		Delegate *_delegate;
 };
 
 /*!
@@ -189,6 +214,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public MOS::MOS6522IRQDelegate::Delegate,
+	public DriveVIA::Delegate,
 	public Storage::DiskDrive {
 
 	public:
@@ -216,6 +242,10 @@ class Machine:
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
+
+		// to satisfy DriveVIA::Delegate
+		void drive_via_did_step_head(void *driveVIA, int direction);
+		void drive_via_did_set_data_density(void *driveVIA, int density);
 
 	private:
 		uint8_t _ram[0x800];

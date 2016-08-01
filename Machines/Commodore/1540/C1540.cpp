@@ -25,7 +25,8 @@ Machine::Machine() :
 	_serialPortVIA->set_serial_port(_serialPort);
 
 	// set this instance as the delegate to receive interrupt requests from both VIAs
-	_serialPortVIA->set_delegate(this);
+	_serialPortVIA->set_interrupt_delegate(this);
+	_driveVIA.set_interrupt_delegate(this);
 	_driveVIA.set_delegate(this);
 
 	// set a bit rate
@@ -40,10 +41,10 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 //	static bool log = false;
-//	if(operation == CPU6502::BusOperation::ReadOpcode) printf("%04x\n", address);
-//	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xf3be)) log = true;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xF3C0)) log = true;
 //	if(operation == CPU6502::BusOperation::ReadOpcode && log) printf("%04x\n", address);
-//	if(operation == CPU6502::BusOperation::ReadOpcode && (address >= 0xF556 && address <= 0xF56D)) printf("%04x\n", address);
+//	if(operation == CPU6502::BusOperation::ReadOpcode) printf("%04x\n", address);
+//	if(operation == CPU6502::BusOperation::ReadOpcode && (address >= 0xF510 && address <= 0xF553)) printf("%04x\n", address);
 //	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xE887)) printf("A: %02x\n", get_value_of_register(CPU6502::Register::A));
 
 /*	static bool log = false;
@@ -121,8 +122,15 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
 	_shift_register = (_shift_register << 1) | value;
-	_driveVIA.set_sync_detected((_shift_register & 0x3ff) == 0x3ff);
-	if((_shift_register & 0x7ff) == 0x7fe) _bit_window_offset = 0;
+	if((_shift_register & 0x3ff) == 0x3ff)
+	{
+		_driveVIA.set_sync_detected(true);
+		_bit_window_offset = -1;
+	}
+	else
+	{
+		_driveVIA.set_sync_detected(false);
+	}
 	_bit_window_offset++;
 	if(_bit_window_offset == 8)
 	{
@@ -139,3 +147,15 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 
 // the 1540 does not recognise index holes
 void Machine::process_index_hole()	{}
+
+#pragma mak - Drive VIA delegate
+
+void Machine::drive_via_did_step_head(void *driveVIA, int direction)
+{
+	step(direction);
+}
+
+void Machine::drive_via_did_set_data_density(void *driveVIA, int density)
+{
+	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)density));
+}

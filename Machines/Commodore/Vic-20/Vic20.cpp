@@ -30,8 +30,8 @@ Machine::Machine() :
 	_serialPort->set_user_port_via(_userPortVIA);
 
 	// wire up the 6522s, tape and machine
-	_userPortVIA->set_delegate(this);
-	_keyboardVIA->set_delegate(this);
+	_userPortVIA->set_interrupt_delegate(this);
+	_keyboardVIA->set_interrupt_delegate(this);
 	_tape.set_delegate(this);
 
 	// establish the memory maps
