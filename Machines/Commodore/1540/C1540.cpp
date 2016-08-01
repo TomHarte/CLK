@@ -126,7 +126,6 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	{
 		_driveVIA.set_sync_detected(true);
 		_bit_window_offset = -1; // i.e. this bit isn't the first within a data window, but the next might be
-		printf("X");
 	}
 	else
 	{
@@ -141,7 +140,6 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
 			set_overflow_line(true);
 		}
-		printf("%02x.", (uint8_t)_shift_register);
 	}
 	else
 		set_overflow_line(false);

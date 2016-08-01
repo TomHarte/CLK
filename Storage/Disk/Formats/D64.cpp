@@ -112,8 +112,8 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 		uint8_t *sector_data = &data[sector * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
-		uint8_t sector_number = (uint8_t)(sector+1);
-		uint8_t track_number = (uint8_t)((position >> 1) + 1);
+		uint8_t sector_number = (uint8_t)(sector);				// sectors count from 0
+		uint8_t track_number = (uint8_t)((position >> 1) + 1);	// tracks count from 1
 		uint8_t checksum = (uint8_t)(sector_number ^ track_number ^ _disk_id ^ (_disk_id >> 8));
 		uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number
