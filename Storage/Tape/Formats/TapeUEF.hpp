@@ -16,7 +16,7 @@
 namespace Storage {
 
 /*!
-	Provides a @c Tape containing a UEF tape image.
+	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
 */
 class UEF : public Tape {
 	public:
