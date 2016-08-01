@@ -15,22 +15,13 @@
 namespace Storage {
 
 /*!
-	A segment of PCM-sampled data. The clock rate in the duration is taken to be relative to all other
-	segments that comprise a track rather than absolute, and the length is taken to be the number of
-	bits from @c data that are actually present.
+	A segment of PCM-sampled data.
 
 	Bits from each byte are taken MSB to LSB.
-
-	Actual segment lengths will be calculated such that all segments that comprise a track exactly fill the track.
-
-	So the segment for a track with only a single segment may supply any clock rate other than 0. It will exactly
-	fill the track, so if it has 7 samples then there will be at most a flux transition every 1/7th of a rotation.
-
-	If a track consists of two segments, one with clock rate 1 and one with clock rate 2, the second will be
-	clocked twice as fast as the first.
 */
 struct PCMSegment {
-	Time duration;
+	Time length_of_a_bit;
+	unsigned int number_of_bits;
 	std::unique_ptr<uint8_t> data;
 };
 

@@ -10,8 +10,7 @@
 #define Tape_hpp
 
 #include <memory>
-#include "../../SignalProcessing/Stepper.hpp"
-#include "../Storage.hpp"
+#include "../TimedEventLoop.hpp"
 
 namespace Storage {
 
@@ -48,29 +47,25 @@ class Tape {
 	Will call @c process_input_pulse instantaneously upon reaching *the end* of a pulse. Therefore a subclass
 	can decode pulses into data within process_input_pulse, using the supplied pulse's @c length and @c type.
 */
-class TapePlayer {
+class TapePlayer: public TimedEventLoop {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 		bool has_tape();
 
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for_cycles(int number_of_cycles);
 		void run_for_input_pulse();
 
 	protected:
+		virtual void process_next_event();
 		virtual void process_input_pulse(Tape::Pulse pulse) = 0;
 
 	private:
 		inline void get_next_pulse();
 
-		unsigned int _input_clock_rate;
 		std::shared_ptr<Storage::Tape> _tape;
-		struct {
-			Tape::Pulse current_pulse;
-			std::unique_ptr<SignalProcessing::Stepper> pulse_stepper;
-			uint32_t time_into_pulse;
-		} _input;
+		Tape::Pulse _current_pulse;
 };
 
 }

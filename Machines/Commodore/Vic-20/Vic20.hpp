@@ -287,6 +287,7 @@ class Machine:
 		uint8_t _screenMemory[0x1000];
 		uint8_t _colorMemory[0x0400];
 		uint8_t _junkMemory[0x0400];
+		std::unique_ptr<uint8_t> _driveROM;
 
 		uint8_t *_videoMemoryMap[16];
 		uint8_t *_processorReadMemoryMap[64];

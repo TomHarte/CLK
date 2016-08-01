@@ -15,6 +15,7 @@
 #include "../SerialBus.hpp"
 
 #include "../../../Storage/Disk/Disk.hpp"
+#include "../../../Storage/Disk/DiskDrive.hpp"
 
 namespace Commodore {
 namespace C1540 {
@@ -100,12 +101,12 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	An implementation of the drive VIA in a Commodore 1540 — the VIA that is used to interface with the disk.
 
 	It is wired up such that Port B contains:
-		Bits 0/1:	head step direction (TODO)
-		Bit 2:		motor control (TODO)
+		Bits 0/1:	head step direction
+		Bit 2:		motor control
 		Bit 3:		LED control (TODO)
 		Bit 4:		write protect photocell status (TODO)
-		Bits 5/6:	write density (TODO)
-		Bit 7:		0 if sync marks are currently being detected, 1 otherwise;
+		Bits 5/6:	read/write density
+		Bit 7:		0 if sync marks are currently being detected, 1 otherwise.
 
 	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
 
@@ -114,28 +115,80 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 */
 class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 	public:
+		class Delegate {
+			public:
+				virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
+				virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
+		};
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
 		using MOS6522IRQDelegate::set_interrupt_status;
 
+		// write protect tab uncovered
+		DriveVIA() : _port_b(0xff), _port_a(0xff), _delegate(nullptr) {}
+
 		uint8_t get_port_input(Port port) {
-			if(port)
-			{
-				return 0xff;	// imply not sync, write protect tab uncovered
+			return port ? _port_b : _port_a;
+		}
+
+		void set_sync_detected(bool sync_detected) {
+			_port_b = (_port_b & 0x7f) | (sync_detected ? 0x00 : 0x80);
+		}
+
+		void set_data_input(uint8_t value) {
+			_port_a = value;
+		}
+
+		bool get_should_set_overflow() {
+			return _should_set_overflow;
+		}
+
+		bool get_motor_enabled() {
+			return _drive_motor;
+		}
+
+		void set_control_line_output(Port port, Line line, bool value) {
+			if(port == Port::A && line == Line::Two) {
+				_should_set_overflow = value;
 			}
-			return 0xff;
 		}
 
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 			if(port)
 			{
-//				if(value&4)
-//				{
-//					printf("Head step: %d\n", value&3);
-//					printf("Motor: %s\n", value&4 ? "On" : "Off");
+				// record drive motor state
+				_drive_motor = !!(value&4);
+
+				// check for a head step
+				int step_difference = ((value&3) - (_previous_port_b_output&3))&3;
+				if(step_difference)
+				{
+					if(_delegate) _delegate->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+				}
+
+				// check for a change in density
+				int density_difference = (_previous_port_b_output^value) & (3 << 5);
+				if(density_difference && _delegate)
+				{
+					_delegate->drive_via_did_set_data_density(this, (value >> 5)&3);
+				}
+
+				// TODO: something with the drive LED
 //					printf("LED: %s\n", value&8 ? "On" : "Off");
-//					printf("Density: %d\n", (value >> 5)&3);
-//				}
+
+				_previous_port_b_output = value;
 			}
 		}
+
+	private:
+		uint8_t _port_b, _port_a;
+		bool _should_set_overflow;
+		bool _drive_motor;
+		uint8_t _previous_port_b_output;
+		Delegate *_delegate;
 };
 
 /*!
@@ -161,7 +214,9 @@ class SerialPort : public ::Commodore::Serial::Port {
 */
 class Machine:
 	public CPU6502::Processor<Machine>,
-	public MOS::MOS6522IRQDelegate::Delegate {
+	public MOS::MOS6522IRQDelegate::Delegate,
+	public DriveVIA::Delegate,
+	public Storage::DiskDrive {
 
 	public:
 		Machine();
@@ -176,16 +231,17 @@ class Machine:
 		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
-		/*!
-			Sets the disk from which this 1540 is reading data.
-		*/
-		void set_disk(std::shared_ptr<Storage::Disk> disk);
+		void run_for_cycles(int number_of_cycles);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
+
+		// to satisfy DriveVIA::Delegate
+		void drive_via_did_step_head(void *driveVIA, int direction);
+		void drive_via_did_set_data_density(void *driveVIA, int density);
 
 	private:
 		uint8_t _ram[0x800];
@@ -196,6 +252,10 @@ class Machine:
 		DriveVIA _driveVIA;
 
 		std::shared_ptr<Storage::Disk> _disk;
+
+		int _shift_register, _bit_window_offset;
+		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_index_hole();
 };
 
 }

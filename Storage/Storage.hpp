@@ -9,10 +9,24 @@
 #ifndef Storage_hpp
 #define Storage_hpp
 
+#include "../NumberTheory/Factors.hpp"
+
 namespace Storage {
 
 struct Time {
 	unsigned int length, clock_rate;
+
+	inline void simplify()
+	{
+		unsigned int common_divisor = NumberTheory::greatest_common_divisor(length, clock_rate);
+		length /= common_divisor;
+		clock_rate /= common_divisor;
+	}
+
+	inline float get_float()
+	{
+		return (float)length / (float)clock_rate;
+	}
 };
 
 }

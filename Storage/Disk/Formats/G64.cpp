@@ -10,6 +10,7 @@
 
 #include <vector>
 #include "../PCMTrack.hpp"
+#include "../Encodings/CommodoreGCR.hpp"
 
 using namespace Storage;
 
@@ -40,7 +41,8 @@ G64::G64(const char *file_name)
 	_maximum_track_size = (uint16_t)fgetc(_file);
 	_maximum_track_size |= (uint16_t)fgetc(_file) << 8;
 
-	get_track_at_position(0);
+//	for(size_t c = 0; c < _number_of_tracks; c++)
+//		get_track_at_position(c);
 }
 
 G64::~G64()
@@ -116,14 +118,14 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 		unsigned int start_byte_in_current_speed = 0;
 		for(unsigned int byte = 0; byte < track_length; byte ++)
 		{
-			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 -  (byte&3)*2);
+			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 - (byte&3)*2);
 			if(byte_speed != current_speed || byte == (track_length-1))
 			{
 				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
 
 				PCMSegment segment;
-				segment.duration.length = number_of_bytes * 8;
-				segment.duration.clock_rate = 4000000 / (13 + current_speed);	// the speed zone divides a 4Mhz clock by 13, 14, 15 or 16; TODO: is this the right way around? Is zone 3 the fastest or the slowest?
+				segment.number_of_bits = number_of_bytes * 8;
+				segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(current_speed);
 				segment.data.reset(new uint8_t[number_of_bytes]);
 				memcpy(segment.data.get(), &track_contents.get()[start_byte_in_current_speed], number_of_bytes);
 				segments.push_back(std::move(segment));
@@ -138,8 +140,8 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	else
 	{
 		PCMSegment segment;
-		segment.duration.length = track_length * 8;
-		segment.duration.clock_rate = 1; // this is arbitrary; if supplying only one PCMSegment then it'll naturally fill the track
+		segment.number_of_bits = track_length * 8;
+		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)speed_zone_offset);
 		segment.data = std::move(track_contents);
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));
