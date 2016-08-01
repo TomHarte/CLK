@@ -41,6 +41,7 @@ class PCMTrack: public Track {
 
 		/*!
 			Creates a @c PCMTrack consisting of a single continuous run of data, implying a constant clock rate.
+			The segment's @c length_of_a_bit will be ignored and therefore need not be filled in.
 		*/
 		PCMTrack(PCMSegment segment);
 

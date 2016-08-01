@@ -8,11 +8,33 @@
 
 #include "D64.hpp"
 
+#include <sys/stat.h>
+#include <algorithm>
+#include <cstdlib>
+#include "../PCMTrack.hpp"
+#include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
+
 using namespace Storage;
 
 D64::D64(const char *file_name)
 {
-	throw ErrorNotD64;
+	struct stat file_stats;
+	stat(file_name, &file_stats);
+
+	// in D64, this is it for validation without imposing potential false-negative tests — check that
+	// the file size appears to be correct. Stone-age stuff.
+	if(file_stats.st_size != 174848 && file_stats.st_size != 196608)
+		throw ErrorNotD64;
+
+	_number_of_tracks = (file_stats.st_size == 174848) ? 35 : 40;
+
+	_file = fopen(file_name, "rb");
+
+	if(!_file)
+		throw ErrorNotD64;
+
+	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID.
+	_disk_id = (uint16_t)rand();
 }
 
 D64::~D64()
@@ -22,10 +44,122 @@ D64::~D64()
 
 unsigned int D64::get_head_position_count()
 {
-	return 0;
+	return _number_of_tracks*2;
 }
 
 std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 {
-	return std::shared_ptr<Track>();
+	// every other track is missing
+	if(position&1) return std::shared_ptr<Track>();
+
+	// figure out where this track starts on the disk
+	int offset_to_track = 0;
+	int tracks_to_traverse = position >> 1;
+
+	int zone_sizes[] = {17, 7, 6, 10};
+	int sectors_by_zone[] = {21, 19, 18, 17};
+	int zone = 0;
+	for(int current_zone = 0; current_zone < 4; current_zone++)
+	{
+		int tracks_in_this_zone = std::min(tracks_to_traverse, zone_sizes[current_zone]);
+		offset_to_track += tracks_in_this_zone * sectors_by_zone[current_zone];
+		tracks_to_traverse -= tracks_in_this_zone;
+		if(tracks_in_this_zone == zone_sizes[current_zone]) zone++;
+	}
+
+	// seek to start of data
+	fseek(_file, offset_to_track * 256, SEEK_SET);
+
+	// build up a PCM sampling of the GCR version of this track
+
+	// format per sector:
+	//
+	// syncronisation: three $FFs directly in GCR
+	// value $08 to announce a header
+	// a checksum made of XORing the following four bytes
+	// sector number (1 byte)
+	// track number (1 byte)
+	// disk ID (2 bytes)
+	// five GCR bytes of value $55
+	// = [6 bytes -> 7.5 GCR bytes] + ... = 21 GCR bytes
+	//
+	// syncronisation: three $FFs directly in GCR
+	// value $07 to announce data
+	// 256 data bytes
+	// a checksum: the XOR of the previous 256 bytes
+	// two bytes of vaue $00
+	// = [260 bytes -> 325 GCR bytes] + 3 GCR bytes = 328 GCR bytes
+	//
+	// = 349 GCR bytes per sector
+
+	PCMSegment track;
+	size_t track_bytes = 349 * (size_t)sectors_by_zone[zone];
+	track.number_of_bits = (unsigned int)track_bytes * 8;
+	uint8_t *data = new uint8_t[track_bytes];
+	track.data.reset(data);
+
+	for(int sector = 0; sector < sectors_by_zone[zone]; sector++)
+	{
+		uint8_t *sector_data = &data[sector * 349];
+		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
+
+		uint8_t sector_number = (uint8_t)(sector+1);
+		uint8_t track_number = (uint8_t)((position >> 1) + 1);
+		uint8_t checksum = (uint8_t)(sector_number ^ track_number ^ _disk_id ^ (_disk_id >> 8));
+		uint8_t header_start[4] = {
+			0x08, checksum, sector_number, track_number
+		};
+		Encodings::CommodoreGCR::encode_block(&sector_data[3], header_start);
+
+		uint8_t header_end[4] = {
+			(uint8_t)(_disk_id & 0xff), (uint8_t)(_disk_id >> 8), 0, 0
+		};
+		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
+		// only the first 2.5 bytes there are what was actually wanted; fill with repeating
+		// 01010 and then transition back into FF, as per:
+
+		sector_data[10] = (sector_data[10] & 0xf0) | 0x05;
+		sector_data[11] = 0x29;
+		sector_data[12] = 0x4a;
+		sector_data[13] = 0x52;
+		sector_data[14] = 0x94;
+		sector_data[15] = 0xa5;
+		sector_data[16] = 0x29;
+		sector_data[17] = 0x4a;
+		sector_data[18] = 0x52;
+		sector_data[19] = 0x94;
+		sector_data[20] = 0xaf;
+
+		// get the actual contents
+		uint8_t source_data[256];
+		fread(source_data, 1, 256, _file);
+
+		// compute the latest checksum
+		checksum = 0;
+		for(int c = 0; c < 256; c++)
+			checksum ^= source_data[c];
+
+		// put in another sync
+		sector_data[21] = sector_data[22] = sector_data[23] = 0xff;
+
+		// now start writing in the actual data
+		uint8_t start_of_data[4] = {
+			0x07, source_data[0], source_data[1], source_data[2]
+		};
+		Encodings::CommodoreGCR::encode_block(&sector_data[24], start_of_data);
+		int source_data_offset = 3;
+		int target_data_offset = 29;
+		while((source_data_offset+4) < 256)
+		{
+			Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], &source_data[source_data_offset]);
+			target_data_offset += 5;
+			source_data_offset += 4;
+		}
+		uint8_t end_of_data[4] = {
+			source_data[255], checksum, 0, 0
+		};
+		Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], end_of_data);
+	}
+
+	return std::shared_ptr<Track>(new PCMTrack(std::move(track)));
 }

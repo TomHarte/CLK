@@ -38,6 +38,8 @@ class D64: public Disk {
 
 	private:
 		FILE *_file;
+		unsigned int _number_of_tracks;
+		uint16_t _disk_id;
 };
 
 };

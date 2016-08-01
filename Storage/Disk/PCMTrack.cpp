@@ -19,6 +19,8 @@ PCMTrack::PCMTrack(std::vector<PCMSegment> segments)
 
 PCMTrack::PCMTrack(PCMSegment segment)
 {
+	segment.length_of_a_bit.length = 1;
+	segment.length_of_a_bit.clock_rate = 1;
 	_segments.push_back(std::move(segment));
 	fix_length();
 }
