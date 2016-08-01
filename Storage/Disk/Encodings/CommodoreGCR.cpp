@@ -31,6 +31,7 @@ unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibbl
 		case 0x5:	return 0x0f;
 		case 0x6:	return 0x16;
 		case 0x7:	return 0x17;
+
 		case 0x8:	return 0x09;
 		case 0x9:	return 0x19;
 		case 0xa:	return 0x1a;

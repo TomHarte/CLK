@@ -10,7 +10,6 @@
 
 #include <sys/stat.h>
 #include <algorithm>
-#include <cstdlib>
 #include "../PCMTrack.hpp"
 #include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 
@@ -33,8 +32,15 @@ D64::D64(const char *file_name)
 	if(!_file)
 		throw ErrorNotD64;
 
-	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID.
-	_disk_id = (uint16_t)rand();
+	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
+	// being the most stable thing available
+	_disk_id = 0;
+	while(*file_name)
+	{
+		_disk_id ^= file_name[0];
+		_disk_id = (uint16_t)((_disk_id << 2) ^ (_disk_id >> 13));
+		file_name++;
+	}
 }
 
 D64::~D64()
@@ -50,7 +56,8 @@ unsigned int D64::get_head_position_count()
 std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 {
 	// every other track is missing
-	if(position&1) return std::shared_ptr<Track>();
+	if(position&1)
+		return std::shared_ptr<Track>();
 
 	// figure out where this track starts on the disk
 	int offset_to_track = 0;
@@ -98,6 +105,8 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 	uint8_t *data = new uint8_t[track_bytes];
 	track.data.reset(data);
 
+	memset(data, 0, track_bytes);
+
 	for(int sector = 0; sector < sectors_by_zone[zone]; sector++)
 	{
 		uint8_t *sector_data = &data[sector * 349];
@@ -115,17 +124,10 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 			(uint8_t)(_disk_id & 0xff), (uint8_t)(_disk_id >> 8), 0, 0
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
-		// only the first 2.5 bytes there are what was actually wanted; fill with repeating
-		// 01010 and then transition back into FF, as per:
 
-		sector_data[10] = (sector_data[10] & 0xf0) | 0x05;
-		sector_data[11] = 0x29;
-		sector_data[12] = 0x4a;
-		sector_data[13] = 0x52;
-		sector_data[14] = 0x94;
-		sector_data[15] = 0xa5;
-		sector_data[16] = 0x29;
-		sector_data[17] = 0x4a;
+		// pad out post-header parts
+		uint8_t zeros[4] = {0, 0, 0, 0};
+		Encodings::CommodoreGCR::encode_block(&sector_data[13], zeros);
 		sector_data[18] = 0x52;
 		sector_data[19] = 0x94;
 		sector_data[20] = 0xaf;
