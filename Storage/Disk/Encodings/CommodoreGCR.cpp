@@ -31,6 +31,7 @@ unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibbl
 		case 0x5:	return 0x0f;
 		case 0x6:	return 0x16;
 		case 0x7:	return 0x17;
+
 		case 0x8:	return 0x09;
 		case 0x9:	return 0x19;
 		case 0xa:	return 0x1a;
@@ -48,4 +49,20 @@ unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibbl
 unsigned int Storage::Encodings::CommodoreGCR::encoding_for_byte(uint8_t byte)
 {
 	return encoding_for_nibble(byte) | (encoding_for_nibble(byte >> 4) << 5);
+}
+
+void Storage::Encodings::CommodoreGCR::encode_block(uint8_t *destination, uint8_t *source)
+{
+	unsigned int encoded_bytes[4] = {
+		encoding_for_byte(source[0]),
+		encoding_for_byte(source[1]),
+		encoding_for_byte(source[2]),
+		encoding_for_byte(source[3]),
+	};
+
+	destination[0] = (uint8_t)(encoded_bytes[0] >> 2);
+	destination[1] = (uint8_t)((encoded_bytes[0] << 6) | (encoded_bytes[1] >> 4));
+	destination[2] = (uint8_t)((encoded_bytes[1] << 4) | (encoded_bytes[2] >> 6));
+	destination[3] = (uint8_t)((encoded_bytes[2] << 2) | (encoded_bytes[3] >> 8));
+	destination[4] = (uint8_t)(encoded_bytes[3]);
 }

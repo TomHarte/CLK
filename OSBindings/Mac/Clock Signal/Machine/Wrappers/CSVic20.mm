@@ -11,6 +11,7 @@
 #include "Vic20.hpp"
 #include "CommodoreTAP.hpp"
 #include "G64.hpp"
+#include "D64.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -51,19 +52,31 @@ using namespace Commodore::Vic20;
 			std::shared_ptr<Storage::CommodoreTAP> tape(new Storage::CommodoreTAP([URL fileSystemRepresentation]));
 			_vic20.set_tape(tape);
 			return YES;
-		} catch(int exception) {
+		} catch(...) {
 			return NO;
 		}
 	}
 }
 
 - (BOOL)openG64AtURL:(NSURL *)URL {
+	return [self openDisk:^std::shared_ptr<Storage::Disk>{
+		return std::shared_ptr<Storage::Disk>(new Storage::G64([URL fileSystemRepresentation]));
+	}];
+}
+
+- (BOOL)openD64AtURL:(NSURL *)URL {
+	return [self openDisk:^std::shared_ptr<Storage::Disk>{
+		return std::shared_ptr<Storage::Disk>(new Storage::D64([URL fileSystemRepresentation]));
+	}];
+}
+
+- (BOOL)openDisk:(std::shared_ptr<Storage::Disk> (^)())opener {
 	@synchronized(self) {
 		try {
-			std::shared_ptr<Storage::G64> disk(new Storage::G64([URL fileSystemRepresentation]));
+			std::shared_ptr<Storage::Disk> disk = opener();
 			_vic20.set_disk(disk);
 			return YES;
-		} catch(int exception) {
+		} catch(...) {
 			return NO;
 		}
 	}

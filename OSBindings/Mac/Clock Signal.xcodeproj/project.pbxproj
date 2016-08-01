@@ -30,6 +30,7 @@
 		4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */; };
 		4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */; };
 		4B3BA0D11D318B44005DD7A7 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CD1D318B44005DD7A7 /* TestMachine.mm */; };
+		4B4C83701D4F623200CD541F /* D64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C836E1D4F623200CD541F /* D64.cpp */; };
 		4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */; };
 		4B4DC8281D2C2470003C5BF8 /* C1540.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC8261D2C2470003C5BF8 /* C1540.cpp */; };
 		4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */; };
@@ -408,6 +409,8 @@
 		4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MOS6532Bridge.mm; sourceTree = "<group>"; };
 		4B3BA0CC1D318B44005DD7A7 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
 		4B3BA0CD1D318B44005DD7A7 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
+		4B4C836E1D4F623200CD541F /* D64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = D64.cpp; sourceTree = "<group>"; };
+		4B4C836F1D4F623200CD541F /* D64.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = D64.hpp; sourceTree = "<group>"; };
 		4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vic20.cpp; sourceTree = "<group>"; };
 		4B4DC8201D2C2425003C5BF8 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vic20.hpp; sourceTree = "<group>"; };
 		4B4DC8261D2C2470003C5BF8 /* C1540.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = C1540.cpp; sourceTree = "<group>"; };
@@ -1027,6 +1030,8 @@
 			children = (
 				4BAB62B31D327F7E00DF5BA0 /* G64.cpp */,
 				4BAB62B41D327F7E00DF5BA0 /* G64.hpp */,
+				4B4C836E1D4F623200CD541F /* D64.cpp */,
+				4B4C836F1D4F623200CD541F /* D64.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -1938,6 +1943,7 @@
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
+				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,

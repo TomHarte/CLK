@@ -44,7 +44,7 @@
 			std::shared_ptr<Storage::UEF> tape(new Storage::UEF([URL fileSystemRepresentation]));
 			_electron.set_tape(tape);
 			return YES;
-		} catch(int exception) {
+		} catch(...) {
 			return NO;
 		}
 	}

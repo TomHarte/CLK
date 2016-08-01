@@ -125,7 +125,7 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	if((_shift_register & 0x3ff) == 0x3ff)
 	{
 		_driveVIA.set_sync_detected(true);
-		_bit_window_offset = -1;
+		_bit_window_offset = -1; // i.e. this bit isn't the first within a data window, but the next might be
 	}
 	else
 	{

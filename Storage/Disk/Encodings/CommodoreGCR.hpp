@@ -31,6 +31,11 @@ namespace CommodoreGCR {
 		@returns the ten-bit GCR encoding for @c byte.
 	*/
 	unsigned int encoding_for_byte(uint8_t byte);
+
+	/*!
+		A block is defined to be four source bytes, which encodes to five GCR bytes.
+	*/
+	void encode_block(uint8_t *destination, uint8_t *source);
 }
 }
 }

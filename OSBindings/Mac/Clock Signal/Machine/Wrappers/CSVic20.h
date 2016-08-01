@@ -20,6 +20,7 @@
 - (void)setPRG:(nonnull NSData *)prg;
 - (BOOL)openTAPAtURL:(nonnull NSURL *)URL;
 - (BOOL)openG64AtURL:(nonnull NSURL *)URL;
+- (BOOL)openD64AtURL:(nonnull NSURL *)URL;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 
