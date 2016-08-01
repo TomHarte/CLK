@@ -101,11 +101,11 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	An implementation of the drive VIA in a Commodore 1540 — the VIA that is used to interface with the disk.
 
 	It is wired up such that Port B contains:
-		Bits 0/1:	head step direction (TODO)
-		Bit 2:		motor control (TODO)
+		Bits 0/1:	head step direction
+		Bit 2:		motor control
 		Bit 3:		LED control (TODO)
 		Bit 4:		write protect photocell status (TODO)
-		Bits 5/6:	write density (TODO)
+		Bits 5/6:	read/write density
 		Bit 7:		0 if sync marks are currently being detected, 1 otherwise.
 
 	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
@@ -159,24 +159,25 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 			if(port)
 			{
+				// record drive motor state
 				_drive_motor = !!(value&4);
-//				if(value&4)
-//				{
 
+				// check for a head step
 				int step_difference = ((value&3) - (_previous_port_b_output&3))&3;
 				if(step_difference)
 				{
 					if(_delegate) _delegate->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
 				}
 
+				// check for a change in density
 				int density_difference = (_previous_port_b_output^value) & (3 << 5);
 				if(density_difference && _delegate)
 				{
 					_delegate->drive_via_did_set_data_density(this, (value >> 5)&3);
 				}
+
+				// TODO: something with the drive LED
 //					printf("LED: %s\n", value&8 ? "On" : "Off");
-//					printf("Density: %d\n", (value >> 5)&3);
-//				}
 
 				_previous_port_b_output = value;
 			}
@@ -229,11 +230,6 @@ class Machine:
 			Sets the serial bus to which this drive should attach itself.
 		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
-
-		/*!
-			Sets the disk from which this 1540 is reading data.
-		*/
-//		void set_disk(std::shared_ptr<Storage::Disk> disk);
 
 		void run_for_cycles(int number_of_cycles);
 
