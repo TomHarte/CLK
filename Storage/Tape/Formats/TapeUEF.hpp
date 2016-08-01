@@ -15,17 +15,26 @@
 
 namespace Storage {
 
+/*!
+	Provides a @c Tape containing a UEF tape image.
+*/
 class UEF : public Tape {
 	public:
+		/*!
+			Constructs a @c UEF containing content from the file with name @c file_name.
+
+			@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
+		*/
 		UEF(const char *file_name);
 		~UEF();
-
-		Pulse get_next_pulse();
-		void reset();
 
 		enum {
 			ErrorNotUEF
 		};
+
+		// implemented to satisfy @c Tape
+		Pulse get_next_pulse();
+		void reset();
 
 	private:
 		gzFile _file;

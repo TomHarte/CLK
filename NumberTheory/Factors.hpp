@@ -10,7 +10,15 @@
 #define Factors_hpp
 
 namespace NumberTheory {
+	/*!
+		@returns The greatest common divisor of @c a and @c b as computed by Euclid's algorithm.
+	*/
 	unsigned int greatest_common_divisor(unsigned int a, unsigned int b);
+
+	/*!
+		@returns The least common multiple of @c a and @c b computed indirectly via Euclid's greatest
+		common divisor algorithm.
+	*/
 	unsigned int least_common_multiple(unsigned int a, unsigned int b);
 }
 

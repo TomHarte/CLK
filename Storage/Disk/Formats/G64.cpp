@@ -19,15 +19,15 @@ G64::G64(const char *file_name)
 	_file = fopen(file_name, "rb");
 
 	if(!_file)
-		throw ErrorNotGCR;
+		throw ErrorCantOpen;
 
 	// read and check the file signature
 	char signature[8];
 	if(fread(signature, 1, 8, _file) != 8)
-		throw ErrorNotGCR;
+		throw ErrorNotG64;
 
 	if(memcmp(signature, "GCR-1541", 8))
-		throw ErrorNotGCR;
+		throw ErrorNotG64;
 
 	// check the version number
 	int version = fgetc(_file);
@@ -40,9 +40,6 @@ G64::G64(const char *file_name)
 	_number_of_tracks = (uint8_t)fgetc(_file);
 	_maximum_track_size = (uint16_t)fgetc(_file);
 	_maximum_track_size |= (uint16_t)fgetc(_file) << 8;
-
-//	for(size_t c = 0; c < _number_of_tracks; c++)
-//		get_track_at_position(c);
 }
 
 G64::~G64()

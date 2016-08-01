@@ -30,5 +30,5 @@ unsigned int NumberTheory::greatest_common_divisor(unsigned int a, unsigned int 
 unsigned int NumberTheory::least_common_multiple(unsigned int a, unsigned int b)
 {
 	unsigned int gcd = greatest_common_divisor(a, b);
-	return (a*b) / gcd;
+	return (a / gcd) * (b / gcd);
 }

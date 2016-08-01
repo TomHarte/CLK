@@ -13,16 +13,28 @@
 
 namespace Storage {
 
+/*!
+	Provies a @c Disk containing a G64 disk image — a raw but perfectly-clocked GCR stream.
+*/
 class G64: public Disk {
 	public:
+		/*!
+			Construct a @c G64 containing content from the file with name @c file_name.
+
+			@throws ErrorCantOpen if this file can't be opened.
+			@throws ErrorNotG64 if the file doesn't appear to contain a .G64 format image.
+			@throws ErrorUnknownVersion if this file appears to be a .G64 but has an unrecognised version number.
+		*/
 		G64(const char *file_name);
 		~G64();
 
 		enum {
-			ErrorNotGCR,
+			ErrorCantOpen,
+			ErrorNotG64,
 			ErrorUnknownVersion
 		};
 
+		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		std::shared_ptr<Track> get_track_at_position(unsigned int position);
 
