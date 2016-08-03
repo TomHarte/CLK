@@ -14,7 +14,7 @@ using namespace Commodore::C1540;
 
 Machine::Machine() :
 	_shift_register(0),
-	Storage::DiskDrive(1000000, 16, 300)
+	Storage::DiskDrive(1000000, 4, 300)
 {
 	// create a serial port and a VIA to run it
 	_serialPortVIA.reset(new SerialPortVIA);

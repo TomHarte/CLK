@@ -27,9 +27,10 @@ DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance
 void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles)
 {
 	_phase += number_of_cycles;
-	int windows_crossed = _phase / _window_length;
-	if(windows_crossed)
+	if(_phase >= _window_length)
 	{
+		int windows_crossed = _phase / _window_length;
+
 		// check whether this triggers any 0s, if anybody cares
 		if(_delegate)
 		{
