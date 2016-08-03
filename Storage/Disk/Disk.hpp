@@ -37,9 +37,16 @@ class Track {
 		};
 
 		/*!
-			Returns the next event that will be detected during rotation of this disk.
+			@returns the next event that will be detected during rotation of this disk.
 		*/
 		virtual Event get_next_event() = 0;
+
+		/*!
+			Jumps to the event latest offset that is less than or equal to the input time.
+
+			@returns the time jumped to.
+		*/
+		virtual Time seek_to(Time time_since_index_hole) = 0;
 };
 
 /*!

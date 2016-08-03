@@ -19,6 +19,7 @@ namespace Storage {
 */
 struct Time {
 	unsigned int length, clock_rate;
+	Time() : length(0), clock_rate(1) {}
 
 	/*!
 		Reduces this @c Time to its simplest form — eliminates all common factors from @c length
@@ -32,13 +33,27 @@ struct Time {
 	}
 
 	/*!
-		Returns the floating point conversion of this @c Time. This will often be less precise.
+		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
 	inline float get_float()
 	{
 		return (float)length / (float)clock_rate;
 	}
+
+	inline bool operator<(Time &other)
+	{
+		return other.clock_rate * length < clock_rate * other.length;
+	}
+
+	inline Time operator+(Time &other)
+	{
+		Time result;
+		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
+		result.length = length * (clock_rate / result.clock_rate) + other.length * (other.clock_rate / result.clock_rate);
+		return result;
+	}
 };
+
 
 }
 
