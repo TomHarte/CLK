@@ -33,7 +33,7 @@ void DiskDrive::set_expected_bit_length(Time bit_length)
 void DiskDrive::set_disk(std::shared_ptr<Disk> disk)
 {
 	_disk = disk;
-	set_track();
+	set_track(Time());
 }
 
 bool DiskDrive::has_disk()
@@ -49,31 +49,30 @@ bool DiskDrive::get_is_track_zero()
 void DiskDrive::step(int direction)
 {
 	_head_position = std::max(_head_position + direction, 0);
-
-	// TODO: add fractional part to _time_into_track
 	_time_into_track += get_time_into_next_event();
-	// TODO: probably a better implementation of the empty track?
-//	Time offset;
-//	if(_track)
-//	{
-//		Time time_found = _track->seek_to(_time_into_track);
-//		offset = _time_into_track - time_found;
-//	}
-//	else
-//	{
-//		offset = _time_into_track;
-//	}
-
-	// TODO: apply offset
-	set_track();
+	set_track(_time_into_track);
 }
 
-void DiskDrive::set_track()
+void DiskDrive::set_track(Time initial_offset)
 {
-	// TODO: accept and apply offset
 	_track = _disk->get_track_at_position((unsigned int)_head_position);
+	// TODO: probably a better implementation of the empty track?
+	Time offset;
+	if(_track)
+	{
+		Time time_found = _track->seek_to(_time_into_track);
+		offset = _time_into_track - time_found;
+		_time_into_track = time_found;
+	}
+	else
+	{
+		offset = _time_into_track;
+		_time_into_track.set_zero();
+	}
+
 	reset_timer();
 	get_next_event();
+	reset_timer_to_offset(offset);
 }
 
 void DiskDrive::run_for_cycles(int number_of_cycles)

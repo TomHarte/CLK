@@ -99,7 +99,7 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 		std::shared_ptr<Track> _track;
 		int _head_position;
 		unsigned int _cycles_since_index_hole;
-		void set_track();
+		void set_track(Time initial_offset);
 
 		inline void get_next_event();
 		Track::Event _current_event;

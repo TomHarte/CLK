@@ -67,6 +67,11 @@ namespace Storage {
 			void reset_timer();
 
 			/*!
+				Sets the amount of time into the current event to @c offset.
+			*/
+			void reset_timer_to_offset(Time offset);
+
+			/*!
 				Causes an immediate call to @c process_next_event and a call to @c reset_timer with the
 				net effect of processing the current event immediately and fast forwarding exactly to the
 				start of the interval prior to the next event.

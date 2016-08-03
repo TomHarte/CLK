@@ -29,6 +29,18 @@ void TimedEventLoop::reset_timer()
 	_stepper.reset();
 }
 
+void TimedEventLoop::reset_timer_to_offset(Time offset)
+{
+	unsigned int common_clock_rate = NumberTheory::least_common_multiple(offset.clock_rate, _event_interval.clock_rate);
+	_time_into_interval = offset.length * (common_clock_rate / offset.clock_rate);
+	_event_interval.length *= common_clock_rate / _event_interval.clock_rate;
+	_event_interval.clock_rate = common_clock_rate;
+	if(common_clock_rate != _stepper->get_output_rate())
+	{
+		_stepper.reset(new SignalProcessing::Stepper(_event_interval.clock_rate, _input_clock_rate));
+	}
+}
+
 void TimedEventLoop::jump_to_next_event()
 {
 	reset_timer();
