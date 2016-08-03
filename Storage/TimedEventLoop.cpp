@@ -70,3 +70,10 @@ void TimedEventLoop::set_next_event_time_interval(Time interval)
 		_stepper.reset(new SignalProcessing::Stepper(_event_interval.clock_rate, _input_clock_rate));
 	}
 }
+
+Time TimedEventLoop::get_time_into_next_event()
+{
+	Time result = _event_interval;
+	result.length = _time_into_interval;
+	return result;
+}

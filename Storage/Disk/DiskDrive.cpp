@@ -51,7 +51,7 @@ void DiskDrive::step(int direction)
 	_head_position = std::max(_head_position + direction, 0);
 
 	// TODO: add fractional part to _time_into_track
-
+	_time_into_track += get_time_into_next_event();
 	// TODO: probably a better implementation of the empty track?
 //	Time offset;
 //	if(_track)
@@ -118,7 +118,7 @@ void DiskDrive::process_next_event()
 	{
 		case Track::Event::FluxTransition:
 			_pll->add_pulse();
-			_time_into_track = _time_into_track + _current_event.length;
+			_time_into_track += _current_event.length;
 		break;
 		case Track::Event::IndexHole:
 			_cycles_since_index_hole = 0;

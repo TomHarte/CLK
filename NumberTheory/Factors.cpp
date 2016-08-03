@@ -32,5 +32,5 @@ unsigned int NumberTheory::least_common_multiple(unsigned int a, unsigned int b)
 	if(a == b) return a;
 
 	unsigned int gcd = greatest_common_divisor(a, b);
-	return (a / gcd) * (b / gcd);
+	return (a / gcd) * (b / gcd) * gcd;
 }

@@ -40,12 +40,12 @@ struct Time {
 		return (float)length / (float)clock_rate;
 	}
 
-	inline bool operator<(Time &other)
+	inline bool operator<(Time other)
 	{
 		return other.clock_rate * length < clock_rate * other.length;
 	}
 
-	inline Time operator+(Time &other)
+	inline Time operator+(Time other)
 	{
 		Time result;
 		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
@@ -53,7 +53,15 @@ struct Time {
 		return result;
 	}
 
-	inline Time operator-(Time &other)
+	inline Time &operator +=(Time other)
+	{
+		unsigned int combined_clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
+		length = length * (combined_clock_rate / clock_rate) + other.length * (combined_clock_rate / other.clock_rate);
+		clock_rate = combined_clock_rate;
+		return *this;
+	}
+
+	inline Time operator-(Time other)
 	{
 		Time result;
 		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);

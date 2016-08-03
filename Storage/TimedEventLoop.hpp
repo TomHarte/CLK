@@ -73,6 +73,12 @@ namespace Storage {
 			*/
 			void jump_to_next_event();
 
+			/*!
+				@returns the amount of time that has passed since the last call to @c set_next_time_interval,
+				which will always be less than or equal to the time that was supplied to @c set_next_time_interval.
+			*/
+			Time get_time_into_next_event();
+
 		private:
 			unsigned int _input_clock_rate;
 			Time _event_interval;
