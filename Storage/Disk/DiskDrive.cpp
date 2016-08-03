@@ -49,11 +49,28 @@ bool DiskDrive::get_is_track_zero()
 void DiskDrive::step(int direction)
 {
 	_head_position = std::max(_head_position + direction, 0);
+
+	// TODO: add fractional part to _time_into_track
+
+	// TODO: probably a better implementation of the empty track?
+//	Time offset;
+//	if(_track)
+//	{
+//		Time time_found = _track->seek_to(_time_into_track);
+//		offset = _time_into_track - time_found;
+//	}
+//	else
+//	{
+//		offset = _time_into_track;
+//	}
+
+	// TODO: apply offset
 	set_track();
 }
 
 void DiskDrive::set_track()
 {
+	// TODO: accept and apply offset
 	_track = _disk->get_track_at_position((unsigned int)_head_position);
 	reset_timer();
 	get_next_event();

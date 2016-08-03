@@ -53,6 +53,14 @@ struct Time {
 		return result;
 	}
 
+	inline Time operator-(Time &other)
+	{
+		Time result;
+		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
+		result.length = length * (result.clock_rate / clock_rate) - other.length * (result.clock_rate / other.clock_rate);
+		return result;
+	}
+
 	inline void set_zero()
 	{
 		length = 0;
