@@ -101,9 +101,11 @@ void DiskDrive::process_next_event()
 	{
 		case Track::Event::FluxTransition:
 			_pll->add_pulse();
+			_time_into_track = _time_into_track + _current_event.length;
 		break;
 		case Track::Event::IndexHole:
 			_cycles_since_index_hole = 0;
+			_time_into_track.set_zero();
 			process_index_hole();
 		break;
 	}

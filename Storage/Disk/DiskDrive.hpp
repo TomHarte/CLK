@@ -103,6 +103,7 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 
 		inline void get_next_event();
 		Track::Event _current_event;
+		Time _time_into_track;
 };
 
 }

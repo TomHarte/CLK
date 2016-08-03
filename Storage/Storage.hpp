@@ -49,8 +49,20 @@ struct Time {
 	{
 		Time result;
 		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
-		result.length = length * (clock_rate / result.clock_rate) + other.length * (other.clock_rate / result.clock_rate);
+		result.length = length * (result.clock_rate / clock_rate) + other.length * (result.clock_rate / other.clock_rate);
 		return result;
+	}
+
+	inline void set_zero()
+	{
+		length = 0;
+		clock_rate = 1;
+	}
+
+	inline void set_one()
+	{
+		length = 1;
+		clock_rate = 1;
 	}
 };
 
