@@ -67,26 +67,26 @@ Time PCMTrack::seek_to(Time time_since_index_hole)
 
 	// pick a common clock rate for counting time on this track and multiply up the time being sought appropriately
 	Time time_so_far;
-	time_so_far.clock_rate = NumberTheory::least_common_multiple(_track_clock_rate, time_since_index_hole.clock_rate);
+	time_so_far.clock_rate = NumberTheory::least_common_multiple(_next_event.length.clock_rate, time_since_index_hole.clock_rate);
 	time_since_index_hole.length *= time_so_far.clock_rate / time_since_index_hole.clock_rate;
 	time_since_index_hole.clock_rate = time_so_far.clock_rate;
 
 	while(_segment_pointer < _segments.size())
 	{
 		// determine how long this segment is in terms of the master clock
-		unsigned int clock_multiplier = time_so_far.clock_rate / _segments[_segment_pointer].length_of_a_bit.clock_rate;
-		unsigned int resolution_in_this_segment = _segments[_segment_pointer].length_of_a_bit.length * clock_multiplier;
-		unsigned int time_in_this_segment = resolution_in_this_segment * _segments[_segment_pointer].number_of_bits;
+		unsigned int clock_multiplier = time_so_far.clock_rate / _next_event.length.clock_rate;
+		unsigned int bit_length = ((clock_multiplier / _track_clock_rate) / _segments[_segment_pointer].length_of_a_bit.clock_rate) * _segments[_segment_pointer].length_of_a_bit.length;
+		unsigned int time_in_this_segment = bit_length * _segments[_segment_pointer].number_of_bits;
 
 		// if this segment goes on longer than the time being sought, end here
 		unsigned int time_remaining = time_since_index_hole.length - time_so_far.length;
 		if(time_in_this_segment >= time_remaining)
 		{
 			// get the amount of time actually to move into this segment
-			unsigned int time_found = time_remaining - (time_remaining % resolution_in_this_segment);
+			unsigned int time_found = time_remaining - (time_remaining % bit_length);
 
 			// resolve that into the stateful bit count
-			_bit_pointer = time_remaining / resolution_in_this_segment;
+			_bit_pointer = time_remaining / bit_length;
 
 			// update and return the time sought to
 			time_so_far.length += time_found;
