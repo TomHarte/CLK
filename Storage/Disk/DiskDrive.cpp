@@ -13,7 +13,6 @@ using namespace Storage;
 DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
 	_clock_rate(clock_rate * clock_rate_multiplier),
 	_clock_rate_multiplier(clock_rate_multiplier),
-	_revolutions_per_minute(revolutions_per_minute),
 	_head_position(0),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)

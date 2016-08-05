@@ -92,7 +92,6 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 		Time _bit_length;
 		unsigned int _clock_rate;
 		unsigned int _clock_rate_multiplier;
-		unsigned int _revolutions_per_minute;
 		Time _rotational_multiplier;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> _pll;
