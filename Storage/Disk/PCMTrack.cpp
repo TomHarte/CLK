@@ -86,7 +86,7 @@ Time PCMTrack::seek_to(Time time_since_index_hole)
 			unsigned int time_found = time_remaining - (time_remaining % bit_length);
 
 			// resolve that into the stateful bit count
-			_bit_pointer = time_remaining / bit_length;
+			_bit_pointer = 1 + (time_remaining / bit_length);
 
 			// update and return the time sought to
 			time_so_far.length += time_found;
