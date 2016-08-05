@@ -61,6 +61,45 @@ PCMTrack::Event PCMTrack::get_next_event()
 	return _next_event;
 }
 
+Time PCMTrack::seek_to(Time time_since_index_hole)
+{
+	_segment_pointer = 0;
+
+	// pick a common clock rate for counting time on this track and multiply up the time being sought appropriately
+	Time time_so_far;
+	time_so_far.clock_rate = NumberTheory::least_common_multiple(_next_event.length.clock_rate, time_since_index_hole.clock_rate);
+	time_since_index_hole.length *= time_so_far.clock_rate / time_since_index_hole.clock_rate;
+	time_since_index_hole.clock_rate = time_so_far.clock_rate;
+
+	while(_segment_pointer < _segments.size())
+	{
+		// determine how long this segment is in terms of the master clock
+		unsigned int clock_multiplier = time_so_far.clock_rate / _next_event.length.clock_rate;
+		unsigned int bit_length = ((clock_multiplier / _track_clock_rate) / _segments[_segment_pointer].length_of_a_bit.clock_rate) * _segments[_segment_pointer].length_of_a_bit.length;
+		unsigned int time_in_this_segment = bit_length * _segments[_segment_pointer].number_of_bits;
+
+		// if this segment goes on longer than the time being sought, end here
+		unsigned int time_remaining = time_since_index_hole.length - time_so_far.length;
+		if(time_in_this_segment >= time_remaining)
+		{
+			// get the amount of time actually to move into this segment
+			unsigned int time_found = time_remaining - (time_remaining % bit_length);
+
+			// resolve that into the stateful bit count
+			_bit_pointer = 1 + (time_remaining / bit_length);
+
+			// update and return the time sought to
+			time_so_far.length += time_found;
+			return time_so_far;
+		}
+
+		// otherwise, accumulate time and keep moving
+		time_so_far.length += time_in_this_segment;
+		_segment_pointer++;
+	}
+	return time_since_index_hole;
+}
+
 void PCMTrack::fix_length()
 {
 	// find the least common multiple of all segment clock rates

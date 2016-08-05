@@ -67,11 +67,22 @@ namespace Storage {
 			void reset_timer();
 
 			/*!
+				Sets the amount of time into the current event to @c offset.
+			*/
+			void reset_timer_to_offset(Time offset);
+
+			/*!
 				Causes an immediate call to @c process_next_event and a call to @c reset_timer with the
 				net effect of processing the current event immediately and fast forwarding exactly to the
 				start of the interval prior to the next event.
 			*/
 			void jump_to_next_event();
+
+			/*!
+				@returns the amount of time that has passed since the last call to @c set_next_time_interval,
+				which will always be less than or equal to the time that was supplied to @c set_next_time_interval.
+			*/
+			Time get_time_into_next_event();
 
 		private:
 			unsigned int _input_clock_rate;

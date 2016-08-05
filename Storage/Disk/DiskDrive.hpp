@@ -93,16 +93,18 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 		unsigned int _clock_rate;
 		unsigned int _clock_rate_multiplier;
 		unsigned int _revolutions_per_minute;
+		Time _rotational_multiplier;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> _pll;
 		std::shared_ptr<Disk> _disk;
 		std::shared_ptr<Track> _track;
 		int _head_position;
 		unsigned int _cycles_since_index_hole;
-		void set_track();
+		void set_track(Time initial_offset);
 
 		inline void get_next_event();
 		Track::Event _current_event;
+		Time _time_into_track;
 };
 
 }

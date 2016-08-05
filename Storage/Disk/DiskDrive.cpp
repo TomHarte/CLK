@@ -17,7 +17,11 @@ DiskDrive::DiskDrive(unsigned int clock_rate, unsigned int clock_rate_multiplier
 	_head_position(0),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)
-{}
+{
+	_rotational_multiplier.length = 60;
+	_rotational_multiplier.clock_rate = revolutions_per_minute;
+	_rotational_multiplier.simplify();
+}
 
 void DiskDrive::set_expected_bit_length(Time bit_length)
 {
@@ -33,7 +37,7 @@ void DiskDrive::set_expected_bit_length(Time bit_length)
 void DiskDrive::set_disk(std::shared_ptr<Disk> disk)
 {
 	_disk = disk;
-	set_track();
+	set_track(Time());
 }
 
 bool DiskDrive::has_disk()
@@ -49,14 +53,32 @@ bool DiskDrive::get_is_track_zero()
 void DiskDrive::step(int direction)
 {
 	_head_position = std::max(_head_position + direction, 0);
-	set_track();
+	Time extra_time = get_time_into_next_event() / _rotational_multiplier;
+	extra_time.simplify();
+	_time_into_track += extra_time;
+	set_track(_time_into_track);
 }
 
-void DiskDrive::set_track()
+void DiskDrive::set_track(Time initial_offset)
 {
 	_track = _disk->get_track_at_position((unsigned int)_head_position);
+	// TODO: probably a better implementation of the empty track?
+	Time offset;
+	if(_track && _time_into_track.length > 0)
+	{
+		Time time_found = _track->seek_to(_time_into_track).simplify();
+		offset = (_time_into_track - time_found).simplify();
+		_time_into_track = time_found;
+	}
+	else
+	{
+		offset = _time_into_track;
+		_time_into_track.set_zero();
+	}
+
 	reset_timer();
 	get_next_event();
+	reset_timer_to_offset(offset * _rotational_multiplier);
 }
 
 void DiskDrive::run_for_cycles(int number_of_cycles)
@@ -88,11 +110,7 @@ void DiskDrive::get_next_event()
 
 	// divide interval, which is in terms of a rotation of the disk, by rotation speed, and
 	// convert it into revolutions per second
-	Time event_interval = _current_event.length;
-	event_interval.length *= 60;
-	event_interval.clock_rate *= _revolutions_per_minute;
-	event_interval.simplify();
-	set_next_event_time_interval(event_interval);
+	set_next_event_time_interval(_current_event.length * _rotational_multiplier);
 }
 
 void DiskDrive::process_next_event()
@@ -101,9 +119,11 @@ void DiskDrive::process_next_event()
 	{
 		case Track::Event::FluxTransition:
 			_pll->add_pulse();
+			_time_into_track += _current_event.length;
 		break;
 		case Track::Event::IndexHole:
 			_cycles_since_index_hole = 0;
+			_time_into_track.set_zero();
 			process_index_hole();
 		break;
 	}
