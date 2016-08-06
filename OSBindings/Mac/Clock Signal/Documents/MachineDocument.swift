@@ -176,9 +176,12 @@ class MachineDocument:
 	}
 
 	// MARK: IBActions
+	final func prefixedUserDefaultsKey(key: String) -> String {
+		return "\(self.name).\(key)"
+	}
 	var fastLoadingUserDefaultsKey: String {
 		get {
-			return "\(self.name).fastLoading"
+			return prefixedUserDefaultsKey("fastLoading")
 		}
 	}
 

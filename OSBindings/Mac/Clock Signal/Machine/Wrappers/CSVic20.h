@@ -23,5 +23,6 @@
 - (BOOL)openD64AtURL:(nonnull NSURL *)URL;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
+@property (nonatomic, assign) BOOL shouldLoadAutomatically;
 
 @end

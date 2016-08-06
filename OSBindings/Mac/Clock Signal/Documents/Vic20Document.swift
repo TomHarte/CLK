@@ -66,4 +66,26 @@ class Vic20Document: MachineDocument {
 	override func readFromData(data: NSData, ofType typeName: String) throws {
 		vic20.setPRG(data)
 	}
+
+	@IBOutlet var loadAutomaticallyButton: NSButton!
+	var autoloadingUserDefaultsKey: String {
+		get { return prefixedUserDefaultsKey("autoload") }
+	}
+	@IBAction func setShouldLoadAutomatically(sender: NSButton!) {
+		let loadAutomatically = sender.state == NSOnState
+		vic20.shouldLoadAutomatically = loadAutomatically
+		self.loadAutomaticallyButton.state = loadAutomatically ? NSOnState : NSOffState
+	}
+	override func establishStoredOptions() {
+		super.establishStoredOptions()
+
+		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
+		standardUserDefaults.registerDefaults([
+			autoloadingUserDefaultsKey: true
+		])
+
+		let loadAutomatically = standardUserDefaults.boolForKey(self.autoloadingUserDefaultsKey)
+		vic20.shouldLoadAutomatically = loadAutomatically
+		self.loadAutomaticallyButton.state = loadAutomatically ? NSOnState : NSOffState
+	}
 }

@@ -187,7 +187,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
 		_rom_length = (uint16_t)(length - 2);
-		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
+		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000 && _should_automatically_load_media)
 		{
 			set_typer_for_string("RUN\n");
 		}
@@ -203,7 +203,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
 	_tape.set_tape(tape);
-	set_typer_for_string("LOAD\nRUN\n");
+	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
 }
 
 void Machine::tape_did_change_input(Tape *tape)
@@ -227,7 +227,7 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
 	// install the ROM if it was previously set
 	install_disk_rom();
 
-	set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
+	if(_should_automatically_load_media) set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
 }
 
 void Machine::install_disk_rom()

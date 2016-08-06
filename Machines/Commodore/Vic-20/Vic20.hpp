@@ -251,6 +251,7 @@ class Machine:
 		}
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+		inline void set_should_automatically_load_media(bool activate) { _should_automatically_load_media = activate; }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -304,7 +305,7 @@ class Machine:
 
 		// Tape
 		Tape _tape;
-		bool _use_fast_tape_hack;
+		bool _use_fast_tape_hack, _should_automatically_load_media;
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;

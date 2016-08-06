@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9532" systemVersion="15F34" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9532" systemVersion="15G31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9532"/>
     </dependencies>
@@ -7,6 +7,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="Vic20Document" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="fastLoadingButton" destination="sBT-cU-h7s" id="gWf-9E-D7l"/>
+                <outlet property="loadAutomaticallyButton" destination="lbt-Wo-6fc" id="Xsc-dz-1a6"/>
                 <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
                 <outlet property="optionsPanel" destination="ota-g7-hOL" id="zeO-di-9i3"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
@@ -43,22 +44,32 @@
         <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ota-g7-hOL" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="83" y="102" width="200" height="83"/>
+            <rect key="contentRect" x="83" y="102" width="200" height="103"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
             <value key="minSize" type="size" width="200" height="83"/>
             <value key="maxSize" type="size" width="200" height="83"/>
             <view key="contentView" id="7Pv-WL-2Rq">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="83"/>
+                <rect key="frame" x="0.0" y="0.0" width="200" height="103"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="sBT-cU-h7s">
-                        <rect key="frame" x="18" y="47" width="164" height="18"/>
-                        <buttonCell key="cell" type="check" title="Load Quickly" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="w0l-ha-esm">
+                        <rect key="frame" x="18" y="67" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Load Tapes Quickly" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="w0l-ha-esm">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
                         <connections>
                             <action selector="setFastLoading:" target="-2" id="ctR-h1-CYI"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="lbt-Wo-6fc">
+                        <rect key="frame" x="18" y="47" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Load Automatically" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="jTj-uV-at1">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="setShouldLoadAutomatically:" target="-2" id="Ixe-HN-4XK"/>
                         </connections>
                     </button>
                     <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MlB-rE-TXV">
@@ -72,7 +83,7 @@
                                     <menuItem title="European Machine" id="5ju-Z0-BDa"/>
                                     <menuItem title="Japanese Machine" id="YlT-9e-azY"/>
                                     <menuItem title="Swedish Machine" id="joU-Bt-XFb"/>
-                                    <menuItem title="US Machine" state="on" id="FXe-ca-cTY"/>
+                                    <menuItem title="US Machine" id="FXe-ca-cTY"/>
                                 </items>
                             </menu>
                         </popUpButtonCell>
@@ -80,14 +91,17 @@
                 </subviews>
                 <constraints>
                     <constraint firstAttribute="trailing" secondItem="sBT-cU-h7s" secondAttribute="trailing" constant="20" id="79b-2A-2c7"/>
+                    <constraint firstItem="MlB-rE-TXV" firstAttribute="top" secondItem="lbt-Wo-6fc" secondAttribute="bottom" constant="8" id="DIc-Sm-VlA"/>
                     <constraint firstItem="sBT-cU-h7s" firstAttribute="top" secondItem="7Pv-WL-2Rq" secondAttribute="top" constant="20" id="E5m-wo-X92"/>
-                    <constraint firstItem="MlB-rE-TXV" firstAttribute="top" secondItem="sBT-cU-h7s" secondAttribute="bottom" constant="8" id="fis-Fe-CkQ"/>
+                    <constraint firstItem="lbt-Wo-6fc" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="cID-bi-rVP"/>
+                    <constraint firstItem="lbt-Wo-6fc" firstAttribute="top" secondItem="sBT-cU-h7s" secondAttribute="bottom" constant="6" id="ciY-E8-07P"/>
+                    <constraint firstAttribute="trailing" secondItem="lbt-Wo-6fc" secondAttribute="trailing" constant="20" id="gMU-gX-3Sg"/>
                     <constraint firstItem="sBT-cU-h7s" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="nDy-Xc-Ug9"/>
                     <constraint firstItem="MlB-rE-TXV" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="qb4-Lp-ZMc"/>
                     <constraint firstAttribute="trailing" secondItem="MlB-rE-TXV" secondAttribute="trailing" constant="20" id="v18-62-uee"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="-2" y="6.5"/>
+            <point key="canvasLocation" x="-2" y="16.5"/>
         </window>
     </objects>
 </document>
