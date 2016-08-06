@@ -225,6 +225,7 @@ class Tape: public Storage::TapePlayer {
 		bool _input_level;
 };
 
+class Vic6560: public MOS::MOS6560<Vic6560> {};
 
 class Machine:
 	public CPU6502::Processor<Machine>,
@@ -294,7 +295,7 @@ class Machine:
 		uint8_t *_processorWriteMemoryMap[64];
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
-		std::unique_ptr<MOS::MOS6560> _mos6560;
+		std::unique_ptr<Vic6560> _mos6560;
 		std::shared_ptr<UserPortVIA> _userPortVIA;
 		std::shared_ptr<KeyboardVIA> _keyboardVIA;
 		std::shared_ptr<SerialPort> _serialPort;
@@ -305,8 +306,9 @@ class Machine:
 		Tape _tape;
 		bool _use_fast_tape_hack;
 
-		// Disc
+		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
+		void install_disk_rom();
 };
 
 }

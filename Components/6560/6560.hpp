@@ -14,6 +14,24 @@
 
 namespace MOS {
 
+// audio state
+class Speaker: public ::Outputs::Filter<Speaker> {
+	public:
+		Speaker();
+
+		void set_volume(uint8_t volume);
+		void set_control(int channel, uint8_t value);
+
+		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void skip_samples(unsigned int number_of_samples);
+
+	private:
+		unsigned int _counters[4];
+		unsigned int _shift_registers[4];
+		uint8_t _control_registers[4];
+		uint8_t _volume;
+};
+
 /*!
 	The 6560 Video Interface Chip ('VIC') is a video and audio output chip; it therefore vends both a @c CRT and a @c Speaker.
 
@@ -22,7 +40,7 @@ namespace MOS {
 
 	@c set_register and @c get_register provide register access.
 */
-class MOS6560 {
+template <class T> class MOS6560 {
 	public:
 		MOS6560() :
 			_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
@@ -395,23 +413,6 @@ class MOS6560 {
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
 
-		// audio state
-		class Speaker: public ::Outputs::Filter<Speaker> {
-			public:
-				Speaker();
-
-				void set_volume(uint8_t volume);
-				void set_control(int channel, uint8_t value);
-
-				void get_samples(unsigned int number_of_samples, int16_t *target);
-				void skip_samples(unsigned int number_of_samples);
-
-			private:
-				unsigned int _counters[4];
-				unsigned int _shift_registers[4];
-				uint8_t _control_registers[4];
-				uint8_t _volume;
-		};
 		std::shared_ptr<Speaker> _speaker;
 		unsigned int _cycles_since_speaker_update;
 		void update_audio()

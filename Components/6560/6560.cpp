@@ -10,19 +10,19 @@
 
 using namespace MOS;
 
-MOS6560::Speaker::Speaker() :
+Speaker::Speaker() :
 	_volume(0),
 	_control_registers{0, 0, 0, 0},
 	_shift_registers{0, 0, 0, 0},
 	_counters{2, 1, 0, 0}	// create a slight phase offset for the three channels
 {}
 
-void MOS6560::Speaker::set_volume(uint8_t volume)
+void Speaker::set_volume(uint8_t volume)
 {
 	_volume = volume;
 }
 
-void MOS6560::Speaker::set_control(int channel, uint8_t value)
+void Speaker::set_control(int channel, uint8_t value)
 {
 	_control_registers[channel] = value;
 }
@@ -99,7 +99,7 @@ static uint8_t noise_pattern[] = {
 #define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191;
 #define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x7f) { up(r); _counters[r] = _control_registers[r]&0x7f; }
 
-void MOS6560::Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
+void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
 	for(unsigned int c = 0; c < number_of_samples; c++)
 	{
@@ -119,7 +119,7 @@ void MOS6560::Speaker::get_samples(unsigned int number_of_samples, int16_t *targ
 	}
 }
 
-void MOS6560::Speaker::skip_samples(unsigned int number_of_samples)
+void Speaker::skip_samples(unsigned int number_of_samples)
 {
 	for(unsigned int c = 0; c < number_of_samples; c++)
 	{
