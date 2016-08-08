@@ -310,6 +310,8 @@ class Machine:
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
 		void install_disk_rom();
+
+		// Autoload string
 };
 
 }

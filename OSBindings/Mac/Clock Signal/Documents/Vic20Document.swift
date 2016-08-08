@@ -35,6 +35,8 @@ class Vic20Document: MachineDocument {
 		if let drive = dataForResource("1540", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
 			vic20.setDriveROM(drive)
 		}
+
+		establishStoredOptions()
 	}
 
 	override class func autosavesInPlace() -> Bool {
@@ -67,14 +69,14 @@ class Vic20Document: MachineDocument {
 		vic20.setPRG(data)
 	}
 
-	@IBOutlet var loadAutomaticallyButton: NSButton!
+	@IBOutlet var loadAutomaticallyButton: NSButton?
 	var autoloadingUserDefaultsKey: String {
 		get { return prefixedUserDefaultsKey("autoload") }
 	}
 	@IBAction func setShouldLoadAutomatically(sender: NSButton!) {
 		let loadAutomatically = sender.state == NSOnState
 		vic20.shouldLoadAutomatically = loadAutomatically
-		self.loadAutomaticallyButton.state = loadAutomatically ? NSOnState : NSOffState
+		NSUserDefaults.standardUserDefaults().setBool(loadAutomatically, forKey: self.autoloadingUserDefaultsKey)
 	}
 	override func establishStoredOptions() {
 		super.establishStoredOptions()
@@ -86,6 +88,6 @@ class Vic20Document: MachineDocument {
 
 		let loadAutomatically = standardUserDefaults.boolForKey(self.autoloadingUserDefaultsKey)
 		vic20.shouldLoadAutomatically = loadAutomatically
-		self.loadAutomaticallyButton.state = loadAutomatically ? NSOnState : NSOffState
+		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
 	}
 }
