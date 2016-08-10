@@ -35,13 +35,8 @@ Machine::Machine() :
 	_tape.set_delegate(this);
 
 	// establish the memory maps
-	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
-
-	write_to_map(_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
-	write_to_map(_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
-	write_to_map(_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
 
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
@@ -86,9 +81,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	uint16_t video_address = _mos6560->get_address();
-	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO
-	_mos6560->set_graphics_value(video_value, _colorMemory[video_address & 0x03ff]);
+	_mos6560->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
@@ -151,6 +144,12 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 void Machine::setup_output(float aspect_ratio)
 {
 	_mos6560.reset(new Vic6560());
+
+	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
+	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
+	write_to_map(_mos6560->_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
+	write_to_map(_mos6560->_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
+	_mos6560->_colorMemory = _colorMemory;
 }
 
 void Machine::close_output()

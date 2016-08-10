@@ -126,6 +126,174 @@ template <class T> class MOS6560 {
 		}
 
 		/*!
+			Runs for cycles. Derr.
+		*/
+		inline void run_for_cycles(unsigned int number_of_cycles)
+		{
+			while(number_of_cycles--)
+			{
+				uint16_t address = get_address();
+				uint8_t pixel_data;
+				uint8_t colour_data;
+				static_cast<T *>(this)->perform_read(address, &pixel_data, &colour_data);
+				set_graphics_value(pixel_data, colour_data);
+			}
+		}
+
+		/*!
+			Causes the 6560 to flush as much pending CRT and speaker communications as possible.
+		*/
+		inline void synchronise() { update_audio(); }
+
+		/*!
+			Writes to a 6560 register.
+		*/
+		void set_register(int address, uint8_t value)
+		{
+			address &= 0xf;
+			_registers.direct_values[address] = value;
+			switch(address)
+			{
+				case 0x0:
+					_registers.interlaced = !!(value&0x80) && _timing.supports_interlacing;
+					_registers.first_column_location = value & 0x7f;
+				break;
+
+				case 0x1:
+					_registers.first_row_location = value;
+				break;
+
+				case 0x2:
+					_registers.number_of_columns = value & 0x7f;
+					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+				break;
+
+				case 0x3:
+					_registers.number_of_rows = (value >> 1)&0x3f;
+					_registers.tall_characters = !!(value&0x01);
+				break;
+
+				case 0x5:
+					_registers.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
+					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+				break;
+
+				case 0xa:
+				case 0xb:
+				case 0xc:
+				case 0xd:
+					update_audio();
+					_speaker->set_control(address - 0xa, value);
+				break;
+
+				case 0xe:
+					update_audio();
+					_registers.auxiliary_colour = _colours[value >> 4];
+					_speaker->set_volume(value & 0xf);
+				break;
+
+				case 0xf:
+				{
+					uint8_t new_border_colour = _colours[value & 0x07];
+					if(_this_state == State::Border && new_border_colour != _registers.borderColour)
+					{
+						output_border(_cycles_in_state * 4);
+						_cycles_in_state = 0;
+					}
+					_registers.invertedCells = !((value >> 3)&1);
+					_registers.borderColour = new_border_colour;
+					_registers.backgroundColour = _colours[value >> 4];
+				}
+				break;
+
+				// TODO: the lightpen, etc
+
+				default:
+				break;
+			}
+		}
+
+		/*
+			Reads from a 6560 register.
+		*/
+		uint8_t get_register(int address)
+		{
+			address &= 0xf;
+			int current_line = (_full_frame_counter + _timing.line_counter_increment_offset) / _timing.cycles_per_line;
+			switch(address)
+			{
+				default: return _registers.direct_values[address];
+				case 0x03: return (uint8_t)(current_line << 7) | (_registers.direct_values[3] & 0x7f);
+				case 0x04: return (current_line >> 1) & 0xff;
+			}
+		}
+
+	private:
+		std::shared_ptr<Outputs::CRT::CRT> _crt;
+
+		std::shared_ptr<Speaker> _speaker;
+		unsigned int _cycles_since_speaker_update;
+		void update_audio()
+		{
+			_speaker->run_for_cycles(_cycles_since_speaker_update >> 2);
+			_cycles_since_speaker_update &= 3;
+		}
+
+		// register state
+		struct {
+			bool interlaced, tall_characters;
+			uint8_t first_column_location, first_row_location;
+			uint8_t number_of_columns, number_of_rows;
+			uint16_t character_cell_start_address, video_matrix_start_address;
+			uint8_t backgroundColour, borderColour, auxiliary_colour;
+			bool invertedCells;
+
+			uint8_t direct_values[16];
+		} _registers;
+
+		// output state
+		enum State {
+			Sync, ColourBurst, Border, Pixels
+		} _this_state, _output_state;
+		unsigned int _cycles_in_state;
+
+		// counters that cover an entire field
+		int _horizontal_counter, _vertical_counter, _full_frame_counter;
+
+		// latches dictating start and length of drawing
+		bool _vertical_drawing_latch, _horizontal_drawing_latch;
+		int _rows_this_field, _columns_this_line;
+
+		// current drawing position counter
+		int _pixel_line_cycle, _column_counter;
+		int _current_row;
+		uint16_t _current_character_row;
+		uint16_t _video_matrix_address_counter, _base_video_matrix_address_counter;
+
+		// data latched from the bus
+		uint8_t _character_code, _character_colour, _character_value;
+
+		bool _is_odd_frame;
+
+		// lookup table from 6560 colour index to appropriate PAL/NTSC value
+		uint8_t _colours[16];
+
+		uint8_t *pixel_pointer;
+		void output_border(unsigned int number_of_cycles)
+		{
+			uint8_t *colour_pointer = _crt->allocate_write_area(1);
+			if(colour_pointer) *colour_pointer = _registers.borderColour;
+			_crt->output_level(number_of_cycles);
+		}
+
+		struct {
+			int cycles_per_line;
+			int line_counter_increment_offset;
+			int lines_per_progressive_field;
+			bool supports_interlacing;
+		} _timing;
+
+		/*!
 			Impliedly runs the 6560 for a single cycle, returning the next address that it puts on the bus.
 		*/
 		uint16_t get_address()
@@ -321,159 +489,6 @@ template <class T> class MOS6560 {
 				_column_counter++;
 			}
 		}
-
-		/*!
-			Causes the 6560 to flush as much pending CRT and speaker communications as possible.
-		*/
-		inline void synchronise() { update_audio(); }
-
-		/*!
-			Writes to a 6560 register.
-		*/
-		void set_register(int address, uint8_t value)
-		{
-			address &= 0xf;
-			_registers.direct_values[address] = value;
-			switch(address)
-			{
-				case 0x0:
-					_registers.interlaced = !!(value&0x80) && _timing.supports_interlacing;
-					_registers.first_column_location = value & 0x7f;
-				break;
-
-				case 0x1:
-					_registers.first_row_location = value;
-				break;
-
-				case 0x2:
-					_registers.number_of_columns = value & 0x7f;
-					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
-				break;
-
-				case 0x3:
-					_registers.number_of_rows = (value >> 1)&0x3f;
-					_registers.tall_characters = !!(value&0x01);
-				break;
-
-				case 0x5:
-					_registers.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
-					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
-				break;
-
-				case 0xa:
-				case 0xb:
-				case 0xc:
-				case 0xd:
-					update_audio();
-					_speaker->set_control(address - 0xa, value);
-				break;
-
-				case 0xe:
-					update_audio();
-					_registers.auxiliary_colour = _colours[value >> 4];
-					_speaker->set_volume(value & 0xf);
-				break;
-
-				case 0xf:
-				{
-					uint8_t new_border_colour = _colours[value & 0x07];
-					if(_this_state == State::Border && new_border_colour != _registers.borderColour)
-					{
-						output_border(_cycles_in_state * 4);
-						_cycles_in_state = 0;
-					}
-					_registers.invertedCells = !((value >> 3)&1);
-					_registers.borderColour = new_border_colour;
-					_registers.backgroundColour = _colours[value >> 4];
-				}
-				break;
-
-				// TODO: the lightpen, etc
-
-				default:
-				break;
-			}
-		}
-
-		/*
-			Reads from a 6560 register.
-		*/
-		uint8_t get_register(int address)
-		{
-			address &= 0xf;
-			int current_line = (_full_frame_counter + _timing.line_counter_increment_offset) / _timing.cycles_per_line;
-			switch(address)
-			{
-				default: return _registers.direct_values[address];
-				case 0x03: return (uint8_t)(current_line << 7) | (_registers.direct_values[3] & 0x7f);
-				case 0x04: return (current_line >> 1) & 0xff;
-			}
-		}
-
-	private:
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
-
-		std::shared_ptr<Speaker> _speaker;
-		unsigned int _cycles_since_speaker_update;
-		void update_audio()
-		{
-			_speaker->run_for_cycles(_cycles_since_speaker_update >> 2);
-			_cycles_since_speaker_update &= 3;
-		}
-
-		// register state
-		struct {
-			bool interlaced, tall_characters;
-			uint8_t first_column_location, first_row_location;
-			uint8_t number_of_columns, number_of_rows;
-			uint16_t character_cell_start_address, video_matrix_start_address;
-			uint8_t backgroundColour, borderColour, auxiliary_colour;
-			bool invertedCells;
-
-			uint8_t direct_values[16];
-		} _registers;
-
-		// output state
-		enum State {
-			Sync, ColourBurst, Border, Pixels
-		} _this_state, _output_state;
-		unsigned int _cycles_in_state;
-
-		// counters that cover an entire field
-		int _horizontal_counter, _vertical_counter, _full_frame_counter;
-
-		// latches dictating start and length of drawing
-		bool _vertical_drawing_latch, _horizontal_drawing_latch;
-		int _rows_this_field, _columns_this_line;
-
-		// current drawing position counter
-		int _pixel_line_cycle, _column_counter;
-		int _current_row;
-		uint16_t _current_character_row;
-		uint16_t _video_matrix_address_counter, _base_video_matrix_address_counter;
-
-		// data latched from the bus
-		uint8_t _character_code, _character_colour, _character_value;
-
-		bool _is_odd_frame;
-
-		// lookup table from 6560 colour index to appropriate PAL/NTSC value
-		uint8_t _colours[16];
-
-		uint8_t *pixel_pointer;
-		void output_border(unsigned int number_of_cycles)
-		{
-			uint8_t *colour_pointer = _crt->allocate_write_area(1);
-			if(colour_pointer) *colour_pointer = _registers.borderColour;
-			_crt->output_level(number_of_cycles);
-		}
-
-		struct {
-			int cycles_per_line;
-			int line_counter_increment_offset;
-			int lines_per_progressive_field;
-			bool supports_interlacing;
-		} _timing;
 };
 
 }
