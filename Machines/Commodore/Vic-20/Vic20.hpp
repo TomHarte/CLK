@@ -227,7 +227,7 @@ class Tape: public Storage::TapePlayer {
 
 class Vic6560: public MOS::MOS6560<Vic6560> {
 	public:
-		void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
+		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
 		{
 			*pixel_data = _videoMemoryMap[address >> 10] ? _videoMemoryMap[address >> 10][address & 0x3ff] : 0xff; // TODO
 			*colour_data = _colorMemory[address & 0x03ff];

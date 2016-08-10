@@ -130,13 +130,196 @@ template <class T> class MOS6560 {
 		*/
 		inline void run_for_cycles(unsigned int number_of_cycles)
 		{
+			// keep track of the amount of time since the speaker was updated; lazy updates are applied
+			_cycles_since_speaker_update += number_of_cycles;
+
 			while(number_of_cycles--)
 			{
-				uint16_t address = get_address();
+				// keep an old copy of the vertical count because that test is a cycle later than the actual changes
+				int previous_vertical_counter = _vertical_counter;
+
+				// keep track of internal time relative to this scanline
+				_horizontal_counter++;
+				_full_frame_counter++;
+				if(_horizontal_counter == _timing.cycles_per_line)
+				{
+					if(_horizontal_drawing_latch)
+					{
+						_current_character_row++;
+						if(
+							(_current_character_row == 16) ||
+							(_current_character_row == 8 && !_registers.tall_characters)
+						) {
+							_current_character_row = 0;
+							_current_row++;
+						}
+
+						_pixel_line_cycle = -1;
+						_columns_this_line = -1;
+						_column_counter = -1;
+					}
+
+					_horizontal_counter = 0;
+					_horizontal_drawing_latch = false;
+
+					_vertical_counter ++;
+					if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : _timing.lines_per_progressive_field))
+					{
+						_vertical_counter = 0;
+						_full_frame_counter = 0;
+
+						_is_odd_frame ^= true;
+						_current_row = 0;
+						_rows_this_field = -1;
+						_vertical_drawing_latch = false;
+						_base_video_matrix_address_counter = 0;
+						_current_character_row = 0;
+					}
+				}
+
+				// check for vertical starting events
+				_vertical_drawing_latch |= _registers.first_row_location == (previous_vertical_counter >> 1);
+				_horizontal_drawing_latch |= _vertical_drawing_latch && (_horizontal_counter == _registers.first_column_location);
+
+				if(_pixel_line_cycle >= 0) _pixel_line_cycle++;
+				switch(_pixel_line_cycle)
+				{
+					case -1:
+						if(_horizontal_drawing_latch)
+						{
+							_pixel_line_cycle = 0;
+							_video_matrix_address_counter = _base_video_matrix_address_counter;
+						}
+					break;
+					case 1:	_columns_this_line = _registers.number_of_columns;	break;
+					case 2:	if(_rows_this_field < 0) _rows_this_field = _registers.number_of_rows;	break;
+					case 3: if(_current_row < _rows_this_field) _column_counter = 0;	break;
+				}
+
+				uint16_t fetch_address = 0x1c;
+				if(_column_counter >= 0 && _column_counter < _columns_this_line*2)
+				{
+					if(_column_counter&1)
+					{
+						fetch_address = _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
+					}
+					else
+					{
+						fetch_address = (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter);
+						_video_matrix_address_counter++;
+						if(
+							(_current_character_row == 15) ||
+							(_current_character_row == 7 && !_registers.tall_characters)
+						) {
+							_base_video_matrix_address_counter = _video_matrix_address_counter;
+						}
+					}
+				}
+
+				fetch_address &= 0x3fff;
+
 				uint8_t pixel_data;
 				uint8_t colour_data;
-				static_cast<T *>(this)->perform_read(address, &pixel_data, &colour_data);
-				set_graphics_value(pixel_data, colour_data);
+				static_cast<T *>(this)->perform_read(fetch_address, &pixel_data, &colour_data);
+
+				// TODO: there should be a further two-cycle delay on pixels being output; the reverse bit should
+				// divide the byte it is set for 3:1 and then continue as usual.
+
+				// determine output state; colour burst and sync timing are currently a guess
+				if(_horizontal_counter > _timing.cycles_per_line-4) _this_state = State::ColourBurst;
+				else if(_horizontal_counter > _timing.cycles_per_line-7) _this_state = State::Sync;
+				else
+				{
+					_this_state = (_column_counter >= 0 && _column_counter < _columns_this_line*2) ? State::Pixels : State::Border;
+				}
+
+				// apply vertical sync
+				if(
+					(_vertical_counter < 3 && (_is_odd_frame || !_registers.interlaced)) ||
+					(_registers.interlaced &&
+						(
+							(_vertical_counter == 0 && _horizontal_counter > 32) ||
+							(_vertical_counter == 1) || (_vertical_counter == 2) ||
+							(_vertical_counter == 3 && _horizontal_counter <= 32)
+						)
+					))
+					_this_state = State::Sync;
+
+				// update the CRT
+				if(_this_state != _output_state)
+				{
+					switch(_output_state)
+					{
+						case State::Sync:			_crt->output_sync(_cycles_in_state * 4);										break;
+						case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _is_odd_frame ? 128 : 0, 0);	break;
+						case State::Border:			output_border(_cycles_in_state * 4);											break;
+						case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);										break;
+					}
+					_output_state = _this_state;
+					_cycles_in_state = 0;
+
+					pixel_pointer = nullptr;
+					if(_output_state == State::Pixels)
+					{
+						pixel_pointer = _crt->allocate_write_area(260);
+					}
+				}
+				_cycles_in_state++;
+
+				if(_this_state == State::Pixels)
+				{
+					if(_column_counter&1)
+					{
+						_character_value = pixel_data;
+
+						if(pixel_pointer)
+						{
+							uint8_t cell_colour = _colours[_character_colour & 0x7];
+							if(!(_character_colour&0x8))
+							{
+								uint8_t colours[2];
+								if(_registers.invertedCells)
+								{
+									colours[0] = cell_colour;
+									colours[1] = _registers.backgroundColour;
+								}
+								else
+								{
+									colours[0] = _registers.backgroundColour;
+									colours[1] = cell_colour;
+								}
+								pixel_pointer[0] = colours[(_character_value >> 7)&1];
+								pixel_pointer[1] = colours[(_character_value >> 6)&1];
+								pixel_pointer[2] = colours[(_character_value >> 5)&1];
+								pixel_pointer[3] = colours[(_character_value >> 4)&1];
+								pixel_pointer[4] = colours[(_character_value >> 3)&1];
+								pixel_pointer[5] = colours[(_character_value >> 2)&1];
+								pixel_pointer[6] = colours[(_character_value >> 1)&1];
+								pixel_pointer[7] = colours[(_character_value >> 0)&1];
+							}
+							else
+							{
+								uint8_t colours[4] = {_registers.backgroundColour, _registers.borderColour, cell_colour, _registers.auxiliary_colour};
+								pixel_pointer[0] =
+								pixel_pointer[1] = colours[(_character_value >> 6)&3];
+								pixel_pointer[2] =
+								pixel_pointer[3] = colours[(_character_value >> 4)&3];
+								pixel_pointer[4] =
+								pixel_pointer[5] = colours[(_character_value >> 2)&3];
+								pixel_pointer[6] =
+								pixel_pointer[7] = colours[(_character_value >> 0)&3];
+							}
+							pixel_pointer += 8;
+						}
+					}
+					else
+					{
+						_character_code = pixel_data;
+						_character_colour = colour_data;
+					}
+
+					_column_counter++;
+				}
 			}
 		}
 
@@ -292,203 +475,6 @@ template <class T> class MOS6560 {
 			int lines_per_progressive_field;
 			bool supports_interlacing;
 		} _timing;
-
-		/*!
-			Impliedly runs the 6560 for a single cycle, returning the next address that it puts on the bus.
-		*/
-		uint16_t get_address()
-		{
-			// keep track of the amount of time since the speaker was updated; lazy updates are applied
-			_cycles_since_speaker_update++;
-
-			// keep an old copy of the vertical count because that test is a cycle later than the actual changes
-			int previous_vertical_counter = _vertical_counter;
-
-			// keep track of internal time relative to this scanline
-			_horizontal_counter++;
-			_full_frame_counter++;
-			if(_horizontal_counter == _timing.cycles_per_line)
-			{
-				if(_horizontal_drawing_latch)
-				{
-					_current_character_row++;
-					if(
-						(_current_character_row == 16) ||
-						(_current_character_row == 8 && !_registers.tall_characters)
-					) {
-						_current_character_row = 0;
-						_current_row++;
-					}
-
-					_pixel_line_cycle = -1;
-					_columns_this_line = -1;
-					_column_counter = -1;
-				}
-
-				_horizontal_counter = 0;
-				_horizontal_drawing_latch = false;
-
-				_vertical_counter ++;
-				if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : _timing.lines_per_progressive_field))
-				{
-					_vertical_counter = 0;
-					_full_frame_counter = 0;
-
-					_is_odd_frame ^= true;
-					_current_row = 0;
-					_rows_this_field = -1;
-					_vertical_drawing_latch = false;
-					_base_video_matrix_address_counter = 0;
-					_current_character_row = 0;
-				}
-			}
-
-			// check for vertical starting events
-			_vertical_drawing_latch |= _registers.first_row_location == (previous_vertical_counter >> 1);
-			_horizontal_drawing_latch |= _vertical_drawing_latch && (_horizontal_counter == _registers.first_column_location);
-
-			if(_pixel_line_cycle >= 0) _pixel_line_cycle++;
-			switch(_pixel_line_cycle)
-			{
-				case -1:
-					if(_horizontal_drawing_latch)
-					{
-						_pixel_line_cycle = 0;
-						_video_matrix_address_counter = _base_video_matrix_address_counter;
-					}
-				break;
-				case 1:	_columns_this_line = _registers.number_of_columns;	break;
-				case 2:	if(_rows_this_field < 0) _rows_this_field = _registers.number_of_rows;	break;
-				case 3: if(_current_row < _rows_this_field) _column_counter = 0;	break;
-			}
-
-			uint16_t fetch_address = 0x1c;
-			if(_column_counter >= 0 && _column_counter < _columns_this_line*2)
-			{
-				if(_column_counter&1)
-				{
-					fetch_address = _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
-				}
-				else
-				{
-					fetch_address = (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter);
-					_video_matrix_address_counter++;
-					if(
-						(_current_character_row == 15) ||
-						(_current_character_row == 7 && !_registers.tall_characters)
-					) {
-						_base_video_matrix_address_counter = _video_matrix_address_counter;
-					}
-				}
-			}
-			return fetch_address & 0x3fff;
-		}
-
-		/*!
-			An owning machine should determine the state of the data bus as a result of the access implied
-			by @c get_address and supply it to set_graphics_value.
-		*/
-		void set_graphics_value(uint8_t value, uint8_t colour_value)
-		{
-			// TODO: there should be a further two-cycle delay on pixels being output; the reverse bit should
-			// divide the byte it is set for 3:1 and then continue as usual.
-
-			// determine output state; colour burst and sync timing are currently a guess
-			if(_horizontal_counter > _timing.cycles_per_line-4) _this_state = State::ColourBurst;
-			else if(_horizontal_counter > _timing.cycles_per_line-7) _this_state = State::Sync;
-			else
-			{
-				_this_state = (_column_counter >= 0 && _column_counter < _columns_this_line*2) ? State::Pixels : State::Border;
-			}
-
-			// apply vertical sync
-			if(
-				(_vertical_counter < 3 && (_is_odd_frame || !_registers.interlaced)) ||
-				(_registers.interlaced &&
-					(
-						(_vertical_counter == 0 && _horizontal_counter > 32) ||
-						(_vertical_counter == 1) || (_vertical_counter == 2) ||
-						(_vertical_counter == 3 && _horizontal_counter <= 32)
-					)
-				))
-				_this_state = State::Sync;
-
-			// update the CRT
-			if(_this_state != _output_state)
-			{
-				switch(_output_state)
-				{
-					case State::Sync:			_crt->output_sync(_cycles_in_state * 4);										break;
-					case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _is_odd_frame ? 128 : 0, 0);	break;
-					case State::Border:			output_border(_cycles_in_state * 4);											break;
-					case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);										break;
-				}
-				_output_state = _this_state;
-				_cycles_in_state = 0;
-
-				pixel_pointer = nullptr;
-				if(_output_state == State::Pixels)
-				{
-					pixel_pointer = _crt->allocate_write_area(260);
-				}
-			}
-			_cycles_in_state++;
-
-			if(_this_state == State::Pixels)
-			{
-				if(_column_counter&1)
-				{
-					_character_value = value;
-
-					if(pixel_pointer)
-					{
-						uint8_t cell_colour = _colours[_character_colour & 0x7];
-						if(!(_character_colour&0x8))
-						{
-							uint8_t colours[2];
-							if(_registers.invertedCells)
-							{
-								colours[0] = cell_colour;
-								colours[1] = _registers.backgroundColour;
-							}
-							else
-							{
-								colours[0] = _registers.backgroundColour;
-								colours[1] = cell_colour;
-							}
-							pixel_pointer[0] = colours[(_character_value >> 7)&1];
-							pixel_pointer[1] = colours[(_character_value >> 6)&1];
-							pixel_pointer[2] = colours[(_character_value >> 5)&1];
-							pixel_pointer[3] = colours[(_character_value >> 4)&1];
-							pixel_pointer[4] = colours[(_character_value >> 3)&1];
-							pixel_pointer[5] = colours[(_character_value >> 2)&1];
-							pixel_pointer[6] = colours[(_character_value >> 1)&1];
-							pixel_pointer[7] = colours[(_character_value >> 0)&1];
-						}
-						else
-						{
-							uint8_t colours[4] = {_registers.backgroundColour, _registers.borderColour, cell_colour, _registers.auxiliary_colour};
-							pixel_pointer[0] =
-							pixel_pointer[1] = colours[(_character_value >> 6)&3];
-							pixel_pointer[2] =
-							pixel_pointer[3] = colours[(_character_value >> 4)&3];
-							pixel_pointer[4] =
-							pixel_pointer[5] = colours[(_character_value >> 2)&3];
-							pixel_pointer[6] =
-							pixel_pointer[7] = colours[(_character_value >> 0)&3];
-						}
-						pixel_pointer += 8;
-					}
-				}
-				else
-				{
-					_character_code = value;
-					_character_colour = colour_value;
-				}
-
-				_column_counter++;
-			}
-		}
 };
 
 }
