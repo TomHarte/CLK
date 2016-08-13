@@ -66,7 +66,7 @@ class ElectronDocument: MachineDocument {
 	}
 
 	// MARK: IBActions
-	@IBOutlet var displayTypeButton: NSPopUpButton!
+	@IBOutlet var displayTypeButton: NSPopUpButton?
 	@IBAction func setDisplayType(sender: NSPopUpButton!) {
 		electron.useTelevisionOutput = (sender.indexOfSelectedItem == 1)
 		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
@@ -82,6 +82,6 @@ class ElectronDocument: MachineDocument {
 
 		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
-		self.displayTypeButton.selectItemAtIndex(displayType)
+		self.displayTypeButton?.selectItemAtIndex(displayType)
 	}
 }

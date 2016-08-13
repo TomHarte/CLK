@@ -197,4 +197,11 @@ using namespace Commodore::Vic20;
 	}
 }
 
+- (void)setShouldLoadAutomatically:(BOOL)shouldLoadAutomatically {
+	@synchronized(self) {
+		_shouldLoadAutomatically = shouldLoadAutomatically;
+		_vic20.set_should_automatically_load_media(shouldLoadAutomatically ? true : false);
+	}
+}
+
 @end

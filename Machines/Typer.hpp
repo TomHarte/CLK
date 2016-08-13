@@ -23,6 +23,7 @@ class Typer {
 		Typer(const char *string, int delay, int frequency, Delegate *delegate);
 		~Typer();
 		void update(int duration);
+		bool type_next_character();
 
 	private:
 		char *_string;
@@ -31,8 +32,6 @@ class Typer {
 		int _phase;
 		Delegate *_delegate;
 		size_t _string_pointer;
-
-		void type_next_character();
 };
 
 class TypeRecipient: public Typer::Delegate {

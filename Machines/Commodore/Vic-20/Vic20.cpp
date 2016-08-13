@@ -35,13 +35,8 @@ Machine::Machine() :
 	_tape.set_delegate(this);
 
 	// establish the memory maps
-	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
-
-	write_to_map(_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
-	write_to_map(_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
-	write_to_map(_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
 
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
@@ -86,9 +81,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	uint16_t video_address = _mos6560->get_address();
-	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO
-	_mos6560->set_graphics_value(video_value, _colorMemory[video_address & 0x03ff]);
+	_mos6560->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
@@ -128,7 +121,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	_userPortVIA->run_for_half_cycles(2);
 	_keyboardVIA->run_for_half_cycles(2);
-	if(_typer) _typer->update(1);
+	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
+	{
+		if(!_typer->type_next_character())
+			_typer.reset();
+	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
 	return 1;
@@ -146,7 +143,13 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_mos6560.reset(new MOS::MOS6560());
+	_mos6560.reset(new Vic6560());
+
+	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
+	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
+	write_to_map(_mos6560->_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
+	write_to_map(_mos6560->_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
+	_mos6560->_colorMemory = _colorMemory;
 }
 
 void Machine::close_output()
@@ -164,14 +167,9 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
 		case BASIC:			target = _basicROM;								break;
 		case Drive:
-			if(_c1540)
-				_c1540->set_rom(data);
-			else
-			{
-				// if there's no 1540 now, hold onto the ROM in case one is added later
-				_driveROM.reset(new uint8_t[length]);
-				memcpy(_driveROM.get(), data, length);
-			}
+			_driveROM.reset(new uint8_t[length]);
+			memcpy(_driveROM.get(), data, length);
+			install_disk_rom();
 		return;
 	}
 
@@ -188,7 +186,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
 		_rom_length = (uint16_t)(length - 2);
-		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
+		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000 && _should_automatically_load_media)
 		{
 			set_typer_for_string("RUN\n");
 		}
@@ -204,7 +202,7 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
 {
 	_tape.set_tape(tape);
-	set_typer_for_string("LOAD\n");
+	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
 }
 
 void Machine::tape_did_change_input(Tape *tape)
@@ -226,13 +224,19 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
 	_c1540->set_disk(disk);
 
 	// install the ROM if it was previously set
-	if(_driveROM)
+	install_disk_rom();
+
+	if(_should_automatically_load_media) set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
+}
+
+void Machine::install_disk_rom()
+{
+	if(_driveROM && _c1540)
 	{
 		_c1540->set_rom(_driveROM.get());
+		_c1540->run_for_cycles(2000000);
 		_driveROM.reset();
 	}
-
-	set_typer_for_string("LOAD\"*\",8,1\n");
 }
 
 #pragma mark - Typer

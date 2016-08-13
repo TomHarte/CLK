@@ -176,13 +176,16 @@ class MachineDocument:
 	}
 
 	// MARK: IBActions
+	final func prefixedUserDefaultsKey(key: String) -> String {
+		return "\(self.name).\(key)"
+	}
 	var fastLoadingUserDefaultsKey: String {
 		get {
-			return "\(self.name).fastLoading"
+			return prefixedUserDefaultsKey("fastLoading")
 		}
 	}
 
-	@IBOutlet var fastLoadingButton: NSButton!
+	@IBOutlet var fastLoadingButton: NSButton?
 	@IBAction func setFastLoading(sender: NSButton!) {
 		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = sender.state == NSOnState
@@ -200,7 +203,7 @@ class MachineDocument:
 		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
+			self.fastLoadingButton?.state = useFastLoadingHack ? NSOnState : NSOffState
 		}
 	}
 }

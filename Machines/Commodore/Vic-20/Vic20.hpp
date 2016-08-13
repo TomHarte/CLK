@@ -225,6 +225,17 @@ class Tape: public Storage::TapePlayer {
 		bool _input_level;
 };
 
+class Vic6560: public MOS::MOS6560<Vic6560> {
+	public:
+		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
+		{
+			*pixel_data = _videoMemoryMap[address >> 10] ? _videoMemoryMap[address >> 10][address & 0x3ff] : 0xff; // TODO
+			*colour_data = _colorMemory[address & 0x03ff];
+		}
+
+		uint8_t *_videoMemoryMap[16];
+		uint8_t *_colorMemory;
+};
 
 class Machine:
 	public CPU6502::Processor<Machine>,
@@ -250,6 +261,7 @@ class Machine:
 		}
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+		inline void set_should_automatically_load_media(bool activate) { _should_automatically_load_media = activate; }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -289,12 +301,11 @@ class Machine:
 		uint8_t _junkMemory[0x0400];
 		std::unique_ptr<uint8_t> _driveROM;
 
-		uint8_t *_videoMemoryMap[16];
 		uint8_t *_processorReadMemoryMap[64];
 		uint8_t *_processorWriteMemoryMap[64];
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
-		std::unique_ptr<MOS::MOS6560> _mos6560;
+		std::unique_ptr<Vic6560> _mos6560;
 		std::shared_ptr<UserPortVIA> _userPortVIA;
 		std::shared_ptr<KeyboardVIA> _keyboardVIA;
 		std::shared_ptr<SerialPort> _serialPort;
@@ -303,10 +314,13 @@ class Machine:
 
 		// Tape
 		Tape _tape;
-		bool _use_fast_tape_hack;
+		bool _use_fast_tape_hack, _should_automatically_load_media;
 
-		// Disc
+		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
+		void install_disk_rom();
+
+		// Autoload string
 };
 
 }
