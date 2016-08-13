@@ -35,9 +35,33 @@ Machine::Machine() :
 	_tape.set_delegate(this);
 
 	// establish the memory maps
+	set_memory_size(MemorySize::Default);
+
+//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+//	_debugPort->set_serial_bus(_serialBus);
+//	_serialBus->add_port(_debugPort);
+}
+
+void Machine::set_memory_size(MemorySize size)
+{
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
 
+	switch(size)
+	{
+		default: break;
+		case ThreeKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x1000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x1000);
+		break;
+		case ThirtyTwoKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x8000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x8000);
+		break;
+	}
+
+
+	// install the ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
@@ -48,10 +72,6 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
-
-//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-//	_debugPort->set_serial_bus(_serialBus);
-//	_serialBus->add_port(_debugPort);
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)

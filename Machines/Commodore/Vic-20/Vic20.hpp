@@ -32,6 +32,12 @@ enum ROMSlot {
 	Drive
 };
 
+enum MemorySize {
+	Default,
+	ThreeKB,
+	ThirtyTwoKB
+};
+
 #define key(line, mask) (((mask) << 3) | (line))
 
 enum Key: uint16_t {
@@ -259,6 +265,7 @@ class Machine:
 			_userPortVIA->set_joystick_state(input, isPressed);
 			_keyboardVIA->set_joystick_state(input, isPressed);
 		}
+		void set_memory_size(MemorySize size);
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
 		inline void set_should_automatically_load_media(bool activate) { _should_automatically_load_media = activate; }
@@ -291,6 +298,7 @@ class Machine:
 		uint8_t _characterROM[0x1000];
 		uint8_t _basicROM[0x2000];
 		uint8_t _kernelROM[0x2000];
+		uint8_t _expansionRAM[0x8000];
 
 		uint8_t *_rom;
 		uint16_t _rom_address, _rom_length;
