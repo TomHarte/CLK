@@ -229,9 +229,25 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 			set_typer_for_string("RUN\n");
 		}
 
-		_rom = new uint8_t[length - 2];
-		memcpy(_rom, &data[2], length - 2);
-		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+		if(_rom_address == 0xa000)
+		{
+			_rom = new uint8_t[length - 2];
+			memcpy(_rom, &data[2], length - 2);
+			write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+		}
+		else
+		{
+			// TODO: write to virtual media (tape, probably?), load normally.
+			data += 2;
+			while(_rom_length)
+			{
+				uint8_t *ram = _processorWriteMemoryMap[_rom_address >> 10];
+				if(ram) ram[_rom_address & 0x3ff] = *data;
+				data++;
+				_rom_length--;
+				_rom_address++;
+			}
+		}
 	}
 }
 
