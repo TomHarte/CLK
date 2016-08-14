@@ -157,7 +157,7 @@ class Vic20Document: MachineDocument {
 		standardUserDefaults.registerDefaults([
 			self.autoloadingUserDefaultsKey: true,
 			self.memorySizeUserDefaultsKey: 5,
-			self.countryUserDefaultsKey: 4
+			self.countryUserDefaultsKey: 1
 		])
 
 		let loadAutomatically = standardUserDefaults.boolForKey(self.autoloadingUserDefaultsKey)
