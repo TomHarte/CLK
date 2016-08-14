@@ -69,15 +69,39 @@ class Vic20Document: MachineDocument {
 		vic20.setPRG(data)
 	}
 
+	// MARK: automatic loading tick box
 	@IBOutlet var loadAutomaticallyButton: NSButton?
 	var autoloadingUserDefaultsKey: String {
 		get { return prefixedUserDefaultsKey("autoload") }
 	}
+
 	@IBAction func setShouldLoadAutomatically(sender: NSButton!) {
 		let loadAutomatically = sender.state == NSOnState
 		vic20.shouldLoadAutomatically = loadAutomatically
 		NSUserDefaults.standardUserDefaults().setBool(loadAutomatically, forKey: self.autoloadingUserDefaultsKey)
 	}
+
+	// MARK: country selector
+	@IBOutlet var countryButton: NSPopUpButton?
+	var countryUserDefaultsKey: String {
+		get { return prefixedUserDefaultsKey("country") }
+	}
+
+	@IBAction func setCountry(sender: NSPopUpButton!) {
+		print("Country should be \(sender.indexOfSelectedItem)")
+	}
+
+	// MARK: memory model selector
+	@IBOutlet var memorySizeButton: NSPopUpButton?
+	var memorySizeUserDefaultsKey: String {
+		get { return prefixedUserDefaultsKey("memorySize") }
+	}
+
+	@IBAction func setMemorySize(sender: NSPopUpButton!) {
+		print("Memory size should be \(sender.indexOfSelectedItem)")
+	}
+
+	// MARK: option restoration
 	override func establishStoredOptions() {
 		super.establishStoredOptions()
 
