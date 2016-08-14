@@ -88,7 +88,11 @@ class Vic20Document: MachineDocument {
 	}
 
 	@IBAction func setCountry(sender: NSPopUpButton!) {
-		print("Country should be \(sender.indexOfSelectedItem)")
+		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.countryUserDefaultsKey)
+		setCountry(sender.indexOfSelectedItem)
+	}
+
+	private func setCountry(countryID: Int) {
 	}
 
 	// MARK: memory model selector
@@ -98,6 +102,16 @@ class Vic20Document: MachineDocument {
 	}
 
 	@IBAction func setMemorySize(sender: NSPopUpButton!) {
+		var selectedSize: Int?
+		switch sender.indexOfSelectedItem {
+			case 0: selectedSize = 5
+			case 1: selectedSize = 8
+			case 2: selectedSize = 32
+			default: break
+		}
+		if let selectedSize = selectedSize {
+			NSUserDefaults.standardUserDefaults().setInteger(selectedSize, forKey: self.memorySizeUserDefaultsKey)
+		}
 		print("Memory size should be \(sender.indexOfSelectedItem)")
 	}
 
@@ -107,11 +121,24 @@ class Vic20Document: MachineDocument {
 
 		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
 		standardUserDefaults.registerDefaults([
-			autoloadingUserDefaultsKey: true
+			self.autoloadingUserDefaultsKey: true,
+			self.memorySizeUserDefaultsKey: 5,
+			self.countryUserDefaultsKey: 4
 		])
 
 		let loadAutomatically = standardUserDefaults.boolForKey(self.autoloadingUserDefaultsKey)
 		vic20.shouldLoadAutomatically = loadAutomatically
 		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
+
+		let memorySize = standardUserDefaults.integerForKey(self.memorySizeUserDefaultsKey)
+		switch memorySize {
+			case 32: self.memorySizeButton?.selectItemAtIndex(2)
+			case 8: self.memorySizeButton?.selectItemAtIndex(1)
+			default: self.memorySizeButton?.selectItemAtIndex(0)
+		}
+
+		let country = standardUserDefaults.integerForKey(self.countryUserDefaultsKey)
+		setCountry(country)
+		self.countryButton?.selectItemAtIndex(country)
 	}
 }
