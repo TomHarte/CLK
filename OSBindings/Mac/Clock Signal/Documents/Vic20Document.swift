@@ -26,12 +26,6 @@ class Vic20Document: MachineDocument {
 	override init() {
 		super.init()
 
-		if let kernel = rom("kernel-ntsc"), basic = rom("basic"), characters = rom("characters-english") {
-			vic20.setKernelROM(kernel)
-			vic20.setBASICROM(basic)
-			vic20.setCharactersROM(characters)
-		}
-
 		if let drive = dataForResource("1540", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
 			vic20.setDriveROM(drive)
 		}
@@ -93,6 +87,39 @@ class Vic20Document: MachineDocument {
 	}
 
 	private func setCountry(countryID: Int) {
+		var charactersROM: String?
+		var kernelROM: String?
+		switch countryID {
+			case 0:	// Danish
+				charactersROM = "characters-danish"
+				kernelROM = "kernel-danish"
+				vic20.region = .PAL
+			case 1: // European
+				charactersROM = "characters-english"
+				kernelROM = "kernel-pal"
+				vic20.region = .PAL
+			case 2: // Japanese
+				charactersROM = "characters-japanese"
+				kernelROM = "kernel-japanese"
+				vic20.region = .NTSC
+			case 3: // Swedish
+				charactersROM = "characters-swedish"
+				kernelROM = "kernel-swedish"
+				vic20.region = .PAL
+			case 4: // US
+				charactersROM = "characters-english"
+				kernelROM = "kernel-ntsc"
+				vic20.region = .NTSC
+			default: break
+		}
+
+		if let charactersROM = charactersROM, kernelROM = kernelROM {
+			if let kernel = rom(kernelROM), basic = rom("basic"), characters = rom(charactersROM) {
+				vic20.setKernelROM(kernel)
+				vic20.setBASICROM(basic)
+				vic20.setCharactersROM(characters)
+			}
+		}
 	}
 
 	// MARK: memory model selector
@@ -111,8 +138,15 @@ class Vic20Document: MachineDocument {
 		}
 		if let selectedSize = selectedSize {
 			NSUserDefaults.standardUserDefaults().setInteger(selectedSize, forKey: self.memorySizeUserDefaultsKey)
+			setMemorySize(sender.indexOfSelectedItem)
 		}
-		print("Memory size should be \(sender.indexOfSelectedItem)")
+	}
+	private func setMemorySize(sizeIndex: Int) {
+		switch sizeIndex {
+			case 2:		vic20.memorySize = .Size32Kb
+			case 1:		vic20.memorySize = .Size8Kb
+			default:	vic20.memorySize = .Size5Kb
+		}
 	}
 
 	// MARK: option restoration
@@ -131,10 +165,15 @@ class Vic20Document: MachineDocument {
 		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
 
 		let memorySize = standardUserDefaults.integerForKey(self.memorySizeUserDefaultsKey)
+		var indexToSelect: Int?
 		switch memorySize {
-			case 32: self.memorySizeButton?.selectItemAtIndex(2)
-			case 8: self.memorySizeButton?.selectItemAtIndex(1)
-			default: self.memorySizeButton?.selectItemAtIndex(0)
+			case 32:	indexToSelect = 2
+			case 8:		indexToSelect = 1
+			default:	indexToSelect = 0
+		}
+		if let indexToSelect = indexToSelect {
+			self.memorySizeButton?.selectItemAtIndex(indexToSelect)
+			setMemorySize(indexToSelect)
 		}
 
 		let country = standardUserDefaults.integerForKey(self.countryUserDefaultsKey)
