@@ -190,17 +190,37 @@ using namespace Commodore::Vic20;
 	}
 }
 
+#pragma mark - Public configuration options
+
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	_useFastLoadingHack = useFastLoadingHack;
 	@synchronized(self) {
-		_useFastLoadingHack = useFastLoadingHack;
 		_vic20.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
 	}
 }
 
 - (void)setShouldLoadAutomatically:(BOOL)shouldLoadAutomatically {
+	_shouldLoadAutomatically = shouldLoadAutomatically;
 	@synchronized(self) {
-		_shouldLoadAutomatically = shouldLoadAutomatically;
 		_vic20.set_should_automatically_load_media(shouldLoadAutomatically ? true : false);
+	}
+}
+
+- (void)setRegion:(CSVic20Region)region {
+	_region = region;
+	@synchronized(self) {
+		_vic20.set_region( (region == CSVic20RegionPAL) ? Commodore::Vic20::Region::PAL : Commodore::Vic20::Region::NTSC);
+	}
+}
+
+- (void)setMemorySize:(CSVic20MemorySize)memorySize {
+	_memorySize = memorySize;
+	@synchronized(self) {
+		switch(memorySize) {
+			case CSVic20MemorySize5Kb: _vic20.set_memory_size(Commodore::Vic20::Default);	break;
+			case CSVic20MemorySize8Kb: _vic20.set_memory_size(Commodore::Vic20::ThreeKB);	break;
+			case CSVic20MemorySize32Kb: _vic20.set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
+		}
 	}
 }
 
