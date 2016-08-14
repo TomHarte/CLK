@@ -37,6 +37,8 @@ Machine::Machine() :
 	// establish the memory maps
 	set_memory_size(MemorySize::Default);
 
+	// set the NTSC clock rate
+	set_region(NTSC);
 //	_debugPort.reset(new ::Commodore::Serial::DebugPort);
 //	_debugPort->set_serial_bus(_serialBus);
 //	_serialBus->add_port(_debugPort);
@@ -59,7 +61,6 @@ void Machine::set_memory_size(MemorySize size)
 			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x8000);
 		break;
 	}
-
 
 	// install the ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
@@ -161,9 +162,26 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 #pragma mark - Setup
 
+void Machine::set_region(Commodore::Vic20::Region region)
+{
+	_region = region;
+	switch(region)
+	{
+		case PAL:
+			set_clock_rate(1108404);
+			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+		break;
+		case NTSC:
+			set_clock_rate(1022727);
+			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+		break;
+	}
+}
+
 void Machine::setup_output(float aspect_ratio)
 {
 	_mos6560.reset(new Vic6560());
+	set_region(_region);
 
 	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
 	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));

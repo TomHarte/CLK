@@ -30,15 +30,26 @@ class Machine {
 		virtual void run_for_cycles(int number_of_cycles) = 0;
 
 		// TODO: sever the clock-rate stuff.
-		virtual double get_clock_rate() = 0;
+		double get_clock_rate() {
+			return clock_rate_;
+		}
 		class Delegate {
 			public:
 				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
 		};
-		void set_delegate(Delegate *delegate) { this->delegate = delegate; }
+		void set_delegate(Delegate *delegate) { this->delegate_ = delegate; }
 
 	protected:
-		Delegate *delegate;
+		double clock_rate_;
+		void set_clock_rate(double clock_rate) {
+			if(clock_rate_ != clock_rate) {
+				clock_rate_ = clock_rate;
+				if(delegate_) delegate_->machine_did_change_clock_rate(this);
+			}
+		}
+
+	private:
+		Delegate *delegate_;
 };
 
 }

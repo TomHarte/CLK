@@ -38,6 +38,11 @@ enum MemorySize {
 	ThirtyTwoKB
 };
 
+enum Region {
+	NTSC,
+	PAL
+};
+
 #define key(line, mask) (((mask) << 3) | (line))
 
 enum Key: uint16_t {
@@ -265,7 +270,9 @@ class Machine:
 			_userPortVIA->set_joystick_state(input, isPressed);
 			_keyboardVIA->set_joystick_state(input, isPressed);
 		}
+
 		void set_memory_size(MemorySize size);
+		void set_region(Region region);
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
 		inline void set_should_automatically_load_media(bool activate) { _should_automatically_load_media = activate; }
@@ -280,7 +287,6 @@ class Machine:
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _mos6560->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _mos6560->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
-		virtual double get_clock_rate() { return 1022727; }
 		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt
 
 		// to satisfy MOS::MOS6522::Delegate
@@ -312,6 +318,8 @@ class Machine:
 		uint8_t *_processorReadMemoryMap[64];
 		uint8_t *_processorWriteMemoryMap[64];
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
+
+		Region _region;
 
 		std::unique_ptr<Vic6560> _mos6560;
 		std::shared_ptr<UserPortVIA> _userPortVIA;
