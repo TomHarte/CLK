@@ -63,7 +63,7 @@ void Machine::set_memory_size(MemorySize size)
 		break;
 	}
 
-	// install the ROMs and VIC-visible memory
+	// install the system ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
@@ -74,6 +74,12 @@ void Machine::set_memory_size(MemorySize size)
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+
+	// install the inserted ROM if there is one
+	if(_rom)
+	{
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+	}
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -225,12 +231,9 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
 		_rom_length = (uint16_t)(length - 2);
-		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000 && _should_automatically_load_media)
-		{
-			set_typer_for_string("RUN\n");
-		}
 
-		if(_rom_address == 0xa000)
+		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
+		if(_rom_address == 0xa000 && _rom_length == 0x1000)
 		{
 			_rom = new uint8_t[length - 2];
 			memcpy(_rom, &data[2], length - 2);
@@ -238,7 +241,6 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 		}
 		else
 		{
-			// if it's not a ROM then insert it as a tape
 			set_tape(std::shared_ptr<Storage::Tape>(new Storage::TapePRG(file_name)));
 		}
 	}
