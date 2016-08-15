@@ -30,7 +30,7 @@ typedef NS_ENUM(NSInteger, CSVic20MemorySize)
 - (void)setCharactersROM:(nonnull NSData *)rom;
 - (void)setDriveROM:(nonnull NSData *)rom;
 
-- (void)setPRG:(nonnull NSData *)prg;
+- (BOOL)openPRGAtURL:(nonnull NSURL *)URL;
 - (BOOL)openTAPAtURL:(nonnull NSURL *)URL;
 - (BOOL)openG64AtURL:(nonnull NSURL *)URL;
 - (BOOL)openD64AtURL:(nonnull NSURL *)URL;

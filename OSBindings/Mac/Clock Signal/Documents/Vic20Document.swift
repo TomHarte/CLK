@@ -47,6 +47,7 @@ class Vic20Document: MachineDocument {
 				case "tap":	vic20.openTAPAtURL(url)
 				case "g64":	vic20.openG64AtURL(url)
 				case "d64":	vic20.openD64AtURL(url)
+				case "prg": vic20.openPRGAtURL(url)
 				default:
 					let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
 					try self.readFromFileWrapper(fileWrapper, ofType: typeName)
@@ -57,10 +58,6 @@ class Vic20Document: MachineDocument {
 	// MARK: machine setup
 	private func rom(name: String) -> NSData? {
 		return dataForResource(name, ofType: "bin", inDirectory: "ROMImages/Vic20")
-	}
-
-	override func readFromData(data: NSData, ofType typeName: String) throws {
-		vic20.setPRG(data)
 	}
 
 	// MARK: automatic loading tick box

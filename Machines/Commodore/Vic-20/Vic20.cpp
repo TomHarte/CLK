@@ -9,6 +9,7 @@
 #include "Vic20.hpp"
 
 #include <algorithm>
+#include "../../../Storage/Tape/Formats/TapePRG.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -218,7 +219,7 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	}
 }
 
-void Machine::add_prg(size_t length, const uint8_t *data)
+void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 {
 	if(length > 2)
 	{
@@ -237,16 +238,8 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 		}
 		else
 		{
-			// TODO: write to virtual media (tape, probably?), load normally.
-			data += 2;
-			while(_rom_length)
-			{
-				uint8_t *ram = _processorWriteMemoryMap[_rom_address >> 10];
-				if(ram) ram[_rom_address & 0x3ff] = *data;
-				data++;
-				_rom_length--;
-				_rom_address++;
-			}
+			// if it's not a ROM then insert it as a tape
+			set_tape(std::shared_ptr<Storage::Tape>(new Storage::TapePRG(file_name)));
 		}
 	}
 }
