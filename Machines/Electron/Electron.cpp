@@ -55,6 +55,7 @@ Machine::Machine() :
 		memset(_roms[c], 0xff, 16384);
 
 	_tape.set_delegate(this);
+	set_clock_rate(2000000);
 }
 
 void Machine::setup_output(float aspect_ratio)

@@ -13,6 +13,8 @@
 using namespace Atari2600;
 namespace {
 	static const unsigned int horizontalTimerPeriod = 228;
+	static const double NTSC_clock_rate = 1194720;
+	static const double PAL_clock_rate = 1182298;
 }
 
 Machine::Machine() :
@@ -52,6 +54,7 @@ Machine::Machine() :
 			_stateByExtendTime[vbextend][c] = state;
 		}
 	}
+	set_clock_rate(NTSC_clock_rate);
 }
 
 void Machine::setup_output(float aspect_ratio)
@@ -94,8 +97,7 @@ void Machine::switch_region()
 
 	_is_pal_region = true;
 	_speaker->set_input_rate((float)(get_clock_rate() / 38.0));
-
-	if(delegate) delegate->machine_did_change_clock_rate(this);
+	set_clock_rate(PAL_clock_rate);
 }
 
 void Machine::close_output()
@@ -107,11 +109,6 @@ Machine::~Machine()
 {
 	delete[] _rom;
 	close_output();
-}
-
-double Machine::get_clock_rate()
-{
-	return _is_pal_region ? 1182298 : 1194720;
 }
 
 void Machine::update_timers(int mask)

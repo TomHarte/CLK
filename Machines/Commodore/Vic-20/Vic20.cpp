@@ -35,9 +35,34 @@ Machine::Machine() :
 	_tape.set_delegate(this);
 
 	// establish the memory maps
+	set_memory_size(MemorySize::Default);
+
+	// set the NTSC clock rate
+	set_region(NTSC);
+//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+//	_debugPort->set_serial_bus(_serialBus);
+//	_serialBus->add_port(_debugPort);
+}
+
+void Machine::set_memory_size(MemorySize size)
+{
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
 
+	switch(size)
+	{
+		default: break;
+		case ThreeKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x1000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x1000);
+		break;
+		case ThirtyTwoKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x8000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x8000);
+		break;
+	}
+
+	// install the ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
@@ -48,10 +73,6 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
-
-//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-//	_debugPort->set_serial_bus(_serialBus);
-//	_serialBus->add_port(_debugPort);
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -141,9 +162,26 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 #pragma mark - Setup
 
+void Machine::set_region(Commodore::Vic20::Region region)
+{
+	_region = region;
+	switch(region)
+	{
+		case PAL:
+			set_clock_rate(1108404);
+			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+		break;
+		case NTSC:
+			set_clock_rate(1022727);
+			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+		break;
+	}
+}
+
 void Machine::setup_output(float aspect_ratio)
 {
 	_mos6560.reset(new Vic6560());
+	set_region(_region);
 
 	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
 	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
@@ -191,9 +229,25 @@ void Machine::add_prg(size_t length, const uint8_t *data)
 			set_typer_for_string("RUN\n");
 		}
 
-		_rom = new uint8_t[length - 2];
-		memcpy(_rom, &data[2], length - 2);
-		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+		if(_rom_address == 0xa000)
+		{
+			_rom = new uint8_t[length - 2];
+			memcpy(_rom, &data[2], length - 2);
+			write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+		}
+		else
+		{
+			// TODO: write to virtual media (tape, probably?), load normally.
+			data += 2;
+			while(_rom_length)
+			{
+				uint8_t *ram = _processorWriteMemoryMap[_rom_address >> 10];
+				if(ram) ram[_rom_address & 0x3ff] = *data;
+				data++;
+				_rom_length--;
+				_rom_address++;
+			}
+		}
 	}
 }
 

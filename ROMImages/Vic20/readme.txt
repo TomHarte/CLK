@@ -3,15 +3,12 @@ ROM files would ordinarily go here; the copyright status of these is uncertain s
 Expected files:
 
 basic.bin
-characters-english.bin
-kernel-ntsc.bin
-
-Likely to be desired in the future:
-
 characters-danish.bin
+characters-english.bin
 characters-japanese.bin
 characters-swedish.bin
 kernel-danish.bin
 kernel-japanese.bin
+kernel-ntsc.bin
 kernel-pal.bin
 kernel-swedish.bin
