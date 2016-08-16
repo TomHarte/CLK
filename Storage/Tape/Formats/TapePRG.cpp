@@ -57,8 +57,8 @@ Tape::Pulse TapePRG::get_next_pulse()
 		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
 		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
 	}
-	pulse.length.clock_rate = 1000000;
-	pulse.type = (_bitPhase&1) ? Pulse::Low : Pulse::High;
+	pulse.length.clock_rate = 2000000;
+	pulse.type = (_bitPhase&1) ? Pulse::High : Pulse::Low;
 	return pulse;
 }
 
@@ -125,8 +125,8 @@ void TapePRG::get_next_output_token()
 					case 4: _output_byte = ((_load_address + _length) >> 8) & 0xff;		break;
 
 					case 5: _output_byte = 0x50;	break; // P
-					case 6: _output_byte = 0x72;	break; // R
-					case 7: _output_byte = 0x67;	break; // G
+					case 6: _output_byte = 0x52;	break; // R
+					case 7: _output_byte = 0x47;	break; // G
 					default:
 						_output_byte = 0x20;
 					break;

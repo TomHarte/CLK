@@ -102,7 +102,7 @@ Machine::~Machine()
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 //	static int logCount = 0;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xf957) logCount = 500;
 //	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
 //		logCount--;
 //		printf("%04x\n", address);
