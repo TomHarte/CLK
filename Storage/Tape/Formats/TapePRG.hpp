@@ -42,17 +42,20 @@ class TapePRG: public Tape {
 
 		enum FilePhase {
 			FilePhaseLeadIn,
-			FilePhaseHeader
+			FilePhaseHeader,
+			FilePhaseData,
 		} _filePhase;
+		int _phaseOffset;
 
 		int _bitPhase;
 		enum OutputToken {
 			Leader,
 			Zero,
 			One,
-			WordMarker
+			WordMarker,
 		} _outputToken;
 		void get_next_output_token();
+		uint8_t _output_byte;
 };
 
 }

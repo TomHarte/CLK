@@ -12,7 +12,7 @@
 
 using namespace Storage;
 
-TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3)
+TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -64,9 +64,59 @@ void TapePRG::reset()
 {
 	_bitPhase = 3;
 	fseek(_file, 2, SEEK_SET);
+	_filePhase = FilePhaseLeadIn;
+	_phaseOffset = 0;
 }
 
 void TapePRG::get_next_output_token()
 {
-	_outputToken = Leader;
+	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
+	// before doing whatever it should be doing
+	if(_filePhase == FilePhaseLeadIn || _phaseOffset < 5000)
+	{
+		_outputToken = Leader;
+		_phaseOffset++;
+		if(_filePhase == FilePhaseLeadIn && _phaseOffset == 20000)
+		{
+			_phaseOffset = 0;
+			_filePhase = FilePhaseHeader;
+		}
+		return;
+	}
+
+	// determine whether a new byte needs to be queued up
+	int block_offset = _phaseOffset - 5000;
+	int bit_offset = block_offset % 10;
+	int byte_offset = block_offset / 10;
+
+	if(bit_offset == 0)
+	{
+		// the first nine bytes are countdown; the high bit is set if this is a header
+		if(byte_offset < 9)
+		{
+			_output_byte = (uint8_t)(9 - block_offset) | 0x80;
+		}
+		else
+		{
+		}
+	}
+
+	switch(bit_offset)
+	{
+		case 0:
+			_outputToken = WordMarker;
+		break;
+		default:
+			_outputToken = (_output_byte & (1 << (bit_offset - 1))) ? One : Zero;
+		break;
+		case 1:
+		{
+			uint8_t parity = _outputToken;
+			parity ^= (parity >> 4);
+			parity ^= (parity >> 2);
+			parity ^= (parity >> 1);
+			_outputToken = (parity&1) ? One : Zero;
+		}
+		break;
+	}
 }
