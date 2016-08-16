@@ -39,6 +39,7 @@ class TapePRG: public Tape {
 	private:
 		FILE *_file;
 		uint16_t _load_address;
+		uint16_t _length;
 
 		enum FilePhase {
 			FilePhaseLeadIn,
@@ -53,9 +54,11 @@ class TapePRG: public Tape {
 			Zero,
 			One,
 			WordMarker,
+			EndOfBlock
 		} _outputToken;
 		void get_next_output_token();
 		uint8_t _output_byte;
+		uint8_t _check_digit;
 };
 
 }

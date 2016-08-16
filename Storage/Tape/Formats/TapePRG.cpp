@@ -27,8 +27,9 @@ TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePha
 
 	_load_address = (uint16_t)fgetc(_file);
 	_load_address |= (uint16_t)fgetc(_file) << 8;
+	_length = (uint16_t)(file_stats.st_size - 2);
 
-	if (_load_address + file_stats.st_size >= 65536)
+	if (_load_address + _length >= 65536)
 		throw ErrorBadFormat;
 }
 
@@ -42,7 +43,7 @@ Tape::Pulse TapePRG::get_next_pulse()
 	static const unsigned int leader_zero_length = 179;
 	static const unsigned int zero_length = 169;
 	static const unsigned int one_length = 247;
-	static const unsigned int word_marker_length = 328;
+	static const unsigned int marker_length = 328;
 
 	_bitPhase = (_bitPhase+1)&3;
 	if(!_bitPhase) get_next_output_token();
@@ -50,10 +51,11 @@ Tape::Pulse TapePRG::get_next_pulse()
 	Tape::Pulse pulse;
 	switch(_outputToken)
 	{
-		case Leader:		pulse.length.length = leader_zero_length;								break;
-		case Zero:			pulse.length.length = (_bitPhase&2) ? one_length : zero_length;			break;
-		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;			break;
-		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : word_marker_length;	break;
+		case Leader:		pulse.length.length = leader_zero_length;							break;
+		case Zero:			pulse.length.length = (_bitPhase&2) ? one_length : zero_length;		break;
+		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;		break;
+		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
+		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
 	}
 	pulse.length.clock_rate = 1000000;
 	pulse.type = (_bitPhase&1) ? Pulse::Low : Pulse::High;
@@ -89,16 +91,56 @@ void TapePRG::get_next_output_token()
 	int bit_offset = block_offset % 10;
 	int byte_offset = block_offset / 10;
 
+	if(byte_offset == 200)
+	{
+		_phaseOffset = 0;
+		_filePhase = FilePhaseData;	// TODO
+		_outputToken = EndOfBlock;
+		return;
+	}
+
+	_phaseOffset++;
 	if(bit_offset == 0)
 	{
 		// the first nine bytes are countdown; the high bit is set if this is a header
 		if(byte_offset < 9)
 		{
-			_output_byte = (uint8_t)(9 - block_offset) | 0x80;
+			_output_byte = (uint8_t)(9 - byte_offset) | 0x80;
+			_check_digit = 0;
+		}
+		else if(byte_offset == 199)
+		{
+			_output_byte = _check_digit;
 		}
 		else
 		{
+			if(_filePhase == FilePhaseHeader)
+			{
+				switch(byte_offset - 9)
+				{
+					case 0:	_output_byte = 0x03;										break;
+					case 1: _output_byte = _load_address & 0xff;						break;
+					case 2: _output_byte = (_load_address >> 8)&0xff;					break;
+					case 3: _output_byte = (_load_address + _length) & 0xff;			break;
+					case 4: _output_byte = ((_load_address + _length) >> 8) & 0xff;		break;
+
+					case 5: _output_byte = 0x50;	break; // P
+					case 6: _output_byte = 0x72;	break; // R
+					case 7: _output_byte = 0x67;	break; // G
+					default:
+						_output_byte = 0x20;
+					break;
+				}
+			}
+			else
+			{
+				_output_byte = (uint8_t)fgetc(_file);
+				if(feof(_file)) _output_byte = 0x20;
+			}
 		}
+
+		printf("%02x ", _output_byte);
+		_check_digit ^= _output_byte;
 	}
 
 	switch(bit_offset)
