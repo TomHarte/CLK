@@ -106,7 +106,6 @@ void TapePRG::get_next_output_token()
 		if(byte_offset < 9)
 		{
 			_output_byte = (uint8_t)(9 - byte_offset) | 0x80;
-			_check_digit = 0;
 		}
 		else if(byte_offset == 199)
 		{
@@ -114,6 +113,7 @@ void TapePRG::get_next_output_token()
 		}
 		else
 		{
+			if(byte_offset == 9) _check_digit = 0;
 			if(_filePhase == FilePhaseHeader)
 			{
 				switch(byte_offset - 9)
@@ -137,10 +137,11 @@ void TapePRG::get_next_output_token()
 				_output_byte = (uint8_t)fgetc(_file);
 				if(feof(_file)) _output_byte = 0x20;
 			}
+
+			_check_digit ^= _output_byte;
 		}
 
 		printf("%02x ", _output_byte);
-		_check_digit ^= _output_byte;
 	}
 
 	switch(bit_offset)
