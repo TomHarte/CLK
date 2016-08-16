@@ -12,7 +12,7 @@
 
 using namespace Storage;
 
-TapePRG::TapePRG(const char *file_name) : _file(nullptr)
+TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -39,11 +39,34 @@ TapePRG::~TapePRG()
 
 Tape::Pulse TapePRG::get_next_pulse()
 {
+	static const unsigned int leader_zero_length = 179;
+	static const unsigned int zero_length = 169;
+	static const unsigned int one_length = 247;
+	static const unsigned int word_marker_length = 328;
+
+	_bitPhase = (_bitPhase+1)&3;
+	if(!_bitPhase) get_next_output_token();
+
 	Tape::Pulse pulse;
+	switch(_outputToken)
+	{
+		case Leader:		pulse.length.length = leader_zero_length;								break;
+		case Zero:			pulse.length.length = (_bitPhase&2) ? one_length : zero_length;			break;
+		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;			break;
+		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : word_marker_length;	break;
+	}
+	pulse.length.clock_rate = 1000000;
+	pulse.type = (_bitPhase&1) ? Pulse::Low : Pulse::High;
 	return pulse;
 }
 
 void TapePRG::reset()
 {
-	// TODO
+	_bitPhase = 3;
+	fseek(_file, 2, SEEK_SET);
+}
+
+void TapePRG::get_next_output_token()
+{
+	_outputToken = Leader;
 }

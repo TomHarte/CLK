@@ -45,12 +45,14 @@ class TapePRG: public Tape {
 			FilePhaseHeader
 		} _filePhase;
 
-		enum BitPhase {
-			BitPhase0,
-			BitPhase1,
-			BitPhase2,
-			BitPhase3
-		} _bitPhase;
+		int _bitPhase;
+		enum OutputToken {
+			Leader,
+			Zero,
+			One,
+			WordMarker
+		} _outputToken;
+		void get_next_output_token();
 };
 
 }
