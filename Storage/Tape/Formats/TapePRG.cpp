@@ -12,7 +12,7 @@
 
 using namespace Storage;
 
-TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _file_type(0x03)
+TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _copy_mask(0x80)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -72,7 +72,7 @@ void TapePRG::reset()
 	fseek(_file, 2, SEEK_SET);
 	_filePhase = FilePhaseLeadIn;
 	_phaseOffset = 0;
-	_file_type = 0x03;
+	_copy_mask = 0x80;
 }
 
 void TapePRG::get_next_output_token()
@@ -82,20 +82,23 @@ void TapePRG::get_next_output_token()
 
 	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
 	// before doing whatever it should be doing
-	if(_filePhase == FilePhaseLeadIn || _phaseOffset < 5000)
+	if((_filePhase == FilePhaseLeadIn || _filePhase == FilePhaseHeaderDataGap) || _phaseOffset < 50)
 	{
 		_outputToken = Leader;
 		_phaseOffset++;
-		if(_filePhase == FilePhaseLeadIn && _phaseOffset == 20000)
+		if(
+			(_filePhase == FilePhaseLeadIn && _phaseOffset == 20000) ||
+			(_filePhase == FilePhaseHeaderDataGap && _phaseOffset == 5586)
+		)
 		{
 			_phaseOffset = 0;
-			_filePhase = FilePhaseHeader;
+			_filePhase = (_filePhase == FilePhaseLeadIn) ? FilePhaseHeader : FilePhaseData;
 		}
 		return;
 	}
 
 	// determine whether a new byte needs to be queued up
-	int block_offset = _phaseOffset - 5000;
+	int block_offset = _phaseOffset - 50;
 	int bit_offset = block_offset % 10;
 	int byte_offset = block_offset / 10;
 	_phaseOffset++;
@@ -103,17 +106,25 @@ void TapePRG::get_next_output_token()
 	if(byte_offset == block_length + countdown_bytes + 1) // i.e. after the checksum
 	{
 		_outputToken = EndOfBlock;
-
 		_phaseOffset = 0;
-		if(feof(_file))
+
+		switch(_filePhase)
 		{
-			_file_type ^= 0x5 ^ 0x3;
-			_filePhase = (_file_type == 0x5) ? FilePhaseHeader : FilePhaseLeadIn;
-			fseek(_file, 2, SEEK_SET);
-		}
-		else
-		{
-			_filePhase = FilePhaseData;
+			default: break;
+//			case FilePhaseLeadIn:
+//				_filePhase = FilePhaseHeader;
+//			break;
+			case FilePhaseHeader:
+				_copy_mask ^= 0x80;
+				if(_copy_mask) _filePhase = FilePhaseHeaderDataGap;
+			break;
+			case FilePhaseData:
+				if(feof(_file))
+				{
+					_copy_mask ^= 0x80;
+					fseek(_file, 2, SEEK_SET);
+				}
+			break;
 		}
 		printf("\n===\n");
 		return;
@@ -124,7 +135,7 @@ void TapePRG::get_next_output_token()
 		// the first nine bytes are countdown; the high bit is set if this is a header
 		if(byte_offset < countdown_bytes)
 		{
-			_output_byte = (uint8_t)(countdown_bytes - byte_offset) | 0x80;
+			_output_byte = (uint8_t)(countdown_bytes - byte_offset) | _copy_mask;
 		}
 		else if(byte_offset == countdown_bytes + block_length)
 		{
@@ -137,7 +148,7 @@ void TapePRG::get_next_output_token()
 			{
 				switch(byte_offset - countdown_bytes)
 				{
-					case 0:	_output_byte = _file_type;									break;
+					case 0:	_output_byte = 0x03;										break;
 					case 1: _output_byte = _load_address & 0xff;						break;
 					case 2: _output_byte = (_load_address >> 8)&0xff;					break;
 					case 3: _output_byte = (_load_address + _length) & 0xff;			break;

@@ -238,7 +238,7 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 		_rom_length = (uint16_t)(length - 2);
 
 		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
-		if(_rom_address == 0xa000 && _rom_length == 0x1000)
+		if(_rom_address == 0xa000 && (_rom_length == 0x1000 || _rom_length == 0x2000))
 		{
 			_rom = new uint8_t[length - 2];
 			memcpy(_rom, &data[2], length - 2);

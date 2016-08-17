@@ -44,6 +44,7 @@ class TapePRG: public Tape {
 		enum FilePhase {
 			FilePhaseLeadIn,
 			FilePhaseHeader,
+			FilePhaseHeaderDataGap,
 			FilePhaseData,
 		} _filePhase;
 		int _phaseOffset;
@@ -59,8 +60,7 @@ class TapePRG: public Tape {
 		void get_next_output_token();
 		uint8_t _output_byte;
 		uint8_t _check_digit;
-//		uint8_t _copy_mask;
-		uint8_t _file_type;
+		uint8_t _copy_mask;
 };
 
 }
