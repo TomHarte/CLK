@@ -108,6 +108,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x\n", address);
 //	}
 
+	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192))
+	{
+		printf("\n[%04x] <- %02x\n", address, *value);
+	}
+
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	_mos6560->run_for_cycles(1);
 

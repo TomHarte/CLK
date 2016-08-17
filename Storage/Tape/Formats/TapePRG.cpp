@@ -40,6 +40,7 @@ TapePRG::~TapePRG()
 
 Tape::Pulse TapePRG::get_next_pulse()
 {
+	// these are all microseconds per pole
 	static const unsigned int leader_zero_length = 179;
 	static const unsigned int zero_length = 169;
 	static const unsigned int one_length = 247;
@@ -57,7 +58,7 @@ Tape::Pulse TapePRG::get_next_pulse()
 		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
 		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
 	}
-	pulse.length.clock_rate = 2000000;
+	pulse.length.clock_rate = 1000000;
 	pulse.type = (_bitPhase&1) ? Pulse::High : Pulse::Low;
 	return pulse;
 }
@@ -72,6 +73,9 @@ void TapePRG::reset()
 
 void TapePRG::get_next_output_token()
 {
+	static const int block_length = 192;	// not counting the checksum
+	static const int countdown_bytes = 9;
+
 	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
 	// before doing whatever it should be doing
 	if(_filePhase == FilePhaseLeadIn || _phaseOffset < 5000)
@@ -90,33 +94,34 @@ void TapePRG::get_next_output_token()
 	int block_offset = _phaseOffset - 5000;
 	int bit_offset = block_offset % 10;
 	int byte_offset = block_offset / 10;
+	_phaseOffset++;
 
-	if(byte_offset == 200)
+	if(byte_offset == block_length + countdown_bytes + 1) // i.e. after the checksum
 	{
 		_phaseOffset = 0;
 		_filePhase = FilePhaseData;	// TODO
 		_outputToken = EndOfBlock;
+		printf("\n===\n");
 		return;
 	}
 
-	_phaseOffset++;
 	if(bit_offset == 0)
 	{
 		// the first nine bytes are countdown; the high bit is set if this is a header
-		if(byte_offset < 9)
+		if(byte_offset < countdown_bytes)
 		{
-			_output_byte = (uint8_t)(9 - byte_offset) | 0x80;
+			_output_byte = (uint8_t)(countdown_bytes - byte_offset) | 0x80;
 		}
-		else if(byte_offset == 199)
+		else if(byte_offset == countdown_bytes + block_length)
 		{
 			_output_byte = _check_digit;
 		}
 		else
 		{
-			if(byte_offset == 9) _check_digit = 0;
+			if(byte_offset == countdown_bytes) _check_digit = 0;
 			if(_filePhase == FilePhaseHeader)
 			{
-				switch(byte_offset - 9)
+				switch(byte_offset - countdown_bytes)
 				{
 					case 0:	_output_byte = 0x03;										break;
 					case 1: _output_byte = _load_address & 0xff;						break;
@@ -149,10 +154,10 @@ void TapePRG::get_next_output_token()
 		case 0:
 			_outputToken = WordMarker;
 		break;
-		default:
+		default:	// i.e. 1–8
 			_outputToken = (_output_byte & (1 << (bit_offset - 1))) ? One : Zero;
 		break;
-		case 1:
+		case 9:
 		{
 			uint8_t parity = _outputToken;
 			parity ^= (parity >> 4);
