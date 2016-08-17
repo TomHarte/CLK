@@ -48,7 +48,8 @@ template <class T> class MOS6560 {
 			_horizontal_counter(0),
 			_vertical_counter(0),
 			_cycles_since_speaker_update(0),
-			_is_odd_frame(false)
+			_is_odd_frame(false),
+			_is_odd_line(false)
 		{
 			_crt->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
@@ -82,6 +83,7 @@ template <class T> class MOS6560 {
 		*/
 		void set_output_mode(OutputMode output_mode)
 		{
+			_output_mode = output_mode;
 			uint8_t luminances[16] = {		// range is 0–4
 				0, 4, 1, 3, 2, 2, 1, 3,
 				2, 1, 2, 1, 2, 3, 2, 3
@@ -160,6 +162,7 @@ template <class T> class MOS6560 {
 					}
 
 					_horizontal_counter = 0;
+					if(_output_mode == OutputMode::PAL) _is_odd_line ^= true;
 					_horizontal_drawing_latch = false;
 
 					_vertical_counter ++;
@@ -168,7 +171,7 @@ template <class T> class MOS6560 {
 						_vertical_counter = 0;
 						_full_frame_counter = 0;
 
-						_is_odd_frame ^= true;
+						if(_output_mode == OutputMode::NTSC) _is_odd_frame ^= true;
 						_current_row = 0;
 						_rows_this_field = -1;
 						_vertical_drawing_latch = false;
@@ -250,10 +253,10 @@ template <class T> class MOS6560 {
 				{
 					switch(_output_state)
 					{
-						case State::Sync:			_crt->output_sync(_cycles_in_state * 4);										break;
-						case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, _is_odd_frame ? 128 : 0, 0);	break;
-						case State::Border:			output_border(_cycles_in_state * 4);											break;
-						case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);										break;
+						case State::Sync:			_crt->output_sync(_cycles_in_state * 4);														break;
+						case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, (_is_odd_frame || _is_odd_line) ? 128 : 0, 0);	break;
+						case State::Border:			output_border(_cycles_in_state * 4);															break;
+						case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);														break;
 					}
 					_output_state = _this_state;
 					_cycles_in_state = 0;
@@ -456,7 +459,7 @@ template <class T> class MOS6560 {
 		// data latched from the bus
 		uint8_t _character_code, _character_colour, _character_value;
 
-		bool _is_odd_frame;
+		bool _is_odd_frame, _is_odd_line;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
 		uint8_t _colours[16];
@@ -475,6 +478,7 @@ template <class T> class MOS6560 {
 			int lines_per_progressive_field;
 			bool supports_interlacing;
 		} _timing;
+		OutputMode _output_mode;
 };
 
 }
