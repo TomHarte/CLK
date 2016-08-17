@@ -12,7 +12,7 @@
 
 using namespace Storage;
 
-TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0)
+TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _file_type(0x03)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -28,6 +28,9 @@ TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePha
 	_load_address = (uint16_t)fgetc(_file);
 	_load_address |= (uint16_t)fgetc(_file) << 8;
 	_length = (uint16_t)(file_stats.st_size - 2);
+
+				fseek(_file, 2, SEEK_SET);
+
 
 	if (_load_address + _length >= 65536)
 		throw ErrorBadFormat;
@@ -69,6 +72,7 @@ void TapePRG::reset()
 	fseek(_file, 2, SEEK_SET);
 	_filePhase = FilePhaseLeadIn;
 	_phaseOffset = 0;
+	_file_type = 0x03;
 }
 
 void TapePRG::get_next_output_token()
@@ -98,9 +102,19 @@ void TapePRG::get_next_output_token()
 
 	if(byte_offset == block_length + countdown_bytes + 1) // i.e. after the checksum
 	{
-		_phaseOffset = 0;
-		_filePhase = FilePhaseData;	// TODO
 		_outputToken = EndOfBlock;
+
+		_phaseOffset = 0;
+		if(feof(_file))
+		{
+			_file_type ^= 0x5 ^ 0x3;
+			_filePhase = (_file_type == 0x5) ? FilePhaseHeader : FilePhaseLeadIn;
+			fseek(_file, 2, SEEK_SET);
+		}
+		else
+		{
+			_filePhase = FilePhaseData;
+		}
 		printf("\n===\n");
 		return;
 	}
@@ -123,7 +137,7 @@ void TapePRG::get_next_output_token()
 			{
 				switch(byte_offset - countdown_bytes)
 				{
-					case 0:	_output_byte = 0x03;										break;
+					case 0:	_output_byte = _file_type;									break;
 					case 1: _output_byte = _load_address & 0xff;						break;
 					case 2: _output_byte = (_load_address >> 8)&0xff;					break;
 					case 3: _output_byte = (_load_address + _length) & 0xff;			break;
@@ -140,7 +154,7 @@ void TapePRG::get_next_output_token()
 			else
 			{
 				_output_byte = (uint8_t)fgetc(_file);
-				if(feof(_file)) _output_byte = 0x20;
+				if(feof(_file)) _output_byte = 0x00;
 			}
 
 			_check_digit ^= _output_byte;
