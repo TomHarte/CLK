@@ -146,7 +146,7 @@ void TapePRG::get_next_output_token()
 			_check_digit ^= _output_byte;
 		}
 
-		printf("%02x ", _output_byte);
+		printf(" %02x", _output_byte);
 	}
 
 	switch(bit_offset)
@@ -159,11 +159,12 @@ void TapePRG::get_next_output_token()
 		break;
 		case 9:
 		{
-			uint8_t parity = _outputToken;
+			uint8_t parity = _output_byte;
 			parity ^= (parity >> 4);
 			parity ^= (parity >> 2);
 			parity ^= (parity >> 1);
-			_outputToken = (parity&1) ? One : Zero;
+			_outputToken = (parity&1) ? Zero : One;
+			printf("[%d]", parity&1);
 		}
 		break;
 	}
