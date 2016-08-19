@@ -64,7 +64,7 @@ void CommodoreTAP::reset()
 	_current_pulse.type = Pulse::High;
 }
 
-CommodoreTAP::Pulse CommodoreTAP::get_next_pulse()
+Tape::Pulse CommodoreTAP::get_next_pulse()
 {
 	if(_current_pulse.type == Pulse::High)
 	{

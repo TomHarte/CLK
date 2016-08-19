@@ -9,6 +9,7 @@
 #include "Vic20.hpp"
 
 #include <algorithm>
+#include "../../../Storage/Tape/Formats/TapePRG.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -62,7 +63,7 @@ void Machine::set_memory_size(MemorySize size)
 		break;
 	}
 
-	// install the ROMs and VIC-visible memory
+	// install the system ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
@@ -73,6 +74,12 @@ void Machine::set_memory_size(MemorySize size)
 	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+
+	// install the inserted ROM if there is one
+	if(_rom)
+	{
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+	}
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -95,10 +102,15 @@ Machine::~Machine()
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 //	static int logCount = 0;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xf957) logCount = 500;
 //	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
 //		logCount--;
 //		printf("%04x\n", address);
+//	}
+
+//	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192))
+//	{
+//		printf("\n[%04x] <- %02x\n", address, *value);
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
@@ -218,35 +230,23 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	}
 }
 
-void Machine::add_prg(size_t length, const uint8_t *data)
+void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 {
 	if(length > 2)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
 		_rom_length = (uint16_t)(length - 2);
-		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000 && _should_automatically_load_media)
-		{
-			set_typer_for_string("RUN\n");
-		}
 
+		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
 		if(_rom_address == 0xa000)
 		{
-			_rom = new uint8_t[length - 2];
+			_rom = new uint8_t[0x2000];
 			memcpy(_rom, &data[2], length - 2);
-			write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
 		}
 		else
 		{
-			// TODO: write to virtual media (tape, probably?), load normally.
-			data += 2;
-			while(_rom_length)
-			{
-				uint8_t *ram = _processorWriteMemoryMap[_rom_address >> 10];
-				if(ram) ram[_rom_address & 0x3ff] = *data;
-				data++;
-				_rom_length--;
-				_rom_address++;
-			}
+			set_tape(std::shared_ptr<Storage::Tape>(new Storage::TapePRG(file_name)));
 		}
 	}
 }

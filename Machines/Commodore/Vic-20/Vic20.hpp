@@ -260,7 +260,7 @@ class Machine:
 		~Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
-		void add_prg(size_t length, const uint8_t *data);
+		void set_prg(const char *file_name, size_t length, const uint8_t *data);
 		void set_tape(std::shared_ptr<Storage::Tape> tape);
 		void set_disk(std::shared_ptr<Storage::Disk> disk);
 

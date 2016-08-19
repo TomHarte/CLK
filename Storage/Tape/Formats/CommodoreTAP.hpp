@@ -15,7 +15,7 @@
 namespace Storage {
 
 /*!
-	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of zero crossings.
+	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
 class CommodoreTAP: public Tape {
 	public:

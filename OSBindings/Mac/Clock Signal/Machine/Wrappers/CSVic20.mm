@@ -82,9 +82,15 @@ using namespace Commodore::Vic20;
 	}
 }
 
-- (void)setPRG:(nonnull NSData *)prg {
+- (BOOL)openPRGAtURL:(NSURL *)URL {
+	NSData *prg = [NSData dataWithContentsOfURL:URL];
 	@synchronized(self) {
-		_vic20.add_prg(prg.length, (const uint8_t *)prg.bytes);
+		try {
+			_vic20.set_prg(URL.fileSystemRepresentation, prg.length, (const uint8_t *)prg.bytes);
+			return YES;
+		} catch(...) {
+			return NO;
+		}
 	}
 }
 
