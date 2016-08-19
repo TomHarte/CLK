@@ -8,6 +8,42 @@
 
 #include "TapePRG.hpp"
 
+/*
+	My interpretation of Commodore's tape format is such that a PRG is encoded as:
+
+	[long block of lead-in tone]
+	[short block of lead-in tone]
+	[count down][header; 192 bytes fixed length]
+	[short block of lead-in tone]
+	[count down][copy of header; 192 bytes fixed length]
+	[gap]
+	[short block of lead-in tone]
+	[count down][data; length as in file]
+	[short block of lead-in tone]
+	[count down][copy of data]
+	... and repeat ...
+
+	Individual bytes are composed of:
+
+		word marker
+		least significant bit
+		...
+		most significant bit
+		parity bit
+
+	Both the header and data blocks additionally end with an end-of-block marker.
+
+	Encoding is via square-wave cycles of four lengths, in ascending order: lead-in, zero, one, marker.
+
+	Lead-in tone is always just repetitions of the lead-in wave.
+	A word marker is a marker wave followed by a one wave.
+	An end-of-block marker is a marker wave followed by a zero wave.
+	A zero bit is a zero wave followed by a one wave.
+	A one bit is a one wave followed by a zero wave.
+
+	Parity is 1 if there are an even number of bits in the byte; 0 otherwise.
+*/
+
 #include <sys/stat.h>
 
 using namespace Storage;
