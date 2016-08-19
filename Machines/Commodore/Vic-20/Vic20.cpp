@@ -307,15 +307,6 @@ int Machine::get_typer_frequency()
 
 bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
 {
-	// If there's a 'ROM' installed that can never be accessed, assume that this typing was scheduled because
-	// it should be in RAM. So copy it there.
-	if(_rom && _rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
-	{
-		memcpy(&_screenMemory[_rom_address - 0x1000], _rom, _rom_length);
-		delete[] _rom;
-		_rom = nullptr;
-	}
-
 	if(!phase) clear_all_keys();
 
 	// The following table is arranged in ASCII order
