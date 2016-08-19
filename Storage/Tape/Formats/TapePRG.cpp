@@ -29,9 +29,6 @@ TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePha
 	_load_address |= (uint16_t)fgetc(_file) << 8;
 	_length = (uint16_t)(file_stats.st_size - 2);
 
-				fseek(_file, 2, SEEK_SET);
-
-
 	if (_load_address + _length >= 65536)
 		throw ErrorBadFormat;
 }
@@ -53,6 +50,8 @@ Tape::Pulse TapePRG::get_next_pulse()
 	if(!_bitPhase) get_next_output_token();
 
 	Tape::Pulse pulse;
+	pulse.length.clock_rate = 1000000;
+	pulse.type = (_bitPhase&1) ? Pulse::High : Pulse::Low;
 	switch(_outputToken)
 	{
 		case Leader:		pulse.length.length = leader_zero_length;							break;
@@ -60,9 +59,8 @@ Tape::Pulse TapePRG::get_next_pulse()
 		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;		break;
 		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
 		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
+		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;				break;
 	}
-	pulse.length.clock_rate = 1000000;
-	pulse.type = (_bitPhase&1) ? Pulse::High : Pulse::Low;
 	return pulse;
 }
 
@@ -79,17 +77,23 @@ void TapePRG::get_next_output_token()
 {
 	static const int block_length = 192;	// not counting the checksum
 	static const int countdown_bytes = 9;
+	static const int leadin_length = 20000;
+	static const int block_leadin_length = 5000;
+
+	if(_filePhase == FilePhaseHeaderDataGap)
+	{
+		_outputToken = Silence;
+		_filePhase = FilePhaseData;
+		return;
+	}
 
 	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
 	// before doing whatever it should be doing
-	if((_filePhase == FilePhaseLeadIn || _filePhase == FilePhaseHeaderDataGap) || _phaseOffset < 50)
+	if(_filePhase == FilePhaseLeadIn || _phaseOffset < block_leadin_length)
 	{
 		_outputToken = Leader;
 		_phaseOffset++;
-		if(
-			(_filePhase == FilePhaseLeadIn && _phaseOffset == 20000) ||
-			(_filePhase == FilePhaseHeaderDataGap && _phaseOffset == 5586)
-		)
+		if(_filePhase == FilePhaseLeadIn && _phaseOffset == leadin_length)
 		{
 			_phaseOffset = 0;
 			_filePhase = (_filePhase == FilePhaseLeadIn) ? FilePhaseHeader : FilePhaseData;
@@ -98,12 +102,17 @@ void TapePRG::get_next_output_token()
 	}
 
 	// determine whether a new byte needs to be queued up
-	int block_offset = _phaseOffset - 50;
+	int block_offset = _phaseOffset - block_leadin_length;
 	int bit_offset = block_offset % 10;
 	int byte_offset = block_offset / 10;
 	_phaseOffset++;
 
-	if(byte_offset == block_length + countdown_bytes + 1) // i.e. after the checksum
+	if(!bit_offset &&
+		(
+			(_filePhase == FilePhaseHeader && byte_offset == block_length + countdown_bytes + 1) ||
+			feof(_file)
+		)
+	)
 	{
 		_outputToken = EndOfBlock;
 		_phaseOffset = 0;
@@ -111,22 +120,16 @@ void TapePRG::get_next_output_token()
 		switch(_filePhase)
 		{
 			default: break;
-//			case FilePhaseLeadIn:
-//				_filePhase = FilePhaseHeader;
-//			break;
 			case FilePhaseHeader:
 				_copy_mask ^= 0x80;
 				if(_copy_mask) _filePhase = FilePhaseHeaderDataGap;
 			break;
 			case FilePhaseData:
-				if(feof(_file))
-				{
-					_copy_mask ^= 0x80;
-					fseek(_file, 2, SEEK_SET);
-				}
+				_copy_mask ^= 0x80;
+				fseek(_file, 2, SEEK_SET);
+				if(_copy_mask) reset();
 			break;
 		}
-		printf("\n===\n");
 		return;
 	}
 
@@ -137,41 +140,48 @@ void TapePRG::get_next_output_token()
 		{
 			_output_byte = (uint8_t)(countdown_bytes - byte_offset) | _copy_mask;
 		}
-		else if(byte_offset == countdown_bytes + block_length)
-		{
-			_output_byte = _check_digit;
-		}
 		else
 		{
-			if(byte_offset == countdown_bytes) _check_digit = 0;
 			if(_filePhase == FilePhaseHeader)
 			{
-				switch(byte_offset - countdown_bytes)
+				if(byte_offset == countdown_bytes + block_length)
 				{
-					case 0:	_output_byte = 0x03;										break;
-					case 1: _output_byte = _load_address & 0xff;						break;
-					case 2: _output_byte = (_load_address >> 8)&0xff;					break;
-					case 3: _output_byte = (_load_address + _length) & 0xff;			break;
-					case 4: _output_byte = ((_load_address + _length) >> 8) & 0xff;		break;
+					_output_byte = _check_digit;
+				}
+				else
+				{
+					if(byte_offset == countdown_bytes) _check_digit = 0;
+					if(_filePhase == FilePhaseHeader)
+					{
+						switch(byte_offset - countdown_bytes)
+						{
+							case 0:	_output_byte = 0x03;										break;
+							case 1: _output_byte = _load_address & 0xff;						break;
+							case 2: _output_byte = (_load_address >> 8)&0xff;					break;
+							case 3: _output_byte = (_load_address + _length) & 0xff;			break;
+							case 4: _output_byte = ((_load_address + _length) >> 8) & 0xff;		break;
 
-					case 5: _output_byte = 0x50;	break; // P
-					case 6: _output_byte = 0x52;	break; // R
-					case 7: _output_byte = 0x47;	break; // G
-					default:
-						_output_byte = 0x20;
-					break;
+							case 5: _output_byte = 0x50;	break; // P
+							case 6: _output_byte = 0x52;	break; // R
+							case 7: _output_byte = 0x47;	break; // G
+							default:
+								_output_byte = 0x20;
+							break;
+						}
+					}
 				}
 			}
 			else
 			{
 				_output_byte = (uint8_t)fgetc(_file);
-				if(feof(_file)) _output_byte = 0x00;
+				if(feof(_file))
+				{
+					_output_byte = _check_digit;
+				}
 			}
 
 			_check_digit ^= _output_byte;
 		}
-
-		printf(" %02x", _output_byte);
 	}
 
 	switch(bit_offset)
@@ -189,7 +199,6 @@ void TapePRG::get_next_output_token()
 			parity ^= (parity >> 2);
 			parity ^= (parity >> 1);
 			_outputToken = (parity&1) ? Zero : One;
-			printf("[%d]", parity&1);
 		}
 		break;
 	}

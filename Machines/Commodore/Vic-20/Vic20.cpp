@@ -108,10 +108,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //		printf("%04x\n", address);
 //	}
 
-	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192))
-	{
-		printf("\n[%04x] <- %02x\n", address, *value);
-	}
+//	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192))
+//	{
+//		printf("\n[%04x] <- %02x\n", address, *value);
+//	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	_mos6560->run_for_cycles(1);
@@ -238,11 +238,11 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 		_rom_length = (uint16_t)(length - 2);
 
 		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
-		if(_rom_address == 0xa000 && (_rom_length == 0x1000 || _rom_length == 0x2000))
+		if(_rom_address == 0xa000)
 		{
-			_rom = new uint8_t[length - 2];
+			_rom = new uint8_t[0x2000];
 			memcpy(_rom, &data[2], length - 2);
-			write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
 		}
 		else
 		{

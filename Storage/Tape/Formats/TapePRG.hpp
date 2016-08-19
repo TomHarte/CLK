@@ -55,7 +55,8 @@ class TapePRG: public Tape {
 			Zero,
 			One,
 			WordMarker,
-			EndOfBlock
+			EndOfBlock,
+			Silence
 		} _outputToken;
 		void get_next_output_token();
 		uint8_t _output_byte;
