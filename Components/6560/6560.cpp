@@ -95,8 +95,8 @@ static uint8_t noise_pattern[] = {
 	0xf0, 0xe1, 0xe0, 0x78, 0x70, 0x38, 0x3c, 0x3e, 0x1e, 0x3c, 0x1e, 0x1c, 0x70, 0x3c, 0x38, 0x3f,
 };
 
-#define shift(r) _shift_registers[r] = (_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7);
-#define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191;
+#define shift(r) _shift_registers[r] = (_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7)
+#define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191
 #define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x7f) { up(r); _counters[r] = _control_registers[r]&0x7f; }
 
 void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)

@@ -181,11 +181,19 @@ void Machine::set_region(Commodore::Vic20::Region region)
 	{
 		case PAL:
 			set_clock_rate(1108404);
-			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+			if(_mos6560)
+			{
+				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+				_mos6560->set_clock_rate(1108404);
+			}
 		break;
 		case NTSC:
 			set_clock_rate(1022727);
-			if(_mos6560) _mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+			if(_mos6560)
+			{
+				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+				_mos6560->set_clock_rate(1022727);
+			}
 		break;
 	}
 }

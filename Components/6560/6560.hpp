@@ -68,7 +68,11 @@ template <class T> class MOS6560 {
 
 			// show only the centre
 			_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
-			_speaker->set_input_rate(255681.75);	// assuming NTSC; clock rate / 4
+		}
+
+		void set_clock_rate(double clock_rate)
+		{
+			_speaker->set_input_rate(clock_rate / 4.0);
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
