@@ -97,7 +97,12 @@ static uint8_t noise_pattern[] = {
 
 #define shift(r) _shift_registers[r] = (_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7)
 #define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191
-#define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x7f) { up(r); _counters[r] = (unsigned int)(_control_registers[r]&0x7f) << m; }
+#define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x80) { up(r); _counters[r] = (unsigned int)(_control_registers[r]&0x7f) << m; }
+// Note on slightly askew test: as far as I can make out, if the value in the register is 0x7f then what's supposed to happen
+// is that the 0x7f is loaded, on the next clocked cycle the Vic spots a 0x7f, pumps the output, reloads, etc. No increment
+// ever occurs. It's conditional. I don't really want two conditionals if I can avoid it so I'm incrementing regardless and
+// testing against 0x80. The effect should be the same: loading with 0x7f means an output update every cycle, loading with 0x7e
+// means every second cycle, etc.
 
 void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 {
