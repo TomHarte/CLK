@@ -201,6 +201,7 @@ void Machine::set_region(Commodore::Vic20::Region region)
 void Machine::setup_output(float aspect_ratio)
 {
 	_mos6560.reset(new Vic6560());
+	_mos6560->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 	set_region(_region);
 
 	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));

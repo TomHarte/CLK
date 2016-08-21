@@ -72,10 +72,20 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0) {}
+		/*!
+			Sets the cut-off frequency for a low-pass filter attached to the output of this speaker; optional.
+		*/
+		void set_high_frequency_cut_off(float high_frequency)
+		{
+			_high_frequency_cut_off = high_frequency;
+			set_needs_updated_filter_coefficients();
+		}
+
+		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0) {}
 
 	protected:
 		std::unique_ptr<int16_t> _buffer_in_progress;
+		float _high_frequency_cut_off;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
 		int _number_of_taps, _requested_number_of_taps;
@@ -109,14 +119,6 @@ class Speaker {
 */
 template <class T> class Filter: public Speaker {
 	public:
-		Filter() : _high_frequency_cut_off(-1.0) {}
-
-		void set_high_frequency_cut_off(float high_frequency)
-		{
-			_high_frequency_cut_off = high_frequency;
-			set_needs_updated_filter_coefficients();
-		}
-
 		void run_for_cycles(unsigned int input_cycles)
 		{
 			if(_coefficients_are_dirty) update_filter_coefficients();
@@ -204,7 +206,6 @@ template <class T> class Filter: public Speaker {
 
 		std::unique_ptr<int16_t> _input_buffer;
 		int _input_buffer_depth;
-		float _high_frequency_cut_off;
 
 		void update_filter_coefficients()
 		{
