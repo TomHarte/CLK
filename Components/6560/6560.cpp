@@ -15,7 +15,11 @@ Speaker::Speaker() :
 	_control_registers{0, 0, 0, 0},
 	_shift_registers{0, 0, 0, 0},
 	_counters{2, 1, 0, 0}	// create a slight phase offset for the three channels
-{}
+{
+	// The Vic has a 1.6Khz low-pass filter;
+	// TODO: this is part of the Vic-20, not part of the 6560. So relocate it.
+	set_high_frequency_cut_off(1600);
+}
 
 void Speaker::set_volume(uint8_t volume)
 {

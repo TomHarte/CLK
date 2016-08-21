@@ -72,7 +72,7 @@ template <class T> class MOS6560 {
 
 		void set_clock_rate(double clock_rate)
 		{
-			_speaker->set_input_rate(clock_rate / 4.0);
+			_speaker->set_input_rate((float)(clock_rate / 4.0));
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
