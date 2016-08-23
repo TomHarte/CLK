@@ -139,6 +139,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				_tape.run_for_cycles(1);
 			}
 		}
+
+		// f7af: find tape header, exit with header in buffer
+		// F8C0: Read tape block
 	}
 	else
 	{
