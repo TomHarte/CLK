@@ -341,6 +341,7 @@
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
 		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
+		4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -760,6 +761,8 @@
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
+		4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/StaticAnalyser.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1345,6 +1348,7 @@
 				4BB73EDD1B587CA500552FC2 /* Processors */,
 				4BB73E9F1B587A5100552FC2 /* Products */,
 				4B2409591C45DF85004DA684 /* SignalProcessing */,
+				4BF1354D1D6D2C360054B2EA /* StaticAnalyser */,
 				4B69FB391C4D908A00B5F0AA /* Storage */,
 			);
 			indentWidth = 4;
@@ -1505,6 +1509,15 @@
 				4BC9DF441D044FCA00F44158 /* ROMImages */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		4BF1354D1D6D2C360054B2EA /* StaticAnalyser */ = {
+			isa = PBXGroup;
+			children = (
+				4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */,
+				4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */,
+			);
+			name = StaticAnalyser;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1945,6 +1958,7 @@
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
+				4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */,
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
