@@ -17,8 +17,9 @@ In terms of platforms, it currently contains code the:
 Through the combination of static analysis and runtime analysis, CLK seeks to be able automatically to select and configure the appropriate machine to run any provided disk, tape or ROM; to issue any commands necessary to run the software contained on the disk, tape or ROM; and to provide accelerated loading where feasible.
 
 The full process of loading a title — even if you've never used the emulated machine before — is therefore:
-# locate it in your OS;
-# double click it.
+
+1. locate it in your OS;
+2. double click it.
 
 ## Signal Processing
 
