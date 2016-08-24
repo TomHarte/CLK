@@ -1,5 +1,5 @@
 # CLK
-CLK is an emulator for tourists.
+CLK is an emulator for tourists that seeks best-in-class accuracy while minimising latency.
 
 So its aims are:
 * single-click load of any piece of source media for any supported platform;
@@ -7,7 +7,7 @@ So its aims are:
 * that aims for the lowest possible latency; and
 * 100% accurate emulations, naturally.
 
-In terms of platforms, it currently contains code the:
+In terms of platforms, it currently contains emulations of the:
 * Acorn Electron;
 * Atari 2600; and
 * Commodore Vic-20 (and Commodore 1540/1).
