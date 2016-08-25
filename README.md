@@ -1,22 +1,44 @@
 # CLK
-An attempt to unify various bits of emulation; covering:
-* a best-in-class emulation of the Acorn Electron; and
-* mediocre emulations of the Atari 2600, Commodore Vic-20 and Commodore 1540/1.
+CLK is an emulator for tourists that seeks best-in-class accuracy while minimising latency.
 
-All code is motivated by a signals processing approach and a distinction between execution units and bus logic.
+So its aims are:
+* single-click load of any piece of source media for any supported platform;
+* with a heavy signal processing tilt for accurate reproduction of original outputs;
+* that aims for the lowest possible latency; and
+* 100% accurate emulations, naturally.
 
-If simulating a TV, the CRT emulation uses your GPU to decode (and, as required by the emulated platform, possibly to encode) a genuine composite video stream — dot crawl et al are present and correct as a natural consequence, not as a post-processing effect. If a machine generates audio at 2Mhz then the source wave is modelled at 2Mhz and a standard windowing filter produces a 44Khz-or-so stream.
+In terms of platforms, it currently contains emulations of the:
+* Acorn Electron;
+* Atari 2600; and
+* Commodore Vic-20 (and Commodore 1540/1).
 
-The hard emulation parts are C++11 and assume the OpenGL Core Profile; an Objective-C++/Swift UI binding for the Mac is present, making this completely native for Mac users. The intention is to provide additional OS bindings and ensure operation within ES 3.0 environments.
+## Single-click Loading
 
-## TV Emulation
+Through the combination of static analysis and runtime analysis, CLK seeks to be able automatically to select and configure the appropriate machine to run any provided disk, tape or ROM; to issue any commands necessary to run the software contained on the disk, tape or ROM; and to provide accelerated loading where feasible.
 
-Composite decoding is currently performed purely by notch filtering; this produces worse separation than a comb but remained the predominant method for cheap TVs into the 1980s so is nevertheless not unrealistic. As I have yet to introduce any sort of inter-line processing, when running in PAL mode mine is the equivalent of a PAL-S. Since all signals propagate within a closed circuit there's no opportunity for a phase change that would produce Hanover bars but it's probably something that needs addressing regardless.
+The full process of loading a title — even if you've never used the emulated machine before — is therefore:
 
-I've hesitated on a comb since it becomes complicated with machines — including the already-supported Atari 2600 — that use a not-strictly-conformant line length†, or, more substantially, with those that reset phase every line††.
+1. locate it in your OS;
+2. double click it.
 
-All filtering is windowed finite impulse response, coefficients via Kaisser-Bessel, with up to 21 taps (adjacent samples are obtained from a single point via bilinear filtering where possible but that requires the adjacent coefficients to have the same sign; where that's not possible the number of taps may drop as the number of GLSL samples remains the same; it'll almost certainly be either 19 or 21 taps given the other operating conditions).
+## Signal Processing
 
-† per the documentation, its 228 cycles per line make each of its pixels exactly one NTSC colour clock long. There are 227.5 NTSC colour clocks per line so its hardware would appear to produce longer-than-specified lines (albeit still well within tolerable variation).
+Consider an ordinary, unmodified Commodore Vic-20. Its only video output is composite. Therefore the emulated machine's only video output is composite. In order to display the video output, your GPU then decodes composite video. Therefore all composite video artefacts are present and exactly correct, not because of a posthoc filter combining all the subjective effects that this author associates with composite video but because the real signal is really being processed.
 
-†† I suspect that a real TV will switch to a notch if adjacent colour bursts appear to keep resetting the colour oscillator, amongst other sanity checks, as analogue delay lines have a physically-fixed duration. I just need to do the same.
+Similar effort is put into audio generation. If the real machine normally generates audio at 192Khz then the emulator generates a 192Khz source signal and filters it down to whatever the host machine can output.
+
+If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k rendering of a composite display and, assuming the emulated machine produces source audio at or above 96Khz, 96,000 individual distinct audio samples a second. Interlaced video also works and looks much as it always did on those machines that produce it.
+
+## Low Latency
+
+The display produced is an emulated CRT, with phosphor decay. Therefore if you have a 140Hz monitor it can produce 140 distinct frames per second. Latency is dictated by the output hardware, not the emulated machine.
+
+The machine update mechanism is influenced separately by both screen refresh and audio stream processing; audio latency is therefore generally restrained to 5–10ms regardless of your screen's refresh rate.
+
+A corollary of emulating the continuous nature CRT, not merely performing end-of-frame transcriptions, is that the most common motion aliasing effects of displaying 50Hz video on a 60Hz display are minimised; you don't have to own niche equipment to benefit.
+
+## Accurate Emulation
+
+Cycle-accurate emulation for the supported target machines is fairly trite now; this emulator seeks to follow that well-trodden path. All emulation logic is written in C++ for explicit control over costs but, where a conflict arises, the presumption is towards clarity and simplicity of code. This emulator is willing to spend the processing resources available on modern hardware.
+
+Which are polite ways of saying that it's generally slower than the standard bearers for each supported platform but that if it's comfortably within the processing ability of a semi-modern computer then that's not considered problematic.
