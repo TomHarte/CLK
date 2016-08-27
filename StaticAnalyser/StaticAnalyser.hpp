@@ -9,8 +9,8 @@
 #ifndef StaticAnalyser_hpp
 #define StaticAnalyser_hpp
 
-#include "../Storage/Disk/Disk.hpp"
 #include "../Storage/Tape/Tape.hpp"
+#include "../Storage/Disk/Disk.hpp"
 #include <string>
 #include <list>
 #include <vector>
@@ -47,17 +47,17 @@ struct Target {
 
 	std::string loadingCommand;
 	union {
-		enum class Electron {
-			TypeCommand,
+		enum class BBCElectron {
 			HoldShift
-		} Electron;
-		enum class Vic20 {
-			TypeCommand,
-		} Vic20;
+		} BBCElectron;
 	} LoadingMethod;
+
+	std::list<std::shared_ptr<Storage::Disk>> disks;
+	std::list<std::shared_ptr<Storage::Tape>> tapes;
+	// TODO: ROMs. Probably can't model as raw data, but then how to handle bus complexities?
 };
 
-std::list<Target> GetTargets(std::shared_ptr<Storage::Disk> disk, std::shared_ptr<Storage::Tape> tape, std::shared_ptr<std::vector<uint8_t>> rom);
+std::list<Target> GetTargets(const char *file_name);
 
 }
 
