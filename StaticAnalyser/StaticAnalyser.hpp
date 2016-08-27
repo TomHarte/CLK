@@ -11,6 +11,8 @@
 
 #include "../Storage/Tape/Tape.hpp"
 #include "../Storage/Disk/Disk.hpp"
+#include "../Storage/Cartridge/Cartridge.hpp"
+
 #include <string>
 #include <list>
 #include <vector>
@@ -54,7 +56,7 @@ struct Target {
 
 	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
-	// TODO: ROMs. Probably can't model as raw data, but then how to handle bus complexities?
+	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
 };
 
 std::list<Target> GetTargets(const char *file_name);

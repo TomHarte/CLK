@@ -10,6 +10,8 @@
 
 #include <cstdlib>
 
+#include "../Storage/Cartridge/Formats/PRG.hpp"
+
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
 
@@ -50,7 +52,12 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	// union of all platforms this file might be a target for.
 	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
+	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
 	TargetPlatformType potential_platforms = 0;
+
+#define Insert(list, class, platforms) \
+	list.emplace_back(new Storage::class(file_name));\
+	potential_platforms |= (TargetPlatformType)(platforms);\
 
 #define Format(extension, list, class, platforms) \
 	if(!strcmp(lowercase_extension, extension))	\
@@ -79,12 +86,12 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	{
 		// try instantiating as a ROM; failing that accept as a tape
 		try {
+			Insert(cartridges, Cartridge::PRG, TargetPlatform::Commodore)
 		}
 		catch(...)
 		{
 			try {
-				tapes.emplace_back(new Storage::Tape::PRG(file_name));
-				potential_platforms |= (TargetPlatformType)TargetPlatform::Commodore;
+				Insert(tapes, Tape::PRG, TargetPlatform::Commodore)
 			} catch(...) {}
 		}
 	}
@@ -98,6 +105,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)				// UEF (tape)
 
 #undef Format
+#undef Insert
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them. (TODO)

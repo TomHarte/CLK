@@ -11,7 +11,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 
-using namespace Storage::ROM;
+using namespace Storage::Cartridge;
 
 PRG::PRG(const char *file_name) : _contents(nullptr)
 {

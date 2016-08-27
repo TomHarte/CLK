@@ -6,16 +6,16 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef PRG_hpp
-#define PRG_hpp
+#ifndef Storage_Cartridge_PRG_hpp
+#define Storage_Cartridge_PRG_hpp
 
 #include <vector>
-#include "ROM.hpp"
+#include "../Cartridge.hpp"
 
 namespace Storage {
-namespace ROM {
+namespace Cartridge {
 
-class PRG : public ROM {
+class PRG : public Cartridge {
 	public:
 		PRG(const char *file_name);
 		~PRG();
