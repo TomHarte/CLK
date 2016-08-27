@@ -10,8 +10,7 @@
 #include <string.h>
 #include <math.h>
 
-using namespace Storage;
-using namespace Tape;
+using namespace Storage::Tape;
 
 static float gzgetfloat(gzFile file)
 {

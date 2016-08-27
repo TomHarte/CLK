@@ -46,8 +46,7 @@
 
 #include <sys/stat.h>
 
-using namespace Storage;
-using namespace Tape;
+using namespace Storage::Tape;
 
 PRG::PRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _copy_mask(0x80)
 {

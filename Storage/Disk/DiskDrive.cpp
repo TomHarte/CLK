@@ -8,8 +8,7 @@
 
 #include "DiskDrive.hpp"
 
-using namespace Storage;
-using namespace Disk;
+using namespace Storage::Disk;
 
 Drive::Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
 	_clock_rate(clock_rate * clock_rate_multiplier),

@@ -9,8 +9,7 @@
 #include "Tape.hpp"
 #include "../../NumberTheory/Factors.hpp"
 
-using namespace Storage;
-using namespace Tape;
+using namespace Storage::Tape;
 
 void Storage::Tape::Tape::seek(Time seek_time)
 {
@@ -52,7 +51,7 @@ void TapePlayer::run_for_cycles(int number_of_cycles)
 {
 	if(has_tape())
 	{
-		::TimedEventLoop::run_for_cycles(number_of_cycles);
+		TimedEventLoop::run_for_cycles(number_of_cycles);
 	}
 }
 

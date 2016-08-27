@@ -10,8 +10,7 @@
 #include <cstdio>
 #include <cstring>
 
-using namespace Storage;
-using namespace Tape;
+using namespace Storage::Tape;
 
 CommodoreTAP::CommodoreTAP(const char *file_name)
 {
