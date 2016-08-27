@@ -13,6 +13,7 @@
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
@@ -51,7 +52,7 @@ class TapePlayer: public TimedEventLoop {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();
 
 		void run_for_cycles(int number_of_cycles);
@@ -64,10 +65,11 @@ class TapePlayer: public TimedEventLoop {
 	private:
 		inline void get_next_pulse();
 
-		std::shared_ptr<Storage::Tape> _tape;
+		std::shared_ptr<Storage::Tape::Tape> _tape;
 		Tape::Pulse _current_pulse;
 };
 
+}
 }
 
 #endif /* Tape_hpp */

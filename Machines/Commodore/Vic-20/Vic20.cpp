@@ -262,14 +262,14 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 		}
 		else
 		{
-			set_tape(std::shared_ptr<Storage::Tape>(new Storage::TapePRG(file_name)));
+			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
 		}
 	}
 }
 
 #pragma mar - Tape
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
 	_tape.set_tape(tape);
 	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
@@ -422,9 +422,9 @@ Tape::Tape() : TapePlayer(1022727) {}
 void Tape::set_motor_control(bool enabled) {}
 void Tape::set_tape_output(bool set) {}
 
-void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+void Tape::process_input_pulse(Storage::Tape::PRG::Pulse pulse)
 {
-	bool new_input_level = pulse.type == Storage::Tape::Pulse::Low;
+	bool new_input_level = pulse.type == Storage::Tape::PRG::Pulse::Low;
 	if(_input_level != new_input_level)
 	{
 		_input_level = new_input_level;

@@ -49,7 +49,7 @@ using namespace Commodore::Vic20;
 - (BOOL)openTAPAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {
-			std::shared_ptr<Storage::CommodoreTAP> tape(new Storage::CommodoreTAP([URL fileSystemRepresentation]));
+			std::shared_ptr<Storage::Tape::CommodoreTAP> tape(new Storage::Tape::CommodoreTAP([URL fileSystemRepresentation]));
 			_vic20.set_tape(tape);
 			return YES;
 		} catch(...) {

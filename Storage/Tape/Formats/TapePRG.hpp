@@ -6,18 +6,19 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TapePRG_hpp
-#define TapePRG_hpp
+#ifndef Storage_Tape_PRG_hpp
+#define Storage_Tape_PRG_hpp
 
 #include "../Tape.hpp"
 #include <stdint.h>
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
 */
-class TapePRG: public Tape {
+class PRG: public Tape {
 	public:
 		/*!
 			Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
@@ -26,8 +27,8 @@ class TapePRG: public Tape {
 			@param type The type of data the file should contain.
 			@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 		*/
-		TapePRG(const char *file_name);
-		~TapePRG();
+		PRG(const char *file_name);
+		~PRG();
 
 		enum {
 			ErrorBadFormat
@@ -64,6 +65,7 @@ class TapePRG: public Tape {
 		uint8_t _copy_mask;
 };
 
+}
 }
 
 #endif /* T64_hpp */

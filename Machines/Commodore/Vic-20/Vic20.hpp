@@ -213,7 +213,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 		std::weak_ptr<UserPortVIA> _userPortVIA;
 };
 
-class Tape: public Storage::TapePlayer {
+class Tape: public Storage::Tape::TapePlayer {
 	public:
 		Tape();
 
@@ -232,7 +232,7 @@ class Tape: public Storage::TapePlayer {
 
 	private:
 		Delegate *_delegate;
-		virtual void process_input_pulse(Storage::Tape::Pulse pulse);
+		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
 		bool _input_level;
 };
 
@@ -261,7 +261,7 @@ class Machine:
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void set_prg(const char *file_name, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		void set_disk(std::shared_ptr<Storage::Disk> disk);
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }

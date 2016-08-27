@@ -62,7 +62,7 @@ enum Key: uint16_t {
 	TerminateSequence = 0, NotMapped		= 0xfffe,
 };
 
-class Tape: public Storage::TapePlayer {
+class Tape: public Storage::Tape::TapePlayer {
 	public:
 		Tape();
 
@@ -86,7 +86,7 @@ class Tape: public Storage::TapePlayer {
 		inline void set_is_in_input_mode(bool is_in_input_mode);
 
 	private:
-		void process_input_pulse(Storage::Tape::Pulse pulse);
+		void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
 		inline void push_tape_bit(uint16_t bit);
 		inline void get_next_tape_pulse();
 
@@ -145,7 +145,7 @@ class Machine:
 		Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();

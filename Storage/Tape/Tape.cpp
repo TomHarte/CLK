@@ -10,8 +10,9 @@
 #include "../../NumberTheory/Factors.hpp"
 
 using namespace Storage;
+using namespace Tape;
 
-void Tape::seek(Time seek_time)
+void Storage::Tape::Tape::seek(Time seek_time)
 {
 	// TODO: as best we can
 }
@@ -20,7 +21,7 @@ TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
-void TapePlayer::set_tape(std::shared_ptr<Storage::Tape> tape)
+void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
 	_tape = tape;
 	reset_timer();
@@ -41,7 +42,7 @@ void TapePlayer::get_next_pulse()
 	{
 		_current_pulse.length.length = 1;
 		_current_pulse.length.clock_rate = 1;
-		_current_pulse.type = Storage::Tape::Pulse::Zero;
+		_current_pulse.type = Tape::Pulse::Zero;
 	}
 
 	set_next_event_time_interval(_current_pulse.length);

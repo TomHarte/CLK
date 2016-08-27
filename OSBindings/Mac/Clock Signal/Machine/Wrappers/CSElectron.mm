@@ -41,7 +41,7 @@
 - (BOOL)openUEFAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {
-			std::shared_ptr<Storage::TapeUEF> tape(new Storage::TapeUEF([URL fileSystemRepresentation]));
+			std::shared_ptr<Storage::Tape::UEF> tape(new Storage::Tape::UEF([URL fileSystemRepresentation]));
 			_electron.set_tape(tape);
 			return YES;
 		} catch(...) {

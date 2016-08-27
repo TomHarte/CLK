@@ -11,6 +11,7 @@
 #include <cstring>
 
 using namespace Storage;
+using namespace Tape;
 
 CommodoreTAP::CommodoreTAP(const char *file_name)
 {
@@ -64,7 +65,7 @@ void CommodoreTAP::reset()
 	_current_pulse.type = Pulse::High;
 }
 
-Tape::Pulse CommodoreTAP::get_next_pulse()
+Storage::Tape::Tape::Pulse CommodoreTAP::get_next_pulse()
 {
 	if(_current_pulse.type == Pulse::High)
 	{

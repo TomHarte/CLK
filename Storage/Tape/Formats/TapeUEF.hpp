@@ -14,19 +14,20 @@
 #include <stdint.h>
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
 */
-class TapeUEF : public Tape {
+class UEF : public Tape {
 	public:
 		/*!
 			Constructs a @c UEF containing content from the file with name @c file_name.
 
 			@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
 		*/
-		TapeUEF(const char *file_name);
-		~TapeUEF();
+		UEF(const char *file_name);
+		~UEF();
 
 		enum {
 			ErrorNotUEF
@@ -72,6 +73,7 @@ class TapeUEF : public Tape {
 		bool chunk_is_finished();
 };
 
+}
 }
 
 #endif /* TapeUEF_hpp */

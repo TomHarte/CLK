@@ -49,7 +49,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
 	std::list<std::shared_ptr<Storage::Disk>> disks;
-	std::list<std::shared_ptr<Storage::Tape>> tapes;
+	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	TargetPlatformType potential_platforms = 0;
 
 #define Format(extension, list, class, platforms) \
@@ -79,7 +79,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	{
 		// try instantiating as a ROM; failing that accept as a tape
 		try {
-			tapes.emplace_back(new Storage::TapePRG(file_name));
+			tapes.emplace_back(new Storage::Tape::PRG(file_name));
 			potential_platforms |= (TargetPlatformType)TargetPlatform::Commodore;
 		} catch(...) {}
 	}
@@ -89,8 +89,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	{
 	}
 
-	Format("tap", tapes, CommodoreTAP, TargetPlatform::Commodore)	// TAP
-	Format("uef", tapes, TapeUEF, TargetPlatform::Acorn)			// UEF (tape)
+	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)	// TAP
+	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)				// UEF (tape)
 
 #undef Format
 

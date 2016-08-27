@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
@@ -43,6 +44,7 @@ class CommodoreTAP: public Tape {
 		Pulse _current_pulse;
 };
 
+}
 }
 
 #endif /* CommodoreTAP_hpp */
