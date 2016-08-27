@@ -340,6 +340,8 @@
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
+		4BEE0A641D72454000532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A621D72454000532C7B /* PRG.cpp */; };
+		4BEE0A681D7248B300532C7B /* ROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A661D7248B300532C7B /* ROM.cpp */; };
 		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
 		4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */; };
@@ -761,6 +763,10 @@
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
+		4BEE0A621D72454000532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PRG.cpp; path = ROM/PRG.cpp; sourceTree = "<group>"; };
+		4BEE0A631D72454000532C7B /* PRG.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = PRG.hpp; path = ROM/PRG.hpp; sourceTree = "<group>"; };
+		4BEE0A661D7248B300532C7B /* ROM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ROM.cpp; path = ROM/ROM.cpp; sourceTree = "<group>"; };
+		4BEE0A671D7248B300532C7B /* ROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ROM.hpp; path = ROM/ROM.hpp; sourceTree = "<group>"; };
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
@@ -990,6 +996,7 @@
 				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
+				4BEE0A651D72454400532C7B /* ROM */,
 			);
 			name = Storage;
 			path = ../../Storage;
@@ -1523,6 +1530,17 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		4BEE0A651D72454400532C7B /* ROM */ = {
+			isa = PBXGroup;
+			children = (
+				4BEE0A621D72454000532C7B /* PRG.cpp */,
+				4BEE0A631D72454000532C7B /* PRG.hpp */,
+				4BEE0A661D7248B300532C7B /* ROM.cpp */,
+				4BEE0A671D7248B300532C7B /* ROM.hpp */,
+			);
+			name = ROM;
+			sourceTree = "<group>";
+		};
 		4BF1354D1D6D2C360054B2EA /* StaticAnalyser */ = {
 			isa = PBXGroup;
 			children = (
@@ -1945,6 +1963,7 @@
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
+				4BEE0A681D7248B300532C7B /* ROM.cpp in Sources */,
 				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
@@ -1954,6 +1973,7 @@
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
 				4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,
+				4BEE0A641D72454000532C7B /* PRG.cpp in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,

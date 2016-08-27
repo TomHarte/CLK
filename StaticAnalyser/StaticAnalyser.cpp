@@ -79,9 +79,14 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	{
 		// try instantiating as a ROM; failing that accept as a tape
 		try {
-			tapes.emplace_back(new Storage::Tape::PRG(file_name));
-			potential_platforms |= (TargetPlatformType)TargetPlatform::Commodore;
-		} catch(...) {}
+		}
+		catch(...)
+		{
+			try {
+				tapes.emplace_back(new Storage::Tape::PRG(file_name));
+				potential_platforms |= (TargetPlatformType)TargetPlatform::Commodore;
+			} catch(...) {}
+		}
 	}
 
 	// ROM
