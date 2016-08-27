@@ -32,25 +32,25 @@ struct Target {
 			Unexpanded,
 			EightKB,
 			ThirtyTwoKB
-		} Vic20;
-	} MemoryModel;
+		} vic20;
+	} memoryModel;
 
 	union {
-		enum class Electron {
-			ADFS,
-			DFS
-		} Electron;
-		enum class Vic20 {
-			C1540
-		} Vic20;
-	} ExternalHardware;
+		struct {
+			bool adfs;
+			bool dfs;
+		} acorn;
+		struct {
+			bool c1540;
+		} vic20;
+	} externalHardware;
 
 	std::string loadingCommand;
 	union {
-		enum class BBCElectron {
-			HoldShift
-		} BBCElectron;
-	} LoadingMethod;
+		struct {
+			bool holdShift;
+		} acorn;
+	} loadingMethod;
 
 	std::list<std::shared_ptr<Storage::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape>> tapes;

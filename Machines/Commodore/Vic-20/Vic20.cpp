@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include "../../../Storage/Tape/Formats/TapePRG.hpp"
+#include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -244,6 +245,9 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 
 void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 {
+	// TEST!
+	StaticAnalyser::GetTargets(file_name);
+
 	if(length > 2)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
