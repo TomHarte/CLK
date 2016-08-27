@@ -59,21 +59,21 @@ using namespace Commodore::Vic20;
 }
 
 - (BOOL)openG64AtURL:(NSURL *)URL {
-	return [self openDisk:^std::shared_ptr<Storage::Disk>{
-		return std::shared_ptr<Storage::Disk>(new Storage::G64([URL fileSystemRepresentation]));
+	return [self openDisk:^std::shared_ptr<Storage::Disk::Disk>{
+		return std::shared_ptr<Storage::Disk::Disk>(new Storage::Disk::G64([URL fileSystemRepresentation]));
 	}];
 }
 
 - (BOOL)openD64AtURL:(NSURL *)URL {
-	return [self openDisk:^std::shared_ptr<Storage::Disk>{
-		return std::shared_ptr<Storage::Disk>(new Storage::D64([URL fileSystemRepresentation]));
+	return [self openDisk:^std::shared_ptr<Storage::Disk::Disk>{
+		return std::shared_ptr<Storage::Disk::Disk>(new Storage::Disk::D64([URL fileSystemRepresentation]));
 	}];
 }
 
-- (BOOL)openDisk:(std::shared_ptr<Storage::Disk> (^)())opener {
+- (BOOL)openDisk:(std::shared_ptr<Storage::Disk::Disk> (^)())opener {
 	@synchronized(self) {
 		try {
-			std::shared_ptr<Storage::Disk> disk = opener();
+			std::shared_ptr<Storage::Disk::Disk> disk = opener();
 			_vic20.set_disk(disk);
 			return YES;
 		} catch(...) {

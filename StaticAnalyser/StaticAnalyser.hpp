@@ -52,7 +52,7 @@ struct Target {
 		} acorn;
 	} loadingMethod;
 
-	std::list<std::shared_ptr<Storage::Disk>> disks;
+	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	// TODO: ROMs. Probably can't model as raw data, but then how to handle bus complexities?
 };

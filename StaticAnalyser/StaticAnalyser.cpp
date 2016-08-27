@@ -48,7 +48,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
-	std::list<std::shared_ptr<Storage::Disk>> disks;
+	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	TargetPlatformType potential_platforms = 0;
 
@@ -71,8 +71,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	{
 	}
 
-	Format("d64", disks, D64, TargetPlatform::Commodore)		// D64
-	Format("g64", disks, G64, TargetPlatform::Commodore)		// G64
+	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)		// D64
+	Format("g64", disks, Disk::G64, TargetPlatform::Commodore)		// G64
 
 	// PRG
 	if(!strcmp(lowercase_extension, "prg"))

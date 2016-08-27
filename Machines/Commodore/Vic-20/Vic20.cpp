@@ -282,7 +282,7 @@ void Machine::tape_did_change_input(Tape *tape)
 
 #pragma mark - Disc
 
-void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
+void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 {
 	// construct the 1540
 	_c1540.reset(new ::Commodore::C1540::Machine);

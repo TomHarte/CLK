@@ -216,7 +216,7 @@ class Machine:
 	public CPU6502::Processor<Machine>,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public DriveVIA::Delegate,
-	public Storage::DiskDrive {
+	public Storage::Disk::Drive {
 
 	public:
 		Machine();
@@ -251,7 +251,7 @@ class Machine:
 		std::shared_ptr<SerialPort> _serialPort;
 		DriveVIA _driveVIA;
 
-		std::shared_ptr<Storage::Disk> _disk;
+		std::shared_ptr<Storage::Disk::Disk> _disk;
 
 		int _shift_register, _bit_window_offset;
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);

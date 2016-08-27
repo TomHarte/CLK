@@ -12,6 +12,7 @@
 #include "../Disk.hpp"
 
 namespace Storage {
+namespace Disk {
 
 /*!
 	Provies a @c Disk containing a D64 disk image — a decoded sector dump of a C1540-format disk.
@@ -42,5 +43,7 @@ class D64: public Disk {
 		uint16_t _disk_id;
 };
 
-};
+}
+}
+
 #endif /* D64_hpp */
