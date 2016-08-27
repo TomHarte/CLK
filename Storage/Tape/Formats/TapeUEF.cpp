@@ -10,6 +10,8 @@
 #include <string.h>
 #include <math.h>
 
+using namespace Storage;
+
 static float gzgetfloat(gzFile file)
 {
 	uint8_t bytes[4];
@@ -41,7 +43,7 @@ static float gzgetfloat(gzFile file)
 	return result;
 }
 
-Storage::UEF::UEF(const char *file_name) :
+TapeUEF::TapeUEF(const char *file_name) :
 	_chunk_id(0), _chunk_length(0), _chunk_position(0),
 	_time_base(1200)
 {
@@ -67,17 +69,17 @@ Storage::UEF::UEF(const char *file_name) :
 	find_next_tape_chunk();
 }
 
-Storage::UEF::~UEF()
+TapeUEF::~TapeUEF()
 {
 	gzclose(_file);
 }
 
-void Storage::UEF::reset()
+void TapeUEF::reset()
 {
 	gzseek(_file, 12, SEEK_SET);
 }
 
-Storage::Tape::Pulse Storage::UEF::get_next_pulse()
+Tape::Pulse TapeUEF::get_next_pulse()
 {
 	Pulse next_pulse;
 
@@ -145,7 +147,7 @@ Storage::Tape::Pulse Storage::UEF::get_next_pulse()
 	return next_pulse;
 }
 
-void Storage::UEF::find_next_tape_chunk()
+void TapeUEF::find_next_tape_chunk()
 {
 	int reset_count = 0;
 	_chunk_position = 0;
@@ -234,7 +236,7 @@ void Storage::UEF::find_next_tape_chunk()
 	}
 }
 
-bool Storage::UEF::chunk_is_finished()
+bool TapeUEF::chunk_is_finished()
 {
 	switch(_chunk_id)
 	{
@@ -250,7 +252,7 @@ bool Storage::UEF::chunk_is_finished()
 	}
 }
 
-bool Storage::UEF::get_next_bit()
+bool TapeUEF::get_next_bit()
 {
 	switch(_chunk_id)
 	{

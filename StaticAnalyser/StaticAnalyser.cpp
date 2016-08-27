@@ -7,7 +7,23 @@
 //
 
 #include "StaticAnalyser.hpp"
+
 #include <cstdlib>
+
+#include "../Storage/Disk/Formats/D64.hpp"
+#include "../Storage/Disk/Formats/G64.hpp"
+
+#include "../Storage/Tape/Formats/CommodoreTAP.hpp"
+#include "../Storage/Tape/Formats/TapePRG.hpp"
+#include "../Storage/Tape/Formats/TapeUEF.hpp"
+
+typedef int TargetPlatformType;
+enum class TargetPlatform: TargetPlatformType {
+	Acorn		=	1 << 0,
+	Atari2600	=	1 << 1,
+	Commodore	=	1 << 2
+};
+
 
 using namespace StaticAnalyser;
 
@@ -21,7 +37,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	char *lowercase_extension = nullptr;
 	if(mixed_case_extension)
 	{
-		lowercase_extension = strdup(mixed_case_extension);
+		lowercase_extension = strdup(mixed_case_extension+1);
 		char *parser = lowercase_extension;
 		while(*parser)
 		{
@@ -34,8 +50,52 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	// union of all platforms this file might be a target for.
 	std::list<std::shared_ptr<Storage::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape>> tapes;
+	TargetPlatformType potential_platforms = 0;
 
-	// Obtain the union of all platforms that
+#define Format(extension, list, class, platforms) \
+	if(!strcmp(lowercase_extension, extension))	\
+	{	\
+		try {	\
+			list.emplace_back(new Storage::class(file_name));\
+			potential_platforms |= (TargetPlatformType)(platforms);\
+		} catch(...) {}\
+	}
+
+	// A26
+	if(!strcmp(lowercase_extension, "a26"))
+	{
+	}
+
+	// BIN
+	if(!strcmp(lowercase_extension, "bin"))
+	{
+	}
+
+	Format("d64", disks, D64, TargetPlatform::Commodore)		// D64
+	Format("g64", disks, G64, TargetPlatform::Commodore)		// G64
+
+	// PRG
+	if(!strcmp(lowercase_extension, "prg"))
+	{
+		// try instantiating as a ROM; failing that accept as a tape
+		try {
+			tapes.emplace_back(new Storage::TapePRG(file_name));
+			potential_platforms |= (TargetPlatformType)TargetPlatform::Commodore;
+		} catch(...) {}
+	}
+
+	// ROM
+	if(!strcmp(lowercase_extension, "rom"))
+	{
+	}
+
+	Format("tap", tapes, CommodoreTAP, TargetPlatform::Commodore)	// TAP
+	Format("uef", tapes, TapeUEF, TargetPlatform::Acorn)			// UEF (tape)
+
+#undef Format
+
+	// Hand off to platform-specific determination of whether these things are actually compatible and,
+	// if so, how to load them. (TODO)
 
 	printf("Lowercase extension: %s", lowercase_extension);
 
