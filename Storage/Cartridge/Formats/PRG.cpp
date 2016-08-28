@@ -13,7 +13,7 @@
 
 using namespace Storage::Cartridge;
 
-PRG::PRG(const char *file_name) : _contents(nullptr)
+PRG::PRG(const char *file_name)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -32,8 +32,9 @@ PRG::PRG(const char *file_name) : _contents(nullptr)
 	int loading_address = fgetc(file);
 	loading_address |= fgetc(file) << 8;
 
-	_contents = new uint8_t[file_stats.st_size - 2];
-	fread(_contents, 1, (size_t)(file_stats.st_size - 2), file);
+	size_t data_length = (size_t)file_stats.st_size - 2;
+	std::vector<uint8_t> contents(data_length);
+	fread(&contents[0], 1, (size_t)(data_length), file);
 	fclose(file);
 
 	// accept only files intended to load at 0xa000
@@ -42,15 +43,12 @@ PRG::PRG(const char *file_name) : _contents(nullptr)
 
 	// also accept only cartridges with the proper signature
 	if(
-		_contents[4] != 0x41 ||
-		_contents[5] != 0x30 ||
-		_contents[6] != 0xc3 ||
-		_contents[7] != 0xc2 ||
-		_contents[8] != 0xcd)
+		contents[4] != 0x41 ||
+		contents[5] != 0x30 ||
+		contents[6] != 0xc3 ||
+		contents[7] != 0xc2 ||
+		contents[8] != 0xcd)
 		throw ErrorNotROM;
-}
 
-PRG::~PRG()
-{
-	delete[] _contents;
+	_segments.emplace_back(0xa000, 0xa000 + data_length, std::move(contents));
 }

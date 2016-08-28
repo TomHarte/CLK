@@ -9,7 +9,6 @@
 #ifndef Storage_Cartridge_PRG_hpp
 #define Storage_Cartridge_PRG_hpp
 
-#include <vector>
 #include "../Cartridge.hpp"
 
 namespace Storage {
@@ -18,15 +17,10 @@ namespace Cartridge {
 class PRG : public Cartridge {
 	public:
 		PRG(const char *file_name);
-		~PRG();
 
 		enum {
 			ErrorNotROM
 		};
-
-	private:
-		uint8_t *_contents;
-		uint16_t _size;
 };
 
 }
