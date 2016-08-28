@@ -17,6 +17,8 @@
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot;
 - (BOOL)openUEFAtURL:(nonnull NSURL *)URL;
 
+- (void)analyse:(NSURL *)url;
+
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL useTelevisionOutput;
 

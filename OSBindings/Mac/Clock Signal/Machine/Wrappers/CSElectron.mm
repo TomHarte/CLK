@@ -10,6 +10,7 @@
 
 #include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
+#include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
 
 @implementation CSElectron {
@@ -18,6 +19,10 @@
 
 - (CRTMachine::Machine * const)machine {
 	return &_electron;
+}
+
+- (void)analyse:(NSURL *)url {
+	StaticAnalyser::GetTargets([url fileSystemRepresentation]);
 }
 
 - (void)setOSROM:(nonnull NSData *)rom {

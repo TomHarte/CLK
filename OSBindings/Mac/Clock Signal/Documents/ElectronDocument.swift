@@ -45,6 +45,8 @@ class ElectronDocument: MachineDocument {
 	}
 
 	override func readFromURL(url: NSURL, ofType typeName: String) throws {
+		electron.analyse(url)
+
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {
 				case "uef":
