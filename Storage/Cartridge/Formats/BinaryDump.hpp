@@ -1,30 +1,29 @@
 //
-//  A26.hpp
+//  BinaryDump.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 28/08/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Cartridge_A26_hpp
-#define Storage_Cartridge_A26_hpp
+#ifndef Storage_Cartridge_BinaryDump_hpp
+#define Storage_Cartridge_BinaryDump_hpp
 
 #include "../Cartridge.hpp"
 
 namespace Storage {
 namespace Cartridge {
 
-class A26 : public Cartridge {
+class BinaryDump : public Cartridge {
 	public:
-		A26(const char *file_name);
+		BinaryDump(const char *file_name);
 
 		enum {
-			ErrorNotAcornROM
+			ErrorNotAccessible
 		};
 };
 
 }
 }
 
-
-#endif /* A26_hpp */
+#endif /* AcornROM_hpp */

@@ -10,13 +10,18 @@
 
 #include <cstdlib>
 
-#include "../Storage/Cartridge/Formats/A26.hpp"
-#include "../Storage/Cartridge/Formats/AcornROM.hpp"
+// Analysers
+#include "Acorn/AcornAnalyser.hpp"
+
+// Cartridges
+#include "../Storage/Cartridge/Formats/BinaryDump.hpp"
 #include "../Storage/Cartridge/Formats/PRG.hpp"
 
+// Disks
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
 
+// Tapes
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"
 #include "../Storage/Tape/Formats/TapePRG.hpp"
 #include "../Storage/Tape/Formats/TapeUEF.hpp"
@@ -71,10 +76,10 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		TryInsert(list, class, platforms)	\
 	}
 
-	Format("a26", cartridges, Cartridge::A26, TargetPlatform::Atari2600)		// A26
-	Format("bin", cartridges, Cartridge::A26, TargetPlatform::Atari2600)		// BIN
-	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)					// D64
-	Format("g64", disks, Disk::G64, TargetPlatform::Commodore)					// G64
+	Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
+	Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
+	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
+	Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
 
 	// PRG
 	if(!strcmp(lowercase_extension, "prg"))
@@ -92,7 +97,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	}
 
 	// ROM
-	Format("rom", cartridges, Cartridge::AcornROM, TargetPlatform::Acorn)		// ROM
+	Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
 	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP
 	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
 
@@ -101,6 +106,10 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them. (TODO)
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)
+	{
+		Acorn::AddTargets(disks, tapes, cartridges, targets);
+	}
 
 	free(lowercase_extension);
 	return targets;

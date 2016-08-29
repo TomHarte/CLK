@@ -7,3 +7,5 @@
 //
 
 #include "Cartridge.hpp"
+
+const int Storage::Cartridge::Cartridge::Segment::UnknownAddress = -1;
