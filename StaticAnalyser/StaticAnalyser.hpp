@@ -32,29 +32,22 @@ struct Target {
 	float probability;
 
 	union {
-		enum class Vic20 {
-			Unexpanded,
-			EightKB,
-			ThirtyTwoKB
+		struct {
+			enum class Vic20 {
+				Unexpanded,
+				EightKB,
+				ThirtyTwoKB
+			} memoryModel;
+			bool has_c1540;
 		} vic20;
-	} memoryModel;
 
-	union {
 		struct {
-			bool adfs;
-			bool dfs;
+			bool has_adfs;
+			bool has_dfs;
 		} acorn;
-		struct {
-			bool c1540;
-		} vic20;
-	} externalHardware;
+	};
 
 	std::string loadingCommand;
-	union {
-		struct {
-			bool holdShift;
-		} acorn;
-	} loadingMethod;
 
 	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;

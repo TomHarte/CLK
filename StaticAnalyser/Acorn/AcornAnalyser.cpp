@@ -63,5 +63,13 @@ void StaticAnalyser::Acorn::AddTargets(
 {
 	// strip out inappropriate cartridges
 	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> acornCartridges = AcornCartridgesFrom(cartridges);
-}
 
+	// if there are any tapes, attempt to get data from the first
+	if(tapes.size() > 0)
+	{
+		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
+
+		tape->reset();
+
+	}
+}
