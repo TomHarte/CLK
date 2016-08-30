@@ -36,7 +36,9 @@ class Tape {
 		};
 
 		virtual Pulse get_next_pulse() = 0;
+
 		virtual void reset() = 0;
+		virtual bool is_at_end() = 0;
 
 		virtual void seek(Time seek_time);	// TODO
 };

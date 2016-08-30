@@ -37,6 +37,8 @@ class PRG: public Tape {
 		// implemented to satisfy @c Tape
 		Pulse get_next_pulse();
 		void reset();
+		bool is_at_end();
+
 	private:
 		FILE *_file;
 		uint16_t _load_address;
@@ -47,6 +49,7 @@ class PRG: public Tape {
 			FilePhaseHeader,
 			FilePhaseHeaderDataGap,
 			FilePhaseData,
+			FilePhaseAtEnd
 		} _filePhase;
 		int _phaseOffset;
 

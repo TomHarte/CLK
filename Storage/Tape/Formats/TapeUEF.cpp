@@ -45,7 +45,8 @@ static float gzgetfloat(gzFile file)
 
 UEF::UEF(const char *file_name) :
 	_chunk_id(0), _chunk_length(0), _chunk_position(0),
-	_time_base(1200)
+	_time_base(1200),
+	_is_at_end(false)
 {
 	_file = gzopen(file_name, "rb");
 
@@ -77,11 +78,25 @@ UEF::~UEF()
 void UEF::reset()
 {
 	gzseek(_file, 12, SEEK_SET);
+	_is_at_end = false;
+}
+
+bool UEF::is_at_end()
+{
+	return _is_at_end;
 }
 
 Storage::Tape::Tape::Pulse UEF::get_next_pulse()
 {
 	Pulse next_pulse;
+
+	if(_is_at_end)
+	{
+		next_pulse.type = Pulse::Zero;
+		next_pulse.length.length = _time_base * 4;
+		next_pulse.length.clock_rate = _time_base * 4;
+		return next_pulse;
+	}
 
 	if(!_bit_position && chunk_is_finished())
 	{
@@ -149,7 +164,6 @@ Storage::Tape::Tape::Pulse UEF::get_next_pulse()
 
 void UEF::find_next_tape_chunk()
 {
-	int reset_count = 0;
 	_chunk_position = 0;
 	_bit_position = 0;
 
@@ -170,10 +184,8 @@ void UEF::find_next_tape_chunk()
 
 		if(gzeof(_file))
 		{
-			reset_count++;
-			if(reset_count == 2) break;
-			reset();
-			continue;
+			_is_at_end = true;
+			return;
 		}
 
 		switch(_chunk_id)

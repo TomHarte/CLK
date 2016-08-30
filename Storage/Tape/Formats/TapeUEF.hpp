@@ -36,6 +36,7 @@ class UEF : public Tape {
 		// implemented to satisfy @c Tape
 		Pulse get_next_pulse();
 		void reset();
+		bool is_at_end();
 
 	private:
 		gzFile _file;
@@ -59,6 +60,7 @@ class UEF : public Tape {
 
 		uint8_t _current_byte;
 		uint32_t _chunk_position;
+		bool _is_at_end;
 
 		bool _current_bit;
 		uint32_t _bit_position;

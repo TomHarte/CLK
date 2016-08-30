@@ -12,7 +12,7 @@
 
 using namespace Storage::Tape;
 
-CommodoreTAP::CommodoreTAP(const char *file_name)
+CommodoreTAP::CommodoreTAP(const char *file_name) : _is_at_end(false)
 {
 	_file = fopen(file_name, "rb");
 
@@ -62,10 +62,21 @@ void CommodoreTAP::reset()
 {
 	fseek(_file, 0x14, SEEK_SET);
 	_current_pulse.type = Pulse::High;
+	_is_at_end = false;
+}
+
+bool CommodoreTAP::is_at_end()
+{
+	return _is_at_end;
 }
 
 Storage::Tape::Tape::Pulse CommodoreTAP::get_next_pulse()
 {
+	if(_is_at_end)
+	{
+		return _current_pulse;
+	}
+
 	if(_current_pulse.type == Pulse::High)
 	{
 		uint32_t next_length;
@@ -81,8 +92,17 @@ Storage::Tape::Tape::Pulse CommodoreTAP::get_next_pulse()
 			next_length |= (uint32_t)(fgetc(_file) << 16);
 		}
 
-		_current_pulse.length.length = next_length;
-		_current_pulse.type = Pulse::Low;
+		if(feof(_file))
+		{
+			_is_at_end = true;
+			_current_pulse.length.length = _current_pulse.length.clock_rate;
+			_current_pulse.type = Pulse::Zero;
+		}
+		else
+		{
+			_current_pulse.length.length = next_length;
+			_current_pulse.type = Pulse::Low;
+		}
 	}
 	else
 		_current_pulse.type = Pulse::High;

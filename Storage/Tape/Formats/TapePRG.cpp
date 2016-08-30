@@ -109,6 +109,11 @@ void PRG::reset()
 	_copy_mask = 0x80;
 }
 
+bool PRG::is_at_end()
+{
+	return _filePhase == FilePhaseAtEnd;
+}
+
 void PRG::get_next_output_token()
 {
 	static const int block_length = 192;	// not counting the checksum
@@ -116,10 +121,10 @@ void PRG::get_next_output_token()
 	static const int leadin_length = 20000;
 	static const int block_leadin_length = 5000;
 
-	if(_filePhase == FilePhaseHeaderDataGap)
+	if(_filePhase == FilePhaseHeaderDataGap || _filePhase == FilePhaseAtEnd)
 	{
 		_outputToken = Silence;
-		_filePhase = FilePhaseData;
+		if(_filePhase != FilePhaseAtEnd) _filePhase = FilePhaseData;
 		return;
 	}
 

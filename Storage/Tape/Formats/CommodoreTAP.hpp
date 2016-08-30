@@ -35,6 +35,7 @@ class CommodoreTAP: public Tape {
 		// implemented to satisfy @c Tape
 		Pulse get_next_pulse();
 		void reset();
+		bool is_at_end();
 
 	private:
 		FILE *_file;
@@ -42,6 +43,7 @@ class CommodoreTAP: public Tape {
 		uint32_t _file_size;
 
 		Pulse _current_pulse;
+		bool _is_at_end;
 };
 
 }

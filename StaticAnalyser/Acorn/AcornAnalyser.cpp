@@ -8,6 +8,8 @@
 
 #include "AcornAnalyser.hpp"
 
+#include "Tape.hpp"
+
 using namespace StaticAnalyser::Acorn;
 
 static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
@@ -68,8 +70,7 @@ void StaticAnalyser::Acorn::AddTargets(
 	if(tapes.size() > 0)
 	{
 		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
-
 		tape->reset();
-
+		GetNextFile(tape);
 	}
 }
