@@ -156,8 +156,8 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 	std::unique_ptr<File::Chunk> new_chunk(new File::Chunk);
 	int shift_register = 0;
 
-#define shift()	\
-	shift_register = (shift_register >> 1) |  (parser.get_next_bit() << 9)
+// TODO: move this into the parser
+#define shift()	shift_register = (shift_register >> 1) |  (parser.get_next_bit() << 9)
 
 	// find next area of high tone
 	while(!parser.is_at_end() && (shift_register != 0x3ff))
@@ -170,6 +170,8 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 	{
 		shift();
 	}
+
+#undef shift
 
 	parser.reset_crc();
 	parser.reset_error_flag();
@@ -192,12 +194,31 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 	new_chunk->block_flag = (uint8_t)parser.get_next_byte();
 	new_chunk->next_address = (uint32_t)parser.get_next_word();
 
-	uint16_t calculated_crc = parser.get_crc();
-	uint16_t stored_crc = (uint16_t)parser.get_next_short();
+	uint16_t calculated_header_crc = parser.get_crc();
+	uint16_t stored_header_crc = (uint16_t)parser.get_next_short();
+	stored_header_crc = (uint16_t)((stored_header_crc >> 8) | (stored_header_crc << 8));
+	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;
 
-	printf("%04x v %04x", calculated_crc, stored_crc);
+	parser.reset_crc();
+	new_chunk->data.reserve(new_chunk->block_length);
+	for(int c = 0; c < new_chunk->block_length; c++)
+	{
+		new_chunk->data.push_back((uint8_t)parser.get_next_byte());
+	}
 
-	return nullptr;
+	if(new_chunk->block_length)
+	{
+		uint16_t calculated_data_crc = parser.get_crc();
+		uint16_t stored_data_crc = (uint16_t)parser.get_next_short();
+		stored_data_crc = (uint16_t)((stored_data_crc >> 8) | (stored_data_crc << 8));
+		new_chunk->data_crc_matched = stored_data_crc == calculated_data_crc;
+	}
+	else
+	{
+		new_chunk->data_crc_matched = true;
+	}
+
+	return parser.get_error_flag() ? nullptr : std::move(new_chunk);
 }
 
 std::unique_ptr<File> StaticAnalyser::Acorn::GetNextFile(const std::shared_ptr<Storage::Tape::Tape> &tape)
