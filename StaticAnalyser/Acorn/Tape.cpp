@@ -31,7 +31,7 @@ struct TapeParser {
 			wave_length_pointer++;
 
 			// if first wave is too short or too long, drop it
-			if(wave_lengths[0] < 1.0f / 4800.0f || wave_lengths[0] > 5.0f / 4800.0f)
+			if(wave_lengths[0] < 1.0f / 4800.0f || wave_lengths[0] >= 5.0f / 4800.0f)
 			{
 				rotate(1);
 				continue;
@@ -66,21 +66,21 @@ struct TapeParser {
 	int GetNextByte(const std::shared_ptr<Storage::Tape::Tape> &tape)
 	{
 		int value = 0;
-		int c = 10;
+		int c = 8;
 		if(GetNextBit(tape)) return -1;
 		while(c--)
 		{
-			value = (value >> 1) | (GetNextBit(tape) << 9);
+			value = (value >> 1) | (GetNextBit(tape) << 7);
 		}
 		if(!GetNextBit(tape)) return -1;
-		return c;
+		return value;
 	}
 
 	private:
 		void rotate(int places)
 		{
 			wave_length_pointer -= places;
-			memmove(wave_lengths, &wave_lengths[places], (size_t)(4 - places) * sizeof(float));
+			if(places < 4) memmove(wave_lengths, &wave_lengths[places], (size_t)(4 - places) * sizeof(float));
 		}
 };
 
@@ -99,10 +99,9 @@ std::unique_ptr<File> StaticAnalyser::Acorn::GetNextFile(const std::shared_ptr<S
 	}
 
 	// find next 0x2a (swallowing stop bit)
-	while(!tape->is_at_end() && (shift_register != 0x055))
+	while(!tape->is_at_end() && (shift_register != 0x254))
 	{
 		shift();
-		if(shift_register != 0x3ff) printf("%d\n", shift_register >> 9);
 	}
 
 	// read out name
