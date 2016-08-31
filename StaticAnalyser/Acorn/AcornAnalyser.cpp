@@ -71,6 +71,6 @@ void StaticAnalyser::Acorn::AddTargets(
 	{
 		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
 		tape->reset();
-		GetNextFile(tape);
+		GetFiles(tape);
 	}
 }

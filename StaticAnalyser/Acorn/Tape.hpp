@@ -27,6 +27,7 @@ struct File {
 	std::vector<uint8_t> data;
 
 	struct Chunk {
+		std::string name;
 		uint32_t load_address;
 		uint32_t execution_address;
 		uint16_t block_number;
@@ -42,7 +43,7 @@ struct File {
 	std::list<Chunk> chunks;
 };
 
-std::unique_ptr<File> GetNextFile(const std::shared_ptr<Storage::Tape::Tape> &tape);
+std::list<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
 }

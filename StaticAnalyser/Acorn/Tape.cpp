@@ -185,6 +185,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 		if(!name[name_ptr]) break;
 		name_ptr++;
 	}
+	new_chunk->name = name;
 
 	// addresses
 	new_chunk->load_address = (uint32_t)parser.get_next_word();
@@ -206,7 +207,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 		new_chunk->data.push_back((uint8_t)parser.get_next_byte());
 	}
 
-	if(new_chunk->block_length)
+	if(new_chunk->block_length && !new_chunk->block_flag&0x40)
 	{
 		uint16_t calculated_data_crc = parser.get_crc();
 		uint16_t stored_data_crc = (uint16_t)parser.get_next_short();
@@ -221,11 +222,59 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 	return parser.get_error_flag() ? nullptr : std::move(new_chunk);
 }
 
-std::unique_ptr<File> StaticAnalyser::Acorn::GetNextFile(const std::shared_ptr<Storage::Tape::Tape> &tape)
+std::unique_ptr<File> GetNextFile(TapeParser &parser)
+{
+	std::unique_ptr<File::Chunk> chunk;
+
+	// find next chunk with a block number of 0
+	while(!parser.is_at_end())
+	{
+		chunk = GetNextChunk(parser);
+		if(!chunk) continue;
+		if(chunk->block_number) continue;
+	}
+
+	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
+	std::unique_ptr<File> file(new File);
+	file->chunks.push_back(*chunk);
+	while(!parser.is_at_end())
+	{
+		std::unique_ptr<File::Chunk> next_chunk = GetNextChunk(parser);
+		if(!next_chunk) return nullptr;
+		if(next_chunk->block_number != chunk->block_number + 1) return nullptr;
+		file->chunks.push_back(*next_chunk);
+		chunk = std::move(next_chunk);
+		if(chunk->block_flag&0x80) break;
+	}
+
+	// accumulate total data, copy flags appropriately
+	file->name = file->chunks.front().name;
+	file->load_address = file->chunks.front().load_address;
+	file->execution_address = file->chunks.front().execution_address;
+	file->is_protected = !!(file->chunks.back().block_flag & 0x01);	// I think the last flags are the ones that count; TODO: check.
+
+	// copy all data into a single big block
+	for(File::Chunk chunk : file->chunks)
+	{
+		file->data.insert(file->data.end(), chunk.data.begin(), chunk.data.end());
+	}
+
+	return file;
+}
+
+std::list<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
 	TapeParser parser(tape);
+	std::list<File> file_list;
 
-	GetNextChunk(parser);
+	while(!parser.is_at_end())
+	{
+		std::unique_ptr<File> next_file = GetNextFile(parser);
+		if(next_file)
+		{
+			file_list.push_back(*next_file);
+		}
+	}
 
-	return nullptr;
+	return file_list;
 }
