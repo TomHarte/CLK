@@ -11,6 +11,7 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../StaticAnalyser/StaticAnalyser.hpp"
 
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
@@ -145,7 +146,8 @@ class Machine:
 		Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
+		void configure_as_target(const StaticAnalyser::Target &target);
+//		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();

@@ -79,6 +79,8 @@ void UEF::reset()
 {
 	gzseek(_file, 12, SEEK_SET);
 	_is_at_end = false;
+	_start_of_next_chunk = gztell(_file);
+	find_next_tape_chunk();
 }
 
 bool UEF::is_at_end()

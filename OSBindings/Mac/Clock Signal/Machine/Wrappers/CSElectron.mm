@@ -10,6 +10,7 @@
 
 #include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
+#import "CSMachine+Target.h"
 #include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
 
@@ -37,13 +38,19 @@
 	}
 }
 
+- (void)applyTarget:(StaticAnalyser::Target)target {
+	@synchronized(self) {
+		_electron.configure_as_target(target);
+	}
+}
+
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot {
 	@synchronized(self) {
 		_electron.set_rom((Electron::ROMSlot)slot, rom.length, (const uint8_t *)rom.bytes);
 	}
 }
 
-- (BOOL)openUEFAtURL:(NSURL *)URL {
+/*- (BOOL)openUEFAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {
 			std::shared_ptr<Storage::Tape::UEF> tape(new Storage::Tape::UEF([URL fileSystemRepresentation]));
@@ -53,7 +60,7 @@
 			return NO;
 		}
 	}
-}
+}*/
 
 - (void)clearAllKeys {
 	@synchronized(self) {

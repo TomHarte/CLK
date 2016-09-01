@@ -98,6 +98,10 @@ class MachineDocument:
 		super.close()
 	}
 
+	// MARK: configuring
+	func configureAs(analysis: CSStaticAnalyser) {
+	}
+
 	// MARK: the pasteboard
 	func paste(sender: AnyObject!) {
 		let pasteboard = NSPasteboard.generalPasteboard()

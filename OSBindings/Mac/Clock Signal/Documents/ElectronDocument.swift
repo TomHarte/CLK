@@ -44,9 +44,11 @@ class ElectronDocument: MachineDocument {
 		return "ElectronDocument"
 	}
 
-	override func readFromURL(url: NSURL, ofType typeName: String) throws {
-		electron.analyse(url)
+	override func configureAs(analysis: CSStaticAnalyser) {
+		analysis.applyToMachine(electron)
+	}
 
+/*	override func readFromURL(url: NSURL, ofType typeName: String) throws {
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {
 				case "uef":
@@ -65,7 +67,7 @@ class ElectronDocument: MachineDocument {
 			electron.setROM(plus1ROM, slot: 12)
 		}
 		electron.setROM(data, slot: 15)
-	}
+	}*/
 
 	// MARK: IBActions
 	@IBOutlet var displayTypeButton: NSPopUpButton?

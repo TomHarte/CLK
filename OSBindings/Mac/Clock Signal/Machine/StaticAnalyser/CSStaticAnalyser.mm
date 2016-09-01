@@ -12,6 +12,7 @@
 #import "CSMachine+Target.h"
 #import "Clock_Signal-Swift.h"
 #include "StaticAnalyser.hpp"
+#import "CSMachine+Subclassing.h"
 
 @implementation CSStaticAnalyser
 {

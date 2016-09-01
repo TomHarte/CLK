@@ -75,9 +75,10 @@ void StaticAnalyser::Acorn::AddTargets(
 	{
 		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
 		tape->reset();
+		std::list<File> files = GetFiles(tape);
+		tape->reset();
 
 		// continue if there are any files
-		std::list<File> files = GetFiles(tape);
 		if(files.size())
 		{
 			bool is_basic = true;

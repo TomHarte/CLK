@@ -458,9 +458,17 @@ void Machine::synchronise()
 	update_audio();
 }
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
-	_tape.set_tape(tape);
+	if(target.tapes.size())
+	{
+		_tape.set_tape(target.tapes.front());
+	}
+
+	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+	{
+		set_typer_for_string(target.loadingCommand.c_str());
+	}
 }
 
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)

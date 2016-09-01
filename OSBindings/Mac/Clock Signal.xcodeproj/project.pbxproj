@@ -41,6 +41,7 @@
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
+		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
@@ -438,6 +439,7 @@
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
 		4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSStaticAnalyser.mm; path = StaticAnalyser/CSStaticAnalyser.mm; sourceTree = "<group>"; };
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
+		4B643F3E1D77B88000D431D6 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tape.cpp; sourceTree = "<group>"; };
 		4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Tape.hpp; sourceTree = "<group>"; };
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
@@ -880,13 +882,13 @@
 			children = (
 				4BBC34241D2208B100FFC9DF /* CSFastLoading.h */,
 				4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */,
-				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B2A53951D117D36003C6002 /* CSMachine.h */,
-				4B2A53961D117D36003C6002 /* CSMachine.mm */,
-				4B2A53971D117D36003C6002 /* KeyCodes.h */,
-				4B2A53981D117D36003C6002 /* Wrappers */,
-				4B643F3B1D77AD6D00D431D6 /* StaticAnalyser */,
+				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */,
+				4B2A53971D117D36003C6002 /* KeyCodes.h */,
+				4B2A53961D117D36003C6002 /* CSMachine.mm */,
+				4B643F3B1D77AD6D00D431D6 /* StaticAnalyser */,
+				4B2A53981D117D36003C6002 /* Wrappers */,
 			);
 			path = Machine;
 			sourceTree = "<group>";
@@ -1010,6 +1012,14 @@
 				4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */,
 			);
 			name = StaticAnalyser;
+			sourceTree = "<group>";
+		};
+		4B643F3D1D77B88000D431D6 /* Document Controller */ = {
+			isa = PBXGroup;
+			children = (
+				4B643F3E1D77B88000D431D6 /* DocumentController.swift */,
+			);
+			path = "Document Controller";
 			sourceTree = "<group>";
 		};
 		4B69FB391C4D908A00B5F0AA /* Storage */ = {
@@ -1403,16 +1413,17 @@
 		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXGroup;
 			children = (
-				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
-				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BB73EAD1B587A5100552FC2 /* Info.plist */,
 				4BB73EA11B587A5100552FC2 /* AppDelegate.swift */,
 				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
+				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4B2A538F1D117D36003C6002 /* Audio */,
+				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4B55CE551C3B7D360093A61B /* Documents */,
 				4B2A53921D117D36003C6002 /* Machine */,
+				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BD5F1961D1352A000631CD1 /* Updater */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
 			);
@@ -2010,6 +2021,7 @@
 				4BD14B111D74627C0088EAD6 /* AcornAnalyser.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
+				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
