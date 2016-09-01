@@ -39,6 +39,7 @@
 		4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE571C3B7D360093A61B /* ElectronDocument.swift */; };
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
+		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
@@ -425,6 +426,7 @@
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
 		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
+		4B643F3E1D77B88000D431D6 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tape.cpp; sourceTree = "<group>"; };
 		4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Tape.hpp; sourceTree = "<group>"; };
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
@@ -976,6 +978,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		4B643F3D1D77B88000D431D6 /* Document Controller */ = {
+			isa = PBXGroup;
+			children = (
+				4B643F3E1D77B88000D431D6 /* DocumentController.swift */,
+			);
+			path = "Document Controller";
+			sourceTree = "<group>";
+		};
 		4B69FB391C4D908A00B5F0AA /* Storage */ = {
 			isa = PBXGroup;
 			children = (
@@ -1365,6 +1375,7 @@
 		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXGroup;
 			children = (
+				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
@@ -1919,6 +1930,7 @@
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
+				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
