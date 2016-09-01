@@ -8,6 +8,8 @@
 
 #include "Tape.hpp"
 
+#include <deque>
+
 using namespace StaticAnalyser::Acorn;
 
 struct TapeParser {
@@ -115,16 +117,6 @@ struct TapeParser {
 		_crc = 0;
 	}
 
-		void add_to_crc(uint8_t value)
-		{
-			_crc ^= (uint16_t)value << 8;
-			for(int c = 0; c < 8; c++)
-			{
-				uint16_t exclusive_or = (_crc&0x8000) ? 0x1021 : 0x0000;
-				_crc = (uint16_t)(_crc << 1) ^ exclusive_or;
-			}
-		}
-
 	uint16_t get_crc()
 	{
 		return _crc;
@@ -136,12 +128,21 @@ struct TapeParser {
 	}
 
 	private:
+		void add_to_crc(uint8_t value)
+		{
+			_crc ^= (uint16_t)value << 8;
+			for(int c = 0; c < 8; c++)
+			{
+				uint16_t exclusive_or = (_crc&0x8000) ? 0x1021 : 0x0000;
+				_crc = (uint16_t)(_crc << 1) ^ exclusive_or;
+			}
+		}
+
 		void rotate(int places)
 		{
 			_wave_length_pointer -= places;
 			if(places < 4) memmove(_wave_lengths, &_wave_lengths[places], (size_t)(4 - places) * sizeof(float));
 		}
-
 
 		uint16_t _crc;
 		bool _error_flag;
@@ -222,31 +223,33 @@ static std::unique_ptr<File::Chunk> GetNextChunk(TapeParser &parser)
 	return parser.get_error_flag() ? nullptr : std::move(new_chunk);
 }
 
-std::unique_ptr<File> GetNextFile(TapeParser &parser)
+std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks)
 {
-	std::unique_ptr<File::Chunk> chunk;
-
 	// find next chunk with a block number of 0
-	while(!parser.is_at_end())
+	while(chunks.size() && chunks.front().block_number)
 	{
-		chunk = GetNextChunk(parser);
-		if(!chunk) continue;
-		if(!chunk->block_number) break;
+		chunks.pop_front();
 	}
 
-	if(!chunk) return nullptr;
+	if(!chunks.size()) return nullptr;
 
 	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
 	std::unique_ptr<File> file(new File);
-	file->chunks.push_back(*chunk);
-	while(!parser.is_at_end())
+
+	uint16_t block_number = chunks.front().block_number;
+	file->chunks.push_back(chunks.front());
+	chunks.pop_front();
+
+	while(chunks.size())
 	{
-		std::unique_ptr<File::Chunk> next_chunk = GetNextChunk(parser);
-		if(!next_chunk) return nullptr;
-		if(next_chunk->block_number != chunk->block_number + 1) return nullptr;
-		file->chunks.push_back(*next_chunk);
-		chunk = std::move(next_chunk);
-		if(chunk->block_flag&0x80) break;
+		if(chunks.front().block_number != block_number + 1) return nullptr;
+
+		bool was_last = chunks.front().block_flag & 0x80;
+		file->chunks.push_back(chunks.front());
+		chunks.pop_front();
+		block_number++;
+
+		if(was_last) break;
 	}
 
 	// accumulate total data, copy flags appropriately
@@ -267,11 +270,24 @@ std::unique_ptr<File> GetNextFile(TapeParser &parser)
 std::list<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
 	TapeParser parser(tape);
-	std::list<File> file_list;
 
+	// populate chunk list
+	std::deque<File::Chunk> chunk_list;
 	while(!parser.is_at_end())
 	{
-		std::unique_ptr<File> next_file = GetNextFile(parser);
+		std::unique_ptr<File::Chunk> chunk = GetNextChunk(parser);
+		if(chunk)
+		{
+			chunk_list.push_back(*chunk);
+		}
+	}
+
+	// decompose into file list
+	std::list<File> file_list;
+
+	while(chunk_list.size())
+	{
+		std::unique_ptr<File> next_file = GetNextFile(chunk_list);
 		if(next_file)
 		{
 			file_list.push_back(*next_file);
