@@ -20,7 +20,7 @@ struct TapeParser {
 		{
 			// skip any gaps
 			Storage::Tape::Tape::Pulse next_pulse = _tape->get_next_pulse();
-			while(next_pulse.type == Storage::Tape::Tape::Pulse::Zero)
+			while(!_tape->is_at_end() && next_pulse.type == Storage::Tape::Tape::Pulse::Zero)
 			{
 				next_pulse = _tape->get_next_pulse();
 			}
@@ -231,8 +231,10 @@ std::unique_ptr<File> GetNextFile(TapeParser &parser)
 	{
 		chunk = GetNextChunk(parser);
 		if(!chunk) continue;
-		if(chunk->block_number) continue;
+		if(!chunk->block_number) break;
 	}
+
+	if(!chunk) return nullptr;
 
 	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
 	std::unique_ptr<File> file(new File);

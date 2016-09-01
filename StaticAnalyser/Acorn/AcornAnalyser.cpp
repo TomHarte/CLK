@@ -63,14 +63,54 @@ void StaticAnalyser::Acorn::AddTargets(
 	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
 	std::list<StaticAnalyser::Target> &destination)
 {
+	Target target;
+	target.machine = Target::Electron;
+	target.probability = 1.0; // TODO: a proper estimation
+
 	// strip out inappropriate cartridges
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> acornCartridges = AcornCartridgesFrom(cartridges);
+	target.cartridges = AcornCartridgesFrom(cartridges);
 
 	// if there are any tapes, attempt to get data from the first
 	if(tapes.size() > 0)
 	{
 		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
 		tape->reset();
-		GetFiles(tape);
+
+		// continue if there are any files
+		std::list<File> files = GetFiles(tape);
+		if(files.size())
+		{
+			bool is_basic = true;
+
+			// protected files are always for *RUNning only
+			if(files.front().is_protected) is_basic = false;
+
+			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
+			// so that's also justification to *RUN
+			size_t pointer = 0;
+			uint8_t *data = &files.front().data[0];
+			size_t data_size = files.front().data.size();
+			while(1)
+			{
+				if(pointer >= data_size-1 || data[pointer] != 13)
+				{
+					is_basic = false;
+					break;
+				}
+				if((data[pointer+1]&0x7f) == 0x7f) break;
+				pointer += data[pointer+3];
+			}
+
+			// Inspect first file. If it's protected or doesn't look like BASIC
+			// then the loading command is *RUN. Otherwise it's CHAIN"".
+			target.loadingCommand = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+
+			target.tapes = tapes;
+		}
 	}
+
+	// TODO: disks
+
+	if(target.tapes.size() || target.cartridges.size())
+		destination.push_back(target);
 }
