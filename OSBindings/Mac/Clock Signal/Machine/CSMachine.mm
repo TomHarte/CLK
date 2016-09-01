@@ -8,6 +8,7 @@
 
 #import "CSMachine.h"
 #import "CSMachine+Subclassing.h"
+#import "CSMachine+Target.h"
 #include "Typer.hpp"
 
 @interface CSMachine()
@@ -121,5 +122,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 	if(typeRecipient)
 		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
+
+- (void)applyTarget:(StaticAnalyser::Target)target {}
 
 @end

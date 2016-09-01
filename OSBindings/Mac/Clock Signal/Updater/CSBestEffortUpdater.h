@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-@import CoreVideo;
+#import <CoreVideo/CoreVideo.h>
 
 @class CSBestEffortUpdater;
 
