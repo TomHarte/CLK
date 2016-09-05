@@ -18,29 +18,7 @@ using namespace StaticAnalyser::Acorn;
 */
 template <typename WaveType, typename SymbolType> class TapeParser {
 	public:
-		TapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : _tape(tape) {}
-
-		std::unique_ptr<SymbolType> get_next_symbol()
-		{
-			while(!_tape->is_at_end())
-			{
-				std::unique_ptr<SymbolType> symbol = dequeue_next_symbol(_wave_queue);
-				if(symbol) return symbol;
-
-				while(!_tape->is_at_end())
-				{
-					Storage::Tape::Tape::Pulse next_pulse = _tape->get_next_pulse();
-					std::unique_ptr<WaveType> next_wave = get_wave_type_for_pulse(next_pulse);
-					if(next_wave)
-					{
-						_wave_queue.push_back(*next_wave);
-						break;
-					}
-				}
-			}
-
-			return nullptr;
-		}
+		TapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : _tape(tape), _has_next_symbol(false) {}
 
 		void reset_error_flag()		{	_error_flag = false;		}
 		bool get_error_flag()		{	return _error_flag;			}
@@ -48,11 +26,42 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 
 	protected:
 		bool _error_flag;
+		void push_wave(WaveType wave)
+		{
+			_wave_queue.push_back(wave);
+			inspect_waves(_wave_queue);
+		}
+
+		void remove_waves(int number_of_waves)
+		{
+			_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+number_of_waves);
+		}
+
+		void push_symbol(SymbolType symbol, int number_of_waves)
+		{
+			_has_next_symbol = true;
+			_next_symbol = symbol;
+			remove_waves(number_of_waves);
+		}
+
+		SymbolType get_next_symbol()
+		{
+			while(!_has_next_symbol && !is_at_end())
+			{
+				process_pulse(_tape->get_next_pulse());
+			}
+			_has_next_symbol = false;
+			return _next_symbol;
+		}
 
 	private:
-		virtual std::unique_ptr<WaveType> get_wave_type_for_pulse(Storage::Tape::Tape::Pulse) = 0;
-		virtual std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> &_wave_queue) = 0;
-		std::deque<WaveType> _wave_queue;
+		virtual void process_pulse(Storage::Tape::Tape::Pulse pulse) = 0;
+		virtual void inspect_waves(const std::vector<WaveType> &waves) = 0;
+
+		std::vector<WaveType> _wave_queue;
+		SymbolType _next_symbol;
+		bool _has_next_symbol;
+
 		std::shared_ptr<Storage::Tape::Tape> _tape;
 };
 
@@ -70,8 +79,8 @@ class Acorn1200BaudTapeParser: public TapeParser<WaveType, SymbolType> {
 
 		int get_next_bit()
 		{
-			std::unique_ptr<SymbolType> symbol = get_next_symbol();
-			return (symbol && *symbol == SymbolType::One) ? 1 : 0;
+			SymbolType symbol = get_next_symbol();
+			return (symbol == SymbolType::One) ? 1 : 0;
 		}
 
 		int get_next_byte()
@@ -114,47 +123,45 @@ class Acorn1200BaudTapeParser: public TapeParser<WaveType, SymbolType> {
 		uint16_t get_crc()	{	return _crc;	}
 
 	private:
-		std::unique_ptr<WaveType> get_wave_type_for_pulse(Storage::Tape::Tape::Pulse pulse)
+		void process_pulse(Storage::Tape::Tape::Pulse pulse)
 		{
-			WaveType wave_type = WaveType::Unrecognised;
 			switch(pulse.type)
 			{
 				default: break;
 				case Storage::Tape::Tape::Pulse::High:
 				case Storage::Tape::Tape::Pulse::Low:
 					float pulse_length = pulse.length.get_float();
-					if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) wave_type = WaveType::Short;
-					if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) wave_type = WaveType::Long;
+					if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) { push_wave(WaveType::Short); return; }
+					if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) { push_wave(WaveType::Long); return; }
 				break;
 			}
 
-			return std::unique_ptr<WaveType>(new WaveType(wave_type));
+			push_wave(WaveType::Unrecognised);
 		}
 
-		std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> &_wave_queue)
+		void inspect_waves(const std::vector<WaveType> &waves)
 		{
-			while(_wave_queue.size() && _wave_queue.front() == WaveType::Unrecognised)
+			while(waves.size() && waves[0] == WaveType::Unrecognised)
 			{
-				_wave_queue.pop_front();
+				remove_waves(1);
+				return;
 			}
 
-			if(_wave_queue.size() >= 2 && _wave_queue[0] == WaveType::Long && _wave_queue[1] == WaveType::Long)
+			if(waves.size() >= 2 && waves[0] == WaveType::Long && waves[1] == WaveType::Long)
 			{
-				_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+2);
-				return std::unique_ptr<SymbolType>(new SymbolType(SymbolType::Zero));
+				push_symbol(SymbolType::Zero, 2);
+				return;
 			}
 
-			if(	_wave_queue.size() >= 4 &&
-				_wave_queue[0] == WaveType::Short &&
-				_wave_queue[1] == WaveType::Short &&
-				_wave_queue[2] == WaveType::Short &&
-				_wave_queue[3] == WaveType::Short)
+			if(	waves.size() >= 4 &&
+				waves[0] == WaveType::Short &&
+				waves[1] == WaveType::Short &&
+				waves[2] == WaveType::Short &&
+				waves[3] == WaveType::Short)
 			{
-				_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+4);
-				return std::unique_ptr<SymbolType>(new SymbolType(SymbolType::One));
+				push_symbol(SymbolType::One, 4);
+				return;
 			}
-
-			return nullptr;
 		}
 
 		void add_to_crc(uint8_t value)
