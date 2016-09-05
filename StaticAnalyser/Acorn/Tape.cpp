@@ -196,14 +196,15 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 	parser.reset_error_flag();
 
 	// read out name
-	char name[10];
+	char name[11];
 	int name_ptr = 0;
-	while(!parser.is_at_end() && name_ptr < 10)
+	while(!parser.is_at_end() && name_ptr < 11)
 	{
 		name[name_ptr] = (char)parser.get_next_byte();
 		if(!name[name_ptr]) break;
 		name_ptr++;
 	}
+	name[10] = '\0';
 	new_chunk->name = name;
 
 	// addresses
@@ -226,7 +227,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 		new_chunk->data.push_back((uint8_t)parser.get_next_byte());
 	}
 
-	if(new_chunk->block_length && !new_chunk->block_flag&0x40)
+	if(new_chunk->block_length && !(new_chunk->block_flag&0x40))
 	{
 		uint16_t calculated_data_crc = parser.get_crc();
 		uint16_t stored_data_crc = (uint16_t)parser.get_next_short();
