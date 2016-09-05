@@ -198,13 +198,13 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 	// read out name
 	char name[11];
 	int name_ptr = 0;
-	while(!parser.is_at_end() && name_ptr < 11)
+	while(!parser.is_at_end() && name_ptr < sizeof(name))
 	{
 		name[name_ptr] = (char)parser.get_next_byte();
 		if(!name[name_ptr]) break;
 		name_ptr++;
 	}
-	name[10] = '\0';
+	name[sizeof(name)-1] = '\0';
 	new_chunk->name = name;
 
 	// addresses

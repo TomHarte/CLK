@@ -7,8 +7,9 @@
 //
 
 #include "TapeUEF.hpp"
-#include <string.h>
-#include <math.h>
+#include <cstring>
+#include <cstdio>
+#include <cmath>
 
 using namespace Storage::Tape;
 
@@ -123,6 +124,7 @@ Storage::Tape::Tape::Pulse UEF::get_next_pulse()
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
 		break;
 
+		case 0x0111:	// TODO: insert dummy byte
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = 1;
@@ -219,9 +221,14 @@ void UEF::find_next_tape_chunk()
 				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
 				gzseek(_file, _chunk_length - 2, SEEK_CUR);
 			return;
-//			case 0x0111: // carrier tone with dummy byte
-				// TODO: read lengths
-//			return;
+			case 0x0111: // carrier tone with dummy byte
+				_high_tone_with_dummy.pre_length = (uint16_t)gzgetc(_file);
+				_high_tone_with_dummy.pre_length |= (uint16_t)(gzgetc(_file) << 8);
+				_high_tone_with_dummy.post_length = (uint16_t)gzgetc(_file);
+				_high_tone_with_dummy.post_length |= (uint16_t)(gzgetc(_file) << 8);
+				_chunk_duration.length = _high_tone_with_dummy.post_length + _high_tone_with_dummy.pre_length + 10;
+				gzseek(_file, _chunk_length - 4, SEEK_CUR);
+			return;
 			case 0x0114: // security cycles
 			{
 				// read number of cycles
@@ -244,6 +251,7 @@ void UEF::find_next_tape_chunk()
 			break;
 
 			default:
+				printf("!!! Skipping %04x\n", _chunk_id);
 				gzseek(_file, _chunk_length, SEEK_CUR);
 			break;
 		}
@@ -257,6 +265,7 @@ bool UEF::chunk_is_finished()
 		case 0x0100: return (_implicit_data_chunk.position / 10) == _chunk_length;
 		case 0x0102: return (_explicit_data_chunk.position / 8) == _chunk_length;
 		case 0x0114:
+		case 0x0111:
 		case 0x0110: return _chunk_position == _chunk_duration.length;
 
 		case 0x0112:
@@ -309,6 +318,8 @@ bool UEF::get_next_bit()
 			return result;
 		}
 		break;
+
+		case 0x0111:
 
 		case 0x0110:
 			_chunk_position++;

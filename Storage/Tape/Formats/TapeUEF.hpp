@@ -56,6 +56,10 @@ class UEF : public Tape {
 				uint8_t current_byte;
 				uint32_t position;
 			} _explicit_data_chunk;
+
+			struct {
+				unsigned int pre_length, post_length;
+			} _high_tone_with_dummy;
 		};
 
 		uint8_t _current_byte;
