@@ -51,7 +51,7 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 
 	private:
 		virtual std::unique_ptr<WaveType> get_wave_type_for_pulse(Storage::Tape::Tape::Pulse) = 0;
-		virtual std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> _wave_queue) = 0;
+		virtual std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> &_wave_queue) = 0;
 		std::deque<WaveType> _wave_queue;
 		std::shared_ptr<Storage::Tape::Tape> _tape;
 };
@@ -131,7 +131,7 @@ class Acorn1200BaudTapeParser: public TapeParser<WaveType, SymbolType> {
 			return std::unique_ptr<WaveType>(new WaveType(wave_type));
 		}
 
-		std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> _wave_queue)
+		std::unique_ptr<SymbolType> dequeue_next_symbol(std::deque<WaveType> &_wave_queue)
 		{
 			while(_wave_queue.size() && _wave_queue.front() == WaveType::Unrecognised)
 			{
@@ -254,13 +254,11 @@ std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks)
 	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
 	std::unique_ptr<File> file(new File);
 
-	uint16_t block_number = chunks.front().block_number;
-	file->chunks.push_back(chunks.front());
-	chunks.pop_front();
+	uint16_t block_number = 0;
 
 	while(chunks.size())
 	{
-		if(chunks.front().block_number != block_number + 1) return nullptr;
+		if(chunks.front().block_number != block_number) return nullptr;
 
 		bool was_last = chunks.front().block_flag & 0x80;
 		file->chunks.push_back(chunks.front());
