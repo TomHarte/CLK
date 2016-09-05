@@ -84,7 +84,7 @@ void StaticAnalyser::Acorn::AddTargets(
 			bool is_basic = true;
 
 			// protected files are always for *RUNning only
-			if(files.front().is_protected) is_basic = false;
+//			if(files.front().is_protected) is_basic = false;
 
 			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
 			// so that's also justification to *RUN
