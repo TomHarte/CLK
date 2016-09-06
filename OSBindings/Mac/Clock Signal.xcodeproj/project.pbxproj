@@ -1603,9 +1603,9 @@
 			children = (
 				4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */,
 				4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */,
-				4BC830D21D6E7C6D0000A26F /* Commodore */,
-				4BD14B121D7462810088EAD6 /* Acorn */,
 				4BD328FD1D7E3EB5003B8C44 /* TapeParser.hpp */,
+				4BD14B121D7462810088EAD6 /* Acorn */,
+				4BC830D21D6E7C6D0000A26F /* Commodore */,
 			);
 			name = StaticAnalyser;
 			sourceTree = "<group>";

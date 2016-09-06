@@ -13,29 +13,54 @@ namespace StaticAnalyer {
 
 /*!
 	A partly-abstract base class to help in the authorship of tape format parsers;
-	provides hooks for a 
+	provides hooks for pulse classification from pulses to waves and for symbol identification from
+	waves.
+	
+	Very optional, not intended to box in the approaches taken for analysis.
 */
 template <typename WaveType, typename SymbolType> class TapeParser {
 	public:
-		TapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : _tape(tape), _has_next_symbol(false) {}
+		/// Instantiates a new parser with the supplied @c tape.
+		TapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : _tape(tape), _has_next_symbol(false), _error_flag(false) {}
 
+		/// Resets the error flag.
 		void reset_error_flag()		{	_error_flag = false;		}
+		/// @returns @c true if an error has occurred since the error flag was last reset; @c false otherwise.
 		bool get_error_flag()		{	return _error_flag;			}
+		/// @returns @c true if the encapsulated tape has reached its end; @c false otherwise.
 		bool is_at_end()			{	return _tape->is_at_end();	}
 
 	protected:
 		bool _error_flag;
+
+		/*!
+			Adds @c wave to the back of the list of recognised waves and calls @c inspect_waves to check for a new symbol.
+			
+			Expected to be called by subclasses from @c process_pulse as and when recognised waves arise.
+		*/
 		void push_wave(WaveType wave)
 		{
 			_wave_queue.push_back(wave);
 			inspect_waves(_wave_queue);
 		}
 
+		/*!
+			Removes @c nunber_of_waves waves from the front of the list.
+			
+			Expected to be called by subclasses from @c process_pulse if it is recognised that the first set of waves
+			do not form a valid symbol.
+		*/
 		void remove_waves(int number_of_waves)
 		{
 			_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+number_of_waves);
 		}
 
+		/*!
+			Sets @c symbol as the newly-recognised symbol and removes @c nunber_of_waves waves from the front of the list.
+			
+			Expected to be called by subclasses from @c process_pulse when it recognises that the first @c number_of_waves
+			waves together represent @c symbol.
+		*/
 		void push_symbol(SymbolType symbol, int number_of_waves)
 		{
 			_has_next_symbol = true;
@@ -43,6 +68,10 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 			remove_waves(number_of_waves);
 		}
 
+		/*!
+			Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
+			or the tape runs out, returning the most-recently declared symbol.
+		*/
 		SymbolType get_next_symbol()
 		{
 			while(!_has_next_symbol && !is_at_end())
