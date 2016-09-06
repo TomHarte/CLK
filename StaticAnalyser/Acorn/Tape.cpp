@@ -101,13 +101,20 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 				return;
 			}
 
-			if(	waves.size() >= 4 &&
-				waves[0] == WaveType::Short &&
-				waves[1] == WaveType::Short &&
-				waves[2] == WaveType::Short &&
-				waves[3] == WaveType::Short)
+			if(waves.size() >= 4)
 			{
-				push_symbol(SymbolType::One, 4);
+				// If this makes a 1, post it.
+				if(	waves[0] == WaveType::Short &&
+					waves[1] == WaveType::Short &&
+					waves[2] == WaveType::Short &&
+					waves[3] == WaveType::Short)
+				{
+					push_symbol(SymbolType::One, 4);
+					return;
+				}
+
+				// Otherwise, eject at least one wave as all options are exhausted.
+				remove_waves(1);
 				return;
 			}
 		}

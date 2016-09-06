@@ -83,7 +83,18 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 		}
 
 	private:
+		/*!
+			Should be implemented by subclasses. Consumes @c pulse. Is likely either to call @c push_wave
+			or to take no action.
+		*/
 		virtual void process_pulse(Storage::Tape::Tape::Pulse pulse) = 0;
+
+		/*!
+			Should be implemented by subclasses. Inspects @c waves for a potential new symbol. If one is
+			found should call @c push_symbol. May wish alternatively to call @c remove_waves to have entries
+			removed from the start of @c waves that cannot form a valid symbol. Need not do anything while
+			the waves at the start of @c waves may end up forming a symbol but the symbol is not yet complete.
+		*/
 		virtual void inspect_waves(const std::vector<WaveType> &waves) = 0;
 
 		std::vector<WaveType> _wave_queue;
