@@ -16,6 +16,8 @@ namespace StaticAnalyser {
 namespace Commodore {
 
 struct File {
+	std::wstring name;
+	std::vector<uint8_t> raw_name;
 	uint16_t starting_address;
 	uint16_t ending_address;
 	enum {
