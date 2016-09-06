@@ -48,8 +48,6 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		void process_pulse(Storage::Tape::Tape::Pulse pulse)
 		{
 			bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-			_wave_period += pulse.length.get_float();
-
 			if(!is_high && _previous_was_high)
 			{
 				if(_wave_period >= 0.000592 && _wave_period < 0.000752)			push_wave(WaveType::Long);
@@ -60,6 +58,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 				_wave_period = 0.0f;
 			}
 
+			_wave_period += pulse.length.get_float();
 			_previous_was_high = is_high;
 		}
 		bool _previous_was_high;
