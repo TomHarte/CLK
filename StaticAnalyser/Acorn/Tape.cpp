@@ -89,34 +89,26 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 
 		void inspect_waves(const std::vector<WaveType> &waves)
 		{
-			while(waves.size() && waves[0] == WaveType::Unrecognised)
-			{
-				remove_waves(1);
-				return;
-			}
+			if(waves.size() < 2) return;
 
-			if(waves.size() >= 2 && waves[0] == WaveType::Long && waves[1] == WaveType::Long)
+			if(waves[0] == WaveType::Long && waves[1] == WaveType::Long)
 			{
 				push_symbol(SymbolType::Zero, 2);
 				return;
 			}
 
-			if(waves.size() >= 4)
-			{
-				// If this makes a 1, post it.
-				if(	waves[0] == WaveType::Short &&
-					waves[1] == WaveType::Short &&
-					waves[2] == WaveType::Short &&
-					waves[3] == WaveType::Short)
-				{
-					push_symbol(SymbolType::One, 4);
-					return;
-				}
+			if(waves.size() < 4) return;
 
-				// Otherwise, eject at least one wave as all options are exhausted.
-				remove_waves(1);
+			if(	waves[0] == WaveType::Short &&
+				waves[1] == WaveType::Short &&
+				waves[2] == WaveType::Short &&
+				waves[3] == WaveType::Short)
+			{
+				push_symbol(SymbolType::One, 4);
 				return;
 			}
+
+			remove_waves(1);
 		}
 
 		void add_to_crc(uint8_t value)
