@@ -25,6 +25,8 @@ struct File {
 	std::vector<uint8_t> data;
 };
 
+std::list<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
+
 }
 }
 #endif /* Tape_hpp */

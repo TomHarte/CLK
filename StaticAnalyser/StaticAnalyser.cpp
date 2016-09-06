@@ -12,6 +12,7 @@
 
 // Analysers
 #include "Acorn/AcornAnalyser.hpp"
+#include "Commodore/CommodoreAnalyser.hpp"
 
 // Cartridges
 #include "../Storage/Cartridge/Formats/BinaryDump.hpp"
@@ -106,10 +107,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them. (TODO)
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)
-	{
-		Acorn::AddTargets(disks, tapes, cartridges, targets);
-	}
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
 
 	free(lowercase_extension);
 	return targets;

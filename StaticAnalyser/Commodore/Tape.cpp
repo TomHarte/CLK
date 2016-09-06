@@ -7,3 +7,12 @@
 //
 
 #include "Tape.hpp"
+
+using namespace StaticAnalyser::Commodore;
+
+std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
+{
+	std::list<File> file_list;
+
+	return file_list;
+}
