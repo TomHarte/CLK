@@ -112,6 +112,6 @@ void StaticAnalyser::Acorn::AddTargets(
 
 	// TODO: disks
 
-//	if(target.tapes.size() || target.cartridges.size())
+	if(target.tapes.size() || target.cartridges.size())
 		destination.push_back(target);
 }

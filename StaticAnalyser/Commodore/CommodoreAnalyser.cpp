@@ -32,5 +32,16 @@ void StaticAnalyser::Commodore::AddTargets(
 		tape->reset();
 		std::list<File> files = GetFiles(tape);
 		tape->reset();
+
+		// continue if there are any files
+		if(files.size())
+		{
+			// TODO: decide between ,1 (don't relocate; for machine code) and ,0 (relocate; for BASIC)
+			// TODO: decide memory model (based on extents and sizes)
+			// TODO: decide machine (disassemble?)
+		}
 	}
+
+	if(target.tapes.size() || target.cartridges.size() || target.disks.size())
+		destination.push_back(target);
 }
