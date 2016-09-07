@@ -24,9 +24,9 @@ enum class SymbolType {
 struct Header {
 	enum {
 		RelocatableProgram,
-		DataBlock,
 		NonRelocatableProgram,
-		SequenceHeader,
+		DataSequenceHeader,
+		DataBlock,
 		EndOfTape,
 		Unknown
 	} type;
@@ -78,7 +78,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 				case 0x01:	header->type = Header::RelocatableProgram;		break;
 				case 0x02:	header->type = Header::DataBlock;				break;
 				case 0x03:	header->type = Header::NonRelocatableProgram;	break;
-				case 0x04:	header->type = Header::SequenceHeader;			break;
+				case 0x04:	header->type = Header::DataSequenceHeader;		break;
 				case 0x05:	header->type = Header::EndOfTape;				break;
 			}
 
@@ -339,10 +339,66 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
 	CommodoreROMTapeParser parser(tape);
-	std::unique_ptr<Header> header = parser.get_next_header();
-	std::unique_ptr<Data> data = parser.get_next_data();
-	parser.spin();
-
 	std::list<File> file_list;
+
+	std::unique_ptr<Header> header = parser.get_next_header();
+
+	while(!parser.is_at_end())
+	{
+		if(!header)
+		{
+			header = parser.get_next_header();
+			continue;
+		}
+
+		switch(header->type)
+		{
+			case Header::DataSequenceHeader:
+			{
+				File new_file;
+				new_file.name = header->name;
+				new_file.raw_name = header->raw_name;
+				new_file.starting_address = header->starting_address;
+				new_file.ending_address = header->ending_address;
+				new_file.type = File::DataSequence;
+
+				new_file.data.swap(header->data);
+				while(1)
+				{
+					header = parser.get_next_header();
+					if(header->type != Header::DataBlock) break;
+					std::copy(header->data.begin(), header->data.end(), std::back_inserter(new_file.data));
+				}
+
+				file_list.push_back(new_file);
+			}
+			break;
+
+			case Header::RelocatableProgram:
+			case Header::NonRelocatableProgram:
+			{
+				std::unique_ptr<Data> data = parser.get_next_data();
+
+				File new_file;
+				new_file.name = header->name;
+				new_file.raw_name = header->raw_name;
+				new_file.starting_address = header->starting_address;
+				new_file.ending_address = header->ending_address;
+				new_file.data.swap(data->data);
+				new_file.type = (header->type == Header::RelocatableProgram) ? File::RelocatableProgram : File::NonRelocatableProgram;
+
+				file_list.push_back(new_file);
+
+				header = parser.get_next_header();
+			}
+			break;
+
+			default:
+				header = parser.get_next_header();
+			break;
+		}
+	}
+
+
 	return file_list;
 }

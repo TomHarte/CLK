@@ -21,9 +21,10 @@ struct File {
 	uint16_t starting_address;
 	uint16_t ending_address;
 	enum {
-		Program,
-		Stream
-	} Type;
+		RelocatableProgram,
+		NonRelocatableProgram,
+		DataSequence,
+	} type;
 	std::vector<uint8_t> data;
 };
 
