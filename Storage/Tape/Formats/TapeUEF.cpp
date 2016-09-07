@@ -124,7 +124,36 @@ Storage::Tape::Tape::Pulse UEF::get_next_pulse()
 			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
 		break;
 
-		case 0x0111:	// TODO: insert dummy byte
+		case 0x0111:
+			if(_chunk_position < _high_tone_with_dummy.pre_length || _chunk_position >= _high_tone_with_dummy.pre_length+10)
+			{
+				next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
+				next_pulse.length.length = 1;
+				next_pulse.length.clock_rate = _time_base * 4;
+				_bit_position ^= 1;
+
+				if(!_bit_position) _chunk_position++;
+			}
+			else
+			{
+				// to output 0xaa: 0
+				if(!_bit_position)
+				{
+					_current_bit = (0x354 >> (_chunk_position - _high_tone_with_dummy.pre_length))&1;
+				}
+
+				next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
+				next_pulse.length.length = _current_bit ? 1 : 2;
+				next_pulse.length.clock_rate = _time_base * 4;
+				_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
+
+				if(!_bit_position)
+				{
+					_chunk_position++;
+				}
+			}
+		break;
+
 		case 0x0110:
 			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
 			next_pulse.length.length = 1;
@@ -303,7 +332,7 @@ bool UEF::get_next_bit()
 		}
 		break;
 
-		// TODO: 0x0104, 0x0111
+		// TODO: 0x0104
 
 		case 0x0114:
 		{
