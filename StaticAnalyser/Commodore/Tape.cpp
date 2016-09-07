@@ -40,6 +40,12 @@ struct Header {
 	bool duplicate_matched;
 };
 
+struct Data {
+	std::vector<uint8_t> data;
+	bool parity_was_valid;
+	bool duplicate_matched;
+};
+
 class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolType> {
 	public:
 		CommodoreROMTapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) :
@@ -113,20 +119,40 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			return header;
 		}
 
-		std::unique_ptr<std::vector<uint8_t>> get_next_data()
+		std::unique_ptr<Data> get_next_data()
 		{
-			std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+			std::unique_ptr<Data> data(new Data);
 
 			// find and proceed beyond lead-in tone to the next landing zone
 			proceed_to_symbol(SymbolType::LeadIn);
 			proceed_to_landing_zone(true);
+			reset_parity_byte();
 
-			// accumulate until the next lead-in tone is hit
-//			while(!is_at_end())
-//			{
-//				data->push_back(get_next_byte());
-//			}
+			// accumulate until the next non-word marker is hit
+			while(!is_at_end())
+			{
+				SymbolType start_symbol = get_next_symbol();
+				if(start_symbol != SymbolType::Word) break;
+				data->data.push_back(get_next_byte_contents());
+			}
 
+			// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
+			data->parity_was_valid = !get_parity_byte();
+
+			// compare to the duplicate
+			proceed_to_symbol(SymbolType::LeadIn);
+			proceed_to_landing_zone(false);
+			reset_parity_byte();
+			data->duplicate_matched = true;
+			for(size_t c = 0; c < data->data.size(); c++)
+			{
+				if(get_next_byte() != data->data[c]) data->duplicate_matched = false;
+			}
+
+			// remove the captured parity
+			data->data.erase(data->data.end()-1);
+
+			if(get_error_flag()) return nullptr;
 			return data;
 		}
 
@@ -199,15 +225,22 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		void add_parity_byte(uint8_t byte)	{ _parity_byte ^= byte;	}
 
 		/*!
-			Proceeds to the next word marker then reads the nine symbols following it. Applies a binary
-			test to each to differentiate between ::One and not-::One. Returns a byte composed of the first
-			eight of those as bits; sets the error flag if any symbol is not ::One and not ::Zero or if
-			the ninth bit is not equal to the odd parity of the other eight.
+			Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
 		*/
 		uint8_t get_next_byte()
 		{
-			int byte_plus_parity = 0;
 			proceed_to_symbol(SymbolType::Word);
+			return get_next_byte_contents();
+		}
+
+		/*!
+			Reads the next nine symbols and applies a binary test to each to differentiate between ::One and not-::One. 
+			Returns a byte composed of the first eight of those as bits; sets the error flag if any symbol is not
+			::One and not ::Zero, or if the ninth bit is not equal to the odd parity of the other eight.
+		*/
+		uint8_t get_next_byte_contents()
+		{
+			int byte_plus_parity = 0;
 			int c = 9;
 			while(c--)
 			{
@@ -306,7 +339,8 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
 	CommodoreROMTapeParser parser(tape);
-	parser.get_next_header();
+	std::unique_ptr<Header> header = parser.get_next_header();
+	std::unique_ptr<Data> data = parser.get_next_data();
 	parser.spin();
 
 	std::list<File> file_list;
