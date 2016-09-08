@@ -161,18 +161,21 @@ class Vic20Document: MachineDocument {
 		vic20.shouldLoadAutomatically = loadAutomatically
 		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
 
-		let memorySize = standardUserDefaults.integerForKey(self.memorySizeUserDefaultsKey)
-		var indexToSelect: Int?
-		switch memorySize {
-			case 32:	indexToSelect = 2
-			case 8:		indexToSelect = 1
-			default:	indexToSelect = 0
-		}
-		if let indexToSelect = indexToSelect {
-			self.memorySizeButton?.selectItemAtIndex(indexToSelect)
-			setMemorySize(indexToSelect)
+		if !loadAutomatically {
+			let memorySize = standardUserDefaults.integerForKey(self.memorySizeUserDefaultsKey)
+			var indexToSelect: Int?
+			switch memorySize {
+				case 32:	indexToSelect = 2
+				case 8:		indexToSelect = 1
+				default:	indexToSelect = 0
+			}
+			if let indexToSelect = indexToSelect {
+				self.memorySizeButton?.selectItemAtIndex(indexToSelect)
+				setMemorySize(indexToSelect)
+			}
 		}
 
+		// TODO: this should be part of the configuration
 		let country = standardUserDefaults.integerForKey(self.countryUserDefaultsKey)
 		setCountry(country)
 		self.countryButton?.selectItemAtIndex(country)
