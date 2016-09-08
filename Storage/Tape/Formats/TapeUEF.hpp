@@ -11,7 +11,8 @@
 
 #include "../Tape.hpp"
 #include <zlib.h>
-#include <stdint.h>
+#include <cstdint>
+#include <vector>
 
 namespace Storage {
 namespace Tape {
@@ -41,42 +42,27 @@ class UEF : public Tape {
 	private:
 		gzFile _file;
 		unsigned int _time_base;
-		z_off_t _start_of_next_chunk;
-
-		uint16_t _chunk_id;
-		uint32_t _chunk_length;
-
-		union {
-			struct {
-				uint8_t current_byte;
-				uint32_t position;
-			} _implicit_data_chunk;
-
-			struct {
-				uint8_t current_byte;
-				uint32_t position;
-			} _explicit_data_chunk;
-
-			struct {
-				unsigned int pre_length, post_length;
-			} _high_tone_with_dummy;
-		};
-
-		uint8_t _current_byte;
-		uint32_t _chunk_position;
 		bool _is_at_end;
 
-		bool _current_bit;
-		uint32_t _bit_position;
+		std::vector<Pulse> _queued_pulses;
+		size_t _pulse_pointer;
 
-		Time _chunk_duration;
+		void parse_next_tape_chunk();
 
-		bool _first_is_pulse;
-		bool _last_is_pulse;
+		void queue_implicit_bit_pattern(uint32_t length);
+		void queue_explicit_bit_pattern(uint32_t length);
 
-		void find_next_tape_chunk();
-		bool get_next_bit();
-		bool chunk_is_finished();
+		void queue_integer_gap();
+		void queue_floating_point_gap();
+
+		void queue_carrier_tone();
+		void queue_carrier_tone_with_dummy();
+
+		void queue_security_cycles();
+		void queue_defined_data(uint32_t length);
+
+		void queue_bit(int bit);
+		void queue_implicit_byte(uint8_t byte);
 };
 
 }

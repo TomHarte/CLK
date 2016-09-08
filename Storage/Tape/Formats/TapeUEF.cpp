@@ -9,6 +9,7 @@
 #include "TapeUEF.hpp"
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 
 using namespace Storage::Tape;
@@ -44,10 +45,31 @@ static float gzgetfloat(gzFile file)
 	return result;
 }
 
+static int gzget16(gzFile file)
+{
+	int result = gzgetc(file);
+	result |= (gzgetc(file) << 8);
+	return result;
+}
+
+static int gzget24(gzFile file)
+{
+	int result = gzget16(file);
+	result |= (gzgetc(file) << 16);
+	return result;
+}
+
+static int gzget32(gzFile file)
+{
+	int result = gzget16(file);
+	result |= (gzget16(file) << 16);
+	return result;
+}
+
 UEF::UEF(const char *file_name) :
-	_chunk_id(0), _chunk_length(0), _chunk_position(0),
 	_time_base(1200),
-	_is_at_end(false)
+	_is_at_end(false),
+	_pulse_pointer(0)
 {
 	_file = gzopen(file_name, "rb");
 
@@ -67,8 +89,7 @@ UEF::UEF(const char *file_name) :
 		throw ErrorNotUEF;
 	}
 
-	_start_of_next_chunk = gztell(_file);
-	find_next_tape_chunk();
+	parse_next_tape_chunk();
 }
 
 UEF::~UEF()
@@ -76,12 +97,13 @@ UEF::~UEF()
 	gzclose(_file);
 }
 
+#pragma mark - Public methods
+
 void UEF::reset()
 {
 	gzseek(_file, 12, SEEK_SET);
 	_is_at_end = false;
-	_start_of_next_chunk = gztell(_file);
-	find_next_tape_chunk();
+	parse_next_tape_chunk();
 }
 
 bool UEF::is_at_end()
@@ -101,119 +123,29 @@ Storage::Tape::Tape::Pulse UEF::get_next_pulse()
 		return next_pulse;
 	}
 
-	if(!_bit_position && chunk_is_finished())
+	next_pulse = _queued_pulses[_pulse_pointer];
+	_pulse_pointer++;
+	if(_pulse_pointer == _queued_pulses.size())
 	{
-		find_next_tape_chunk();
+		_queued_pulses.clear();
+		_pulse_pointer = 0;
+		parse_next_tape_chunk();
 	}
-
-	switch(_chunk_id)
-	{
-		case 0x0100: case 0x0102:
-			// In the ordinary ("1200 baud") data encoding format,
-			// a zero bit is encoded as one complete cycle at the base frequency.
-			// A one bit is two complete cycles at twice the base frequency.
-
-			if(!_bit_position)
-			{
-				_current_bit = get_next_bit();
-			}
-
-			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-			next_pulse.length.length = _current_bit ? 1 : 2;
-			next_pulse.length.clock_rate = _time_base * 4;
-			_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
-		break;
-
-		case 0x0111:
-			if(_chunk_position < _high_tone_with_dummy.pre_length || _chunk_position >= _high_tone_with_dummy.pre_length+10)
-			{
-				next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-				next_pulse.length.length = 1;
-				next_pulse.length.clock_rate = _time_base * 4;
-				_bit_position ^= 1;
-
-				if(!_bit_position) _chunk_position++;
-			}
-			else
-			{
-				// to output 0xaa: 0
-				if(!_bit_position)
-				{
-					_current_bit = (0x354 >> (_chunk_position - _high_tone_with_dummy.pre_length))&1;
-				}
-
-				next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-				next_pulse.length.length = _current_bit ? 1 : 2;
-				next_pulse.length.clock_rate = _time_base * 4;
-				_bit_position = (_bit_position+1)&(_current_bit ? 3 : 1);
-
-				if(!_bit_position)
-				{
-					_chunk_position++;
-				}
-			}
-		break;
-
-		case 0x0110:
-			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-			next_pulse.length.length = 1;
-			next_pulse.length.clock_rate = _time_base * 4;
-			_bit_position ^= 1;
-
-			if(!_bit_position) _chunk_position++;
-		break;
-
-		case 0x0114:
-			if(!_bit_position)
-			{
-				_current_bit = get_next_bit();
-				if(_first_is_pulse && !_chunk_position)
-				{
-					_bit_position++;
-				}
-			}
-
-			next_pulse.type = (_bit_position&1) ? Pulse::High : Pulse::Low;
-			next_pulse.length.length = _current_bit ? 1 : 2;
-			next_pulse.length.clock_rate = _time_base * 4;
-			_bit_position ^= 1;
-
-			if((_chunk_id == 0x0114) && (_chunk_position == _chunk_duration.length-1) && _last_is_pulse)
-			{
-				_chunk_position++;
-			}
-		break;
-
-		case 0x0112:
-		case 0x0116:
-			next_pulse.type = Pulse::Zero;
-			next_pulse.length = _chunk_duration;
-			_chunk_position++;
-		break;
-	}
-
 	return next_pulse;
 }
 
-void UEF::find_next_tape_chunk()
+#pragma mark - Chunk navigator
+
+void UEF::parse_next_tape_chunk()
 {
-	_chunk_position = 0;
-	_bit_position = 0;
-
-	while(1)
+	while(!_queued_pulses.size())
 	{
-		gzseek(_file, _start_of_next_chunk, SEEK_SET);
+		// read chunk details
+		uint16_t chunk_id = (uint16_t)gzget16(_file);
+		uint32_t chunk_length = (uint32_t)gzget32(_file);
 
-		// read chunk ID
-		_chunk_id = (uint16_t)gzgetc(_file);
-		_chunk_id |= (uint16_t)(gzgetc(_file) << 8);
-
-		_chunk_length = (uint32_t)(gzgetc(_file) << 0);
-		_chunk_length |= (uint32_t)(gzgetc(_file) << 8);
-		_chunk_length |= (uint32_t)(gzgetc(_file) << 16);
-		_chunk_length |= (uint32_t)(gzgetc(_file) << 24);
-
-		_start_of_next_chunk = gztell(_file) + _chunk_length;
+		// figure out where the next chunk will start
+		z_off_t start_of_next_chunk = gztell(_file) + chunk_length;
 
 		if(gzeof(_file))
 		{
@@ -221,55 +153,18 @@ void UEF::find_next_tape_chunk()
 			return;
 		}
 
-		switch(_chunk_id)
+		switch(chunk_id)
 		{
-			case 0x0100: // implicit bit pattern
-				_implicit_data_chunk.position = 0;
-			return;
+			case 0x0100:	queue_implicit_bit_pattern(chunk_length);	break;
+			case 0x0102:	queue_explicit_bit_pattern(chunk_length);	break;
+			case 0x0112:	queue_integer_gap();						break;
+			case 0x0116:	queue_floating_point_gap();					break;
 
-			case 0x0102: // explicit bit patterns
-				_explicit_data_chunk.position = 0;
-			return;
+			case 0x0110:	queue_carrier_tone();						break;
+			case 0x0111:	queue_carrier_tone_with_dummy();			break;
 
-			case 0x0112: // integer gap
-				_chunk_duration.length = (uint16_t)gzgetc(_file);
-				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
-				_chunk_duration.clock_rate = _time_base;
-			return;
-
-			case 0x0116: // floating point gap
-			{
-				float length = gzgetfloat(_file);
-				_chunk_duration.length = (unsigned int)(length * 4000000);
-				_chunk_duration.clock_rate = 4000000;
-			}
-			return;
-
-			case 0x0110: // carrier tone
-				_chunk_duration.length = (uint16_t)gzgetc(_file);
-				_chunk_duration.length |= (uint16_t)(gzgetc(_file) << 8);
-				gzseek(_file, _chunk_length - 2, SEEK_CUR);
-			return;
-			case 0x0111: // carrier tone with dummy byte
-				_high_tone_with_dummy.pre_length = (uint16_t)gzgetc(_file);
-				_high_tone_with_dummy.pre_length |= (uint16_t)(gzgetc(_file) << 8);
-				_high_tone_with_dummy.post_length = (uint16_t)gzgetc(_file);
-				_high_tone_with_dummy.post_length |= (uint16_t)(gzgetc(_file) << 8);
-				_chunk_duration.length = _high_tone_with_dummy.post_length + _high_tone_with_dummy.pre_length + 10;
-				gzseek(_file, _chunk_length - 4, SEEK_CUR);
-			return;
-			case 0x0114: // security cycles
-			{
-				// read number of cycles
-				_chunk_duration.length = (uint32_t)gzgetc(_file);
-				_chunk_duration.length |= (uint32_t)gzgetc(_file) << 8;
-				_chunk_duration.length |= (uint32_t)gzgetc(_file) << 16;
-
-				// Ps and Ws
-				_first_is_pulse = gzgetc(_file) == 'P';
-				_last_is_pulse = gzgetc(_file) == 'P';
-			}
-			break;
+			case 0x0114:	queue_security_cycles();					break;
+			case 0x0104:	queue_defined_data(chunk_length);			break;
 
 			case 0x113: // change of base rate
 			{
@@ -280,80 +175,187 @@ void UEF::find_next_tape_chunk()
 			break;
 
 			default:
-				printf("!!! Skipping %04x\n", _chunk_id);
-				gzseek(_file, _chunk_length, SEEK_CUR);
+				printf("!!! Skipping %04x\n", chunk_id);
 			break;
 		}
+
+		gzseek(_file, start_of_next_chunk, SEEK_SET);
 	}
 }
 
-bool UEF::chunk_is_finished()
+#pragma mark - Chunk parsers
+
+void UEF::queue_implicit_bit_pattern(uint32_t length)
 {
-	switch(_chunk_id)
+	while(length--)
 	{
-		case 0x0100: return (_implicit_data_chunk.position / 10) == _chunk_length;
-		case 0x0102: return (_explicit_data_chunk.position / 8) == _chunk_length;
-		case 0x0114:
-		case 0x0111:
-		case 0x0110: return _chunk_position == _chunk_duration.length;
-
-		case 0x0112:
-		case 0x0116: return _chunk_position ? true : false;
-
-		default: return true;
+		queue_implicit_byte((uint8_t)gzgetc(_file));
 	}
 }
 
-bool UEF::get_next_bit()
+void UEF::queue_explicit_bit_pattern(uint32_t length)
 {
-	switch(_chunk_id)
+	size_t length_in_bits = (length << 3) - (size_t)gzgetc(_file);
+	uint8_t current_byte = 0;
+	for(size_t bit = 0; bit < length_in_bits; bit++)
 	{
-		case 0x0100:
+		if(!(bit&7)) current_byte = (uint8_t)gzgetc(_file);
+		queue_bit(current_byte&1);
+		current_byte >>= 1;
+	}
+}
+
+void UEF::queue_integer_gap()
+{
+	Time duration;
+	duration.length = (unsigned int)gzget16(_file);
+	duration.clock_rate = _time_base;
+	_queued_pulses.emplace_back(Pulse::Zero, duration);
+}
+
+void UEF::queue_floating_point_gap()
+{
+	float length = gzgetfloat(_file);
+	Time duration;
+	duration.length = (unsigned int)(length * 4000000);
+	duration.clock_rate = 4000000;
+	_queued_pulses.emplace_back(Pulse::Zero, duration);
+}
+
+void UEF::queue_carrier_tone()
+{
+	unsigned int number_of_cycles = (unsigned int)gzget16(_file);
+	while(number_of_cycles--) queue_bit(1);
+}
+
+void UEF::queue_carrier_tone_with_dummy()
+{
+	unsigned int pre_cycles = (unsigned int)gzget16(_file);
+	unsigned int post_cycles = (unsigned int)gzget16(_file);
+	while(pre_cycles--) queue_bit(1);
+	queue_implicit_byte(0xaa);
+	while(post_cycles--) queue_bit(1);
+}
+
+void UEF::queue_security_cycles()
+{
+	int number_of_cycles = gzget24(_file);
+	bool first_is_pulse = gzgetc(_file) == 'P';
+	bool last_is_pulse = gzgetc(_file) == 'P';
+
+	uint8_t current_byte = 0;
+	for(int cycle = 0; cycle < number_of_cycles; cycle++)
+	{
+		if(!(cycle&7)) current_byte = (uint8_t)gzgetc(_file);
+		int bit = (current_byte >> 7);
+		current_byte <<= 1;
+
+		Time duration;
+		duration.length = bit ? 1 : 2;
+		duration.clock_rate = _time_base * 4;
+
+		if(!cycle && first_is_pulse)
 		{
-			uint32_t bit_position = _implicit_data_chunk.position%10;
-			_implicit_data_chunk.position++;
-			if(!bit_position) _implicit_data_chunk.current_byte = (uint8_t)gzgetc(_file);
-			if(bit_position == 0) return false;
-			if(bit_position == 9) return true;
-			bool result = (_implicit_data_chunk.current_byte&1) ? true : false;
-			_implicit_data_chunk.current_byte >>= 1;
-			return result;
+			_queued_pulses.emplace_back(Pulse::High, duration);
 		}
-		break;
-
-		case 0x0102:
+		else if(cycle == number_of_cycles-1 && last_is_pulse)
 		{
-			uint32_t bit_position = _explicit_data_chunk.position%8;
-			_explicit_data_chunk.position++;
-			if(!bit_position) _explicit_data_chunk.current_byte = (uint8_t)gzgetc(_file);
-			bool result = (_explicit_data_chunk.current_byte&1) ? true : false;
-			_explicit_data_chunk.current_byte >>= 1;
-			return result;
+			_queued_pulses.emplace_back(Pulse::Low, duration);
 		}
-		break;
-
-		// TODO: 0x0104
-
-		case 0x0114:
+		else
 		{
-			uint32_t bit_position = _chunk_position%8;
-			_chunk_position++;
-			if(!bit_position && _chunk_position < _chunk_duration.length)
-			{
-				_current_byte = (uint8_t)gzgetc(_file);
-			}
-			bool result = (_current_byte&1) ? true : false;
-			_current_byte >>= 1;
-			return result;
+			_queued_pulses.emplace_back(Pulse::Low, duration);
+			_queued_pulses.emplace_back(Pulse::High, duration);
 		}
-		break;
+	}
+}
 
-		case 0x0111:
+void UEF::queue_defined_data(uint32_t length)
+{
+	if(length < 3) return;
 
-		case 0x0110:
-			_chunk_position++;
-		return true;
+	int bits_per_packet = gzgetc(_file);
+	char parity_type = (char)gzgetc(_file);
+	int number_of_stop_bits = gzgetc(_file);
 
-		default: return true;
+	bool has_extra_stop_wave = (number_of_stop_bits < 0);
+	number_of_stop_bits = abs(number_of_stop_bits);
+
+	length -= 3;
+	while(length--)
+	{
+		uint8_t byte = (uint8_t)gzgetc(_file);
+
+		uint8_t parity_value = byte;
+		parity_value ^= (parity_value >> 4);
+		parity_value ^= (parity_value >> 2);
+		parity_value ^= (parity_value >> 1);
+
+		queue_bit(0);
+		int c = bits_per_packet;
+		while(c--)
+		{
+			queue_bit(byte&1);
+			byte >>= 1;
+		}
+
+		switch(parity_type)
+		{
+			default: break;
+			case 'E': queue_bit(parity_value&1);			break;
+			case 'O': queue_bit((parity_value&1) ^ 1);	break;
+		}
+
+		int stop_bits = number_of_stop_bits;
+		while(stop_bits--) queue_bit(1);
+		if(has_extra_stop_wave)
+		{
+			Time duration;
+			duration.length = 1;
+			duration.clock_rate = _time_base * 4;
+			_queued_pulses.emplace_back(Pulse::Low, duration);
+			_queued_pulses.emplace_back(Pulse::High, duration);
+		}
+	}
+}
+
+#pragma mark - Queuing helpers
+
+void UEF::queue_implicit_byte(uint8_t byte)
+{
+	queue_bit(0);
+	int c = 8;
+	while(c--)
+	{
+		queue_bit(byte&1);
+		byte >>= 1;
+	}
+	queue_bit(1);
+}
+
+void UEF::queue_bit(int bit)
+{
+	// TODO: allow for 300-baud encoding
+	if(bit)
+	{
+		// Encode a 1 as four high-frequency waves
+		Time duration;
+		duration.length = 1;
+		duration.clock_rate = _time_base * 4;
+
+		_queued_pulses.emplace_back(Pulse::Low, duration);
+		_queued_pulses.emplace_back(Pulse::High, duration);
+		_queued_pulses.emplace_back(Pulse::Low, duration);
+		_queued_pulses.emplace_back(Pulse::High, duration);
+	}
+	else
+	{
+		// Encode a 0 as two low-frequency waves
+		Time duration;
+		duration.length = 2;
+		duration.clock_rate = _time_base * 4;
+
+		_queued_pulses.emplace_back(Pulse::Low, duration);
+		_queued_pulses.emplace_back(Pulse::High, duration);
 	}
 }
