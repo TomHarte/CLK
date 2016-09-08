@@ -29,10 +29,13 @@ namespace Tape {
 class Tape {
 	public:
 		struct Pulse {
-			enum {
+			enum Type {
 				High, Low, Zero
 			} type;
 			Time length;
+
+			Pulse(Type type, Time length) : type(type), length(length) {}
+			Pulse() {}
 		};
 
 		virtual Pulse get_next_pulse() = 0;
