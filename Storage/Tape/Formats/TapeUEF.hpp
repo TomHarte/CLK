@@ -43,6 +43,7 @@ class UEF : public Tape {
 		gzFile _file;
 		unsigned int _time_base;
 		bool _is_at_end;
+		bool _is_300_baud;
 
 		std::vector<Pulse> _queued_pulses;
 		size_t _pulse_pointer;

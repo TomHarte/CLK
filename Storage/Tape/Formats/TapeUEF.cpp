@@ -69,7 +69,8 @@ static int gzget32(gzFile file)
 UEF::UEF(const char *file_name) :
 	_time_base(1200),
 	_is_at_end(false),
-	_pulse_pointer(0)
+	_pulse_pointer(0),
+	_is_300_baud(false)
 {
 	_file = gzopen(file_name, "rb");
 
@@ -166,11 +167,18 @@ void UEF::parse_next_tape_chunk()
 			case 0x0114:	queue_security_cycles();					break;
 			case 0x0104:	queue_defined_data(chunk_length);			break;
 
-			case 0x113: // change of base rate
+			case 0x0113: // change of base rate
 			{
 				// TODO: something smarter than just converting this to an int
 				float new_time_base = gzgetfloat(_file);
 				_time_base = (unsigned int)roundf(new_time_base);
+			}
+			break;
+
+			case 0x0117:
+			{
+				int baud_rate = gzget16(_file);
+				_is_300_baud = (baud_rate == 300);
 			}
 			break;
 
@@ -335,26 +343,27 @@ void UEF::queue_implicit_byte(uint8_t byte)
 
 void UEF::queue_bit(int bit)
 {
-	// TODO: allow for 300-baud encoding
+	int number_of_cycles;
+	Time duration;
+	duration.clock_rate = _time_base * 4;
+
 	if(bit)
 	{
-		// Encode a 1 as four high-frequency waves
-		Time duration;
+		// encode high-frequency waves
 		duration.length = 1;
-		duration.clock_rate = _time_base * 4;
-
-		_queued_pulses.emplace_back(Pulse::Low, duration);
-		_queued_pulses.emplace_back(Pulse::High, duration);
-		_queued_pulses.emplace_back(Pulse::Low, duration);
-		_queued_pulses.emplace_back(Pulse::High, duration);
+		number_of_cycles = 2;
 	}
 	else
 	{
-		// Encode a 0 as two low-frequency waves
-		Time duration;
+		// encode low-frequency waves
 		duration.length = 2;
-		duration.clock_rate = _time_base * 4;
+		number_of_cycles = 1;
+	}
 
+	if(_is_300_baud) number_of_cycles *= 4;
+
+	while(number_of_cycles--)
+	{
 		_queued_pulses.emplace_back(Pulse::Low, duration);
 		_queued_pulses.emplace_back(Pulse::High, duration);
 	}
