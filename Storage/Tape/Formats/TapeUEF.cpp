@@ -310,7 +310,7 @@ void UEF::queue_defined_data(uint32_t length)
 		switch(parity_type)
 		{
 			default: break;
-			case 'E': queue_bit(parity_value&1);			break;
+			case 'E': queue_bit(parity_value&1);		break;
 			case 'O': queue_bit((parity_value&1) ^ 1);	break;
 		}
 
