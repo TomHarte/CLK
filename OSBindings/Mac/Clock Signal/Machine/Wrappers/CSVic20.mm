@@ -46,6 +46,12 @@ using namespace Commodore::Vic20;
 	[self setROM:rom slot:Drive];
 }
 
+- (void)applyTarget:(StaticAnalyser::Target)target {
+	@synchronized(self) {
+		_vic20.configure_as_target(target);
+	}
+}
+
 - (BOOL)openTAPAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {

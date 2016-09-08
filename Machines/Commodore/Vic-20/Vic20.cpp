@@ -269,10 +269,39 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 
 #pragma mar - Tape
 
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
+{
+	if(target.tapes.size())
+	{
+		_tape.set_tape(target.tapes.front());
+	}
+
+	if(_should_automatically_load_media)
+	{
+		if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+		{
+			set_typer_for_string(target.loadingCommand.c_str());
+		}
+
+		switch(target.vic20.memory_model)
+		{
+			case StaticAnalyser::Vic20MemoryModel::Unexpanded:
+				set_memory_size(Default);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::EightKB:
+				set_memory_size(ThreeKB);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
+				set_memory_size(ThirtyTwoKB);
+			break;
+		}
+	}
+}
+
 void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
-	_tape.set_tape(tape);
-	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
+//	_tape.set_tape(tape);
+//	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
 }
 
 void Machine::tape_did_change_input(Tape *tape)

@@ -19,6 +19,12 @@
 
 namespace StaticAnalyser {
 
+enum class Vic20MemoryModel {
+	Unexpanded,
+	EightKB,
+	ThirtyTwoKB
+};
+
 /*!
 	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
@@ -33,11 +39,7 @@ struct Target {
 
 	union {
 		struct {
-			enum class Vic20 {
-				Unexpanded,
-				EightKB,
-				ThirtyTwoKB
-			} memoryModel;
+			Vic20MemoryModel memory_model;
 			bool has_c1540;
 		} vic20;
 
