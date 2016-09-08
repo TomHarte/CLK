@@ -98,6 +98,8 @@ void StaticAnalyser::Commodore::AddTargets(
 			else
 			{
 				// TODO: this is machine code. So, ummm?
+				printf("Need to deal with machine code from %04x to %04x???\n", files.front().starting_address, files.front().ending_address);
+				target.loadingCommand = "LOAD\"\",1,1\nRUN\n";
 			}
 
 			target.tapes = tapes;
