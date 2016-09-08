@@ -9,7 +9,9 @@
 #import "CSMachine.h"
 #import "CSMachine+Subclassing.h"
 #import "CSMachine+Target.h"
+
 #include "Typer.hpp"
+#include "ConfigurationTarget.hpp"
 
 @interface CSMachine()
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -123,6 +125,12 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
 
-- (void)applyTarget:(StaticAnalyser::Target)target {}
+- (void)applyTarget:(StaticAnalyser::Target)target {
+	@synchronized(self) {
+		ConfigurationTarget::Machine *const configurationTarget =
+			dynamic_cast<ConfigurationTarget::Machine *>(self.machine);
+		if(configurationTarget) configurationTarget->configure_as_target(target);
+	}
+}
 
 @end

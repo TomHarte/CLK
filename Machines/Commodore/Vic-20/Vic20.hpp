@@ -9,6 +9,7 @@
 #ifndef Vic20_hpp
 #define Vic20_hpp
 
+#include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../Typer.hpp"
 
@@ -21,7 +22,6 @@
 
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../../../Storage/Disk/Disk.hpp"
-#include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 namespace Commodore {
 namespace Vic20 {
@@ -254,7 +254,8 @@ class Machine:
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public Utility::TypeRecipient,
-	public Tape::Delegate {
+	public Tape::Delegate,
+	public ConfigurationTarget::Machine {
 
 	public:
 		Machine();

@@ -10,7 +10,6 @@
 
 #include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
-#import "CSMachine+Target.h"
 #include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
 
@@ -35,12 +34,6 @@
 - (void)setBASICROM:(nonnull NSData *)rom {
 	@synchronized(self) {
 		_electron.set_rom(Electron::ROMSlotBASIC, rom.length, (const uint8_t *)rom.bytes);
-	}
-}
-
-- (void)applyTarget:(StaticAnalyser::Target)target {
-	@synchronized(self) {
-		_electron.configure_as_target(target);
 	}
 }
 

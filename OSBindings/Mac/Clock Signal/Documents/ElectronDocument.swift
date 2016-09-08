@@ -44,10 +44,6 @@ class ElectronDocument: MachineDocument {
 		return "ElectronDocument"
 	}
 
-	override func configureAs(analysis: CSStaticAnalyser) {
-		analysis.applyToMachine(electron)
-	}
-
 /*	override func readFromURL(url: NSURL, ofType typeName: String) throws {
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {

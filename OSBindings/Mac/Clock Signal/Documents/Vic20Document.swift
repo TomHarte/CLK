@@ -41,10 +41,6 @@ class Vic20Document: MachineDocument {
 		return "Vic20Document"
 	}
 
-	override func configureAs(analysis: CSStaticAnalyser) {
-		analysis.applyToMachine(vic20)
-	}
-
 	override func readFromURL(url: NSURL, ofType typeName: String) throws {
 		if let pathExtension = url.pathExtension {
 			switch pathExtension.lowercaseString {

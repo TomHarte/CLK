@@ -11,8 +11,8 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
-#include "../../StaticAnalyser/StaticAnalyser.hpp"
 
+#include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
@@ -139,8 +139,9 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
-	Tape::Delegate,
-	public Utility::TypeRecipient {
+	public Tape::Delegate,
+	public Utility::TypeRecipient,
+	public ConfigurationTarget::Machine {
 
 	public:
 		Machine();

@@ -100,6 +100,7 @@ class MachineDocument:
 
 	// MARK: configuring
 	func configureAs(analysis: CSStaticAnalyser) {
+		analysis.applyToMachine(self.machine)
 	}
 
 	// MARK: the pasteboard
