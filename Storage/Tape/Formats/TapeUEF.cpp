@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cmath>
 
-using namespace Storage::Tape;
+#pragma mark - ZLib extensions
 
 static float gzgetfloat(gzFile file)
 {
@@ -65,6 +65,8 @@ static int gzget32(gzFile file)
 	result |= (gzget16(file) << 16);
 	return result;
 }
+
+using namespace Storage::Tape;
 
 UEF::UEF(const char *file_name) :
 	_time_base(1200),
