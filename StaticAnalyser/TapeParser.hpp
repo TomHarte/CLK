@@ -31,7 +31,6 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 		bool is_at_end()			{	return _tape->is_at_end();	}
 
 	protected:
-		bool _error_flag;
 
 		/*!
 			Adds @c wave to the back of the list of recognised waves and calls @c inspect_waves to check for a new symbol.
@@ -82,7 +81,14 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 			return _next_symbol;
 		}
 
+		void set_error_flag()
+		{
+			_error_flag = true;
+		}
+
 	private:
+		bool _error_flag;
+
 		/*!
 			Should be implemented by subclasses. Consumes @c pulse. Is likely either to call @c push_wave
 			or to take no action.

@@ -37,7 +37,7 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 			int c = 8;
 			if(get_next_bit())
 			{
-				_error_flag = true;
+				set_error_flag();
 				return -1;
 			}
 			while(c--)
@@ -46,7 +46,7 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 			}
 			if(!get_next_bit())
 			{
-				_error_flag = true;
+				set_error_flag();
 				return -1;
 			}
 			add_to_crc((uint8_t)value);

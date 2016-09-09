@@ -122,6 +122,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		std::unique_ptr<Data> get_next_data()
 		{
 			std::unique_ptr<Data> data(new Data);
+			reset_error_flag();
 
 			// find and proceed beyond lead-in tone to the next landing zone
 			proceed_to_symbol(SymbolType::LeadIn);
@@ -216,7 +217,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		void expect_byte(uint8_t value)
 		{
 			uint8_t next_byte = get_next_byte();
-			if(next_byte != value) _error_flag = true;
+			if(next_byte != value) set_error_flag();
 		}
 
 		uint8_t _parity_byte;
@@ -245,7 +246,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			while(c--)
 			{
 				SymbolType next_symbol = get_next_symbol();
-				if((next_symbol != SymbolType::One) && (next_symbol != SymbolType::Zero)) _error_flag = true;
+				if((next_symbol != SymbolType::One) && (next_symbol != SymbolType::Zero)) set_error_flag();
 				byte_plus_parity = (byte_plus_parity >> 1) | (((next_symbol == SymbolType::One) ? 1 : 0) << 8);
 			}
 
@@ -253,7 +254,8 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			check ^= (check >> 4);
 			check ^= (check >> 2);
 			check ^= (check >> 1);
-			if((check&1) == (byte_plus_parity >> 8)) _error_flag = true;
+			if((check&1) == (byte_plus_parity >> 8))
+				set_error_flag();
 
 			add_parity_byte((uint8_t)byte_plus_parity);
 			return (uint8_t)byte_plus_parity;
@@ -276,12 +278,17 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		*/
 		void process_pulse(Storage::Tape::Tape::Pulse pulse)
 		{
+			// The Complete Commodore Inner Space Anthology, P 97, gives half-cycle lengths of:
+			// short: 182µs		=>	0.000364s cycle
+			// medium: 262µs	=>	0.000524s cycle
+			// long: 342µs		=>	0.000684s cycle
 			bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 			if(!is_high && _previous_was_high)
 			{
-				if(_wave_period >= 0.000592 && _wave_period < 0.000752)			push_wave(WaveType::Long);
-				else if(_wave_period >= 0.000432 && _wave_period < 0.000592)	push_wave(WaveType::Medium);
-				else if(_wave_period >= 0.000272 && _wave_period < 0.000432)	push_wave(WaveType::Short);
+				if(_wave_period >= 0.000764)		push_wave(WaveType::Unrecognised);
+				else if(_wave_period >= 0.000604)	push_wave(WaveType::Long);
+				else if(_wave_period >= 0.000444)	push_wave(WaveType::Medium);
+				else if(_wave_period >= 0.000284)	push_wave(WaveType::Short);
 				else push_wave(WaveType::Unrecognised);
 
 				_wave_period = 0.0f;
@@ -363,9 +370,10 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 				new_file.type = File::DataSequence;
 
 				new_file.data.swap(header->data);
-				while(1)
+				while(!parser.is_at_end())
 				{
 					header = parser.get_next_header();
+					if(!header) continue;
 					if(header->type != Header::DataBlock) break;
 					std::copy(header->data.begin(), header->data.end(), std::back_inserter(new_file.data));
 				}
@@ -400,7 +408,6 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 			break;
 		}
 	}
-
 
 	return file_list;
 }
