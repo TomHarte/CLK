@@ -83,6 +83,8 @@ void StaticAnalyser::Commodore::AddTargets(
 			if(is_basic)
 			{
 				target.loadingCommand = "LOAD\"\",1,0\nRUN\n";
+
+				// make a first guess based on loading address
 				switch(files.front().starting_address)
 				{
 					case 0x1001:
@@ -93,6 +95,21 @@ void StaticAnalyser::Commodore::AddTargets(
 					case 0x0401:
 						target.vic20.memory_model = Vic20MemoryModel::EightKB;
 					break;
+				}
+
+				// An unexpanded machine has 3583 bytes free for BASIC;
+				// a 3kb expanded machine has 6655 bytes free.
+
+				// we'll be relocating though, so up size if necessary
+				size_t file_size = files.front().data.size();
+				if(file_size > 6655)
+				{
+					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				}
+				else if(file_size > 3583)
+				{
+					if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded)
+						target.vic20.memory_model = Vic20MemoryModel::EightKB;
 				}
 			}
 			else
