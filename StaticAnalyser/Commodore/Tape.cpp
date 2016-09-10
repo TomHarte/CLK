@@ -55,10 +55,74 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			_parity_byte(0) {}
 
 		/*!
-			Advances to the next header block on the tape, then consumes, parses, and returns it.
+			Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
 			Returns @c nullptr if any wave-encoding level errors are encountered.
 		*/
 		std::unique_ptr<Header> get_next_header()
+		{
+			return duplicate_match<Header>(
+				get_next_header_body(true),
+				get_next_header_body(false)
+			);
+		}
+
+		/*!
+			Advances to the next block on the tape, treating it as data, then consumes, parses, and returns it.
+			Returns @c nullptr if any wave-encoding level errors are encountered.
+		*/
+		std::unique_ptr<Data> get_next_data()
+		{
+			return duplicate_match<Data>(
+				get_next_data_body(true),
+				get_next_data_body(false)
+			);
+		}
+
+		void spin()
+		{
+			while(!is_at_end())
+			{
+				SymbolType symbol = get_next_symbol();
+				switch(symbol)
+				{
+					case SymbolType::One:			printf("1");	break;
+					case SymbolType::Zero:			printf("0");	break;
+					case SymbolType::Word:			printf(" ");	break;
+					case SymbolType::EndOfBlock:	printf("\n");	break;
+					case SymbolType::LeadIn:		printf("-");	break;
+				}
+			}
+		}
+
+	private:
+		/*!
+			Template for the logic in selecting which of two copies of something to consider authoritative,
+			including setting the duplicate_matched flag.
+		*/
+		template<class ObjectType>
+			std::unique_ptr<ObjectType> duplicate_match(std::unique_ptr<ObjectType> first_copy, std::unique_ptr<ObjectType> second_copy)
+		{
+			// if only one copy was parsed successfully, return it
+			if(!first_copy) return second_copy;
+			if(!second_copy) return first_copy;
+
+			// if no copies were second_copy, return nullptr
+			if(!first_copy && !second_copy) return nullptr;
+
+			// otherwise plan to return either one with a correct check digit, doing a comparison with the other
+			std::unique_ptr<ObjectType> *copy_to_return = &first_copy;
+			if(!first_copy->parity_was_valid && second_copy->parity_was_valid) copy_to_return = &second_copy;
+
+			(*copy_to_return)->duplicate_matched = true;
+			if(first_copy->data.size() != second_copy->data.size())
+				(*copy_to_return)->duplicate_matched = false;
+			else
+				(*copy_to_return)->duplicate_matched = !(memcmp(&first_copy->data[0], &second_copy->data[0], first_copy->data.size()));
+
+			return std::move(*copy_to_return);
+		}
+
+		std::unique_ptr<Header> get_next_header_body(bool is_original)
 		{
 			std::unique_ptr<Header> header(new Header);
 			reset_error_flag();
@@ -67,7 +131,7 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			proceed_to_symbol(SymbolType::LeadIn);
 
 			// look for landing zone
-			proceed_to_landing_zone(true);
+			proceed_to_landing_zone(is_original);
 			reset_parity_byte();
 
 			// get header type
@@ -92,16 +156,6 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			uint8_t parity_byte = get_parity_byte();
 			header->parity_was_valid = get_next_byte() == parity_byte;
 
-			// check that the duplicate matches
-			proceed_to_landing_zone(false);
-			header->duplicate_matched = true;
-			if(get_next_byte() != header_type) header->duplicate_matched = false;
-			for(size_t c = 0; c < 191; c++)
-			{
-				if(header->data[c] != get_next_byte()) header->duplicate_matched = false;
-			}
-			if(get_next_byte() != parity_byte) header->duplicate_matched = false;
-
 			// parse if this is not pure data
 			if(header->type != Header::DataBlock)
 			{
@@ -119,14 +173,15 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			return header;
 		}
 
-		std::unique_ptr<Data> get_next_data()
+
+		std::unique_ptr<Data> get_next_data_body(bool is_original)
 		{
 			std::unique_ptr<Data> data(new Data);
 			reset_error_flag();
 
 			// find and proceed beyond lead-in tone to the next landing zone
 			proceed_to_symbol(SymbolType::LeadIn);
-			proceed_to_landing_zone(true);
+			proceed_to_landing_zone(is_original);
 			reset_parity_byte();
 
 			// accumulate until the next non-word marker is hit
@@ -139,41 +194,14 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 
 			// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
 			data->parity_was_valid = !get_parity_byte();
-
-			// compare to the duplicate
-			proceed_to_symbol(SymbolType::LeadIn);
-			proceed_to_landing_zone(false);
-			reset_parity_byte();
-			data->duplicate_matched = true;
-			for(size_t c = 0; c < data->data.size(); c++)
-			{
-				if(get_next_byte() != data->data[c]) data->duplicate_matched = false;
-			}
+			data->duplicate_matched = false;
 
 			// remove the captured parity
 			data->data.erase(data->data.end()-1);
-
 			if(get_error_flag()) return nullptr;
 			return data;
 		}
 
-		void spin()
-		{
-			while(!is_at_end())
-			{
-				SymbolType symbol = get_next_symbol();
-				switch(symbol)
-				{
-					case SymbolType::One:			printf("1");	break;
-					case SymbolType::Zero:			printf("0");	break;
-					case SymbolType::Word:			printf(" ");	break;
-					case SymbolType::EndOfBlock:	printf("\n");	break;
-					case SymbolType::LeadIn:		printf("-");	break;
-				}
-			}
-		}
-
-	private:
 		/*!
 			Finds and completes the next landing zone.
 		*/
