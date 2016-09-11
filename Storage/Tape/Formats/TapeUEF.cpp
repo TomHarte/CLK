@@ -102,7 +102,7 @@ UEF::~UEF()
 
 #pragma mark - Public methods
 
-void UEF::reset()
+void UEF::virtual_reset()
 {
 	gzseek(_file, 12, SEEK_SET);
 	_is_at_end = false;
@@ -114,7 +114,7 @@ bool UEF::is_at_end()
 	return _is_at_end;
 }
 
-Storage::Tape::Tape::Pulse UEF::get_next_pulse()
+Storage::Tape::Tape::Pulse UEF::virtual_get_next_pulse()
 {
 	Pulse next_pulse;
 

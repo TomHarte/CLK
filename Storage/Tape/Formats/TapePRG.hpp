@@ -35,11 +35,12 @@ class PRG: public Tape {
 		};
 
 		// implemented to satisfy @c Tape
-		Pulse get_next_pulse();
-		void reset();
 		bool is_at_end();
 
 	private:
+		Pulse virtual_get_next_pulse();
+		void virtual_reset();
+
 		FILE *_file;
 		uint16_t _load_address;
 		uint16_t _length;

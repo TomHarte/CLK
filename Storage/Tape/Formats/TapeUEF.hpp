@@ -35,11 +35,12 @@ class UEF : public Tape {
 		};
 
 		// implemented to satisfy @c Tape
-		Pulse get_next_pulse();
-		void reset();
 		bool is_at_end();
 
 	private:
+		void virtual_reset();
+		Pulse virtual_get_next_pulse();
+
 		gzFile _file;
 		unsigned int _time_base;
 		bool _is_at_end;

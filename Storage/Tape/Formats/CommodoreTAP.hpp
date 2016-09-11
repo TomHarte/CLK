@@ -33,11 +33,12 @@ class CommodoreTAP: public Tape {
 		};
 
 		// implemented to satisfy @c Tape
-		Pulse get_next_pulse();
-		void reset();
 		bool is_at_end();
 
 	private:
+		void virtual_reset();
+		Pulse virtual_get_next_pulse();
+
 		FILE *_file;
 		bool _updated_layout;
 		uint32_t _file_size;

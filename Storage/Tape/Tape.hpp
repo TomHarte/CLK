@@ -38,12 +38,31 @@ class Tape {
 			Pulse() {}
 		};
 
-		virtual Pulse get_next_pulse() = 0;
+		/*!
+			If at the start of the tape returns the first stored pulse. Otherwise advances past
+			the last-returned pulse and returns the next.
 
-		virtual void reset() = 0;
+			@returns the pulse that begins at the current cursor position.
+		*/
+		Pulse get_next_pulse();
+
+		/// Returns the tape to the beginning.
+		void reset();
+
+		/// @returns @c true if the tape has progressed beyond all recorded content; @c false otherwise.
 		virtual bool is_at_end() = 0;
 
-		virtual void seek(Time seek_time);	// TODO
+		/// @returns the amount of time preceeding the most recently-returned pulse.
+		virtual Time get_current_time() { return _current_time; }
+
+		/// Advances or reverses the tape to the last time before or at @c time from which a pulse starts.
+		virtual void seek(Time &time);
+
+	private:
+		Time _current_time, _next_time;
+
+		virtual Pulse virtual_get_next_pulse() = 0;
+		virtual void virtual_reset() = 0;
 };
 
 /*!

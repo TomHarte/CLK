@@ -65,9 +65,6 @@ template <class T> class MOS6560 {
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
-
-			// show only the centre
-			_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
 		}
 
 		void set_clock_rate(double clock_rate)
@@ -125,6 +122,18 @@ template <class T> class MOS6560 {
 			}
 
 			_crt->set_new_display_type((unsigned int)(_timing.cycles_per_line*4), display_type);
+//			_crt->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+
+//			switch(output_mode)
+//			{
+//				case OutputMode::PAL:
+//					_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 15*4, 55*4, 4.0f / 3.0f));
+//				break;
+//				case OutputMode::NTSC:
+//					_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
+//				break;
+//			}
+
 			for(int c = 0; c < 16; c++)
 			{
 				_colours[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);

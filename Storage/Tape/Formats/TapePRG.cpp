@@ -74,7 +74,7 @@ PRG::~PRG()
 	if(_file) fclose(_file);
 }
 
-Storage::Tape::Tape::Pulse PRG::get_next_pulse()
+Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 {
 	// these are all microseconds per pole
 	static const unsigned int leader_zero_length = 179;
@@ -100,7 +100,7 @@ Storage::Tape::Tape::Pulse PRG::get_next_pulse()
 	return pulse;
 }
 
-void PRG::reset()
+void PRG::virtual_reset()
 {
 	_bitPhase = 3;
 	fseek(_file, 2, SEEK_SET);

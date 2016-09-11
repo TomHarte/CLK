@@ -58,7 +58,7 @@ CommodoreTAP::~CommodoreTAP()
 	fclose(_file);
 }
 
-void CommodoreTAP::reset()
+void CommodoreTAP::virtual_reset()
 {
 	fseek(_file, 0x14, SEEK_SET);
 	_current_pulse.type = Pulse::High;
@@ -70,7 +70,7 @@ bool CommodoreTAP::is_at_end()
 	return _is_at_end;
 }
 
-Storage::Tape::Tape::Pulse CommodoreTAP::get_next_pulse()
+Storage::Tape::Tape::Pulse CommodoreTAP::virtual_get_next_pulse()
 {
 	if(_is_at_end)
 	{

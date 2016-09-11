@@ -11,22 +11,10 @@
 
 #include <cstdint>
 #include "../StaticAnalyser.hpp"
+#include "File.hpp"
 
 namespace StaticAnalyser {
 namespace Commodore {
-
-struct File {
-	std::wstring name;
-	std::vector<uint8_t> raw_name;
-	uint16_t starting_address;
-	uint16_t ending_address;
-	enum {
-		RelocatableProgram,
-		NonRelocatableProgram,
-		DataSequence,
-	} type;
-	std::vector<uint8_t> data;
-};
 
 std::list<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 

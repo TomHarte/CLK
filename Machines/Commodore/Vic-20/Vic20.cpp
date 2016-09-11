@@ -269,6 +269,10 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 
 #pragma mar - Tape
 
+// LAB_FBDB = new tape byte setup;
+// loops at LAB_F92F
+// LAB_F8C0 = initiate tape read
+
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
 	if(target.tapes.size())

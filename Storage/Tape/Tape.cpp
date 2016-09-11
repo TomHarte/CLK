@@ -11,14 +11,37 @@
 
 using namespace Storage::Tape;
 
-void Storage::Tape::Tape::seek(Time seek_time)
-{
-	// TODO: as best we can
-}
+#pragma mark - Lifecycle
 
 TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
+
+#pragma mark - Seeking
+
+void Storage::Tape::Tape::seek(Time &seek_time)
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	while(_next_time < seek_time) get_next_pulse();
+}
+
+void Storage::Tape::Tape::reset()
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	virtual_reset();
+}
+
+Tape::Pulse Tape::get_next_pulse()
+{
+	Tape::Pulse pulse = virtual_get_next_pulse();
+	_current_time = _next_time;
+	_next_time += pulse.length;
+	return pulse;
+}
+
+#pragma mark - Player
 
 void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {

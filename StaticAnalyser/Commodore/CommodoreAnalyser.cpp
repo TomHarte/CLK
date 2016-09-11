@@ -36,53 +36,24 @@ void StaticAnalyser::Commodore::AddTargets(
 		// continue if there are any files
 		if(files.size())
 		{
-			bool is_basic = true;
-
-			// decide whether this is a BASIC file based on the proposition that:
-			//	(1) they're always relocatable; and
-			//	(2) they have a per-line structure of:
-			//		[4 bytes: address of start of next line]
-			//		[4 bytes: this line number]
-			//		... null-terminated code ...
-			//	(with a next line address of 0000 indicating end of program)ß
-			if(files.front().type != File::RelocatableProgram) is_basic = false;
-			else
-			{
-				uint16_t line_address = 0;
-				int line_number = -1;
-
-				uint16_t starting_address = files.front().starting_address;
-				line_address = starting_address;
-				is_basic = false;
-				while(1)
-				{
-					if(line_address - starting_address >= files.front().data.size() + 2) break;
-
-					uint16_t next_line_address = files.front().data[line_address - starting_address];
-					next_line_address |= files.front().data[line_address - starting_address + 1] << 8;
-
-					if(!next_line_address)
-					{
-						is_basic = true;
-						break;
-					}
-					if(next_line_address < line_address + 5) break;
-
-					if(line_address - starting_address >= files.front().data.size() + 5) break;
-					uint16_t next_line_number = files.front().data[line_address - starting_address + 2];
-					next_line_number |= files.front().data[line_address - starting_address + 3] << 8;
-
-					if(next_line_number <= line_number) break;
-
-					line_number = (uint16_t)next_line_number;
-					line_address = next_line_address;
-				}
-			}
+			target.tapes = tapes;
 
 			target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
-			if(is_basic)
+			if(files.front().is_basic())
 			{
 				target.loadingCommand = "LOAD\"\",1,0\nRUN\n";
+
+				// make a first guess based on file size
+				size_t file_size = files.front().data.size();
+				if(file_size > 6655)		target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				else if(file_size > 3583)	target.vic20.memory_model = Vic20MemoryModel::EightKB;
+				else						target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
+			}
+			else
+			{
+				// TODO: this is machine code. So, ummm?
+				printf("Need to deal with machine code from %04x to %04x???\n", files.front().starting_address, files.front().ending_address);
+				target.loadingCommand = "LOAD\"\",1,1\nRUN\n";
 
 				// make a first guess based on loading address
 				switch(files.front().starting_address)
@@ -96,30 +67,49 @@ void StaticAnalyser::Commodore::AddTargets(
 						target.vic20.memory_model = Vic20MemoryModel::EightKB;
 					break;
 				}
+			}
 
-				// An unexpanded machine has 3583 bytes free for BASIC;
-				// a 3kb expanded machine has 6655 bytes free.
 
-				// we'll be relocating though, so up size if necessary
-				size_t file_size = files.front().data.size();
-				if(file_size > 6655)
+			// General approach: increase memory size conservatively such that the largest file found will fit.
+			for(File &file : files)
+			{
+				size_t file_size = file.data.size();
+				//bool is_basic = file.is_basic();
+
+				/*if(is_basic)
 				{
-					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				}
-				else if(file_size > 3583)
-				{
-					if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded)
+					// BASIC files may be relocated, so the only limit is size.
+					//
+					// An unexpanded machine has 3583 bytes free for BASIC;
+					// a 3kb expanded machine has 6655 bytes free.
+					if(file_size > 6655)
+						target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+					else if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded && file_size > 3583)
 						target.vic20.memory_model = Vic20MemoryModel::EightKB;
 				}
-			}
-			else
-			{
-				// TODO: this is machine code. So, ummm?
-				printf("Need to deal with machine code from %04x to %04x???\n", files.front().starting_address, files.front().ending_address);
-				target.loadingCommand = "LOAD\"\",1,1\nRUN\n";
-			}
+				else
+				{*/
+//				if(!file.type == File::NonRelocatableProgram)
+//				{
+					// Non-BASIC files may be relocatable but, if so, by what logic?
+					// Given that this is unknown, take starting address as literal
+					// and check against memory windows.
+					//
+					// (ignoring colour memory...)
+					// An unexpanded Vic has memory between 0x0000 and 0x0400; and between 0x1000 and 0x2000.
+					// A 3kb expanded Vic fills in the gap and has memory between 0x0000 and 0x2000.
+					// A 32kb expanded Vic has memory in the entire low 32kb.
+					uint16_t starting_address = file.starting_address;
 
-			target.tapes = tapes;
+					// If anything above the 8kb mark is touched, mark as a 32kb machine; otherwise if the
+					// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
+					if(starting_address + file_size > 0x2000)
+						target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+					else if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
+						target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+//				}
+			//	}
+			}
 		}
 	}
 
