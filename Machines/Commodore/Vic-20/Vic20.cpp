@@ -15,7 +15,8 @@
 using namespace Commodore::Vic20;
 
 Machine::Machine() :
-	_rom(nullptr)
+	_rom(nullptr),
+	_is_running_at_zero_cost(false)
 {
 	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
@@ -115,7 +116,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	_mos6560->run_for_cycles(1);
+	if(!_is_running_at_zero_cost) _mos6560->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
@@ -165,7 +166,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
-	return 1;
+
+	if(_use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode)
+	{
+		if(address == 0xF98E)	_is_running_at_zero_cost = true;
+		if(address == 0xff56)	_is_running_at_zero_cost = false;
+	}
+
+	return _is_running_at_zero_cost ? 0 : 1;
 }
 
 #pragma mark - 6522 delegate

@@ -334,6 +334,7 @@ class Machine:
 		// Tape
 		Tape _tape;
 		bool _use_fast_tape_hack, _should_automatically_load_media;
+		bool _is_running_at_zero_cost;
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
