@@ -27,6 +27,9 @@
 		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([url fileSystemRepresentation]);
 		if(!targets.size()) return nil;
 		_target = targets.front();
+
+		// TODO: can this better be supplied by the analyser?
+		_displayName = [[url pathComponents] lastObject];
 	}
 	return self;
 }

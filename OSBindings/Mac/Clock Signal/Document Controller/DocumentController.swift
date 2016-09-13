@@ -14,6 +14,7 @@ class DocumentController: NSDocumentController {
 			if let documentClass = analyser.documentClass as? NSDocument.Type {
 				let document = documentClass.init()
 				if let machineDocument = document as? MachineDocument {
+					machineDocument.setDisplayName(analyser.displayName)
 					machineDocument.configureAs(analyser)
 					return machineDocument
 				}

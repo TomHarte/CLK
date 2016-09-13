@@ -35,7 +35,7 @@
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Tape Image</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
 			<array/>
 			<key>LSTypeIsPackage</key>
