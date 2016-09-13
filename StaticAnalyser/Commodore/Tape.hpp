@@ -9,9 +9,9 @@
 #ifndef StaticAnalyser_Commodore_Tape_hpp
 #define StaticAnalyser_Commodore_Tape_hpp
 
-#include <cstdint>
-#include "../StaticAnalyser.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 #include "File.hpp"
+#include <list>
 
 namespace StaticAnalyser {
 namespace Commodore {
@@ -20,4 +20,5 @@ std::list<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
 }
+
 #endif /* Tape_hpp */
