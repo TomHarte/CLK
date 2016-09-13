@@ -130,10 +130,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		*value = result;
 
-		// test for PC at F92F
+		// This combined with the stuff below constitutes the fast tape hack. Performed here: if the
+		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
+		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
+		// CPU or 6560 costs.
 		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			// advance time on the tape and the VIAs until an interrupt is signalled
 			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
 			{
 				_userPortVIA->run_for_half_cycles(2);
@@ -141,9 +143,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				_tape.run_for_cycles(1);
 			}
 		}
-
-		// f7af: find tape header, exit with header in buffer
-		// F8C0: Read tape block
 	}
 	else
 	{
@@ -167,13 +166,32 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
 
-	if(_use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode)
+	// If using fast tape then:
+	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
+	//	if the PC heads into RAM
+	//
+	// Where 'zero cost processing' is taken to be taking the 6560 off the bus (because I know it's
+	// expensive, and not relevant) then running the tape, the CPU and both 6522s as usual but not
+	// counting cycles towards the processing budget. So the limit is the host machine.
+	//
+	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
+	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
+	// the CPU out of the action.
+	if(_use_fast_tape_hack && _tape.has_tape())
 	{
-		if(address == 0xF98E)	_is_running_at_zero_cost = true;
-		if(address == 0xff56)	_is_running_at_zero_cost = false;
+		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			_is_running_at_zero_cost = true;
+			set_clock_is_unlimited(true);
+		}
+		if(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			_is_running_at_zero_cost = false;
+			set_clock_is_unlimited(false);
+		}
 	}
 
-	return _is_running_at_zero_cost ? 0 : 1;
+	return 1;
 }
 
 #pragma mark - 6522 delegate
@@ -276,10 +294,6 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 }
 
 #pragma mar - Tape
-
-// LAB_FBDB = new tape byte setup;
-// loops at LAB_F92F
-// LAB_F8C0 = initiate tape read
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {

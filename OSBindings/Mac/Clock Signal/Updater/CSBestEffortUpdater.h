@@ -21,6 +21,7 @@
 @interface CSBestEffortUpdater : NSObject
 
 @property (nonatomic, assign) double clockRate;
+@property (nonatomic, assign) BOOL runAsUnlimited;
 @property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
 
 - (void)update;

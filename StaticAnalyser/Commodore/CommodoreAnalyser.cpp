@@ -42,33 +42,24 @@ void StaticAnalyser::Commodore::AddTargets(
 			if(files.front().is_basic())
 			{
 				target.loadingCommand = "LOAD\"\",1,0\nRUN\n";
-
-				// make a first guess based on file size
-				size_t file_size = files.front().data.size();
-				if(file_size > 6655)		target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				else if(file_size > 3583)	target.vic20.memory_model = Vic20MemoryModel::EightKB;
-				else						target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
 			}
 			else
 			{
-				// TODO: this is machine code. So, ummm?
-				printf("Need to deal with machine code from %04x to %04x???\n", files.front().starting_address, files.front().ending_address);
 				target.loadingCommand = "LOAD\"\",1,1\nRUN\n";
-
-				// make a first guess based on loading address
-				switch(files.front().starting_address)
-				{
-					case 0x1001:
-					default: break;
-					case 0x1201:
-						target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-					break;
-					case 0x0401:
-						target.vic20.memory_model = Vic20MemoryModel::EightKB;
-					break;
-				}
 			}
 
+			// make a first guess based on loading address
+			switch(files.front().starting_address)
+			{
+				case 0x1001:
+				default: break;
+				case 0x1201:
+					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				break;
+				case 0x0401:
+					target.vic20.memory_model = Vic20MemoryModel::EightKB;
+				break;
+			}
 
 			// General approach: increase memory size conservatively such that the largest file found will fit.
 			for(File &file : files)

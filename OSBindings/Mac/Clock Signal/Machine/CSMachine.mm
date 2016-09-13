@@ -16,6 +16,7 @@
 @interface CSMachine()
 - (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)machineDidChangeClockRate;
+- (void)machineDidChangeClockIsUnlimited;
 @end
 
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
@@ -29,6 +30,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 	__weak CSMachine *machine;
 	void machine_did_change_clock_rate(CRTMachine::Machine *sender) {
 		[machine machineDidChangeClockRate];
+	}
+	void machine_did_change_clock_is_unlimited(CRTMachine::Machine *sender) {
+		[machine machineDidChangeClockIsUnlimited];
 	}
 };
 
@@ -54,6 +58,10 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (void)machineDidChangeClockRate {
 	[self.delegate machineDidChangeClockRate:self];
+}
+
+- (void)machineDidChangeClockIsUnlimited {
+	[self.delegate machineDidChangeClockIsUnlimited:self];
 }
 
 - (void)dealloc {
@@ -117,6 +125,10 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (double)clockRate {
 	return self.machine->get_clock_rate();
+}
+
+- (BOOL)clockIsUnlimited {
+	return self.machine->get_clock_is_unlimited() ? YES : NO;
 }
 
 - (void)paste:(NSString *)paste {
