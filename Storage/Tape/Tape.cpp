@@ -50,6 +50,11 @@ void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 	get_next_pulse();
 }
 
+std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape()
+{
+	return _tape;
+}
+
 bool TapePlayer::has_tape()
 {
 	return (bool)_tape;

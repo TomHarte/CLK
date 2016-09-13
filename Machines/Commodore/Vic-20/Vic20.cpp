@@ -136,7 +136,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// CPU or 6560 costs.
 		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
+			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line() && !_tape.get_tape()->is_at_end())
 			{
 				_userPortVIA->run_for_half_cycles(2);
 				_keyboardVIA->run_for_half_cycles(2);
@@ -184,7 +184,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			_is_running_at_zero_cost = true;
 			set_clock_is_unlimited(true);
 		}
-		if(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode)
+		if(
+			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
+			_tape.get_tape()->is_at_end()
+		)
 		{
 			_is_running_at_zero_cost = false;
 			set_clock_is_unlimited(false);

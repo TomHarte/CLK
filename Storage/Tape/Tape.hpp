@@ -78,6 +78,7 @@ class TapePlayer: public TimedEventLoop {
 
 		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();
+		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
 		void run_for_cycles(int number_of_cycles);
 		void run_for_input_pulse();
