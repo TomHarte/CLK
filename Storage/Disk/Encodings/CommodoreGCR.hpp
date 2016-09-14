@@ -36,6 +36,16 @@ namespace CommodoreGCR {
 		A block is defined to be four source bytes, which encodes to five GCR bytes.
 	*/
 	void encode_block(uint8_t *destination, uint8_t *source);
+
+	/*!
+		@returns the four bit nibble for the five-bit GCR @c quintet if a valid GCR value; INT_MAX otherwise.
+	*/
+	unsigned int decoding_from_quintet(unsigned int quintet);
+
+	/*!
+		@returns the byte composted of the low five bit five-bit GCR
+	*/
+	unsigned int decoding_from_dectet(unsigned int dectet);
 }
 }
 }
