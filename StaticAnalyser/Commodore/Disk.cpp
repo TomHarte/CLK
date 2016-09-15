@@ -236,19 +236,12 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 
 			next_track = sector->data[0];
 			next_sector = sector->data[1];
-			if(is_first_sector)
-			{
-				new_file.starting_address = (uint16_t)sector->data[2] | (uint16_t)(sector->data[3] << 8);
-			}
 
+			if(is_first_sector) new_file.starting_address = (uint16_t)sector->data[2] | (uint16_t)(sector->data[3] << 8);
 			if(next_track)
-			{
 				new_file.data.insert(new_file.data.end(), sector->data.begin() + (is_first_sector ? 4 : 2), sector->data.end());
-			}
 			else
-			{
 				new_file.data.insert(new_file.data.end(), sector->data.begin() + 2, sector->data.begin() + next_sector);
-			}
 
 			is_first_sector = false;
 		}

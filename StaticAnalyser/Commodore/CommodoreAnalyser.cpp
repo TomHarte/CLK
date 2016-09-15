@@ -26,6 +26,7 @@ void StaticAnalyser::Commodore::AddTargets(
 
 	int device = 0;
 	std::list<File> files;
+	bool is_disk = false;
 
 	// strip out inappropriate cartridges
 //	target.cartridges = AcornCartridgesFrom(cartridges);
@@ -36,6 +37,7 @@ void StaticAnalyser::Commodore::AddTargets(
 		std::list<File> disk_files = GetFiles(disk);
 		if(disk_files.size())
 		{
+			is_disk = true;
 			files.splice(files.end(), disk_files);
 			target.disks = disks;
 			if(!device) device = 8;
@@ -60,13 +62,13 @@ void StaticAnalyser::Commodore::AddTargets(
 		if(files.front().is_basic())
 		{
 			char command[16];
-			snprintf(command, 16, "LOAD\"\",%d,0\nRUN\n", device);
+			snprintf(command, 16, "LOAD\"%s\",%d,0\nRUN\n", is_disk ? "*" : "", device);
 			target.loadingCommand = command;
 		}
 		else
 		{
 			char command[16];
-			snprintf(command, 16, "LOAD\"\",%d,1\nRUN\n", device);
+			snprintf(command, 16, "LOAD\"%s\",%d,1\nRUN\n", is_disk ? "*" : "", device);
 			target.loadingCommand = command;
 		}
 
