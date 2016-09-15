@@ -6,7 +6,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "AcornAnalyser.hpp"
+#include "StaticAnalyser.hpp"
 
 #include "Tape.hpp"
 

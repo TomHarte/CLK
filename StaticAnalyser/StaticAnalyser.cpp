@@ -11,8 +11,8 @@
 #include <cstdlib>
 
 // Analysers
-#include "Acorn/AcornAnalyser.hpp"
-#include "Commodore/CommodoreAnalyser.hpp"
+#include "Acorn/StaticAnalyser.hpp"
+#include "Commodore/StaticAnalyser.hpp"
 
 // Cartridges
 #include "../Storage/Cartridge/Formats/BinaryDump.hpp"

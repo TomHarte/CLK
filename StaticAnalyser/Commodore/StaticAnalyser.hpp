@@ -1,18 +1,18 @@
 //
-//  AcornAnalyser.hpp
+//  CommodoreAnalyser.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 29/08/2016.
+//  Created by Thomas Harte on 06/09/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AcornAnalyser_hpp
-#define AcornAnalyser_hpp
+#ifndef StaticAnalyser_Commodore_StaticAnalyser_hpp
+#define StaticAnalyser_Commodore_StaticAnalyser_hpp
 
 #include "../StaticAnalyser.hpp"
 
 namespace StaticAnalyser {
-namespace Acorn {
+namespace Commodore {
 
 void AddTargets(
 	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
@@ -24,4 +24,4 @@ void AddTargets(
 }
 }
 
-#endif /* AcornAnalyser_hpp */
+#endif /* CommodoreAnalyser_hpp */

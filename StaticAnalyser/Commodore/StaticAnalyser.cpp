@@ -6,7 +6,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "CommodoreAnalyser.hpp"
+#include "StaticAnalyser.hpp"
 
 #include "File.hpp"
 #include "Tape.hpp"
