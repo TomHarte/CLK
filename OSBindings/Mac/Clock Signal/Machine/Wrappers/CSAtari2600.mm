@@ -49,12 +49,6 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	}
 }
 
-- (void)setROM:(NSData *)rom {
-	@synchronized(self) {
-		_atari2600.set_rom(rom.length, (const uint8_t *)rom.bytes);
-	}
-}
-
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput {
 	@synchronized(self) {
 		_atari2600.set_digital_input(digitalInput, state ? true : false);

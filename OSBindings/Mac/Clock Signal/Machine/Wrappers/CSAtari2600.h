@@ -11,7 +11,6 @@
 
 @interface CSAtari2600 : CSMachine
 
-- (void)setROM:(nonnull NSData *)rom;
 - (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 - (void)setResetLineEnabled:(BOOL)enabled;
 

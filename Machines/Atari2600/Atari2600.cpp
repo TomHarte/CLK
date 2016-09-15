@@ -736,8 +736,12 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
 	}
 }
 
-void Machine::set_rom(size_t length, const uint8_t *data)
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
+	if(!target.cartridges.front()->get_segments().size()) return;
+	Storage::Cartridge::Cartridge::Segment segment = target.cartridges.front()->get_segments().front();
+	size_t length = segment.data.size();
+
 	_rom_size = 1024;
 	while(_rom_size < length && _rom_size < 32768) _rom_size <<= 1;
 
@@ -750,7 +754,7 @@ void Machine::set_rom(size_t length, const uint8_t *data)
 	while(offset < _rom_size)
 	{
 		size_t copy_length = std::min(copy_step, _rom_size - offset);
-		memcpy(&_rom[offset], data, copy_length);
+		memcpy(&_rom[offset], &segment.data[0], copy_length);
 		offset += copy_length;
 	}
 

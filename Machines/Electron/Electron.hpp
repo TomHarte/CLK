@@ -148,7 +148,6 @@ class Machine:
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void configure_as_target(const StaticAnalyser::Target &target);
-//		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();

@@ -51,6 +51,7 @@
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
+		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
 		4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */; };
 		4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B31D327F7E00DF5BA0 /* G64.cpp */; };
 		4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */; };
@@ -458,6 +459,8 @@
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
 		4BA22B061D8817CE0008C640 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Commodore/Disk.hpp; sourceTree = "<group>"; };
+		4BA799931D8B656E0045123D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4BA799941D8B656E0045123D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfigurationTarget.hpp; sourceTree = "<group>"; };
 		4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Disk.cpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
@@ -1074,6 +1077,15 @@
 			path = Formats;
 			sourceTree = "<group>";
 		};
+		4BA799961D8B65730045123D /* Atari */ = {
+			isa = PBXGroup;
+			children = (
+				4BA799931D8B656E0045123D /* StaticAnalyser.cpp */,
+				4BA799941D8B656E0045123D /* StaticAnalyser.hpp */,
+			);
+			name = Atari;
+			sourceTree = "<group>";
+		};
 		4BAB62AA1D3272D200DF5BA0 /* Disk */ = {
 			isa = PBXGroup;
 			children = (
@@ -1627,6 +1639,7 @@
 				4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */,
 				4BD328FD1D7E3EB5003B8C44 /* TapeParser.hpp */,
 				4BD14B121D7462810088EAD6 /* Acorn */,
+				4BA799961D8B65730045123D /* Atari */,
 				4BC830D21D6E7C6D0000A26F /* Commodore */,
 			);
 			name = StaticAnalyser;
@@ -2048,6 +2061,7 @@
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
+				4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
