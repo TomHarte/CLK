@@ -19,7 +19,7 @@ using namespace StaticAnalyser::Commodore;
 
 class CommodoreGCRParser: public Storage::Disk::Drive {
 	public:
-		CommodoreGCRParser() : Storage::Disk::Drive(4000000, 4, 300), shift_register_(0), track_(1)
+		CommodoreGCRParser() : Storage::Disk::Drive(4000000, 1, 300), shift_register_(0), track_(1)
 		{
 			// Make sure this drive really is at track '1'.
 			while(!get_is_track_zero()) step(-1);
@@ -33,6 +33,11 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 			bool data_checksum_matched;
 		};
 
+		/*!
+			Attempts to read the sector located at @c track and @c sector.
+
+			@returns a sector if one was found; @c nullptr otherwise.
+		*/
 		std::unique_ptr<Sector> get_sector(uint8_t track, uint8_t sector)
 		{
 			int difference = (int)track - (int)track_;
@@ -53,6 +58,61 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 			}
 
 			return get_sector(sector);
+		}
+
+	private:
+		unsigned int shift_register_;
+		int index_count_;
+		int bit_count_;
+		uint8_t track_;
+
+		void process_input_bit(int value, unsigned int cycles_since_index_hole)
+		{
+			shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0x3ff;
+			bit_count_++;
+		}
+
+		unsigned int proceed_to_next_block()
+		{
+			// find GCR lead-in
+			proceed_to_shift_value(0x3ff);
+			if(shift_register_ != 0x3ff) return 0xff;
+
+			// find end of lead-in
+			while(shift_register_ == 0x3ff && index_count_ < 2)
+			{
+				run_for_cycles(1);
+			}
+
+			// continue for a further nine bits
+			bit_count_ = 0;
+			while(bit_count_ < 9 && index_count_ < 2)
+			{
+				run_for_cycles(1);
+			}
+
+			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
+		}
+
+		unsigned int get_next_byte()
+		{
+			bit_count_ = 0;
+			while(bit_count_ < 10) run_for_cycles(1);
+			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
+		}
+
+		void proceed_to_shift_value(unsigned int shift_value)
+		{
+			index_count_ = 0;
+			while(shift_register_ != shift_value && index_count_ < 2)
+			{
+				run_for_cycles(1);
+			}
+		}
+
+		void process_index_hole()
+		{
+			index_count_++;
 		}
 
 		std::unique_ptr<Sector> get_sector(uint8_t sector)
@@ -111,62 +171,6 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 
 			return nullptr;
 		}
-
-	private:
-		unsigned int shift_register_;
-		int index_count_;
-		int bit_count_;
-		uint8_t track_;
-
-		void process_input_bit(int value, unsigned int cycles_since_index_hole)
-		{
-			shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0x3ff;
-			bit_count_++;
-		}
-
-		unsigned int proceed_to_next_block()
-		{
-			// find GCR lead-in
-			proceed_to_shift_value(0x3ff);
-			if(shift_register_ != 0x3ff) return 0xff;
-
-			// find end of lead-in
-			while(shift_register_ == 0x3ff && index_count_ < 2)
-			{
-				run_for_cycles(1);
-			}
-
-			// continue for a further nine bits
-			bit_count_ = 0;
-			while(bit_count_ < 9 && index_count_ < 2)
-			{
-				run_for_cycles(1);
-			}
-
-			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
-		}
-
-		unsigned int get_next_byte()
-		{
-			bit_count_ = 0;
-			while(bit_count_ < 10) run_for_cycles(1);
-			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
-		}
-
-		void proceed_to_shift_value(unsigned int shift_value)
-		{
-			index_count_ = 0;
-			while(shift_register_ != shift_value && index_count_ < 2)
-			{
-				run_for_cycles(1);
-			}
-		}
-
-		void process_index_hole()
-		{
-			index_count_++;
-		}
-
 };
 
 std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk)
@@ -254,4 +258,3 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 
 	return files;
 }
-
