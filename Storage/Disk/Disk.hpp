@@ -13,6 +13,7 @@
 #include "../Storage.hpp"
 
 namespace Storage {
+namespace Disk {
 
 /*!
 	Models a single track on a disk as a series of events, each event being of arbitrary length
@@ -78,6 +79,7 @@ class Disk {
 		virtual std::shared_ptr<Track> get_track_at_position(unsigned int position) = 0;
 };
 
+}
 }
 
 #endif /* Disk_hpp */

@@ -9,22 +9,50 @@
 #include "Tape.hpp"
 #include "../../NumberTheory/Factors.hpp"
 
-using namespace Storage;
+using namespace Storage::Tape;
 
-void Tape::seek(Time seek_time)
-{
-	// TODO: as best we can
-}
+#pragma mark - Lifecycle
 
 TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
-void TapePlayer::set_tape(std::shared_ptr<Storage::Tape> tape)
+#pragma mark - Seeking
+
+void Storage::Tape::Tape::seek(Time &seek_time)
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	while(_next_time < seek_time) get_next_pulse();
+}
+
+void Storage::Tape::Tape::reset()
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	virtual_reset();
+}
+
+Tape::Pulse Tape::get_next_pulse()
+{
+	Tape::Pulse pulse = virtual_get_next_pulse();
+	_current_time = _next_time;
+	_next_time += pulse.length;
+	return pulse;
+}
+
+#pragma mark - Player
+
+void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
 	_tape = tape;
 	reset_timer();
 	get_next_pulse();
+}
+
+std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape()
+{
+	return _tape;
 }
 
 bool TapePlayer::has_tape()
@@ -41,7 +69,7 @@ void TapePlayer::get_next_pulse()
 	{
 		_current_pulse.length.length = 1;
 		_current_pulse.length.clock_rate = 1;
-		_current_pulse.type = Storage::Tape::Pulse::Zero;
+		_current_pulse.type = Tape::Pulse::Zero;
 	}
 
 	set_next_event_time_interval(_current_pulse.length);
@@ -51,7 +79,7 @@ void TapePlayer::run_for_cycles(int number_of_cycles)
 {
 	if(has_tape())
 	{
-		::TimedEventLoop::run_for_cycles(number_of_cycles);
+		TimedEventLoop::run_for_cycles(number_of_cycles);
 	}
 }
 

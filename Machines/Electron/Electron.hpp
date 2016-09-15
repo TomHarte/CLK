@@ -12,6 +12,7 @@
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
+#include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
@@ -62,7 +63,7 @@ enum Key: uint16_t {
 	TerminateSequence = 0, NotMapped		= 0xfffe,
 };
 
-class Tape: public Storage::TapePlayer {
+class Tape: public Storage::Tape::TapePlayer {
 	public:
 		Tape();
 
@@ -86,7 +87,7 @@ class Tape: public Storage::TapePlayer {
 		inline void set_is_in_input_mode(bool is_in_input_mode);
 
 	private:
-		void process_input_pulse(Storage::Tape::Pulse pulse);
+		void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
 		inline void push_tape_bit(uint16_t bit);
 		inline void get_next_tape_pulse();
 
@@ -138,14 +139,15 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
-	Tape::Delegate,
-	public Utility::TypeRecipient {
+	public Tape::Delegate,
+	public Utility::TypeRecipient,
+	public ConfigurationTarget::Machine {
 
 	public:
 		Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void configure_as_target(const StaticAnalyser::Target &target);
 
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();

@@ -11,9 +11,11 @@
 
 #include "../Tape.hpp"
 #include <zlib.h>
-#include <stdint.h>
+#include <cstdint>
+#include <vector>
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
@@ -33,45 +35,39 @@ class UEF : public Tape {
 		};
 
 		// implemented to satisfy @c Tape
-		Pulse get_next_pulse();
-		void reset();
+		bool is_at_end();
 
 	private:
+		void virtual_reset();
+		Pulse virtual_get_next_pulse();
+
 		gzFile _file;
 		unsigned int _time_base;
-		z_off_t _start_of_next_chunk;
+		bool _is_at_end;
+		bool _is_300_baud;
 
-		uint16_t _chunk_id;
-		uint32_t _chunk_length;
+		std::vector<Pulse> _queued_pulses;
+		size_t _pulse_pointer;
 
-		union {
-			struct {
-				uint8_t current_byte;
-				uint32_t position;
-			} _implicit_data_chunk;
+		void parse_next_tape_chunk();
 
-			struct {
-				uint8_t current_byte;
-				uint32_t position;
-			} _explicit_data_chunk;
-		};
+		void queue_implicit_bit_pattern(uint32_t length);
+		void queue_explicit_bit_pattern(uint32_t length);
 
-		uint8_t _current_byte;
-		uint32_t _chunk_position;
+		void queue_integer_gap();
+		void queue_floating_point_gap();
 
-		bool _current_bit;
-		uint32_t _bit_position;
+		void queue_carrier_tone();
+		void queue_carrier_tone_with_dummy();
 
-		Time _chunk_duration;
+		void queue_security_cycles();
+		void queue_defined_data(uint32_t length);
 
-		bool _first_is_pulse;
-		bool _last_is_pulse;
-
-		void find_next_tape_chunk();
-		bool get_next_bit();
-		bool chunk_is_finished();
+		void queue_bit(int bit);
+		void queue_implicit_byte(uint8_t byte);
 };
 
+}
 }
 
 #endif /* TapeUEF_hpp */

@@ -13,7 +13,7 @@
 #include "../PCMTrack.hpp"
 #include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 
-using namespace Storage;
+using namespace Storage::Disk;
 
 D64::D64(const char *file_name)
 {

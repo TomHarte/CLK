@@ -458,9 +458,17 @@ void Machine::synchronise()
 	update_audio();
 }
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
-	_tape.set_tape(tape);
+	if(target.tapes.size())
+	{
+		_tape.set_tape(target.tapes.front());
+	}
+
+	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+	{
+		set_typer_for_string(target.loadingCommand.c_str());
+	}
 }
 
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
@@ -971,14 +979,14 @@ inline uint8_t Tape::get_data_register()
 	return (uint8_t)(_data_register >> 2);
 }
 
-inline void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+inline void Tape::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 {
 	_crossings[0] = _crossings[1];
 	_crossings[1] = _crossings[2];
 	_crossings[2] = _crossings[3];
 
 	_crossings[3] = Tape::Unrecognised;
-	if(pulse.type != Storage::Tape::Pulse::Zero)
+	if(pulse.type != Storage::Tape::Tape::Pulse::Zero)
 	{
 		float pulse_length = (float)pulse.length.length / (float)pulse.length.clock_rate;
 		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) _crossings[3] = Tape::Short;

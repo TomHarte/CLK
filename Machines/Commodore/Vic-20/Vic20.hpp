@@ -9,6 +9,7 @@
 #ifndef Vic20_hpp
 #define Vic20_hpp
 
+#include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../Typer.hpp"
 
@@ -213,7 +214,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 		std::weak_ptr<UserPortVIA> _userPortVIA;
 };
 
-class Tape: public Storage::TapePlayer {
+class Tape: public Storage::Tape::TapePlayer {
 	public:
 		Tape();
 
@@ -232,7 +233,7 @@ class Tape: public Storage::TapePlayer {
 
 	private:
 		Delegate *_delegate;
-		virtual void process_input_pulse(Storage::Tape::Pulse pulse);
+		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
 		bool _input_level;
 };
 
@@ -253,16 +254,18 @@ class Machine:
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public Utility::TypeRecipient,
-	public Tape::Delegate {
+	public Tape::Delegate,
+	public ConfigurationTarget::Machine {
 
 	public:
 		Machine();
 		~Machine();
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+		void configure_as_target(const StaticAnalyser::Target &target);
 		void set_prg(const char *file_name, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
-		void set_disk(std::shared_ptr<Storage::Disk> disk);
+		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
@@ -331,6 +334,7 @@ class Machine:
 		// Tape
 		Tape _tape;
 		bool _use_fast_tape_hack, _should_automatically_load_media;
+		bool _is_running_at_zero_cost;
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> _c1540;

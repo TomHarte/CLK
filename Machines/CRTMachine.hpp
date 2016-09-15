@@ -21,6 +21,8 @@ namespace CRTMachine {
 */
 class Machine {
 	public:
+		Machine() : clock_is_unlimited_(false) {}
+
 		virtual void setup_output(float aspect_ratio) = 0;
 		virtual void close_output() = 0;
 
@@ -33,23 +35,34 @@ class Machine {
 		double get_clock_rate() {
 			return clock_rate_;
 		}
+		bool get_clock_is_unlimited() {
+			return clock_is_unlimited_;
+		}
 		class Delegate {
 			public:
 				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
+				virtual void machine_did_change_clock_is_unlimited(Machine *machine) = 0;
 		};
 		void set_delegate(Delegate *delegate) { this->delegate_ = delegate; }
 
 	protected:
-		double clock_rate_;
 		void set_clock_rate(double clock_rate) {
 			if(clock_rate_ != clock_rate) {
 				clock_rate_ = clock_rate;
 				if(delegate_) delegate_->machine_did_change_clock_rate(this);
 			}
 		}
+		void set_clock_is_unlimited(bool clock_is_unlimited) {
+			if(clock_is_unlimited != clock_is_unlimited_) {
+				clock_is_unlimited_ = clock_is_unlimited;
+				if(delegate_) delegate_->machine_did_change_clock_is_unlimited(this);
+			}
+		}
 
 	private:
 		Delegate *delegate_;
+		double clock_rate_;
+		bool clock_is_unlimited_;
 };
 
 }

@@ -13,6 +13,7 @@
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
+namespace Tape {
 
 /*!
 	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
@@ -28,16 +29,40 @@ namespace Storage {
 class Tape {
 	public:
 		struct Pulse {
-			enum {
+			enum Type {
 				High, Low, Zero
 			} type;
 			Time length;
+
+			Pulse(Type type, Time length) : type(type), length(length) {}
+			Pulse() {}
 		};
 
-		virtual Pulse get_next_pulse() = 0;
-		virtual void reset() = 0;
+		/*!
+			If at the start of the tape returns the first stored pulse. Otherwise advances past
+			the last-returned pulse and returns the next.
 
-		virtual void seek(Time seek_time);	// TODO
+			@returns the pulse that begins at the current cursor position.
+		*/
+		Pulse get_next_pulse();
+
+		/// Returns the tape to the beginning.
+		void reset();
+
+		/// @returns @c true if the tape has progressed beyond all recorded content; @c false otherwise.
+		virtual bool is_at_end() = 0;
+
+		/// @returns the amount of time preceeding the most recently-returned pulse.
+		virtual Time get_current_time() { return _current_time; }
+
+		/// Advances or reverses the tape to the last time before or at @c time from which a pulse starts.
+		virtual void seek(Time &time);
+
+	private:
+		Time _current_time, _next_time;
+
+		virtual Pulse virtual_get_next_pulse() = 0;
+		virtual void virtual_reset() = 0;
 };
 
 /*!
@@ -51,8 +76,9 @@ class TapePlayer: public TimedEventLoop {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
-		void set_tape(std::shared_ptr<Storage::Tape> tape);
+		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();
+		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
 		void run_for_cycles(int number_of_cycles);
 		void run_for_input_pulse();
@@ -64,10 +90,11 @@ class TapePlayer: public TimedEventLoop {
 	private:
 		inline void get_next_pulse();
 
-		std::shared_ptr<Storage::Tape> _tape;
+		std::shared_ptr<Storage::Tape::Tape> _tape;
 		Tape::Pulse _current_pulse;
 };
 
+}
 }
 
 #endif /* Tape_hpp */

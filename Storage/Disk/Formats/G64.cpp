@@ -12,7 +12,7 @@
 #include "../PCMTrack.hpp"
 #include "../Encodings/CommodoreGCR.hpp"
 
-using namespace Storage;
+using namespace Storage::Disk;
 
 G64::G64(const char *file_name)
 {

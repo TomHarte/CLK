@@ -9,7 +9,7 @@
 #include "PCMTrack.hpp"
 #include "../../NumberTheory/Factors.hpp"
 
-using namespace Storage;
+using namespace Storage::Disk;
 
 PCMTrack::PCMTrack(std::vector<PCMSegment> segments)
 {
@@ -61,7 +61,7 @@ PCMTrack::Event PCMTrack::get_next_event()
 	return _next_event;
 }
 
-Time PCMTrack::seek_to(Time time_since_index_hole)
+Storage::Time PCMTrack::seek_to(Time time_since_index_hole)
 {
 	_segment_pointer = 0;
 

@@ -31,10 +31,6 @@ class Atari2600Document: MachineDocument {
 		return "Atari2600Document"
 	}
 
-	override func readFromData(data: NSData, ofType typeName: String) throws {
-		atari2600.setROM(data)
-	}
-
 	override func windowControllerDidLoadNib(aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 

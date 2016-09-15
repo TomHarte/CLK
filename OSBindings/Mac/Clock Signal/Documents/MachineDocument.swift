@@ -73,6 +73,10 @@ class MachineDocument:
 		setupClockRate()
 	}
 
+	func machineDidChangeClockIsUnlimited(machine: CSMachine!) {
+		self.bestEffortUpdater.runAsUnlimited = machine.clockIsUnlimited
+	}
+
 	private func setupClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
@@ -96,6 +100,11 @@ class MachineDocument:
 		drawLock.unlock()
 
 		super.close()
+	}
+
+	// MARK: configuring
+	func configureAs(analysis: CSStaticAnalyser) {
+		analysis.applyToMachine(self.machine)
 	}
 
 	// MARK: the pasteboard

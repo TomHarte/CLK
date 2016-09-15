@@ -7,6 +7,7 @@
 //
 
 #include "CommodoreGCR.hpp"
+#include <limits>
 
 using namespace Storage;
 
@@ -23,32 +24,45 @@ unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibbl
 {
 	switch(nibble & 0xf)
 	{
-		case 0x0:	return 0x0a;
-		case 0x1:	return 0x0b;
-		case 0x2:	return 0x12;
-		case 0x3:	return 0x13;
-		case 0x4:	return 0x0e;
-		case 0x5:	return 0x0f;
-		case 0x6:	return 0x16;
-		case 0x7:	return 0x17;
-
-		case 0x8:	return 0x09;
-		case 0x9:	return 0x19;
-		case 0xa:	return 0x1a;
-		case 0xb:	return 0x1b;
-		case 0xc:	return 0x0d;
-		case 0xd:	return 0x1d;
-		case 0xe:	return 0x1e;
-		case 0xf:	return 0x15;
+		case 0x0:	return 0x0a;		case 0x1:	return 0x0b;
+		case 0x2:	return 0x12;		case 0x3:	return 0x13;
+		case 0x4:	return 0x0e;		case 0x5:	return 0x0f;
+		case 0x6:	return 0x16;		case 0x7:	return 0x17;
+		case 0x8:	return 0x09;		case 0x9:	return 0x19;
+		case 0xa:	return 0x1a;		case 0xb:	return 0x1b;
+		case 0xc:	return 0x0d;		case 0xd:	return 0x1d;
+		case 0xe:	return 0x1e;		case 0xf:	return 0x15;
 
 		// for the benefit of the compiler; clearly unreachable
 		default:	return 0xff;
 	}
 }
 
+unsigned int Storage::Encodings::CommodoreGCR::decoding_from_quintet(unsigned int quintet)
+{
+	switch(quintet & 0x1f)
+	{
+		case 0x0a:	return 0x0;			case 0x0b:	return 0x1;
+		case 0x12:	return 0x2;			case 0x13:	return 0x3;
+		case 0x0e:	return 0x4;			case 0x0f:	return 0x5;
+		case 0x16:	return 0x6;			case 0x17:	return 0x7;
+		case 0x09:	return 0x8;			case 0x19:	return 0x9;
+		case 0x1a:	return 0xa;			case 0x1b:	return 0xb;
+		case 0x0d:	return 0xc;			case 0x1d:	return 0xd;
+		case 0x1e:	return 0xe;			case 0x15:	return 0xf;
+
+		default:	return std::numeric_limits<unsigned int>::max();
+	}
+}
+
 unsigned int Storage::Encodings::CommodoreGCR::encoding_for_byte(uint8_t byte)
 {
 	return encoding_for_nibble(byte) | (encoding_for_nibble(byte >> 4) << 5);
+}
+
+unsigned int Storage::Encodings::CommodoreGCR::decoding_from_dectet(unsigned int dectet)
+{
+	return decoding_from_quintet(dectet) | (decoding_from_quintet(dectet >> 5) << 4);
 }
 
 void Storage::Encodings::CommodoreGCR::encode_block(uint8_t *destination, uint8_t *source)

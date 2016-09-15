@@ -46,9 +46,9 @@
 
 #include <sys/stat.h>
 
-using namespace Storage;
+using namespace Storage::Tape;
 
-TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _copy_mask(0x80)
+PRG::PRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _copy_mask(0x80)
 {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
@@ -69,12 +69,12 @@ TapePRG::TapePRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePha
 		throw ErrorBadFormat;
 }
 
-TapePRG::~TapePRG()
+PRG::~PRG()
 {
 	if(_file) fclose(_file);
 }
 
-Tape::Pulse TapePRG::get_next_pulse()
+Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 {
 	// these are all microseconds per pole
 	static const unsigned int leader_zero_length = 179;
@@ -87,7 +87,7 @@ Tape::Pulse TapePRG::get_next_pulse()
 
 	Tape::Pulse pulse;
 	pulse.length.clock_rate = 1000000;
-	pulse.type = (_bitPhase&1) ? Pulse::High : Pulse::Low;
+	pulse.type = (_bitPhase&1) ? Tape::Pulse::High : Tape::Pulse::Low;
 	switch(_outputToken)
 	{
 		case Leader:		pulse.length.length = leader_zero_length;							break;
@@ -95,12 +95,12 @@ Tape::Pulse TapePRG::get_next_pulse()
 		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;		break;
 		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
 		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
-		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;				break;
+		case Silence:		pulse.type = Tape::Pulse::Zero; pulse.length.length = 5000;			break;
 	}
 	return pulse;
 }
 
-void TapePRG::reset()
+void PRG::virtual_reset()
 {
 	_bitPhase = 3;
 	fseek(_file, 2, SEEK_SET);
@@ -109,17 +109,22 @@ void TapePRG::reset()
 	_copy_mask = 0x80;
 }
 
-void TapePRG::get_next_output_token()
+bool PRG::is_at_end()
+{
+	return _filePhase == FilePhaseAtEnd;
+}
+
+void PRG::get_next_output_token()
 {
 	static const int block_length = 192;	// not counting the checksum
 	static const int countdown_bytes = 9;
 	static const int leadin_length = 20000;
 	static const int block_leadin_length = 5000;
 
-	if(_filePhase == FilePhaseHeaderDataGap)
+	if(_filePhase == FilePhaseHeaderDataGap || _filePhase == FilePhaseAtEnd)
 	{
 		_outputToken = Silence;
-		_filePhase = FilePhaseData;
+		if(_filePhase != FilePhaseAtEnd) _filePhase = FilePhaseData;
 		return;
 	}
 

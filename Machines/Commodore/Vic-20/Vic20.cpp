@@ -10,11 +10,13 @@
 
 #include <algorithm>
 #include "../../../Storage/Tape/Formats/TapePRG.hpp"
+#include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 using namespace Commodore::Vic20;
 
 Machine::Machine() :
-	_rom(nullptr)
+	_rom(nullptr),
+	_is_running_at_zero_cost(false)
 {
 	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
@@ -114,7 +116,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	_mos6560->run_for_cycles(1);
+	if(!_is_running_at_zero_cost) _mos6560->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
@@ -128,11 +130,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		*value = result;
 
-		// test for PC at F92F
+		// This combined with the stuff below constitutes the fast tape hack. Performed here: if the
+		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
+		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
+		// CPU or 6560 costs.
 		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			// advance time on the tape and the VIAs until an interrupt is signalled
-			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
+			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line() && !_tape.get_tape()->is_at_end())
 			{
 				_userPortVIA->run_for_half_cycles(2);
 				_keyboardVIA->run_for_half_cycles(2);
@@ -161,6 +165,35 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
+
+	// If using fast tape then:
+	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
+	//	if the PC heads into RAM
+	//
+	// Where 'zero cost processing' is taken to be taking the 6560 off the bus (because I know it's
+	// expensive, and not relevant) then running the tape, the CPU and both 6522s as usual but not
+	// counting cycles towards the processing budget. So the limit is the host machine.
+	//
+	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
+	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
+	// the CPU out of the action.
+	if(_use_fast_tape_hack && _tape.has_tape())
+	{
+		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			_is_running_at_zero_cost = true;
+			set_clock_is_unlimited(true);
+		}
+		if(
+			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
+			_tape.get_tape()->is_at_end()
+		)
+		{
+			_is_running_at_zero_cost = false;
+			set_clock_is_unlimited(false);
+		}
+	}
+
 	return 1;
 }
 
@@ -241,6 +274,9 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 
 void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 {
+	// TEST!
+	StaticAnalyser::GetTargets(file_name);
+
 	if(length > 2)
 	{
 		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
@@ -255,17 +291,46 @@ void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
 		}
 		else
 		{
-			set_tape(std::shared_ptr<Storage::Tape>(new Storage::TapePRG(file_name)));
+			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
 		}
 	}
 }
 
 #pragma mar - Tape
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
-	_tape.set_tape(tape);
-	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
+	if(target.tapes.size())
+	{
+		_tape.set_tape(target.tapes.front());
+	}
+
+	if(_should_automatically_load_media)
+	{
+		if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+		{
+			set_typer_for_string(target.loadingCommand.c_str());
+		}
+
+		switch(target.vic20.memory_model)
+		{
+			case StaticAnalyser::Vic20MemoryModel::Unexpanded:
+				set_memory_size(Default);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::EightKB:
+				set_memory_size(ThreeKB);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
+				set_memory_size(ThirtyTwoKB);
+			break;
+		}
+	}
+}
+
+void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
+{
+//	_tape.set_tape(tape);
+//	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
 }
 
 void Machine::tape_did_change_input(Tape *tape)
@@ -275,7 +340,7 @@ void Machine::tape_did_change_input(Tape *tape)
 
 #pragma mark - Disc
 
-void Machine::set_disk(std::shared_ptr<Storage::Disk> disk)
+void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 {
 	// construct the 1540
 	_c1540.reset(new ::Commodore::C1540::Machine);
@@ -415,9 +480,9 @@ Tape::Tape() : TapePlayer(1022727) {}
 void Tape::set_motor_control(bool enabled) {}
 void Tape::set_tape_output(bool set) {}
 
-void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+void Tape::process_input_pulse(Storage::Tape::PRG::Pulse pulse)
 {
-	bool new_input_level = pulse.type == Storage::Tape::Pulse::Low;
+	bool new_input_level = pulse.type == Storage::Tape::PRG::Pulse::Low;
 	if(_input_level != new_input_level)
 	{
 		_input_level = new_input_level;

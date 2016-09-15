@@ -10,6 +10,8 @@
 #import "CSElectron.h"
 #import "CSVic20.h"
 
+#import "CSStaticAnalyser.h"
+
 #import	"CSOpenGLView.h"
 #import "CSAudioQueue.h"
 #import "CSBestEffortUpdater.h"

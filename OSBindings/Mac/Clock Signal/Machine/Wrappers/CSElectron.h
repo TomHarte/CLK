@@ -10,12 +10,13 @@
 #import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
+@class CSStaticAnalyser;
+
 @interface CSElectron : CSMachine <CSKeyboardMachine, CSFastLoading>
 
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot;
-- (BOOL)openUEFAtURL:(nonnull NSURL *)URL;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL useTelevisionOutput;

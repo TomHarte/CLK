@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace Storage {
+namespace Disk {
 
 /*!
 	A segment of PCM-sampled data.
@@ -68,6 +69,7 @@ class PCMTrack: public Track {
 		size_t _bit_pointer;
 };
 
+}
 }
 
 #endif /* PCMTrack_hpp */

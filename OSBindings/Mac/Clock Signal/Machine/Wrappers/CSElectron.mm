@@ -10,6 +10,7 @@
 
 #include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
+#include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
 
 @implementation CSElectron {
@@ -18,6 +19,10 @@
 
 - (CRTMachine::Machine * const)machine {
 	return &_electron;
+}
+
+- (void)analyse:(NSURL *)url {
+	StaticAnalyser::GetTargets([url fileSystemRepresentation]);
 }
 
 - (void)setOSROM:(nonnull NSData *)rom {
@@ -38,17 +43,17 @@
 	}
 }
 
-- (BOOL)openUEFAtURL:(NSURL *)URL {
+/*- (BOOL)openUEFAtURL:(NSURL *)URL {
 	@synchronized(self) {
 		try {
-			std::shared_ptr<Storage::UEF> tape(new Storage::UEF([URL fileSystemRepresentation]));
+			std::shared_ptr<Storage::Tape::UEF> tape(new Storage::Tape::UEF([URL fileSystemRepresentation]));
 			_electron.set_tape(tape);
 			return YES;
 		} catch(...) {
 			return NO;
 		}
 	}
-}
+}*/
 
 - (void)clearAllKeys {
 	@synchronized(self) {

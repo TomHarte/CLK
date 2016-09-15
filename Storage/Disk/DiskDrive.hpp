@@ -14,6 +14,7 @@
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
+namespace Disk {
 
 /*!
 	Provides the shell for emulating a disk drive — something that takes a disk and has a drive head
@@ -26,13 +27,13 @@ namespace Storage {
 	TODO: double sided disks, communication of head size and permissible stepping extents, appropriate
 	simulation of gain.
 */
-class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
+class Drive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	public:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
 			spinning inserted disks at @c revolutions_per_minute.
 		*/
-		DiskDrive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
+		Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
 
 		/*!
 			Communicates to the PLL the expected length of a bit.
@@ -106,6 +107,7 @@ class DiskDrive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop 
 		Time _time_into_track;
 };
 
+}
 }
 
 #endif /* DiskDrive_hpp */
