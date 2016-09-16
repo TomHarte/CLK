@@ -11,16 +11,16 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-	func applicationDidFinishLaunching(aNotification: NSNotification) {
+	func applicationDidFinishLaunching(_ aNotification: Notification) {
 		// Insert code here to initialize your application
 	}
 
-	func applicationWillTerminate(aNotification: NSNotification) {
+	func applicationWillTerminate(_ aNotification: Notification) {
 		// Insert code here to tear down your application
 	}
 
 	// decline to open a new file unless the user explicitly requests it
-	func applicationShouldOpenUntitledFile(sender: NSApplication) -> Bool {
+	func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
 		return false
 	}
 }

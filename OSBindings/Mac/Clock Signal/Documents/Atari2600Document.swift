@@ -10,7 +10,7 @@ import Cocoa
 
 class Atari2600Document: MachineDocument {
 
-	private var atari2600 = CSAtari2600()
+	fileprivate var atari2600 = CSAtari2600()
 	override var machine: CSMachine! {
 		get {
 			return atari2600
@@ -31,7 +31,7 @@ class Atari2600Document: MachineDocument {
 		return "Atari2600Document"
 	}
 
-	override func windowControllerDidLoadNib(aController: NSWindowController) {
+	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
 		// push whatever settings the switches have in the NIB into the emulation
@@ -39,26 +39,28 @@ class Atari2600Document: MachineDocument {
 
 		// show the options window but ensure the OpenGL view is key
 		showOptions(self)
-		self.openGLView.window?.makeKeyWindow()
+		self.openGLView.window?.makeKey()
 	}
 
 	// MARK: CSOpenGLViewResponderDelegate
-	private func inputForKey(event: NSEvent) -> Atari2600DigitalInput? {
+	fileprivate func inputForKey(_ event: NSEvent) -> Atari2600DigitalInput? {
 		switch event.keyCode {
 			case 123:	return Atari2600DigitalInputJoy1Left
 			case 126:	return Atari2600DigitalInputJoy1Up
 			case 124:	return Atari2600DigitalInputJoy1Right
 			case 125:	return Atari2600DigitalInputJoy1Down
 			case 0:		return Atari2600DigitalInputJoy1Fire
-			default: print("\(event.keyCode)"); return nil
+			default:
+				Swift.print("\(event.keyCode)")
+				return nil
 		}
 	}
 
-	override func keyDown(event: NSEvent) {
+	override func keyDown(_ event: NSEvent) {
 		super.keyDown(event)
 
 		if let input = inputForKey(event) {
-			atari2600.setState(true, forDigitalInput: input)
+			atari2600.setState(true, for: input)
 		}
 
 		if event.keyCode == 36 {
@@ -66,11 +68,11 @@ class Atari2600Document: MachineDocument {
 		}
 	}
 
-	override func keyUp(event: NSEvent) {
+	override func keyUp(_ event: NSEvent) {
 		super.keyUp(event)
 
 		if let input = inputForKey(event) {
-			atari2600.setState(false, forDigitalInput: input)
+			atari2600.setState(false, for: input)
 		}
 
 		if event.keyCode == 36 {
@@ -85,17 +87,17 @@ class Atari2600Document: MachineDocument {
 	@IBOutlet var leftPlayerDifficultyButton: NSButton!
 	@IBOutlet var rightPlayerDifficultyButton: NSButton!
 
-	@IBAction func optionDidChange(sender: AnyObject!) {
+	@IBAction func optionDidChange(_ sender: AnyObject!) {
 		pushSwitchValues()
 	}
 
-	private func pushSwitchValues() {
+	fileprivate func pushSwitchValues() {
 		atari2600.colourButton = colourButton.state == NSOnState
 		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == NSOnState
 		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == NSOnState
 	}
 
-	@IBAction func optionWasPressed(sender: NSButton!) {
+	@IBAction func optionWasPressed(_ sender: NSButton!) {
 		if sender == resetButton {
 			atari2600.pressResetButton()
 		} else {

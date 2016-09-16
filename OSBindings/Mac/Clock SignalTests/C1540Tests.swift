@@ -10,32 +10,32 @@ import XCTest
 
 class C1540Tests: XCTestCase {
 
-	private func with1540(action: (C1540Bridge) -> ()) {
+	fileprivate func with1540(_ action: (C1540Bridge) -> ()) {
 		let bridge = C1540Bridge()
 
-		if let path = NSBundle.mainBundle().pathForResource("1541", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
-			let data = NSData(contentsOfFile: path)
+		if let path = Bundle.main.path(forResource: "1541", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
+			let data = try? Data(contentsOf: URL(fileURLWithPath: path))
 			bridge.setROM(data)
 		}
 
 		action(bridge)
 	}
 
-	private func transmit(c1540: C1540Bridge, value: Int) {
+	fileprivate func transmit(_ c1540: C1540Bridge, value: Int) {
 		var shiftedValue = value
 
 		c1540.dataLine = true
-		c1540.runForCycles(256)
+		c1540.run(forCycles: 256)
 		XCTAssert(c1540.dataLine == false, "Listener should have taken data line low for start of transmission")
 
 		c1540.clockLine = true
-		c1540.runForCycles(256)	// this isn't time limited on real hardware
+		c1540.run(forCycles: 256)	// this isn't time limited on real hardware
 		XCTAssert(c1540.dataLine == true, "Listener should have let data line go high again")
 
 		// set up for byte transfer
 		c1540.clockLine = false
 		c1540.dataLine = true
-		c1540.runForCycles(40)
+		c1540.run(forCycles: 40)
 
 		// transmit bits
 		for _ in 0..<8 {
@@ -45,14 +45,14 @@ class C1540Tests: XCTestCase {
 
 			// toggle clock
 			c1540.clockLine = true
-			c1540.runForCycles(40)
+			c1540.run(forCycles: 40)
 			c1540.clockLine = false
-			c1540.runForCycles(40)
+			c1540.run(forCycles: 40)
 		}
 
 		// check for acknowledgment
 		c1540.dataLine = true
-		c1540.runForCycles(1000)
+		c1540.run(forCycles: 1000)
 		XCTAssert(c1540.dataLine == false, "Listener should have acknowledged byte")
 	}
 
@@ -61,7 +61,7 @@ class C1540Tests: XCTestCase {
 	func testTransmission() {
 		with1540 {
 			// allow some booting time
-			$0.runForCycles(2000000)
+			$0.run(forCycles: 2000000)
 
 			// I want to be talker, so hold attention and clock low with data high
 			$0.clockLine = false
@@ -69,7 +69,7 @@ class C1540Tests: XCTestCase {
 			$0.dataLine = true
 
 			// proceed 1 ms and check that the 1540 pulled the data line low
-			$0.runForCycles(1000)
+			$0.run(forCycles: 1000)
 			XCTAssert($0.dataLine == false, "Listener should have taken data line low")
 
 			// transmit LISTEN #8
