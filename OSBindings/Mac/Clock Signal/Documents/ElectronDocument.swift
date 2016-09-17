@@ -11,7 +11,7 @@ import AudioToolbox
 
 class ElectronDocument: MachineDocument {
 
-	private lazy var electron = CSElectron()
+	fileprivate lazy var electron = CSElectron()
 	override var machine: CSMachine! {
 		get {
 			return electron
@@ -27,14 +27,14 @@ class ElectronDocument: MachineDocument {
 		return NSSize(width: 11.0, height: 10.0)
 	}
 
-	private func rom(name: String) -> NSData? {
+	fileprivate func rom(_ name: String) -> Data? {
 		return dataForResource(name, ofType: "rom", inDirectory: "ROMImages/Electron")
 	}
 
-	override func windowControllerDidLoadNib(aController: NSWindowController) {
+	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		if let os = rom("os"), basic = rom("basic") {
+		if let os = rom("os"), let basic = rom("basic") {
 			self.electron.setOSROM(os)
 			self.electron.setBASICROM(basic)
 		}
@@ -67,21 +67,21 @@ class ElectronDocument: MachineDocument {
 
 	// MARK: IBActions
 	@IBOutlet var displayTypeButton: NSPopUpButton?
-	@IBAction func setDisplayType(sender: NSPopUpButton!) {
+	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
 		electron.useTelevisionOutput = (sender.indexOfSelectedItem == 1)
-		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
+		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
 
-	private let displayTypeUserDefaultsKey = "electron.displayType"
+	fileprivate let displayTypeUserDefaultsKey = "electron.displayType"
 	override func establishStoredOptions() {
 		super.establishStoredOptions()
-		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
-		standardUserDefaults.registerDefaults([
+		let standardUserDefaults = UserDefaults.standard
+		standardUserDefaults.register(defaults: [
 			displayTypeUserDefaultsKey: 0,
 		])
 
-		let displayType = standardUserDefaults.integerForKey(self.displayTypeUserDefaultsKey)
+		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
-		self.displayTypeButton?.selectItemAtIndex(displayType)
+		self.displayTypeButton?.selectItem(at: displayType)
 	}
 }

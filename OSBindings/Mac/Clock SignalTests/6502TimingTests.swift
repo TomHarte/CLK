@@ -11,7 +11,7 @@ import XCTest
 
 class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 
-	private var endTime: UInt32 = 0
+	fileprivate var endTime: UInt32 = 0
 
 	func testImplied() {
 		let code: [UInt8] = [
@@ -195,12 +195,12 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		self.runTest(code, expectedRunLength: 43)
 	}
 
-	func runTest(code: [UInt8], expectedRunLength: UInt32) {
+	func runTest(_ code: [UInt8], expectedRunLength: UInt32) {
 		let machine = CSTestMachine()
 
 		machine.jamHandler = self
 
-		let immediateCode = NSData(bytes: code, length: code.count)
+		let immediateCode = Data(bytes: UnsafePointer<UInt8>(code), count: code.count)
 		machine.setData(immediateCode, atAddress: 0x200)
 		machine.setValue(0x00, forAddress: 0x0000)
 		machine.setValue(0x00, forAddress: 0x0001)
@@ -208,19 +208,19 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		machine.setValue(0x00, forAddress: 0x0003)
 		machine.setValue(0x08, forAddress: 0x0004)
 		machine.setValue(0x02, forAddress: 0x0005)
-		machine.setValue(0x200, forRegister: CSTestMachineRegister.ProgramCounter)
-		machine.setValue(0xff, forRegister: CSTestMachineRegister.X)
-		machine.setValue(0xfe, forRegister: CSTestMachineRegister.Y)
+		machine.setValue(0x200, for: CSTestMachineRegister.programCounter)
+		machine.setValue(0xff, for: CSTestMachineRegister.X)
+		machine.setValue(0xfe, for: CSTestMachineRegister.Y)
 
 		self.endTime = 0
 		while self.endTime == 0 {
-			machine.runForNumberOfCycles(10)
+			machine.runForNumber(ofCycles: 10)
 		}
 
 		XCTAssert(self.endTime == expectedRunLength, "Took \(self.endTime) cycles to perform")
 	}
 
-	func testMachine(machine: CSTestMachine!, didJamAtAddress address: UInt16) {
+	func testMachine(_ machine: CSTestMachine!, didJamAtAddress address: UInt16) {
 		if self.endTime == 0 {
 			self.endTime = machine.timestamp - 9
 		}
