@@ -13,7 +13,7 @@ class KlausDormannTests: XCTestCase {
 
 	func testKlausDormann() {
 
-		func errorForTrapAddress(address: UInt16) -> String? {
+		func errorForTrapAddress(_ address: UInt16) -> String? {
 			let hexAddress = String(format:"%04x", address)
 			switch address {
 				case 0x3399: return nil // success!
@@ -32,17 +32,17 @@ class KlausDormannTests: XCTestCase {
 			}
 		}
 
-		if let filename = NSBundle(forClass: self.dynamicType).pathForResource("6502_functional_test", ofType: "bin") {
-			if let functionalTest = NSData(contentsOfFile: filename) {
+		if let filename = Bundle(for: type(of: self)).path(forResource: "6502_functional_test", ofType: "bin") {
+			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 				let machine = CSTestMachine()
 
 				machine.setData(functionalTest, atAddress: 0)
-				machine.setValue(0x400, forRegister: CSTestMachineRegister.ProgramCounter)
+				machine.setValue(0x400, for: CSTestMachineRegister.programCounter)
 
 				while true {
-					let oldPC = machine.valueForRegister(CSTestMachineRegister.LastOperationAddress)
-					machine.runForNumberOfCycles(1000)
-					let newPC = machine.valueForRegister(CSTestMachineRegister.LastOperationAddress)
+					let oldPC = machine.value(for: CSTestMachineRegister.lastOperationAddress)
+					machine.runForNumber(ofCycles: 1000)
+					let newPC = machine.value(for: CSTestMachineRegister.lastOperationAddress)
 
 					if newPC == oldPC {
 						let error = errorForTrapAddress(oldPC)

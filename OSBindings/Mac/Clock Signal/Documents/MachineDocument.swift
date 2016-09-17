@@ -43,24 +43,24 @@ class MachineDocument:
 	}
 
 	@IBOutlet weak var optionsPanel: NSPanel!
-	@IBAction func showOptions(sender: AnyObject!) {
+	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
 
-	private var audioQueue: CSAudioQueue! = nil
-	private lazy var bestEffortUpdater: CSBestEffortUpdater = {
+	fileprivate var audioQueue: CSAudioQueue! = nil
+	fileprivate lazy var bestEffortUpdater: CSBestEffortUpdater = {
 		let updater = CSBestEffortUpdater()
 		updater.delegate = self
 		return updater
 	}()
 
-	override func windowControllerDidLoadNib(aController: NSWindowController) {
+	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
 		// establish the output aspect ratio and audio
 		let displayAspectRatio = self.aspectRatio()
 		aController.window?.contentAspectRatio = displayAspectRatio
-		openGLView.performWithGLContext({
+		openGLView.perform(glContext: {
 			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
@@ -69,18 +69,18 @@ class MachineDocument:
 		establishStoredOptions()
 	}
 
-	func machineDidChangeClockRate(machine: CSMachine!) {
+	func machineDidChangeClockRate(_ machine: CSMachine!) {
 		setupClockRate()
 	}
 
-	func machineDidChangeClockIsUnlimited(machine: CSMachine!) {
+	func machineDidChangeClockIsUnlimited(_ machine: CSMachine!) {
 		self.bestEffortUpdater.runAsUnlimited = machine.clockIsUnlimited
 	}
 
-	private func setupClockRate() {
+	fileprivate func setupClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = self.machine.idealSamplingRateFromRange(NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
 			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
 			audioQueue.delegate = self
@@ -103,89 +103,89 @@ class MachineDocument:
 	}
 
 	// MARK: configuring
-	func configureAs(analysis: CSStaticAnalyser) {
-		analysis.applyToMachine(self.machine)
+	func configureAs(_ analysis: CSStaticAnalyser) {
+		analysis.apply(to: self.machine)
 	}
 
 	// MARK: the pasteboard
-	func paste(sender: AnyObject!) {
-		let pasteboard = NSPasteboard.generalPasteboard()
-		if let string = pasteboard.stringForType(NSPasteboardTypeString) {
+	func paste(_ sender: AnyObject!) {
+		let pasteboard = NSPasteboard.general()
+		if let string = pasteboard.string(forType: NSPasteboardTypeString) {
 			self.machine.paste(string)
 		}
 	}
 
 	// MARK: CSBestEffortUpdaterDelegate
-	final func bestEffortUpdater(bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
+	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
 		runForNumberOfCycles(Int32(cycles))
 	}
 
-	func runForNumberOfCycles(numberOfCycles: Int32) {
+	func runForNumberOfCycles(_ numberOfCycles: Int32) {
 		let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
-		if actionLock.tryLock() {
-			self.machine.runForNumberOfCycles(cyclesToRunFor)
+		if actionLock.try() {
+			self.machine.runForNumber(ofCycles: cyclesToRunFor)
 			actionLock.unlock()
 		}
 	}
 
 	// MARK: Utilities for children
-	func dataForResource(name : String, ofType type: String, inDirectory directory: String) -> NSData? {
-		if let path = NSBundle.mainBundle().pathForResource(name, ofType: type, inDirectory: directory) {
-			return NSData(contentsOfFile: path)
+	func dataForResource(_ name : String, ofType type: String, inDirectory directory: String) -> Data? {
+		if let path = Bundle.main.path(forResource: name, ofType: type, inDirectory: directory) {
+			return (try? Data(contentsOf: URL(fileURLWithPath: path)))
 		}
 
 		return nil
 	}
 
 	// MARK: CSAudioQueueDelegate
-	final func audioQueueDidCompleteBuffer(audioQueue: CSAudioQueue) {
+	final func audioQueueDidCompleteBuffer(_ audioQueue: CSAudioQueue) {
 		bestEffortUpdater.update()
 	}
 
 	// MARK: CSOpenGLViewDelegate
-	final func openGLView(view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+	final func openGLView(_ view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
 		bestEffortUpdater.update()
-		if drawLock.tryLock() {
-			self.machine.drawViewForPixelSize(view.backingSize, onlyIfDirty: onlyIfDirty)
+		if drawLock.try() {
+			self.machine.drawView(forPixelSize: view.backingSize, onlyIfDirty: onlyIfDirty)
 			drawLock.unlock()
 		}
 	}
 
 	// MARK: NSDocument overrides
-	override func dataOfType(typeName: String) throws -> NSData {
+	override func data(ofType typeName: String) throws -> Data {
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
 	}
 
 	// MARK: Key forwarding
-	private func withKeyboardMachine(action: (CSKeyboardMachine) -> ()) {
+	fileprivate func withKeyboardMachine(_ action: (CSKeyboardMachine) -> ()) {
 		if let keyboardMachine = self.machine as? CSKeyboardMachine {
 			action(keyboardMachine)
 		}
 	}
 
-	func windowDidResignKey(notification: NSNotification) {
+	func windowDidResignKey(_ notification: Notification) {
 		self.withKeyboardMachine { $0.clearAllKeys() }
 	}
 
-	func keyDown(event: NSEvent) {
+	func keyDown(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
 	}
 
-	func keyUp(event: NSEvent) {
+	func keyUp(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
 	}
 
-	func flagsChanged(newModifiers: NSEvent) {
+	func flagsChanged(_ newModifiers: NSEvent) {
 		self.withKeyboardMachine {
-			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.ShiftKeyMask))
-			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.ControlKeyMask))
-			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.CommandKeyMask))
-			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
+			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.shift))
+			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
+			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
+			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
 		}
 	}
 
 	// MARK: IBActions
-	final func prefixedUserDefaultsKey(key: String) -> String {
+	final func prefixedUserDefaultsKey(_ key: String) -> String {
 		return "\(self.name).\(key)"
 	}
 	var fastLoadingUserDefaultsKey: String {
@@ -195,22 +195,22 @@ class MachineDocument:
 	}
 
 	@IBOutlet var fastLoadingButton: NSButton?
-	@IBAction func setFastLoading(sender: NSButton!) {
+	@IBAction func setFastLoading(_ sender: NSButton!) {
 		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = sender.state == NSOnState
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			NSUserDefaults.standardUserDefaults().setBool(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
+			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
 		}
 	}
 
 	func establishStoredOptions() {
-		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
-		standardUserDefaults.registerDefaults([
+		let standardUserDefaults = UserDefaults.standard
+		standardUserDefaults.register(defaults: [
 			fastLoadingUserDefaultsKey: true
 		])
 
 		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = standardUserDefaults.boolForKey(self.fastLoadingUserDefaultsKey)
+			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			self.fastLoadingButton?.state = useFastLoadingHack ? NSOnState : NSOffState
 		}

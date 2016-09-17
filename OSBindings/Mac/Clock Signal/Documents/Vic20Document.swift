@@ -10,7 +10,7 @@ import Foundation
 
 class Vic20Document: MachineDocument {
 
-	private lazy var vic20 = CSVic20()
+	fileprivate lazy var vic20 = CSVic20()
 	override var machine: CSMachine! {
 		get {
 			return vic20
@@ -41,22 +41,8 @@ class Vic20Document: MachineDocument {
 		return "Vic20Document"
 	}
 
-	override func readFromURL(url: NSURL, ofType typeName: String) throws {
-		if let pathExtension = url.pathExtension {
-			switch pathExtension.lowercaseString {
-				case "tap":	vic20.openTAPAtURL(url)
-				case "g64":	vic20.openG64AtURL(url)
-				case "d64":	vic20.openD64AtURL(url)
-				case "prg": vic20.openPRGAtURL(url)
-				default:
-					let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
-					try self.readFromFileWrapper(fileWrapper, ofType: typeName)
-			}
-		}
-	}
-
 	// MARK: machine setup
-	private func rom(name: String) -> NSData? {
+	fileprivate func rom(_ name: String) -> Data? {
 		return dataForResource(name, ofType: "bin", inDirectory: "ROMImages/Vic20")
 	}
 
@@ -66,10 +52,10 @@ class Vic20Document: MachineDocument {
 		get { return prefixedUserDefaultsKey("autoload") }
 	}
 
-	@IBAction func setShouldLoadAutomatically(sender: NSButton!) {
+	@IBAction func setShouldLoadAutomatically(_ sender: NSButton!) {
 		let loadAutomatically = sender.state == NSOnState
 		vic20.shouldLoadAutomatically = loadAutomatically
-		NSUserDefaults.standardUserDefaults().setBool(loadAutomatically, forKey: self.autoloadingUserDefaultsKey)
+		UserDefaults.standard.set(loadAutomatically, forKey: self.autoloadingUserDefaultsKey)
 	}
 
 	// MARK: country selector
@@ -78,12 +64,12 @@ class Vic20Document: MachineDocument {
 		get { return prefixedUserDefaultsKey("country") }
 	}
 
-	@IBAction func setCountry(sender: NSPopUpButton!) {
-		NSUserDefaults.standardUserDefaults().setInteger(sender.indexOfSelectedItem, forKey: self.countryUserDefaultsKey)
+	@IBAction func setCountry(_ sender: NSPopUpButton!) {
+		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.countryUserDefaultsKey)
 		setCountry(sender.indexOfSelectedItem)
 	}
 
-	private func setCountry(countryID: Int) {
+	fileprivate func setCountry(_ countryID: Int) {
 		var charactersROM: String?
 		var kernelROM: String?
 		switch countryID {
@@ -110,8 +96,8 @@ class Vic20Document: MachineDocument {
 			default: break
 		}
 
-		if let charactersROM = charactersROM, kernelROM = kernelROM {
-			if let kernel = rom(kernelROM), basic = rom("basic"), characters = rom(charactersROM) {
+		if let charactersROM = charactersROM, let kernelROM = kernelROM {
+			if let kernel = rom(kernelROM), let basic = rom("basic"), let characters = rom(charactersROM) {
 				vic20.setKernelROM(kernel)
 				vic20.setBASICROM(basic)
 				vic20.setCharactersROM(characters)
@@ -125,7 +111,7 @@ class Vic20Document: MachineDocument {
 		get { return prefixedUserDefaultsKey("memorySize") }
 	}
 
-	@IBAction func setMemorySize(sender: NSPopUpButton!) {
+	@IBAction func setMemorySize(_ sender: NSPopUpButton!) {
 		var selectedSize: Int?
 		switch sender.indexOfSelectedItem {
 			case 0: selectedSize = 5
@@ -134,15 +120,15 @@ class Vic20Document: MachineDocument {
 			default: break
 		}
 		if let selectedSize = selectedSize {
-			NSUserDefaults.standardUserDefaults().setInteger(selectedSize, forKey: self.memorySizeUserDefaultsKey)
+			UserDefaults.standard.set(selectedSize, forKey: self.memorySizeUserDefaultsKey)
 			setMemorySize(sender.indexOfSelectedItem)
 		}
 	}
-	private func setMemorySize(sizeIndex: Int) {
+	fileprivate func setMemorySize(_ sizeIndex: Int) {
 		switch sizeIndex {
-			case 2:		vic20.memorySize = .Size32Kb
-			case 1:		vic20.memorySize = .Size8Kb
-			default:	vic20.memorySize = .Size5Kb
+			case 2:		vic20.memorySize = .size32Kb
+			case 1:		vic20.memorySize = .size8Kb
+			default:	vic20.memorySize = .size5Kb
 		}
 	}
 
@@ -150,19 +136,19 @@ class Vic20Document: MachineDocument {
 	override func establishStoredOptions() {
 		super.establishStoredOptions()
 
-		let standardUserDefaults = NSUserDefaults.standardUserDefaults()
-		standardUserDefaults.registerDefaults([
+		let standardUserDefaults = UserDefaults.standard
+		standardUserDefaults.register(defaults: [
 			self.autoloadingUserDefaultsKey: true,
 			self.memorySizeUserDefaultsKey: 5,
 			self.countryUserDefaultsKey: 1
 		])
 
-		let loadAutomatically = standardUserDefaults.boolForKey(self.autoloadingUserDefaultsKey)
+		let loadAutomatically = standardUserDefaults.bool(forKey: self.autoloadingUserDefaultsKey)
 		vic20.shouldLoadAutomatically = loadAutomatically
 		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
 
 		if !loadAutomatically {
-			let memorySize = standardUserDefaults.integerForKey(self.memorySizeUserDefaultsKey)
+			let memorySize = standardUserDefaults.integer(forKey: self.memorySizeUserDefaultsKey)
 			var indexToSelect: Int?
 			switch memorySize {
 				case 32:	indexToSelect = 2
@@ -170,14 +156,14 @@ class Vic20Document: MachineDocument {
 				default:	indexToSelect = 0
 			}
 			if let indexToSelect = indexToSelect {
-				self.memorySizeButton?.selectItemAtIndex(indexToSelect)
+				self.memorySizeButton?.selectItem(at: indexToSelect)
 				setMemorySize(indexToSelect)
 			}
 		}
 
 		// TODO: this should be part of the configuration
-		let country = standardUserDefaults.integerForKey(self.countryUserDefaultsKey)
+		let country = standardUserDefaults.integer(forKey: self.countryUserDefaultsKey)
 		setCountry(country)
-		self.countryButton?.selectItemAtIndex(country)
+		self.countryButton?.selectItem(at: country)
 	}
 }

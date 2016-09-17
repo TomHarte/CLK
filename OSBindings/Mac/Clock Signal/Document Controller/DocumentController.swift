@@ -9,18 +9,18 @@
 import Cocoa
 
 class DocumentController: NSDocumentController {
-	override func makeDocumentWithContentsOfURL(url: NSURL, ofType typeName: String) throws -> NSDocument {
-		if let analyser = CSStaticAnalyser(fileAtURL: url) {
+	override func makeDocument(withContentsOf url: URL, ofType typeName: String) throws -> NSDocument {
+		if let analyser = CSStaticAnalyser(fileAt: url) {
 			if let documentClass = analyser.documentClass as? NSDocument.Type {
 				let document = documentClass.init()
 				if let machineDocument = document as? MachineDocument {
-					machineDocument.setDisplayName(analyser.displayName)
+					machineDocument.displayName = analyser.displayName
 					machineDocument.configureAs(analyser)
 					return machineDocument
 				}
 			}
 		}
 
-		return try! super.makeDocumentWithContentsOfURL(url, ofType: typeName)
+		return try! super.makeDocument(withContentsOf: url, ofType: typeName)
 	}
 }
