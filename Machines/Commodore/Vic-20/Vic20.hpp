@@ -263,9 +263,9 @@ class Machine:
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void configure_as_target(const StaticAnalyser::Target &target);
-		void set_prg(const char *file_name, size_t length, const uint8_t *data);
-		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
+//		void set_prg(const char *file_name, size_t length, const uint8_t *data);
+//		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
+//		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }

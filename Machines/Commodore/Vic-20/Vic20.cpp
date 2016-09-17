@@ -272,29 +272,26 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	}
 }
 
-void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
-{
-	// TEST!
-	StaticAnalyser::GetTargets(file_name);
-
-	if(length > 2)
-	{
-		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
-		_rom_length = (uint16_t)(length - 2);
-
-		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
-		if(_rom_address == 0xa000)
-		{
-			_rom = new uint8_t[0x2000];
-			memcpy(_rom, &data[2], length - 2);
-			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
-		}
-		else
-		{
-			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
-		}
-	}
-}
+//void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
+//{
+//	if(length > 2)
+//	{
+//		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
+//		_rom_length = (uint16_t)(length - 2);
+//
+//		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
+//		if(_rom_address == 0xa000)
+//		{
+//			_rom = new uint8_t[0x2000];
+//			memcpy(_rom, &data[2], length - 2);
+//			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+//		}
+//		else
+//		{
+//			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
+//		}
+//	}
+//}
 
 #pragma mar - Tape
 
@@ -303,6 +300,21 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	if(target.tapes.size())
 	{
 		_tape.set_tape(target.tapes.front());
+	}
+
+	if(target.disks.size())
+	{
+		// construct the 1540
+		_c1540.reset(new ::Commodore::C1540::Machine);
+
+		// attach it to the serial bus
+		_c1540->set_serial_bus(_serialBus);
+
+		// hand it the disk
+		_c1540->set_disk(target.disks.front());
+
+		// install the ROM if it was previously set
+		install_disk_rom();
 	}
 
 	if(_should_automatically_load_media)
@@ -327,11 +339,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	}
 }
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
-{
+//void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
+//{
 //	_tape.set_tape(tape);
 //	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
-}
+//}
 
 void Machine::tape_did_change_input(Tape *tape)
 {
@@ -340,7 +352,7 @@ void Machine::tape_did_change_input(Tape *tape)
 
 #pragma mark - Disc
 
-void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
+/*void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 {
 	// construct the 1540
 	_c1540.reset(new ::Commodore::C1540::Machine);
@@ -355,7 +367,7 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 	install_disk_rom();
 
 	if(_should_automatically_load_media) set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
-}
+}*/
 
 void Machine::install_disk_rom()
 {
