@@ -48,6 +48,8 @@ namespace Storage {
 			*/
 			void run_for_cycles(int number_of_cycles);
 
+			unsigned int get_cycles_until_next_event();
+
 		protected:
 			/*!
 				Sets the time interval, as a proportion of a second, until the next event should be triggered.
@@ -86,9 +88,9 @@ namespace Storage {
 
 		private:
 			unsigned int _input_clock_rate;
+			int _cycles_until_event;
 			Time _event_interval;
-			std::unique_ptr<SignalProcessing::Stepper> _stepper;
-			uint32_t _time_into_interval;
+			Time _error;
 	};
 
 }
