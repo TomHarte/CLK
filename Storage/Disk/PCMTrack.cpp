@@ -36,7 +36,7 @@ PCMTrack::Event PCMTrack::get_next_event()
 		unsigned int clock_multiplier = _track_clock_rate / _segments[_segment_pointer].length_of_a_bit.clock_rate;
 		unsigned int bit_length = clock_multiplier * _segments[_segment_pointer].length_of_a_bit.length;
 
-		const uint8_t *segment_data = _segments[_segment_pointer].data.get();
+		const uint8_t *segment_data = &_segments[_segment_pointer].data[0];
 		while(_bit_pointer < _segments[_segment_pointer].number_of_bits)
 		{
 			// for timing simplicity, bits are modelled as happening at the end of their window

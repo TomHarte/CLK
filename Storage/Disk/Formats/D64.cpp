@@ -102,8 +102,8 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 	PCMSegment track;
 	size_t track_bytes = 349 * (size_t)sectors_by_zone[zone];
 	track.number_of_bits = (unsigned int)track_bytes * 8;
-	uint8_t *data = new uint8_t[track_bytes];
-	track.data.reset(data);
+	track.data.resize(track_bytes);
+	uint8_t *data = &track.data[0];
 
 	memset(data, 0, track_bytes);
 

@@ -130,7 +130,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
 		size_t pre_address_mark_bytes, size_t post_address_mark_bytes,
 		size_t pre_data_mark_bytes, size_t post_data_bytes,
-		size_t inter_sector_gap)
+		size_t inter_sector_gap,
+		size_t expected_track_bytes)
 {
 	T shifter;
 	NumberTheory::CRC16 crc_generator(0x1021, 0xffff);
@@ -188,18 +189,18 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(int c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
 	}
 
-	// TODO: total size check
+	while(shifter.segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
 
-	Storage::Disk::PCMSegment segment;
-	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
+	shifter.segment.number_of_bits = shifter.segment.data.size() * 8;
+	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(shifter.segment)));
 }
 
 struct VectorReceiver {
 	void output_short(uint16_t value) {
-		data.push_back(value >> 8);
-		data.push_back(value & 0xff);
+		segment.data.push_back(value >> 8);
+		segment.data.push_back(value & 0xff);
 	}
-	std::vector<uint8_t> data;
+	Storage::Disk::PCMSegment segment;
 };
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
@@ -212,7 +213,8 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		16, 0x00,
 		6, 0,
 		17, 14,
-		0);
+		0,
+		6400);
 }
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors)
@@ -225,5 +227,6 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		50, 0x4e,
 		12, 22,
 		12, 18,
-		32);
+		32,
+		12800);
 }

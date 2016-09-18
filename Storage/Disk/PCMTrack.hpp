@@ -23,7 +23,7 @@ namespace Disk {
 struct PCMSegment {
 	Time length_of_a_bit;
 	unsigned int number_of_bits;
-	std::unique_ptr<uint8_t> data;
+	std::vector<uint8_t> data;
 };
 
 /*!
