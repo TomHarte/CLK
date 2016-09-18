@@ -22,7 +22,10 @@ template <class T> class Shifter {
 		virtual void add_deleted_data_address_mark() = 0;
 
 	protected:
-		// override me!
+		/*!
+			Intended to be overridden by subclasses; should write value out as PCM data,
+			MSB first.
+		*/
 		void output_short(uint16_t value);
 };
 
@@ -70,40 +73,41 @@ template <class T> class MFMShifter: public Shifter<T> {
 };
 
 template <class T> class FMShifter: public Shifter<T> {
+	// encodes each 16-bit part as clock, data, clock, data [...]
 	public:
 		void add_byte(uint8_t input) {
 			static_cast<T *>(this)->output_short(
 				(uint16_t)(
-					((input & 0x01) << 1) |
-					((input & 0x02) << 2) |
-					((input & 0x04) << 3) |
-					((input & 0x08) << 4) |
-					((input & 0x10) << 5) |
-					((input & 0x20) << 6) |
-					((input & 0x40) << 7) |
-					((input & 0x80) << 8) |
-					0x5555
+					((input & 0x01) << 0) |
+					((input & 0x02) << 1) |
+					((input & 0x04) << 2) |
+					((input & 0x08) << 3) |
+					((input & 0x10) << 4) |
+					((input & 0x20) << 5) |
+					((input & 0x40) << 6) |
+					((input & 0x80) << 7) |
+					0xaaaa
 				));
 		}
 
 		void add_index_address_mark() {
-			// data 0xfc, with clock 0xd7 => 1111 1100 with clock 1101 0111 => 1111 1011 1011 0101
-			static_cast<T *>(this)->output_short(0xfbb5);
+			// data 0xfc, with clock 0xd7 => 1111 1100 with clock 1101 0111 => 1111 0111 0111 1010
+			static_cast<T *>(this)->output_short(0xf77a);
 		}
 
 		void add_ID_address_mark() {
-			// data 0xfe, with clock 0xc7 => 1111 1110 with clock 1100 0111 => 1111 1010 1011 1101
-			static_cast<T *>(this)->output_short(0xfabd);
+			// data 0xfe, with clock 0xc7 => 1111 1110 with clock 1100 0111 => 1111 0101 0111 1110
+			static_cast<T *>(this)->output_short(0xf57e);
 		}
 
 		void add_data_address_mark() {
-			// data 0xfb, with clock 0xc7 => 1111 1011 with clock 1100 0111 => 1111 1010 1001 1111
-			static_cast<T *>(this)->output_short(0xfa9f);
+			// data 0xfb, with clock 0xc7 => 1111 1011 with clock 1100 0111 => 1111 0101 0110 1111
+			static_cast<T *>(this)->output_short(0xf56f);
 		}
 
 		void add_deleted_data_address_mark() {
-			// data 0xf8, with clock 0xc7 => 1111 1000 with clock 1100 0111 => 1111 1010 1001 0101
-			static_cast<T *>(this)->output_short(0xfa95);
+			// data 0xf8, with clock 0xc7 => 1111 1000 with clock 1100 0111 => 1111 0101 0110 1010
+			static_cast<T *>(this)->output_short(0xf56a);
 		}
 };
 
@@ -158,8 +162,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		crc_generator.add(sector.sector);
 		crc_generator.add(size);
 		uint16_t crc_value = crc_generator.get_value();
-		shifter.add_byte(crc_value & 0xff);
 		shifter.add_byte(crc_value >> 8);
+		shifter.add_byte(crc_value & 0xff);
 
 		// gap
 		for(int c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
@@ -176,8 +180,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 		// data CRC
 		crc_value = crc_generator.get_value();
-		shifter.add_byte(crc_value & 0xff);
 		shifter.add_byte(crc_value >> 8);
+		shifter.add_byte(crc_value & 0xff);
 
 		// gap
 		for(int c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
@@ -192,8 +196,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 struct VectorReceiver {
 	void output_short(uint16_t value) {
-		data.push_back(value & 0xff);
 		data.push_back(value >> 8);
+		data.push_back(value & 0xff);
 	}
 	std::vector<uint8_t> data;
 };
