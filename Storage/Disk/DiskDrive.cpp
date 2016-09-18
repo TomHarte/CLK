@@ -60,7 +60,7 @@ void Drive::step(int direction)
 
 void Drive::set_track(Time initial_offset)
 {
-	_track = _disk->get_track_at_position((unsigned int)_head_position);
+	_track = _disk->get_track_at_position(0, (unsigned int)_head_position);
 	// TODO: probably a better implementation of the empty track?
 	Time offset;
 	if(_track && _time_into_track.length > 0)

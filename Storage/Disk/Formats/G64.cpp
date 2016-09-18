@@ -54,13 +54,14 @@ unsigned int G64::get_head_position_count()
 	return _number_of_tracks > 84 ? _number_of_tracks : 84;
 }
 
-std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
+std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> resulting_track;
 
 	// if there's definitely no track here, return the empty track
 	// (TODO: should be supplying one with an index hole?)
 	if(position >= _number_of_tracks) return resulting_track;
+	if(head >= 1) return resulting_track;
 
 	// seek to this track's entry in the track table
 	fseek(_file, (long)((position * 4) + 0xc), SEEK_SET);
