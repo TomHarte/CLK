@@ -48,6 +48,9 @@ namespace Storage {
 			*/
 			void run_for_cycles(int number_of_cycles);
 
+			/*!
+				@returns the number of whole cycles remaining until the next event is triggered.
+			*/
 			unsigned int get_cycles_until_next_event();
 
 		protected:
