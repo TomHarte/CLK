@@ -31,20 +31,13 @@ unsigned int TimedEventLoop::get_cycles_until_next_event()
 
 void TimedEventLoop::reset_timer()
 {
-	_error.set_zero();
+	_subcycles_until_event.set_zero();
 	_cycles_until_event = 0;
 }
 
 void TimedEventLoop::reset_timer_to_offset(Time offset)
 {
-/*	unsigned int common_clock_rate = NumberTheory::least_common_multiple(offset.clock_rate, _event_interval.clock_rate);
-	_time_into_interval = offset.length * (common_clock_rate / offset.clock_rate);
-	_event_interval.length *= common_clock_rate / _event_interval.clock_rate;
-	_event_interval.clock_rate = common_clock_rate;
-	if(common_clock_rate != _stepper->get_output_rate())
-	{
-		_stepper.reset(new SignalProcessing::Stepper(_event_interval.clock_rate, _input_clock_rate));
-	}*/
+	// TODO: apply
 }
 
 void TimedEventLoop::jump_to_next_event()
@@ -55,19 +48,27 @@ void TimedEventLoop::jump_to_next_event()
 
 void TimedEventLoop::set_next_event_time_interval(Time interval)
 {
-	unsigned int common_divisor = NumberTheory::greatest_common_divisor(_error.clock_rate, interval.clock_rate);
-	uint64_t denominator = (interval.clock_rate * _error.clock_rate) / common_divisor;
-	uint64_t numerator = (_error.clock_rate / common_divisor) * _input_clock_rate * interval.length - (interval.clock_rate / common_divisor) * _error.length;
+	// Calculate [interval]*[input clock rate] + [subcycles until this event].
+	int64_t denominator = (int64_t)interval.clock_rate * (int64_t)_subcycles_until_event.clock_rate;
+	int64_t numerator =
+		(int64_t)_subcycles_until_event.clock_rate * (int64_t)_input_clock_rate * (int64_t)interval.length +
+		(int64_t)interval.clock_rate * (int64_t)_subcycles_until_event.length;
 
+	// Simplify now, to prepare for stuffing into possibly 32-bit quantities
+	int64_t common_divisor = NumberTheory::greatest_common_divisor(numerator % denominator, denominator);
+	denominator /= common_divisor;
+	numerator /= common_divisor;
+
+	// So this event will fire in the integral number of cycles from now, putting us at the remainder
+	// number of subcycles
 	_cycles_until_event = (int)(numerator / denominator);
-	_error.length = (unsigned int)(numerator % denominator);
-	_error.clock_rate = (unsigned int)denominator;
-	_error.simplify();
+	_subcycles_until_event.length = (unsigned int)(numerator % denominator);
+	_subcycles_until_event.clock_rate = (unsigned int)denominator;
 }
 
 Time TimedEventLoop::get_time_into_next_event()
 {
-	Time result = _event_interval;
-//	result.length = _time_into_interval;
-	return result;
+	// TODO: calculate, presumably as [length of interval] - [cycles left] - [subcycles]
+	Time zero;
+	return zero;
 }

@@ -89,8 +89,8 @@ namespace Storage {
 		private:
 			unsigned int _input_clock_rate;
 			int _cycles_until_event;
+			Time _subcycles_until_event;
 			Time _event_interval;
-			Time _error;
 	};
 
 }
