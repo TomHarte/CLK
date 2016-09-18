@@ -9,6 +9,19 @@
 #ifndef _770_hpp
 #define _770_hpp
 
-#include <stdio.h>
+#include "../../Storage/Disk/DiskDrive.hpp"
+
+namespace WD {
+
+class WD1770 {
+	public:
+
+		void set_drive(std::shared_ptr<Storage::Disk::Drive> drive);
+		void set_is_double_density(bool is_double_density);
+		void set_register(int address, uint8_t value);
+		void get_register(int address);
+};
+
+}
 
 #endif /* _770_hpp */
