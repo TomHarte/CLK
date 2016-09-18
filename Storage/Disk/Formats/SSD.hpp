@@ -40,6 +40,8 @@ class SSD: public Disk {
 
 	private:
 		FILE *_file;
+		unsigned int _head_count;
+		unsigned int _track_count;
 };
 
 }

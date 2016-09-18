@@ -9,6 +9,7 @@
 #include "SSD.hpp"
 
 #include <sys/stat.h>
+#include "../Encodings/MFM.hpp"
 
 using namespace Storage::Disk;
 
@@ -27,6 +28,12 @@ SSD::SSD(const char *file_name) : _file(nullptr)
 	_file = fopen(file_name, "rb");
 
 	if(!_file) throw ErrorCantOpen;
+
+	// this has two heads if the suffix is .dsd, one if it's .ssd
+	_head_count = (tolower(file_name[strlen(file_name) - 3]) == 'd') ? 2 : 1;
+	_track_count = (unsigned int)(file_stats.st_size / (256 * 10));
+	if(_track_count < 40) _track_count = 40;
+	else if(_track_count < 80) _track_count = 80;
 }
 
 SSD::~SSD()
@@ -36,16 +43,26 @@ SSD::~SSD()
 
 unsigned int SSD::get_head_position_count()
 {
-	return 1;
+	return _track_count;
 }
 
 unsigned int SSD::get_head_count()
 {
-	return 1;
+	return _head_count;
 }
 
 std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
+
+	if(head >= _head_count) return track;
+	long file_offset = (position * (_head_count ? 2 : 1) + head) * 256 * 10;
+	fseek(_file, file_offset, SEEK_SET);
+
+//	std::vector<
+	for(int sector = 0; sector < 10; sector++)
+	{
+	}
+
 	return track;
 }
