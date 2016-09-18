@@ -46,54 +46,6 @@ using namespace Commodore::Vic20;
 	[self setROM:rom slot:Drive];
 }
 
-- (BOOL)openTAPAtURL:(NSURL *)URL {
-	@synchronized(self) {
-		try {
-			std::shared_ptr<Storage::Tape::CommodoreTAP> tape(new Storage::Tape::CommodoreTAP([URL fileSystemRepresentation]));
-			_vic20.set_tape(tape);
-			return YES;
-		} catch(...) {
-			return NO;
-		}
-	}
-}
-
-- (BOOL)openG64AtURL:(NSURL *)URL {
-	return [self openDisk:^std::shared_ptr<Storage::Disk::Disk>{
-		return std::shared_ptr<Storage::Disk::Disk>(new Storage::Disk::G64([URL fileSystemRepresentation]));
-	}];
-}
-
-- (BOOL)openD64AtURL:(NSURL *)URL {
-	return [self openDisk:^std::shared_ptr<Storage::Disk::Disk>{
-		return std::shared_ptr<Storage::Disk::Disk>(new Storage::Disk::D64([URL fileSystemRepresentation]));
-	}];
-}
-
-- (BOOL)openDisk:(std::shared_ptr<Storage::Disk::Disk> (^)())opener {
-	@synchronized(self) {
-		try {
-			std::shared_ptr<Storage::Disk::Disk> disk = opener();
-			_vic20.set_disk(disk);
-			return YES;
-		} catch(...) {
-			return NO;
-		}
-	}
-}
-
-- (BOOL)openPRGAtURL:(NSURL *)URL {
-	NSData *prg = [NSData dataWithContentsOfURL:URL];
-	@synchronized(self) {
-		try {
-			_vic20.set_prg(URL.fileSystemRepresentation, prg.length, (const uint8_t *)prg.bytes);
-			return YES;
-		} catch(...) {
-			return NO;
-		}
-	}
-}
-
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	static NSDictionary<NSNumber *, NSNumber *> *vicKeysByKeys = @{
 		@(VK_ANSI_1):	@(Key::Key1),	@(VK_ANSI_2):	@(Key::Key2),

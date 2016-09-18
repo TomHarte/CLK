@@ -322,7 +322,6 @@
 		4BB299F71B587D8400A49093 /* txan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EB1B587D8400A49093 /* txan */; };
 		4BB299F81B587D8400A49093 /* txsn in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EC1B587D8400A49093 /* txsn */; };
 		4BB299F91B587D8400A49093 /* tyan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298ED1B587D8400A49093 /* tyan */; };
-		4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C51D4B558F00248BDF /* Factors.cpp */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -737,7 +736,6 @@
 		4BB298EB1B587D8400A49093 /* txan */ = {isa = PBXFileReference; lastKnownFileType = file; path = txan; sourceTree = "<group>"; };
 		4BB298EC1B587D8400A49093 /* txsn */ = {isa = PBXFileReference; lastKnownFileType = file; path = txsn; sourceTree = "<group>"; };
 		4BB298ED1B587D8400A49093 /* tyan */ = {isa = PBXFileReference; lastKnownFileType = file; path = tyan; sourceTree = "<group>"; };
-		4BB697C51D4B558F00248BDF /* Factors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Factors.cpp; path = ../../NumberTheory/Factors.cpp; sourceTree = "<group>"; };
 		4BB697C61D4B558F00248BDF /* Factors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Factors.hpp; path = ../../NumberTheory/Factors.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
@@ -1392,7 +1390,6 @@
 		4BB697C81D4B559300248BDF /* NumberTheory */ = {
 			isa = PBXGroup;
 			children = (
-				4BB697C51D4B558F00248BDF /* Factors.cpp */,
 				4BB697C61D4B558F00248BDF /* Factors.hpp */,
 			);
 			name = NumberTheory;
@@ -1490,13 +1487,13 @@
 		4BB73EDC1B587CA500552FC2 /* Machines */ = {
 			isa = PBXGroup;
 			children = (
-				4B4DC81D1D2C2425003C5BF8 /* Commodore */,
-				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
-				4B2E2D961C3A06EC00138695 /* Atari2600 */,
-				4B2E2D9E1C3A070900138695 /* Electron */,
 				4B1E85731D170228001EF87D /* Typer.cpp */,
-				4B1E85741D170228001EF87D /* Typer.hpp */,
 				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
+				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
+				4B1E85741D170228001EF87D /* Typer.hpp */,
+				4B2E2D961C3A06EC00138695 /* Atari2600 */,
+				4B4DC81D1D2C2425003C5BF8 /* Commodore */,
+				4B2E2D9E1C3A070900138695 /* Electron */,
 			);
 			name = Machines;
 			path = ../../Machines;
@@ -2076,7 +2073,6 @@
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
-				4BB697C71D4B558F00248BDF /* Factors.cpp in Sources */,
 				4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */,
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
