@@ -10,9 +10,12 @@
 #define Storage_Disk_Encodings_MFM_hpp
 
 #include <cstdint>
+#include <vector>
+#import "../Disk.hpp"
 
 namespace Storage {
 namespace Encodings {
+namespace MFM {
 
 template <class T> class Shifter {
 	public:
@@ -108,6 +111,15 @@ template <class T> class FMShifter: public Shifter<T> {
 		}
 };
 
+struct Sector {
+	uint8_t track, side, sector;
+	std::vector<uint8_t> data;
+};
+
+std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors);
+std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors);
+
+}
 }
 }
 
