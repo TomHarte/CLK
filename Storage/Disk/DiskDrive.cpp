@@ -85,11 +85,14 @@ void Drive::run_for_cycles(int number_of_cycles)
 	if(has_disk())
 	{
 		number_of_cycles *= _clock_rate_multiplier;
-		while(number_of_cycles--)
+		while(number_of_cycles)
 		{
-			_cycles_since_index_hole ++;
-			_pll->run_for_cycles(1);
-			TimedEventLoop::run_for_cycles(1);
+			int cycles_until_next_event = (int)get_cycles_until_next_event();
+			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+			_cycles_since_index_hole += (unsigned int)cycles_to_run_for;
+			number_of_cycles -= cycles_to_run_for;
+			_pll->run_for_cycles(cycles_to_run_for);
+			TimedEventLoop::run_for_cycles(cycles_to_run_for);
 		}
 	}
 }
