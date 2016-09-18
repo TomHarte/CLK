@@ -9,6 +9,7 @@
 #include "MFM.hpp"
 
 #import "../PCMTrack.hpp"
+#import "../../../NumberTheory/CRC.hpp"
 
 using namespace Storage::Encodings::MFM;
 
@@ -106,6 +107,19 @@ template <class T> class FMShifter: public Shifter<T> {
 		}
 };
 
+static uint8_t logarithmic_size_for_size(size_t size)
+{
+	switch(size)
+	{
+		default:	return 0;
+		case 256:	return 1;
+		case 512:	return 2;
+		case 1024:	return 3;
+		case 2048:	return 4;
+		case 4196:	return 5;
+	}
+}
+
 template<class T> std::shared_ptr<Storage::Disk::Track>
 	GetTrackWithSectors(
 		const std::vector<Sector> &sectors,
@@ -115,6 +129,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		size_t inter_sector_gap)
 {
 	T shifter;
+	NumberTheory::CRC16 crc_generator(0x1021, 0xffff);
 
 	// output the index mark
 	shifter.add_index_address_mark();
@@ -125,30 +140,46 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	// add sectors
 	for(const Sector &sector : sectors)
 	{
+		// gap
 		for(int c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
+		// sector header
 		shifter.add_ID_address_mark();
 		shifter.add_byte(sector.track);
 		shifter.add_byte(sector.side);
 		shifter.add_byte(sector.sector);
-		switch(sector.data.size())
-		{
-			default:	shifter.add_byte(0);	break;
-			case 256:	shifter.add_byte(1);	break;
-			case 512:	shifter.add_byte(2);	break;
-			case 1024:	shifter.add_byte(3);	break;
-			case 2048:	shifter.add_byte(4);	break;
-			case 4196:	shifter.add_byte(5);	break;
-		}
-		// TODO: CRC of bytes since the track number
+		uint8_t size = logarithmic_size_for_size(sector.data.size());
+		shifter.add_byte(size);
 
+		// header CRC
+		crc_generator.reset();
+		crc_generator.add(sector.track);
+		crc_generator.add(sector.side);
+		crc_generator.add(sector.sector);
+		crc_generator.add(size);
+		uint16_t crc_value = crc_generator.get_value();
+		shifter.add_byte(crc_value & 0xff);
+		shifter.add_byte(crc_value >> 8);
+
+		// gap
 		for(int c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
 		for(int c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
+		// data
 		shifter.add_data_address_mark();
-		for(size_t c = 0; c < sector.data.size(); c++) shifter.add_byte(sector.data[c]);
-		// TODO: CRC of data
+		crc_generator.reset();
+		for(size_t c = 0; c < sector.data.size(); c++)
+		{
+			shifter.add_byte(sector.data[c]);
+			crc_generator.add(sector.data[c]);
+		}
 
+		// data CRC
+		crc_value = crc_generator.get_value();
+		shifter.add_byte(crc_value & 0xff);
+		shifter.add_byte(crc_value >> 8);
+
+		// gap
 		for(int c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
 		for(int c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
 	}
@@ -159,17 +190,19 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
 }
 
+struct VectorReceiver {
+	void output_short(uint16_t value) {
+		data.push_back(value & 0xff);
+		data.push_back(value >> 8);
+	}
+	std::vector<uint8_t> data;
+};
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
 {
-	struct VectorShifter: public FMShifter<VectorShifter> {
-		void output_short(uint16_t value) {
-			data.push_back(value & 0xff);
-			data.push_back(value >> 8);
-		}
-		std::vector<uint8_t> data;
+	struct VectorShifter: public FMShifter<VectorShifter>, VectorReceiver {
+		using VectorReceiver::output_short;
 	};
-
 	return GetTrackWithSectors<VectorShifter>(
 		sectors,
 		16, 0x00,
@@ -180,14 +213,9 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors)
 {
-	struct VectorShifter: public MFMShifter<VectorShifter> {
-		void output_short(uint16_t value) {
-			data.push_back(value & 0xff);
-			data.push_back(value >> 8);
-		}
-		std::vector<uint8_t> data;
+	struct VectorShifter: public MFMShifter<VectorShifter>, VectorReceiver {
+		using VectorReceiver::output_short;
 	};
-
 	return GetTrackWithSectors<VectorShifter>(
 		sectors,
 		50, 0x4e,
