@@ -17,10 +17,7 @@
 static float gzgetfloat(gzFile file)
 {
 	uint8_t bytes[4];
-	bytes[0] = (uint8_t)gzgetc(file);
-	bytes[1] = (uint8_t)gzgetc(file);
-	bytes[2] = (uint8_t)gzgetc(file);
-	bytes[3] = (uint8_t)gzgetc(file);
+	gzread(file, bytes, 4);
 
 	/* assume a four byte array named Float exists, where Float[0]
 	was the first byte read from the UEF, Float[1] the second, etc */
@@ -45,25 +42,33 @@ static float gzgetfloat(gzFile file)
 	return result;
 }
 
+static uint8_t gzget8(gzFile file)
+{
+	// This is a workaround for gzgetc, which seems to be broken in ZLib 1.2.8.
+	uint8_t result;
+	gzread(file, &result, 1);
+	return result;
+}
+
 static int gzget16(gzFile file)
 {
-	int result = gzgetc(file);
-	result |= (gzgetc(file) << 8);
-	return result;
+	uint8_t bytes[2];
+	gzread(file, bytes, 2);
+	return bytes[0] | (bytes[1] << 8);
 }
 
 static int gzget24(gzFile file)
 {
-	int result = gzget16(file);
-	result |= (gzgetc(file) << 16);
-	return result;
+	uint8_t bytes[3];
+	gzread(file, bytes, 3);
+	return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16);
 }
 
 static int gzget32(gzFile file)
 {
-	int result = gzget16(file);
-	result |= (gzget16(file) << 16);
-	return result;
+	uint8_t bytes[4];
+	gzread(file, bytes, 4);
+	return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
 }
 
 using namespace Storage::Tape;
@@ -83,11 +88,10 @@ UEF::UEF(const char *file_name) :
 		throw ErrorNotUEF;
 	}
 
-	int minor, major;
-	minor = gzgetc(_file);
-	major = gzgetc(_file);
+	uint8_t version[2];
+	gzread(_file, version, 2);
 
-	if(major > 0 || minor > 10 || major < 0 || minor < 0)
+	if(version[1] > 0 || version[0] > 10)
 	{
 		throw ErrorNotUEF;
 	}
@@ -199,17 +203,17 @@ void UEF::queue_implicit_bit_pattern(uint32_t length)
 {
 	while(length--)
 	{
-		queue_implicit_byte((uint8_t)gzgetc(_file));
+		queue_implicit_byte(gzget8(_file));
 	}
 }
 
 void UEF::queue_explicit_bit_pattern(uint32_t length)
 {
-	size_t length_in_bits = (length << 3) - (size_t)gzgetc(_file);
+	size_t length_in_bits = (length << 3) - (size_t)gzget8(_file);
 	uint8_t current_byte = 0;
 	for(size_t bit = 0; bit < length_in_bits; bit++)
 	{
-		if(!(bit&7)) current_byte = (uint8_t)gzgetc(_file);
+		if(!(bit&7)) current_byte = gzget8(_file);
 		queue_bit(current_byte&1);
 		current_byte >>= 1;
 	}
@@ -250,13 +254,13 @@ void UEF::queue_carrier_tone_with_dummy()
 void UEF::queue_security_cycles()
 {
 	int number_of_cycles = gzget24(_file);
-	bool first_is_pulse = gzgetc(_file) == 'P';
-	bool last_is_pulse = gzgetc(_file) == 'P';
+	bool first_is_pulse = gzget8(_file) == 'P';
+	bool last_is_pulse = gzget8(_file) == 'P';
 
 	uint8_t current_byte = 0;
 	for(int cycle = 0; cycle < number_of_cycles; cycle++)
 	{
-		if(!(cycle&7)) current_byte = (uint8_t)gzgetc(_file);
+		if(!(cycle&7)) current_byte = gzget8(_file);
 		int bit = (current_byte >> 7);
 		current_byte <<= 1;
 
@@ -284,9 +288,9 @@ void UEF::queue_defined_data(uint32_t length)
 {
 	if(length < 3) return;
 
-	int bits_per_packet = gzgetc(_file);
-	char parity_type = (char)gzgetc(_file);
-	int number_of_stop_bits = gzgetc(_file);
+	int bits_per_packet = gzget8(_file);
+	char parity_type = (char)gzget8(_file);
+	int number_of_stop_bits = gzget8(_file);
 
 	bool has_extra_stop_wave = (number_of_stop_bits < 0);
 	number_of_stop_bits = abs(number_of_stop_bits);
@@ -294,7 +298,7 @@ void UEF::queue_defined_data(uint32_t length)
 	length -= 3;
 	while(length--)
 	{
-		uint8_t byte = (uint8_t)gzgetc(_file);
+		uint8_t byte = gzget8(_file);
 
 		uint8_t parity_value = byte;
 		parity_value ^= (parity_value >> 4);

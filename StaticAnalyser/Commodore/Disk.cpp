@@ -38,7 +38,7 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::unique_ptr<Sector> get_sector(uint8_t track, uint8_t sector)
+		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector)
 		{
 			int difference = (int)track - (int)track_;
 			track_ = track;
@@ -65,6 +65,7 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 		int index_count_;
 		int bit_count_;
 		uint8_t track_;
+		std::shared_ptr<Sector> sector_cache_[65536];
 
 		void process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
@@ -115,23 +116,26 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 			index_count_++;
 		}
 
-		std::unique_ptr<Sector> get_sector(uint8_t sector)
+		std::shared_ptr<Sector> get_sector(uint8_t sector)
 		{
-			std::unique_ptr<Sector> first_sector = get_next_sector();
+			uint16_t sector_address = (uint16_t)((track_ << 8) | sector);
+			if(sector_cache_[sector_address]) return sector_cache_[sector_address];
+
+			std::shared_ptr<Sector> first_sector = get_next_sector();
 			if(!first_sector) return first_sector;
 			if(first_sector->sector == sector) return first_sector;
 
 			while(1)
 			{
-				std::unique_ptr<Sector> next_sector = get_next_sector();
+				std::shared_ptr<Sector> next_sector = get_next_sector();
 				if(next_sector->sector == first_sector->sector) return nullptr;
 				if(next_sector->sector == sector) return next_sector;
 			}
 		}
 
-		std::unique_ptr<Sector> get_next_sector()
+		std::shared_ptr<Sector> get_next_sector()
 		{
-			std::unique_ptr<Sector> sector(new Sector);
+			std::shared_ptr<Sector> sector(new Sector);
 			index_count_ = 0;
 
 			while(index_count_ < 2)
@@ -166,7 +170,12 @@ class CommodoreGCRParser: public Storage::Disk::Drive {
 					checksum ^= sector->data[c];
 				}
 
-				if(checksum == get_next_byte()) return sector;
+				if(checksum == get_next_byte())
+				{
+					uint16_t sector_address = (uint16_t)((sector->track << 8) | sector->sector);
+					sector_cache_[sector_address] = sector;
+					return sector;
+				}
 			}
 
 			return nullptr;
@@ -180,7 +189,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 	parser.set_disk(disk);
 
 	// find any sector whatsoever to establish the current track
-	std::unique_ptr<CommodoreGCRParser::Sector> sector;
+	std::shared_ptr<CommodoreGCRParser::Sector> sector;
 
 	// assemble directory
 	std::vector<uint8_t> directory;
