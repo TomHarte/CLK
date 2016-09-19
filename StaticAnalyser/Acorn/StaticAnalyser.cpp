@@ -67,6 +67,8 @@ void StaticAnalyser::Acorn::AddTargets(
 	Target target;
 	target.machine = Target::Electron;
 	target.probability = 1.0; // TODO: a proper estimation
+	target.acorn.has_dfs = false;
+	target.acorn.has_adfs = false;
 
 	// strip out inappropriate cartridges
 	target.cartridges = AcornCartridgesFrom(cartridges);
@@ -111,13 +113,19 @@ void StaticAnalyser::Acorn::AddTargets(
 		}
 	}
 
-	// TODO: disks
 	if(disks.size() > 0)
 	{
 		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue = GetDFSCatalogue(disk);
+		if(dfs_catalogue)
+		{
+			target.disks = disks;
+			target.acorn.has_dfs = true;
+
+			// TODO: what about booting?
+		}
 	}
 
-	if(target.tapes.size() || target.cartridges.size())
+	if(target.tapes.size() || target.disks.size() || target.cartridges.size())
 		destination.push_back(target);
 }
