@@ -185,7 +185,6 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 		new_file.data.reserve((size_t)data_length);
 
 		if(start_sector < 2) continue;
-
 		while(data_length > 0)
 		{
 			uint8_t sector = (uint8_t)(start_sector % 10);
@@ -198,8 +197,8 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 			long length_from_sector = std::min(data_length, 256l);
 			new_file.data.insert(new_file.data.end(), next_sector->data.begin(), next_sector->data.begin() + length_from_sector);
 			data_length -= length_from_sector;
-			if(!data_length) catalogue->files.push_front(new_file);
 		}
+		if(!data_length) catalogue->files.push_front(new_file);
 	}
 
 	return catalogue;
