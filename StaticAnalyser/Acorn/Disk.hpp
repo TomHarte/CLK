@@ -15,8 +15,19 @@
 namespace StaticAnalyser {
 namespace Acorn {
 
-std::list<File> GetDFSFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
-std::list<File> GetADFSFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
+struct Catalogue {
+	std::string name;
+	std::list<File> files;
+	enum class BootOption {
+		None,
+		LoadBOOT,
+		RunBOOT,
+		ExecBOOT
+	} bootOption;
+};
+
+std::unique_ptr<Catalogue> GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk);
+std::unique_ptr<Catalogue> GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 }
 }

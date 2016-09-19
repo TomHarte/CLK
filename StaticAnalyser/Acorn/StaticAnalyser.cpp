@@ -115,7 +115,7 @@ void StaticAnalyser::Acorn::AddTargets(
 	if(disks.size() > 0)
 	{
 		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
-		std::list<File> dfs_files = GetDFSFiles(disk);
+		std::unique_ptr<Catalogue> dfs_catalogue = GetDFSCatalogue(disk);
 	}
 
 	if(target.tapes.size() || target.cartridges.size())
