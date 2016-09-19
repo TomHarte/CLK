@@ -134,7 +134,7 @@ class FMParser: public Storage::Disk::Drive {
 				return sector;
 			}
 
-			return sector;
+			return nullptr;
 		}
 
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector)
