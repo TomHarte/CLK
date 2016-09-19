@@ -9,13 +9,17 @@
 #include "Disk.hpp"
 #include "../../Storage/Disk/DiskDrive.hpp"
 #include "../../Storage/Disk/Encodings/MFM.hpp"
+#include "../../NumberTheory/CRC.hpp"
 #include <algorithm>
 
 using namespace StaticAnalyser::Acorn;
 
 class FMParser: public Storage::Disk::Drive {
 	public:
-		FMParser() : Storage::Disk::Drive(4000000, 1, 300), shift_register_(0), track_(0)
+		FMParser() :
+			Storage::Disk::Drive(4000000, 1, 300),
+			crc_generator_(0x1021, 0xffff),
+			shift_register_(0), track_(0)
 		{
 			// Make sure this drive really is at track '1'.
 			while(!get_is_track_zero()) step(-1);
@@ -53,6 +57,7 @@ class FMParser: public Storage::Disk::Drive {
 		uint8_t track_;
 		int bit_count_;
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector_cache_[65536];
+		NumberTheory::CRC16 crc_generator_;
 
 		void process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
@@ -69,7 +74,7 @@ class FMParser: public Storage::Disk::Drive {
 		{
 			bit_count_ = 0;
 			while(bit_count_ < 16) run_for_cycles(1);
-			return (uint8_t)(
+			uint8_t byte = (uint8_t)(
 				((shift_register_&0x0001) >> 0) |
 				((shift_register_&0x0004) >> 1) |
 				((shift_register_&0x0010) >> 2) |
@@ -78,6 +83,8 @@ class FMParser: public Storage::Disk::Drive {
 				((shift_register_&0x0400) >> 5) |
 				((shift_register_&0x1000) >> 6) |
 				((shift_register_&0x4000) >> 7));
+			crc_generator_.add(byte);
+			return byte;
 		}
 
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector()
@@ -95,10 +102,14 @@ class FMParser: public Storage::Disk::Drive {
 					if(index_count_ >= 2) return nullptr;
 				}
 
+				crc_generator_.reset();
 				sector->track = get_next_byte();
 				sector->side = get_next_byte();
 				sector->sector = get_next_byte();
 				uint8_t size = get_next_byte();
+				uint16_t header_crc = crc_generator_.get_value();
+				if((header_crc >> 8) != get_next_byte()) continue;
+				if((header_crc & 0xff) != get_next_byte()) continue;
 
 				// look for data mark
 				while(1)
@@ -111,10 +122,14 @@ class FMParser: public Storage::Disk::Drive {
 
 				size_t data_size = (size_t)(128 << size);
 				sector->data.reserve(data_size);
+				crc_generator_.reset();
 				for(size_t c = 0; c < data_size; c++)
 				{
 					sector->data.push_back(get_next_byte());
 				}
+				uint16_t data_crc = crc_generator_.get_value();
+				if((data_crc >> 8) != get_next_byte()) continue;
+				if((data_crc & 0xff) != get_next_byte()) continue;
 
 				return sector;
 			}

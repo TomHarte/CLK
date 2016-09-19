@@ -8,8 +8,8 @@
 
 #include "MFM.hpp"
 
-#import "../PCMTrack.hpp"
-#import "../../../NumberTheory/CRC.hpp"
+#include "../PCMTrack.hpp"
+#include "../../../NumberTheory/CRC.hpp"
 
 using namespace Storage::Encodings::MFM;
 
