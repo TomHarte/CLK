@@ -358,6 +358,8 @@
 		4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8295B1D8F048B001BAE39 /* MFM.cpp */; };
 		4BF829601D8F3C87001BAE39 /* CRC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8295E1D8F3C87001BAE39 /* CRC.cpp */; };
 		4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829611D8F536B001BAE39 /* SSD.cpp */; };
+		4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
+		4BF829691D8F7361001BAE39 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829671D8F7361001BAE39 /* File.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -814,6 +816,10 @@
 		4BF8295F1D8F3C87001BAE39 /* CRC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRC.hpp; path = ../../NumberTheory/CRC.hpp; sourceTree = "<group>"; };
 		4BF829611D8F536B001BAE39 /* SSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SSD.cpp; sourceTree = "<group>"; };
 		4BF829621D8F536B001BAE39 /* SSD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SSD.hpp; sourceTree = "<group>"; };
+		4BF829641D8F732B001BAE39 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Acorn/Disk.cpp; sourceTree = "<group>"; };
+		4BF829651D8F732B001BAE39 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Acorn/Disk.hpp; sourceTree = "<group>"; };
+		4BF829671D8F7361001BAE39 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = File.cpp; path = ../../StaticAnalyser/Acorn/File.cpp; sourceTree = "<group>"; };
+		4BF829681D8F7361001BAE39 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Acorn/File.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1556,16 +1562,16 @@
 		4BC830D21D6E7C6D0000A26F /* Commodore */ = {
 			isa = PBXGroup;
 			children = (
+				4BA22B051D8817CE0008C640 /* Disk.cpp */,
+				4BA22B061D8817CE0008C640 /* Disk.hpp */,
+				4BE77A2C1D84ADFB00BC3827 /* File.cpp */,
+				4BE77A2D1D84ADFB00BC3827 /* File.hpp */,
 				4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */,
 				4BC5E4911D7ED365008CF980 /* StaticAnalyser.hpp */,
 				4BC830CF1D6E7C690000A26F /* Tape.cpp */,
 				4BC830D01D6E7C690000A26F /* Tape.hpp */,
 				4BC5E4931D7EE0E0008CF980 /* Utilities.cpp */,
 				4BC5E4941D7EE0E0008CF980 /* Utilities.hpp */,
-				4BE77A2C1D84ADFB00BC3827 /* File.cpp */,
-				4BE77A2D1D84ADFB00BC3827 /* File.hpp */,
-				4BA22B051D8817CE0008C640 /* Disk.cpp */,
-				4BA22B061D8817CE0008C640 /* Disk.hpp */,
 			);
 			name = Commodore;
 			sourceTree = "<group>";
@@ -1602,6 +1608,10 @@
 		4BD14B121D7462810088EAD6 /* Acorn */ = {
 			isa = PBXGroup;
 			children = (
+				4BF829641D8F732B001BAE39 /* Disk.cpp */,
+				4BF829651D8F732B001BAE39 /* Disk.hpp */,
+				4BF829671D8F7361001BAE39 /* File.cpp */,
+				4BF829681D8F7361001BAE39 /* File.hpp */,
 				4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */,
 				4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */,
 				4B96F7201D75119A0058BB2D /* Tape.cpp */,
@@ -2103,9 +2113,11 @@
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */,
+				4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */,
 				4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */,
 				4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
+				4BF829691D8F7361001BAE39 /* File.cpp in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
 				4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */,
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,

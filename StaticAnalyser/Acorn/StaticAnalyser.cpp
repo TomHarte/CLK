@@ -8,6 +8,7 @@
 
 #include "StaticAnalyser.hpp"
 
+#include "Disk.hpp"
 #include "Tape.hpp"
 
 using namespace StaticAnalyser::Acorn;
@@ -111,6 +112,11 @@ void StaticAnalyser::Acorn::AddTargets(
 	}
 
 	// TODO: disks
+	if(disks.size() > 0)
+	{
+		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
+		std::list<File> dfs_files = GetDFSFiles(disk);
+	}
 
 	if(target.tapes.size() || target.cartridges.size())
 		destination.push_back(target);
