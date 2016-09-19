@@ -56,7 +56,7 @@ std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned in
 	std::shared_ptr<Track> track;
 
 	if(head >= _head_count) return track;
-	long file_offset = (position * (_head_count ? 2 : 1) + head) * 256 * 10;
+	long file_offset = (position * _head_count + head) * 256 * 10;
 	fseek(_file, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
