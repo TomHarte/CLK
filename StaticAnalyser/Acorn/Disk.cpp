@@ -141,11 +141,27 @@ class FMParser: public Storage::Disk::Drive {
 
 std::list<File> StaticAnalyser::Acorn::GetDFSFiles(const std::shared_ptr<Storage::Disk::Disk> &disk)
 {
+	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	std::list<File> files;
 	FMParser parser;
 	parser.set_disk(disk);
 
-	parser.get_sector(0, 0);
+	std::shared_ptr<Storage::Encodings::MFM::Sector> names = parser.get_sector(0, 0);
+	std::shared_ptr<Storage::Encodings::MFM::Sector> details = parser.get_sector(0, 1);
+
+	if(!names || !details) return files;
+	if(names->data.size() != 256 || details->data.size() != 256) return files;
+
+	uint8_t final_file_offset = details->data[5];
+	if(final_file_offset&7) return files;
+
+	size_t number_of_files = (final_file_offset >> 3)-1;
+	for(size_t file = 0; file < number_of_files; file++)
+	{
+		char name[10];
+		snprintf(name, 10, "%c.%7s", names->data[file * 8 + 7], &names->data[file * 8]);
+		printf("%s\n", name);
+	}
 
 	return files;
 }
