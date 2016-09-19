@@ -21,6 +21,6 @@ class DocumentController: NSDocumentController {
 			}
 		}
 
-		return try! super.makeDocument(withContentsOf: url, ofType: typeName)
+		return try super.makeDocument(withContentsOf: url, ofType: typeName)
 	}
 }
