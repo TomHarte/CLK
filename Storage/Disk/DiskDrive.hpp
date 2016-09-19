@@ -36,7 +36,7 @@ class Drive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 		Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
 
 		/*!
-			Communicates to the PLL the expected length of a bit.
+			Communicates to the PLL the expected length of a bit as a fraction of a second.
 		*/
 		void set_expected_bit_length(Time bit_length);
 

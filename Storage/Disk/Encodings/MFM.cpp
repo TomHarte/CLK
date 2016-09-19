@@ -90,25 +90,10 @@ template <class T> class FMShifter: public Shifter<T> {
 				));
 		}
 
-		void add_index_address_mark() {
-			// data 0xfc, with clock 0xd7 => 1111 1100 with clock 1101 0111 => 1111 0111 0111 1010
-			static_cast<T *>(this)->output_short(0xf77a);
-		}
-
-		void add_ID_address_mark() {
-			// data 0xfe, with clock 0xc7 => 1111 1110 with clock 1100 0111 => 1111 0101 0111 1110
-			static_cast<T *>(this)->output_short(0xf57e);
-		}
-
-		void add_data_address_mark() {
-			// data 0xfb, with clock 0xc7 => 1111 1011 with clock 1100 0111 => 1111 0101 0110 1111
-			static_cast<T *>(this)->output_short(0xf56f);
-		}
-
-		void add_deleted_data_address_mark() {
-			// data 0xf8, with clock 0xc7 => 1111 1000 with clock 1100 0111 => 1111 0101 0110 1010
-			static_cast<T *>(this)->output_short(0xf56a);
-		}
+		void add_index_address_mark()			{	static_cast<T *>(this)->output_short(FMIndexAddressMark);		}
+		void add_ID_address_mark()				{	static_cast<T *>(this)->output_short(FMIDAddressMark);			}
+		void add_data_address_mark()			{	static_cast<T *>(this)->output_short(FMDataAddressMark);		}
+		void add_deleted_data_address_mark()	{	static_cast<T *>(this)->output_short(FMDeletedDataAddressMark);	}
 };
 
 static uint8_t logarithmic_size_for_size(size_t size)
