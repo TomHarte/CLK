@@ -120,6 +120,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
+//		if((address >> 8) == 0xfc)
+//		{
+//			printf("d");
+//		}
 		switch(address & 0xff0f)
 		{
 			case 0xfe00:
@@ -297,7 +301,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			}
 			break;
 
-			case 0xfcc4: case 0xfcc5: case 0xfcc6: case 0xfcc7:
+			case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
 				if(_wd1770 && (address&0x00f0) == 0x00c0)
 				{
 					if(isReadOperation(operation))
@@ -306,7 +310,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						_wd1770->set_register(address, *value);
 				}
 			break;
-			case 0xfcc0:
+			case 0xfc00:
 				if(_wd1770 && (address&0x00f0) == 0x00c0)
 				{
 					if(isReadOperation(operation))
