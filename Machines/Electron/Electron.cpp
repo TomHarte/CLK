@@ -468,6 +468,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_tape.run_for_cycles(cycles);
 
 	if(_typer) _typer->update((int)cycles);
+	if(_wd1770) _wd1770->run_for_cycles(4*cycles);
 
 	return cycles;
 }
