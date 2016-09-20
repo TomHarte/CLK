@@ -43,8 +43,19 @@ class WD1770 {
 
 		enum class State {
 			Waiting,
-			BeginType1, BeginType2, BeginType3
+			BeginType1, BeginType2, BeginType3,
+			BeginType1PostSpin,
+			WaitForSixIndexPulses,
+			TestTrack, TestDirection, TestHead,
+			TestVerify, VerifyTrack
 		} state_;
+
+		union {
+			struct {
+				int count;
+				State next_state;
+			} wait_six_index_pulses_;
+		};
 
 		uint8_t status_;
 		uint8_t track_;
@@ -52,6 +63,10 @@ class WD1770 {
 		uint8_t data_;
 		uint8_t command_;
 		bool has_command_;
+
+		void set_interrupt_request(bool interrupt_request) {}
+		bool is_step_in_;
+		uint8_t data_shift_register_;
 };
 
 }

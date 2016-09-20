@@ -67,8 +67,102 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 				}
 			continue;
 
+			case State::BeginType1:
+				status_ |= Flag::Busy;
+				status_ &= ~(Flag::DataRequest | Flag::CRCError);
+				set_interrupt_request(false);
+				state_ = State::BeginType1PostSpin;
+				if(command_ & 0x08)
+				{
+					wait_six_index_pulses_.next_state = state_;
+					wait_six_index_pulses_.count = 0;
+					state_ = State::WaitForSixIndexPulses;
+				}
+			continue;
+
+//			case State::WaitForSixIndexPulses:
+//			continue;
+
+			case State::BeginType1PostSpin:
+				switch(command_ >> 4)
+				{
+					case 0:	// restore
+						track_ = 0xff;	// deliberate fallthrough
+					case 1:	// seek
+						data_ = 0x00;
+					break;
+					case 2: case 3: // step
+					break;
+					case 4: case 5: // step in
+						is_step_in_ = true;
+					break;
+					case 6: case 7: // step out
+						is_step_in_ = false;
+					break;
+				}
+
+				if(!(command_ >> 5))
+					state_ = State::TestTrack;
+				else
+					state_ = (command_ & 0x10) ? State::TestDirection : State::TestHead;
+			continue;
+
+			case State::TestTrack:
+				data_shift_register_ = data_;
+				if(track_ == data_shift_register_)
+					state_ = State::TestVerify;
+				else
+				{
+					is_step_in_ = (data_shift_register_ < track_);
+					state_ = State::TestDirection;
+				}
+			continue;
+
+			case State::TestDirection:
+				track_ += is_step_in_ ? -1 : +1;
+				state_ = State::TestHead;
+			continue;
+
+//			case State::TestHead:
+//			break;
+
+			case State::TestVerify:
+				if(command_ & 0x04)
+				{
+					state_ = State::VerifyTrack;
+				}
+				else
+				{
+					set_interrupt_request(true);
+					status_ &= ~Flag::Busy;
+					state_ = State::Waiting;
+				}
+			break;
+
+//     +------+----------+-------------------------+
+//     !	    !	       !	   BITS 	 !
+//     ! TYPE ! COMMAND  !  7  6	5  4  3  2  1  0 !
+//     +------+----------+-------------------------+
+//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+//     !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
+//     +------+----------+-------------------------+
+
 			default:
-				printf("Unhandled state %d!", state_);
+			{
+				static bool has_hit_error = false;
+				if(!has_hit_error)
+					printf("Unhandled state %d!\n", state_);
+				has_hit_error = true;
+			}
 			return;
 		}
 	}
