@@ -16,7 +16,8 @@
 
 - (void)setOSROM:(nonnull NSData *)rom;
 - (void)setBASICROM:(nonnull NSData *)rom;
-- (void)setROM:(nonnull NSData *)rom slot:(int)slot;
+- (void)setDFSROM:(nonnull NSData *)rom;
+- (void)setADFSROM:(nonnull NSData *)rom;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL useTelevisionOutput;

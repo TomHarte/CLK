@@ -51,6 +51,7 @@
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
+		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
 		4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */; };
 		4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B31D327F7E00DF5BA0 /* G64.cpp */; };
@@ -464,6 +465,8 @@
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
 		4BA22B061D8817CE0008C640 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Commodore/Disk.hpp; sourceTree = "<group>"; };
+		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
+		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA799931D8B656E0045123D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BA799941D8B656E0045123D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfigurationTarget.hpp; sourceTree = "<group>"; };
@@ -922,6 +925,8 @@
 				4B2A53961D117D36003C6002 /* CSMachine.mm */,
 				4B643F3B1D77AD6D00D431D6 /* StaticAnalyser */,
 				4B2A53981D117D36003C6002 /* Wrappers */,
+				4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */,
+				4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */,
 			);
 			path = Machine;
 			sourceTree = "<group>";
@@ -2118,6 +2123,7 @@
 				4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
 				4BF829691D8F7361001BAE39 /* File.cpp in Sources */,
+				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
 				4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */,
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,

@@ -485,22 +485,37 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		_tape.set_tape(target.tapes.front());
 	}
 
+	if(target.disks.size())
+	{
+		_wd1770.reset(new WD::WD1770);
+
+		if(target.acorn.has_dfs)
+		{
+			set_rom(ROMSlot0, _dfs);
+		}
+
+		// TODO: actually insert the disk, why not?
+	}
+
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 	{
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
 }
 
-void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
+void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data)
 {
 	uint8_t *target = nullptr;
 	switch(slot)
 	{
+		case ROMSlotDFS:	_dfs = data;			return;
+		case ROMSlotADFS:	_adfs = data;			return;
+
 		case ROMSlotOS:		target = _os;			break;
 		default:			target = _roms[slot];	break;
 	}
 
-	memcpy(target, data, std::min((size_t)16384, length));
+	memcpy(target, &data[0], std::min((size_t)16384, data.size()));
 }
 
 inline void Machine::signal_interrupt(Electron::Interrupt interrupt)

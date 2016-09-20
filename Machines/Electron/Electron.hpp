@@ -18,6 +18,7 @@
 #include "../Typer.hpp"
 
 #include <cstdint>
+#include <vector>
 
 namespace Electron {
 
@@ -31,7 +32,7 @@ enum ROMSlot: uint8_t {
 
 	ROMSlot12,	ROMSlot13,	ROMSlot14,	ROMSlot15,
 
-	ROMSlotOS
+	ROMSlotOS,	ROMSlotDFS,	ROMSlotADFS
 };
 
 enum Interrupt: uint8_t {
@@ -147,7 +148,7 @@ class Machine:
 	public:
 		Machine();
 
-		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+		void set_rom(ROMSlot slot, std::vector<uint8_t> data);
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		void set_key_state(Key key, bool isPressed);
@@ -189,6 +190,7 @@ class Machine:
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
 		uint8_t _os[16384], _ram[32768];
+		std::vector<uint8_t> _dfs, _adfs;
 
 		// Things affected by registers, explicitly or otherwise.
 		uint8_t _interrupt_status, _interrupt_control;
