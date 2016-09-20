@@ -120,276 +120,296 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
-		if(address >= 0xc000)
+		switch(address & 0xff0f)
 		{
-			if((address & 0xff00) == 0xfe00)
-			{
-				switch(address&0xf)
-				{
-					case 0x0:
-						if(isReadOperation(operation))
-						{
-							*value = _interrupt_status;
-							_interrupt_status &= ~PowerOnReset;
-						}
-						else
-						{
-							_interrupt_control = (*value) & ~1;
-							evaluate_interrupts();
-						}
-					break;
-					case 0x1:
-					break;
-					case 0x2:
-						if(!isReadOperation(operation))
-						{
-							_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
-							if(!_startScreenAddress) _startScreenAddress |= 0x8000;
-						}
-					break;
-					case 0x3:
-						if(!isReadOperation(operation))
-						{
-							_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
-							if(!_startScreenAddress) _startScreenAddress |= 0x8000;
-						}
-					break;
-					case 0x4:
-						if(isReadOperation(operation))
-						{
-							*value = _tape.get_data_register();
-							_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-						}
-						else
-						{
-							_tape.set_data_register(*value);
-							_tape.clear_interrupts(Interrupt::TransmitDataEmpty);
-						}
-					break;
-					case 0x5:
-						if(!isReadOperation(operation))
-						{
-							const uint8_t interruptDisable = (*value)&0xf0;
-							if( interruptDisable )
-							{
-								if( interruptDisable&0x10 ) _interrupt_status &= ~Interrupt::DisplayEnd;
-								if( interruptDisable&0x20 ) _interrupt_status &= ~Interrupt::RealTimeClock;
-								if( interruptDisable&0x40 ) _interrupt_status &= ~Interrupt::HighToneDetect;
-								evaluate_interrupts();
-
-								// TODO: NMI
-							}
-
-							// latch the paged ROM in case external hardware is being emulated
-							_active_rom = (Electron::ROMSlot)(*value & 0xf);
-
-							// apply the ULA's test
-							if(*value & 0x08)
-							{
-								if(*value & 0x04)
-								{
-									_keyboard_is_active = false;
-									_basic_is_active = false;
-								}
-								else
-								{
-									_keyboard_is_active = !(*value & 0x02);
-									_basic_is_active = !_keyboard_is_active;
-								}
-							}
-						}
-					break;
-					case 0x6:
-						if(!isReadOperation(operation))
-						{
-							update_audio();
-							_speaker->set_divider(*value);
-							_tape.set_counter(*value);
-						}
-					break;
-					case 0x7:
-						if(!isReadOperation(operation))
-						{
-							// update screen mode
-							uint8_t new_screen_mode = ((*value) >> 3)&7;
-							if(new_screen_mode == 7) new_screen_mode = 4;
-							if(new_screen_mode != _screen_mode)
-							{
-//								printf("To mode %d, at %d cycles into field (%d)\n", new_screen_mode, _fieldCycles, _fieldCycles >> 7);
-								update_display();
-								_screen_mode = new_screen_mode;
-								switch(_screen_mode)
-								{
-									case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
-									case 3: _screenModeBaseAddress = 0x4000; break;
-									case 4: case 5: _screenModeBaseAddress = 0x5800; break;
-									case 6: _screenModeBaseAddress = 0x6000; break;
-								}
-							}
-
-							// update speaker mode
-							bool new_speaker_is_enabled = (*value & 6) == 2;
-							if(new_speaker_is_enabled != _speaker->get_is_enabled())
-							{
-								update_audio();
-								_speaker->set_is_enabled(new_speaker_is_enabled);
-								_tape.set_is_enabled(!new_speaker_is_enabled);
-							}
-
-							_tape.set_is_running(((*value)&0x40) ? true : false);
-							_tape.set_is_in_input_mode(((*value)&0x04) ? false : true);
-
-							// TODO: caps lock LED
-						}
-					break;
-					default:
-					{
-						if(!isReadOperation(operation))
-						{
-							update_display();
-
-							static const int registers[4][4] = {
-								{10, 8, 2, 0},
-								{14, 12, 6, 4},
-								{15, 13, 7, 5},
-								{11, 9, 3, 1},
-							};
-							const int index = (address >> 1)&3;
-							const uint8_t colour = ~(*value);
-							if(address&1)
-							{
-								_palette[registers[index][0]]	= (_palette[registers[index][0]]&3)	| ((colour >> 1)&4);
-								_palette[registers[index][1]]	= (_palette[registers[index][1]]&3)	| ((colour >> 0)&4);
-								_palette[registers[index][2]]	= (_palette[registers[index][2]]&3)	| ((colour << 1)&4);
-								_palette[registers[index][3]]	= (_palette[registers[index][3]]&3)	| ((colour << 2)&4);
-
-								_palette[registers[index][2]]	= (_palette[registers[index][2]]&5)	| ((colour >> 4)&2);
-								_palette[registers[index][3]]	= (_palette[registers[index][3]]&5)	| ((colour >> 3)&2);
-							}
-							else
-							{
-								_palette[registers[index][0]]	= (_palette[registers[index][0]]&6)	| ((colour >> 7)&1);
-								_palette[registers[index][1]]	= (_palette[registers[index][1]]&6)	| ((colour >> 6)&1);
-								_palette[registers[index][2]]	= (_palette[registers[index][2]]&6)	| ((colour >> 5)&1);
-								_palette[registers[index][3]]	= (_palette[registers[index][3]]&6)	| ((colour >> 4)&1);
-
-								_palette[registers[index][0]]	= (_palette[registers[index][0]]&5)	| ((colour >> 2)&2);
-								_palette[registers[index][1]]	= (_palette[registers[index][1]]&5)	| ((colour >> 1)&2);
-							}
-
-							// regenerate all palette tables for now
-#define pack(a, b) (uint8_t)((a << 4) | (b))
-							for(int byte = 0; byte < 256; byte++)
-							{
-								uint8_t *target = (uint8_t *)&_paletteTables.forty1bpp[byte];
-								target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
-								target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
-
-								target = (uint8_t *)&_paletteTables.eighty2bpp[byte];
-								target[0] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-								target[1] = pack(_palette[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], _palette[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
-
-								target = (uint8_t *)&_paletteTables.eighty1bpp[byte];
-								target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
-								target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
-								target[2] = pack(_palette[(byte&0x08) >> 0], _palette[(byte&0x04) << 1]);
-								target[3] = pack(_palette[(byte&0x02) << 2], _palette[(byte&0x01) << 3]);
-
-								_paletteTables.forty2bpp[byte] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-								_paletteTables.eighty4bpp[byte] = pack(	_palette[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
-																		_palette[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
-							}
-#undef pack
-						}
-					}
-					break;
-				}
-			}
-			else
-			{
+			case 0xfe00:
 				if(isReadOperation(operation))
 				{
-					if(
-						_use_fast_tape_hack &&
-						_tape.has_tape() &&
-						(operation == CPU6502::BusOperation::ReadOpcode) &&
-						(
-							(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
-							(address == 0xf6de) || (address == 0xf6df) ||	// act to disable the normal branch into tape-handling
-							(address == 0xf6fa) || (address == 0xf6fb) ||	// code, forcing the OS along the serially-accessed ROM
-							(address == 0xfa51) || (address == 0xfa52) ||	// pathway.
-
-							(address == 0xf0a8)								// 0xf0a8 is from where a service call would normally be
-																			// dispatched; we can check whether it would be call 14
-																			// (i.e. read byte) and, if so, whether the OS was about to
-																			// issue a read byte call to a ROM despite being the tape
-																			// FS being selected. If so then this is a get byte that
-																			// we should service synthetically. Put the byte into Y
-																			// and set A to zero to report that action was taken, then
-																			// allow the PC read to return an RTS.
-						)
-					)
+					*value = _interrupt_status;
+					_interrupt_status &= ~PowerOnReset;
+				}
+				else
+				{
+					_interrupt_control = (*value) & ~1;
+					evaluate_interrupts();
+				}
+			break;
+			case 0xfe02:
+				if(!isReadOperation(operation))
+				{
+					_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
+					if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+				}
+			break;
+			case 0xfe03:
+				if(!isReadOperation(operation))
+				{
+					_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
+					if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+				}
+			break;
+			case 0xfe04:
+				if(isReadOperation(operation))
+				{
+					*value = _tape.get_data_register();
+					_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+				}
+				else
+				{
+					_tape.set_data_register(*value);
+					_tape.clear_interrupts(Interrupt::TransmitDataEmpty);
+				}
+			break;
+			case 0xfe05:
+				if(!isReadOperation(operation))
+				{
+					const uint8_t interruptDisable = (*value)&0xf0;
+					if( interruptDisable )
 					{
-						uint8_t service_call = (uint8_t)get_value_of_register(CPU6502::Register::X);
-						if(address == 0xf0a8)
+						if( interruptDisable&0x10 ) _interrupt_status &= ~Interrupt::DisplayEnd;
+						if( interruptDisable&0x20 ) _interrupt_status &= ~Interrupt::RealTimeClock;
+						if( interruptDisable&0x40 ) _interrupt_status &= ~Interrupt::HighToneDetect;
+						evaluate_interrupts();
+
+						// TODO: NMI
+					}
+
+					// latch the paged ROM in case external hardware is being emulated
+					_active_rom = (Electron::ROMSlot)(*value & 0xf);
+
+					// apply the ULA's test
+					if(*value & 0x08)
+					{
+						if(*value & 0x04)
 						{
-							if(!_ram[0x247] && service_call == 14)
-							{
-								_tape.set_delegate(nullptr);
-
-								// TODO: handle tape wrap around.
-
-								int cycles_left_while_plausibly_in_data = 50;
-								_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-								while(1)
-								{
-									_tape.run_for_input_pulse();
-									cycles_left_while_plausibly_in_data--;
-									if(!cycles_left_while_plausibly_in_data) _fast_load_is_in_data = false;
-									if(	(_tape.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
-										(_fast_load_is_in_data || _tape.get_data_register() == 0x2a)
-									) break;
-								}
-								_tape.set_delegate(this);
-								_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-								_interrupt_status |= _tape.get_interrupt_status();
-
-								_fast_load_is_in_data = true;
-								set_value_of_register(CPU6502::Register::A, 0);
-								set_value_of_register(CPU6502::Register::Y, _tape.get_data_register());
-								*value = 0x60; // 0x60 is RTS
-							}
-							else
-								*value = _os[address & 16383];
+							_keyboard_is_active = false;
+							_basic_is_active = false;
 						}
 						else
-							*value = 0xea;
+						{
+							_keyboard_is_active = !(*value & 0x02);
+							_basic_is_active = !_keyboard_is_active;
+						}
+					}
+				}
+			break;
+			case 0xfe06:
+				if(!isReadOperation(operation))
+				{
+					update_audio();
+					_speaker->set_divider(*value);
+					_tape.set_counter(*value);
+				}
+			break;
+			case 0xfe07:
+				if(!isReadOperation(operation))
+				{
+					// update screen mode
+					uint8_t new_screen_mode = ((*value) >> 3)&7;
+					if(new_screen_mode == 7) new_screen_mode = 4;
+					if(new_screen_mode != _screen_mode)
+					{
+						update_display();
+						_screen_mode = new_screen_mode;
+						switch(_screen_mode)
+						{
+							case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
+							case 3: _screenModeBaseAddress = 0x4000; break;
+							case 4: case 5: _screenModeBaseAddress = 0x5800; break;
+							case 6: _screenModeBaseAddress = 0x6000; break;
+						}
+					}
+
+					// update speaker mode
+					bool new_speaker_is_enabled = (*value & 6) == 2;
+					if(new_speaker_is_enabled != _speaker->get_is_enabled())
+					{
+						update_audio();
+						_speaker->set_is_enabled(new_speaker_is_enabled);
+						_tape.set_is_enabled(!new_speaker_is_enabled);
+					}
+
+					_tape.set_is_running(((*value)&0x40) ? true : false);
+					_tape.set_is_in_input_mode(((*value)&0x04) ? false : true);
+
+					// TODO: caps lock LED
+				}
+			break;
+			case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b: case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
+			{
+				if(!isReadOperation(operation))
+				{
+					update_display();
+
+					static const int registers[4][4] = {
+						{10, 8, 2, 0},
+						{14, 12, 6, 4},
+						{15, 13, 7, 5},
+						{11, 9, 3, 1},
+					};
+					const int index = (address >> 1)&3;
+					const uint8_t colour = ~(*value);
+					if(address&1)
+					{
+						_palette[registers[index][0]]	= (_palette[registers[index][0]]&3)	| ((colour >> 1)&4);
+						_palette[registers[index][1]]	= (_palette[registers[index][1]]&3)	| ((colour >> 0)&4);
+						_palette[registers[index][2]]	= (_palette[registers[index][2]]&3)	| ((colour << 1)&4);
+						_palette[registers[index][3]]	= (_palette[registers[index][3]]&3)	| ((colour << 2)&4);
+
+						_palette[registers[index][2]]	= (_palette[registers[index][2]]&5)	| ((colour >> 4)&2);
+						_palette[registers[index][3]]	= (_palette[registers[index][3]]&5)	| ((colour >> 3)&2);
 					}
 					else
 					{
-						*value = _os[address & 16383];
+						_palette[registers[index][0]]	= (_palette[registers[index][0]]&6)	| ((colour >> 7)&1);
+						_palette[registers[index][1]]	= (_palette[registers[index][1]]&6)	| ((colour >> 6)&1);
+						_palette[registers[index][2]]	= (_palette[registers[index][2]]&6)	| ((colour >> 5)&1);
+						_palette[registers[index][3]]	= (_palette[registers[index][3]]&6)	| ((colour >> 4)&1);
+
+						_palette[registers[index][0]]	= (_palette[registers[index][0]]&5)	| ((colour >> 2)&2);
+						_palette[registers[index][1]]	= (_palette[registers[index][1]]&5)	| ((colour >> 1)&2);
 					}
-				}
-			}
-		}
-		else
-		{
-			if(isReadOperation(operation))
-			{
-				*value = _roms[_active_rom][address & 16383];
-				if(_keyboard_is_active)
-				{
-					*value &= 0xf0;
-					for(int address_line = 0; address_line < 14; address_line++)
+
+					// regenerate all palette tables for now
+#define pack(a, b) (uint8_t)((a << 4) | (b))
+					for(int byte = 0; byte < 256; byte++)
 					{
-						if(!(address&(1 << address_line))) *value |= _key_states[address_line];
+						uint8_t *target = (uint8_t *)&_paletteTables.forty1bpp[byte];
+						target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
+						target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
+
+						target = (uint8_t *)&_paletteTables.eighty2bpp[byte];
+						target[0] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+						target[1] = pack(_palette[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], _palette[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
+
+						target = (uint8_t *)&_paletteTables.eighty1bpp[byte];
+						target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
+						target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
+						target[2] = pack(_palette[(byte&0x08) >> 0], _palette[(byte&0x04) << 1]);
+						target[3] = pack(_palette[(byte&0x02) << 2], _palette[(byte&0x01) << 3]);
+
+						_paletteTables.forty2bpp[byte] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+						_paletteTables.eighty4bpp[byte] = pack(	_palette[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
+																_palette[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
 					}
-				}
-				if(_basic_is_active)
-				{
-					*value &= _roms[ROMSlotBASIC][address & 16383];
+#undef pack
 				}
 			}
+			break;
+
+			case 0xfcc4: case 0xfcc5: case 0xfcc6: case 0xfcc7:
+				if(_wd1770 && (address&0x00f0) == 0x00c0)
+				{
+					if(isReadOperation(operation))
+						*value = _wd1770->get_register(address);
+					else
+						_wd1770->set_register(address, *value);
+				}
+			break;
+			case 0xfcc0:
+				if(_wd1770 && (address&0x00f0) == 0x00c0)
+				{
+					if(isReadOperation(operation))
+						*value = 1;
+					else
+					{
+						// TODO:
+						//	bit 0 => enable or disable drive 1
+						//	bit 1 => enable or disable drive 2
+						//	bit 2 => side select
+						//	bit 3 => single density select
+//						_wd1770->set_register(address, *value);
+					}
+				}
+			break;
+
+			default:
+				if(address >= 0xc000)
+				{
+					if(isReadOperation(operation))
+					{
+						if(
+							_use_fast_tape_hack &&
+							_tape.has_tape() &&
+							(operation == CPU6502::BusOperation::ReadOpcode) &&
+							(
+								(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
+								(address == 0xf6de) || (address == 0xf6df) ||	// act to disable the normal branch into tape-handling
+								(address == 0xf6fa) || (address == 0xf6fb) ||	// code, forcing the OS along the serially-accessed ROM
+								(address == 0xfa51) || (address == 0xfa52) ||	// pathway.
+
+								(address == 0xf0a8)								// 0xf0a8 is from where a service call would normally be
+																				// dispatched; we can check whether it would be call 14
+																				// (i.e. read byte) and, if so, whether the OS was about to
+																				// issue a read byte call to a ROM despite being the tape
+																				// FS being selected. If so then this is a get byte that
+																				// we should service synthetically. Put the byte into Y
+																				// and set A to zero to report that action was taken, then
+																				// allow the PC read to return an RTS.
+							)
+						)
+						{
+							uint8_t service_call = (uint8_t)get_value_of_register(CPU6502::Register::X);
+							if(address == 0xf0a8)
+							{
+								if(!_ram[0x247] && service_call == 14)
+								{
+									_tape.set_delegate(nullptr);
+
+									// TODO: handle tape wrap around.
+
+									int cycles_left_while_plausibly_in_data = 50;
+									_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+									while(1)
+									{
+										_tape.run_for_input_pulse();
+										cycles_left_while_plausibly_in_data--;
+										if(!cycles_left_while_plausibly_in_data) _fast_load_is_in_data = false;
+										if(	(_tape.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
+											(_fast_load_is_in_data || _tape.get_data_register() == 0x2a)
+										) break;
+									}
+									_tape.set_delegate(this);
+									_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+									_interrupt_status |= _tape.get_interrupt_status();
+
+									_fast_load_is_in_data = true;
+									set_value_of_register(CPU6502::Register::A, 0);
+									set_value_of_register(CPU6502::Register::Y, _tape.get_data_register());
+									*value = 0x60; // 0x60 is RTS
+								}
+								else
+									*value = _os[address & 16383];
+							}
+							else
+								*value = 0xea;
+						}
+						else
+						{
+							*value = _os[address & 16383];
+						}
+					}
+				}
+				else
+				{
+					if(isReadOperation(operation))
+					{
+						*value = _roms[_active_rom][address & 16383];
+						if(_keyboard_is_active)
+						{
+							*value &= 0xf0;
+							for(int address_line = 0; address_line < 14; address_line++)
+							{
+								if(!(address&(1 << address_line))) *value |= _key_states[address_line];
+							}
+						}
+						if(_basic_is_active)
+						{
+							*value &= _roms[ROMSlotBASIC][address & 16383];
+						}
+					}
+				}
+			break;
 		}
 	}
 

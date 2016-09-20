@@ -26,7 +26,7 @@ class FMParser: public Storage::Disk::Drive {
 
 			Storage::Time bit_length;
 			bit_length.length = 1;
-			bit_length.clock_rate = 250000;	// i.e. 250 kbps
+			bit_length.clock_rate = 250000;	// i.e. 250 kbps (including clocks)
 			set_expected_bit_length(bit_length);
 		}
 

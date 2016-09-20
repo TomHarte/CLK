@@ -199,7 +199,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		6, 0,
 		17, 14,
 		0,
-		6400);
+		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors)
@@ -213,5 +213,5 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		12, 22,
 		12, 18,
 		32,
-		12800);
+		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
 }

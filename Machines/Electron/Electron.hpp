@@ -10,6 +10,7 @@
 #define Electron_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
+#include "../../Components/1770/1770.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -226,6 +227,9 @@ class Machine:
 		Tape _tape;
 		bool _use_fast_tape_hack;
 		bool _fast_load_is_in_data;
+
+		// Disk
+		std::unique_ptr<WD::WD1770> _wd1770;
 
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
