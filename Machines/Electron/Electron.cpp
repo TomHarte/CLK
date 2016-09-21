@@ -499,7 +499,14 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 			set_rom(ROMSlot0, _dfs);
 		}
 
-		// TODO: actually insert the disk, why not?
+		_wd1770->set_disk(target.disks.front());
+	}
+
+	ROMSlot slot = ROMSlot12;
+	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : target.cartridges)
+	{
+		set_rom(slot, cartridge->get_segments().front().data);
+		slot = (ROMSlot)(((int)slot + 1)&15);
 	}
 
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled

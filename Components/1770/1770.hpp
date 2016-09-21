@@ -13,11 +13,11 @@
 
 namespace WD {
 
-class WD1770 {
+class WD1770: public Storage::Disk::Drive {
 	public:
 		WD1770();
 
-		void set_drive(std::shared_ptr<Storage::Disk::Drive> drive);
+//		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 		void set_is_double_density(bool is_double_density);
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
@@ -47,7 +47,8 @@ class WD1770 {
 			BeginType1PostSpin,
 			WaitForSixIndexPulses,
 			TestTrack, TestDirection, TestHead,
-			TestVerify, VerifyTrack
+			TestVerify, VerifyTrack,
+			StepDelay
 		} state_;
 
 		union {
@@ -55,6 +56,9 @@ class WD1770 {
 				int count;
 				State next_state;
 			} wait_six_index_pulses_;
+			struct {
+				int count;
+			} step_delay_;
 		};
 
 		uint8_t status_;
@@ -67,6 +71,9 @@ class WD1770 {
 		void set_interrupt_request(bool interrupt_request) {}
 		bool is_step_in_;
 		uint8_t data_shift_register_;
+
+		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_index_hole();
 };
 
 }

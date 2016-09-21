@@ -8,13 +8,17 @@
 
 #include "1770.hpp"
 
+
 using namespace WD;
 
-WD1770::WD1770() : state_(State::Waiting), status_(0), has_command_(false) {}
+WD1770::WD1770() :
+	Storage::Disk::Drive(1000000, 8, 300),
+	state_(State::Waiting), status_(0), has_command_(false) {}
 
-void WD1770::set_drive(std::shared_ptr<Storage::Disk::Drive> drive)
-{
-}
+//void WD1770::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
+//{
+//	drive_.reset(new Storage::Disk::Drive(1000000, 8, 300));
+//}
 
 void WD1770::set_is_double_density(bool is_double_density)
 {
@@ -123,8 +127,27 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 				state_ = State::TestHead;
 			continue;
 
-//			case State::TestHead:
-//			break;
+			case State::TestHead:
+				if(get_is_track_zero() && !is_step_in_)
+				{
+					track_ = 0;
+					state_ = State::TestVerify;
+				}
+				else
+				{
+					step(is_step_in_ ? 1 : -1);
+					state_ = State::StepDelay;
+					step_delay_.count = 0;
+				}
+			break;
+
+			case State::StepDelay:
+				if(step_delay_.count == (command_&3))
+				{
+					state_ = (command_ >> 5) ? State::TestVerify : State::TestTrack;
+				}
+				step_delay_.count++;
+			break;
 
 			case State::TestVerify:
 				if(command_ & 0x04)
@@ -166,4 +189,12 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 			return;
 		}
 	}
+}
+
+void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
+{
+}
+
+void WD1770::process_index_hole()
+{
 }
