@@ -8,26 +8,20 @@
 
 #include "1770.hpp"
 
-
 using namespace WD;
 
 WD1770::WD1770() :
 	Storage::Disk::Drive(1000000, 8, 300),
 	state_(State::Waiting), status_(0), has_command_(false) {
-	Storage::Time bit_length;
-	// TODO: this should be a function of the double density line
-	bit_length.length = 1;
-	bit_length.clock_rate = 500000;
-	set_expected_bit_length(bit_length);
+	set_is_double_density(false);
 }
-
-//void WD1770::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
-//{
-//	drive_.reset(new Storage::Disk::Drive(1000000, 8, 300));
-//}
 
 void WD1770::set_is_double_density(bool is_double_density)
 {
+	Storage::Time bit_length;
+	bit_length.length = 1;
+	bit_length.clock_rate = is_double_density ? 500000 : 250000;
+	set_expected_bit_length(bit_length);
 }
 
 void WD1770::set_register(int address, uint8_t value)
