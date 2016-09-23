@@ -13,7 +13,13 @@ using namespace WD;
 
 WD1770::WD1770() :
 	Storage::Disk::Drive(1000000, 8, 300),
-	state_(State::Waiting), status_(0), has_command_(false) {}
+	state_(State::Waiting), status_(0), has_command_(false) {
+	Storage::Time bit_length;
+	// TODO: this should be a function of the double density line
+	bit_length.length = 1;
+	bit_length.clock_rate = 500000;
+	set_expected_bit_length(bit_length);
+}
 
 //void WD1770::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 //{
@@ -57,6 +63,7 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 	while(cycles > 8)
 	{
 		cycles -= 8;
+		if(status_ & Flag::MotorOn) Storage::Disk::Drive::run_for_cycles(1);
 
 		switch(state_)
 		{
@@ -71,6 +78,13 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 				}
 			continue;
 
+			case State::WaitForSixIndexPulses:
+				status_ |= Flag::MotorOn;
+				// deliberately empty; logic is in ::process_index_hole
+			continue;
+
+#pragma mark - Type 1
+
 			case State::BeginType1:
 				status_ |= Flag::Busy;
 				status_ &= ~(Flag::DataRequest | Flag::CRCError);
@@ -79,13 +93,10 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 				if(command_ & 0x08)
 				{
 					wait_six_index_pulses_.next_state = state_;
-					wait_six_index_pulses_.count = 0;
+					index_hole_count_ = 0;
 					state_ = State::WaitForSixIndexPulses;
 				}
 			continue;
-
-//			case State::WaitForSixIndexPulses:
-//			continue;
 
 			case State::BeginType1PostSpin:
 				switch(command_ >> 4)
@@ -139,7 +150,7 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 					state_ = State::StepDelay;
 					step_delay_.count = 0;
 				}
-			break;
+			continue;
 
 			case State::StepDelay:
 				if(step_delay_.count == (command_&3))
@@ -147,7 +158,7 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 					state_ = (command_ >> 5) ? State::TestVerify : State::TestTrack;
 				}
 				step_delay_.count++;
-			break;
+			continue;
 
 			case State::TestVerify:
 				if(command_ & 0x04)
@@ -160,7 +171,29 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 					status_ &= ~Flag::Busy;
 					state_ = State::Waiting;
 				}
-			break;
+			continue;
+
+#pragma mark - Type 2
+
+			case State::BeginType2:
+				status_ |= Flag::Busy;
+				status_ &= ~(Flag::DataRequest | Flag::LostData | Flag::RecordNotFound | 0x60);
+				state_ = State::TestPause;
+				if(!(command_&0x08))
+				{
+					wait_six_index_pulses_.next_state = state_;
+					index_hole_count_ = 0;
+					state_ = State::WaitForSixIndexPulses;
+				}
+			continue;
+
+			case State::TestPause:
+				// TODO: pause for 30ms if E is set
+				state_ = State::TestWrite;
+			continue;
+
+//			case State::TestWrite:
+//			continue;
 
 //     +------+----------+-------------------------+
 //     !	    !	       !	   BITS 	 !
@@ -197,4 +230,10 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 
 void WD1770::process_index_hole()
 {
+	index_hole_count_++;
+
+	if(state_ == State::WaitForSixIndexPulses && index_hole_count_ == 6)
+	{
+		state_ = wait_six_index_pulses_.next_state;
+	}
 }

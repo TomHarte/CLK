@@ -48,18 +48,19 @@ class WD1770: public Storage::Disk::Drive {
 			WaitForSixIndexPulses,
 			TestTrack, TestDirection, TestHead,
 			TestVerify, VerifyTrack,
-			StepDelay
+			StepDelay, TestPause, TestWrite
 		} state_;
 
 		union {
 			struct {
-				int count;
 				State next_state;
 			} wait_six_index_pulses_;
 			struct {
 				int count;
 			} step_delay_;
 		};
+
+		int index_hole_count_;
 
 		uint8_t status_;
 		uint8_t track_;
