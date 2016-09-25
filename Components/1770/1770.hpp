@@ -17,7 +17,6 @@ class WD1770: public Storage::Disk::Drive {
 	public:
 		WD1770();
 
-//		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 		void set_is_double_density(bool is_double_density);
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
@@ -47,50 +46,9 @@ class WD1770: public Storage::Disk::Drive {
 		uint8_t command_;
 
 		int index_hole_count_;
+		int bits_since_token_;
+		int distance_into_section_;
 
-/*		enum class State {
-			Waiting,
-			BeginType1, BeginType2, BeginType3,
-			BeginType1PostSpin,
-			WaitForSixIndexPulses,
-			TestTrack, TestDirection, TestHead,
-			TestVerify, VerifyTrack,
-			StepDelay, TestPause, TestWriteProtect,
-			GetHeader,
-		} state_;
-
-		union {
-			struct {
-				State next_state;
-			} wait_six_index_pulses_;
-			struct {
-				int count;
-			} step_delay_;
-			struct {
-				bool found_id;
-				uint8_t value[4];
-			} get_header_;
-		};
-
-		enum class ReadingState {
-			Idle,
-			ReadingHeader,
-			ReadingData
-		} reading_state_;
-		struct {
-			uint8_t track;
-			uint8_t sector;
-			uint8_t length;
-		} header;
-		bool crc_error_;
-
-		int shift_register_;
-		int shift_register_duration_;
-		bool is_double_density_;
-
-		bool has_command_;
-
-		bool is_step_in_;*/
 		int step_direction_;
 		void set_interrupt_request(bool interrupt_request) {}
 
@@ -103,7 +61,6 @@ class WD1770: public Storage::Disk::Drive {
 			} type;
 			uint8_t byte_value;
 		} latest_token_;
-		int bits_since_token_;
 
 		// Events
 		enum Event: int {
@@ -118,7 +75,6 @@ class WD1770: public Storage::Disk::Drive {
 		int delay_time_;
 
 		// ID buffer
-		int distance_into_section_;
 		uint8_t header[6];
 
 		//
