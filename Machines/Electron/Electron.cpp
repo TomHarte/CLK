@@ -304,7 +304,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
 				if(_wd1770 && (address&0x00f0) == 0x00c0)
 				{
-					if(is_holding_shift_)
+					if(is_holding_shift_ && address == 0xfcc4)
 					{
 						is_holding_shift_ = false;
 						set_key_state(KeyShift, false);
@@ -505,6 +505,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		if(target.acorn.has_dfs)
 		{
 			set_rom(ROMSlot0, _dfs, true);
+		}
+		if(target.acorn.has_adfs)
+		{
+			set_rom(ROMSlot1, _adfs, true);
+			set_rom(ROMSlot2, std::vector<uint8_t>(_adfs.begin() + 16384, _adfs.end()), true);
 		}
 
 		_wd1770->set_disk(target.disks.front());

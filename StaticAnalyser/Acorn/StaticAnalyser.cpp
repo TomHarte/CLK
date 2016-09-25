@@ -124,6 +124,7 @@ void StaticAnalyser::Acorn::AddTargets(
 		{
 			target.disks = disks;
 			target.acorn.has_dfs = !!dfs_catalogue;
+			target.acorn.has_adfs = !!adfs_catalogue;
 
 			switch((dfs_catalogue ?: adfs_catalogue)->bootOption)
 			{
