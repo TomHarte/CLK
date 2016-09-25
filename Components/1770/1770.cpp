@@ -53,7 +53,7 @@ uint8_t WD1770::get_register(int address)
 		default:	return status_;
 		case 1:		return track_;
 		case 2:		return sector_;
-		case 3:		return data_;
+		case 3:		status_ &= ~Flag::DataRequest; return data_;
 	}
 }
 
@@ -451,7 +451,7 @@ void WD1770::posit_event(Event new_event_type)
 	begin_type_2:
 		status_ &= ~(Flag::DataRequest | Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
 		set_interrupt_request(false);
-		distance_into_header_ = 0;
+		distance_into_section_ = 0;
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
 
 		// Perform spin up.
@@ -480,21 +480,21 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
 		if(new_event_type == Event::Token)
 		{
-			if(!distance_into_header_ && latest_token_.type == Token::ID) distance_into_header_++;
-			else if(distance_into_header_ && latest_token_.type == Token::Byte)
+			if(!distance_into_section_ && latest_token_.type == Token::ID) distance_into_section_++;
+			else if(distance_into_section_ && latest_token_.type == Token::Byte)
 			{
-				header[distance_into_header_ - 1] = latest_token_.byte_value;
-				distance_into_header_++;
-				if(distance_into_header_ == 5)
+				header[distance_into_section_ - 1] = latest_token_.byte_value;
+				distance_into_section_++;
+				if(distance_into_section_ == 6)
 				{
-					if(header[0] == track_ && header[1] == sector_)
+					if(header[0] == track_ && header[2] == sector_)
 					{
 						// TODO: test CRC
 						goto type2_read_or_write_data;
 					}
 					else
 					{
-						distance_into_header_ = 0;
+						distance_into_section_ = 0;
 					}
 				}
 			}
@@ -509,6 +509,41 @@ void WD1770::posit_event(Event new_event_type)
 
 
 	type2_read_or_write_data:
+		if(command_&0x20) goto type2_write_data;
+		goto type2_read_data;
+
+	type2_read_data:
+		WAIT_FOR_EVENT(Event::Token);
+		// TODO: timeout
+		if(latest_token_.type == Token::Data || latest_token_.type == Token::DeletedData)
+		{
+			status_ |= (latest_token_.type == Token::DeletedData) ? Flag::RecordType : 0;
+			distance_into_section_ = 0;
+			goto type2_read_byte;
+		}
+		goto type2_read_data;
+
+	type2_read_byte:
+		WAIT_FOR_EVENT(Event::Token);
+		if(latest_token_.type != Token::Byte) goto type2_read_byte;
+		if(status_ & Flag::DataRequest) status_ |= Flag::LostData;
+		data_ = latest_token_.byte_value;
+		status_ |= Flag::DataRequest;
+		distance_into_section_++;
+		if(distance_into_section_ == 128 << header[3])
+		{
+			// TODO: check CRC
+			if(command_ & 0x10)
+			{
+				sector_++;
+				goto test_type2_write_protection;
+			}
+			set_interrupt_request(true);
+			goto wait_for_command;
+		}
+		goto type2_read_byte;
+
+	type2_write_data:
 		printf("!!!TODO: data portion of sector!!!\n");
 
 	begin_type_3:

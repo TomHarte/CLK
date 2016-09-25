@@ -118,8 +118,8 @@ class WD1770: public Storage::Disk::Drive {
 		int delay_time_;
 
 		// ID buffer
-		int distance_into_header_;
-		uint8_t header[5];
+		int distance_into_section_;
+		uint8_t header[6];
 
 		//
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
