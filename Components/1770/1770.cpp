@@ -136,6 +136,9 @@ void WD1770::process_index_hole()
 {
 	index_hole_count_++;
 	posit_event(Event::IndexHole);
+
+	// motor power-down
+	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
 }
 
 //     +------+----------+-------------------------+
@@ -172,6 +175,7 @@ void WD1770::posit_event(Event new_event_type)
 	wait_for_command:
 		printf("Idle...\n");
 		status_ &= ~Flag::Busy;
+		index_hole_count_ = 0;
 		WAIT_FOR_EVENT(Event::Command);
 		printf("Starting %02x\n", command_);
 		status_ |= Flag::Busy;
@@ -205,9 +209,12 @@ void WD1770::posit_event(Event new_event_type)
 		if((command_ >> 5) == 3) step_direction_ = 0;
 		if((command_ >> 5) != 0) goto perform_step_command;
 
-		// This is now definitely either a seek or a restore; if it's a restore then set track to 0xff.
-		if(!(command_ & 0x10)) track_ = 0xff;
-		data_ = 0;
+		// This is now definitely either a seek or a restore; if it's a restore then set track to 0xff and data to 0x00.
+		if(!(command_ & 0x10))
+		{
+			track_ = 0xff;
+			data_ = 0;
+		}
 
 	perform_seek_or_restore_command:
 		if(track_ == data_) goto verify;
