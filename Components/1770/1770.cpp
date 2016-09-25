@@ -16,7 +16,8 @@ WD1770::WD1770() :
 	status_(0),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
-	delay_time_(0)
+	delay_time_(0),
+	index_hole_count_target_(-1)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);
@@ -136,9 +137,14 @@ void WD1770::process_index_hole()
 {
 	index_hole_count_++;
 	posit_event(Event::IndexHole);
+	if(index_hole_count_target_ == index_hole_count_)
+	{
+		posit_event(Event::IndexHoleTarget);
+		index_hole_count_target_ = -1;
+	}
 
 	// motor power-down
-//	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
+	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
 }
 
 //     +------+----------+-------------------------+
@@ -174,6 +180,16 @@ void WD1770::process_index_hole()
 			}	\
 		}
 
+#define CONCATENATE(x, y) x ## y
+#define INDIRECT_CONCATENATE(x, y) TOKENPASTE(x, y)
+#define LINE_LABEL INDIRECT_CONCATENATE(label, __LINE__)
+
+#define SPIN_UP()	\
+		status_ |= Flag::MotorOn;	\
+		index_hole_count_ = 0;	\
+		index_hole_count_target_ = 6;	\
+		WAIT_FOR_EVENT(Event::IndexHoleTarget);
+
 void WD1770::posit_event(Event new_event_type)
 {
 	if(!(interesting_event_mask_ & (int)new_event_type)) return;
@@ -204,13 +220,7 @@ void WD1770::posit_event(Event new_event_type)
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type1_type;
 
 		// Perform spin up.
-		status_ |= Flag::MotorOn;
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
+		SPIN_UP();
 		status_ |= Flag::SpinUp;
 
 	test_type1_type:
@@ -301,13 +311,7 @@ void WD1770::posit_event(Event new_event_type)
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
 
 		// Perform spin up.
-		status_ |= Flag::MotorOn;
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
-		WAIT_FOR_EVENT(Event::IndexHole);
+		SPIN_UP();
 
 	test_type2_delay:
 		index_hole_count_ = 0;

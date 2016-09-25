@@ -304,6 +304,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
 				if(_wd1770 && (address&0x00f0) == 0x00c0)
 				{
+					if(is_holding_shift_)
+					{
+						is_holding_shift_ = false;
+						set_key_state(KeyShift, false);
+					}
 					if(isReadOperation(operation))
 						*value = _wd1770->get_register(address);
 					else
@@ -515,6 +520,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 	{
 		set_typer_for_string(target.loadingCommand.c_str());
+	}
+	if(target.acorn.should_hold_shift)
+	{
+		set_key_state(KeyShift, true);
+		is_holding_shift_ = true;
 	}
 }
 

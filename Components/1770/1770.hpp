@@ -46,6 +46,7 @@ class WD1770: public Storage::Disk::Drive {
 		uint8_t command_;
 
 		int index_hole_count_;
+		int index_hole_count_target_;
 		int bits_since_token_;
 		int distance_into_section_;
 
@@ -64,10 +65,12 @@ class WD1770: public Storage::Disk::Drive {
 
 		// Events
 		enum Event: int {
-			Command		= (1 << 0),
-			Token		= (1 << 1),
-			IndexHole	= (1 << 2),
-			Timer		= (1 << 3)
+			Command			= (1 << 0),	// Indicates receipt of a new command.
+			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
+			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
+
+			Timer			= (1 << 3),	// Indicates that the delay_time_-powered timer has timed out.
+			IndexHoleTarget	= (1 << 4)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		};
 		void posit_event(Event type);
 		int interesting_event_mask_;

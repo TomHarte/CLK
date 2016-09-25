@@ -233,6 +233,7 @@ class Machine:
 
 		// Disk
 		std::unique_ptr<WD::WD1770> _wd1770;
+		bool is_holding_shift_;
 
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;

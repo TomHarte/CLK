@@ -16,7 +16,7 @@ using namespace StaticAnalyser::Acorn;
 
 class FMParser: public Storage::Disk::Drive {
 	public:
-		FMParser() :
+		FMParser(bool is_mfm) :
 			Storage::Disk::Drive(4000000, 1, 300),
 			crc_generator_(0x1021, 0xffff),
 			shift_register_(0), track_(0)
@@ -26,7 +26,7 @@ class FMParser: public Storage::Disk::Drive {
 
 			Storage::Time bit_length;
 			bit_length.length = 1;
-			bit_length.clock_rate = 250000;	// i.e. 250 kbps (including clocks)
+			bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 			set_expected_bit_length(bit_length);
 		}
 
@@ -159,7 +159,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 {
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
-	FMParser parser;
+	FMParser parser(false);
 	parser.set_disk(disk);
 
 	std::shared_ptr<Storage::Encodings::MFM::Sector> names = parser.get_sector(0, 0);
@@ -215,6 +215,16 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 		}
 		if(!data_length) catalogue->files.push_front(new_file);
 	}
+
+	return catalogue;
+}
+std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk)
+{
+	std::unique_ptr<Catalogue> catalogue(new Catalogue);
+	FMParser parser(true);
+	parser.set_disk(disk);
+
+	std::shared_ptr<Storage::Encodings::MFM::Sector> directory = parser.get_sector(0, 2);
 
 	return catalogue;
 }

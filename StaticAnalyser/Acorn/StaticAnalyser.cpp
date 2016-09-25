@@ -116,22 +116,17 @@ void StaticAnalyser::Acorn::AddTargets(
 	if(disks.size() > 0)
 	{
 		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
-		std::unique_ptr<Catalogue> dfs_catalogue = GetDFSCatalogue(disk);
-		if(dfs_catalogue)
+		std::unique_ptr<Catalogue> catalogue = GetDFSCatalogue(disk);
+		if(catalogue == nullptr) catalogue = GetADFSCatalogue(disk);
+		if(catalogue)
 		{
 			target.disks = disks;
 			target.acorn.has_dfs = true;
 
-			// TODO: can't I just press shift?
-			switch(dfs_catalogue->bootOption)
+			switch(catalogue->bootOption)
 			{
-				default:	target.loadingCommand = "*CAT\n";	break;
-				case Catalogue::BootOption::LoadBOOT:
-					target.loadingCommand = "*LOAD !BOOT\n";	break;
-				case Catalogue::BootOption::RunBOOT:
-					target.loadingCommand = "*RUN !BOOT\n";		break;
-				case Catalogue::BootOption::ExecBOOT:
-					target.loadingCommand = "*EXEC !BOOT\n";	break;
+				case Catalogue::BootOption::None:	target.loadingCommand = "*CAT\n";		break;
+				default:							target.acorn.should_hold_shift = true;	break;
 			}
 		}
 	}
