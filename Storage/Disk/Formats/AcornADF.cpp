@@ -21,7 +21,7 @@ AcornADF::AcornADF(const char *file_name) : _file(nullptr)
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
 	if(file_stats.st_size & 255) throw ErrorNotAcornADF;
-	if(file_stats.st_size < 2048) throw ErrorNotAcornADF;
+	if(file_stats.st_size < 7 * 256) throw ErrorNotAcornADF;
 
 	_file = fopen(file_name, "rb");
 	if(!_file) throw ErrorCantOpen;

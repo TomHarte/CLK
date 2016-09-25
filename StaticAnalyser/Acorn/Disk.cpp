@@ -248,7 +248,30 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 	FMParser parser(true);
 	parser.set_disk(disk);
 
-	std::shared_ptr<Storage::Encodings::MFM::Sector> directory = parser.get_sector(0, 2);
+	std::shared_ptr<Storage::Encodings::MFM::Sector> free_space_map_second_half = parser.get_sector(0, 1);
+	if(!free_space_map_second_half) return nullptr;
+
+	std::vector<uint8_t> root_directory;
+	root_directory.reserve(5 * 256);
+	for(uint8_t c = 2; c < 7; c++)
+	{
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, c);
+		if(!sector) return nullptr;
+		root_directory.insert(root_directory.end(), sector->data.begin(), sector->data.end());
+	}
+
+	// Quick sanity checks.
+	if(root_directory[0x4cb]) return nullptr;
+	if(root_directory[1] != 'H' || root_directory[2] != 'u' || root_directory[3] != 'g' || root_directory[4] != 'o') return nullptr;
+	if(root_directory[0x4FB] != 'H' || root_directory[0x4FC] != 'u' || root_directory[0x4FD] != 'g' || root_directory[0x4FE] != 'o') return nullptr;
+
+	switch(free_space_map_second_half->data[0xfd])
+	{
+		default: catalogue->bootOption = Catalogue::BootOption::None;		break;
+		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
+		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;
+		case 3: catalogue->bootOption = Catalogue::BootOption::ExecBOOT;	break;
+	}
 
 	return catalogue;
 }
