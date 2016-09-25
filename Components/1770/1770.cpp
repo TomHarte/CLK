@@ -163,6 +163,16 @@ void WD1770::process_index_hole()
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }
 
+#define READ_ID()	\
+		if(new_event_type == Event::Token)	\
+		{	\
+			if(!distance_into_section_ && latest_token_.type == Token::ID) distance_into_section_++;	\
+			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)	\
+			{	\
+				header[distance_into_section_ - 1] = latest_token_.byte_value;	\
+				distance_into_section_++;	\
+			}	\
+		}
 
 void WD1770::posit_event(Event new_event_type)
 {
@@ -254,7 +264,31 @@ void WD1770::posit_event(Event new_event_type)
 			goto wait_for_command;
 		}
 
-		printf("!!!TODO: verify a type 1!!!\n");
+		index_hole_count_ = 0;
+
+	verify_read_data:
+		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		READ_ID();
+
+		if(index_hole_count_ == 6)
+		{
+			set_interrupt_request(true);
+			status_ |= Flag::SeekError;
+			goto wait_for_command;
+		}
+		if(distance_into_section_ == 7)
+		{
+			// TODO: CRC check
+			if(header[0] == track_)
+			{
+				status_ &= ~Flag::CRCError;
+				set_interrupt_request(true);
+				goto wait_for_command;
+			}
+
+			distance_into_section_ = 0;
+		}
+		goto verify_read_data;
 
 
 	/*
@@ -290,32 +324,22 @@ void WD1770::posit_event(Event new_event_type)
 
 	type2_get_header:
 		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
-		if(new_event_type == Event::Token)
-		{
-			if(!distance_into_section_ && latest_token_.type == Token::ID) distance_into_section_++;
-			else if(distance_into_section_ && latest_token_.type == Token::Byte)
-			{
-				header[distance_into_section_ - 1] = latest_token_.byte_value;
-				distance_into_section_++;
-				if(distance_into_section_ == 6)
-				{
-					if(header[0] == track_ && header[2] == sector_)
-					{
-						// TODO: test CRC
-						goto type2_read_or_write_data;
-					}
-					else
-					{
-						distance_into_section_ = 0;
-					}
-				}
-			}
-		}
-		else if(index_hole_count_ == 5)
+		READ_ID();
+
+		if(index_hole_count_ == 5)
 		{
 			set_interrupt_request(true);
 			status_ |= Flag::RecordNotFound;
 			goto wait_for_command;
+		}
+		if(distance_into_section_ == 7)
+		{
+			if(header[0] == track_ && header[2] == sector_)
+			{
+				// TODO: test CRC
+				goto type2_read_or_write_data;
+			}
+			distance_into_section_ = 0;
 		}
 		goto type2_get_header;
 
