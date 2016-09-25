@@ -138,7 +138,7 @@ void WD1770::process_index_hole()
 	posit_event(Event::IndexHole);
 
 	// motor power-down
-	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
+//	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
 }
 
 //     +------+----------+-------------------------+
@@ -229,7 +229,7 @@ void WD1770::posit_event(Event new_event_type)
 			track_ = 0;
 			goto verify;
 		}
-		step(step_direction_);
+		step(step_direction_ ? 1 : -1);
 		int time_to_wait;
 		switch(command_ & 3)
 		{
