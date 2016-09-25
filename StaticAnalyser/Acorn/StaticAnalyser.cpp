@@ -122,7 +122,17 @@ void StaticAnalyser::Acorn::AddTargets(
 			target.disks = disks;
 			target.acorn.has_dfs = true;
 
-			// TODO: what about booting?
+			// TODO: can't I just press shift?
+			switch(dfs_catalogue->bootOption)
+			{
+				default:	target.loadingCommand = "*CAT\n";	break;
+				case Catalogue::BootOption::LoadBOOT:
+					target.loadingCommand = "*LOAD !BOOT\n";	break;
+				case Catalogue::BootOption::RunBOOT:
+					target.loadingCommand = "*RUN !BOOT\n";		break;
+				case Catalogue::BootOption::ExecBOOT:
+					target.loadingCommand = "*EXEC !BOOT\n";	break;
+			}
 		}
 	}
 
