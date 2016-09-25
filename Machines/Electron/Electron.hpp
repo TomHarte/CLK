@@ -148,7 +148,7 @@ class Machine:
 	public:
 		Machine();
 
-		void set_rom(ROMSlot slot, std::vector<uint8_t> data);
+		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable);
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		void set_key_state(Key key, bool isPressed);
@@ -189,6 +189,7 @@ class Machine:
 
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
+		bool _rom_write_masks[16];
 		uint8_t _os[16384], _ram[32768];
 		std::vector<uint8_t> _dfs, _adfs;
 

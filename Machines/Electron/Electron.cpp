@@ -411,6 +411,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						{
 							*value &= _roms[ROMSlotBASIC][address & 16383];
 						}
+					} else if(_rom_write_masks[_active_rom])
+					{
+						_roms[_active_rom][address & 16383] = *value;
 					}
 				}
 			break;
@@ -496,7 +499,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 		if(target.acorn.has_dfs)
 		{
-			set_rom(ROMSlot0, _dfs);
+			set_rom(ROMSlot0, _dfs, true);
 		}
 
 		_wd1770->set_disk(target.disks.front());
@@ -505,7 +508,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	ROMSlot slot = ROMSlot12;
 	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : target.cartridges)
 	{
-		set_rom(slot, cartridge->get_segments().front().data);
+		set_rom(slot, cartridge->get_segments().front().data, false);
 		slot = (ROMSlot)(((int)slot + 1)&15);
 	}
 
@@ -515,7 +518,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	}
 }
 
-void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data)
+void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable)
 {
 	uint8_t *target = nullptr;
 	switch(slot)
@@ -524,7 +527,10 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data)
 		case ROMSlotADFS:	_adfs = data;			return;
 
 		case ROMSlotOS:		target = _os;			break;
-		default:			target = _roms[slot];	break;
+		default:
+			target = _roms[slot];
+			_rom_write_masks[slot] = is_writeable;
+		break;
 	}
 
 	memcpy(target, &data[0], std::min((size_t)16384, data.size()));

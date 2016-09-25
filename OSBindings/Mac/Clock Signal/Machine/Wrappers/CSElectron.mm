@@ -33,7 +33,7 @@
 
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot {
 	@synchronized(self) {
-		_electron.set_rom((Electron::ROMSlot)slot, rom.stdVector8);
+		_electron.set_rom((Electron::ROMSlot)slot, rom.stdVector8, false);
 	}
 }
 

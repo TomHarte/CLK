@@ -30,6 +30,7 @@ class WD1770: public Storage::Disk::Drive {
 			RecordType		= 0x20,
 			SpinUp			= 0x20,
 			RecordNotFound	= 0x10,
+			SeekError		= 0x10,
 			CRCError		= 0x08,
 			LostData		= 0x04,
 			TrackZero		= 0x04,
@@ -115,6 +116,10 @@ class WD1770: public Storage::Disk::Drive {
 		int interesting_event_mask_;
 		int resume_point_;
 		int delay_time_;
+
+		// ID buffer
+		int distance_into_header_;
+		uint8_t header[5];
 
 		//
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);

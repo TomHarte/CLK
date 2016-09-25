@@ -276,7 +276,7 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	bits_since_token_++;
 
 	Token::Type token_type = Token::Byte;
-	if(is_double_density_)
+	if(!is_double_density_)
 	{
 		switch(shift_register_ & 0xffff)
 		{
@@ -356,16 +356,19 @@ void WD1770::process_index_hole()
 #define END_SECTION()	0; }
 
 
-void WD1770::posit_event(Event type)
+void WD1770::posit_event(Event new_event_type)
 {
-	if(!(interesting_event_mask_ & (int)type)) return;
-	interesting_event_mask_ &= ~type;
+	if(!(interesting_event_mask_ & (int)new_event_type)) return;
+	interesting_event_mask_ &= ~new_event_type;
 
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
+		printf("Idle...\n");
+		status_ &= ~Flag::Busy;
 		WAIT_FOR_EVENT(Event::Command);
+		printf("Starting %02x\n", command_);
 		status_ |= Flag::Busy;
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
@@ -377,9 +380,9 @@ void WD1770::posit_event(Event type)
 	*/
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
-		status_ &= ~(Flag::DataRequest | Flag::DataRequest);
+		status_ &= ~(Flag::DataRequest | Flag::DataRequest | Flag::SeekError);
 		set_interrupt_request(false);
-		if(!(command_&0x08)) goto test_type1_type;
+		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type1_type;
 
 		// Perform spin up.
 		status_ |= Flag::MotorOn;
@@ -389,6 +392,7 @@ void WD1770::posit_event(Event type)
 		WAIT_FOR_EVENT(Event::IndexHole);
 		WAIT_FOR_EVENT(Event::IndexHole);
 		WAIT_FOR_EVENT(Event::IndexHole);
+		status_ |= Flag::SpinUp;
 
 	test_type1_type:
 		// Set step direction if this is a step in or out.
@@ -402,10 +406,10 @@ void WD1770::posit_event(Event type)
 
 	perform_seek_or_restore_command:
 		if(track_ == data_) goto verify;
-		step_direction_ = (data_ < track_);
+		step_direction_ = (data_ > track_);
 
 	adjust_track:
-		if(step_direction_) track_--; else track_++;
+		if(step_direction_) track_++; else track_--;
 
 	perform_step:
 		if(!step_direction_ && get_is_track_zero())
@@ -435,15 +439,77 @@ void WD1770::posit_event(Event type)
 		if(!(command_ & 0x04))
 		{
 			set_interrupt_request(true);
-			status_ &= ~(Flag::Busy);
 			goto wait_for_command;
 		}
 
 		printf("!!!TODO: verify a type 1!!!\n");
 
-	begin_type_2:
-		printf("!!!TODO: type 2 commands!!!\n");
 
+	/*
+		Type 2 entry point.
+	*/
+	begin_type_2:
+		status_ &= ~(Flag::DataRequest | Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
+		set_interrupt_request(false);
+		distance_into_header_ = 0;
+		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
+
+		// Perform spin up.
+		status_ |= Flag::MotorOn;
+		WAIT_FOR_EVENT(Event::IndexHole);
+		WAIT_FOR_EVENT(Event::IndexHole);
+		WAIT_FOR_EVENT(Event::IndexHole);
+		WAIT_FOR_EVENT(Event::IndexHole);
+		WAIT_FOR_EVENT(Event::IndexHole);
+		WAIT_FOR_EVENT(Event::IndexHole);
+
+	test_type2_delay:
+		index_hole_count_ = 0;
+		if(!(command_ & 0x04)) goto test_type2_write_protection;
+		WAIT_FOR_TIME(30);
+
+	test_type2_write_protection:
+		if(command_&0x20) // TODO:: && is_write_protected
+		{
+			set_interrupt_request(true);
+			status_ |= Flag::WriteProtect;
+			goto wait_for_command;
+		}
+
+	type2_get_header:
+		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		if(new_event_type == Event::Token)
+		{
+			if(!distance_into_header_ && latest_token_.type == Token::ID) distance_into_header_++;
+			else if(distance_into_header_ && latest_token_.type == Token::Byte)
+			{
+				header[distance_into_header_ - 1] = latest_token_.byte_value;
+				distance_into_header_++;
+				if(distance_into_header_ == 5)
+				{
+					if(header[0] == track_ && header[1] == sector_)
+					{
+						// TODO: test CRC
+						goto type2_read_or_write_data;
+					}
+					else
+					{
+						distance_into_header_ = 0;
+					}
+				}
+			}
+		}
+		else if(index_hole_count_ == 5)
+		{
+			set_interrupt_request(true);
+			status_ |= Flag::RecordNotFound;
+			goto wait_for_command;
+		}
+		goto type2_get_header;
+
+
+	type2_read_or_write_data:
+		printf("!!!TODO: data portion of sector!!!\n");
 
 	begin_type_3:
 		printf("!!!TODO: type 3 commands!!!\n");
