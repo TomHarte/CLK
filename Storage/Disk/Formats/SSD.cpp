@@ -69,7 +69,8 @@ std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned in
 
 		new_sector.data.resize(256);
 		fread(&new_sector.data[0], 1, 256, _file);
-		if(feof(_file)) break;
+		if(feof(_file))
+			break;
 
 		sectors.push_back(std::move(new_sector));
 	}

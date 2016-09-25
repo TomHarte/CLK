@@ -49,23 +49,23 @@ template <class T> class MFMShifter: public Shifter<T> {
 		}
 
 		void add_index_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = 0x5224);
-			add_byte(0xfc);
+			static_cast<T *>(this)->output_short(output_ = MFMIndexAddressMark);
+			add_byte(MFMIndexAddressByte);
 		}
 
 		void add_ID_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = 0x4489);
-			add_byte(0xfe);
+			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			add_byte(MFMIDAddressByte);
 		}
 
 		void add_data_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = 0x4489);
-			add_byte(0xfb);
+			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			add_byte(MFMDataAddressByte);
 		}
 
 		void add_deleted_data_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = 0x4489);
-			add_byte(0xf8);
+			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			add_byte(MFMDeletedDataAddressByte);
 		}
 
 	private:

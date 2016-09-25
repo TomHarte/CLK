@@ -20,6 +20,7 @@
 #include "../Storage/Cartridge/Formats/PRG.hpp"
 
 // Disks
+#include "../Storage/Disk/Formats/AcornADF.hpp"
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
 #include "../Storage/Disk/Formats/SSD.hpp"
@@ -80,6 +81,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	}
 
 	Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
+	Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
 	Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
 	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
 	Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD

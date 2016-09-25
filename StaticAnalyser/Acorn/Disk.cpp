@@ -19,7 +19,7 @@ class FMParser: public Storage::Disk::Drive {
 		FMParser(bool is_mfm) :
 			Storage::Disk::Drive(4000000, 1, 300),
 			crc_generator_(0x1021, 0xffff),
-			shift_register_(0), track_(0)
+			shift_register_(0), track_(0), is_mfm_(is_mfm)
 		{
 			// Make sure this drive really is at track '1'.
 			while(!get_is_track_zero()) step(-1);
@@ -58,6 +58,7 @@ class FMParser: public Storage::Disk::Drive {
 		int bit_count_;
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector_cache_[65536];
 		NumberTheory::CRC16 crc_generator_;
+		bool is_mfm_;
 
 		void process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
@@ -98,7 +99,18 @@ class FMParser: public Storage::Disk::Drive {
 				while(1)
 				{
 					run_for_cycles(1);
-					if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) break;
+					if(is_mfm_)
+					{
+						if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+						{
+							uint8_t mark = get_next_byte();
+							if(mark == Storage::Encodings::MFM::MFMIDAddressByte) break;
+						}
+					}
+					else
+					{
+						if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) break;
+					}
 					if(index_count_ >= 2) return nullptr;
 				}
 
@@ -115,8 +127,20 @@ class FMParser: public Storage::Disk::Drive {
 				while(1)
 				{
 					run_for_cycles(1);
-					if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark) break;
-					if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
+					if(is_mfm_)
+					{
+						if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+						{
+							uint8_t mark = get_next_byte();
+							if(mark == Storage::Encodings::MFM::MFMDataAddressByte) break;
+							if(mark == Storage::Encodings::MFM::MFMIDAddressByte) return nullptr;
+						}
+					}
+					else
+					{
+						if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark) break;
+						if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
+					}
 					if(index_count_ >= 2) return nullptr;
 				}
 
@@ -165,7 +189,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	std::shared_ptr<Storage::Encodings::MFM::Sector> names = parser.get_sector(0, 0);
 	std::shared_ptr<Storage::Encodings::MFM::Sector> details = parser.get_sector(0, 1);
 
-	if(!names || !details) return catalogue;
+	if(!names || !details) return nullptr;
 	if(names->data.size() != 256 || details->data.size() != 256) return nullptr;
 
 	uint8_t final_file_offset = details->data[5];

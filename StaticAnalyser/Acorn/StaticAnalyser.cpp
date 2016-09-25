@@ -69,6 +69,7 @@ void StaticAnalyser::Acorn::AddTargets(
 	target.probability = 1.0; // TODO: a proper estimation
 	target.acorn.has_dfs = false;
 	target.acorn.has_adfs = false;
+	target.acorn.should_hold_shift = false;
 
 	// strip out inappropriate cartridges
 	target.cartridges = AcornCartridgesFrom(cartridges);
@@ -116,14 +117,15 @@ void StaticAnalyser::Acorn::AddTargets(
 	if(disks.size() > 0)
 	{
 		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
-		std::unique_ptr<Catalogue> catalogue = GetDFSCatalogue(disk);
-		if(catalogue == nullptr) catalogue = GetADFSCatalogue(disk);
-		if(catalogue)
+		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
+		dfs_catalogue = GetDFSCatalogue(disk);
+		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
+		if(dfs_catalogue || adfs_catalogue)
 		{
 			target.disks = disks;
-			target.acorn.has_dfs = true;
+			target.acorn.has_dfs = !!dfs_catalogue;
 
-			switch(catalogue->bootOption)
+			switch((dfs_catalogue ?: adfs_catalogue)->bootOption)
 			{
 				case Catalogue::BootOption::None:	target.loadingCommand = "*CAT\n";		break;
 				default:							target.acorn.should_hold_shift = true;	break;

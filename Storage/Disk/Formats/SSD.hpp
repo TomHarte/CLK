@@ -20,10 +20,10 @@ namespace Disk {
 class SSD: public Disk {
 	public:
 		/*!
-			Construct a @c D64 containing content from the file with name @c file_name.
+			Construct an @c SSD containing content from the file with name @c file_name.
 
 			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotD64 if the file doesn't appear to contain a .D64 format image.
+			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
 		*/
 		SSD(const char *file_name);
 		~SSD();

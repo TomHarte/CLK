@@ -350,6 +350,7 @@
 		4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
+		4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD69F921D98760000243FE1 /* AcornADF.cpp */; };
 		4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
 		4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
@@ -802,6 +803,8 @@
 		4BD468F61D8DF41D0084958B /* 1770.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 1770.hpp; path = 1770/1770.hpp; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
+		4BD69F921D98760000243FE1 /* AcornADF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AcornADF.cpp; sourceTree = "<group>"; };
+		4BD69F931D98760000243FE1 /* AcornADF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AcornADF.hpp; sourceTree = "<group>"; };
 		4BE77A2C1D84ADFB00BC3827 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = File.cpp; path = ../../StaticAnalyser/Commodore/File.cpp; sourceTree = "<group>"; };
 		4BE77A2D1D84ADFB00BC3827 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Commodore/File.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
@@ -1133,6 +1136,8 @@
 				4B4C836F1D4F623200CD541F /* D64.hpp */,
 				4BF829611D8F536B001BAE39 /* SSD.cpp */,
 				4BF829621D8F536B001BAE39 /* SSD.hpp */,
+				4BD69F921D98760000243FE1 /* AcornADF.cpp */,
+				4BD69F931D98760000243FE1 /* AcornADF.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2113,6 +2118,7 @@
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
 				4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */,
 				4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */,
+				4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */,
 				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
