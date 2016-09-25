@@ -39,16 +39,23 @@ class WD1770: public Storage::Disk::Drive {
 		};
 
 	private:
-		unsigned int cycles;
+		uint8_t status_;
+		uint8_t track_;
+		uint8_t sector_;
+		uint8_t data_;
+		uint8_t command_;
 
-		enum class State {
+		int index_hole_count_;
+
+/*		enum class State {
 			Waiting,
 			BeginType1, BeginType2, BeginType3,
 			BeginType1PostSpin,
 			WaitForSixIndexPulses,
 			TestTrack, TestDirection, TestHead,
 			TestVerify, VerifyTrack,
-			StepDelay, TestPause, TestWrite
+			StepDelay, TestPause, TestWriteProtect,
+			GetHeader,
 		} state_;
 
 		union {
@@ -58,21 +65,58 @@ class WD1770: public Storage::Disk::Drive {
 			struct {
 				int count;
 			} step_delay_;
+			struct {
+				bool found_id;
+				uint8_t value[4];
+			} get_header_;
 		};
 
-		int index_hole_count_;
+		enum class ReadingState {
+			Idle,
+			ReadingHeader,
+			ReadingData
+		} reading_state_;
+		struct {
+			uint8_t track;
+			uint8_t sector;
+			uint8_t length;
+		} header;
+		bool crc_error_;
 
-		uint8_t status_;
-		uint8_t track_;
-		uint8_t sector_;
-		uint8_t data_;
-		uint8_t command_;
+		int shift_register_;
+		int shift_register_duration_;
+		bool is_double_density_;
+
 		bool has_command_;
 
+		bool is_step_in_;*/
+		int step_direction_;
 		void set_interrupt_request(bool interrupt_request) {}
-		bool is_step_in_;
-		uint8_t data_shift_register_;
 
+		// Tokeniser
+		bool is_double_density_;
+		int shift_register_;
+		struct Token {
+			enum Type {
+				Index, ID, Data, DeletedData, Byte
+			} type;
+			uint8_t byte_value;
+		} latest_token_;
+		int bits_since_token_;
+
+		// Events
+		enum Event: int {
+			Command		= (1 << 0),
+			Token		= (1 << 1),
+			IndexHole	= (1 << 2),
+			Timer		= (1 << 3)
+		};
+		void posit_event(Event type);
+		int interesting_event_mask_;
+		int resume_point_;
+		int delay_time_;
+
+		//
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
 };
