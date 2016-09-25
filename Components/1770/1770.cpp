@@ -532,6 +532,18 @@ void WD1770::posit_event(Event new_event_type)
 		distance_into_section_++;
 		if(distance_into_section_ == 128 << header[3])
 		{
+			distance_into_section_ = 0;
+			goto type2_check_crc;
+		}
+		goto type2_read_byte;
+
+	type2_check_crc:
+		WAIT_FOR_EVENT(Event::Token);
+		if(latest_token_.type != Token::Byte) goto type2_read_byte;
+		header[distance_into_section_] = latest_token_.byte_value;
+		distance_into_section_++;
+		if(distance_into_section_ == 2)
+		{
 			// TODO: check CRC
 			if(command_ & 0x10)
 			{
@@ -541,7 +553,8 @@ void WD1770::posit_event(Event new_event_type)
 			set_interrupt_request(true);
 			goto wait_for_command;
 		}
-		goto type2_read_byte;
+		goto type2_check_crc;
+
 
 	type2_write_data:
 		printf("!!!TODO: data portion of sector!!!\n");
