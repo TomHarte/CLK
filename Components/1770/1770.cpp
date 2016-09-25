@@ -423,7 +423,7 @@ void WD1770::posit_event(Event type)
 			case 2: time_to_wait = 20;	break;	// 5 on a 1772
 			case 3: time_to_wait = 30;	break;	// 6 on a 1772
 		}
-		WAIT_FOR_TIME(command_ & 3);
+		WAIT_FOR_TIME(time_to_wait);
 		if(command_ >> 5) goto verify;
 		goto perform_seek_or_restore_command;
 
