@@ -16,18 +16,21 @@ using namespace StaticAnalyser::Acorn;
 
 class FMParser: public Storage::Disk::Controller {
 	public:
+		std::shared_ptr<Storage::Disk::Drive> drive;
+
 		FMParser(bool is_mfm) :
 			Storage::Disk::Controller(4000000, 1, 300),
 			crc_generator_(0x1021, 0xffff),
 			shift_register_(0), track_(0), is_mfm_(is_mfm)
 		{
-			// Make sure this drive really is at track '1'.
-			while(!get_is_track_zero()) step(-1);
-
 			Storage::Time bit_length;
 			bit_length.length = 1;
 			bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 			set_expected_bit_length(bit_length);
+
+			drive.reset(new Storage::Disk::Drive);
+			set_drive(drive);
+			set_motor_on(true);
 		}
 
 		/*!
@@ -184,7 +187,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	FMParser parser(false);
-	parser.set_disk(disk);
+	parser.drive->set_disk(disk);
 
 	std::shared_ptr<Storage::Encodings::MFM::Sector> names = parser.get_sector(0, 0);
 	std::shared_ptr<Storage::Encodings::MFM::Sector> details = parser.get_sector(0, 1);
@@ -246,7 +249,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 {
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	FMParser parser(true);
-	parser.set_disk(disk);
+	parser.drive->set_disk(disk);
 
 	std::shared_ptr<Storage::Encodings::MFM::Sector> free_space_map_second_half = parser.get_sector(0, 1);
 	if(!free_space_map_second_half) return nullptr;

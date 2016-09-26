@@ -10,12 +10,12 @@
 #define Electron_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Components/1770/1770.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
+#include "Plus3.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -232,7 +232,7 @@ class Machine:
 		bool _fast_load_is_in_data;
 
 		// Disk
-		std::unique_ptr<WD::WD1770> _wd1770;
+		std::unique_ptr<Plus3> _plus3;
 		bool is_holding_shift_;
 
 		// Outputs

@@ -302,7 +302,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			break;
 
 			case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
-				if(_wd1770 && (address&0x00f0) == 0x00c0)
+				if(_plus3 && (address&0x00f0) == 0x00c0)
 				{
 					if(is_holding_shift_ && address == 0xfcc4)
 					{
@@ -310,22 +310,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						set_key_state(KeyShift, false);
 					}
 					if(isReadOperation(operation))
-						*value = _wd1770->get_register(address);
+						*value = _plus3->get_register(address);
 					else
-						_wd1770->set_register(address, *value);
+						_plus3->set_register(address, *value);
 				}
 			break;
 			case 0xfc00:
-				if(_wd1770 && (address&0x00f0) == 0x00c0)
+				if(_plus3 && (address&0x00f0) == 0x00c0)
 				{
 					if(!isReadOperation(operation))
 					{
-						// TODO:
-						//	bit 0 => enable or disable drive 1
-						//	bit 1 => enable or disable drive 2
-						//	bit 2 => side select
-						//	bit 3 => single density select
-//						_wd1770->set_register(address, *value);
+						_plus3->set_control_register(*value);
 					}
 				}
 			break;
@@ -478,7 +473,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	_tape.run_for_cycles(cycles);
 
 	if(_typer) _typer->update((int)cycles);
-	if(_wd1770) _wd1770->run_for_cycles(4*cycles);
+	if(_plus3) _plus3->run_for_cycles(4*cycles);
 
 	return cycles;
 }
@@ -498,7 +493,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	if(target.disks.size())
 	{
-		_wd1770.reset(new WD::WD1770);
+		_plus3.reset(new Plus3);
 
 		if(target.acorn.has_dfs)
 		{
@@ -510,7 +505,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 			set_rom(ROMSlot2, std::vector<uint8_t>(_adfs.begin() + 16384, _adfs.end()), true);
 		}
 
-		_wd1770->set_disk(target.disks.front());
+		_plus3->set_disk(target.disks.front(), 0);
 	}
 
 	ROMSlot slot = ROMSlot12;

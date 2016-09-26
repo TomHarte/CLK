@@ -9,7 +9,7 @@
 #ifndef Storage_Disk_Controller_hpp
 #define Storage_Disk_Controller_hpp
 
-#include "Disk.hpp"
+#include "Drive.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
 #include "../TimedEventLoop.hpp"
 
@@ -17,18 +17,16 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides the shell for emulating a disk drive — something that takes a disk and has a drive head
-	that steps between tracks, using a phase locked loop ('PLL') to decode a bit stream from the surface of
-	the disk.
+	Provides the shell for emulating a disk controller — something that is connected to a disk drive and uses a
+	phase locked loop ('PLL') to decode a bit stream from the surface of the disk.
 
 	Partly abstract; it is expected that subclasses will provide methods to deal with receiving a newly-recognised
 	bit from the PLL and with crossing the index hole.
 
-	TODO: double sided disks, communication of head size and permissible stepping extents, appropriate
-	simulation of gain.
+	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
 class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
-	public:
+	protected:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
 			spinning inserted disks at @c revolutions_per_minute.
@@ -41,40 +39,21 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		void set_expected_bit_length(Time bit_length);
 
 		/*!
-			Inserts @c disk into the drive.
-		*/
-		void set_disk(std::shared_ptr<Disk> disk);
-
-		/*!
-			@returns @c true if a disk is currently inserted; @c false otherwise.
-		*/
-		bool has_disk();
-
-		/*!
 			Advances the drive by @c number_of_cycles cycles.
 		*/
 		void run_for_cycles(int number_of_cycles);
 
 		/*!
-			@returns @c true if the drive head is currently at track zero; @c false otherwise.
+			Sets the current drive.
 		*/
-		bool get_is_track_zero();
-
-		/*!
-			Steps the disk head the specified number of tracks. Positive numbers step inwards, negative numbers
-			step outwards.
-		*/
-		void step(int direction);
+		void set_drive(std::shared_ptr<Drive> drive);
+		void invalidate_track();
 
 		/*!
 			Enables or disables the disk motor.
 		*/
 		void set_motor_on(bool motor_on);
 
-		// to satisfy DigitalPhaseLockedLoop::Delegate
-		void digital_phase_locked_loop_output_bit(int value);
-
-	protected:
 		/*!
 			Should be implemented by subclasses; communicates each bit that the PLL recognises, also specifying
 			the amount of time since the index hole was last seen.
@@ -89,6 +68,12 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		// for TimedEventLoop
 		virtual void process_next_event();
 
+		// to satisfy DigitalPhaseLockedLoop::Delegate
+		void digital_phase_locked_loop_output_bit(int value);
+
+		bool get_is_track_zero();
+		void step(int direction);
+
 	private:
 		Time _bit_length;
 		unsigned int _clock_rate;
@@ -96,15 +81,16 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		Time _rotational_multiplier;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> _pll;
-		std::shared_ptr<Disk> _disk;
+		std::shared_ptr<Drive> _drive;
 		std::shared_ptr<Track> _track;
-		int _head_position;
 		unsigned int _cycles_since_index_hole;
-		void set_track(Time initial_offset);
 
 		inline void get_next_event();
 		Track::Event _current_event;
 		Time _time_into_track;
+		bool _motor_is_on;
+
+		void setup_track();
 };
 
 }

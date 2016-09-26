@@ -26,6 +26,8 @@
 		4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2E2D931C399D1200138695 /* ElectronDocument.xib */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
+		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
+		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */; };
 		4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */; };
@@ -423,6 +425,10 @@
 		4B2E2D991C3A06EC00138695 /* Atari2600Inputs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Atari2600Inputs.h; sourceTree = "<group>"; };
 		4B2E2D9B1C3A070400138695 /* Electron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Electron.cpp; path = Electron/Electron.cpp; sourceTree = "<group>"; };
 		4B2E2D9C1C3A070400138695 /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Electron.hpp; path = Electron/Electron.hpp; sourceTree = "<group>"; };
+		4B30512B1D989E2200B4FED8 /* Drive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Drive.cpp; sourceTree = "<group>"; };
+		4B30512C1D989E2200B4FED8 /* Drive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Drive.hpp; sourceTree = "<group>"; };
+		4B30512E1D98ACC600B4FED8 /* Plus3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Plus3.cpp; path = Electron/Plus3.cpp; sourceTree = "<group>"; };
+		4B30512F1D98ACC600B4FED8 /* Plus3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Plus3.hpp; path = Electron/Plus3.hpp; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = C1540Tests.swift; sourceTree = "<group>"; };
@@ -962,6 +968,8 @@
 			children = (
 				4B2E2D9B1C3A070400138695 /* Electron.cpp */,
 				4B2E2D9C1C3A070400138695 /* Electron.hpp */,
+				4B30512E1D98ACC600B4FED8 /* Plus3.cpp */,
+				4B30512F1D98ACC600B4FED8 /* Plus3.hpp */,
 			);
 			name = Electron;
 			sourceTree = "<group>";
@@ -1116,10 +1124,12 @@
 				4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */,
 				4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */,
 				4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */,
+				4B30512B1D989E2200B4FED8 /* Drive.cpp */,
 				4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */,
 				4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */,
 				4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */,
 				4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */,
+				4B30512C1D989E2200B4FED8 /* Drive.hpp */,
 				4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */,
 				4BB697CF1D4BA44900248BDF /* Encodings */,
 				4BAB62B21D327F7E00DF5BA0 /* Formats */,
@@ -2151,6 +2161,8 @@
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
+				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
+				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,

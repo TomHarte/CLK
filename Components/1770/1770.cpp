@@ -60,7 +60,7 @@ uint8_t WD1770::get_register(int address)
 
 void WD1770::run_for_cycles(unsigned int number_of_cycles)
 {
-	if(status_ & Flag::MotorOn) Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
+	Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
 
 	if(delay_time_)
 	{
@@ -144,7 +144,11 @@ void WD1770::process_index_hole()
 	}
 
 	// motor power-down
-	if(index_hole_count_ == 9 && !(status_&Flag::Busy)) status_ &= ~Flag::MotorOn;
+	if(index_hole_count_ == 9 && !(status_&Flag::Busy))
+	{
+		status_ &= ~Flag::MotorOn;
+		set_motor_on(false);
+	}
 }
 
 //     +------+----------+-------------------------+
@@ -186,6 +190,7 @@ void WD1770::process_index_hole()
 
 #define SPIN_UP()	\
 		status_ |= Flag::MotorOn;	\
+		set_motor_on(true);	\
 		index_hole_count_ = 0;	\
 		index_hole_count_target_ = 6;	\
 		WAIT_FOR_EVENT(Event::IndexHoleTarget);

@@ -232,6 +232,7 @@ class Machine:
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
 		void run_for_cycles(int number_of_cycles);
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
