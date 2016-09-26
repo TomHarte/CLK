@@ -317,6 +317,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 
 		index_hole_count_ = 0;
+		distance_into_section_ = 0;
 
 	verify_read_data:
 		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
