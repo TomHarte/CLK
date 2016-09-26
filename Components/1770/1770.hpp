@@ -49,6 +49,7 @@ class WD1770: public Storage::Disk::Controller {
 		int index_hole_count_target_;
 		int bits_since_token_;
 		int distance_into_section_;
+		bool is_awaiting_marker_value_;
 
 		int step_direction_;
 		void set_interrupt_request(bool interrupt_request) {}

@@ -322,6 +322,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					{
 						_plus3->set_control_register(*value);
 					}
+					else
+						*value = 1;
 				}
 			break;
 

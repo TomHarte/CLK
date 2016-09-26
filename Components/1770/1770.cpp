@@ -17,7 +17,8 @@ WD1770::WD1770() :
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
 	delay_time_(0),
-	index_hole_count_target_(-1)
+	index_hole_count_target_(-1),
+	is_awaiting_marker_value_(false)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);
@@ -30,6 +31,8 @@ void WD1770::set_is_double_density(bool is_double_density)
 	bit_length.length = 1;
 	bit_length.clock_rate = is_double_density ? 500000 : 250000;
 	set_expected_bit_length(bit_length);
+
+	if(!is_double_density) is_awaiting_marker_value_ = false;
 }
 
 void WD1770::set_register(int address, uint8_t value)
@@ -104,7 +107,19 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	}
 	else
 	{
-		// TODO: MFM
+		switch(shift_register_ & 0xffff)
+		{
+			case Storage::Encodings::MFM::MFMIndexAddressMark:
+				bits_since_token_ = 0;
+				is_awaiting_marker_value_ = true;
+			return;
+			case Storage::Encodings::MFM::MFMAddressMark:
+				bits_since_token_ = 0;
+				is_awaiting_marker_value_ = true;
+			return;
+			default:
+			break;
+		}
 	}
 
 	if(token_type != Token::Byte)
@@ -128,6 +143,28 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			((shift_register_ & 0x1000) >> 6) |
 			((shift_register_ & 0x4000) >> 7));
 		bits_since_token_ = 0;
+
+		if(is_awaiting_marker_value_ && is_double_density_)
+		{
+			is_awaiting_marker_value_ = false;
+			switch(latest_token_.byte_value)
+			{
+				case Storage::Encodings::MFM::MFMIndexAddressByte:
+					latest_token_.type = Token::Index;
+				break;
+				case Storage::Encodings::MFM::MFMIDAddressByte:
+					latest_token_.type = Token::ID;
+				break;
+				case Storage::Encodings::MFM::MFMDataAddressByte:
+					latest_token_.type = Token::Data;
+				break;
+				case Storage::Encodings::MFM::MFMDeletedDataAddressByte:
+					latest_token_.type = Token::DeletedData;
+				break;
+				default: break;
+			}
+		}
+
 		posit_event(Event::Token);
 		return;
 	}
