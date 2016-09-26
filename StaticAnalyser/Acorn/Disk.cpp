@@ -7,17 +7,17 @@
 //
 
 #include "Disk.hpp"
-#include "../../Storage/Disk/DiskDrive.hpp"
+#include "../../Storage/Disk/DiskController.hpp"
 #include "../../Storage/Disk/Encodings/MFM.hpp"
 #include "../../NumberTheory/CRC.hpp"
 #include <algorithm>
 
 using namespace StaticAnalyser::Acorn;
 
-class FMParser: public Storage::Disk::Drive {
+class FMParser: public Storage::Disk::Controller {
 	public:
 		FMParser(bool is_mfm) :
-			Storage::Disk::Drive(4000000, 1, 300),
+			Storage::Disk::Controller(4000000, 1, 300),
 			crc_generator_(0x1021, 0xffff),
 			shift_register_(0), track_(0), is_mfm_(is_mfm)
 		{

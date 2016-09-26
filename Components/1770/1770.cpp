@@ -12,7 +12,7 @@
 using namespace WD;
 
 WD1770::WD1770() :
-	Storage::Disk::Drive(8000000, 1, 300),
+	Storage::Disk::Controller(8000000, 1, 300),
 	status_(0),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
@@ -60,7 +60,7 @@ uint8_t WD1770::get_register(int address)
 
 void WD1770::run_for_cycles(unsigned int number_of_cycles)
 {
-	if(status_ & Flag::MotorOn) Storage::Disk::Drive::run_for_cycles((int)number_of_cycles);
+	if(status_ & Flag::MotorOn) Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
 
 	if(delay_time_)
 	{

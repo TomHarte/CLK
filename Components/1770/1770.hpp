@@ -9,11 +9,11 @@
 #ifndef _770_hpp
 #define _770_hpp
 
-#include "../../Storage/Disk/DiskDrive.hpp"
+#include "../../Storage/Disk/DiskController.hpp"
 
 namespace WD {
 
-class WD1770: public Storage::Disk::Drive {
+class WD1770: public Storage::Disk::Controller {
 	public:
 		WD1770();
 

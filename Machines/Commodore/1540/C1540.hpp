@@ -15,7 +15,7 @@
 #include "../SerialBus.hpp"
 
 #include "../../../Storage/Disk/Disk.hpp"
-#include "../../../Storage/Disk/DiskDrive.hpp"
+#include "../../../Storage/Disk/DiskController.hpp"
 
 namespace Commodore {
 namespace C1540 {
@@ -216,7 +216,7 @@ class Machine:
 	public CPU6502::Processor<Machine>,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public DriveVIA::Delegate,
-	public Storage::Disk::Drive {
+	public Storage::Disk::Controller {
 
 	public:
 		Machine();

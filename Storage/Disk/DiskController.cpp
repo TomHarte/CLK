@@ -1,16 +1,16 @@
 //
-//  DiskDrive.cpp
+//  DiskController.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/07/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "DiskDrive.hpp"
+#include "DiskController.hpp"
 
 using namespace Storage::Disk;
 
-Drive::Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
+Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
 	_clock_rate(clock_rate * clock_rate_multiplier),
 	_clock_rate_multiplier(clock_rate_multiplier),
 	_head_position(0),
@@ -22,7 +22,7 @@ Drive::Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsign
 	_rotational_multiplier.simplify();
 }
 
-void Drive::set_expected_bit_length(Time bit_length)
+void Controller::set_expected_bit_length(Time bit_length)
 {
 	_bit_length = bit_length;
 
@@ -33,23 +33,23 @@ void Drive::set_expected_bit_length(Time bit_length)
 	_pll->set_delegate(this);
 }
 
-void Drive::set_disk(std::shared_ptr<Disk> disk)
+void Controller::set_disk(std::shared_ptr<Disk> disk)
 {
 	_disk = disk;
 	set_track(Time());
 }
 
-bool Drive::has_disk()
+bool Controller::has_disk()
 {
 	return (bool)_disk;
 }
 
-bool Drive::get_is_track_zero()
+bool Controller::get_is_track_zero()
 {
 	return _head_position == 0;
 }
 
-void Drive::step(int direction)
+void Controller::step(int direction)
 {
 	_head_position = std::max(_head_position + direction, 0);
 	Time extra_time = get_time_into_next_event() / _rotational_multiplier;
@@ -58,7 +58,7 @@ void Drive::step(int direction)
 	set_track(_time_into_track);
 }
 
-void Drive::set_track(Time initial_offset)
+void Controller::set_track(Time initial_offset)
 {
 	_track = _disk->get_track_at_position(0, (unsigned int)_head_position);
 	// TODO: probably a better implementation of the empty track?
@@ -80,7 +80,7 @@ void Drive::set_track(Time initial_offset)
 	reset_timer_to_offset(offset * _rotational_multiplier);
 }
 
-void Drive::run_for_cycles(int number_of_cycles)
+void Controller::run_for_cycles(int number_of_cycles)
 {
 	if(has_disk())
 	{
@@ -99,7 +99,7 @@ void Drive::run_for_cycles(int number_of_cycles)
 
 #pragma mark - Track timed event loop
 
-void Drive::get_next_event()
+void Controller::get_next_event()
 {
 	if(_track)
 		_current_event = _track->get_next_event();
@@ -115,7 +115,7 @@ void Drive::get_next_event()
 	set_next_event_time_interval(_current_event.length * _rotational_multiplier);
 }
 
-void Drive::process_next_event()
+void Controller::process_next_event()
 {
 	switch(_current_event.type)
 	{
@@ -134,7 +134,7 @@ void Drive::process_next_event()
 
 #pragma mark - PLL delegate
 
-void Drive::digital_phase_locked_loop_output_bit(int value)
+void Controller::digital_phase_locked_loop_output_bit(int value)
 {
 	process_input_bit(value, _cycles_since_index_hole);
 }

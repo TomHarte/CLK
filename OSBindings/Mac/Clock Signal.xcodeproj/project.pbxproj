@@ -45,7 +45,7 @@
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
-		4B6C73BD1D387AE500AFCFCA /* DiskDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskDrive.cpp */; };
+		4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */; };
 		4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B73C7191D036BD90074D992 /* Vic20Document.swift */; };
 		4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B73C71B1D036C030074D992 /* Vic20Document.xib */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
@@ -457,8 +457,8 @@
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
 		4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TapeUEF.hpp; sourceTree = "<group>"; };
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		4B6C73BB1D387AE500AFCFCA /* DiskDrive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskDrive.cpp; sourceTree = "<group>"; };
-		4B6C73BC1D387AE500AFCFCA /* DiskDrive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskDrive.hpp; sourceTree = "<group>"; };
+		4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
+		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B73C7191D036BD90074D992 /* Vic20Document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20Document.swift; sourceTree = "<group>"; };
 		4B73C71C1D036C030074D992 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Document.xib"; sourceTree = SOURCE_ROOT; };
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
@@ -1115,11 +1115,11 @@
 			children = (
 				4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */,
 				4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */,
-				4B6C73BB1D387AE500AFCFCA /* DiskDrive.cpp */,
+				4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */,
 				4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */,
 				4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */,
 				4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */,
-				4B6C73BC1D387AE500AFCFCA /* DiskDrive.hpp */,
+				4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */,
 				4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */,
 				4BB697CF1D4BA44900248BDF /* Encodings */,
 				4BAB62B21D327F7E00DF5BA0 /* Formats */,
@@ -2137,7 +2137,7 @@
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
-				4B6C73BD1D387AE500AFCFCA /* DiskDrive.cpp in Sources */,
+				4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B4DC8281D2C2470003C5BF8 /* C1540.cpp in Sources */,
 				4B1E85751D170228001EF87D /* Typer.cpp in Sources */,

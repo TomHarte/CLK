@@ -7,7 +7,7 @@
 //
 
 #include "Disk.hpp"
-#include "../../Storage/Disk/DiskDrive.hpp"
+#include "../../Storage/Disk/DiskController.hpp"
 #include "../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 #include "Utilities.hpp"
 
@@ -17,9 +17,9 @@
 
 using namespace StaticAnalyser::Commodore;
 
-class CommodoreGCRParser: public Storage::Disk::Drive {
+class CommodoreGCRParser: public Storage::Disk::Controller {
 	public:
-		CommodoreGCRParser() : Storage::Disk::Drive(4000000, 1, 300), shift_register_(0), track_(1)
+		CommodoreGCRParser() : Storage::Disk::Controller(4000000, 1, 300), shift_register_(0), track_(1)
 		{
 			// Make sure this drive really is at track '1'.
 			while(!get_is_track_zero()) step(-1);

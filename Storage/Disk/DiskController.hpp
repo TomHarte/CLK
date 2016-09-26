@@ -1,13 +1,13 @@
 //
-//  DiskDrive.hpp
+//  DiskController.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/07/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskDrive_hpp
-#define DiskDrive_hpp
+#ifndef Storage_Disk_Controller_hpp
+#define Storage_Disk_Controller_hpp
 
 #include "Disk.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
@@ -27,13 +27,13 @@ namespace Disk {
 	TODO: double sided disks, communication of head size and permissible stepping extents, appropriate
 	simulation of gain.
 */
-class Drive: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
+class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	public:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
 			spinning inserted disks at @c revolutions_per_minute.
 		*/
-		Drive(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
+		Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
 
 		/*!
 			Communicates to the PLL the expected length of a bit as a fraction of a second.

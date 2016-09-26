@@ -318,9 +318,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			case 0xfc00:
 				if(_wd1770 && (address&0x00f0) == 0x00c0)
 				{
-					if(isReadOperation(operation))
-						*value = 1;
-					else
+					if(!isReadOperation(operation))
 					{
 						// TODO:
 						//	bit 0 => enable or disable drive 1
