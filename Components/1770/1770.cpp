@@ -18,7 +18,8 @@ WD1770::WD1770() :
 	resume_point_(0),
 	delay_time_(0),
 	index_hole_count_target_(-1),
-	is_awaiting_marker_value_(false)
+	is_awaiting_marker_value_(false),
+	is_reading_data_(false)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);
@@ -85,49 +86,52 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	bits_since_token_++;
 
 	Token::Type token_type = Token::Byte;
-	if(!is_double_density_)
+	if(!is_reading_data_)
 	{
-		switch(shift_register_ & 0xffff)
+		if(!is_double_density_)
 		{
-			case Storage::Encodings::MFM::FMIndexAddressMark:
-				token_type = Token::Index;
-			break;
-			case Storage::Encodings::MFM::FMIDAddressMark:
-				token_type = Token::ID;
-			break;
-			case Storage::Encodings::MFM::FMDataAddressMark:
-				token_type = Token::Data;
-			break;
-			case Storage::Encodings::MFM::FMDeletedDataAddressMark:
-				token_type = Token::DeletedData;
-			break;
-			default:
-			break;
+			switch(shift_register_ & 0xffff)
+			{
+				case Storage::Encodings::MFM::FMIndexAddressMark:
+					token_type = Token::Index;
+				break;
+				case Storage::Encodings::MFM::FMIDAddressMark:
+					token_type = Token::ID;
+				break;
+				case Storage::Encodings::MFM::FMDataAddressMark:
+					token_type = Token::Data;
+				break;
+				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
+					token_type = Token::DeletedData;
+				break;
+				default:
+				break;
+			}
 		}
-	}
-	else
-	{
-		switch(shift_register_ & 0xffff)
+		else
 		{
-			case Storage::Encodings::MFM::MFMIndexAddressMark:
-				bits_since_token_ = 0;
-				is_awaiting_marker_value_ = true;
-			return;
-			case Storage::Encodings::MFM::MFMAddressMark:
-				bits_since_token_ = 0;
-				is_awaiting_marker_value_ = true;
-			return;
-			default:
-			break;
+			switch(shift_register_ & 0xffff)
+			{
+				case Storage::Encodings::MFM::MFMIndexAddressMark:
+					bits_since_token_ = 0;
+					is_awaiting_marker_value_ = true;
+				return;
+				case Storage::Encodings::MFM::MFMAddressMark:
+					bits_since_token_ = 0;
+					is_awaiting_marker_value_ = true;
+				return;
+				default:
+				break;
+			}
 		}
-	}
 
-	if(token_type != Token::Byte)
-	{
-		latest_token_.type = token_type;
-		bits_since_token_ = 0;
-		posit_event(Event::Token);
-		return;
+		if(token_type != Token::Byte)
+		{
+			latest_token_.type = token_type;
+			bits_since_token_ = 0;
+			posit_event(Event::Token);
+			return;
+		}
 	}
 
 	if(bits_since_token_ == 16)
@@ -213,7 +217,7 @@ void WD1770::process_index_hole()
 #define READ_ID()	\
 		if(new_event_type == Event::Token)	\
 		{	\
-			if(!distance_into_section_ && latest_token_.type == Token::ID) distance_into_section_++;	\
+			if(!distance_into_section_ && latest_token_.type == Token::ID) {is_reading_data_ = true; distance_into_section_++; }	\
 			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)	\
 			{	\
 				header[distance_into_section_ - 1] = latest_token_.byte_value;	\
@@ -242,6 +246,7 @@ void WD1770::posit_event(Event new_event_type)
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
 		printf("Idle...\n");
+		is_reading_data_ = false;
 		status_ &= ~Flag::Busy;
 		index_hole_count_ = 0;
 		WAIT_FOR_EVENT(Event::Command);
@@ -331,9 +336,11 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
+			is_reading_data_ = false;
 			// TODO: CRC check
 			if(header[0] == track_)
 			{
+				printf("Reached track %d\n", track_);
 				status_ &= ~Flag::CRCError;
 				set_interrupt_request(true);
 				goto wait_for_command;
@@ -381,6 +388,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
+			is_reading_data_ = false;
 			if(header[0] == track_ && header[2] == sector_)
 			{
 				// TODO: test CRC
@@ -402,6 +410,7 @@ void WD1770::posit_event(Event new_event_type)
 		{
 			status_ |= (latest_token_.type == Token::DeletedData) ? Flag::RecordType : 0;
 			distance_into_section_ = 0;
+			is_reading_data_ = true;
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -434,6 +443,7 @@ void WD1770::posit_event(Event new_event_type)
 				goto test_type2_write_protection;
 			}
 			set_interrupt_request(true);
+			printf("Read sector %d\n", sector_);
 			goto wait_for_command;
 		}
 		goto type2_check_crc;

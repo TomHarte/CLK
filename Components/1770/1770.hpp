@@ -55,6 +55,7 @@ class WD1770: public Storage::Disk::Controller {
 		void set_interrupt_request(bool interrupt_request) {}
 
 		// Tokeniser
+		bool is_reading_data_;
 		bool is_double_density_;
 		int shift_register_;
 		struct Token {
