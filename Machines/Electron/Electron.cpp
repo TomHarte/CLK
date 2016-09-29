@@ -503,8 +503,8 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		}
 		if(target.acorn.has_adfs)
 		{
-			set_rom(ROMSlot1, _adfs, true);
-			set_rom(ROMSlot2, std::vector<uint8_t>(_adfs.begin() + 16384, _adfs.end()), true);
+			set_rom(ROMSlot4, _adfs, true);
+			set_rom(ROMSlot5, std::vector<uint8_t>(_adfs.begin() + 16384, _adfs.end()), true);
 		}
 
 		_plus3->set_disk(target.disks.front(), 0);

@@ -126,11 +126,20 @@ void StaticAnalyser::Acorn::AddTargets(
 			target.acorn.has_dfs = !!dfs_catalogue;
 			target.acorn.has_adfs = !!adfs_catalogue;
 
-			switch((dfs_catalogue ?: adfs_catalogue)->bootOption)
+			std::string adfs_command;
+			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
+			switch(bootOption)
 			{
-				case Catalogue::BootOption::None:	target.loadingCommand = "*CAT\n";		break;
-				default:							target.acorn.should_hold_shift = true;	break;
+				case Catalogue::BootOption::None:		adfs_command = "*CAT\n";				break;
+				case Catalogue::BootOption::LoadBOOT:	adfs_command = "*MOUNT\n*LOAD !BOOT\n";	break;
+				case Catalogue::BootOption::RunBOOT:	adfs_command = "*MOUNT\n*RUN !BOOT\n";	break;
+				case Catalogue::BootOption::ExecBOOT:	adfs_command = "*MOUNT\n*EXEC !BOOT\n";	break;
 			}
+
+			if(target.acorn.has_dfs && bootOption != Catalogue::BootOption::None)
+				target.acorn.should_hold_shift = true;
+			else
+				target.loadingCommand = adfs_command;
 		}
 	}
 

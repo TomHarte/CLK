@@ -12,7 +12,7 @@
 using namespace WD;
 
 WD1770::WD1770() :
-	Storage::Disk::Controller(8000000, 1, 300),
+	Storage::Disk::Controller(8000000, 16, 300),
 	status_(0),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
