@@ -349,6 +349,7 @@
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */; };
+		4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */; };
 		4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
@@ -801,6 +802,8 @@
 		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
 		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
 		4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502InterruptTests.swift; sourceTree = "<group>"; };
+		4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreROM.cpp; path = Encodings/CommodoreROM.cpp; sourceTree = "<group>"; };
+		4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommodoreROM.hpp; path = Encodings/CommodoreROM.hpp; sourceTree = "<group>"; };
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
 		4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -1625,6 +1628,15 @@
 			path = 6560;
 			sourceTree = "<group>";
 		};
+		4BCA6CC91D9DD9F500C2D7B2 /* Encodings */ = {
+			isa = PBXGroup;
+			children = (
+				4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */,
+				4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */,
+			);
+			name = Encodings;
+			sourceTree = "<group>";
+		};
 		4BD14B121D7462810088EAD6 /* Acorn */ = {
 			isa = PBXGroup;
 			children = (
@@ -1672,6 +1684,7 @@
 				4BEE0A6A1D72496600532C7B /* Cartridge.cpp */,
 				4BEE0A6B1D72496600532C7B /* Cartridge.hpp */,
 				4BEE0A6C1D72496600532C7B /* Formats */,
+				4BCA6CC91D9DD9F500C2D7B2 /* Encodings */,
 			);
 			path = Cartridge;
 			sourceTree = "<group>";
@@ -2163,6 +2176,7 @@
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
+				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,

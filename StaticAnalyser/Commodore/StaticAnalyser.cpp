@@ -11,8 +11,32 @@
 #include "File.hpp"
 #include "Tape.hpp"
 #include "Disk.hpp"
+#include "../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
 using namespace StaticAnalyser::Commodore;
+
+static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
+	Vic20CartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges)
+{
+	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
+
+	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : cartridges)
+	{
+		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridge->get_segments();
+
+		// only one mapped item is allowed
+		if(segments.size() != 1) continue;
+
+		// which must be 16 kb in size
+		Storage::Cartridge::Cartridge::Segment segment = segments.front();
+		if(segment.start_address != 0xa000) continue;
+		if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(segment.data)) continue;
+
+		vic20_cartridges.push_back(cartridge);
+	}
+
+	return vic20_cartridges;
+}
 
 void StaticAnalyser::Commodore::AddTargets(
 	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
@@ -29,7 +53,7 @@ void StaticAnalyser::Commodore::AddTargets(
 	bool is_disk = false;
 
 	// strip out inappropriate cartridges
-//	target.cartridges = AcornCartridgesFrom(cartridges);
+	target.cartridges = Vic20CartridgesFrom(cartridges);
 
 	// check disks
 	for(auto &disk : disks)
@@ -125,7 +149,6 @@ void StaticAnalyser::Commodore::AddTargets(
 //			}
 		}
 	}
-
 
 	if(target.tapes.size() || target.cartridges.size() || target.disks.size())
 		destination.push_back(target);

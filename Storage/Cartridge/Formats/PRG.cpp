@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <sys/stat.h>
+#include "../Encodings/CommodoreROM.hpp"
 
 using namespace Storage::Cartridge;
 
@@ -42,12 +43,7 @@ PRG::PRG(const char *file_name)
 		throw ErrorNotROM;
 
 	// also accept only cartridges with the proper signature
-	if(
-		contents[4] != 0x41 ||
-		contents[5] != 0x30 ||
-		contents[6] != 0xc3 ||
-		contents[7] != 0xc2 ||
-		contents[8] != 0xcd)
+	if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(contents))
 		throw ErrorNotROM;
 
 	_segments.emplace_back(0xa000, 0xa000 + data_length, std::move(contents));
