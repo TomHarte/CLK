@@ -9,7 +9,7 @@
 #ifndef SerialBus_hpp
 #define SerialBus_hpp
 
-#import <vector>
+#include <vector>
 
 namespace Commodore {
 namespace Serial {

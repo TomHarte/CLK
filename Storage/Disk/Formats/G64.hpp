@@ -37,7 +37,7 @@ class G64: public Disk {
 
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
-		std::shared_ptr<Track> get_track_at_position(unsigned int position);
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
 		FILE *_file;

@@ -74,9 +74,14 @@ class Disk {
 		virtual unsigned int get_head_position_count() = 0;
 
 		/*!
+			Returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
+		*/
+		virtual unsigned int get_head_count() { return 1; }
+
+		/*!
 			Returns the @c Track at @c position if there are any detectable events there; returns @c nullptr otherwise.
 		*/
-		virtual std::shared_ptr<Track> get_track_at_position(unsigned int position) = 0;
+		virtual std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position) = 0;
 };
 
 }

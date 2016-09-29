@@ -10,6 +10,7 @@
 
 #include "Electron.hpp"
 #import "CSMachine+Subclassing.h"
+#import "NSData+StdVector.h"
 #include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
 
@@ -25,21 +26,14 @@
 	StaticAnalyser::GetTargets([url fileSystemRepresentation]);
 }
 
-- (void)setOSROM:(nonnull NSData *)rom {
-	@synchronized(self) {
-		_electron.set_rom(Electron::ROMSlotOS, rom.length, (const uint8_t *)rom.bytes);
-	}
-}
-
-- (void)setBASICROM:(nonnull NSData *)rom {
-	@synchronized(self) {
-		_electron.set_rom(Electron::ROMSlotBASIC, rom.length, (const uint8_t *)rom.bytes);
-	}
-}
+- (void)setOSROM:(nonnull NSData *)rom		{	[self setROM:rom slot:Electron::ROMSlotOS];		}
+- (void)setBASICROM:(nonnull NSData *)rom	{	[self setROM:rom slot:Electron::ROMSlotBASIC];	}
+- (void)setADFSROM:(nonnull NSData *)rom	{	[self setROM:rom slot:Electron::ROMSlotADFS];	}
+- (void)setDFSROM:(nonnull NSData *)rom		{	[self setROM:rom slot:Electron::ROMSlotDFS];	}
 
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot {
 	@synchronized(self) {
-		_electron.set_rom((Electron::ROMSlot)slot, rom.length, (const uint8_t *)rom.bytes);
+		_electron.set_rom((Electron::ROMSlot)slot, rom.stdVector8, false);
 	}
 }
 

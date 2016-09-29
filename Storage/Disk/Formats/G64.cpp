@@ -54,13 +54,14 @@ unsigned int G64::get_head_position_count()
 	return _number_of_tracks > 84 ? _number_of_tracks : 84;
 }
 
-std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
+std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> resulting_track;
 
 	// if there's definitely no track here, return the empty track
 	// (TODO: should be supplying one with an index hole?)
 	if(position >= _number_of_tracks) return resulting_track;
+	if(head >= 1) return resulting_track;
 
 	// seek to this track's entry in the track table
 	fseek(_file, (long)((position * 4) + 0xc), SEEK_SET);
@@ -84,8 +85,8 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 	track_length |= (uint16_t)fgetc(_file) << 8;
 
 	// grab the byte contents of this track
-	std::unique_ptr<uint8_t> track_contents(new uint8_t[track_length]);
-	fread(track_contents.get(), 1, track_length, _file);
+	std::vector<uint8_t> track_contents(track_length);
+	fread(&track_contents[0], 1, track_length, _file);
 
 	// seek to this track's entry in the speed zone table
 	fseek(_file, (long)((position * 4) + 0x15c), SEEK_SET);
@@ -123,8 +124,8 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int position)
 				PCMSegment segment;
 				segment.number_of_bits = number_of_bytes * 8;
 				segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(current_speed);
-				segment.data.reset(new uint8_t[number_of_bytes]);
-				memcpy(segment.data.get(), &track_contents.get()[start_byte_in_current_speed], number_of_bytes);
+				segment.data.resize(number_of_bytes);
+				memcpy(&segment.data[0], &track_contents[start_byte_in_current_speed], number_of_bytes);
 				segments.push_back(std::move(segment));
 
 				current_speed = byte_speed;

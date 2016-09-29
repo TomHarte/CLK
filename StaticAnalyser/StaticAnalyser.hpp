@@ -46,6 +46,7 @@ struct Target {
 		struct {
 			bool has_adfs;
 			bool has_dfs;
+			bool should_hold_shift;
 		} acorn;
 	};
 

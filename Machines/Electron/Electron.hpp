@@ -15,8 +15,10 @@
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
+#include "Plus3.hpp"
 
 #include <cstdint>
+#include <vector>
 
 namespace Electron {
 
@@ -30,7 +32,7 @@ enum ROMSlot: uint8_t {
 
 	ROMSlot12,	ROMSlot13,	ROMSlot14,	ROMSlot15,
 
-	ROMSlotOS
+	ROMSlotOS,	ROMSlotDFS,	ROMSlotADFS
 };
 
 enum Interrupt: uint8_t {
@@ -146,7 +148,7 @@ class Machine:
 	public:
 		Machine();
 
-		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
+		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable);
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		void set_key_state(Key key, bool isPressed);
@@ -187,7 +189,9 @@ class Machine:
 
 		// Things that directly constitute the memory map.
 		uint8_t _roms[16][16384];
+		bool _rom_write_masks[16];
 		uint8_t _os[16384], _ram[32768];
+		std::vector<uint8_t> _dfs, _adfs;
 
 		// Things affected by registers, explicitly or otherwise.
 		uint8_t _interrupt_status, _interrupt_control;
@@ -226,6 +230,10 @@ class Machine:
 		Tape _tape;
 		bool _use_fast_tape_hack;
 		bool _fast_load_is_in_data;
+
+		// Disk
+		std::unique_ptr<Plus3> _plus3;
+		bool is_holding_shift_;
 
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;

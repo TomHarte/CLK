@@ -6,8 +6,8 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef CommodoreGCR_hpp
-#define CommodoreGCR_hpp
+#ifndef Storage_Disk_Encodings_CommodoreGCR_hpp
+#define Storage_Disk_Encodings_CommodoreGCR_hpp
 
 #include "../../Storage.hpp"
 #include <cstdint>

@@ -14,7 +14,7 @@ using namespace Commodore::C1540;
 
 Machine::Machine() :
 	_shift_register(0),
-	Storage::Disk::Drive(1000000, 4, 300)
+	Storage::Disk::Controller(1000000, 4, 300)
 {
 	// create a serial port and a VIA to run it
 	_serialPortVIA.reset(new SerialPortVIA);
@@ -102,11 +102,19 @@ void Machine::set_rom(const uint8_t *rom)
 	memcpy(_rom, rom, sizeof(_rom));
 }
 
+void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
+{
+	std::shared_ptr<Storage::Disk::Drive> drive(new Storage::Disk::Drive);
+	drive->set_disk(disk);
+	set_drive(drive);
+}
+
 void Machine::run_for_cycles(int number_of_cycles)
 {
 	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+	set_motor_on(_driveVIA.get_motor_enabled());
 	if(_driveVIA.get_motor_enabled()) // TODO: motor speed up/down
-		Storage::Disk::Drive::run_for_cycles(number_of_cycles);
+		Storage::Disk::Controller::run_for_cycles(number_of_cycles);
 }
 
 #pragma mark - 6522 delegate

@@ -20,8 +20,10 @@
 #include "../Storage/Cartridge/Formats/PRG.hpp"
 
 // Disks
+#include "../Storage/Disk/Formats/AcornADF.hpp"
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
+#include "../Storage/Disk/Formats/SSD.hpp"
 
 // Tapes
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"
@@ -79,8 +81,10 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	}
 
 	Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
+	Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
 	Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
 	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
+	Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
 	Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
 
 	// PRG
@@ -98,8 +102,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		}
 	}
 
-	// ROM
 	Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
+	Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
 	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP
 	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
 

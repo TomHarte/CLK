@@ -8,6 +8,7 @@
 
 #include "StaticAnalyser.hpp"
 
+#include "Disk.hpp"
 #include "Tape.hpp"
 
 using namespace StaticAnalyser::Acorn;
@@ -66,6 +67,9 @@ void StaticAnalyser::Acorn::AddTargets(
 	Target target;
 	target.machine = Target::Electron;
 	target.probability = 1.0; // TODO: a proper estimation
+	target.acorn.has_dfs = false;
+	target.acorn.has_adfs = false;
+	target.acorn.should_hold_shift = false;
 
 	// strip out inappropriate cartridges
 	target.cartridges = AcornCartridgesFrom(cartridges);
@@ -110,8 +114,35 @@ void StaticAnalyser::Acorn::AddTargets(
 		}
 	}
 
-	// TODO: disks
+	if(disks.size() > 0)
+	{
+		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
+		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
+		dfs_catalogue = GetDFSCatalogue(disk);
+		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
+		if(dfs_catalogue || adfs_catalogue)
+		{
+			target.disks = disks;
+			target.acorn.has_dfs = !!dfs_catalogue;
+			target.acorn.has_adfs = !!adfs_catalogue;
 
-	if(target.tapes.size() || target.cartridges.size())
+			std::string adfs_command;
+			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
+			switch(bootOption)
+			{
+				case Catalogue::BootOption::None:		adfs_command = "*CAT\n";				break;
+				case Catalogue::BootOption::LoadBOOT:	adfs_command = "*MOUNT\n*LOAD !BOOT\n";	break;
+				case Catalogue::BootOption::RunBOOT:	adfs_command = "*MOUNT\n*RUN !BOOT\n";	break;
+				case Catalogue::BootOption::ExecBOOT:	adfs_command = "*MOUNT\n*EXEC !BOOT\n";	break;
+			}
+
+			if(target.acorn.has_dfs && bootOption != Catalogue::BootOption::None)
+				target.acorn.should_hold_shift = true;
+			else
+				target.loadingCommand = adfs_command;
+		}
+	}
+
+	if(target.tapes.size() || target.disks.size() || target.cartridges.size())
 		destination.push_back(target);
 }

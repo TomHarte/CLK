@@ -53,10 +53,10 @@ unsigned int D64::get_head_position_count()
 	return _number_of_tracks*2;
 }
 
-std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
+std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned int position)
 {
-	// every other track is missing
-	if(position&1)
+	// every other track is missing, as is any head above 0
+	if(position&1 || head)
 		return std::shared_ptr<Track>();
 
 	// figure out where this track starts on the disk
@@ -102,8 +102,8 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int position)
 	PCMSegment track;
 	size_t track_bytes = 349 * (size_t)sectors_by_zone[zone];
 	track.number_of_bits = (unsigned int)track_bytes * 8;
-	uint8_t *data = new uint8_t[track_bytes];
-	track.data.reset(data);
+	track.data.resize(track_bytes);
+	uint8_t *data = &track.data[0];
 
 	memset(data, 0, track_bytes);
 

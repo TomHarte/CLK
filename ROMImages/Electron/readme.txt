@@ -5,12 +5,12 @@ Expected files:
 basic.rom
 os.rom
 plus1.rom
+DFS-1770-2.20.rom
+ADFS-E00_1.rom
+ADFS-E00_2.rom
 
 Likely to be desired in the future:
 
 adfs.rom
-ADFS-E00_1.rom
-ADFS-E00_2.rom
-DFSE00r3.rom
 ElectronExpansionRomPresAP2-v1.23.rom
 os300.rom

@@ -10,6 +10,7 @@
 
 #include <deque>
 #include "../TapeParser.hpp"
+#include "../../NumberTheory/CRC.hpp"
 
 using namespace StaticAnalyser::Acorn;
 
@@ -23,7 +24,9 @@ enum class SymbolType {
 
 class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolType> {
 	public:
-		Acorn1200BaudTapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : TapeParser(tape) {}
+		Acorn1200BaudTapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) :
+			TapeParser(tape),
+			_crc(0x1021, 0x0000) {}
 
 		int get_next_bit()
 		{
@@ -49,7 +52,7 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 				set_error_flag();
 				return -1;
 			}
-			add_to_crc((uint8_t)value);
+			_crc.add((uint8_t)value);
 			return value;
 		}
 
@@ -67,8 +70,8 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 			return result;
 		}
 
-		void reset_crc()	{	_crc = 0;		}
-		uint16_t get_crc()	{	return _crc;	}
+		void reset_crc()	{	_crc.reset();				}
+		uint16_t get_crc()	{	return _crc.get_value();	}
 
 	private:
 		void process_pulse(Storage::Tape::Tape::Pulse pulse)
@@ -111,17 +114,7 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 			remove_waves(1);
 		}
 
-		void add_to_crc(uint8_t value)
-		{
-			_crc ^= (uint16_t)value << 8;
-			for(int c = 0; c < 8; c++)
-			{
-				uint16_t exclusive_or = (_crc&0x8000) ? 0x1021 : 0x0000;
-				_crc = (uint16_t)(_crc << 1) ^ exclusive_or;
-			}
-		}
-
-		uint16_t _crc;
+		NumberTheory::CRC16 _crc;
 };
 
 static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser)
