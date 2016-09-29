@@ -168,7 +168,7 @@ void PRG::get_next_output_token()
 			case FilePhaseData:
 				_copy_mask ^= 0x80;
 				fseek(_file, 2, SEEK_SET);
-				if(_copy_mask) reset();
+				if(_copy_mask) _filePhase = FilePhaseAtEnd;
 			break;
 		}
 		return;
