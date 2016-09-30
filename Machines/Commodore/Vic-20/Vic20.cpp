@@ -317,6 +317,17 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		install_disk_rom();
 	}
 
+	if(target.cartridges.size())
+	{
+		_rom_address = 0xa000;
+		std::vector<uint8_t> rom_image = target.cartridges.front()->get_segments().front().data;
+		_rom_length = (uint16_t)(rom_image.size());
+
+		_rom = new uint8_t[0x2000];
+		memcpy(_rom, rom_image.data(), rom_image.size());
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+	}
+
 	if(_should_automatically_load_media)
 	{
 		if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
