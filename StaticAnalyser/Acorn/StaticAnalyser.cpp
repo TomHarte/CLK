@@ -130,16 +130,16 @@ void StaticAnalyser::Acorn::AddTargets(
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			switch(bootOption)
 			{
-				case Catalogue::BootOption::None:		adfs_command = "*CAT\n";				break;
-				case Catalogue::BootOption::LoadBOOT:	adfs_command = "*MOUNT\n*LOAD !BOOT\n";	break;
-				case Catalogue::BootOption::RunBOOT:	adfs_command = "*MOUNT\n*RUN !BOOT\n";	break;
-				case Catalogue::BootOption::ExecBOOT:	adfs_command = "*MOUNT\n*EXEC !BOOT\n";	break;
+				case Catalogue::BootOption::None:		adfs_command = "*CAT\n";		break;
+				case Catalogue::BootOption::LoadBOOT:	adfs_command = "*LOAD !BOOT\n";	break;
+				case Catalogue::BootOption::RunBOOT:	adfs_command = "*RUN !BOOT\n";	break;
+				case Catalogue::BootOption::ExecBOOT:	adfs_command = "*EXEC !BOOT\n";	break;
 			}
 
-			if(target.acorn.has_dfs && bootOption != Catalogue::BootOption::None)
-				target.acorn.should_hold_shift = true;
-			else
-				target.loadingCommand = adfs_command;
+//			if(target.acorn.has_dfs && bootOption != Catalogue::BootOption::None)
+//				target.acorn.should_hold_shift = true;
+//			else
+				target.loadingCommand = (target.acorn.has_dfs ? "" : "*MOUNT\n") + adfs_command;
 		}
 	}
 
