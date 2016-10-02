@@ -116,6 +116,13 @@ class MachineDocument:
 		}
 	}
 
+	override func read(from url: URL, ofType typeName: String) throws {
+		if let analyser = CSStaticAnalyser(fileAt: url) {
+			self.displayName = analyser.displayName
+			self.configureAs(analyser)
+		}
+	}
+
 	// MARK: the pasteboard
 	func paste(_ sender: AnyObject!) {
 		let pasteboard = NSPasteboard.general()

@@ -9,7 +9,7 @@
 import Cocoa
 
 class DocumentController: NSDocumentController {
-	override func makeDocument(withContentsOf url: URL, ofType typeName: String) throws -> NSDocument {
+/*	override func makeDocument(withContentsOf url: URL, ofType typeName: String) throws -> NSDocument {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			if let documentClass = analyser.documentClass as? NSDocument.Type {
 				let document = documentClass.init()
@@ -22,5 +22,5 @@ class DocumentController: NSDocumentController {
 		}
 
 		return try super.makeDocument(withContentsOf: url, ofType: typeName)
-	}
+	}*/
 }

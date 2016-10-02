@@ -34,18 +34,6 @@
 	return self;
 }
 
-- (Class)documentClass
-{
-	switch(_target.machine)
-	{
-		case StaticAnalyser::Target::Electron:	return [ElectronDocument class];
-		case StaticAnalyser::Target::Vic20:		return [Vic20Document class];
-		case StaticAnalyser::Target::Atari2600:	return [MachineDocument class];
-	}
-
-	return nil;
-}
-
 - (NSString *)optionsPanelNibName
 {
 	switch(_target.machine)
@@ -62,8 +50,8 @@
 {
 	switch(_target.machine)
 	{
-		case StaticAnalyser::Target::Electron:	return nil;
-		case StaticAnalyser::Target::Vic20:		return nil;
+		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
+		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
 		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
 	}
 }
