@@ -11,7 +11,7 @@ import AudioToolbox
 
 class ElectronDocument: MachineDocument {
 
-	fileprivate lazy var electron = CSElectron()
+/*	fileprivate lazy var electron = CSElectron()
 	override var machine: CSMachine! {
 		get {
 			return electron
@@ -84,5 +84,5 @@ class ElectronDocument: MachineDocument {
 		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
 		self.displayTypeButton?.selectItem(at: displayType)
-	}
+	}*/
 }

@@ -40,7 +40,7 @@
 	{
 		case StaticAnalyser::Target::Electron:	return [ElectronDocument class];
 		case StaticAnalyser::Target::Vic20:		return [Vic20Document class];
-		case StaticAnalyser::Target::Atari2600:	return [Atari2600Document class];
+		case StaticAnalyser::Target::Atari2600:	return [MachineDocument class];
 	}
 
 	return nil;
@@ -56,6 +56,16 @@
 	}
 
 	return nil;
+}
+
+- (CSMachine *)newMachine
+{
+	switch(_target.machine)
+	{
+		case StaticAnalyser::Target::Electron:	return nil;
+		case StaticAnalyser::Target::Vic20:		return nil;
+		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
+	}
 }
 
 - (NSString *)userDefaultsPrefix

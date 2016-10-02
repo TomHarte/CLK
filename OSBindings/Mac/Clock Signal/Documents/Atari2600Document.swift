@@ -10,36 +10,8 @@ import Cocoa
 
 class Atari2600Document: MachineDocument {
 
-	fileprivate var atari2600 = CSAtari2600()
-	override var machine: CSMachine! {
-		get {
-			return atari2600
-		}
-	}
-	override var name: String! {
-		get {
-			return "atari2600"
-		}
-	}
-
-	// MARK: NSDocument overrides
-	override class func autosavesInPlace() -> Bool {
-		return true
-	}
-
-	override var windowNibName: String? {
-		return "Atari2600Document"
-	}
-
-	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
-		super.windowControllerDidLoadNib(aController)
-
-		// show the options window but ensure the OpenGL view is key
-		self.openGLView.window?.makeKey()
-	}
-
 	// MARK: CSOpenGLViewResponderDelegate
-	fileprivate func inputForKey(_ event: NSEvent) -> Atari2600DigitalInput? {
+/*	fileprivate func inputForKey(_ event: NSEvent) -> Atari2600DigitalInput? {
 		switch event.keyCode {
 			case 123:	return Atari2600DigitalInputJoy1Left
 			case 126:	return Atari2600DigitalInputJoy1Up
@@ -74,5 +46,5 @@ class Atari2600Document: MachineDocument {
 		if event.keyCode == 36 {
 			atari2600.setResetLineEnabled(false)
 		}
-	}
+	}*/
 }

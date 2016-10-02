@@ -18,6 +18,7 @@
 
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *userDefaultsPrefix;
+- (CSMachine *)newMachine;
 
 @property(nonatomic, readonly) NSString *displayName;
 

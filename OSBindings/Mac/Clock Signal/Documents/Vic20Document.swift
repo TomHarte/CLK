@@ -10,7 +10,7 @@ import Foundation
 
 class Vic20Document: MachineDocument {
 
-	fileprivate lazy var vic20 = CSVic20()
+/*	fileprivate lazy var vic20 = CSVic20()
 	override var machine: CSMachine! {
 		get {
 			return vic20
@@ -165,5 +165,5 @@ class Vic20Document: MachineDocument {
 		let country = standardUserDefaults.integer(forKey: self.countryUserDefaultsKey)
 		setCountry(country)
 		self.countryButton?.selectItem(at: country)
-	}
+	}*/
 }

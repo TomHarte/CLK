@@ -20,11 +20,7 @@ class MachineDocument:
 {
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
-	var machine: CSMachine! {
-		get {
-			return nil
-		}
-	}
+	var machine: CSMachine!
 	var name: String! {
 		get {
 			return nil
@@ -53,6 +49,10 @@ class MachineDocument:
 		updater.delegate = self
 		return updater
 	}()
+
+	override var windowNibName: String? {
+		return "MachineDocument"
+	}
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -104,6 +104,9 @@ class MachineDocument:
 
 	// MARK: configuring
 	func configureAs(_ analysis: CSStaticAnalyser) {
+		if let machine = analysis.newMachine() {
+			self.machine = machine
+		}
 		analysis.apply(to: self.machine)
 
 		if let optionsPanelNibName = analysis.optionsPanelNibName {

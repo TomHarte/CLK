@@ -51,7 +51,7 @@
 		4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B73C7191D036BD90074D992 /* Vic20Document.swift */; };
 		4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B73C71B1D036C030074D992 /* Vic20Document.xib */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
-		4B8FE21C1DA19D5F0090D3CE /* Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* Document.xib */; };
+		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */; };
 		4B8FE21E1DA19D5F0090D3CE /* Vic20Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2191DA19D5F0090D3CE /* Vic20Options.xib */; };
 		4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */; };
@@ -475,7 +475,7 @@
 		4B73C7191D036BD90074D992 /* Vic20Document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20Document.swift; sourceTree = "<group>"; };
 		4B73C71C1D036C030074D992 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Document.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
-		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Document.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2181DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ElectronOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE21A1DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Atari2600OptionsPanel.swift; sourceTree = "<group>"; };
@@ -1055,7 +1055,7 @@
 				4B73C7191D036BD90074D992 /* Vic20Document.swift */,
 				4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */,
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
-				4B8FE2151DA19D5F0090D3CE /* Document.xib */,
+				4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */,
 				4B2E2D931C399D1200138695 /* ElectronDocument.xib */,
 				4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */,
 				4B73C71B1D036C030074D992 /* Vic20Document.xib */,
@@ -1847,7 +1847,7 @@
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
 				4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */,
-				4B8FE21C1DA19D5F0090D3CE /* Document.xib in Resources */,
+				4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */,
 				4B8FE21E1DA19D5F0090D3CE /* Vic20Options.xib in Resources */,
 				4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
@@ -2287,12 +2287,12 @@
 			name = Atari2600Options.xib;
 			sourceTree = "<group>";
 		};
-		4B8FE2151DA19D5F0090D3CE /* Document.xib */ = {
+		4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
 				4B8FE2161DA19D5F0090D3CE /* Base */,
 			);
-			name = Document.xib;
+			name = MachineDocument.xib;
 			sourceTree = "<group>";
 		};
 		4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */ = {
