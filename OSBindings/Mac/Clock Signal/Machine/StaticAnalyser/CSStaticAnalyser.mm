@@ -46,6 +46,30 @@
 	return nil;
 }
 
+- (NSString *)optionsPanelNibName
+{
+	switch(_target.machine)
+	{
+		case StaticAnalyser::Target::Electron:	return nil;
+		case StaticAnalyser::Target::Vic20:		return nil;
+		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
+	}
+
+	return nil;
+}
+
+- (NSString *)userDefaultsPrefix
+{
+	switch(_target.machine)
+	{
+		case StaticAnalyser::Target::Electron:	return @"electron";
+		case StaticAnalyser::Target::Vic20:		return @"vic20";
+		case StaticAnalyser::Target::Atari2600:	return @"atari2600";
+	}
+
+	return nil;
+}
+
 - (void)applyToMachine:(CSMachine *)machine
 {
 	[machine applyTarget:_target];

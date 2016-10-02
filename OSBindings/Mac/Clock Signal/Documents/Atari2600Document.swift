@@ -34,11 +34,7 @@ class Atari2600Document: MachineDocument {
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 
-		// push whatever settings the switches have in the NIB into the emulation
-		pushSwitchValues()
-
 		// show the options window but ensure the OpenGL view is key
-		showOptions(self)
 		self.openGLView.window?.makeKey()
 	}
 
@@ -77,31 +73,6 @@ class Atari2600Document: MachineDocument {
 
 		if event.keyCode == 36 {
 			atari2600.setResetLineEnabled(false)
-		}
-	}
-
-	// MARK: Options
-	@IBOutlet var resetButton: NSButton!
-	@IBOutlet var selectButton: NSButton!
-	@IBOutlet var colourButton: NSButton!
-	@IBOutlet var leftPlayerDifficultyButton: NSButton!
-	@IBOutlet var rightPlayerDifficultyButton: NSButton!
-
-	@IBAction func optionDidChange(_ sender: AnyObject!) {
-		pushSwitchValues()
-	}
-
-	fileprivate func pushSwitchValues() {
-		atari2600.colourButton = colourButton.state == NSOnState
-		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == NSOnState
-		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == NSOnState
-	}
-
-	@IBAction func optionWasPressed(_ sender: NSButton!) {
-		if sender == resetButton {
-			atari2600.pressResetButton()
-		} else {
-			atari2600.pressSelectButton()
 		}
 	}
 }

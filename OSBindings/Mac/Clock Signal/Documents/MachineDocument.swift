@@ -42,7 +42,7 @@ class MachineDocument:
 		}
 	}
 
-	@IBOutlet weak var optionsPanel: NSPanel!
+	@IBOutlet var optionsPanel: MachinePanel!
 	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
@@ -105,6 +105,12 @@ class MachineDocument:
 	// MARK: configuring
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		analysis.apply(to: self.machine)
+
+		if let optionsPanelNibName = analysis.optionsPanelNibName {
+			Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
+			self.optionsPanel.machine = self.machine
+			showOptions(self)
+		}
 	}
 
 	// MARK: the pasteboard

@@ -48,10 +48,6 @@ class ElectronDocument: MachineDocument {
 		}
 	}
 
-//	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
-//		super.windowControllerDidLoadNib(aController)
-//	}
-
 	override var windowNibName: String? {
 		return "ElectronDocument"
 	}
@@ -68,13 +64,6 @@ class ElectronDocument: MachineDocument {
 
 		let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
 		try self.readFromFileWrapper(fileWrapper, ofType: typeName)
-	}
-
-	override func readFromData(data: NSData, ofType typeName: String) throws {
-		if let plus1ROM = rom("plus1") {
-			electron.setROM(plus1ROM, slot: 12)
-		}
-		electron.setROM(data, slot: 15)
 	}*/
 
 	// MARK: IBActions

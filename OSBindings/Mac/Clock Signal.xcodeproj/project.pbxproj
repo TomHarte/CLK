@@ -50,6 +50,12 @@
 		4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */; };
 		4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B73C7191D036BD90074D992 /* Vic20Document.swift */; };
 		4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B73C71B1D036C030074D992 /* Vic20Document.xib */; };
+		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
+		4B8FE21C1DA19D5F0090D3CE /* Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* Document.xib */; };
+		4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */; };
+		4B8FE21E1DA19D5F0090D3CE /* Vic20Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2191DA19D5F0090D3CE /* Vic20Options.xib */; };
+		4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */; };
+		4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
@@ -468,6 +474,12 @@
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B73C7191D036BD90074D992 /* Vic20Document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20Document.swift; sourceTree = "<group>"; };
 		4B73C71C1D036C030074D992 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Document.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Document.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE2181DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ElectronOptions.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE21A1DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Vic20Options.xib"; sourceTree = SOURCE_ROOT; };
+		4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Atari2600OptionsPanel.swift; sourceTree = "<group>"; };
+		4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePanel.swift; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
@@ -1038,12 +1050,18 @@
 			isa = PBXGroup;
 			children = (
 				4B55CE561C3B7D360093A61B /* Atari2600Document.swift */,
-				4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */,
 				4B55CE571C3B7D360093A61B /* ElectronDocument.swift */,
-				4B2E2D931C399D1200138695 /* ElectronDocument.xib */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B73C7191D036BD90074D992 /* Vic20Document.swift */,
+				4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */,
+				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
+				4B8FE2151DA19D5F0090D3CE /* Document.xib */,
+				4B2E2D931C399D1200138695 /* ElectronDocument.xib */,
+				4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */,
 				4B73C71B1D036C030074D992 /* Vic20Document.xib */,
+				4B8FE2191DA19D5F0090D3CE /* Vic20Options.xib */,
+				4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */,
+				4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */,
 			);
 			path = Documents;
 			sourceTree = "<group>";
@@ -1828,8 +1846,12 @@
 				4B2E2D951C399D1200138695 /* ElectronDocument.xib in Resources */,
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4BB73EA71B587A5100552FC2 /* Atari2600Document.xib in Resources */,
+				4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */,
+				4B8FE21C1DA19D5F0090D3CE /* Document.xib in Resources */,
+				4B8FE21E1DA19D5F0090D3CE /* Vic20Options.xib in Resources */,
 				4B73C71D1D036C030074D992 /* Vic20Document.xib in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
+				4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */,
 				4BC9DF451D044FCA00F44158 /* ROMImages in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2136,6 +2158,7 @@
 				4B55CE591C3B7D360093A61B /* ElectronDocument.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
+				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
 				4B55CE581C3B7D360093A61B /* Atari2600Document.swift in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
@@ -2173,6 +2196,7 @@
 				4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */,
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
+				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
@@ -2253,6 +2277,38 @@
 				4B73C71C1D036C030074D992 /* Base */,
 			);
 			name = Vic20Document.xib;
+			sourceTree = "<group>";
+		};
+		4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8FE2141DA19D5F0090D3CE /* Base */,
+			);
+			name = Atari2600Options.xib;
+			sourceTree = "<group>";
+		};
+		4B8FE2151DA19D5F0090D3CE /* Document.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8FE2161DA19D5F0090D3CE /* Base */,
+			);
+			name = Document.xib;
+			sourceTree = "<group>";
+		};
+		4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8FE2181DA19D5F0090D3CE /* Base */,
+			);
+			name = ElectronOptions.xib;
+			sourceTree = "<group>";
+		};
+		4B8FE2191DA19D5F0090D3CE /* Vic20Options.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B8FE21A1DA19D5F0090D3CE /* Base */,
+			);
+			name = Vic20Options.xib;
 			sourceTree = "<group>";
 		};
 		4BB73EA51B587A5100552FC2 /* Atari2600Document.xib */ = {
