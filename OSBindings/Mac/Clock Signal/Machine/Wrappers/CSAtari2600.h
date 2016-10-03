@@ -8,10 +8,10 @@
 
 #include "CSMachine.h"
 #include "Atari2600Inputs.h"
+#import "CSJoystickMachine.h"
 
-@interface CSAtari2600 : CSMachine
+@interface CSAtari2600 : CSMachine <CSJoystickMachine>
 
-- (void)setState:(BOOL)state forDigitalInput:(Atari2600DigitalInput)digitalInput;
 - (void)setResetLineEnabled:(BOOL)enabled;
 
 @property (nonatomic, assign) BOOL colourButton;

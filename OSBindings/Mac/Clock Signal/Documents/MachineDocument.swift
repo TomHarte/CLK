@@ -163,10 +163,26 @@ class MachineDocument:
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
 	}
 
-	// MARK: Key forwarding
+	// MARK: Input management
 	fileprivate func withKeyboardMachine(_ action: (CSKeyboardMachine) -> ()) {
 		if let keyboardMachine = self.machine as? CSKeyboardMachine {
 			action(keyboardMachine)
+		}
+	}
+
+	fileprivate func withJoystickMachine(_ action: (CSJoystickMachine) -> ()) {
+		if let joystickMachine = self.machine as? CSJoystickMachine {
+			action(joystickMachine)
+		}
+	}
+
+	fileprivate func sendJoystickEvent(_ machine: CSJoystickMachine, keyCode: UInt16, isPressed: Bool) {
+		switch keyCode {
+			case 123:	machine.setDirection(.left, onPad: 0, isPressed: isPressed)
+			case 126:	machine.setDirection(.up, onPad: 0, isPressed: isPressed)
+			case 124:	machine.setDirection(.right, onPad: 0, isPressed: isPressed)
+			case 125:	machine.setDirection(.down, onPad: 0, isPressed: isPressed)
+			default:	machine.setButtonAt(0, onPad: 0, isPressed: isPressed)
 		}
 	}
 
@@ -176,10 +192,12 @@ class MachineDocument:
 
 	func keyDown(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: false) }
 	}
 
 	func keyUp(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: true) }
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
