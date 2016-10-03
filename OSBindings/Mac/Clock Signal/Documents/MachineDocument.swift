@@ -144,15 +144,6 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: Utilities for children
-	func dataForResource(_ name : String, ofType type: String, inDirectory directory: String) -> Data? {
-		if let path = Bundle.main.path(forResource: name, ofType: type, inDirectory: directory) {
-			return (try? Data(contentsOf: URL(fileURLWithPath: path)))
-		}
-
-		return nil
-	}
-
 	// MARK: CSAudioQueueDelegate
 	final func audioQueueDidCompleteBuffer(_ audioQueue: CSAudioQueue) {
 		bestEffortUpdater.update()
