@@ -46,7 +46,6 @@
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */; };
-		4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B73C7191D036BD90074D992 /* Vic20Document.swift */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */; };
@@ -57,6 +56,7 @@
 		4B8FE2291DA1EDDF0090D3CE /* ElectronOptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2281DA1EDDF0090D3CE /* ElectronOptionsPanel.swift */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
+		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
@@ -468,7 +468,6 @@
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
-		4B73C7191D036BD90074D992 /* Vic20Document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20Document.swift; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2181DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ElectronOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -481,6 +480,7 @@
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
+		4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20OptionsPanel.swift; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
 		4BA22B061D8817CE0008C640 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Commodore/Disk.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
@@ -1053,7 +1053,7 @@
 				4B8FE2281DA1EDDF0090D3CE /* ElectronOptionsPanel.swift */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */,
-				4B73C7191D036BD90074D992 /* Vic20Document.swift */,
+				4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */,
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
 				4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */,
 				4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */,
@@ -2157,7 +2157,6 @@
 				4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */,
 				4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */,
-				4B73C71A1D036BD90074D992 /* Vic20Document.swift in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
@@ -2191,6 +2190,7 @@
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
+				4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,

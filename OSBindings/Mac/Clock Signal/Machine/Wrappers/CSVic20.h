@@ -10,10 +10,13 @@
 #import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
-typedef NS_ENUM(NSInteger, CSVic20Region)
+typedef NS_ENUM(NSInteger, CSVic20Country)
 {
-	CSVic20RegionPAL,
-	CSVic20RegionNTSC
+	CSVic20CountryDanish,
+	CSVic20CountryEuropean,
+	CSVic20CountryJapanese,
+	CSVic20CountrySwedish,
+	CSVic20CountryAmerican
 };
 
 typedef NS_ENUM(NSInteger, CSVic20MemorySize)
@@ -25,14 +28,9 @@ typedef NS_ENUM(NSInteger, CSVic20MemorySize)
 
 @interface CSVic20 : CSMachine <CSKeyboardMachine, CSFastLoading>
 
-- (void)setKernelROM:(nonnull NSData *)rom;
-- (void)setBASICROM:(nonnull NSData *)rom;
-- (void)setCharactersROM:(nonnull NSData *)rom;
-- (void)setDriveROM:(nonnull NSData *)rom;
-
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL shouldLoadAutomatically;
-@property (nonatomic, assign) CSVic20Region region;
+@property (nonatomic, assign) CSVic20Country country;
 @property (nonatomic, assign) CSVic20MemorySize memorySize;
 
 @end

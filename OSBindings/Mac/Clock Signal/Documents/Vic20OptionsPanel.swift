@@ -1,49 +1,16 @@
 //
-//  Vic20Document.swift
+//  Vic20OptionsPanel.swift
 //  Clock Signal
 //
-//  Created by Thomas Harte on 04/06/2016.
+//  Created by Thomas Harte on 03/10/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-import Foundation
-
-class Vic20Document: MachineDocument {
-
-/*	fileprivate lazy var vic20 = CSVic20()
-	override var machine: CSMachine! {
+class Vic20OptionsPanel: MachinePanel {
+	var vic20: CSVic20! {
 		get {
-			return vic20
+			return self.machine as! CSVic20
 		}
-	}
-	override var name: String! {
-		get {
-			return "vic20"
-		}
-	}
-
-	// MARK: NSDocument overrides
-	override init() {
-		super.init()
-
-		if let drive = dataForResource("1540", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
-			vic20.setDriveROM(drive)
-		}
-
-		establishStoredOptions()
-	}
-
-	override class func autosavesInPlace() -> Bool {
-		return true
-	}
-
-	override var windowNibName: String? {
-		return "Vic20Document"
-	}
-
-	// MARK: machine setup
-	fileprivate func rom(_ name: String) -> Data? {
-		return dataForResource(name, ofType: "bin", inDirectory: "ROMImages/Vic20")
 	}
 
 	// MARK: automatic loading tick box
@@ -70,38 +37,18 @@ class Vic20Document: MachineDocument {
 	}
 
 	fileprivate func setCountry(_ countryID: Int) {
-		var charactersROM: String?
-		var kernelROM: String?
 		switch countryID {
 			case 0:	// Danish
-				charactersROM = "characters-danish"
-				kernelROM = "kernel-danish"
-				vic20.region = .PAL
+				vic20.country = .danish
 			case 1: // European
-				charactersROM = "characters-english"
-				kernelROM = "kernel-pal"
-				vic20.region = .PAL
+				vic20.country = .european
 			case 2: // Japanese
-				charactersROM = "characters-japanese"
-				kernelROM = "kernel-japanese"
-				vic20.region = .NTSC
+				vic20.country = .japanese
 			case 3: // Swedish
-				charactersROM = "characters-swedish"
-				kernelROM = "kernel-swedish"
-				vic20.region = .PAL
+				vic20.country = .swedish
 			case 4: // US
-				charactersROM = "characters-english"
-				kernelROM = "kernel-ntsc"
-				vic20.region = .NTSC
+				vic20.country = .american
 			default: break
-		}
-
-		if let charactersROM = charactersROM, let kernelROM = kernelROM {
-			if let kernel = rom(kernelROM), let basic = rom("basic"), let characters = rom(charactersROM) {
-				vic20.setKernelROM(kernel)
-				vic20.setBASICROM(basic)
-				vic20.setCharactersROM(characters)
-			}
 		}
 	}
 
@@ -165,5 +112,5 @@ class Vic20Document: MachineDocument {
 		let country = standardUserDefaults.integer(forKey: self.countryUserDefaultsKey)
 		setCountry(country)
 		self.countryButton?.selectItem(at: country)
-	}*/
+	}
 }

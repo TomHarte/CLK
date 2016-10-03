@@ -39,7 +39,7 @@
 	switch(_target.machine)
 	{
 		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
-		case StaticAnalyser::Target::Vic20:		return nil;
+		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
 		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
 	}
 
