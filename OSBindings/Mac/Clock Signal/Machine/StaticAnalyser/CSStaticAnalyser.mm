@@ -38,7 +38,7 @@
 {
 	switch(_target.machine)
 	{
-		case StaticAnalyser::Target::Electron:	return nil;
+		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
 		case StaticAnalyser::Target::Vic20:		return nil;
 		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
 	}
@@ -54,18 +54,6 @@
 		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
 		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
 	}
-}
-
-- (NSString *)userDefaultsPrefix
-{
-	switch(_target.machine)
-	{
-		case StaticAnalyser::Target::Electron:	return @"electron";
-		case StaticAnalyser::Target::Vic20:		return @"vic20";
-		case StaticAnalyser::Target::Atari2600:	return @"atari2600";
-	}
-
-	return nil;
 }
 
 - (void)applyToMachine:(CSMachine *)machine

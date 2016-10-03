@@ -66,7 +66,6 @@ class MachineDocument:
 
 		setupClockRate()
 		self.machine.delegate = self
-		establishStoredOptions()
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {
@@ -188,38 +187,6 @@ class MachineDocument:
 			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
 			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
 			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
-		}
-	}
-
-	// MARK: IBActions
-	final func prefixedUserDefaultsKey(_ key: String) -> String {
-		return "\(self.name).\(key)"
-	}
-	var fastLoadingUserDefaultsKey: String {
-		get {
-			return prefixedUserDefaultsKey("fastLoading")
-		}
-	}
-
-	@IBOutlet var fastLoadingButton: NSButton?
-	@IBAction func setFastLoading(_ sender: NSButton!) {
-		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = sender.state == NSOnState
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
-		}
-	}
-
-	func establishStoredOptions() {
-		let standardUserDefaults = UserDefaults.standard
-		standardUserDefaults.register(defaults: [
-			fastLoadingUserDefaultsKey: true
-		])
-
-		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			self.fastLoadingButton?.state = useFastLoadingHack ? NSOnState : NSOffState
 		}
 	}
 }

@@ -182,4 +182,6 @@ using namespace Commodore::Vic20;
 	}
 }
 
+- (NSString *)userDefaultsPrefix {	return @"vic20";	}
+
 @end

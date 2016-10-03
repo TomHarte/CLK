@@ -115,4 +115,6 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 	[self toggleSwitch:Atari2600SwitchSelect];
 }
 
+- (NSString *)userDefaultsPrefix {	return @"atari2600";	}
+
 @end

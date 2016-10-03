@@ -148,6 +148,8 @@
 	}
 }
 
+- (NSString *)userDefaultsPrefix {	return @"electron";	}
+
 #pragma mark - Options
 
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {

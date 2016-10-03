@@ -6,17 +6,12 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-import Cocoa
-
 class Atari2600OptionsPanel: MachinePanel {
-   override var machine: CSMachine! {
-		didSet {
-			if let atari2600 = machine as? CSAtari2600 {
-				self.atari2600 = atari2600
-			}
+	var atari2600: CSAtari2600! {
+		get {
+			return self.machine as! CSAtari2600
 		}
 	}
-	var atari2600: CSAtari2600!
 
 	@IBOutlet var resetButton: NSButton!
 	@IBOutlet var selectButton: NSButton!
