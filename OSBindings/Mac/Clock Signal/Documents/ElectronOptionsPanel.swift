@@ -31,4 +31,5 @@ class ElectronOptionsPanel: MachinePanel {
 		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
 		electron.useTelevisionOutput = (displayType == 1)
 		self.displayTypeButton?.selectItem(at: displayType)
-	}}
+	}
+}
