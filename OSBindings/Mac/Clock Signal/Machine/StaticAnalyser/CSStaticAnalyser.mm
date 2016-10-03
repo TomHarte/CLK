@@ -34,16 +34,26 @@
 	return self;
 }
 
-- (Class)documentClass
+- (NSString *)optionsPanelNibName
 {
 	switch(_target.machine)
 	{
-		case StaticAnalyser::Target::Electron:	return [ElectronDocument class];
-		case StaticAnalyser::Target::Vic20:		return [Vic20Document class];
-		case StaticAnalyser::Target::Atari2600:	return [Atari2600Document class];
+		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
+		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
+		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
 	}
 
 	return nil;
+}
+
+- (CSMachine *)newMachine
+{
+	switch(_target.machine)
+	{
+		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
+		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
+		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
+	}
 }
 
 - (void)applyToMachine:(CSMachine *)machine
