@@ -66,6 +66,7 @@ class MachineDocument:
 
 		setupClockRate()
 		self.machine.delegate = self
+		self.optionsPanel?.establishStoredOptions()
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {

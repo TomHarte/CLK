@@ -13,9 +13,22 @@ class ElectronOptionsPanel: MachinePanel {
 		}
 	}
 
+	fileprivate let displayTypeUserDefaultsKey = "electron.displayType"
+
 	@IBOutlet var displayTypeButton: NSPopUpButton?
 	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
 		electron.useTelevisionOutput = (sender.indexOfSelectedItem == 1)
-//		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
+		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
-}
+
+	override func establishStoredOptions() {
+		super.establishStoredOptions()
+		let standardUserDefaults = UserDefaults.standard
+		standardUserDefaults.register(defaults: [
+			displayTypeUserDefaultsKey: 0,
+		])
+
+		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
+		electron.useTelevisionOutput = (displayType == 1)
+		self.displayTypeButton?.selectItem(at: displayType)
+	}}

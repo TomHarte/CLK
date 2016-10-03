@@ -166,4 +166,8 @@
 	}
 }
 
+//override func aspectRatio() -> NSSize {
+//		return NSSize(width: 11.0, height: 10.0)
+//	}
+
 @end
