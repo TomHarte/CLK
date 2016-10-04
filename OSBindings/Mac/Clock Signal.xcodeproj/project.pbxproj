@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
+		4B049CDF1DA3C85B00322067 /* BCDTEST_beeb in Resources */ = {isa = PBXBuildFile; fileRef = 4B049CDE1DA3C85B00322067 /* BCDTEST_beeb */; };
 		4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
@@ -389,6 +391,8 @@
 
 /* Begin PBXFileReference section */
 		4B046DC31CFE651500E9E45E /* CRTMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTMachine.hpp; sourceTree = "<group>"; };
+		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
+		4B049CDE1DA3C85B00322067 /* BCDTEST_beeb */ = {isa = PBXFileReference; lastKnownFileType = file; path = BCDTEST_beeb; sourceTree = "<group>"; };
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DigitalPhaseLockedLoop.cpp; sourceTree = "<group>"; };
 		4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DigitalPhaseLockedLoop.hpp; sourceTree = "<group>"; };
@@ -898,6 +902,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B049CDE1DA3C85B00322067 /* BCDTEST_beeb */,
 				4BB297E01B587D8300A49093 /* 6502_functional_test.bin */,
 				4BB297E11B587D8300A49093 /* AllSuiteA.bin */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
@@ -1522,6 +1527,7 @@
 				4BC751B11D157E61006C31D9 /* 6522Tests.swift */,
 				4B1E85801D176468001EF87D /* 6532Tests.swift */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
+				4B049CDC1DA3C82F00322067 /* BCDTest.swift */,
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
 				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
@@ -1930,6 +1936,7 @@
 				4BB299641B587D8400A49093 /* insiy in Resources */,
 				4BB299E61B587D8400A49093 /* trap10 in Resources */,
 				4BB299651B587D8400A49093 /* insz in Resources */,
+				4B049CDF1DA3C85B00322067 /* BCDTEST_beeb in Resources */,
 				4BB299161B587D8400A49093 /* bccr in Resources */,
 				4BB299211B587D8400A49093 /* bvsr in Resources */,
 				4BB2991F1B587D8400A49093 /* brkn in Resources */,
@@ -2227,6 +2234,7 @@
 				4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
+				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

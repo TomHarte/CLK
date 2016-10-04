@@ -226,11 +226,11 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 				] as [UInt8]), count: 19)
 				machine.setData( irqHandler, atAddress: 0xff48)
 
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2);  // print character
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f);  // load
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4);  // scan keyboard
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000);  // exit
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474);  // exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2)	// print character
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f)	// load
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4)	// scan keyboard
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000)	// exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474)	// exit
 
 				machine.setValue(0x0801, for: CSTestMachineRegister.programCounter)
 				machine.setValue(0xfd, for: CSTestMachineRegister.stackPointer)
