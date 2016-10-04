@@ -12,7 +12,7 @@
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="ElectronOptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" HUD="YES"/>
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="83" y="102" width="200" height="83"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>

@@ -833,25 +833,22 @@ template <class T> class Processor {
 						case OperationADC:
 							if(_decimalFlag) {
 								const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
-								uint16_t temp16;
 
-								temp16 = (_a&0xf) + (_operand&0xf) + _carryFlag;
-								if(temp16 > 0x9) temp16 += 0x6;
-								temp16 = (temp16&0x0f) + ((temp16 > 0x0f) ? 0x10 : 0x00) + (_a&0xf0) + (_operand&0xf0);
+								uint8_t low_nibble = (_a & 0xf) + (_operand & 0xf) + _carryFlag;
+								if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
+								uint16_t result = (uint16_t)(_a & 0xf0) + (uint16_t)(_operand & 0xf0) + (uint16_t)low_nibble;
+								_negativeResult = (uint8_t)result;
+								_overflowFlag =  (( (result^_a)&(result^_operand) )&0x80) >> 1;
+								if(result >= 0xa0) result += 0x60;
 
-								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-								_negativeResult = (uint8_t)temp16;
+								_carryFlag = (result >> 8) ? 1 : 0;
+								_a = (uint8_t)result;
 								_zeroResult = (uint8_t)decimalResult;
-
-								if(temp16 > 0x9f) temp16 += 0x60;
-
-								_carryFlag = (temp16 > 0xff) ? Flag::Carry : 0;
-								_a = (uint8_t)temp16;
 							} else {
-								const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
-								_overflowFlag =  (( (decimalResult^_a)&(decimalResult^_operand) )&0x80) >> 1;
-								_negativeResult = _zeroResult = _a = (uint8_t)decimalResult;
-								_carryFlag = (decimalResult >> 8)&1;
+								const uint16_t result = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
+								_overflowFlag =  (( (result^_a)&(result^_operand) )&0x80) >> 1;
+								_negativeResult = _zeroResult = _a = (uint8_t)result;
+								_carryFlag = (result >> 8)&1;
 							}
 
 							// fix up in case this was INS
