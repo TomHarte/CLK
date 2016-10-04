@@ -56,6 +56,6 @@ class DPLLTests: XCTestCase {
 		}
 
 		let endOfStream = (pll?.stream)!&0xffffffff;
-		XCTAssert(endOfStream == 0xaaaaaaaa || endOfStream == 0x55555555, "PLL should have synchronised and clocked repeating 0xa or 0x5 nibbles; got \(String(pll?.stream, radix: 16, uppercase: false))")
+		XCTAssert(endOfStream == 0xaaaaaaaa || endOfStream == 0x55555555, "PLL should have synchronised and clocked repeating 0xa or 0x5 nibbles; got \(String(pll!.stream, radix: 16, uppercase: false))")
 	}
 }
