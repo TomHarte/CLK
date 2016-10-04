@@ -230,11 +230,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					{
 						update_audio();
 						_speaker->set_is_enabled(new_speaker_is_enabled);
-						_tape.set_is_enabled(!new_speaker_is_enabled);
 					}
 
+					_tape.set_is_enabled((*value & 6) != 6);
+					_tape.set_is_in_input_mode((*value & 6) == 0);
 					_tape.set_is_running(((*value)&0x40) ? true : false);
-					_tape.set_is_in_input_mode(((*value)&0x04) ? false : true);
 
 					// TODO: caps lock LED
 				}
