@@ -40,7 +40,7 @@ namespace {
 
 Machine::Machine() :
 	_interrupt_control(0),
-	_interrupt_status(Interrupt::PowerOnReset | 0x80),
+	_interrupt_status(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
 	_frameCycles(0),
 	_displayOutputPosition(0),
 	_audioOutputPosition(0),
