@@ -1140,10 +1140,10 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
 		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
 
-		{KeyColon, TerminateSequence},					{KeySemiColon, TerminateSequence},		// :, ;
-		{KeyShift, KeyComma, TerminateSequence},		{KeyShift, KeyMinus, TerminateSequence},			// <, =
-		{KeyShift, KeyFullStop, TerminateSequence},		{KeyShift, KeySlash, TerminateSequence},		// >, ?
-		{NotMapped},						// @
+		{KeyColon, TerminateSequence},					{KeySemiColon, TerminateSequence},			// :, ;
+		{KeyShift, KeyComma, TerminateSequence},		{KeyShift, KeyMinus, TerminateSequence},	// <, =
+		{KeyShift, KeyFullStop, TerminateSequence},		{KeyShift, KeySlash, TerminateSequence},	// >, ?
+		{KeyShift, Key0, TerminateSequence},														// @
 
 		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
 		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
@@ -1153,8 +1153,8 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
 		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
 
-		{NotMapped},		{KeyControl, KeyRight, TerminateSequence},	// [, '\'
-		{NotMapped},		{KeyShift, KeyLeft, TerminateSequence},	// ], ^
+		{KeyShift, KeyCopy, TerminateSequence},		{KeyControl, KeyRight, TerminateSequence},	// [, '\'
+		{KeyControl, KeyCopy, TerminateSequence},	{KeyShift, KeyLeft, TerminateSequence},	// ], ^
 		{KeyShift, KeyDown, TerminateSequence},		{NotMapped},	// _, `
 
 		{KeyShift, KeyA, TerminateSequence},	{KeyShift, KeyB, TerminateSequence},	{KeyShift, KeyC, TerminateSequence},	{KeyShift, KeyD, TerminateSequence},	// a, b, c, d
