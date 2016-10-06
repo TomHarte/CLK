@@ -10,7 +10,7 @@ import Foundation
 
 class Vic20Document: MachineDocument {
 
-	private lazy var vic20 = CSVic20()
+	fileprivate lazy var vic20 = CSVic20()
 	override var machine: CSMachine! {
 		get {
 			return vic20
@@ -26,7 +26,7 @@ class Vic20Document: MachineDocument {
 	override init() {
 		super.init()
 
-		if let kernel = rom("kernel-ntsc"), basic = rom("basic"), characters = rom("characters-english") {
+		if let kernel = rom("kernel-ntsc"), let basic = rom("basic"), let characters = rom("characters-english") {
 			vic20.setKernelROM(kernel)
 			vic20.setBASICROM(basic)
 			vic20.setCharactersROM(characters)
@@ -45,26 +45,26 @@ class Vic20Document: MachineDocument {
 		return "Vic20Document"
 	}
 
-	override func readFromURL(url: NSURL, ofType typeName: String) throws {
+	override func read(from url: URL, ofType typeName: String) throws {
 		if let pathExtension = url.pathExtension {
-			switch pathExtension.lowercaseString {
+			switch pathExtension.lowercased() {
 				case "tap":
-					vic20.openTAPAtURL(url)
+					vic20.openTAP(at: url)
 					return
 				default: break;
 			}
 		}
 
-		let fileWrapper = try NSFileWrapper(URL: url, options: NSFileWrapperReadingOptions(rawValue: 0))
-		try self.readFromFileWrapper(fileWrapper, ofType: typeName)
+		let fileWrapper = try FileWrapper(url: url, options: FileWrapper.ReadingOptions(rawValue: 0))
+		try self.read(from: fileWrapper, ofType: typeName)
 	}
 
 	// MARK: machine setup
-	private func rom(name: String) -> NSData? {
+	fileprivate func rom(_ name: String) -> Data? {
 		return dataForResource(name, ofType: "bin", inDirectory: "ROMImages/Vic20")
 	}
 
-	override func readFromData(data: NSData, ofType typeName: String) throws {
+	override func read(from data: Data, ofType typeName: String) throws {
 		vic20.setPRG(data)
 	}
 }

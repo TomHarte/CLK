@@ -18,9 +18,9 @@ private class Machine {
 }
 
 class NewDocumentCollectionViewItem: NSCollectionViewItem {
-	override var representedObject: AnyObject? {
+	override var representedObject: Any? {
 		didSet {
-			if let machine = representedObject as? Machine, imageView = imageView, textField = textField {
+			if let machine = representedObject as? Machine, let imageView = imageView, let textField = textField {
 				imageView.image = NSImage(named: machine.imageName)
 				textField.stringValue = machine.name
 			}
@@ -51,14 +51,14 @@ class NewDocumentCollectionViewItem: NSCollectionViewItem {
 
 class NewDocumentViewController: NSViewController, NSCollectionViewDelegate {
 	@IBOutlet var collectionView : NSCollectionView!
-	private var collectionViewItems : [Machine]!
+	fileprivate var collectionViewItems : [Machine]!
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
 		collectionView.minItemSize = NSSize(width: 200, height: 180)
 
-		let itemCopy: NewDocumentCollectionViewItem! = NewDocumentCollectionViewItem().copyWithZone(nil) as! NewDocumentCollectionViewItem
+		let itemCopy: NewDocumentCollectionViewItem! = NewDocumentCollectionViewItem().copy(with: nil) as! NewDocumentCollectionViewItem
 		collectionView.itemPrototype = itemCopy
 		collectionView.content = [
 			Machine(name: "Acorn Electron", imageName: "ElectronBASIC"),
@@ -66,11 +66,11 @@ class NewDocumentViewController: NSViewController, NSCollectionViewDelegate {
 		]
     }
 
-	@IBAction func cancel(sender : AnyObject!) {
+	@IBAction func cancel(_ sender : AnyObject!) {
 		self.view.window?.close()
 	}
 
-	@IBAction func choose(sender : AnyObject!) {
+	@IBAction func choose(_ sender : AnyObject!) {
 		print("\(collectionView.selectionIndexes)")
 	}
 }
