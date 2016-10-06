@@ -9,8 +9,12 @@
 #import "CSElectron.h"
 
 #include "Electron.hpp"
-#import "CSMachine+Subclassing.h"
+#include "StaticAnalyser.hpp"
 #include "TapeUEF.hpp"
+
+#import "CSMachine+Subclassing.h"
+#import "NSData+StdVector.h"
+#import "NSBundle+DataResource.h"
 
 @implementation CSElectron {
 	Electron::Machine _electron;
@@ -20,35 +24,43 @@
 	return &_electron;
 }
 
-- (void)setOSROM:(nonnull NSData *)rom {
-	@synchronized(self) {
-		_electron.set_rom(Electron::ROMSlotOS, rom.length, (const uint8_t *)rom.bytes);
+- (instancetype)init {
+	self = [super init];
+	if(self)
+	{
+		[self setOSROM:[self rom:@"os"]];
+		[self setBASICROM:[self rom:@"basic"]];
+		[self setDFSROM:[self rom:@"DFS-1770-2.20"]];
+
+		NSMutableData *adfs = [[self rom:@"ADFS-E00_1"] mutableCopy];
+		[adfs appendData:[self rom:@"ADFS-E00_2"]];
+		[self setADFSROM:adfs];
 	}
+	return self;
 }
 
-- (void)setBASICROM:(nonnull NSData *)rom {
-	@synchronized(self) {
-		_electron.set_rom(Electron::ROMSlotBASIC, rom.length, (const uint8_t *)rom.bytes);
-	}
+- (NSData *)rom:(NSString *)name
+{
+	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/Electron"];
 }
+
+#pragma mark - ROM setting
+
+- (void)setOSROM:(nonnull NSData *)rom		{	[self setROM:rom slot:Electron::ROMSlotOS];		}
+- (void)setBASICROM:(nonnull NSData *)rom	{	[self setROM:rom slot:Electron::ROMSlotBASIC];	}
+- (void)setADFSROM:(nonnull NSData *)rom	{	[self setROM:rom slot:Electron::ROMSlotADFS];	}
+- (void)setDFSROM:(nonnull NSData *)rom		{	[self setROM:rom slot:Electron::ROMSlotDFS];	}
 
 - (void)setROM:(nonnull NSData *)rom slot:(int)slot {
-	@synchronized(self) {
-		_electron.set_rom((Electron::ROMSlot)slot, rom.length, (const uint8_t *)rom.bytes);
-	}
-}
-
-- (BOOL)openUEFAtURL:(NSURL *)URL {
-	@synchronized(self) {
-		try {
-			std::shared_ptr<Storage::UEF> tape(new Storage::UEF([URL fileSystemRepresentation]));
-			_electron.set_tape(tape);
-			return YES;
-		} catch(int exception) {
-			return NO;
+	if(rom)
+	{
+		@synchronized(self) {
+			_electron.set_rom((Electron::ROMSlot)slot, rom.stdVector8, false);
 		}
 	}
 }
+
+#pragma mark - Keyboard Mapping
 
 - (void)clearAllKeys {
 	@synchronized(self) {
@@ -136,6 +148,10 @@
 	}
 }
 
+- (NSString *)userDefaultsPrefix {	return @"electron";	}
+
+#pragma mark - Options
+
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
@@ -149,5 +165,9 @@
 		_electron.get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
 	}
 }
+
+//override func aspectRatio() -> NSSize {
+//		return NSSize(width: 11.0, height: 10.0)
+//	}
 
 @end

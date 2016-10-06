@@ -34,6 +34,9 @@ class Speaker {
 
 		float get_ideal_clock_rate_in_range(float minimum, float maximum)
 		{
+			// return twice the cut off, if applicable
+			if(_high_frequency_cut_off > 0.0f && _input_cycles_per_second >= _high_frequency_cut_off * 2.0f && _input_cycles_per_second <= _high_frequency_cut_off * 2.0f) return _high_frequency_cut_off * 2.0f;
+
 			// return exactly the input rate if possible
 			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
 
@@ -72,10 +75,20 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0) {}
+		/*!
+			Sets the cut-off frequency for a low-pass filter attached to the output of this speaker; optional.
+		*/
+		void set_high_frequency_cut_off(float high_frequency)
+		{
+			_high_frequency_cut_off = high_frequency;
+			set_needs_updated_filter_coefficients();
+		}
+
+		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0) {}
 
 	protected:
 		std::unique_ptr<int16_t> _buffer_in_progress;
+		float _high_frequency_cut_off;
 		int _buffer_size;
 		int _buffer_in_progress_pointer;
 		int _number_of_taps, _requested_number_of_taps;
@@ -114,7 +127,7 @@ template <class T> class Filter: public Speaker {
 			if(_coefficients_are_dirty) update_filter_coefficients();
 
 			// if input and output rates exactly match, just accumulate results and pass on
-			if(_input_cycles_per_second == _output_cycles_per_second)
+			if(_input_cycles_per_second == _output_cycles_per_second && _high_frequency_cut_off < 0.0)
 			{
 				while(input_cycles)
 				{
@@ -215,7 +228,17 @@ template <class T> class Filter: public Speaker {
 			_buffer_in_progress_pointer = 0;
 
 			_stepper.reset(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
-			_filter.reset(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, (float)_output_cycles_per_second / 2.0f, SignalProcessing::FIRFilter::DefaultAttenuation));
+
+			float high_pass_frequency;
+			if(_high_frequency_cut_off > 0.0)
+			{
+				high_pass_frequency = std::min((float)_output_cycles_per_second / 2.0f, _high_frequency_cut_off);
+			}
+			else
+			{
+				high_pass_frequency = (float)_output_cycles_per_second / 2.0f;
+			}
+			_filter.reset(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
 
 			_input_buffer.reset(new int16_t[_number_of_taps]);
 			_input_buffer_depth = 0;

@@ -7,22 +7,52 @@
 //
 
 #include "Tape.hpp"
+#include "../../NumberTheory/Factors.hpp"
 
-using namespace Storage;
+using namespace Storage::Tape;
 
-void Tape::seek(Tape::Time seek_time)
-{
-	// TODO: as best we can
-}
+#pragma mark - Lifecycle
 
 TapePlayer::TapePlayer(unsigned int input_clock_rate) :
-	_input_clock_rate(input_clock_rate)
+	TimedEventLoop(input_clock_rate)
 {}
 
-void TapePlayer::set_tape(std::shared_ptr<Storage::Tape> tape)
+#pragma mark - Seeking
+
+void Storage::Tape::Tape::seek(Time &seek_time)
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	while(_next_time < seek_time) get_next_pulse();
+}
+
+void Storage::Tape::Tape::reset()
+{
+	_current_time.set_zero();
+	_next_time.set_zero();
+	virtual_reset();
+}
+
+Tape::Pulse Tape::get_next_pulse()
+{
+	Tape::Pulse pulse = virtual_get_next_pulse();
+	_current_time = _next_time;
+	_next_time += pulse.length;
+	return pulse;
+}
+
+#pragma mark - Player
+
+void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
 	_tape = tape;
+	reset_timer();
 	get_next_pulse();
+}
+
+std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape()
+{
+	return _tape;
 }
 
 bool TapePlayer::has_tape()
@@ -32,38 +62,34 @@ bool TapePlayer::has_tape()
 
 void TapePlayer::get_next_pulse()
 {
-	_input.time_into_pulse = 0;
+	// get the new pulse
 	if(_tape)
-		_input.current_pulse = _tape->get_next_pulse();
+		_current_pulse = _tape->get_next_pulse();
 	else
 	{
-		_input.current_pulse.length.length = 1;
-		_input.current_pulse.length.clock_rate = 1;
-		_input.current_pulse.type = Storage::Tape::Pulse::Zero;
+		_current_pulse.length.length = 1;
+		_current_pulse.length.clock_rate = 1;
+		_current_pulse.type = Tape::Pulse::Zero;
 	}
-	if(_input.pulse_stepper == nullptr || _input.current_pulse.length.clock_rate != _input.pulse_stepper->get_output_rate())
-	{
-		_input.pulse_stepper.reset(new SignalProcessing::Stepper(_input.current_pulse.length.clock_rate, _input_clock_rate));
-	}
+
+	set_next_event_time_interval(_current_pulse.length);
 }
 
-void TapePlayer::run_for_cycles(unsigned int number_of_cycles)
+void TapePlayer::run_for_cycles(int number_of_cycles)
 {
 	if(has_tape())
 	{
-		while(number_of_cycles--)
-		{
-			_input.time_into_pulse += (unsigned int)_input.pulse_stepper->step();
-			while(_input.time_into_pulse >= _input.current_pulse.length.length)
-			{
-				run_for_input_pulse();
-			}
-		}
+		TimedEventLoop::run_for_cycles(number_of_cycles);
 	}
 }
 
 void TapePlayer::run_for_input_pulse()
 {
-	process_input_pulse(_input.current_pulse);
+	jump_to_next_event();
+}
+
+void TapePlayer::process_next_event()
+{
+	process_input_pulse(_current_pulse);
 	get_next_pulse();
 }

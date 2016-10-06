@@ -10,6 +10,10 @@
 
 #include "Vic20.hpp"
 #include "CommodoreTAP.hpp"
+#include "G64.hpp"
+#include "D64.hpp"
+
+#import "NSBundle+DataResource.h"
 
 using namespace Commodore::Vic20;
 
@@ -18,9 +22,26 @@ using namespace Commodore::Vic20;
 	BOOL _joystickMode;
 }
 
-- (CRTMachine::Machine * const)machine {
-	return &_vic20;
+- (CRTMachine::Machine * const)machine	{	return &_vic20;		}
+- (NSString *)userDefaultsPrefix		{	return @"vic20";	}
+
+- (instancetype)init {
+	self = [super init];
+	if(self)
+	{
+		[self setDriveROM:[[NSBundle mainBundle] dataForResource:@"1540" withExtension:@"bin" subdirectory:@"ROMImages/Commodore1540"]];
+		[self setBASICROM:[self rom:@"basic"]];
+		[self setCountry:CSVic20CountryEuropean];
+	}
+	return self;
 }
+
+- (NSData *)rom:(NSString *)name
+{
+	return [[NSBundle mainBundle] dataForResource:name withExtension:@"bin" subdirectory:@"ROMImages/Vic20"];
+}
+
+#pragma mark - ROM setting
 
 - (void)setROM:(nonnull NSData *)rom slot:(ROMSlot)slot {
 	@synchronized(self) {
@@ -44,24 +65,7 @@ using namespace Commodore::Vic20;
 	[self setROM:rom slot:Drive];
 }
 
-- (BOOL)openTAPAtURL:(NSURL *)URL {
-	@synchronized(self) {
-		try {
-			std::shared_ptr<Storage::CommodoreTAP> tape(new Storage::CommodoreTAP([URL fileSystemRepresentation]));
-			_vic20.set_tape(tape);
-			return YES;
-		} catch(int exception) {
-			return NO;
-		}
-	}
-}
-
-
-- (void)setPRG:(nonnull NSData *)prg {
-	@synchronized(self) {
-		_vic20.add_prg(prg.length, (const uint8_t *)prg.bytes);
-	}
-}
+#pragma mark - Keyboard map
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	static NSDictionary<NSNumber *, NSNumber *> *vicKeysByKeys = @{
@@ -165,10 +169,70 @@ using namespace Commodore::Vic20;
 	}
 }
 
+#pragma mark - Public configuration options
+
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	_useFastLoadingHack = useFastLoadingHack;
 	@synchronized(self) {
-		_useFastLoadingHack = useFastLoadingHack;
 		_vic20.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
+}
+
+- (void)setShouldLoadAutomatically:(BOOL)shouldLoadAutomatically {
+	_shouldLoadAutomatically = shouldLoadAutomatically;
+	@synchronized(self) {
+		_vic20.set_should_automatically_load_media(shouldLoadAutomatically ? true : false);
+	}
+}
+
+- (void)setCountry:(CSVic20Country)country {
+	_country = country;
+	NSString *charactersROM, *kernelROM;
+	Commodore::Vic20::Region region;
+	switch(country)
+	{
+		case CSVic20CountryDanish:
+			region = Commodore::Vic20::Region::PAL;
+			charactersROM = @"characters-danish";
+			kernelROM = @"kernel-danish";
+		break;
+		case CSVic20CountryEuropean:
+			region = Commodore::Vic20::Region::PAL;
+			charactersROM = @"characters-english";
+			kernelROM = @"kernel-pal";
+		break;
+		case CSVic20CountryJapanese:
+			region = Commodore::Vic20::Region::NTSC;
+			charactersROM = @"characters-japanese";
+			kernelROM = @"kernel-japanese";
+		break;
+		case CSVic20CountrySwedish:
+			region = Commodore::Vic20::Region::PAL;
+			charactersROM = @"characters-swedish";
+			kernelROM = @"kernel-swedish";
+		break;
+		case CSVic20CountryAmerican:
+			region = Commodore::Vic20::Region::NTSC;
+			charactersROM = @"characters-english";
+			kernelROM = @"kernel-ntsc";
+		break;
+	}
+
+	@synchronized(self) {
+		_vic20.set_region(region);
+		[self setCharactersROM:[self rom:charactersROM]];
+		[self setKernelROM:[self rom:kernelROM]];
+	}
+}
+
+- (void)setMemorySize:(CSVic20MemorySize)memorySize {
+	_memorySize = memorySize;
+	@synchronized(self) {
+		switch(memorySize) {
+			case CSVic20MemorySize5Kb: _vic20.set_memory_size(Commodore::Vic20::Default);	break;
+			case CSVic20MemorySize8Kb: _vic20.set_memory_size(Commodore::Vic20::ThreeKB);	break;
+			case CSVic20MemorySize32Kb: _vic20.set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
+		}
 	}
 }
 

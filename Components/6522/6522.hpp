@@ -364,7 +364,7 @@ class MOS6522IRQDelegate {
 				virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
 		};
 
-		void set_delegate(Delegate *delegate)
+		void set_interrupt_delegate(Delegate *delegate)
 		{
 			_delegate = delegate;
 		}

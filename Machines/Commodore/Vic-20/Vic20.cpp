@@ -9,11 +9,14 @@
 #include "Vic20.hpp"
 
 #include <algorithm>
+#include "../../../Storage/Tape/Formats/TapePRG.hpp"
+#include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 using namespace Commodore::Vic20;
 
 Machine::Machine() :
-	_rom(nullptr)
+	_rom(nullptr),
+	_is_running_at_zero_cost(false)
 {
 	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
@@ -30,19 +33,39 @@ Machine::Machine() :
 	_serialPort->set_user_port_via(_userPortVIA);
 
 	// wire up the 6522s, tape and machine
-	_userPortVIA->set_delegate(this);
-	_keyboardVIA->set_delegate(this);
+	_userPortVIA->set_interrupt_delegate(this);
+	_keyboardVIA->set_interrupt_delegate(this);
 	_tape.set_delegate(this);
 
 	// establish the memory maps
-	memset(_videoMemoryMap, 0, sizeof(_videoMemoryMap));
+	set_memory_size(MemorySize::Default);
+
+	// set the NTSC clock rate
+	set_region(NTSC);
+//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
+//	_debugPort->set_serial_bus(_serialBus);
+//	_serialBus->add_port(_debugPort);
+}
+
+void Machine::set_memory_size(MemorySize size)
+{
 	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
 	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
 
-	write_to_map(_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
-	write_to_map(_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
-	write_to_map(_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
+	switch(size)
+	{
+		default: break;
+		case ThreeKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x1000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x1000);
+		break;
+		case ThirtyTwoKB:
+			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x8000);
+			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x8000);
+		break;
+	}
 
+	// install the system ROMs and VIC-visible memory
 	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
 	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
@@ -54,12 +77,11 @@ Machine::Machine() :
 	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
 	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
 
-	// TEMPORARY: attach a [diskless] 1540
-//	set_disc();
-
-//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-//	_debugPort->set_serial_bus(_serialBus);
-//	_serialBus->add_port(_debugPort);
+	// install the inserted ROM if there is one
+	if(_rom)
+	{
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+	}
 }
 
 void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length)
@@ -82,16 +104,19 @@ Machine::~Machine()
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
 //	static int logCount = 0;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xee17) logCount = 500;
+//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xf957) logCount = 500;
 //	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
 //		logCount--;
 //		printf("%04x\n", address);
 //	}
 
+//	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192))
+//	{
+//		printf("\n[%04x] <- %02x\n", address, *value);
+//	}
+
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	uint16_t video_address = _mos6560->get_address();
-	uint8_t video_value = _videoMemoryMap[video_address >> 10] ? _videoMemoryMap[video_address >> 10][video_address & 0x3ff] : 0xff; // TODO
-	_mos6560->set_graphics_value(video_value, _colorMemory[video_address & 0x03ff]);
+	if(!_is_running_at_zero_cost) _mos6560->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
@@ -105,11 +130,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		*value = result;
 
-		// test for PC at F92F
+		// This combined with the stuff below constitutes the fast tape hack. Performed here: if the
+		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
+		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
+		// CPU or 6560 costs.
 		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			// advance time on the tape and the VIAs until an interrupt is signalled
-			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line())
+			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line() && !_tape.get_tape()->is_at_end())
 			{
 				_userPortVIA->run_for_half_cycles(2);
 				_keyboardVIA->run_for_half_cycles(2);
@@ -131,9 +158,42 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	_userPortVIA->run_for_half_cycles(2);
 	_keyboardVIA->run_for_half_cycles(2);
-	if(_typer) _typer->update(1);
+	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
+	{
+		if(!_typer->type_next_character())
+			_typer.reset();
+	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
+
+	// If using fast tape then:
+	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
+	//	if the PC heads into RAM
+	//
+	// Where 'zero cost processing' is taken to be taking the 6560 off the bus (because I know it's
+	// expensive, and not relevant) then running the tape, the CPU and both 6522s as usual but not
+	// counting cycles towards the processing budget. So the limit is the host machine.
+	//
+	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
+	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
+	// the CPU out of the action.
+	if(_use_fast_tape_hack && _tape.has_tape())
+	{
+		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			_is_running_at_zero_cost = true;
+			set_clock_is_unlimited(true);
+		}
+		if(
+			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
+			_tape.get_tape()->is_at_end()
+		)
+		{
+			_is_running_at_zero_cost = false;
+			set_clock_is_unlimited(false);
+		}
+	}
+
 	return 1;
 }
 
@@ -147,9 +207,41 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 
 #pragma mark - Setup
 
+void Machine::set_region(Commodore::Vic20::Region region)
+{
+	_region = region;
+	switch(region)
+	{
+		case PAL:
+			set_clock_rate(1108404);
+			if(_mos6560)
+			{
+				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+				_mos6560->set_clock_rate(1108404);
+			}
+		break;
+		case NTSC:
+			set_clock_rate(1022727);
+			if(_mos6560)
+			{
+				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+				_mos6560->set_clock_rate(1022727);
+			}
+		break;
+	}
+}
+
 void Machine::setup_output(float aspect_ratio)
 {
-	_mos6560.reset(new MOS::MOS6560());
+	_mos6560.reset(new Vic6560());
+	_mos6560->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
+	set_region(_region);
+
+	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
+	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
+	write_to_map(_mos6560->_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
+	write_to_map(_mos6560->_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
+	_mos6560->_colorMemory = _colorMemory;
 }
 
 void Machine::close_output()
@@ -167,11 +259,9 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
 		case BASIC:			target = _basicROM;								break;
 		case Drive:
-			if(_c1540)
-			{
-				_c1540->set_rom(data);
-				_c1540->run_for_cycles(2000000);	// pretend it booted a couple of seconds ago
-			}
+			_driveROM.reset(new uint8_t[length]);
+			memcpy(_driveROM.get(), data, length);
+			install_disk_rom();
 		return;
 	}
 
@@ -182,41 +272,129 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	}
 }
 
-void Machine::add_prg(size_t length, const uint8_t *data)
-{
-	if(length > 2)
-	{
-		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
-		_rom_length = (uint16_t)(length - 2);
-		if(_rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
-		{
-			set_typer_for_string("RUN\n");
-		}
-
-		_rom = new uint8_t[length - 2];
-		memcpy(_rom, &data[2], length - 2);
-		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
-	}
-}
+//void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data)
+//{
+//	if(length > 2)
+//	{
+//		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
+//		_rom_length = (uint16_t)(length - 2);
+//
+//		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
+//		if(_rom_address == 0xa000)
+//		{
+//			_rom = new uint8_t[0x2000];
+//			memcpy(_rom, &data[2], length - 2);
+//			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+//		}
+//		else
+//		{
+//			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
+//		}
+//	}
+//}
 
 #pragma mar - Tape
 
-void Machine::set_tape(std::shared_ptr<Storage::Tape> tape)
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
-	_tape.set_tape(tape);
-	set_typer_for_string("LOAD\n");
+	if(target.tapes.size())
+	{
+		_tape.set_tape(target.tapes.front());
+	}
+
+	if(target.disks.size())
+	{
+		// construct the 1540
+		_c1540.reset(new ::Commodore::C1540::Machine);
+
+		// attach it to the serial bus
+		_c1540->set_serial_bus(_serialBus);
+
+		// hand it the disk
+		_c1540->set_disk(target.disks.front());
+
+		// install the ROM if it was previously set
+		install_disk_rom();
+	}
+
+	if(target.cartridges.size())
+	{
+		_rom_address = 0xa000;
+		std::vector<uint8_t> rom_image = target.cartridges.front()->get_segments().front().data;
+		_rom_length = (uint16_t)(rom_image.size());
+
+		_rom = new uint8_t[0x2000];
+		memcpy(_rom, rom_image.data(), rom_image.size());
+		write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+	}
+
+	if(_should_automatically_load_media)
+	{
+		if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+		{
+			set_typer_for_string(target.loadingCommand.c_str());
+		}
+
+		switch(target.vic20.memory_model)
+		{
+			case StaticAnalyser::Vic20MemoryModel::Unexpanded:
+				set_memory_size(Default);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::EightKB:
+				set_memory_size(ThreeKB);
+			break;
+			case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
+				set_memory_size(ThirtyTwoKB);
+			break;
+		}
+	}
 }
+
+//void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
+//{
+//	_tape.set_tape(tape);
+//	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
+//}
 
 void Machine::tape_did_change_input(Tape *tape)
 {
 	_keyboardVIA->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
+#pragma mark - Disc
+
+/*void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
+{
+	// construct the 1540
+	_c1540.reset(new ::Commodore::C1540::Machine);
+
+	// attach it to the serial bus
+	_c1540->set_serial_bus(_serialBus);
+
+	// hand it the disk
+	_c1540->set_disk(disk);
+
+	// install the ROM if it was previously set
+	install_disk_rom();
+
+	if(_should_automatically_load_media) set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
+}*/
+
+void Machine::install_disk_rom()
+{
+	if(_driveROM && _c1540)
+	{
+		_c1540->set_rom(_driveROM.get());
+		_c1540->run_for_cycles(2000000);
+		_driveROM.reset();
+	}
+}
+
 #pragma mark - Typer
 
 int Machine::get_typer_delay()
 {
-	return get_reset_line() ? 1*263*60*65 : 0;	// wait two seconds if resetting
+	return get_is_resetting() ? 1*263*60*65 : 0;	// wait a second if resetting
 }
 
 int Machine::get_typer_frequency()
@@ -226,15 +404,6 @@ int Machine::get_typer_frequency()
 
 bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
 {
-	// If there's a 'ROM' installed that can never be accessed, assume that this typing was scheduled because
-	// it should be in RAM. So copy it there.
-	if(_rom && _rom_address >= 0x1000 && _rom_address+_rom_length < 0x2000)
-	{
-		memcpy(&_screenMemory[_rom_address - 0x1000], _rom, _rom_length);
-		delete[] _rom;
-		_rom = nullptr;
-	}
-
 	if(!phase) clear_all_keys();
 
 	// The following table is arranged in ASCII order
@@ -334,9 +503,9 @@ Tape::Tape() : TapePlayer(1022727) {}
 void Tape::set_motor_control(bool enabled) {}
 void Tape::set_tape_output(bool set) {}
 
-void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
+void Tape::process_input_pulse(Storage::Tape::PRG::Pulse pulse)
 {
-	bool new_input_level = pulse.type == Storage::Tape::Pulse::Low;
+	bool new_input_level = pulse.type == Storage::Tape::PRG::Pulse::Low;
 	if(_input_level != new_input_level)
 	{
 		_input_level = new_input_level;
@@ -344,13 +513,3 @@ void Tape::process_input_pulse(Storage::Tape::Pulse pulse)
 	}
 }
 
-#pragma mark - Disc
-
-void Machine::set_disc()
-{
-	// construct the 1540
-	_c1540.reset(new ::Commodore::C1540::Machine);
-
-	// attach it to the serial bus
-	_c1540->set_serial_bus(_serialBus);
-}

@@ -32,8 +32,10 @@ void Typer::update(int duration)
 	}
 }
 
-void Typer::type_next_character()
+bool Typer::type_next_character()
 {
+	if(_string == nullptr) return false;
+
 	if(_delegate->typer_set_next_character(this, _string[_string_pointer], _phase))
 	{
 		_phase = 0;
@@ -41,7 +43,7 @@ void Typer::type_next_character()
 		{
 			free(_string);
 			_string = nullptr;
-			return;
+			return false;
 		}
 
 		_string_pointer++;
@@ -50,6 +52,8 @@ void Typer::type_next_character()
 	{
 		_phase++;
 	}
+
+	return true;
 }
 
 Typer::~Typer()

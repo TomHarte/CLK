@@ -13,6 +13,7 @@
 @class CSMachine;
 @protocol CSMachineDelegate
 - (void)machineDidChangeClockRate:(CSMachine *)machine;
+- (void)machineDidChangeClockIsUnlimited:(CSMachine *)machine;
 @end
 
 @interface CSMachine : NSObject
@@ -28,7 +29,11 @@
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 @property (nonatomic, weak) id<CSMachineDelegate> delegate;
+
 @property (nonatomic, readonly) double clockRate;
+@property (nonatomic, readonly) BOOL clockIsUnlimited;
+
+@property (nonatomic, readonly) NSString *userDefaultsPrefix;
 
 - (void)paste:(NSString *)string;
 

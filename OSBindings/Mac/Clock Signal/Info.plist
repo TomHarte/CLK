@@ -25,7 +25,7 @@
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).Atari2600Document</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -35,13 +35,13 @@
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Tape Image</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
 			<array/>
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).ElectronDocument</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -57,7 +57,7 @@
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).ElectronDocument</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -72,7 +72,7 @@
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).ElectronDocument</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -80,13 +80,13 @@
 				<string>prg</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Vic-20 Cartridge</string>
+			<string>Commodore Program</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).Vic20Document</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -94,11 +94,57 @@
 				<string>tap</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Vic-20 Tape Image</string>
+			<string>Commodore Tape Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>g64</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Commodore Disk</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>d64</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Commodore 1540/1 Disk</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ssd</string>
+				<string>dsd</string>
+				<string>adf</string>
+				<string>adl</string>
+				<string>adm</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Electron/BBC Disk Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).Vic20Document</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>

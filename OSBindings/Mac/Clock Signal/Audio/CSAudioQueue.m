@@ -174,9 +174,8 @@ static void audioOutputCallback(
 
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples
 {
-	while(1)
+	if([_writeLock tryLockWhenCondition:AudioQueueCanProceed])
 	{
-		[_writeLock lockWhenCondition:AudioQueueCanProceed];
 		if((_audioStreamReadPosition + _streamLength) - _audioStreamWritePosition >= lengthInSamples)
 		{
 			size_t samplesBeforeOverflow = _streamLength - (_audioStreamWritePosition % _streamLength);
@@ -193,7 +192,6 @@ static void audioOutputCallback(
 
 			_audioStreamWritePosition += lengthInSamples;
 			[_writeLock unlockWithCondition:[self writeLockCondition]];
-			break;
 		}
 		else
 		{

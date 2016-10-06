@@ -208,7 +208,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 
 				let dataPointer = (testData as NSData).bytes.bindMemory(to: UInt8.self, capacity: testData.count)
 				let loadAddress = UInt16(dataPointer[0]) | (UInt16(dataPointer[1]) << 8)
-				let contents = testData.subdata(in: NSMakeRange(2, testData.count - 2))
+				let contents = testData.subdata(in: 2..<(testData.count - 2))
 
 				machine.setData(contents, atAddress: loadAddress)
 
@@ -226,11 +226,11 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 				] as [UInt8]), count: 19)
 				machine.setData( irqHandler, atAddress: 0xff48)
 
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2);  // print character
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f);  // load
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4);  // scan keyboard
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000);  // exit
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474);  // exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2)	// print character
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f)	// load
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4)	// scan keyboard
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000)	// exit
+				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474)	// exit
 
 				machine.setValue(0x0801, for: CSTestMachineRegister.programCounter)
 				machine.setValue(0xfd, for: CSTestMachineRegister.stackPointer)

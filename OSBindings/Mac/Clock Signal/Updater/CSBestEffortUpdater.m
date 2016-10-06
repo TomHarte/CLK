@@ -44,8 +44,10 @@
 				double cyclesToRunFor = timeToRunFor * self.clockRate + _cyclesError;
 
 				_cyclesError = fmod(cyclesToRunFor, 1.0);
-				NSUInteger integerCyclesToRunFor = (NSUInteger)cyclesToRunFor;
+				NSUInteger integerCyclesToRunFor = (NSUInteger)MIN(cyclesToRunFor, self.clockRate * 0.5);
 
+				// treat 'unlimited' as running at a factor of 10
+				if(self.runAsUnlimited) integerCyclesToRunFor *= 10;
 				[self.delegate bestEffortUpdater:self runForCycles:integerCyclesToRunFor didSkipPreviousUpdate:_hasSkipped];
 			}
 			_previousTimeInterval = timeInterval;

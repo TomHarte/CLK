@@ -20,11 +20,7 @@ class MachineDocument:
 {
 	lazy var actionLock = NSLock()
 	lazy var drawLock = NSLock()
-	var machine: CSMachine! {
-		get {
-			return nil
-		}
-	}
+	var machine: CSMachine!
 	var name: String! {
 		get {
 			return nil
@@ -42,7 +38,7 @@ class MachineDocument:
 		}
 	}
 
-	@IBOutlet weak var optionsPanel: NSPanel!
+	@IBOutlet var optionsPanel: MachinePanel!
 	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
@@ -53,6 +49,10 @@ class MachineDocument:
 		updater.delegate = self
 		return updater
 	}()
+
+	override var windowNibName: String? {
+		return "MachineDocument"
+	}
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
@@ -66,11 +66,15 @@ class MachineDocument:
 
 		setupClockRate()
 		self.machine.delegate = self
-		establishStoredOptions()
+		self.optionsPanel?.establishStoredOptions()
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {
 		setupClockRate()
+	}
+
+	func machineDidChangeClockIsUnlimited(_ machine: CSMachine!) {
+		self.bestEffortUpdater.runAsUnlimited = machine.clockIsUnlimited
 	}
 
 	fileprivate func setupClockRate() {
@@ -98,6 +102,27 @@ class MachineDocument:
 		super.close()
 	}
 
+	// MARK: configuring
+	func configureAs(_ analysis: CSStaticAnalyser) {
+		if let machine = analysis.newMachine() {
+			self.machine = machine
+		}
+		analysis.apply(to: self.machine)
+
+		if let optionsPanelNibName = analysis.optionsPanelNibName {
+			Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
+			self.optionsPanel.machine = self.machine
+			showOptions(self)
+		}
+	}
+
+	override func read(from url: URL, ofType typeName: String) throws {
+		if let analyser = CSStaticAnalyser(fileAt: url) {
+			self.displayName = analyser.displayName
+			self.configureAs(analyser)
+		}
+	}
+
 	// MARK: the pasteboard
 	func paste(_ sender: AnyObject!) {
 		let pasteboard = NSPasteboard.general()
@@ -119,15 +144,6 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: Utilities for children
-	func dataForResource(_ name : String, ofType type: String, inDirectory directory: String) -> Data? {
-		if let path = Bundle.main.path(forResource: name, ofType: type, inDirectory: directory) {
-			return (try? Data(contentsOf: URL(fileURLWithPath: path)))
-		}
-
-		return nil
-	}
-
 	// MARK: CSAudioQueueDelegate
 	final func audioQueueDidCompleteBuffer(_ audioQueue: CSAudioQueue) {
 		bestEffortUpdater.update()
@@ -147,10 +163,26 @@ class MachineDocument:
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
 	}
 
-	// MARK: Key forwarding
+	// MARK: Input management
 	fileprivate func withKeyboardMachine(_ action: (CSKeyboardMachine) -> ()) {
 		if let keyboardMachine = self.machine as? CSKeyboardMachine {
 			action(keyboardMachine)
+		}
+	}
+
+	fileprivate func withJoystickMachine(_ action: (CSJoystickMachine) -> ()) {
+		if let joystickMachine = self.machine as? CSJoystickMachine {
+			action(joystickMachine)
+		}
+	}
+
+	fileprivate func sendJoystickEvent(_ machine: CSJoystickMachine, keyCode: UInt16, isPressed: Bool) {
+		switch keyCode {
+			case 123:	machine.setDirection(.left, onPad: 0, isPressed: isPressed)
+			case 126:	machine.setDirection(.up, onPad: 0, isPressed: isPressed)
+			case 124:	machine.setDirection(.right, onPad: 0, isPressed: isPressed)
+			case 125:	machine.setDirection(.down, onPad: 0, isPressed: isPressed)
+			default:	machine.setButtonAt(0, onPad: 0, isPressed: isPressed)
 		}
 	}
 
@@ -160,10 +192,12 @@ class MachineDocument:
 
 	func keyDown(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: false) }
 	}
 
 	func keyUp(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: true) }
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
@@ -171,36 +205,7 @@ class MachineDocument:
 			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.shift))
 			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
 			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
-			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.AlternateKeyMask))
-		}
-	}
-
-	// MARK: IBActions
-	var fastLoadingUserDefaultsKey: String {
-		get {
-			return "\(self.name).fastLoading"
-		}
-	}
-
-	@IBOutlet var fastLoadingButton: NSButton!
-	@IBAction func setFastLoading(_ sender: NSButton!) {
-		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = sender.state == NSOnState
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
-		}
-	}
-
-	func establishStoredOptions() {
-		let standardUserDefaults = UserDefaults.standard
-		standardUserDefaults.register(defaults: [
-			fastLoadingUserDefaultsKey: true
-		])
-
-		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			self.fastLoadingButton.state = useFastLoadingHack ? NSOnState : NSOffState
+			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
 		}
 	}
 }

@@ -15,6 +15,7 @@
 #include "../../Components/6532/6532.hpp"
 #include "../CRTMachine.hpp"
 
+#include "../ConfigurationTarget.hpp"
 #include "Atari2600Inputs.h"
 
 namespace Atari2600 {
@@ -72,13 +73,16 @@ class PIA: public MOS::MOS6532<PIA> {
 };
 
 
-class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
+class Machine:
+	public CPU6502::Processor<Machine>,
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine {
 
 	public:
 		Machine();
 		~Machine();
 
-		void set_rom(size_t length, const uint8_t *data);
+		void configure_as_target(const StaticAnalyser::Target &target);
 		void switch_region();
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
@@ -94,7 +98,6 @@ class Machine: public CPU6502::Processor<Machine>, public CRTMachine::Machine {
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
-		virtual double get_clock_rate();
 		// TODO: different rate for PAL
 
 	private:
