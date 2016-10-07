@@ -31,7 +31,7 @@ class AsyncTaskQueue {
 		std::mutex queue_mutex_;
 		std::list<std::function<void(void)>> pending_tasks_;
 		std::condition_variable processing_condition_;
-		bool should_destruct_;
+		std::atomic_bool should_destruct_;
 };
 
 }

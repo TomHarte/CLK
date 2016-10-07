@@ -43,6 +43,7 @@ AsyncTaskQueue::~AsyncTaskQueue()
 {
 	should_destruct_ = true;
 	enqueue([](){});
+	thread_->join();
 }
 
 void AsyncTaskQueue::enqueue(std::function<void(void)> function)
