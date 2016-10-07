@@ -121,7 +121,6 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		void set_divider(uint8_t divider);
 
 		void set_is_enabled(bool is_enabled);
-		inline bool get_is_enabled() { return _is_enabled; }
 
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 		void skip_samples(unsigned int number_of_samples);
@@ -238,6 +237,7 @@ class Machine:
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
 		std::shared_ptr<Speaker> _speaker;
+		bool speaker_is_enabled_;
 };
 
 }
