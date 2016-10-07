@@ -226,10 +226,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					// update speaker mode
 					bool new_speaker_is_enabled = (*value & 6) == 2;
-					if(new_speaker_is_enabled != _speaker->get_is_enabled())
+					if(new_speaker_is_enabled != speaker_is_enabled_)
 					{
 						update_audio();
 						_speaker->set_is_enabled(new_speaker_is_enabled);
+						speaker_is_enabled_ = new_speaker_is_enabled;
 					}
 
 					_tape.set_is_enabled((*value & 6) != 6);
@@ -958,13 +959,17 @@ void Speaker::skip_samples(unsigned int number_of_samples)
 
 void Speaker::set_divider(uint8_t divider)
 {
-	_divider = divider * 32 / clock_rate_audio_divider;
+	enqueue([=]() {
+		_divider = divider * 32 / clock_rate_audio_divider;
+	});
 }
 
 void Speaker::set_is_enabled(bool is_enabled)
 {
-	_is_enabled = is_enabled;
-	_counter = 0;
+	enqueue([=]() {
+		_is_enabled = is_enabled;
+		_counter = 0;
+	});
 }
 
 /*
