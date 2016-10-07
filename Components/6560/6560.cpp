@@ -19,12 +19,16 @@ Speaker::Speaker() :
 
 void Speaker::set_volume(uint8_t volume)
 {
-	_volume = volume;
+	enqueue([=]() {
+		_volume = volume;
+	});
 }
 
 void Speaker::set_control(int channel, uint8_t value)
 {
-	_control_registers[channel] = value;
+	enqueue([=]() {
+		_control_registers[channel] = value;
+	});
 }
 
 // Source: VICE. Not original.

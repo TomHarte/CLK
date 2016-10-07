@@ -804,18 +804,24 @@ Atari2600::Speaker::~Speaker()
 
 void Atari2600::Speaker::set_volume(int channel, uint8_t volume)
 {
-	_volume[channel] = volume & 0xf;
+	enqueue([=]() {
+		_volume[channel] = volume & 0xf;
+	});
 }
 
 void Atari2600::Speaker::set_divider(int channel, uint8_t divider)
 {
-	_divider[channel] = divider & 0x1f;
-	_divider_counter[channel] = 0;
+	enqueue([=]() {
+		_divider[channel] = divider & 0x1f;
+		_divider_counter[channel] = 0;
+	});
 }
 
 void Atari2600::Speaker::set_control(int channel, uint8_t control)
 {
-	_control[channel] = control & 0xf;
+	enqueue([=]() {
+		_control[channel] = control & 0xf;
+	});
 }
 
 #define advance_poly4(c) _poly4_counter[channel] = (_poly4_counter[channel] >> 1) | (((_poly4_counter[channel] << 3) ^ (_poly4_counter[channel] << 2))&0x008)
