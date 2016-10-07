@@ -1481,12 +1481,12 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4B3940E81DA83C8700427841 /* Concurrency */,
 				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
 				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
 				4BB73EC01B587A5100552FC2 /* Clock SignalUITests */,
 				4BC9DF4A1D04691600F44158 /* Components */,
+				4B3940E81DA83C8700427841 /* Concurrency */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
 				4BB697C81D4B559300248BDF /* NumberTheory */,
 				4B366DFD1B5C165F0026627B /* Outputs */,
