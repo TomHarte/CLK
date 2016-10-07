@@ -16,13 +16,29 @@
 
 namespace Concurrency {
 
+/*!
+	An async task queue allows a caller to enqueue void(void) functions. Those functions are guaranteed
+	to be performed serially and asynchronously from the caller. A caller may also request to synchronise,
+	causing it to block until all previously-enqueued functions are complete.
+*/
 class AsyncTaskQueue {
 
 	public:
 		AsyncTaskQueue();
 		~AsyncTaskQueue();
 
+		/*!
+			Adds @c function to the queue.
+
+			@discussion Functions will be performed serially and asynchronously. This method is safe to
+			call from multiple threads.
+			@parameter function The function to enqueue.
+		*/
 		void enqueue(std::function<void(void)> function);
+
+		/*!
+			Blocks the caller until all previously-enqueud functions have completed.
+		*/
 		void synchronise();
 
 	private:
