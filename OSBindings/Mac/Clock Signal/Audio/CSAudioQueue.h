@@ -23,6 +23,6 @@
 @property (nonatomic, weak, nullable) id<CSAudioQueueDelegate> delegate;
 
 + (Float64)preferredSamplingRate;
-@property (nonatomic, readonly) NSUInteger bufferSize;
+@property (nonatomic, readonly) NSUInteger preferredBufferSize;
 
 @end
