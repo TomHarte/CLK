@@ -14,15 +14,46 @@
 - (void)audioQueueDidCompleteBuffer:(nonnull CSAudioQueue *)audioQueue;
 @end
 
+/*!
+	CSAudioQueue provides an audio queue to which packets of arbitrary size may be appended;
+	it can notify a delegate each time a buffer is completed and offer advice as to the preferred
+	output sampling rate and a manageable buffer size for this machine.
+*/
 @interface CSAudioQueue : NSObject
 
+/*!
+	Creates an instance of CSAudioQueue.
+
+	@param samplingRate The output audio rate.
+
+	@returns An instance of CSAudioQueue if successful; @c nil otherwise.
+*/
 - (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate;
+
+/*!
+	Enqueues a buffer for playback.
+
+	@param buffer A pointer to the data that comprises the buffer.
+	@param lengthInSamples The length of the buffer, in samples.
+*/
 - (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
 
+/// @returns The sampling rate at which this queue is playing audio.
 @property (nonatomic, readonly) Float64 samplingRate;
+
+/// A delegate, if set, will receive notification upon the completion of each enqueue buffer.
 @property (nonatomic, weak, nullable) id<CSAudioQueueDelegate> delegate;
 
+/*!
+	@returns The ideal output sampling rate for this computer; likely to be 44.1Khz or
+	48Khz or 96Khz or one of the other comon numbers but not guaranteed to be.
+*/
 + (Float64)preferredSamplingRate;
-@property (nonatomic, readonly) NSUInteger bufferSize;
+
+/*!
+	@returns A selected preferred buffer size (in samples). If an owner cannot otherwise
+	decide in what size to enqueue audio, this is a helpful suggestion.
+*/
+@property (nonatomic, readonly) NSUInteger preferredBufferSize;
 
 @end

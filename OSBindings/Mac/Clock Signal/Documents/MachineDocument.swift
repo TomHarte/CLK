@@ -85,7 +85,7 @@ class MachineDocument:
 			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
 			audioQueue.delegate = self
 			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.bufferSize / 2)
+			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
 		}
 
 		self.bestEffortUpdater.clockRate = self.machine.clockRate
