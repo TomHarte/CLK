@@ -36,7 +36,7 @@ class Speaker: public Concurrency::AsyncTaskQueue {
 		float get_ideal_clock_rate_in_range(float minimum, float maximum)
 		{
 			// return twice the cut off, if applicable
-			if(_high_frequency_cut_off > 0.0f && _input_cycles_per_second >= _high_frequency_cut_off * 2.0f && _input_cycles_per_second <= _high_frequency_cut_off * 2.0f) return _high_frequency_cut_off * 2.0f;
+			if(_high_frequency_cut_off > 0.0f && _input_cycles_per_second >= _high_frequency_cut_off * 3.0f && _input_cycles_per_second <= _high_frequency_cut_off * 3.0f) return _high_frequency_cut_off * 3.0f;
 
 			// return exactly the input rate if possible
 			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
