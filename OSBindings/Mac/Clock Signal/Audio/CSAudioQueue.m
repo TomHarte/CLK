@@ -44,7 +44,7 @@ static void audioOutputCallback(
 
 		// determine preferred buffer sizes
 		_preferredBufferSize = AudioQueueBufferMaxLength;
-		while((Float64)_preferredBufferSize*50.0 > samplingRate) _preferredBufferSize >>= 1;
+		while((Float64)_preferredBufferSize*100.0 > samplingRate) _preferredBufferSize >>= 1;
 
 		/*
 			Describe a mono 16bit stream of the requested sampling rate
