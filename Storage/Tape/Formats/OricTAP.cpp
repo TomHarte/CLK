@@ -67,30 +67,41 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 			case LeadIn:
 				next_byte = 0x16;
 				_phase_counter++;
-				if(_phase_counter == 259)	// TODO
+				if(_phase_counter == 256)	// 256 artificial bytes plus the three in the file = 259
 				{
 					_next_phase = Header;
 				}
 			break;
 
 			case Header:
+				// Counts are relative to:
+				// [0, 2]:		value 0x16
+				// 3:			value '$'
+				// [4, 5]:		"two bytes unused" (on the Oric 1)
+				// 6:			program type
+				// 7:			auto indicator
+				// [8, 9]:		end address of data
+				// [10, 11]:	start address of data
+				// 12:			"unused" (on the Oric 1)
+				// [13...]:		filename, up to NULL byte
 				next_byte = (uint8_t)fgetc(_file);
 
-				// TODO
-				if(_phase_counter == 4)	_body_length = next_byte;
-				if(_phase_counter == 6)	_body_length |= (uint16_t)next_byte << 8;
+				if(_phase_counter == 8)		_data_end_address = (uint16_t)(next_byte << 8);
+				if(_phase_counter == 9)		_data_end_address |= next_byte;
+				if(_phase_counter == 10)	_data_start_address = (uint16_t)(next_byte << 8);
+				if(_phase_counter == 11)	_data_start_address |= next_byte;
 
 				_phase_counter++;
-				if(_phase_counter == 10)	// TODO
+				if(_phase_counter > 12 && !next_byte)	// advance after the filename-ending NULL byte
 				{
-					_next_phase = Pause;
+					_next_phase = Data;
 				}
 			break;
 
 			case Data:
 				next_byte = (uint8_t)fgetc(_file);
 				_phase_counter++;
-				if(_phase_counter == _body_length)
+				if(_phase_counter == (_data_end_address - _data_start_address))
 				{
 					_phase_counter = 0;
 					if((size_t)ftell(_file) == _file_length)
@@ -101,15 +112,6 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 					{
 						_next_phase = LeadIn;
 					}
-				}
-			break;
-
-			case Pause:
-				_phase_counter++;
-				if(_phase_counter == 2)
-				{
-					_phase_counter = 0;
-					_next_phase = Data;
 				}
 			break;
 
@@ -133,12 +135,6 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 
 	switch(_phase)
 	{
-		case Pause:
-			pulse.type = Pulse::High;	// TODO
-			pulse.length.length = 20;	// TODO
-			_bit_count = 13;
-		return pulse;
-
 		case End:
 			pulse.type = Pulse::Zero;
 			pulse.length.length = 4800;

@@ -48,9 +48,9 @@ class OricTAP: public Tape {
 		int _phase_counter;
 
 		enum Phase {
-			LeadIn, Header, Pause, Data, End
+			LeadIn, Header, Data, End
 		} _phase, _next_phase;
-		uint16_t _body_length;
+		uint16_t _data_end_address, _data_start_address;
 };
 
 }
