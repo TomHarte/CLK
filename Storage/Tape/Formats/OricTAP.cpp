@@ -94,6 +94,14 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				_phase_counter++;
 				if(_phase_counter > 12 && !next_byte)	// advance after the filename-ending NULL byte
 				{
+					_next_phase = Gap;
+				}
+			break;
+
+			case Gap:
+				_phase_counter++;
+				if(_phase_counter == 8)
+				{
 					_next_phase = Data;
 				}
 			break;
@@ -119,12 +127,11 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 			break;
 		}
 
-		// TODO: which way round are bytes streamed?
 		uint8_t parity = next_byte;
 		parity ^= (parity >> 4);
 		parity ^= (parity >> 2);
-		parity ^= (parity >> 1);	// TODO: parity odd or even?
-		_current_value = (uint16_t)(((uint16_t)next_byte << 1) | (7 << 10) | ((parity&1) << 9));
+		parity ^= (parity >> 1);
+		_current_value = (uint16_t)(((uint16_t)next_byte << 1) | ((parity&1) << 9) | (7 << 10));
 	}
 
 	// In slow mode, a 0 is 4 periods of 1200 Hz, a 1 is 8 periods at 2400 Hz.
@@ -132,6 +139,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 	// This code models fast mode.
 	Tape::Pulse pulse;
 	pulse.length.clock_rate = 4800;
+	int next_bit;
 
 	switch(_phase)
 	{
@@ -140,25 +148,32 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 			pulse.length.length = 4800;
 		return pulse;
 
-		default:
-			if(_current_value & 1)
-			{
-				pulse.length.length = 1;
-			}
-			else
-			{
-				pulse.length.length = _pulse_counter ? 2 : 1;
-			}
-			pulse.type = _pulse_counter ? Pulse::High : Pulse::Low;	// TODO
+		case Gap:
+			next_bit = 1;
+		break;
 
-			_pulse_counter ^= 1;
-			if(!_pulse_counter)
-			{
-				_current_value >>= 1;
-				_bit_count++;
-			}
-		return pulse;
+		default:
+			next_bit = _current_value & 1;
+		break;
 	}
+
+	if(next_bit)
+	{
+		pulse.length.length = 1;
+	}
+	else
+	{
+		pulse.length.length = _pulse_counter ? 2 : 1;
+	}
+	pulse.type = _pulse_counter ? Pulse::High : Pulse::Low;	// TODO
+
+	_pulse_counter ^= 1;
+	if(!_pulse_counter)
+	{
+		_current_value >>= 1;
+		_bit_count++;
+	}
+	return pulse;
 }
 
 bool OricTAP::is_at_end()
