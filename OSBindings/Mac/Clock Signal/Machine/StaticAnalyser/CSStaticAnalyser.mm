@@ -41,9 +41,8 @@
 		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
 		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
 		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
+		default: return nil;
 	}
-
-	return nil;
 }
 
 - (CSMachine *)newMachine
@@ -53,6 +52,7 @@
 		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
 		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
 		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
+		default: return nil;
 	}
 }
 

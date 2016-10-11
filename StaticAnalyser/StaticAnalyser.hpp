@@ -33,7 +33,8 @@ struct Target {
 	enum  {
 		Atari2600,
 		Electron,
-		Vic20
+		Vic20,
+		Oric
 	} machine;
 	float probability;
 
