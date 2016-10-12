@@ -29,6 +29,8 @@ class Machine:
 	public:
 		Machine();
 
+		void set_rom(std::vector<uint8_t> data);
+
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
 
@@ -44,6 +46,9 @@ class Machine:
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 	private:
+		// RAM and ROM
+		uint8_t _ram[65536], _rom[16384];
+
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
 };

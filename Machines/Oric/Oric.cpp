@@ -19,8 +19,25 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
 }
 
+void Machine::set_rom(std::vector<uint8_t> data)
+{
+	memcpy(_rom, data.data(), std::min(data.size(), sizeof(_rom)));
+}
+
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
+	if(address > 0xc000)
+	{
+		if(isReadOperation(operation)) *value = _rom[address&16383];
+	}
+	else
+	{
+		if(isReadOperation(operation))
+			*value = _ram[address];
+		else
+			_ram[address] = *value;
+	}
+
 	return 1;
 }
 

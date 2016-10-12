@@ -19,6 +19,21 @@
 	Oric::Machine _oric;
 }
 
+- (instancetype)init {
+	self = [super init];
+	if(self)
+	{
+		NSData *rom = [self rom:@"basic10"];
+		if(rom) _oric.set_rom(rom.stdVector8);
+	}
+	return self;
+}
+
+- (NSData *)rom:(NSString *)name
+{
+	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/Oric"];
+}
+
 - (CRTMachine::Machine * const)machine {
 	return &_oric;
 }
