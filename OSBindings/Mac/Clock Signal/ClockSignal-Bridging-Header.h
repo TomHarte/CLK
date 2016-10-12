@@ -8,6 +8,7 @@
 
 #import "CSAtari2600.h"
 #import "CSElectron.h"
+#import "CSOric.h"
 #import "CSVic20.h"
 
 #import "CSStaticAnalyser.h"

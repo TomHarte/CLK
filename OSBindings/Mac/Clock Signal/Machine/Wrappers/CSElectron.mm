@@ -10,7 +10,6 @@
 
 #include "Electron.hpp"
 #include "StaticAnalyser.hpp"
-#include "TapeUEF.hpp"
 
 #import "CSMachine+Subclassing.h"
 #import "NSData+StdVector.h"

@@ -14,6 +14,7 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
+#include "Oric/StaticAnalyser.hpp"
 
 // Cartridges
 #include "../Storage/Cartridge/Formats/BinaryDump.hpp"
@@ -116,8 +117,9 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them. (TODO)
 	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
 	if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
 
 	free(lowercase_extension);
 	return targets;
