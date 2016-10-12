@@ -16,6 +16,8 @@
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
+#include "Video.hpp"
+
 #include <cstdint>
 #include <vector>
 
@@ -36,7 +38,7 @@ class Machine:
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-//		void synchronise();
+		void synchronise() { update_video(); }
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
@@ -48,9 +50,12 @@ class Machine:
 	private:
 		// RAM and ROM
 		uint8_t _ram[65536], _rom[16384];
+		int _cycles_since_video_update;
+		inline void update_video();
 
 		// Outputs
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
+		std::unique_ptr<VideoOutput> _videoOutput;
 };
 
 }

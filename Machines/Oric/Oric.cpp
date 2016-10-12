@@ -10,7 +10,7 @@
 
 using namespace Oric;
 
-Machine::Machine()
+Machine::Machine() : _cycles_since_video_update(0)
 {
 	set_clock_rate(1000000);
 }
@@ -35,10 +35,20 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		if(isReadOperation(operation))
 			*value = _ram[address];
 		else
+		{
+			if(address >= 0xa000) update_video();
 			_ram[address] = *value;
+		}
 	}
 
+	_cycles_since_video_update++;
 	return 1;
+}
+
+void Machine::update_video()
+{
+	_videoOutput->run_for_cycles(_cycles_since_video_update);
+	_cycles_since_video_update = 0;
 }
 
 void Machine::setup_output(float aspect_ratio)
@@ -53,6 +63,9 @@ void Machine::setup_output(float aspect_ratio)
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
+
+	_videoOutput.reset(new VideoOutput(_ram));
+	_videoOutput->set_crt(_crt);
 }
 
 void Machine::close_output()
