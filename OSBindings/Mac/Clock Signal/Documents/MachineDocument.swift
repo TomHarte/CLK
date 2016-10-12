@@ -120,6 +120,8 @@ class MachineDocument:
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
+		} else {
+			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
 		}
 	}
 
