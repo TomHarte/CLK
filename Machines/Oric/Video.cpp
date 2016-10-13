@@ -48,7 +48,10 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		{
 			_ink = 0xff;
 			_paper = 0x00;
-			_style = 0x00;	// TODO: this means standard-size standard charset?
+			_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
+			set_character_set_base_address();
+
+			if(!_counter) _frame_counter++;
 		}
 
 		State new_state = Blank;
@@ -74,7 +77,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		if(new_state == Pixels) {
 			uint8_t pixels, control_byte;
 
-			if(_is_graphics_mode)
+			if(_is_graphics_mode && _counter < 200*64)
 			{
 				control_byte = pixels = _ram[0xa000 + (_counter >> 6) * 40 + h_counter];
 			}
@@ -82,14 +85,18 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			{
 				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
 				control_byte = _ram[address];
-				pixels = _ram[_character_set_base_address + control_byte * 8 + ((_counter >> 6) & 7)];
+				int line = _use_double_height_characters ? ((_counter >> 7) & 7) : ((_counter >> 6) & 7);
+				pixels = _ram[_character_set_base_address + control_byte * 8 + line];
 			}
+
+			uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
+			if(_blink_text) inverse_mask ^= (_frame_counter&32) ? 0x77 : 0x00;
 
 			if((control_byte & 0x7f) >= 32)
 			{
 				uint8_t colours[2] = {
-					(control_byte & 0x80) ? _ink : _paper,
-					(control_byte & 0x80) ? _paper : _ink,
+					(uint8_t)(_paper ^ inverse_mask),
+					(uint8_t)(_ink ^ inverse_mask),
 				};
 
 				_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
@@ -108,6 +115,15 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 					case 0x05:		_ink = 0x55;	break;
 					case 0x06:		_ink = 0x33;	break;
 					case 0x07:		_ink = 0x77;	break;
+
+					case 0x08:	case 0x09:	case 0x0a: case 0x0b:
+					case 0x0c:	case 0x0d:	case 0x0e: case 0x0f:
+						_use_alternative_character_set = (control_byte&1);
+						_use_double_height_characters = (control_byte&2);
+						_blink_text = (control_byte&4);
+						set_character_set_base_address();
+					break;
+
 					case 0x10:		_paper = 0x00;	break;
 					case 0x11:		_paper = 0x44;	break;
 					case 0x12:		_paper = 0x22;	break;
@@ -116,9 +132,16 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 					case 0x15:		_paper = 0x55;	break;
 					case 0x16:		_paper = 0x33;	break;
 					case 0x17:		_paper = 0x77;	break;
+
+					case 0x18: case 0x19: case 0x1a: case 0x1b:
+					case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+						_is_graphics_mode = (control_byte & 4);
+						_is_sixty_hertz = !(control_byte & 2);
+					break;
+
 					default: break;
 				}
-				_pixel_target[0] = _pixel_target[1] = _pixel_target[2] = _paper;
+				_pixel_target[0] = _pixel_target[1] = _pixel_target[2] = (uint8_t)(_paper ^ inverse_mask);
 			}
 			_pixel_target += 3;
 		}

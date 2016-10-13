@@ -36,7 +36,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			*value = _ram[address];
 		else
 		{
-			if(address >= 0xa000) update_video();
+			if(address >= 0x9800) update_video();
 			_ram[address] = *value;
 		}
 	}
