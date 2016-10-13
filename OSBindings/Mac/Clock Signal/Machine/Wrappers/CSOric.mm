@@ -23,7 +23,7 @@
 	self = [super init];
 	if(self)
 	{
-		NSData *rom = [self rom:@"basic10"];
+		NSData *rom = [self rom:@"test108j"];
 		if(rom) _oric.set_rom(rom.stdVector8);
 	}
 	return self;

@@ -13,7 +13,8 @@ using namespace Oric;
 VideoOutput::VideoOutput(uint8_t *memory) :
 	_ram(memory),
 	_frame_counter(0), _counter(0),
-	_state(Sync), _cycles_in_state(0)
+	_state(Sync), _cycles_in_state(0),
+	_is_graphics_mode(false)
 {
 	_crt.reset(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1));
 
@@ -63,9 +64,20 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		_cycles_in_state++;
 
 		if(new_state == Pixels) {
-			_pixel_target[0] = 0x70;
-			_pixel_target[1] = 0x14;
-			_pixel_target[2] = 0x23;
+			uint8_t pixels;
+			if(_is_graphics_mode)
+			{
+				// TODO
+			}
+			else
+			{
+				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
+				uint8_t character = _ram[address];
+				pixels = character;//_ram[character * 8 + ((_counter >> 6) & 7)];
+			}
+			_pixel_target[0] = ((pixels & 0x01) ? 0xf : 0x0) | ((pixels & 0x02) ? 0xf0 : 0x00);
+			_pixel_target[1] = ((pixels & 0x04) ? 0xf : 0x0) | ((pixels & 0x08) ? 0xf0 : 0x00);
+			_pixel_target[2] = ((pixels & 0x10) ? 0xf : 0x0) | ((pixels & 0x20) ? 0xf0 : 0x00);
 			_pixel_target += 3;
 		}
 	}

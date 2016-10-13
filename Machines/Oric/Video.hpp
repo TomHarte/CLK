@@ -35,6 +35,7 @@ class VideoOutput {
 
 		// Registers
 		uint8_t _ink, _style, _paper;
+		bool _is_graphics_mode;
 };
 
 }
