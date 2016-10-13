@@ -73,11 +73,11 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			{
 				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
 				uint8_t character = _ram[address];
-				pixels = character;//_ram[character * 8 + ((_counter >> 6) & 7)];
+				pixels = _ram[0xb400 + character * 8 + ((_counter >> 6) & 7)];
 			}
-			_pixel_target[0] = ((pixels & 0x01) ? 0xf : 0x0) | ((pixels & 0x02) ? 0xf0 : 0x00);
+			_pixel_target[0] = ((pixels & 0x10) ? 0xf : 0x0) | ((pixels & 0x20) ? 0xf0 : 0x00);
 			_pixel_target[1] = ((pixels & 0x04) ? 0xf : 0x0) | ((pixels & 0x08) ? 0xf0 : 0x00);
-			_pixel_target[2] = ((pixels & 0x10) ? 0xf : 0x0) | ((pixels & 0x20) ? 0xf0 : 0x00);
+			_pixel_target[2] = ((pixels & 0x01) ? 0xf : 0x0) | ((pixels & 0x02) ? 0xf0 : 0x00);
 			_pixel_target += 3;
 		}
 	}
