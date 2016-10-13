@@ -7,7 +7,8 @@
 //
 
 #import "CSMachine.h"
+#import "CSKeyboardMachine.h"
 
-@interface CSOric : CSMachine
+@interface CSOric : CSMachine <CSKeyboardMachine>
 
 @end

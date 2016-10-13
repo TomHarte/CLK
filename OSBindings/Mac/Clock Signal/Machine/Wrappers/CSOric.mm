@@ -15,11 +15,13 @@
 #import "NSData+StdVector.h"
 #import "NSBundle+DataResource.h"
 
-@implementation CSOric {
+@implementation CSOric
+{
 	Oric::Machine _oric;
 }
 
-- (instancetype)init {
+- (instancetype)init
+{
 	self = [super init];
 	if(self)
 	{
@@ -34,8 +36,20 @@
 	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/Oric"];
 }
 
-- (CRTMachine::Machine * const)machine {
+- (CRTMachine::Machine * const)machine
+{
 	return &_oric;
+}
+
+#pragma mark - CSKeyboardMachine
+
+- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed
+{
+	_oric.set_nmi_line(isPressed);
+}
+
+- (void)clearAllKeys
+{
 }
 
 @end
