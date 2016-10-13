@@ -14,7 +14,8 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	_ram(memory),
 	_frame_counter(0), _counter(0),
 	_state(Sync), _cycles_in_state(0),
-	_is_graphics_mode(false)
+	_is_graphics_mode(false),
+	_character_set_base_address(0xb400)
 {
 	_crt.reset(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1));
 
@@ -41,9 +42,16 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 	while(number_of_cycles--)
 	{
 		_counter = (_counter + 1)%(312 * 64);	// TODO: NTSC
+		int h_counter =_counter & 63;
+
+		if(!h_counter)
+		{
+			_ink = 0xff;
+			_paper = 0x00;
+			_style = 0x00;	// TODO: this means standard-size standard charset?
+		}
 
 		State new_state = Blank;
-		int h_counter =_counter & 63;
 		if(
 			(h_counter >= 48 && h_counter <= 53) ||
 			(_counter >= 256*64 && _counter <= 259*64)) new_state = Sync;
@@ -64,20 +72,54 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		_cycles_in_state++;
 
 		if(new_state == Pixels) {
-			uint8_t pixels;
+			uint8_t pixels, control_byte;
+
 			if(_is_graphics_mode)
 			{
-				// TODO
+				control_byte = pixels = _ram[0xa000 + (_counter >> 6) * 40 + h_counter];
 			}
 			else
 			{
 				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
-				uint8_t character = _ram[address];
-				pixels = _ram[0xb400 + character * 8 + ((_counter >> 6) & 7)];
+				control_byte = _ram[address];
+				pixels = _ram[_character_set_base_address + control_byte * 8 + ((_counter >> 6) & 7)];
 			}
-			_pixel_target[0] = ((pixels & 0x10) ? 0xf : 0x0) | ((pixels & 0x20) ? 0xf0 : 0x00);
-			_pixel_target[1] = ((pixels & 0x04) ? 0xf : 0x0) | ((pixels & 0x08) ? 0xf0 : 0x00);
-			_pixel_target[2] = ((pixels & 0x01) ? 0xf : 0x0) | ((pixels & 0x02) ? 0xf0 : 0x00);
+
+			if((control_byte & 0x7f) >= 32)
+			{
+				uint8_t colours[2] = {
+					(control_byte & 0x80) ? _ink : _paper,
+					(control_byte & 0x80) ? _paper : _ink,
+				};
+
+				_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
+				_pixel_target[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
+				_pixel_target[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+			}
+			else
+			{
+				switch(control_byte & 0x7f)
+				{
+					case 0x00:		_ink = 0x00;	break;
+					case 0x01:		_ink = 0x44;	break;
+					case 0x02:		_ink = 0x22;	break;
+					case 0x03:		_ink = 0x66;	break;
+					case 0x04:		_ink = 0x11;	break;
+					case 0x05:		_ink = 0x55;	break;
+					case 0x06:		_ink = 0x33;	break;
+					case 0x07:		_ink = 0x77;	break;
+					case 0x10:		_paper = 0x00;	break;
+					case 0x11:		_paper = 0x44;	break;
+					case 0x12:		_paper = 0x22;	break;
+					case 0x13:		_paper = 0x66;	break;
+					case 0x14:		_paper = 0x11;	break;
+					case 0x15:		_paper = 0x55;	break;
+					case 0x16:		_paper = 0x33;	break;
+					case 0x17:		_paper = 0x77;	break;
+					default: break;
+				}
+				_pixel_target[0] = _pixel_target[1] = _pixel_target[2] = _paper;
+			}
 			_pixel_target += 3;
 		}
 	}

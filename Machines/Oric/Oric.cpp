@@ -26,7 +26,7 @@ void Machine::set_rom(std::vector<uint8_t> data)
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	if(address > 0xc000)
+	if(address >= 0xc000)
 	{
 		if(isReadOperation(operation)) *value = _rom[address&16383];
 	}
