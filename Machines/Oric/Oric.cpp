@@ -45,6 +45,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return 1;
 }
 
+void Machine::synchronise()
+{
+	update_video();
+}
+
 void Machine::update_video()
 {
 	_videoOutput->run_for_cycles(_cycles_since_video_update);
@@ -53,21 +58,10 @@ void Machine::update_video()
 
 void Machine::setup_output(float aspect_ratio)
 {
-	// TODO: this is a copy and paste from the Electron; correct.
-
-	_crt.reset(new Outputs::CRT::CRT(256, 8, Outputs::CRT::DisplayType::PAL50, 1));
-	_crt->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
-		"{"
-			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
-			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-		"}");
-
 	_videoOutput.reset(new VideoOutput(_ram));
-	_videoOutput->set_crt(_crt);
 }
 
 void Machine::close_output()
 {
+	_videoOutput.reset();
 }

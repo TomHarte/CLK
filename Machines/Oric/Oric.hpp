@@ -38,12 +38,12 @@ class Machine:
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise() { update_video(); }
+		void synchronise();
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _videoOutput->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return nullptr; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
@@ -54,7 +54,6 @@ class Machine:
 		inline void update_video();
 
 		// Outputs
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
 		std::unique_ptr<VideoOutput> _videoOutput;
 };
 
