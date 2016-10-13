@@ -15,7 +15,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	_frame_counter(0), _counter(0),
 	_state(Sync), _cycles_in_state(0)
 {
-	_crt.reset(new Outputs::CRT::CRT(384, 6, Outputs::CRT::DisplayType::PAL50, 1));
+	_crt.reset(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1));
 
 	// TODO: this is a copy and paste from the Electron; factor out.
 	_crt->set_rgb_sampling_function(
@@ -42,9 +42,11 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		_counter = (_counter + 1)%(312 * 64);	// TODO: NTSC
 
 		State new_state = Blank;
-		if((_counter & 63) >= 48 && (_counter & 63) <= 53) new_state = Sync;
-		else if(_counter >= 256*312 && _counter <= 259*312) new_state = Sync;
-		else if(_counter < 224 && ((_counter&63) < 40)) new_state = Pixels;
+		int h_counter =_counter & 63;
+		if(
+			(h_counter >= 48 && h_counter <= 53) ||
+			(_counter >= 256*64 && _counter <= 259*64)) new_state = Sync;
+		else if(_counter < 224*64 && h_counter < 40) new_state = Pixels;
 
 		if(_state != new_state)
 		{
@@ -58,7 +60,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			_cycles_in_state = 0;
 			if(_state == Pixels) _pixel_target = _crt->allocate_write_area(120);
 		}
-		else _cycles_in_state++;
+		_cycles_in_state++;
 
 		if(new_state == Pixels) {
 			_pixel_target[0] = 0x70;

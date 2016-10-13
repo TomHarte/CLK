@@ -103,7 +103,7 @@ class CRT {
 			machines output will run at a fixed multiple of the clock rate; knowing this divisor can improve
 			internal precision.
 
-			@param height_of_dispaly The number of lines that nominally form one field of the display, rounded
+			@param height_of_display The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
 
 			@param colour_cycle_numerator Specifies the numerator for the per-line frequency of the colour subcarrier.
