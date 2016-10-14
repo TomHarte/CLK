@@ -27,6 +27,21 @@ namespace Oric {
 class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
+
+		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+			port_outputs[port] = value;
+			if(port)
+				set_control_line_input(port, Line::One, (value << 1)&value&128);
+		}
+		uint8_t get_port_input(Port port) {
+			if(port)
+			{
+				return port_outputs[0];
+			}
+			else
+				return (uint8_t)((port_outputs[port] >> 4) | (port_outputs[port] << 4));
+		}
+		uint8_t port_outputs[2];
 };
 
 class Machine:
