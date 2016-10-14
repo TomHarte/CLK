@@ -10,6 +10,7 @@
 #define Oric_hpp
 
 #include "../../Processors/6502/CPU6502.hpp"
+#include "../../Components/6522/6522.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -23,10 +24,16 @@
 
 namespace Oric {
 
+class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
+	public:
+		using MOS6522IRQDelegate::set_interrupt_status;
+};
+
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public MOS::MOS6522IRQDelegate::Delegate {
 
 	public:
 		Machine();
@@ -47,6 +54,9 @@ class Machine:
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return nullptr; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
+		// to satisfy MOS::MOS6522IRQDelegate::Delegate
+		void mos6522_did_change_interrupt_status(void *mos6522);
+
 	private:
 		// RAM and ROM
 		uint8_t _ram[65536], _rom[16384];
@@ -55,6 +65,9 @@ class Machine:
 
 		// Outputs
 		std::unique_ptr<VideoOutput> _videoOutput;
+
+		//
+		VIA _via;
 };
 
 }

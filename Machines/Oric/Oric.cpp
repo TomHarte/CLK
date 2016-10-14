@@ -13,6 +13,7 @@ using namespace Oric;
 Machine::Machine() : _cycles_since_video_update(0)
 {
 	set_clock_rate(1000000);
+	_via.set_interrupt_delegate(this);
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
@@ -32,15 +33,24 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
-		if(isReadOperation(operation))
-			*value = _ram[address];
+		if((address & 0xff00) == 0x0300)
+		{
+			if(isReadOperation(operation)) *value = _via.get_register(address);
+			else _via.set_register(address, *value);
+		}
 		else
 		{
-			if(address >= 0x9800) update_video();
-			_ram[address] = *value;
+			if(isReadOperation(operation))
+				*value = _ram[address];
+			else
+			{
+				if(address >= 0x9800) update_video();
+				_ram[address] = *value;
+			}
 		}
 	}
 
+	_via.run_for_half_cycles(2);
 	_cycles_since_video_update++;
 	return 1;
 }
@@ -64,4 +74,9 @@ void Machine::setup_output(float aspect_ratio)
 void Machine::close_output()
 {
 	_videoOutput.reset();
+}
+
+void Machine::mos6522_did_change_interrupt_status(void *mos6522)
+{
+	set_irq_line(_via.get_interrupt_line());
 }
