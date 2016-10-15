@@ -28,7 +28,7 @@ class VideoOutput {
 
 		// Output state
 		enum State {
-			Blank, Sync, Pixels
+			Blank, Sync, Pixels, ColourBurst
 		} _state;
 		unsigned int _cycles_in_state;
 		uint8_t *_pixel_target;
@@ -48,6 +48,8 @@ class VideoOutput {
 		bool _use_alternative_character_set;
 		bool _use_double_height_characters;
 		bool _blink_text;
+
+		uint8_t _phase;
 };
 
 }

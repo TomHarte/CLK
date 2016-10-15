@@ -89,6 +89,16 @@
 			case VK_Space:			_oric.set_key_state(Oric::Key::KeySpace, isPressed);		break;
 			case VK_Return:			_oric.set_key_state(Oric::Key::KeyReturn, isPressed);		break;
 			case VK_ANSI_Minus:		_oric.set_key_state(Oric::Key::KeyMinus, isPressed);		break;
+			case VK_ANSI_Equal:		_oric.set_key_state(Oric::Key::KeyEquals, isPressed);		break;
+			case VK_ANSI_Backslash:
+									_oric.set_key_state(Oric::Key::KeyBackSlash, isPressed);	break;
+			case VK_ANSI_Slash:		_oric.set_key_state(Oric::Key::KeyForwardSlash, isPressed);	break;
+
+			case VK_ANSI_LeftBracket:
+									_oric.set_key_state(Oric::Key::KeyOpenSquare, isPressed);	break;
+			case VK_ANSI_RightBracket:
+									_oric.set_key_state(Oric::Key::KeyCloseSquare, isPressed);	break;
+			case VK_ANSI_Quote:		_oric.set_key_state(Oric::Key::KeyQuote, isPressed);		break;
 
 			case VK_RightArrow:		_oric.set_key_state(Oric::Key::KeyRight, isPressed);		break;
 			case VK_LeftArrow:		_oric.set_key_state(Oric::Key::KeyLeft, isPressed);			break;

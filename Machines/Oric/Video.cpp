@@ -15,7 +15,8 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	_frame_counter(0), _counter(0),
 	_state(Sync), _cycles_in_state(0),
 	_is_graphics_mode(false),
-	_character_set_base_address(0xb400)
+	_character_set_base_address(0xb400),
+	_phase(0)
 {
 	_crt.reset(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1));
 
@@ -27,6 +28,8 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
+
+	_crt->set_output_device(Outputs::CRT::Television);
 }
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
@@ -50,6 +53,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			_paper = 0x00;
 			_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
 			set_character_set_base_address();
+			_phase += 64;
 
 			if(!_counter) _frame_counter++;
 		}
@@ -58,15 +62,17 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		if(
 			(h_counter >= 48 && h_counter <= 53) ||
 			(_counter >= 256*64 && _counter <= 259*64)) new_state = Sync;
+		else if(h_counter >= 54 && h_counter <= 56) new_state = ColourBurst;
 		else if(_counter < 224*64 && h_counter < 40) new_state = Pixels;
 
 		if(_state != new_state)
 		{
 			switch(_state)
 			{
-				case Sync:		_crt->output_sync(_cycles_in_state * 6);		break;
-				case Blank:		_crt->output_blank(_cycles_in_state * 6);		break;
-				case Pixels:	_crt->output_data(_cycles_in_state * 6, 2);		break;
+				case ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 6, _phase, 128);	break;
+				case Sync:			_crt->output_sync(_cycles_in_state * 6);						break;
+				case Blank:			_crt->output_blank(_cycles_in_state * 6);						break;
+				case Pixels:		_crt->output_data(_cycles_in_state * 6, 2);						break;
 			}
 			_state = new_state;
 			_cycles_in_state = 0;
