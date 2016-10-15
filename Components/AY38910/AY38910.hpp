@@ -16,6 +16,7 @@ namespace GI {
 class AY38910: public ::Outputs::Filter<AY38910> {
 	public:
 		AY38910();
+		void set_clock_rate(double clock_rate);
 
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 		void skip_samples(unsigned int number_of_samples);
@@ -28,8 +29,10 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 	private:
 		int _selected_register;
-		uint8_t _registers[16];
+		uint8_t _registers[16], _output_registers[16];
 
+		uint16_t _tone_generator_controls[3];
+		uint16_t _envelope_period;
 };
 
 };

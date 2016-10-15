@@ -73,11 +73,13 @@ void Machine::setup_output(float aspect_ratio)
 {
 	_videoOutput.reset(new VideoOutput(_ram));
 	_via.ay8910.reset(new GI::AY38910());
+	_via.ay8910->set_clock_rate(1000000);
 }
 
 void Machine::close_output()
 {
 	_videoOutput.reset();
+	_via.ay8910.reset();
 }
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)

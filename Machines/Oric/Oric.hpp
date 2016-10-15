@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 namespace Oric {
 
@@ -70,7 +71,7 @@ class Machine:
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _videoOutput->get_crt(); }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return nullptr; }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _via.ay8910; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
@@ -128,12 +129,20 @@ class Machine:
 					}
 				}
 
-				std::unique_ptr<GI::AY38910> ay8910;
+				inline void run_for_half_cycles(unsigned int number_of_cycles)
+				{
+					_half_cycles_since_ay_update += number_of_cycles;
+					MOS::MOS6522<VIA>::run_for_half_cycles(number_of_cycles);
+				}
+
+				std::shared_ptr<GI::AY38910> ay8910;
 				std::shared_ptr<Keyboard> keyboard;
 
 			private:
 				void update_ay()
 				{
+					ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
+					_half_cycles_since_ay_update &= 1;
 					if(_ay_bdir)
 					{
 						if(_ay_bc1) ay8910->select_register(_port_a_output);
@@ -146,6 +155,7 @@ class Machine:
 				}
 				uint8_t _port_a_output, _port_a_input;
 				bool _ay_bdir, _ay_bc1;
+				unsigned int _half_cycles_since_ay_update;
 		};
 		VIA _via;
 		std::shared_ptr<Keyboard> _keyboard;

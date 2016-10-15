@@ -14,8 +14,18 @@ AY38910::AY38910() : _selected_register(0)
 {
 }
 
+void AY38910::set_clock_rate(double clock_rate)
+{
+	set_input_rate((float)clock_rate);
+}
+
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
+	printf("%d\n", number_of_samples);
+	for(int c = 0; c < number_of_samples; c++)
+	{
+		*target++ = (c & 64) * 64;
+	}
 }
 
 void AY38910::skip_samples(unsigned int number_of_samples)
@@ -30,6 +40,33 @@ void AY38910::select_register(uint8_t r)
 void AY38910::set_register_value(uint8_t value)
 {
 	_registers[_selected_register] = value;
+	if(value < 14)
+	{
+		int selected_register = _selected_register;
+		enqueue([=] () {
+			_output_registers[selected_register] = value;
+			switch(selected_register)
+			{
+				case 0: case 2: case 4:
+					_tone_generator_controls[selected_register >> 1] =
+						(_tone_generator_controls[selected_register >> 1] & ~0xff) | value;
+				break;
+
+				case 1: case 3: case 5:
+					_tone_generator_controls[selected_register >> 1] =
+						(_tone_generator_controls[selected_register >> 1] & 0xff) | (uint16_t)((value&0xf) << 8);
+				break;
+
+				case 11:
+					_envelope_period = (_envelope_period & ~0xff) | value;
+				break;
+
+				case 12:
+					_envelope_period = (_envelope_period & 0xff) | (uint16_t)(value << 8);
+				break;
+			}
+		});
+	}
 }
 
 uint8_t AY38910::get_register_value()
