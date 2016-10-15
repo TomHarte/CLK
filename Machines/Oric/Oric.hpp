@@ -11,6 +11,7 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Components/6522/6522.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -24,24 +25,25 @@
 
 namespace Oric {
 
-class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
-	public:
-		using MOS6522IRQDelegate::set_interrupt_status;
+enum Key: uint16_t {
+	Key3			= 0x0000 | 0x80,	KeyX			= 0x0000 | 0x40,	Key1			= 0x0000 | 0x20,
+	KeyV			= 0x0000 | 0x08,	Key5			= 0x0000 | 0x04,	KeyN			= 0x0000 | 0x02,	Key7			= 0x0000 | 0x01,
+	KeyD			= 0x0100 | 0x80,	KeyQ			= 0x0100 | 0x40,	KeyEscape		= 0x0100 | 0x20,
+	KeyF			= 0x0100 | 0x08,	KeyR			= 0x0100 | 0x04,	KeyT			= 0x0100 | 0x02,	KeyJ			= 0x0100 | 0x01,
+	KeyC			= 0x0200 | 0x80,	Key2			= 0x0200 | 0x40,	KeyZ			= 0x0200 | 0x20,	KeyControl		= 0x0200 | 0x10,
+	Key4			= 0x0200 | 0x08,	KeyB			= 0x0200 | 0x04,	Key6			= 0x0200 | 0x02,	KeyM			= 0x0200 | 0x01,
+	KeyQuote		= 0x0300 | 0x80,	KeyBackSlash	= 0x0300 | 0x40,
+	KeyMinus		= 0x0300 | 0x08,	KeySemiColon	= 0x0300 | 0x04,	Key9			= 0x0300 | 0x02,	KeyK			= 0x0300 | 0x01,
+	KeyRight		= 0x0400 | 0x80,	KeyDown			= 0x0400 | 0x40,	KeyLeft			= 0x0400 | 0x20,	KeyLeftShift	= 0x0400 | 0x10,
+	KeyUp			= 0x0400 | 0x08,	KeyFullStop		= 0x0400 | 0x04,	KeyComma		= 0x0400 | 0x02,	KeySpace		= 0x0400 | 0x01,
+	KeyOpenSquare	= 0x0500 | 0x80,	KeyCloseSquare	= 0x0500 | 0x40,	KeyDelete		= 0x0500 | 0x20,	KeyFunction		= 0x0500 | 0x10,
+	KeyP			= 0x0500 | 0x08,	KeyO			= 0x0500 | 0x04,	KeyI			= 0x0500 | 0x02,	KeyU			= 0x0500 | 0x01,
+	KeyW			= 0x0600 | 0x80,	KeyS			= 0x0600 | 0x40,	KeyA			= 0x0600 | 0x20,
+	KeyE			= 0x0600 | 0x08,	KeyG			= 0x0600 | 0x04,	KeyH			= 0x0600 | 0x02,	KeyY			= 0x0600 | 0x01,
+	KeyEquals		= 0x0700 | 0x80,										KeyReturn		= 0x0700 | 0x20,	KeyRightShift	= 0x0700 | 0x10,
+	KeyForwardSlash	= 0x0700 | 0x08,	Key0			= 0x0700 | 0x04,	KeyL			= 0x0700 | 0x02,	Key8			= 0x0700 | 0x01,
 
-		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
-			port_outputs[port] = value;
-			if(port)
-				set_control_line_input(port, Line::One, (value << 1)&value&128);
-		}
-		uint8_t get_port_input(Port port) {
-			if(port)
-			{
-				return port_outputs[0];
-			}
-			else
-				return (uint8_t)((port_outputs[port] >> 4) | (port_outputs[port] << 4));
-		}
-		uint8_t port_outputs[2];
+	KeyNMI			= 0xffff,
 };
 
 class Machine:
@@ -54,6 +56,8 @@ class Machine:
 		Machine();
 
 		void set_rom(std::vector<uint8_t> data);
+		void set_key_state(Key key, bool isPressed);
+		void clear_all_keys();
 
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
@@ -82,7 +86,35 @@ class Machine:
 		std::unique_ptr<VideoOutput> _videoOutput;
 
 		//
+		class Keyboard {
+			public:
+				uint8_t row, column;
+				uint8_t rows[8];
+		};
+		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
+			public:
+				using MOS6522IRQDelegate::set_interrupt_status;
+
+				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+					port_outputs[port] = value;
+					if(port)
+						set_control_line_input(port, Line::One, (value << 1)&value&128);
+				}
+				uint8_t get_port_input(Port port) {
+					if(port)
+					{
+						return port_outputs[0];
+					}
+					else
+						return (uint8_t)((port_outputs[port] >> 4) | (port_outputs[port] << 4));
+				}
+				uint8_t port_outputs[2];
+
+				std::unique_ptr<GI::AY38910> ay8910;
+				std::shared_ptr<Keyboard> keyboard;
+		};
 		VIA _via;
+		std::shared_ptr<Keyboard> _keyboard;
 };
 
 }

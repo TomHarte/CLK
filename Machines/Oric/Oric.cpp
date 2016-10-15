@@ -14,6 +14,8 @@ Machine::Machine() : _cycles_since_video_update(0)
 {
 	set_clock_rate(1000000);
 	_via.set_interrupt_delegate(this);
+	_keyboard.reset(new Keyboard);
+	clear_all_keys();
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
@@ -69,6 +71,7 @@ void Machine::update_video()
 void Machine::setup_output(float aspect_ratio)
 {
 	_videoOutput.reset(new VideoOutput(_ram));
+	_via.ay8910.reset(new GI::AY38910());
 }
 
 void Machine::close_output()
@@ -79,4 +82,24 @@ void Machine::close_output()
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
 	set_irq_line(_via.get_interrupt_line());
+}
+
+void Machine::set_key_state(Key key, bool isPressed)
+{
+	if(key == KeyNMI)
+	{
+		set_nmi_line(isPressed);
+	}
+	else
+	{
+		if(isPressed)
+			_keyboard->rows[key >> 8] |= (key & 0xff);
+		else
+			_keyboard->rows[key >> 8] &= ~(key & 0xff);
+	}
+}
+
+void Machine::clear_all_keys()
+{
+	memset(_keyboard->rows, 0, sizeof(_keyboard->rows));
 }
