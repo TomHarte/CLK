@@ -24,6 +24,8 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		void set_register_value(uint8_t value);
 		uint8_t get_register_value();
 
+		uint8_t get_port_output(bool port_b);
+
 	private:
 		int _selected_register;
 		uint8_t _registers[16];

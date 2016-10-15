@@ -88,7 +88,7 @@ class Machine:
 		//
 		class Keyboard {
 			public:
-				uint8_t row, column;
+				uint8_t row;
 				uint8_t rows[8];
 		};
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
@@ -119,7 +119,8 @@ class Machine:
 				uint8_t get_port_input(Port port) {
 					if(port)
 					{
-						return (keyboard->rows[keyboard->row & 7] & keyboard->column) ? 0x08 : 0x00;
+						uint8_t column = ay8910->get_port_output(false) ^ 0xff;
+						return (keyboard->rows[keyboard->row & 7] & column) ? 0x08 : 0x00;
 					}
 					else
 					{
