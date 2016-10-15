@@ -15,6 +15,7 @@ Machine::Machine() : _cycles_since_video_update(0)
 	set_clock_rate(1000000);
 	_via.set_interrupt_delegate(this);
 	_keyboard.reset(new Keyboard);
+	_via.keyboard = _keyboard;
 	clear_all_keys();
 }
 

@@ -95,23 +95,56 @@ class Machine:
 			public:
 				using MOS6522IRQDelegate::set_interrupt_status;
 
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
-					port_outputs[port] = value;
-					if(port)
-						set_control_line_input(port, Line::One, (value << 1)&value&128);
+				void set_control_line_output(Port port, Line line, bool value)
+				{
+					if(line)
+					{
+						if(port) _ay_bdir = value; else _ay_bc1 = value;
+						update_ay();
+					}
 				}
+
+				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+					if(port)
+					{
+						keyboard->row = value;
+					}
+					else
+					{
+						_port_a = value;
+						update_ay();
+					}
+				}
+
 				uint8_t get_port_input(Port port) {
 					if(port)
 					{
-						return port_outputs[0];
+						return (keyboard->rows[keyboard->row & 7] & keyboard->column) ? 0x08 : 0x00;
 					}
 					else
-						return (uint8_t)((port_outputs[port] >> 4) | (port_outputs[port] << 4));
+					{
+						return _port_a;
+					}
 				}
-				uint8_t port_outputs[2];
 
 				std::unique_ptr<GI::AY38910> ay8910;
 				std::shared_ptr<Keyboard> keyboard;
+
+			private:
+				void update_ay()
+				{
+					if(_ay_bdir)
+					{
+						if(_ay_bc1) ay8910->select_register(_port_a);
+						else ay8910->set_register_value(_port_a);
+					}
+					else
+					{
+						if(_ay_bc1) _port_a = ay8910->get_register_value();
+					}
+				}
+				uint8_t _port_a;
+				bool _ay_bdir, _ay_bc1;
 		};
 		VIA _via;
 		std::shared_ptr<Keyboard> _keyboard;

@@ -25,7 +25,7 @@
 	self = [super init];
 	if(self)
 	{
-		NSData *rom = [self rom:@"test108j"];
+		NSData *rom = [self rom:@"basic11"];	// test108j
 		if(rom) _oric.set_rom(rom.stdVector8);
 	}
 	return self;
@@ -48,7 +48,7 @@
 	@synchronized(self) {
 		switch(key)
 		{
-/*			case VK_ANSI_0:		_oric.set_key_state(Oric::Key::Key0, isPressed);	break;
+			case VK_ANSI_0:		_oric.set_key_state(Oric::Key::Key0, isPressed);	break;
 			case VK_ANSI_1:		_oric.set_key_state(Oric::Key::Key1, isPressed);	break;
 			case VK_ANSI_2:		_oric.set_key_state(Oric::Key::Key2, isPressed);	break;
 			case VK_ANSI_3:		_oric.set_key_state(Oric::Key::Key3, isPressed);	break;
@@ -107,7 +107,6 @@
 			case VK_Shift:			_oric.set_key_state(Oric::Key::KeyLeftShift, isPressed);	break;
 			case VK_RightShift:		_oric.set_key_state(Oric::Key::KeyRightShift, isPressed);	break;
 			case VK_Control:		_oric.set_key_state(Oric::Key::KeyControl, isPressed);		break;
-			case VK_Command:*/
 
 			case VK_ANSI_Grave:
 			case VK_F12:			_oric.set_key_state(Oric::Key::KeyNMI, isPressed);		break;
