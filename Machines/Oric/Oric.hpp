@@ -111,7 +111,7 @@ class Machine:
 					}
 					else
 					{
-						_port_a = value;
+						_port_a_output = value;
 						update_ay();
 					}
 				}
@@ -123,7 +123,7 @@ class Machine:
 					}
 					else
 					{
-						return _port_a;
+						return _port_a_input;
 					}
 				}
 
@@ -135,15 +135,15 @@ class Machine:
 				{
 					if(_ay_bdir)
 					{
-						if(_ay_bc1) ay8910->select_register(_port_a);
-						else ay8910->set_register_value(_port_a);
+						if(_ay_bc1) ay8910->select_register(_port_a_output);
+						else ay8910->set_register_value(_port_a_output);
 					}
 					else
 					{
-						if(_ay_bc1) _port_a = ay8910->get_register_value();
+						if(_ay_bc1) _port_a_input = ay8910->get_register_value();
 					}
 				}
-				uint8_t _port_a;
+				uint8_t _port_a_output, _port_a_input;
 				bool _ay_bdir, _ay_bc1;
 		};
 		VIA _via;
