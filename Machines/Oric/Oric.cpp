@@ -10,17 +10,23 @@
 
 using namespace Oric;
 
-Machine::Machine() : _cycles_since_video_update(0), _tape(1000000)
+Machine::Machine() : _cycles_since_video_update(0)
 {
 	set_clock_rate(1000000);
+	_via.tape.reset(new Storage::Tape::BinaryTapePlayer(1000000));
 	_via.set_interrupt_delegate(this);
 	_keyboard.reset(new Keyboard);
 	_via.keyboard = _keyboard;
 	clear_all_keys();
+	_via.tape->set_delegate(this);
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
+	if(target.tapes.size())
+	{
+		_via.tape->set_tape(target.tapes.front());
+	}
 }
 
 void Machine::set_rom(std::vector<uint8_t> data)
@@ -54,6 +60,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	_via.run_for_half_cycles(2);
+	_via.tape->run_for_cycles(1);
 	_cycles_since_video_update++;
 	return 1;
 }

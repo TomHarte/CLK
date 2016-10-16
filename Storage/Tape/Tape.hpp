@@ -96,10 +96,16 @@ class TapePlayer: public TimedEventLoop {
 
 class BinaryTapePlayer: public TapePlayer {
 	public:
-		BinaryTapePlayer(unsigned int input_clock_rate) : TapePlayer(input_clock_rate) {}
-		void set_motor_control(bool enabled) {}	// TODO
+		BinaryTapePlayer(unsigned int input_clock_rate) : TapePlayer(input_clock_rate), _motor_is_running(false) {}
+		void set_motor_control(bool enabled) { _motor_is_running = enabled; }
 		void set_tape_output(bool set) {} // TODO
 		inline bool get_input() { return _input_level; }
+
+		void run_for_cycles(int number_of_cycles) {
+			if(_motor_is_running) {
+				TapePlayer::run_for_cycles(number_of_cycles);
+			}
+		}
 
 		class Delegate {
 			public:
@@ -122,6 +128,7 @@ class BinaryTapePlayer: public TapePlayer {
 			}
 		}
 		bool _input_level;
+		bool _motor_is_running;
 };
 
 }

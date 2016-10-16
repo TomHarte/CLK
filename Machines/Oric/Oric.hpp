@@ -97,10 +97,7 @@ class Machine:
 				uint8_t rows[8];
 		};
 
-		// Tape player
-		Storage::Tape::BinaryTapePlayer _tape;
-
-		// VIA
+		// VIA (which owns the tape and the AY)
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
 			public:
 				using MOS6522IRQDelegate::set_interrupt_status;
@@ -118,6 +115,7 @@ class Machine:
 					if(port)
 					{
 						keyboard->row = value;
+						tape->set_motor_control(value & 0x40);
 					}
 					else
 					{
@@ -145,6 +143,7 @@ class Machine:
 				}
 
 				std::shared_ptr<GI::AY38910> ay8910;
+				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
 				inline void synchronise() { update_ay(); }
