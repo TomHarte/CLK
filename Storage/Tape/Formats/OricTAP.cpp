@@ -65,7 +65,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 		switch(_phase)
 		{
 			case LeadIn:
-				next_byte = _phase_counter < 256 ? 0x16 : 0x24;
+				next_byte = _phase_counter < 258 ? 0x16 : 0x24;
 				_phase_counter++;
 				if(_phase_counter == 259)	// 256 artificial bytes plus the three in the file = 259
 				{
