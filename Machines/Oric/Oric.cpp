@@ -61,6 +61,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 void Machine::synchronise()
 {
 	update_video();
+	_via.synchronise();
 }
 
 void Machine::update_video()

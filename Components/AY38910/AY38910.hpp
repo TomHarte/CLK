@@ -33,6 +33,10 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		uint16_t _tone_generator_controls[3];
 		uint16_t _envelope_period;
+
+		int _master_divider;
+		int _channel_dividers[3];
+		int _channel_ouput[3];
 };
 
 };

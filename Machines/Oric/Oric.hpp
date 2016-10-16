@@ -138,6 +138,8 @@ class Machine:
 				std::shared_ptr<GI::AY38910> ay8910;
 				std::shared_ptr<Keyboard> keyboard;
 
+				inline void synchronise() { update_ay(); }
+
 			private:
 				void update_ay()
 				{
