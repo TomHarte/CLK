@@ -42,9 +42,9 @@ OricTAP::~OricTAP()
 
 void OricTAP::virtual_reset()
 {
-	fseek(_file, 0, SEEK_SET);
+//	fseek(_file, 0, SEEK_SET);
 	_bit_count = 13;
-	_phase = LeadIn;
+	_phase = _next_phase = LeadIn;
 	_phase_counter = 0;
 	_pulse_counter = 0;
 }
@@ -65,9 +65,9 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 		switch(_phase)
 		{
 			case LeadIn:
-				next_byte = 0x16;
+				next_byte = _phase_counter < 256 ? 0x16 : 0x24;
 				_phase_counter++;
-				if(_phase_counter == 256)	// 256 artificial bytes plus the three in the file = 259
+				if(_phase_counter == 259)	// 256 artificial bytes plus the three in the file = 259
 				{
 					_next_phase = Header;
 				}
@@ -75,24 +75,22 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 
 			case Header:
 				// Counts are relative to:
-				// [0, 2]:		value 0x16
-				// 3:			value '$'
-				// [4, 5]:		"two bytes unused" (on the Oric 1)
-				// 6:			program type
-				// 7:			auto indicator
-				// [8, 9]:		end address of data
-				// [10, 11]:	start address of data
-				// 12:			"unused" (on the Oric 1)
-				// [13...]:		filename, up to NULL byte
+				// [0, 1]:		"two bytes unused" (on the Oric 1)
+				// 2:			program type
+				// 3:			auto indicator
+				// [4, 5]:		end address of data
+				// [6, 7]:		start address of data
+				// 8:			"unused" (on the Oric 1)
+				// [9...]:		filename, up to NULL byte
 				next_byte = (uint8_t)fgetc(_file);
 
-				if(_phase_counter == 8)		_data_end_address = (uint16_t)(next_byte << 8);
-				if(_phase_counter == 9)		_data_end_address |= next_byte;
-				if(_phase_counter == 10)	_data_start_address = (uint16_t)(next_byte << 8);
-				if(_phase_counter == 11)	_data_start_address |= next_byte;
+				if(_phase_counter == 4)	_data_end_address = (uint16_t)(next_byte << 8);
+				if(_phase_counter == 5)	_data_end_address |= next_byte;
+				if(_phase_counter == 6)	_data_start_address = (uint16_t)(next_byte << 8);
+				if(_phase_counter == 7)	_data_start_address |= next_byte;
 
 				_phase_counter++;
-				if(_phase_counter > 12 && !next_byte)	// advance after the filename-ending NULL byte
+				if(_phase_counter >= 9 && !next_byte)	// advance after the filename-ending NULL byte
 				{
 					_next_phase = Gap;
 				}
