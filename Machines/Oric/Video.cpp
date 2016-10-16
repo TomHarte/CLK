@@ -30,6 +30,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		"}");
 
 	_crt->set_output_device(Outputs::CRT::Television);
+	_crt->set_visible_area(_crt->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
