@@ -94,6 +94,36 @@ class TapePlayer: public TimedEventLoop {
 		Tape::Pulse _current_pulse;
 };
 
+class BinaryTapePlayer: public TapePlayer {
+	public:
+		BinaryTapePlayer(unsigned int input_clock_rate) : TapePlayer(input_clock_rate) {}
+		void set_motor_control(bool enabled) {}	// TODO
+		void set_tape_output(bool set) {} // TODO
+		inline bool get_input() { return _input_level; }
+
+		class Delegate {
+			public:
+				virtual void tape_did_change_input(BinaryTapePlayer *tape_player) = 0;
+		};
+		void set_delegate(Delegate *delegate)
+		{
+			_delegate = delegate;
+		}
+
+	private:
+		Delegate *_delegate;
+		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse)
+		{
+			bool new_input_level = pulse.type == Tape::Pulse::Low;
+			if(_input_level != new_input_level)
+			{
+				_input_level = new_input_level;
+				if(_delegate) _delegate->tape_did_change_input(this);
+			}
+		}
+		bool _input_level;
+};
+
 }
 }
 

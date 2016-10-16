@@ -51,7 +51,8 @@ class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public MOS::MOS6522IRQDelegate::Delegate {
+	public MOS::MOS6522IRQDelegate::Delegate,
+	public Storage::Tape::BinaryTapePlayer::Delegate {
 
 	public:
 		Machine();
@@ -77,6 +78,9 @@ class Machine:
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
 		void mos6522_did_change_interrupt_status(void *mos6522);
 
+		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player);
+
 	private:
 		// RAM and ROM
 		uint8_t _ram[65536], _rom[16384];
@@ -86,12 +90,17 @@ class Machine:
 		// Outputs
 		std::unique_ptr<VideoOutput> _videoOutput;
 
-		//
+		// Keyboard
 		class Keyboard {
 			public:
 				uint8_t row;
 				uint8_t rows[8];
 		};
+
+		// Tape player
+		Storage::Tape::BinaryTapePlayer _tape;
+
+		// VIA
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
 			public:
 				using MOS6522IRQDelegate::set_interrupt_status;

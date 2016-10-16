@@ -16,7 +16,8 @@ using namespace Commodore::Vic20;
 
 Machine::Machine() :
 	_rom(nullptr),
-	_is_running_at_zero_cost(false)
+	_is_running_at_zero_cost(false),
+	_tape(1022727)
 {
 	// create 6522s, serial port and bus
 	_userPortVIA.reset(new UserPortVIA);
@@ -350,35 +351,12 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	}
 }
 
-//void Machine::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
-//{
-//	_tape.set_tape(tape);
-//	if(_should_automatically_load_media) set_typer_for_string("LOAD\nRUN\n");
-//}
-
-void Machine::tape_did_change_input(Tape *tape)
+void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape)
 {
 	_keyboardVIA->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Disc
-
-/*void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
-{
-	// construct the 1540
-	_c1540.reset(new ::Commodore::C1540::Machine);
-
-	// attach it to the serial bus
-	_c1540->set_serial_bus(_serialBus);
-
-	// hand it the disk
-	_c1540->set_disk(disk);
-
-	// install the ROM if it was previously set
-	install_disk_rom();
-
-	if(_should_automatically_load_media) set_typer_for_string("LOAD\"*\",8,1\nRUN\n");
-}*/
 
 void Machine::install_disk_rom()
 {
@@ -494,22 +472,5 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 	}
 
 	return true;
-}
-
-#pragma mark - Tape
-
-Tape::Tape() : TapePlayer(1022727) {}
-
-void Tape::set_motor_control(bool enabled) {}
-void Tape::set_tape_output(bool set) {}
-
-void Tape::process_input_pulse(Storage::Tape::PRG::Pulse pulse)
-{
-	bool new_input_level = pulse.type == Storage::Tape::PRG::Pulse::Low;
-	if(_input_level != new_input_level)
-	{
-		_input_level = new_input_level;
-		if(_delegate) _delegate->tape_did_change_input(this);
-	}
 }
 

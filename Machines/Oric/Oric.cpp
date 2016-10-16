@@ -10,7 +10,7 @@
 
 using namespace Oric;
 
-Machine::Machine() : _cycles_since_video_update(0)
+Machine::Machine() : _cycles_since_video_update(0), _tape(1000000)
 {
 	set_clock_rate(1000000);
 	_via.set_interrupt_delegate(this);
@@ -106,4 +106,10 @@ void Machine::set_key_state(Key key, bool isPressed)
 void Machine::clear_all_keys()
 {
 	memset(_keyboard->rows, 0, sizeof(_keyboard->rows));
+}
+
+void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player)
+{
+	// set CB1
+	_via.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
 }
