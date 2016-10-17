@@ -106,19 +106,20 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 
 			case Data:
 				next_byte = (uint8_t)fgetc(_file);
-				_phase_counter++;
-				if(_phase_counter == (_data_end_address - _data_start_address))
-				{
-					_phase_counter = 0;
-					if((size_t)ftell(_file) == _file_length)
-					{
-						_next_phase = End;
-					}
-					else
-					{
-						_next_phase = LeadIn;
-					}
-				}
+				if(feof(_file)) _phase = End;
+//				_phase_counter++;
+//				if(_phase_counter == (_data_end_address - _data_start_address)+1)
+//				{
+//					_phase_counter = 0;
+//					if((size_t)ftell(_file) == _file_length)
+//					{
+//						_next_phase = End;
+//					}
+//					else
+//					{
+//						_next_phase = LeadIn;
+//					}
+//				}
 			break;
 
 			case End:
