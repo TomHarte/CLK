@@ -146,7 +146,7 @@ class Machine:
 				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
-				inline void synchronise() { update_ay(); }
+				inline void synchronise() { ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1); }
 
 			private:
 				void update_ay()
