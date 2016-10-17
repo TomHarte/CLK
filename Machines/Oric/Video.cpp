@@ -58,7 +58,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 			if(!_counter)
 			{
-				_phase += 64;
+				_phase += 128;
 				_frame_counter++;
 			}
 		}
