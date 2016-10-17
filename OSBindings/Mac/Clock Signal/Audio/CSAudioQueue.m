@@ -14,13 +14,15 @@
 @implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
+	size_t _queuedSamples;
 }
 
 #pragma mark - AudioQueue callbacks
 
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
-	[self.delegate audioQueueDidCompleteBuffer:self];
+	_queuedSamples -= (size_t)(buffer->mAudioDataByteSize / sizeof(int16_t));
+	if(_queuedSamples < 128) [self.delegate audioQueueDidCompleteBuffer:self];
 	AudioQueueFreeBuffer(_audioQueue, buffer);
 }
 
@@ -97,6 +99,7 @@ static void audioOutputCallback(
 {
 	AudioQueueBufferRef newBuffer;
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
+	_queuedSamples += lengthInSamples;
 
 	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes, &newBuffer);
 	memcpy(newBuffer->mAudioData, buffer, bufferBytes);
