@@ -56,7 +56,11 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			set_character_set_base_address();
 			_phase += 64;
 
-			if(!_counter) _frame_counter++;
+			if(!_counter)
+			{
+				_phase += 64;
+				_frame_counter++;
+			}
 		}
 
 		State new_state = Blank;
@@ -93,7 +97,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
 				control_byte = _ram[address];
 				int line = _use_double_height_characters ? ((_counter >> 7) & 7) : ((_counter >> 6) & 7);
-				pixels = _ram[_character_set_base_address + control_byte * 8 + line];
+				pixels = _ram[_character_set_base_address + (control_byte&127) * 8 + line];
 			}
 
 			uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;

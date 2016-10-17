@@ -6,8 +6,8 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#ifndef Machines_Oric_Video_hpp
+#define Machines_Oric_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
 
