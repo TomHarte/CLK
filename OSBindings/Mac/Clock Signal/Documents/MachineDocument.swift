@@ -92,6 +92,7 @@ class MachineDocument:
 	}
 
 	override func close() {
+		bestEffortUpdater.flush()
 		actionLock.lock()
 		drawLock.lock()
 		openGLView.invalidate()

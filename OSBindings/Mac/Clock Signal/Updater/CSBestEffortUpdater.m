@@ -63,4 +63,9 @@
 	}
 }
 
+- (void)flush
+{
+	dispatch_sync(_serialDispatchQueue, ^{});
+}
+
 @end

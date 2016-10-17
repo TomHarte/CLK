@@ -25,5 +25,6 @@
 @property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
 
 - (void)update;
+- (void)flush;
 
 @end
