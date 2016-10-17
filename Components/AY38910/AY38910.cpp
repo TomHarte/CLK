@@ -10,7 +10,7 @@
 
 using namespace GI;
 
-AY38910::AY38910() : _selected_register(0), _channel_ouput{0, 0, 0}
+AY38910::AY38910() : _selected_register(0), _channel_ouput{0, 0, 0}, _channel_dividers{0, 0, 0}, _tone_generator_controls{0, 0, 0}
 {
 	_output_registers[8] = _output_registers[9] = _output_registers[10] = 0;
 }
@@ -20,13 +20,6 @@ void AY38910::set_clock_rate(double clock_rate)
 	set_input_rate((float)clock_rate);
 }
 
-#define step(c)	\
-	_channel_dividers[c] -= resulting_steps;	\
-	if(!_channel_dividers[c])	\
-	{	\
-		_channel_dividers[c] = (int)_tone_generator_controls[c] + 1;	\
-		_channel_ouput[c] ^= 1;	\
-	}
 
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
@@ -38,9 +31,23 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		int resulting_steps = ((_master_divider ^ former_master_divider) >> 4) & 1;
 
 		// from that the three channels count down
+#define step(c)	\
+	_channel_dividers[c] -= resulting_steps;	\
+	_channel_ouput[c] ^= (_channel_dividers[c] >> 15);	\
+	_channel_dividers[c] = ((_channel_dividers[c] >> 15) * _tone_generator_controls[c]) + ((_channel_dividers[c] >> 15)^1) * _channel_dividers[c];
+
 		step(0);
 		step(1);
 		step(2);
+
+#undef step
+
+		// ... as does the envelope generator
+		_envelope_divider -= resulting_steps;
+		if(!_envelope_divider)
+		{
+			_envelope_divider = _envelope_period;
+		}
 
 		*target++ = (int16_t)((
 			((_output_registers[8]&0xf) * _channel_ouput[0]) +

@@ -36,6 +36,8 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		int _master_divider;
 		int _channel_dividers[3];
+		int _envelope_divider;
+		int _evelope_volume;
 		int _channel_ouput[3];
 };
 
