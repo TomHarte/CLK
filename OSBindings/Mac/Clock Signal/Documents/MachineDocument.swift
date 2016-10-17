@@ -148,7 +148,7 @@ class MachineDocument:
 	}
 
 	// MARK: CSAudioQueueDelegate
-	final func audioQueueDidCompleteBuffer(_ audioQueue: CSAudioQueue) {
+	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 		bestEffortUpdater.update()
 	}
 

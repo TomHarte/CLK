@@ -11,8 +11,7 @@
 @class CSAudioQueue;
 
 @protocol CSAudioQueueDelegate
-- (void)audioQueueDidCompleteBuffer:(nonnull CSAudioQueue *)audioQueue;	// TODO: rename this to audioQueueNeedsData or something, to indicate that
-																		// it means something more along the lines of 'may run out soon'
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue;
 @end
 
 /*!

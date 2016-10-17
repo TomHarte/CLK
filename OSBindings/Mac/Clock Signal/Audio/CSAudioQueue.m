@@ -21,8 +21,10 @@
 
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
-	_queuedSamples -= (size_t)(buffer->mAudioDataByteSize / sizeof(int16_t));
-	if(_queuedSamples < 128) [self.delegate audioQueueDidCompleteBuffer:self];
+	size_t samplesInBuffer = (size_t)(buffer->mAudioDataByteSize / sizeof(int16_t));
+	if(_queuedSamples >= 128 && _queuedSamples  - samplesInBuffer < 128) [self.delegate audioQueueIsRunningDry:self];
+	_queuedSamples -= samplesInBuffer;
+
 	AudioQueueFreeBuffer(_audioQueue, buffer);
 }
 
