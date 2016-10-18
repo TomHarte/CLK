@@ -119,8 +119,7 @@ class Machine:
 					}
 					else
 					{
-						_port_a_output = value;
-						update_ay();
+						ay8910->set_data_input(value);
 					}
 				}
 
@@ -132,7 +131,7 @@ class Machine:
 					}
 					else
 					{
-						return _port_a_input;
+						return ay8910->get_data_output();
 					}
 				}
 
@@ -152,18 +151,8 @@ class Machine:
 				void update_ay()
 				{
 					ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
-					_half_cycles_since_ay_update &= 1;
-					if(_ay_bdir)
-					{
-						if(_ay_bc1) ay8910->select_register(_port_a_output);
-						else ay8910->set_register_value(_port_a_output);
-					}
-					else
-					{
-						if(_ay_bc1) _port_a_input = ay8910->get_register_value();
-					}
+					ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 				}
-				uint8_t _port_a_output, _port_a_input;
 				bool _ay_bdir, _ay_bc1;
 				unsigned int _half_cycles_since_ay_update;
 		};

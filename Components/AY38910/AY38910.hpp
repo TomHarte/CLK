@@ -21,9 +21,14 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 		void skip_samples(unsigned int number_of_samples);
 
-		void select_register(uint8_t r);
-		void set_register_value(uint8_t value);
-		uint8_t get_register_value();
+		enum ControlLines {
+			BC1		= (1 << 0),
+			BC2		= (1 << 1),
+			BCDIR	= (1 << 2)
+		};
+		void set_data_input(uint8_t r);
+		uint8_t get_data_output();
+		void set_control_lines(ControlLines control_lines);
 
 		uint8_t get_port_output(bool port_b);
 
@@ -39,6 +44,19 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		int _envelope_divider;
 		int _evelope_volume;
 		int _channel_ouput[3];
+
+		enum ControlState {
+			Inactive,
+			LatchAddress,
+			Read,
+			Write
+		} _control_state;
+
+		void select_register(uint8_t r);
+		void set_register_value(uint8_t value);
+		uint8_t get_register_value();
+
+		uint8_t _data_input, _data_output;
 };
 
 };

@@ -108,3 +108,41 @@ uint8_t AY38910::get_port_output(bool port_b)
 {
 	return _registers[port_b ? 15 : 14];
 }
+
+void AY38910::set_data_input(uint8_t r)
+{
+	_data_input = r;
+}
+
+uint8_t AY38910::get_data_output()
+{
+	return _data_output;
+}
+
+void AY38910::set_control_lines(ControlLines control_lines)
+{
+	ControlState new_state;
+	switch((int)control_lines)
+	{
+		default:			new_state = Inactive;		break;
+
+		case (int)(BCDIR | BC2 | BC1):
+		case BCDIR:
+		case BC1:			new_state = LatchAddress;	break;
+
+		case (int)(BC2 | BC1):		new_state = Read;			break;
+		case (int)(BCDIR | BC2):	new_state = Write;			break;
+	}
+
+	if(new_state != _control_state)
+	{
+		_control_state = new_state;
+		switch(new_state)
+		{
+			default: break;
+			case LatchAddress: select_register(_data_input);	break;
+			case Write: set_register_value(_data_input);		break;
+			case Read: _data_output = get_register_value();		break;
+		}
+	}
+}
