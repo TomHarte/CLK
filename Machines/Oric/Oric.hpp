@@ -145,12 +145,13 @@ class Machine:
 				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
-				inline void synchronise() { ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1); }
+				inline void synchronise() { ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1); _half_cycles_since_ay_update = 0; }
 
 			private:
 				void update_ay()
 				{
 					ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
+					_half_cycles_since_ay_update = 0;
 					ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 				}
 				bool _ay_bdir, _ay_bc1;
