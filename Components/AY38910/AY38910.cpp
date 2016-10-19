@@ -20,7 +20,6 @@ void AY38910::set_clock_rate(double clock_rate)
 	set_input_rate((float)clock_rate);
 }
 
-
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
 	for(int c = 0; c < number_of_samples; c++)
@@ -31,10 +30,12 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		int resulting_steps = ((_master_divider ^ former_master_divider) >> 4) & 1;
 
 		// from that the three channels count down
-#define step(c)	\
+#define step(c)	{\
 	_channel_dividers[c] -= resulting_steps;	\
-	_channel_ouput[c] ^= (_channel_dividers[c] >> 15);	\
-	_channel_dividers[c] = ((_channel_dividers[c] >> 15) * _tone_generator_controls[c]) + ((_channel_dividers[c] >> 15)^1) * _channel_dividers[c];
+	int did_underflow = (_channel_dividers[c] >> 15)&1; \
+	_channel_ouput[c] ^= did_underflow;	\
+	_channel_dividers[c] = did_underflow * _tone_generator_controls[c] + (did_underflow^1) * _channel_dividers[c]; \
+	}
 
 		step(0);
 		step(1);
@@ -43,16 +44,18 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 #undef step
 
 		// ... as does the envelope generator
-		_envelope_divider -= resulting_steps;
-		if(!_envelope_divider)
-		{
-			_envelope_divider = _envelope_period;
-		}
+//		_envelope_divider -= resulting_steps;
+//		if(!_envelope_divider)
+//		{
+//			_envelope_divider = _envelope_period;
+//		}
 
-		*target++ = (int16_t)((
-			((_output_registers[8]&0xf) * _channel_ouput[0]) +
-			((_output_registers[9]&0xf) * _channel_ouput[1]) +
-			((_output_registers[10]&0xf) * _channel_ouput[2])
+//		if(_output_registers[9]) printf("%d %d / %d\n", _channel_ouput[1], _channel_dividers[1], _tone_generator_controls[1]);
+
+		target[c] = (int16_t)((
+			(_output_registers[8]&0xf) * _channel_ouput[0] +
+			(_output_registers[9]&0xf) * _channel_ouput[1] +
+			(_output_registers[10]&0xf) * _channel_ouput[2]
 		) * 512);
 	}
 }
@@ -60,6 +63,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 void AY38910::skip_samples(unsigned int number_of_samples)
 {
 	// TODO
+//	printf("Skip %d\n", number_of_samples);
 }
 
 void AY38910::select_register(uint8_t r)
@@ -70,11 +74,10 @@ void AY38910::select_register(uint8_t r)
 void AY38910::set_register_value(uint8_t value)
 {
 	_registers[_selected_register] = value;
-	if(value < 14)
+	if(_selected_register < 14)
 	{
 		int selected_register = _selected_register;
 		enqueue([=] () {
-			_output_registers[selected_register] = value;
 			switch(selected_register)
 			{
 				case 0: case 2: case 4:
@@ -95,6 +98,7 @@ void AY38910::set_register_value(uint8_t value)
 					_envelope_period = (_envelope_period & 0xff) | (uint16_t)(value << 8);
 				break;
 			}
+			_output_registers[selected_register] = value;
 		});
 	}
 }
