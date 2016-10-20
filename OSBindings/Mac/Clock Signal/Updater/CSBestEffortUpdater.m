@@ -38,7 +38,7 @@
 	{
 		dispatch_async(_serialDispatchQueue, ^{
 			NSTimeInterval timeInterval = [NSDate timeIntervalSinceReferenceDate];
-			if(_previousTimeInterval > DBL_EPSILON)
+			if(_previousTimeInterval > DBL_EPSILON && timeInterval > _previousTimeInterval)
 			{
 				NSTimeInterval timeToRunFor = timeInterval - _previousTimeInterval;
 				double cyclesToRunFor = timeToRunFor * self.clockRate + _cyclesError;
