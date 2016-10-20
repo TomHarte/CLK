@@ -64,6 +64,15 @@ AY38910::AY38910() :
 			}
 		}
 	}
+
+	// set up volume lookup table
+	float max_volume = 8192;
+	float root_two = sqrtf(2.0f);
+	for(int v = 0; v < 16; v++)
+	{
+		_volumes[v] = (int)(max_volume / powf(root_two, (float)(v ^ 0xf)));
+	}
+	_volumes[0] = 0;
 }
 
 void AY38910::set_clock_rate(double clock_rate)
@@ -147,11 +156,11 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 #undef channel_volume
 
 		// Mix additively. TODO: non-linear volume.
-		target[c] = (int16_t)((
-			volumes[0] * channel_levels[0] +
-			volumes[1] * channel_levels[1] +
-			volumes[2] * channel_levels[2]
-		) * 512);
+		target[c] = (int16_t)(
+			_volumes[volumes[0]] * channel_levels[0] +
+			_volumes[volumes[1]] * channel_levels[1] +
+			_volumes[volumes[2]] * channel_levels[2]
+		);
 	}
 }
 

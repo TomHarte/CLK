@@ -59,6 +59,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		int _channel_dividers[3];
 		int _channel_output[3];
 
+		int _volumes[16];
 
 		int _master_divider;
 
