@@ -14,7 +14,8 @@ AY38910::AY38910() :
 	_selected_register(0),
 	_channel_output{0, 0, 0}, _channel_dividers{0, 0, 0}, _tone_generator_controls{0, 0, 0},
 	_noise_shift_register(0xffff), _noise_divider(0), _noise_output(0),
-	_envelope_divider(0), _envelope_period(0)
+	_envelope_divider(0), _envelope_period(0), _envelope_position(0),
+	_output_registers{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 {
 	_output_registers[8] = _output_registers[9] = _output_registers[10] = 0;
 
@@ -87,13 +88,13 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		//	(1) decrement, then shift a high-order bit right and mask to get 1 for did underflow, 0 otherwise;
 		//	(2) did_underflow * a + (did_underflow ^ 1) * b to pick between reloading and not reloading
 		int did_underflow;
-#define shift(x, r) \
-	x -= resulting_steps;	\
+#define shift(x, r, steps) \
+	x -= steps;	\
 	did_underflow = (x >> 16)&1; \
 	x = did_underflow * r + (did_underflow^1) * x;
 
 #define step_channel(c)	\
-	shift(_channel_dividers[c], _tone_generator_controls[c]);	\
+	shift(_channel_dividers[c], _tone_generator_controls[c], resulting_steps);	\
 	_channel_output[c] ^= did_underflow;
 
 		// update the tone channels
@@ -103,18 +104,19 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 
 		// ... the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 		// it into the official 17 upon divider underflow.
-		shift(_noise_divider, _output_registers[6]&0x1f);
+		shift(_noise_divider, _output_registers[6]&0x1f, resulting_steps);
 		_noise_output ^= did_underflow&_noise_shift_register&1;
 		_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
 		_noise_shift_register >>= did_underflow;
 
 		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step — a way of
 		// implementing non-repeating patterns by locking them to table position 0x1f.
-		shift(_envelope_divider, _envelope_period);
+//		int envelope_divider = ((_master_divider ^ former_master_divider) >> 8) & 1;
+		shift(_envelope_divider, _envelope_period, resulting_steps);
 		_envelope_position += did_underflow;
 		int refill = _envelope_overflow_masks[_output_registers[13]] * (_envelope_position >> 5);
 		_envelope_position = (_envelope_position & 0x1f) | refill;
-		int envelope_volume = _envelope_shapes[_output_registers[13]][_envelope_position & 0xf];
+		int envelope_volume = _envelope_shapes[_output_registers[13]][_envelope_position];
 
 #undef step_channel
 #undef shift
@@ -197,7 +199,6 @@ void AY38910::set_register_value(uint8_t value)
 				case 13:
 					masked_value &= 0xf;
 					_envelope_position = 0;
-//					printf("envelope %d\n", masked_value);
 				break;
 			}
 			_output_registers[selected_register] = masked_value;
