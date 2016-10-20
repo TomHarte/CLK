@@ -74,15 +74,22 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
 	for(int c = 0; c < number_of_samples; c++)
 	{
-		// a master divider divides the clock by 16
+		// a master divider divides the clock by 16;
+		// resulting_steps will be 1 if a tick occurred, 0 otherwise
 		int former_master_divider = _master_divider;
 		_master_divider++;
 		int resulting_steps = ((_master_divider ^ former_master_divider) >> 4) & 1;
 
+		// Bluffer's guide to the stuff below: I wanted to avoid branches. If I avoid branches then
+		// I avoid stalls.
+		//
+		// Repeating patterns are:
+		//	(1) decrement, then shift a high-order bit right and mask to get 1 for did underflow, 0 otherwise;
+		//	(2) did_underflow * a + (did_underflow ^ 1) * b to pick between reloading and not reloading
 		int did_underflow;
 #define shift(x, r) \
 	x -= resulting_steps;	\
-	did_underflow = (x >> 15)&1; \
+	did_underflow = (x >> 16)&1; \
 	x = did_underflow * r + (did_underflow^1) * x;
 
 #define step_channel(c)	\
@@ -94,13 +101,15 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		step_channel(1);
 		step_channel(2);
 
-		// ... the noise generator
+		// ... the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
+		// it into the official 17 upon divider underflow.
 		shift(_noise_divider, _output_registers[6]&0x1f);
 		_noise_output ^= did_underflow&_noise_shift_register&1;
 		_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
 		_noise_shift_register >>= did_underflow;
 
-		// ... and the envelope generator
+		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step — a way of
+		// implementing non-repeating patterns by locking them to table position 0x1f.
 		shift(_envelope_divider, _envelope_period);
 		_envelope_position += did_underflow;
 		int refill = _envelope_overflow_masks[_output_registers[13]] * (_envelope_position >> 5);
@@ -110,6 +119,10 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 #undef step_channel
 #undef shift
 
+		// The output level for a channel is:
+		//	1 if neither tone nor noise is enabled;
+		//	0 if either tone or noise is enabled and its value is low.
+		// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
 #define level(c, tb, nb)	\
 	(((((_output_registers[7] >> tb)&1)^1) & _channel_output[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
@@ -120,6 +133,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		};
 #undef level
 
+		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits
 #define channel_volume(c)	\
 	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0x1f)
 
@@ -130,6 +144,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		};
 #undef channel_volume
 
+		// Mix additively. TODO: non-linear volume.
 		target[c] = (int16_t)((
 			volumes[0] * channel_levels[0] +
 			volumes[1] * channel_levels[1] +
