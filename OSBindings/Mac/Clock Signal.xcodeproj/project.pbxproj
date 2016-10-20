@@ -1597,16 +1597,16 @@
 		4BB73EDC1B587CA500552FC2 /* Machines */ = {
 			isa = PBXGroup;
 			children = (
+				4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */,
 				4B1E85731D170228001EF87D /* Typer.cpp */,
 				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
 				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
+				4B2A33291DB8544D002876E3 /* MemoryFuzzer.hpp */,
 				4B1E85741D170228001EF87D /* Typer.hpp */,
 				4B2E2D961C3A06EC00138695 /* Atari2600 */,
 				4B4DC81D1D2C2425003C5BF8 /* Commodore */,
 				4B2E2D9E1C3A070900138695 /* Electron */,
 				4BCF1FA51DADC3E10039D2E7 /* Oric */,
-				4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */,
-				4B2A33291DB8544D002876E3 /* MemoryFuzzer.hpp */,
 			);
 			name = Machines;
 			path = ../../Machines;
