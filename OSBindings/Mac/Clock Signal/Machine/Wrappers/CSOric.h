@@ -11,4 +11,6 @@
 
 @interface CSOric : CSMachine <CSKeyboardMachine>
 
+@property(nonatomic, assign) BOOL useCompositeOutput;
+
 @end

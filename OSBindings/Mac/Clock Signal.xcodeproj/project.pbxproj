@@ -20,6 +20,8 @@
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
 		4B2A332A1DB8544D002876E3 /* MemoryFuzzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */; };
+		4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2A332B1DB86821002876E3 /* OricOptions.xib */; };
+		4B2A332F1DB86869002876E3 /* OricOptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */; };
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
 		4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53961D117D36003C6002 /* CSMachine.mm */; };
 		4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
@@ -422,6 +424,8 @@
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryFuzzer.cpp; sourceTree = "<group>"; };
 		4B2A33291DB8544D002876E3 /* MemoryFuzzer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MemoryFuzzer.hpp; sourceTree = "<group>"; };
+		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
+		4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OricOptionsPanel.swift; sourceTree = "<group>"; };
 		4B2A53901D117D36003C6002 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
 		4B2A53911D117D36003C6002 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
 		4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
@@ -1101,10 +1105,12 @@
 				4B8FE2281DA1EDDF0090D3CE /* ElectronOptionsPanel.swift */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */,
+				4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */,
 				4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */,
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
 				4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */,
 				4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */,
+				4B2A332B1DB86821002876E3 /* OricOptions.xib */,
 				4B8FE2191DA19D5F0090D3CE /* Vic20Options.xib */,
 			);
 			path = Documents;
@@ -1917,6 +1923,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
+				4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */,
 				4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */,
 				4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */,
 				4B8FE21E1DA19D5F0090D3CE /* Vic20Options.xib in Resources */,
@@ -2241,6 +2248,7 @@
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B2A332A1DB8544D002876E3 /* MemoryFuzzer.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
+				4B2A332F1DB86869002876E3 /* OricOptionsPanel.swift in Sources */,
 				4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */,
 				4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */,
 				4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */,
@@ -2342,6 +2350,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		4B2A332B1DB86821002876E3 /* OricOptions.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B2A332C1DB86821002876E3 /* Base */,
+			);
+			name = OricOptions.xib;
+			sourceTree = "<group>";
+		};
 		4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
