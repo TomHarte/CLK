@@ -93,3 +93,45 @@ void TapePlayer::process_next_event()
 	process_input_pulse(_current_pulse);
 	get_next_pulse();
 }
+
+#pragma mark - Binary Player
+
+BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
+	TapePlayer(input_clock_rate), _motor_is_running(false)
+{}
+
+void BinaryTapePlayer::set_motor_control(bool enabled)
+{
+	_motor_is_running = enabled;
+}
+
+void BinaryTapePlayer::set_tape_output(bool set)
+{
+	// TODO
+}
+
+bool BinaryTapePlayer::get_input()
+{
+	return _input_level;
+}
+
+void BinaryTapePlayer::run_for_cycles(int number_of_cycles)
+{
+	if(_motor_is_running) TapePlayer::run_for_cycles(number_of_cycles);
+}
+
+void BinaryTapePlayer::set_delegate(Delegate *delegate)
+{
+	_delegate = delegate;
+}
+
+void BinaryTapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
+{
+	bool new_input_level = pulse.type == Tape::Pulse::Low;
+	if(_input_level != new_input_level)
+	{
+		_input_level = new_input_level;
+		if(_delegate) _delegate->tape_did_change_input(this);
+	}
+}
+
