@@ -61,6 +61,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 		if(!h_counter)
 		{
+			printf("\n");
 			_ink = 0xff;
 			_paper = 0x00;
 			_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
@@ -118,7 +119,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
 			if(_blink_text) inverse_mask ^= (_frame_counter&32) ? 0x77 : 0x00;
 
-			if((control_byte & 0x7f) >= 32)
+			if(control_byte & 0x60)
 			{
 				if(_pixel_target)
 				{
@@ -134,7 +135,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			}
 			else
 			{
-				switch(control_byte & 0x7f)
+				switch(control_byte & 0x1f)
 				{
 					case 0x00:		_ink = 0x00;	break;
 					case 0x01:		_ink = 0x44;	break;
