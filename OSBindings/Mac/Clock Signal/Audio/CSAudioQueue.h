@@ -11,7 +11,7 @@
 @class CSAudioQueue;
 
 @protocol CSAudioQueueDelegate
-- (void)audioQueueDidCompleteBuffer:(nonnull CSAudioQueue *)audioQueue;
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue;
 @end
 
 /*!

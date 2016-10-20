@@ -53,7 +53,7 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	switch(displayType)
 	{
 		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 1135, 4);
+			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500);	// i.e. 283.7516
 		break;
 
 		case DisplayType::NTSC60:

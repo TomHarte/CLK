@@ -214,29 +214,6 @@ class SerialPort : public ::Commodore::Serial::Port {
 		std::weak_ptr<UserPortVIA> _userPortVIA;
 };
 
-class Tape: public Storage::Tape::TapePlayer {
-	public:
-		Tape();
-
-		void set_motor_control(bool enabled);
-		void set_tape_output(bool set);
-		inline bool get_input() { return _input_level; }
-
-		class Delegate {
-			public:
-				virtual void tape_did_change_input(Tape *tape) = 0;
-		};
-		void set_delegate(Delegate *delegate)
-		{
-			_delegate = delegate;
-		}
-
-	private:
-		Delegate *_delegate;
-		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
-		bool _input_level;
-};
-
 class Vic6560: public MOS::MOS6560<Vic6560> {
 	public:
 		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
@@ -254,7 +231,7 @@ class Machine:
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public Utility::TypeRecipient,
-	public Tape::Delegate,
+	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public ConfigurationTarget::Machine {
 
 	public:
@@ -301,7 +278,7 @@ class Machine:
 		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
 
 		// for Tape::Delegate
-		virtual void tape_did_change_input(Tape *tape);
+		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);
 
 	private:
 		uint8_t _characterROM[0x1000];
@@ -332,7 +309,7 @@ class Machine:
 //		std::shared_ptr<::Commodore::Serial::DebugPort> _debugPort;
 
 		// Tape
-		Tape _tape;
+		Storage::Tape::BinaryTapePlayer _tape;
 		bool _use_fast_tape_hack, _should_automatically_load_media;
 		bool _is_running_at_zero_cost;
 

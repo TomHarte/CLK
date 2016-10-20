@@ -42,7 +42,9 @@ class MOS6502InterruptTests: XCTestCase {
 		XCTAssert(machine.value(for: .programCounter) == 0x4004, "No interrupt should have occurred from interrupt raised between instructions")
 
 		// run for a further 7 cycles, confirm that the IRQ vector was jumped to
-		machine.runForNumber(ofCycles: 7)
+		machine.runForNumber(ofCycles: 6)
+		XCTAssert(machine.value(for: .programCounter) != 0x1234, "Interrupt routine should not yet have begun")
+		machine.runForNumber(ofCycles: 1)
 		XCTAssert(machine.value(for: .programCounter) == 0x1234, "Interrupt routine should just have begun")
     }
 

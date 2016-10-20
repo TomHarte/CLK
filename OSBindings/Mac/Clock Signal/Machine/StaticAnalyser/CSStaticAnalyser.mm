@@ -10,9 +10,16 @@
 
 #import "CSMachine.h"
 #import "CSMachine+Target.h"
-#import "Clock_Signal-Swift.h"
-#include "StaticAnalyser.hpp"
 #import "CSMachine+Subclassing.h"
+
+#include "StaticAnalyser.hpp"
+
+#import "CSAtari2600.h"
+#import "CSElectron.h"
+#import "CSOric.h"
+#import "CSVic20.h"
+
+#import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser
 {
@@ -38,21 +45,23 @@
 {
 	switch(_target.machine)
 	{
-		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
-		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
 		case StaticAnalyser::Target::Atari2600:	return @"Atari2600Options";
+		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
+		case StaticAnalyser::Target::Oric:		return @"OricOptions";
+		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
+		default: return nil;
 	}
-
-	return nil;
 }
 
 - (CSMachine *)newMachine
 {
 	switch(_target.machine)
 	{
-		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
-		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
 		case StaticAnalyser::Target::Atari2600:	return [[CSAtari2600 alloc] init];
+		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
+		case StaticAnalyser::Target::Oric:		return [[CSOric alloc] init];
+		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
+		default: return nil;
 	}
 }
 

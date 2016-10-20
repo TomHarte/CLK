@@ -17,23 +17,25 @@ AsyncTaskQueue::AsyncTaskQueue() : should_destruct_(false)
 		{
 			std::function<void(void)> next_function;
 
-			queue_mutex_.lock();
+			// Take lock, check for a new task
+			std::unique_lock<std::mutex> lock(queue_mutex_);
 			if(!pending_tasks_.empty())
 			{
 				next_function = pending_tasks_.front();
 				pending_tasks_.pop_front();
 			}
-			queue_mutex_.unlock();
 
 			if(next_function)
 			{
+				// If there is a task, release lock and perform it
+				lock.unlock();
 				next_function();
 			}
 			else
 			{
-				std::unique_lock<std::mutex> lock(queue_mutex_);
+				// If there isn't a task, atomically block on the processing condition and release the lock
+				// until there's something pending (and then release it again via scope)
 				processing_condition_.wait(lock);
-				lock.unlock();
 			}
 		}
 	}));
@@ -44,20 +46,24 @@ AsyncTaskQueue::~AsyncTaskQueue()
 	should_destruct_ = true;
 	enqueue([](){});
 	thread_->join();
+	thread_.reset();
 }
 
 void AsyncTaskQueue::enqueue(std::function<void(void)> function)
 {
-	queue_mutex_.lock();
-	pending_tasks_.push_back(function);
-	queue_mutex_.unlock();
-
 	std::lock_guard<std::mutex> lock(queue_mutex_);
+	pending_tasks_.push_back(function);
 	processing_condition_.notify_all();
 }
 
-void AsyncTaskQueue::synchronise()
+void AsyncTaskQueue::flush()
 {
-	// TODO
-//	std::mutex
+	std::shared_ptr<std::mutex> flush_mutex(new std::mutex);
+	std::shared_ptr<std::condition_variable> flush_condition(new std::condition_variable);
+	std::unique_lock<std::mutex> lock(*flush_mutex);
+	enqueue([=] () {
+		std::unique_lock<std::mutex> inner_lock(*flush_mutex);
+		flush_condition->notify_all();
+	});
+	flush_condition->wait(lock);
 }

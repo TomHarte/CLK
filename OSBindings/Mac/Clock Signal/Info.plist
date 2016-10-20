@@ -94,7 +94,7 @@
 				<string>tap</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Commodore Tape Image</string>
+			<string>Tape Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSTypeIsPackage</key>

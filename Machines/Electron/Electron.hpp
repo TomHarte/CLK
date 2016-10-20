@@ -148,12 +148,14 @@ class Machine:
 		Machine();
 
 		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable);
-		void configure_as_target(const StaticAnalyser::Target &target);
 
 		void set_key_state(Key key, bool isPressed);
 		void clear_all_keys();
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+
+		// to satisfy ConfigurationTarget::Machine
+		void configure_as_target(const StaticAnalyser::Target &target);
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);

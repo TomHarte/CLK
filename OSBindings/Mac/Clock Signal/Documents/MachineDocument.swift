@@ -92,6 +92,7 @@ class MachineDocument:
 	}
 
 	override func close() {
+		bestEffortUpdater.flush()
 		actionLock.lock()
 		drawLock.lock()
 		openGLView.invalidate()
@@ -120,6 +121,8 @@ class MachineDocument:
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
+		} else {
+			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
 		}
 	}
 
@@ -145,7 +148,7 @@ class MachineDocument:
 	}
 
 	// MARK: CSAudioQueueDelegate
-	final func audioQueueDidCompleteBuffer(_ audioQueue: CSAudioQueue) {
+	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 		bestEffortUpdater.update()
 	}
 

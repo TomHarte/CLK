@@ -9,7 +9,8 @@ So its aims are:
 
 In terms of platforms, it currently contains emulations of the:
 * Acorn Electron;
-* Atari 2600; and
+* Atari 2600;
+* Oric 1/Atmos; and
 * Commodore Vic-20 (and Commodore 1540/1).
 
 ## Single-click Loading

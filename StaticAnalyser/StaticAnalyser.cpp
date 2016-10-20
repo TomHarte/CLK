@@ -14,6 +14,7 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
+#include "Oric/StaticAnalyser.hpp"
 
 // Cartridges
 #include "../Storage/Cartridge/Formats/BinaryDump.hpp"
@@ -27,6 +28,7 @@
 
 // Tapes
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"
+#include "../Storage/Tape/Formats/OricTAP.hpp"
 #include "../Storage/Tape/Formats/TapePRG.hpp"
 #include "../Storage/Tape/Formats/TapeUEF.hpp"
 
@@ -34,7 +36,8 @@ typedef int TargetPlatformType;
 enum class TargetPlatform: TargetPlatformType {
 	Acorn		=	1 << 0,
 	Atari2600	=	1 << 1,
-	Commodore	=	1 << 2
+	Commodore	=	1 << 2,
+	Oric		=	1 << 3
 };
 
 using namespace StaticAnalyser;
@@ -104,7 +107,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 	Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
 	Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
-	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP
+	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
+	Format("tap", tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
 	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
 
 #undef Format
@@ -113,8 +117,9 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them. (TODO)
 	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
 	if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
 
 	free(lowercase_extension);
 	return targets;
