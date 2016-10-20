@@ -79,60 +79,56 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		_master_divider++;
 		int resulting_steps = ((_master_divider ^ former_master_divider) >> 4) & 1;
 
-		// from that the three channels count down
 		int did_underflow;
-#define step(c)	\
-	_channel_dividers[c] -= resulting_steps;	\
-	did_underflow = (_channel_dividers[c] >> 15)&1; \
-	_channel_output[c] ^= did_underflow;	\
-	_channel_dividers[c] = did_underflow * _tone_generator_controls[c] + (did_underflow^1) * _channel_dividers[c];
+#define shift(x, r) \
+	x -= resulting_steps;	\
+	did_underflow = (x >> 15)&1; \
+	x = did_underflow * r + (did_underflow^1) * x;
 
-		step(0);
-		step(1);
-		step(2);
+#define step_channel(c)	\
+	shift(_channel_dividers[c], _tone_generator_controls[c]);	\
+	_channel_output[c] ^= did_underflow;
 
-#undef step
+		// update the tone channels
+		step_channel(0);
+		step_channel(1);
+		step_channel(2);
 
-		// ... as does the noise generator
-		_noise_divider -= resulting_steps;
-		did_underflow = (_noise_divider >> 15)&1;
-		_noise_divider = did_underflow * (_output_registers[6]&0x1f) + (did_underflow^1) * _noise_divider;
+		// ... the noise generator
+		shift(_noise_divider, _output_registers[6]&0x1f);
 		_noise_output ^= did_underflow&_noise_shift_register&1;
 		_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
 		_noise_shift_register >>= did_underflow;
 
 		// ... and the envelope generator
-		_envelope_divider -= resulting_steps;
-		did_underflow = (_envelope_divider >> 15)&1;
-		_envelope_divider = did_underflow * _envelope_period + (did_underflow^1) * _envelope_divider;
+		shift(_envelope_divider, _envelope_period);
 		_envelope_position += did_underflow;
-
-//		if(_output_registers[13] == 13)
-//		{
-//			printf("[%d] %d", _envelope_divider, _envelope_position);
-//		}
-
 		int refill = _envelope_overflow_masks[_output_registers[13]] * (_envelope_position >> 5);
 		_envelope_position = (_envelope_position & 0x1f) | refill;
-
 		int envelope_volume = _envelope_shapes[_output_registers[13]][_envelope_position & 0xf];
 
-//		if(_output_registers[13] == 13)
-//		{
-//			printf(": %d\n", envelope_volume);
-//		}
+#undef step_channel
+#undef shift
+
+#define level(c, tb, nb)	\
+	(((((_output_registers[7] >> tb)&1)^1) & _channel_output[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
 		int channel_levels[3] = {
-			(((((_output_registers[7] >> 0)&1)^1) & _channel_output[0]) | ((((_output_registers[7] >> 1)&1)^1) & _noise_output)) ^ 1,
-			(((((_output_registers[7] >> 2)&1)^1) & _channel_output[1]) | ((((_output_registers[7] >> 3)&1)^1) & _noise_output)) ^ 1,
-			(((((_output_registers[7] >> 4)&1)^1) & _channel_output[2]) | ((((_output_registers[7] >> 5)&1)^1) & _noise_output)) ^ 1,
+			level(0, 0, 1),
+			level(1, 2, 3),
+			level(2, 4, 5),
 		};
+#undef level
+
+#define channel_volume(c)	\
+	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0x1f)
 
 		int volumes[3] = {
-			((_output_registers[8] >> 4)&1) * envelope_volume + (((_output_registers[8] >> 4)&1)^1) * (_output_registers[8]&0x1f),
-			((_output_registers[9] >> 4)&1) * envelope_volume + (((_output_registers[9] >> 4)&1)^1) * (_output_registers[9]&0x1f),
-			((_output_registers[10] >> 4)&1) * envelope_volume + (((_output_registers[10] >> 4)&1)^1) * (_output_registers[10]&0x1f),
+			channel_volume(8),
+			channel_volume(9),
+			channel_volume(10)
 		};
+#undef channel_volume
 
 		target[c] = (int16_t)((
 			volumes[0] * channel_levels[0] +
@@ -219,11 +215,11 @@ void AY38910::set_control_lines(ControlLines control_lines)
 	ControlState new_state;
 	switch((int)control_lines)
 	{
-		default:			new_state = Inactive;		break;
+		default:					new_state = Inactive;		break;
 
 		case (int)(BCDIR | BC2 | BC1):
 		case BCDIR:
-		case BC1:			new_state = LatchAddress;	break;
+		case BC1:					new_state = LatchAddress;	break;
 
 		case (int)(BC2 | BC1):		new_state = Read;			break;
 		case (int)(BCDIR | BC2):	new_state = Write;			break;
@@ -235,9 +231,9 @@ void AY38910::set_control_lines(ControlLines control_lines)
 		switch(new_state)
 		{
 			default: break;
-			case LatchAddress: select_register(_data_input);	break;
-			case Write: set_register_value(_data_input);		break;
-			case Read: _data_output = get_register_value();		break;
+			case LatchAddress:	select_register(_data_input);			break;
+			case Write:			set_register_value(_data_input);		break;
+			case Read:			_data_output = get_register_value();	break;
 		}
 	}
 }
