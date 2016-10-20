@@ -37,13 +37,22 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		uint8_t _registers[16], _output_registers[16];
 
 		uint16_t _tone_generator_controls[3];
-		uint16_t _envelope_period;
+		int _channel_dividers[3];
+		int _channel_output[3];
+
 
 		int _master_divider;
-		int _channel_dividers[3];
+
+		int _noise_divider;
+		int _noise_shift_register;
+		int _noise_output;
+
+		int _envelope_period;
 		int _envelope_divider;
-		int _evelope_volume;
-		int _channel_ouput[3];
+
+		int _envelope_position;
+		int _envelope_shapes[16][32];
+		int _envelope_overflow_masks[16];
 
 		enum ControlState {
 			Inactive,
