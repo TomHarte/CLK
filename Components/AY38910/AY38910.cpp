@@ -137,7 +137,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 
 		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits
 #define channel_volume(c)	\
-	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0x1f)
+	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0xf)
 
 		int volumes[3] = {
 			channel_volume(8),
