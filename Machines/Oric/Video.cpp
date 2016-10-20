@@ -10,13 +10,24 @@
 
 using namespace Oric;
 
+namespace {
+	const unsigned int PAL50VSyncStartPosition = 256*64;
+	const unsigned int PAL60VSyncStartPosition = 234*64;
+	const unsigned int PAL50VSyncEndPosition = 259*64;
+	const unsigned int PAL60VSyncEndPosition = 238*64;
+	const unsigned int PAL50Period = 312*64;
+	const unsigned int PAL60Period = 262*64;
+}
+
 VideoOutput::VideoOutput(uint8_t *memory) :
 	_ram(memory),
 	_frame_counter(0), _counter(0),
 	_state(Sync), _cycles_in_state(0),
 	_is_graphics_mode(false),
 	_character_set_base_address(0xb400),
-	_phase(0)
+	_phase(0),
+	_v_sync_start_position(PAL50VSyncStartPosition), _v_sync_end_position(PAL50VSyncEndPosition),
+	_counter_period(PAL50Period), _next_frame_is_sixty_hertz(false)
 {
 	_crt.reset(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1));
 
@@ -45,7 +56,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 	while(number_of_cycles--)
 	{
-		_counter = (_counter + 1)%(312 * 64);	// TODO: NTSC
+		_counter = (_counter + 1)%_counter_period;
 		int h_counter =_counter & 63;
 
 		if(!h_counter)
@@ -60,13 +71,17 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			{
 				_phase += 128;
 				_frame_counter++;
+
+				_v_sync_start_position = _next_frame_is_sixty_hertz ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
+				_v_sync_end_position = _next_frame_is_sixty_hertz ? PAL60VSyncEndPosition : PAL50VSyncEndPosition;
+				_counter_period = _next_frame_is_sixty_hertz ? PAL60Period : PAL50Period;
 			}
 		}
 
 		State new_state = Blank;
 		if(
 			(h_counter >= 48 && h_counter <= 53) ||
-			(_counter >= 256*64 && _counter <= 259*64)) new_state = Sync;
+			(_counter >= _v_sync_start_position && _counter <= _v_sync_end_position)) new_state = Sync;
 		else if(h_counter >= 54 && h_counter <= 56) new_state = ColourBurst;
 		else if(_counter < 224*64 && h_counter < 40) new_state = Pixels;
 
@@ -150,7 +165,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 					case 0x18: case 0x19: case 0x1a: case 0x1b:
 					case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 						_is_graphics_mode = (control_byte & 4);
-						_is_sixty_hertz = !(control_byte & 2);
+						_next_frame_is_sixty_hertz = !(control_byte & 2);
 					break;
 
 					default: break;

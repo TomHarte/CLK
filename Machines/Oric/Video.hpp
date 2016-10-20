@@ -23,8 +23,9 @@ class VideoOutput {
 		uint8_t *_ram;
 		std::shared_ptr<Outputs::CRT::CRT> _crt;
 
-		// Counters
+		// Counters and limits
 		int _counter, _frame_counter;
+		int _v_sync_start_position, _v_sync_end_position, _counter_period;
 
 		// Output state
 		enum State {
@@ -44,7 +45,7 @@ class VideoOutput {
 		}
 
 		bool _is_graphics_mode;
-		bool _is_sixty_hertz;
+		bool _next_frame_is_sixty_hertz;
 		bool _use_alternative_character_set;
 		bool _use_double_height_characters;
 		bool _blink_text;
