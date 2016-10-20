@@ -7,6 +7,7 @@
 //
 
 #include "Oric.hpp"
+#include "../MemoryFuzzer.hpp"
 
 using namespace Oric;
 
@@ -19,6 +20,7 @@ Machine::Machine() : _cycles_since_video_update(0)
 	_via.keyboard = _keyboard;
 	clear_all_keys();
 	_via.tape->set_delegate(this);
+	Memory::Fuzz(_ram, sizeof(_ram));
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
