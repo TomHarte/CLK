@@ -39,7 +39,7 @@ class AsyncTaskQueue {
 		/*!
 			Blocks the caller until all previously-enqueud functions have completed.
 		*/
-		void synchronise();
+		void flush();
 
 	private:
 		std::unique_ptr<std::thread> thread_;

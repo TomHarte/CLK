@@ -46,7 +46,7 @@ AsyncTaskQueue::~AsyncTaskQueue()
 	should_destruct_ = true;
 	enqueue([](){});
 	thread_->join();
-	thread_.reset( );
+	thread_.reset();
 }
 
 void AsyncTaskQueue::enqueue(std::function<void(void)> function)
@@ -56,8 +56,14 @@ void AsyncTaskQueue::enqueue(std::function<void(void)> function)
 	processing_condition_.notify_all();
 }
 
-void AsyncTaskQueue::synchronise()
+void AsyncTaskQueue::flush()
 {
-	// TODO
-//	std::mutex
+	std::shared_ptr<std::mutex> flush_mutex(new std::mutex);
+	std::shared_ptr<std::condition_variable> flush_condition(new std::condition_variable);
+	std::unique_lock<std::mutex> lock(*flush_mutex);
+	enqueue([=] () {
+		std::unique_lock<std::mutex> inner_lock(*flush_mutex);
+		flush_condition->notify_all();
+	});
+	flush_condition->wait(lock);
 }

@@ -26,7 +26,7 @@ namespace Outputs {
 	Intended to be a parent class, allowing descendants to pick the strategy by which input samples are mapped to
 	output samples.
 */
-class Speaker: public Concurrency::AsyncTaskQueue {
+class Speaker {
 	public:
 		class Delegate {
 			public:
@@ -85,9 +85,18 @@ class Speaker: public Concurrency::AsyncTaskQueue {
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0) {}
+		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0), _queue(new Concurrency::AsyncTaskQueue) {}
 
 	protected:
+		void enqueue(std::function<void(void)> function)
+		{
+			_queue->enqueue(function);
+		}
+		void flush()
+		{
+			_queue->flush();
+		}
+
 		std::unique_ptr<int16_t> _buffer_in_progress;
 		float _high_frequency_cut_off;
 		int _buffer_size;
@@ -109,6 +118,8 @@ class Speaker: public Concurrency::AsyncTaskQueue {
 			int16_t throwaway_samples[quantity];
 			get_samples(quantity, throwaway_samples);
 		}
+
+		std::unique_ptr<Concurrency::AsyncTaskQueue> _queue;
 };
 
 /*!
@@ -123,6 +134,11 @@ class Speaker: public Concurrency::AsyncTaskQueue {
 */
 template <class T> class Filter: public Speaker {
 	public:
+		~Filter()
+		{
+			flush();
+		}
+
 		void run_for_cycles(unsigned int input_cycles)
 		{
 			enqueue([=]() {
