@@ -105,14 +105,17 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 			if((control_byte & 0x7f) >= 32)
 			{
-				uint8_t colours[2] = {
-					(uint8_t)(_paper ^ inverse_mask),
-					(uint8_t)(_ink ^ inverse_mask),
-				};
+				if(_pixel_target)
+				{
+					uint8_t colours[2] = {
+						(uint8_t)(_paper ^ inverse_mask),
+						(uint8_t)(_ink ^ inverse_mask),
+					};
 
-				_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
-				_pixel_target[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
-				_pixel_target[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+					_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
+					_pixel_target[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
+					_pixel_target[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+				}
 			}
 			else
 			{
@@ -152,9 +155,9 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 					default: break;
 				}
-				_pixel_target[0] = _pixel_target[1] = _pixel_target[2] = (uint8_t)(_paper ^ inverse_mask);
+				if(_pixel_target) _pixel_target[0] = _pixel_target[1] = _pixel_target[2] = (uint8_t)(_paper ^ inverse_mask);
 			}
-			_pixel_target += 3;
+			if(_pixel_target) _pixel_target += 3;
 		}
 	}
 }
