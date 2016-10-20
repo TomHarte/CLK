@@ -129,9 +129,9 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 	(((((_output_registers[7] >> tb)&1)^1) & _channel_output[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
 		int channel_levels[3] = {
-			level(0, 0, 1),
-			level(1, 2, 3),
-			level(2, 4, 5),
+			level(0, 0, 3),
+			level(1, 1, 4),
+			level(2, 2, 5),
 		};
 #undef level
 
