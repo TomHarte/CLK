@@ -39,62 +39,21 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 	public:
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		SerialPortVIA() : _portB(0x00), _attention_acknowledge_level(false), _attention_level_input(true), _data_level_output(false) {}
+		SerialPortVIA();
 
-		uint8_t get_port_input(Port port) {
-			if(port) {
-				return _portB;
-			}
+		uint8_t get_port_input(Port port);
 
-			return 0xff;
-		}
+		void set_port_output(Port port, uint8_t value, uint8_t mask);
+		void set_serial_line_state(::Commodore::Serial::Line line, bool value);
 
-		void set_port_output(Port port, uint8_t value, uint8_t mask) {
-			if(port) {
-				std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
-				if(serialPort) {
-					_attention_acknowledge_level = !(value&0x10);
-					_data_level_output = (value&0x02);
-
-					serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!(value&0x08));
-					update_data_line();
-				}
-			}
-		}
-
-		void set_serial_line_state(::Commodore::Serial::Line line, bool value) {
-			switch(line) {
-				default: break;
-				case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
-				case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
-				case ::Commodore::Serial::Line::Attention:
-					_attention_level_input = !value;
-					_portB = (_portB & ~0x80) | (value ? 0x00 : 0x80);
-					set_control_line_input(Port::A, Line::One, !value);
-					update_data_line();
-				break;
-			}
-		}
-
-		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort) {
-			_serialPort = serialPort;
-		}
+		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort);
 
 	private:
 		uint8_t _portB;
 		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
 		bool _attention_acknowledge_level, _attention_level_input, _data_level_output;
 
-		void update_data_line()
-		{
-			std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
-			if(serialPort) {
-				// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
-				serialPort->set_output(::Commodore::Serial::Line::Data,
-					(::Commodore::Serial::LineLevel)(!_data_level_output
-					&& (_attention_level_input != _attention_acknowledge_level)));
- 			}
-		}
+		void update_data_line();
 };
 
 /*!
@@ -120,68 +79,22 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 				virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
 				virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
 		};
-		void set_delegate(Delegate *delegate)
-		{
-			_delegate = delegate;
-		}
+		void set_delegate(Delegate *delegate);
 
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		// write protect tab uncovered
-		DriveVIA() : _port_b(0xff), _port_a(0xff), _delegate(nullptr) {}
+		DriveVIA();
 
-		uint8_t get_port_input(Port port) {
-			return port ? _port_b : _port_a;
-		}
+		uint8_t get_port_input(Port port);
 
-		void set_sync_detected(bool sync_detected) {
-			_port_b = (_port_b & 0x7f) | (sync_detected ? 0x00 : 0x80);
-		}
+		void set_sync_detected(bool sync_detected);
+		void set_data_input(uint8_t value);
+		bool get_should_set_overflow();
+		bool get_motor_enabled();
 
-		void set_data_input(uint8_t value) {
-			_port_a = value;
-		}
+		void set_control_line_output(Port port, Line line, bool value);
 
-		bool get_should_set_overflow() {
-			return _should_set_overflow;
-		}
-
-		bool get_motor_enabled() {
-			return _drive_motor;
-		}
-
-		void set_control_line_output(Port port, Line line, bool value) {
-			if(port == Port::A && line == Line::Two) {
-				_should_set_overflow = value;
-			}
-		}
-
-		void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
-			if(port)
-			{
-				// record drive motor state
-				_drive_motor = !!(value&4);
-
-				// check for a head step
-				int step_difference = ((value&3) - (_previous_port_b_output&3))&3;
-				if(step_difference)
-				{
-					if(_delegate) _delegate->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
-				}
-
-				// check for a change in density
-				int density_difference = (_previous_port_b_output^value) & (3 << 5);
-				if(density_difference && _delegate)
-				{
-					_delegate->drive_via_did_set_data_density(this, (value >> 5)&3);
-				}
-
-				// TODO: something with the drive LED
-//					printf("LED: %s\n", value&8 ? "On" : "Off");
-
-				_previous_port_b_output = value;
-			}
-		}
+		void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
 
 	private:
 		uint8_t _port_b, _port_a;
@@ -196,14 +109,8 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 */
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
-		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
-			std::shared_ptr<SerialPortVIA> serialPortVIA = _serialPortVIA.lock();
-			if(serialPortVIA) serialPortVIA->set_serial_line_state(line, (bool)level);
-		}
-
-		void set_serial_port_via(std::shared_ptr<SerialPortVIA> serialPortVIA) {
-			_serialPortVIA = serialPortVIA;
-		}
+		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level);
+		void set_serial_port_via(std::shared_ptr<SerialPortVIA> serialPortVIA);
 
 	private:
 		std::weak_ptr<SerialPortVIA> _serialPortVIA;
