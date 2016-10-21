@@ -134,7 +134,8 @@ void Machine::VIA::set_control_line_output(Port port, Line line, bool value)
 	}
 }
 
-void Machine::VIA::set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+void Machine::VIA::set_port_output(Port port, uint8_t value, uint8_t direction_mask)
+{
 	if(port)
 	{
 		keyboard->row = value;
@@ -146,7 +147,8 @@ void Machine::VIA::set_port_output(Port port, uint8_t value, uint8_t direction_m
 	}
 }
 
-uint8_t Machine::VIA::get_port_input(Port port) {
+uint8_t Machine::VIA::get_port_input(Port port)
+{
 	if(port)
 	{
 		uint8_t column = ay8910->get_port_output(false) ^ 0xff;
