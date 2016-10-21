@@ -61,7 +61,6 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 		if(!h_counter)
 		{
-			printf("\n");
 			_ink = 0xff;
 			_paper = 0x00;
 			_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
