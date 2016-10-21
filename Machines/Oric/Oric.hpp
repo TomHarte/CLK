@@ -102,58 +102,19 @@ class Machine:
 			public:
 				using MOS6522IRQDelegate::set_interrupt_status;
 
-				void set_control_line_output(Port port, Line line, bool value)
-				{
-					if(line)
-					{
-						if(port) _ay_bdir = value; else _ay_bc1 = value;
-						update_ay();
-					}
-				}
-
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
-					if(port)
-					{
-						keyboard->row = value;
-						tape->set_motor_control(value & 0x40);
-					}
-					else
-					{
-						ay8910->set_data_input(value);
-					}
-				}
-
-				uint8_t get_port_input(Port port) {
-					if(port)
-					{
-						uint8_t column = ay8910->get_port_output(false) ^ 0xff;
-						return (keyboard->rows[keyboard->row & 7] & column) ? 0x08 : 0x00;
-					}
-					else
-					{
-						return ay8910->get_data_output();
-					}
-				}
-
-				inline void run_for_half_cycles(unsigned int number_of_cycles)
-				{
-					_half_cycles_since_ay_update += number_of_cycles;
-					MOS::MOS6522<VIA>::run_for_half_cycles(number_of_cycles);
-				}
+				void set_control_line_output(Port port, Line line, bool value);
+				void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
+				uint8_t get_port_input(Port port);
+				inline void run_for_half_cycles(unsigned int number_of_cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
 				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
-				inline void synchronise() { ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1); _half_cycles_since_ay_update = 0; }
+				void synchronise();
 
 			private:
-				void update_ay()
-				{
-					ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
-					_half_cycles_since_ay_update = 0;
-					ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
-				}
+				void update_ay();
 				bool _ay_bdir, _ay_bc1;
 				unsigned int _half_cycles_since_ay_update;
 		};
