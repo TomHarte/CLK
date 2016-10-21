@@ -474,3 +474,140 @@ bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, 
 	return true;
 }
 
+#pragma mark - UserPortVIA
+
+uint8_t UserPortVIA::get_port_input(Port port)
+{
+	if(!port)
+	{
+		return _portA;	// TODO: bit 6 should be high if there is no tape, low otherwise
+	}
+	return 0xff;
+}
+
+void UserPortVIA::set_control_line_output(Port port, Line line, bool value)
+{
+//	if(port == Port::A && line == Line::Two) {
+//		printf("Tape motor %s\n", value ? "on" : "off");
+//	}
+}
+
+void UserPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool value)
+{
+	switch(line)
+	{
+		default: break;
+		case ::Commodore::Serial::Line::Data: _portA = (_portA & ~0x02) | (value ? 0x02 : 0x00);	break;
+		case ::Commodore::Serial::Line::Clock: _portA = (_portA & ~0x01) | (value ? 0x01 : 0x00);	break;
+	}
+}
+
+void UserPortVIA::set_joystick_state(JoystickInput input, bool value)
+{
+	if(input != JoystickInput::Right)
+	{
+		_portA = (_portA & ~input) | (value ? 0 : input);
+	}
+}
+
+void UserPortVIA::set_port_output(Port port, uint8_t value, uint8_t mask)
+{
+	// Line 7 of port A is inverted and output as serial ATN
+	if(!port)
+	{
+		std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+		if(serialPort)
+			serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
+	}
+}
+
+UserPortVIA::UserPortVIA() : _portA(0xbf) {}
+
+void UserPortVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort)
+{
+	_serialPort = serialPort;
+}
+
+#pragma mark - KeyboardVIA
+
+KeyboardVIA::KeyboardVIA() : _portB(0xff)
+{
+	clear_all_keys();
+}
+
+void KeyboardVIA::set_key_state(Key key, bool isPressed)
+{
+	if(isPressed)
+		_columns[key & 7] &= ~(key >> 3);
+	else
+		_columns[key & 7] |= (key >> 3);
+}
+
+void KeyboardVIA::clear_all_keys()
+{
+	memset(_columns, 0xff, sizeof(_columns));
+}
+
+uint8_t KeyboardVIA::get_port_input(Port port)
+{
+	if(!port)
+	{
+		uint8_t result = 0xff;
+		for(int c = 0; c < 8; c++)
+		{
+			if(!(_activation_mask&(1 << c)))
+				result &= _columns[c];
+		}
+		return result;
+	}
+
+	return _portB;
+}
+
+void KeyboardVIA::set_port_output(Port port, uint8_t value, uint8_t mask)
+{
+	if(port)
+		_activation_mask = (value & mask) | (~mask);
+}
+
+void KeyboardVIA::set_control_line_output(Port port, Line line, bool value)
+{
+	if(line == Line::Two)
+	{
+		std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+		if(serialPort)
+		{
+			// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
+			if(port == Port::A)
+				serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!value);
+			else
+				serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)!value);
+		}
+	}
+}
+
+void KeyboardVIA::set_joystick_state(JoystickInput input, bool value)
+{
+	if(input == JoystickInput::Right)
+	{
+		_portB = (_portB & ~input) | (value ? 0 : input);
+	}
+}
+
+void KeyboardVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort)
+{
+	_serialPort = serialPort;
+}
+
+#pragma mark - SerialPort
+
+void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level)
+{
+	std::shared_ptr<UserPortVIA> userPortVIA = _userPortVIA.lock();
+	if(userPortVIA) userPortVIA->set_serial_line_state(line, (bool)level);
+}
+
+void SerialPort::set_user_port_via(std::shared_ptr<UserPortVIA> userPortVIA)
+{
+	_userPortVIA = userPortVIA;
+}

@@ -122,3 +122,57 @@ void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player
 	// set CB1
 	_via.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
 }
+
+#pragma mark - The 6522
+
+void Machine::VIA::set_control_line_output(Port port, Line line, bool value)
+{
+	if(line)
+	{
+		if(port) _ay_bdir = value; else _ay_bc1 = value;
+		update_ay();
+	}
+}
+
+void Machine::VIA::set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+	if(port)
+	{
+		keyboard->row = value;
+		tape->set_motor_control(value & 0x40);
+	}
+	else
+	{
+		ay8910->set_data_input(value);
+	}
+}
+
+uint8_t Machine::VIA::get_port_input(Port port) {
+	if(port)
+	{
+		uint8_t column = ay8910->get_port_output(false) ^ 0xff;
+		return (keyboard->rows[keyboard->row & 7] & column) ? 0x08 : 0x00;
+	}
+	else
+	{
+		return ay8910->get_data_output();
+	}
+}
+
+void Machine::VIA::synchronise()
+{
+	ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
+	_half_cycles_since_ay_update &= 1;
+}
+
+void Machine::VIA::run_for_half_cycles(unsigned int number_of_cycles)
+{
+	_half_cycles_since_ay_update += number_of_cycles;
+	MOS::MOS6522<VIA>::run_for_half_cycles(number_of_cycles);
+}
+
+void Machine::VIA::update_ay()
+{
+	ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
+	_half_cycles_since_ay_update &= 1;
+	ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+}
