@@ -12,7 +12,7 @@ using namespace GI;
 
 AY38910::AY38910() :
 	_selected_register(0),
-	_channel_output{0, 0, 0}, _channel_dividers{0, 0, 0}, _tone_generator_controls{0, 0, 0},
+	_tone_counters{0, 0, 0}, _tone_dividers{0, 0, 0},
 	_noise_shift_register(0xffff), _noise_divider(0), _noise_output(0),
 	_envelope_divider(0), _envelope_period(0), _envelope_position(0),
 	_output_registers{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -89,9 +89,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 	for(; c < 16 && c < _master_divider; c++) target[c - offset] = _output_volume;
 	while(c < _master_divider)
 	{
-#define step_channel(c)	\
-	if(_channel_dividers[c]) _channel_dividers[c] --;	\
-	else { _channel_dividers[c] = _tone_generator_controls[c]; _channel_output[c] ^= 1; }
+#define step_channel(c)	_tone_counters[c] = (_tone_counters[c] + 1) % (2 * (_tone_dividers[c] + 1))
 
 		// update the tone channels
 		step_channel(0);
@@ -142,7 +140,7 @@ void AY38910::evaluate_output_volume()
 	//	0 if either tone or noise is enabled and its value is low.
 	// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
 #define level(c, tb, nb)	\
-	(((((_output_registers[7] >> tb)&1)^1) & _channel_output[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
+	(((((_output_registers[7] >> tb)&1)^1) & (_tone_counters[c] / (_tone_dividers[c] + 1))) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
 	int channel_levels[3] = {
 		level(0, 0, 3),
@@ -195,11 +193,13 @@ void AY38910::set_register_value(uint8_t value)
 				case 1: case 3: case 5:
 				{
 					int channel = selected_register >> 1;
+
+					_tone_counters[channel] /= _tone_dividers[channel] + 1;
 					if(selected_register & 1)
-						_tone_generator_controls[channel] = (_tone_generator_controls[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
+						_tone_dividers[channel] = (_tone_dividers[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
 					else
-						_tone_generator_controls[channel] = (_tone_generator_controls[channel] & ~0xff) | value;
-					_channel_dividers[channel] = _tone_generator_controls[channel];
+						_tone_dividers[channel] = (_tone_dividers[channel] & ~0xff) | value;
+					_tone_counters[channel] *= _tone_dividers[channel] + 1;
 				}
 				break;
 

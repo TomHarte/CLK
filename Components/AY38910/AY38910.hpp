@@ -55,9 +55,8 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		int _selected_register;
 		uint8_t _registers[16], _output_registers[16];
 
-		int _tone_generator_controls[3];
-		int _channel_dividers[3];
-		int _channel_output[3];
+		int _tone_dividers[3];
+		int _tone_counters[3];
 
 		int _volumes[16];
 
