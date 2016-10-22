@@ -86,6 +86,9 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		uint8_t get_register_value();
 
 		uint8_t _data_input, _data_output;
+
+		int16_t _output_volume;
+		void evaluate_output_volume();
 };
 
 };

@@ -82,86 +82,90 @@ void AY38910::set_clock_rate(double clock_rate)
 
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
-	for(int c = 0; c < number_of_samples; c++)
+	int offset = _master_divider;
+	int c = _master_divider;
+	_master_divider += number_of_samples;
+
+	for(; c < 16 && c < _master_divider; c++) target[c - offset] = _output_volume;
+	while(c < _master_divider)
 	{
-		// a master divider divides the clock by 16;
-		// resulting_steps will be 1 if a tick occurred, 0 otherwise
-		int former_master_divider = _master_divider;
-		_master_divider++;
-		int resulting_steps = ((_master_divider ^ former_master_divider) >> 4) & 1;
-
-		// Bluffer's guide to the stuff below: I wanted to avoid branches. If I avoid branches then
-		// I avoid stalls.
-		//
-		// Repeating patterns are:
-		//	(1) decrement, then shift a high-order bit right and mask to get 1 for did underflow, 0 otherwise;
-		//	(2) did_underflow * a + (did_underflow ^ 1) * b to pick between reloading and not reloading
-		int did_underflow;
-#define shift(x, r, steps) \
-	x -= steps;	\
-	did_underflow = (x >> 16)&1; \
-	x = did_underflow * r + (did_underflow^1) * x;
-
 #define step_channel(c)	\
-	shift(_channel_dividers[c], _tone_generator_controls[c], resulting_steps);	\
-	_channel_output[c] ^= did_underflow;
+	if(_channel_dividers[c]) _channel_dividers[c] --;	\
+	else { _channel_dividers[c] = _tone_generator_controls[c]; _channel_output[c] ^= 1; }
 
 		// update the tone channels
 		step_channel(0);
 		step_channel(1);
 		step_channel(2);
 
+#undef step_channel
+
 		// ... the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 		// it into the official 17 upon divider underflow.
-		shift(_noise_divider, _output_registers[6]&0x1f, resulting_steps);
-		_noise_output ^= did_underflow&_noise_shift_register&1;
-		_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
-		_noise_shift_register >>= did_underflow;
+		if(_noise_divider) _noise_divider--;
+		else
+		{
+			_noise_divider = _output_registers[6]&0x1f;
+			_noise_output ^= _noise_shift_register&1;
+			_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
+			_noise_shift_register >>= 1;
+		}
 
 		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step — a way of
 		// implementing non-repeating patterns by locking them to table position 0x1f.
-//		int envelope_divider = ((_master_divider ^ former_master_divider) >> 8) & 1;
-		shift(_envelope_divider, _envelope_period, resulting_steps);
-		_envelope_position += did_underflow;
-		int refill = _envelope_overflow_masks[_output_registers[13]] * (_envelope_position >> 5);
-		_envelope_position = (_envelope_position & 0x1f) | refill;
-		int envelope_volume = _envelope_shapes[_output_registers[13]][_envelope_position];
+		if(_envelope_divider) _envelope_divider--;
+		else
+		{
+			_envelope_divider = _envelope_period;
+			_envelope_position ++;
+			if(_envelope_position == 32) _envelope_position = _envelope_overflow_masks[_output_registers[13]];
+		}
 
-#undef step_channel
-#undef shift
+		evaluate_output_volume();
 
-		// The output level for a channel is:
-		//	1 if neither tone nor noise is enabled;
-		//	0 if either tone or noise is enabled and its value is low.
-		// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
+		for(int ic = 0; ic < 16 && c < _master_divider; ic++)
+		{
+			target[c - offset] = _output_volume;
+			c++;
+		}
+	}
+}
+
+void AY38910::evaluate_output_volume()
+{
+	int envelope_volume = _envelope_shapes[_output_registers[13]][_envelope_position];
+
+	// The output level for a channel is:
+	//	1 if neither tone nor noise is enabled;
+	//	0 if either tone or noise is enabled and its value is low.
+	// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
 #define level(c, tb, nb)	\
 	(((((_output_registers[7] >> tb)&1)^1) & _channel_output[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
-		int channel_levels[3] = {
-			level(0, 0, 3),
-			level(1, 1, 4),
-			level(2, 2, 5),
-		};
+	int channel_levels[3] = {
+		level(0, 0, 3),
+		level(1, 1, 4),
+		level(2, 2, 5),
+	};
 #undef level
 
 		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits
 #define channel_volume(c)	\
 	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0xf)
 
-		int volumes[3] = {
-			channel_volume(8),
-			channel_volume(9),
-			channel_volume(10)
-		};
+	int volumes[3] = {
+		channel_volume(8),
+		channel_volume(9),
+		channel_volume(10)
+	};
 #undef channel_volume
 
-		// Mix additively. TODO: non-linear volume.
-		target[c] = (int16_t)(
-			_volumes[volumes[0]] * channel_levels[0] +
-			_volumes[volumes[1]] * channel_levels[1] +
-			_volumes[volumes[2]] * channel_levels[2]
-		);
-	}
+	// Mix additively.
+	_output_volume = (int16_t)(
+		_volumes[volumes[0]] * channel_levels[0] +
+		_volumes[volumes[1]] * channel_levels[1] +
+		_volumes[volumes[2]] * channel_levels[2]
+	);
 }
 
 void AY38910::skip_samples(unsigned int number_of_samples)
@@ -188,21 +192,23 @@ void AY38910::set_register_value(uint8_t value)
 				case 0: case 2: case 4:
 					_tone_generator_controls[selected_register >> 1] =
 						(_tone_generator_controls[selected_register >> 1] & ~0xff) | value;
+					_channel_dividers[selected_register >> 1] = _tone_generator_controls[selected_register >> 1];
 				break;
 
 				case 1: case 3: case 5:
 					_tone_generator_controls[selected_register >> 1] =
 						(_tone_generator_controls[selected_register >> 1] & 0xff) | (uint16_t)((value&0xf) << 8);
+					_channel_dividers[selected_register >> 1] = _tone_generator_controls[selected_register >> 1];
 				break;
 
 				case 11:
 					_envelope_period = (_envelope_period & ~0xff) | value;
-//					printf("e: %d", _envelope_period);
+					_envelope_divider = _envelope_period;
 				break;
 
 				case 12:
 					_envelope_period = (_envelope_period & 0xff) | (int)(value << 8);
-//					printf("e: %d", _envelope_period);
+					_envelope_divider = _envelope_period;
 				break;
 
 				case 13:
@@ -211,6 +217,7 @@ void AY38910::set_register_value(uint8_t value)
 				break;
 			}
 			_output_registers[selected_register] = masked_value;
+			evaluate_output_volume();
 		});
 	}
 }
