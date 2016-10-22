@@ -105,7 +105,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		if(_noise_divider) _noise_divider--;
 		else
 		{
-			_noise_divider = _output_registers[6]&0x1f;
+			_noise_divider = _output_registers[6];
 			_noise_output ^= _noise_shift_register&1;
 			_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
 			_noise_shift_register >>= 1;
@@ -199,6 +199,11 @@ void AY38910::set_register_value(uint8_t value)
 					_tone_generator_controls[selected_register >> 1] =
 						(_tone_generator_controls[selected_register >> 1] & 0xff) | (uint16_t)((value&0xf) << 8);
 					_channel_dividers[selected_register >> 1] = _tone_generator_controls[selected_register >> 1];
+				break;
+
+				case 6:
+					masked_value &= 0x1f;
+					_noise_divider = masked_value;
 				break;
 
 				case 11:
