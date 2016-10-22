@@ -129,6 +129,8 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 			c++;
 		}
 	}
+
+	_master_divider &= 15;
 }
 
 void AY38910::evaluate_output_volume()
@@ -190,15 +192,15 @@ void AY38910::set_register_value(uint8_t value)
 			switch(selected_register)
 			{
 				case 0: case 2: case 4:
-					_tone_generator_controls[selected_register >> 1] =
-						(_tone_generator_controls[selected_register >> 1] & ~0xff) | value;
-					_channel_dividers[selected_register >> 1] = _tone_generator_controls[selected_register >> 1];
-				break;
-
 				case 1: case 3: case 5:
-					_tone_generator_controls[selected_register >> 1] =
-						(_tone_generator_controls[selected_register >> 1] & 0xff) | (uint16_t)((value&0xf) << 8);
-					_channel_dividers[selected_register >> 1] = _tone_generator_controls[selected_register >> 1];
+				{
+					int channel = selected_register >> 1;
+					if(selected_register & 1)
+						_tone_generator_controls[channel] = (_tone_generator_controls[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
+					else
+						_tone_generator_controls[channel] = (_tone_generator_controls[channel] & ~0xff) | value;
+					_channel_dividers[channel] = _tone_generator_controls[channel];
+				}
 				break;
 
 				case 6:
