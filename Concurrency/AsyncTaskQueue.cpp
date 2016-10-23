@@ -10,8 +10,14 @@
 
 using namespace Concurrency;
 
-AsyncTaskQueue::AsyncTaskQueue() : should_destruct_(false)
+AsyncTaskQueue::AsyncTaskQueue()
+#ifndef __APPLE__
+	: should_destruct_(false)
+#endif
 {
+#ifdef __APPLE__
+	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
+#else
 	thread_.reset(new std::thread([this]() {
 		while(!should_destruct_)
 		{
@@ -39,25 +45,37 @@ AsyncTaskQueue::AsyncTaskQueue() : should_destruct_(false)
 			}
 		}
 	}));
+#endif
 }
 
 AsyncTaskQueue::~AsyncTaskQueue()
 {
+#ifdef __APPLE__
+	dispatch_release(serial_dispatch_queue_);
+#else
 	should_destruct_ = true;
 	enqueue([](){});
 	thread_->join();
 	thread_.reset();
+#endif
 }
 
 void AsyncTaskQueue::enqueue(std::function<void(void)> function)
 {
+#ifdef __APPLE__
+	dispatch_async(serial_dispatch_queue_, ^{function();});
+#else
 	std::lock_guard<std::mutex> lock(queue_mutex_);
 	pending_tasks_.push_back(function);
 	processing_condition_.notify_all();
+#endif
 }
 
 void AsyncTaskQueue::flush()
 {
+#ifdef __APPLE__
+	dispatch_sync(serial_dispatch_queue_, ^{});
+#else
 	std::shared_ptr<std::mutex> flush_mutex(new std::mutex);
 	std::shared_ptr<std::condition_variable> flush_condition(new std::condition_variable);
 	std::unique_lock<std::mutex> lock(*flush_mutex);
@@ -66,4 +84,5 @@ void AsyncTaskQueue::flush()
 		flush_condition->notify_all();
 	});
 	flush_condition->wait(lock);
+#endif
 }

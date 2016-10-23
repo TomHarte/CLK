@@ -168,12 +168,6 @@ void AY38910::evaluate_output_volume()
 	);
 }
 
-void AY38910::skip_samples(unsigned int number_of_samples)
-{
-	// TODO
-//	printf("Skip %d\n", number_of_samples);
-}
-
 void AY38910::select_register(uint8_t r)
 {
 	_selected_register = r & 0xf;

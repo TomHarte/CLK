@@ -49,7 +49,6 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
 		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
 
 	private:
 		int _selected_register;
