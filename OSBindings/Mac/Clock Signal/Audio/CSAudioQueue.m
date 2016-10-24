@@ -10,10 +10,13 @@
 @import AudioToolbox;
 
 #define AudioQueueBufferMaxLength		8192
+#define NumberOfStoredAudioQueueBuffer	16
 
 @implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
+
+	AudioQueueBufferRef _storedBuffers[NumberOfStoredAudioQueueBuffer];
 }
 
 #pragma mark - AudioQueue callbacks
@@ -21,6 +24,19 @@
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
 	[self.delegate audioQueueIsRunningDry:self];
+
+	@synchronized(self)
+	{
+		for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
+		{
+			if(!_storedBuffers[c] || buffer->mAudioDataBytesCapacity > _storedBuffers[c]->mAudioDataBytesCapacity)
+			{
+				if(_storedBuffers[c]) AudioQueueFreeBuffer(_audioQueue, _storedBuffers[c]);
+				_storedBuffers[c] = buffer;
+				return;
+			}
+		}
+	}
 	AudioQueueFreeBuffer(_audioQueue, buffer);
 }
 
@@ -95,14 +111,30 @@ static void audioOutputCallback(
 
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples
 {
-	AudioQueueBufferRef newBuffer;
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
 
-	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes, &newBuffer);
-	memcpy(newBuffer->mAudioData, buffer, bufferBytes);
-	newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
+	@synchronized(self)
+	{
+		for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
+		{
+			if(_storedBuffers[c] && _storedBuffers[c]->mAudioDataBytesCapacity >= bufferBytes)
+			{
+				memcpy(_storedBuffers[c]->mAudioData, buffer, bufferBytes);
+				_storedBuffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
 
-	AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
+				AudioQueueEnqueueBuffer(_audioQueue, _storedBuffers[c], 0, NULL);
+				_storedBuffers[c] = NULL;
+				return;
+			}
+		}
+
+		AudioQueueBufferRef newBuffer;
+		AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);
+		memcpy(newBuffer->mAudioData, buffer, bufferBytes);
+		newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
+
+		AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
+	}
 }
 
 #pragma mark - Sampling Rate getters
