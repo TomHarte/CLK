@@ -12,8 +12,8 @@ using namespace GI;
 
 AY38910::AY38910() :
 	_selected_register(0),
-	_tone_counters{0, 0, 0}, _tone_dividers{0, 0, 0}, _tone_outputs{0, 0, 0},
-	_noise_shift_register(0xffff), _noise_divider(0), _noise_output(0),
+	_tone_counters{0, 0, 0}, _tone_periods{0, 0, 0}, _tone_outputs{0, 0, 0},
+	_noise_shift_register(0xffff), _noise_period(0), _noise_counter(0), _noise_output(0),
 	_envelope_divider(0), _envelope_period(0), _envelope_position(0),
 	_output_registers{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 {
@@ -97,10 +97,8 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 	else\
 	{\
 		_tone_outputs[c] ^= 1;\
-		_tone_counters[c] = _tone_dividers[c];\
+		_tone_counters[c] = _tone_periods[c];\
 	}
-
-//	_tone_counters[c] = (_tone_counters[c] + 1) % (2 * (_tone_dividers[c] + 1))
 
 		// update the tone channels
 		step_channel(0);
@@ -111,10 +109,10 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 
 		// ... the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 		// it into the official 17 upon divider underflow.
-		if(_noise_divider) _noise_divider--;
+		if(_noise_counter) _noise_counter--;
 		else
 		{
-			_noise_divider = _output_registers[6];
+			_noise_counter = _noise_period;
 			_noise_output ^= _noise_shift_register&1;
 			_noise_shift_register |= ((_noise_shift_register ^ (_noise_shift_register >> 3))&1) << 17;
 			_noise_shift_register >>= 1;
@@ -198,19 +196,17 @@ void AY38910::set_register_value(uint8_t value)
 				{
 					int channel = selected_register >> 1;
 
-//					_tone_counters[channel] /= _tone_dividers[channel] + 1;
 					if(selected_register & 1)
-						_tone_dividers[channel] = (_tone_dividers[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
+						_tone_periods[channel] = (_tone_periods[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
 					else
-						_tone_dividers[channel] = (_tone_dividers[channel] & ~0xff) | value;
-//					_tone_counters[channel] *= _tone_dividers[channel] + 1;
-					_tone_counters[channel] = _tone_dividers[channel];
+						_tone_periods[channel] = (_tone_periods[channel] & ~0xff) | value;
+					_tone_counters[channel] = _tone_periods[channel];
 				}
 				break;
 
 				case 6:
-					masked_value &= 0x1f;
-					_noise_divider = masked_value;
+					_noise_period = value & 0x1f;
+					_noise_counter = _noise_period;
 				break;
 
 				case 11:
