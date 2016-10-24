@@ -56,6 +56,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		int _tone_dividers[3];
 		int _tone_counters[3];
+		int _tone_outputs[3];
 
 		int _volumes[16];
 

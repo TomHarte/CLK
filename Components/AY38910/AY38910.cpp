@@ -12,7 +12,7 @@ using namespace GI;
 
 AY38910::AY38910() :
 	_selected_register(0),
-	_tone_counters{0, 0, 0}, _tone_dividers{0, 0, 0},
+	_tone_counters{0, 0, 0}, _tone_dividers{0, 0, 0}, _tone_outputs{0, 0, 0},
 	_noise_shift_register(0xffff), _noise_divider(0), _noise_output(0),
 	_envelope_divider(0), _envelope_period(0), _envelope_position(0),
 	_output_registers{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -82,14 +82,25 @@ void AY38910::set_clock_rate(double clock_rate)
 
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 {
-	int offset = _master_divider;
-	int c = _master_divider;
-	_master_divider += number_of_samples;
-
-	for(; c < 16 && c < _master_divider; c++) target[c - offset] = _output_volume;
-	while(c < _master_divider)
+	int c = 0;
+	while((_master_divider&15) && c < number_of_samples)
 	{
-#define step_channel(c)	_tone_counters[c] = (_tone_counters[c] + 1) % (2 * (_tone_dividers[c] + 1))
+		target[c] = _output_volume;
+		_master_divider++;
+		c++;
+	}
+
+	while(c < number_of_samples)
+	{
+#define step_channel(c) \
+	if(_tone_counters[c]) _tone_counters[c]--;\
+	else\
+	{\
+		_tone_outputs[c] ^= 1;\
+		_tone_counters[c] = _tone_dividers[c];\
+	}
+
+//	_tone_counters[c] = (_tone_counters[c] + 1) % (2 * (_tone_dividers[c] + 1))
 
 		// update the tone channels
 		step_channel(0);
@@ -121,14 +132,13 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 
 		evaluate_output_volume();
 
-		for(int ic = 0; ic < 16 && c < _master_divider; ic++)
+		for(int ic = 0; ic < 16 && c < number_of_samples; ic++)
 		{
-			target[c - offset] = _output_volume;
+			target[c] = _output_volume;
 			c++;
+			_master_divider++;
 		}
 	}
-
-	_master_divider &= 15;
 }
 
 void AY38910::evaluate_output_volume()
@@ -140,7 +150,7 @@ void AY38910::evaluate_output_volume()
 	//	0 if either tone or noise is enabled and its value is low.
 	// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
 #define level(c, tb, nb)	\
-	(((((_output_registers[7] >> tb)&1)^1) & (_tone_counters[c] / (_tone_dividers[c] + 1))) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
+	(((((_output_registers[7] >> tb)&1)^1) & _tone_outputs[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
 
 	int channel_levels[3] = {
 		level(0, 0, 3),
@@ -188,12 +198,13 @@ void AY38910::set_register_value(uint8_t value)
 				{
 					int channel = selected_register >> 1;
 
-					_tone_counters[channel] /= _tone_dividers[channel] + 1;
+//					_tone_counters[channel] /= _tone_dividers[channel] + 1;
 					if(selected_register & 1)
 						_tone_dividers[channel] = (_tone_dividers[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
 					else
 						_tone_dividers[channel] = (_tone_dividers[channel] & ~0xff) | value;
-					_tone_counters[channel] *= _tone_dividers[channel] + 1;
+//					_tone_counters[channel] *= _tone_dividers[channel] + 1;
+					_tone_counters[channel] = _tone_dividers[channel];
 				}
 				break;
 
