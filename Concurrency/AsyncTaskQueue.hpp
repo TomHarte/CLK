@@ -14,6 +14,10 @@
 #include <list>
 #include <condition_variable>
 
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#endif
+
 namespace Concurrency {
 
 /*!
@@ -42,12 +46,16 @@ class AsyncTaskQueue {
 		void flush();
 
 	private:
+#ifdef __APPLE__
+		dispatch_queue_t serial_dispatch_queue_;
+#else
 		std::unique_ptr<std::thread> thread_;
 
 		std::mutex queue_mutex_;
 		std::list<std::function<void(void)>> pending_tasks_;
 		std::condition_variable processing_condition_;
 		std::atomic_bool should_destruct_;
+#endif
 };
 
 }

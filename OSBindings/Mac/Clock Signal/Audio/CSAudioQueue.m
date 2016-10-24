@@ -14,22 +14,13 @@
 @implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
-	size_t _queuedSamples;
-	BOOL _hasHad256;
 }
 
 #pragma mark - AudioQueue callbacks
 
 - (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
-	size_t samplesInBuffer = (size_t)(buffer->mAudioDataByteSize / sizeof(int16_t));
-	if(_queuedSamples >= 128 && _queuedSamples  - samplesInBuffer < 128 && _hasHad256)
-	{
-		_hasHad256 = NO;
-		[self.delegate audioQueueIsRunningDry:self];
-	}
-	_queuedSamples -= samplesInBuffer;
-
+	[self.delegate audioQueueIsRunningDry:self];
 	AudioQueueFreeBuffer(_audioQueue, buffer);
 }
 
@@ -106,8 +97,6 @@ static void audioOutputCallback(
 {
 	AudioQueueBufferRef newBuffer;
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
-	_queuedSamples += lengthInSamples;
-	_hasHad256 |= (_queuedSamples >= 256);
 
 	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes, &newBuffer);
 	memcpy(newBuffer->mAudioData, buffer, bufferBytes);

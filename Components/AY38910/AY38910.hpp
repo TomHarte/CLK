@@ -49,30 +49,29 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
 		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
 
 	private:
 		int _selected_register;
 		uint8_t _registers[16], _output_registers[16];
 
-		int _tone_generator_controls[3];
-		int _channel_dividers[3];
-		int _channel_output[3];
-
-		int _volumes[16];
-
 		int _master_divider;
 
-		int _noise_divider;
+		int _tone_periods[3];
+		int _tone_counters[3];
+		int _tone_outputs[3];
+
+		int _noise_period;
+		int _noise_counter;
 		int _noise_shift_register;
 		int _noise_output;
 
 		int _envelope_period;
 		int _envelope_divider;
-
 		int _envelope_position;
 		int _envelope_shapes[16][32];
 		int _envelope_overflow_masks[16];
+
+		int _volumes[16];
 
 		enum ControlState {
 			Inactive,
@@ -86,6 +85,9 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		uint8_t get_register_value();
 
 		uint8_t _data_input, _data_output;
+
+		int16_t _output_volume;
+		inline void evaluate_output_volume();
 };
 
 };
