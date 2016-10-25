@@ -630,17 +630,6 @@ template <class T> class Processor {
 				{
 					while(number_of_cycles > 0) {
 
-						if(nextBusOperation != BusOperation::None) {
-							if(isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
-								_ready_is_active = true;
-								break;
-							}
-							_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);
-							_irq_request_history = _irq_line_is_enabled && !_interruptFlag;
-							number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
-							nextBusOperation = BusOperation::None;
-						}
-
 						const MicroOp cycle = program[scheduleProgramProgramCounter];
 						scheduleProgramProgramCounter++;
 
@@ -669,11 +658,11 @@ template <class T> class Processor {
 //										printf("%02x\n", _operation);
 //								}
 //								last_cycles_left_to_run = _cycles_left_to_run;
-							} continue;
+							} break;
 
 							case CycleFetchOperand:
 								read_mem(_operand, _pc.full);
-							continue;
+							break;
 
 							case OperationDecodeOperation:
 //								printf("d %02x\n", _operation);
@@ -695,21 +684,21 @@ template <class T> class Processor {
 		}
 
 							case CycleIncPCPushPCH:				_pc.full++;														// deliberate fallthrough
-							case CyclePushPCH:					push(_pc.bytes.high);											continue;
-							case CyclePushPCL:					push(_pc.bytes.low);											continue;
-							case CyclePushOperand:				push(_operand);													continue;
-							case CyclePushA:					push(_a);														continue;
+							case CyclePushPCH:					push(_pc.bytes.high);											break;
+							case CyclePushPCL:					push(_pc.bytes.low);											break;
+							case CyclePushOperand:				push(_operand);													break;
+							case CyclePushA:					push(_a);														break;
 							case CycleNoWritePush:
 							{
 								uint16_t targetAddress = _s | 0x100; _s--;
 								read_mem(_operand, targetAddress);
 							}
-							continue;
+							break;
 
 #undef push
 
-							case CycleReadFromS:				throwaway_read(_s | 0x100);										continue;
-							case CycleReadFromPC:				throwaway_read(_pc.full);										continue;
+							case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
+							case CycleReadFromPC:				throwaway_read(_pc.full);										break;
 
 							case OperationBRKPickVector:
 								// NMI can usurp BRK-vector operations
@@ -718,28 +707,28 @@ template <class T> class Processor {
 							continue;
 							case OperationNMIPickVector:		nextAddress.full = 0xfffa;											continue;
 							case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
-							case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							continue;
-							case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						continue;
+							case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							break;
+							case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						break;
 							case OperationSetI:					_interruptFlag = Flag::Interrupt;									continue;
 
-							case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							continue;
-							case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							continue;
-							case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										continue;
-							case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								continue;
+							case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
+							case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
+							case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										break;
+							case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
 							case OperationSetFlagsFromOperand:	set_flags(_operand);												continue;
 							case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;						continue;
 							case OperationSetOperandFromFlags:  _operand = get_flags();												continue;
 							case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									continue;
 
-							case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								continue;
-							case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								continue;
-							case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		continue;
+							case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
+							case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
+							case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
 
 							case CycleReadAndIncrementPC: {
 								uint16_t oldPC = _pc.full;
 								_pc.full++;
 								throwaway_read(oldPC);
-							} continue;
+							} break;
 
 #pragma mark - JAM
 
@@ -752,7 +741,7 @@ template <class T> class Processor {
 									_jam_handler->processor_did_jam(this, _pc.full - 1);
 									checkSchedule(_is_jammed = false; program = _scheduledPrograms[scheduleProgramsReadPointer]);
 								}
-							} continue;
+							} break;
 
 #pragma mark - Bitwise
 
@@ -965,58 +954,58 @@ template <class T> class Processor {
 								if(_address.bytes.high != nextAddress.bytes.high) {
 									throwaway_read(_address.full);
 								}
-							continue;
+							break;
 							case CycleAddXToAddressLowRead:
 								nextAddress.full = _address.full + _x;
 								_address.bytes.low = nextAddress.bytes.low;
 								throwaway_read(_address.full);
-							continue;
+							break;
 							case CycleAddYToAddressLow:
 								nextAddress.full = _address.full + _y;
 								_address.bytes.low = nextAddress.bytes.low;
 								if(_address.bytes.high != nextAddress.bytes.high) {
 									throwaway_read(_address.full);
 								}
-							continue;
+							break;
 							case CycleAddYToAddressLowRead:
 								nextAddress.full = _address.full + _y;
 								_address.bytes.low = nextAddress.bytes.low;
 								throwaway_read(_address.full);
-							continue;
+							break;
 							case OperationCorrectAddressHigh:
 								_address.full = nextAddress.full;
 							continue;
 							case CycleIncrementPCFetchAddressLowFromOperand:
 								_pc.full++;
 								read_mem(_address.bytes.low, _operand);
-							continue;
+							break;
 							case CycleAddXToOperandFetchAddressLow:
 								_operand += _x;
 								read_mem(_address.bytes.low, _operand);
-							continue;
+							break;
 							case CycleIncrementOperandFetchAddressHigh:
 								_operand++;
 								read_mem(_address.bytes.high, _operand);
-							continue;
+							break;
 							case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
 								_pc.full++;
 							case CycleReadPCHLoadPCL: {
 								uint16_t oldPC = _pc.full;
 								_pc.bytes.low = _operand;
 								read_mem(_pc.bytes.high, oldPC);
-							} continue;
+							} break;
 
 							case CycleReadAddressHLoadAddressL:
 								_address.bytes.low = _operand; _pc.full++;
 								read_mem(_address.bytes.high, _pc.full);
-							continue;
+							break;
 
 							case CycleLoadAddressAbsolute: {
 								uint16_t nextPC = _pc.full+1;
 								_pc.full += 2;
 								_address.bytes.low = _operand;
 								read_mem(_address.bytes.high, nextPC);
-							} continue;
+							} break;
 
 							case OperationLoadAddressZeroPage:
 								_pc.full++;
@@ -1027,17 +1016,17 @@ template <class T> class Processor {
 								_pc.full++;
 								_address.full = (_operand + _x)&0xff;
 								throwaway_read(_operand);
-							continue;
+							break;
 
 							case CycleLoadAddessZeroY:
 								_pc.full++;
 								_address.full = (_operand + _y)&0xff;
 								throwaway_read(_operand);
-							continue;
+							break;
 
 							case OperationIncrementPC:			_pc.full++;						continue;
-							case CycleFetchOperandFromAddress:	read_mem(_operand, _address.full);	continue;
-							case CycleWriteOperandToAddress:	write_mem(_operand, _address.full);	continue;
+							case CycleFetchOperandFromAddress:	read_mem(_operand, _address.full);	break;
+							case CycleWriteOperandToAddress:	write_mem(_operand, _address.full);	break;
 							case OperationCopyOperandFromA:		_operand = _a;					continue;
 							case OperationCopyOperandToA:		_a = _operand;					continue;
 
@@ -1062,7 +1051,7 @@ template <class T> class Processor {
 									_pc.full = nextAddress.full;
 									throwaway_read(halfUpdatedPc);
 								}
-							continue;
+							break;
 
 #undef BRA
 
@@ -1104,6 +1093,15 @@ template <class T> class Processor {
 								_carryFlag = ((difference >> 8)&1)^1;
 							continue;
 						}
+
+						if(isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
+							_ready_is_active = true;
+							break;
+						}
+						_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);
+						_irq_request_history = _irq_line_is_enabled && !_interruptFlag;
+						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
+						nextBusOperation = BusOperation::None;
 					}
 				}
 			}
