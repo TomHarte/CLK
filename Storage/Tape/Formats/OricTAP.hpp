@@ -42,14 +42,15 @@ class OricTAP: public Tape {
 		FILE *_file;
 		size_t _file_length;
 
+		// byte serialisation and output
 		uint16_t _current_value;
 		int _bit_count;
 		int _pulse_counter;
-		int _phase_counter;
 
 		enum Phase {
 			LeadIn, Header, Data, Gap, End
 		} _phase, _next_phase;
+		int _phase_counter;
 		uint16_t _data_end_address, _data_start_address;
 };
 

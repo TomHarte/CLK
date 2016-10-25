@@ -67,6 +67,9 @@ class MachineDocument:
 		setupClockRate()
 		self.machine.delegate = self
 		self.optionsPanel?.establishStoredOptions()
+
+		// bring OpenGL view-holding window on top of the options panel
+		self.openGLView.window!.makeKeyAndOrderFront(self)
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {

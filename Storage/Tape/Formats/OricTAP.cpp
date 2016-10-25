@@ -42,7 +42,7 @@ OricTAP::~OricTAP()
 
 void OricTAP::virtual_reset()
 {
-//	fseek(_file, 0, SEEK_SET);
+	fseek(_file, 0, SEEK_SET);
 	_bit_count = 13;
 	_phase = _next_phase = LeadIn;
 	_phase_counter = 0;
@@ -69,6 +69,10 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				_phase_counter++;
 				if(_phase_counter == 259)	// 256 artificial bytes plus the three in the file = 259
 				{
+					while(1)
+					{
+						if(fgetc(_file) != 0x16) break;
+					}
 					_next_phase = Header;
 				}
 			break;
@@ -106,20 +110,18 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 
 			case Data:
 				next_byte = (uint8_t)fgetc(_file);
-				if(feof(_file)) _phase = End;
-//				_phase_counter++;
-//				if(_phase_counter == (_data_end_address - _data_start_address)+1)
-//				{
-//					_phase_counter = 0;
-//					if((size_t)ftell(_file) == _file_length)
-//					{
-//						_next_phase = End;
-//					}
-//					else
-//					{
-//						_next_phase = LeadIn;
-//					}
-//				}
+				_phase_counter++;
+				if(_phase_counter >= (_data_end_address - _data_start_address)+1)
+				{
+					if(next_byte == 0x16)
+					{
+						_next_phase = LeadIn;
+					}
+					else if(feof(_file))
+					{
+						_next_phase = End;
+					}
+				}
 			break;
 
 			case End:
@@ -148,8 +150,10 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 		return pulse;
 
 		case Gap:
-			next_bit = 1;
-		break;
+			_bit_count = 13;
+			pulse.type = Pulse::Zero;
+			pulse.length.length = 100;
+		return pulse;
 
 		default:
 			next_bit = _current_value & 1;

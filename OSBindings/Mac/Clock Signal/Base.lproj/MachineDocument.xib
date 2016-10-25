@@ -36,6 +36,7 @@
             </view>
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
+                <outlet property="initialFirstResponder" destination="DEG-fq-cjd" id="9RI-Kx-QeN"/>
             </connections>
         </window>
     </objects>
