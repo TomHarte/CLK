@@ -616,6 +616,12 @@ template <class T> class Processor {
 		op;\
 	}
 
+#define bus_access() \
+	_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);	\
+	_irq_request_history = _irq_line_is_enabled && !_interruptFlag;	\
+	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
+	nextBusOperation = BusOperation::None;
+
 			checkSchedule();
 			number_of_cycles += _cycles_left_to_run;
 			const MicroOp *program = _scheduledPrograms[scheduleProgramsReadPointer];
@@ -628,6 +634,11 @@ template <class T> class Processor {
 
 				if(!_ready_is_active)
 				{
+					if(nextBusOperation != BusOperation::None)
+					{
+						bus_access();
+					}
+
 					while(number_of_cycles > 0) {
 
 						const MicroOp cycle = program[scheduleProgramProgramCounter];
@@ -1098,10 +1109,7 @@ template <class T> class Processor {
 							_ready_is_active = true;
 							break;
 						}
-						_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);
-						_irq_request_history = _irq_line_is_enabled && !_interruptFlag;
-						number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);
-						nextBusOperation = BusOperation::None;
+						bus_access();
 					}
 				}
 			}
