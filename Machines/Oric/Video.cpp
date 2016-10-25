@@ -116,7 +116,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			}
 
 			uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
-			if(_blink_text) inverse_mask ^= (_frame_counter&32) ? 0x77 : 0x00;
+			if(_blink_text && (_frame_counter&32)) pixels = 0;
 
 			if(control_byte & 0x60)
 			{
