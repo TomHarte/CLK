@@ -752,7 +752,7 @@ template <class T> class Processor {
 									_jam_handler->processor_did_jam(this, _pc.full - 1);
 									checkSchedule(_is_jammed = false; program = _scheduledPrograms[scheduleProgramsReadPointer]);
 								}
-							} break;
+							} continue;
 
 #pragma mark - Bitwise
 
