@@ -198,12 +198,12 @@ class MachineDocument:
 
 	func keyDown(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
-		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: false) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: true) }
 	}
 
 	func keyUp(_ event: NSEvent) {
 		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
-		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: true) }
+		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: false) }
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
