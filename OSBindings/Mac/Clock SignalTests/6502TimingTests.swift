@@ -217,7 +217,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			machine.runForNumber(ofCycles: 10)
 		}
 
-		XCTAssert(self.endTime == expectedRunLength, "Took \(self.endTime) cycles to perform")
+		XCTAssert(self.endTime == expectedRunLength, "Took \(self.endTime) cycles to perform rather than \(expectedRunLength)")
 	}
 
 	func testMachine(_ machine: CSTestMachine!, didJamAtAddress address: UInt16) {

@@ -964,8 +964,9 @@ template <class T> class Processor {
 								_address.bytes.low = nextAddress.bytes.low;
 								if(_address.bytes.high != nextAddress.bytes.high) {
 									throwaway_read(_address.full);
+									break;
 								}
-							break;
+							continue;
 							case CycleAddXToAddressLowRead:
 								nextAddress.full = _address.full + _x;
 								_address.bytes.low = nextAddress.bytes.low;
@@ -976,8 +977,9 @@ template <class T> class Processor {
 								_address.bytes.low = nextAddress.bytes.low;
 								if(_address.bytes.high != nextAddress.bytes.high) {
 									throwaway_read(_address.full);
+									break;
 								}
-							break;
+							continue;
 							case CycleAddYToAddressLowRead:
 								nextAddress.full = _address.full + _y;
 								_address.bytes.low = nextAddress.bytes.low;
@@ -1061,8 +1063,9 @@ template <class T> class Processor {
 									uint16_t halfUpdatedPc = _pc.full;
 									_pc.full = nextAddress.full;
 									throwaway_read(halfUpdatedPc);
+									break;
 								}
-							break;
+							continue;
 
 #undef BRA
 
