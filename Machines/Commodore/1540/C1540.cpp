@@ -91,8 +91,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			_driveVIA.set_register(address, *value);
 	}
 
-	_serialPortVIA->run_for_half_cycles(2);
-	_driveVIA.run_for_half_cycles(2);
+	_serialPortVIA->run_for_cycles(1);
+	_driveVIA.run_for_cycles(1);
 
 	return 1;
 }

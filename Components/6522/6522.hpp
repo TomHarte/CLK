@@ -230,60 +230,96 @@ template <class T> class MOS6522 {
 			}
 		}
 
+#define phase2()	\
+	_registers.last_timer[0] = _registers.timer[0];\
+	_registers.last_timer[1] = _registers.timer[1];\
+\
+	if(_registers.timer_needs_reload)\
+	{\
+		_registers.timer_needs_reload = false;\
+		_registers.timer[0] = _registers.timer_latch[0];\
+	}\
+	else\
+		_registers.timer[0] --;\
+\
+	_registers.timer[1] --;
+
+	// IRQ is raised on the half cycle after overflow
+#define phase1()	\
+	if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])\
+	{\
+		_timer_is_running[1] = false;\
+		_registers.interrupt_flags |= InterruptFlag::Timer2;\
+		reevaluate_interrupts();\
+	}\
+\
+	if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])\
+	{\
+		_registers.interrupt_flags |= InterruptFlag::Timer1;\
+		reevaluate_interrupts();\
+\
+		if(_registers.auxiliary_control&0x40)\
+			_registers.timer_needs_reload = true;\
+		else\
+			_timer_is_running[0] = false;\
+	}
+
 		/*!
 			Runs for a specified number of half cycles.
 
 			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
-			1.5 cycles after the timer hits zero. It is therefore necessary to emulate at half-cycle precision.
+			1.5 cycles after the timer hits zero. It therefore may be necessary to emulate at half-cycle precision.
 
 			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
 			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
 			that which occurs during phase-2.
+
+			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
+			intermingle usage.
 		*/
 		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
-			while(number_of_cycles--)
+			if(_is_phase2)
 			{
-				if(_is_phase2)
-				{
-					_registers.last_timer[0] = _registers.timer[0];
-					_registers.last_timer[1] = _registers.timer[1];
+				phase2();
+				number_of_cycles--;
+			}
 
-					if(_registers.timer_needs_reload)
-					{
-						_registers.timer_needs_reload = false;
-						_registers.timer[0] = _registers.timer_latch[0];
-					}
-					else
-						_registers.timer[0] --;
+			while(number_of_cycles > 2)
+			{
+				phase1();
+				phase2();
+				number_of_cycles -= 2;
+			}
 
-					_registers.timer[1] --;
-				}
-				else
-				{
-					// IRQ is raised on the half cycle after overflow
-					if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])
-					{
-						_timer_is_running[1] = false;
-						_registers.interrupt_flags |= InterruptFlag::Timer2;
-						reevaluate_interrupts();
-					}
-
-					if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])
-					{
-						_registers.interrupt_flags |= InterruptFlag::Timer1;
-						reevaluate_interrupts();
-
-						if(_registers.auxiliary_control&0x40)
-							_registers.timer_needs_reload = true;
-						else
-							_timer_is_running[0] = false;
-					}
-				}
-
-				_is_phase2 ^= true;
+			if(number_of_cycles)
+			{
+				phase1();
+				_is_phase2 = true;
+			}
+			else
+			{
+				_is_phase2 = false;
 			}
 		}
+
+		/*!
+			Runs for a specified number of cycles.
+
+			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
+			intermingle usage.
+		*/
+		inline void run_for_cycles(unsigned int number_of_cycles)
+		{
+			while(number_of_cycles--)
+			{
+				phase1();
+				phase2();
+			}
+		}
+
+#undef phase1
+#undef phase2
 
 		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
 		inline bool get_interrupt_line()

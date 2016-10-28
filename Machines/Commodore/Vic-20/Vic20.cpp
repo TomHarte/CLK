@@ -139,8 +139,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		{
 			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line() && !_tape.get_tape()->is_at_end())
 			{
-				_userPortVIA->run_for_half_cycles(2);
-				_keyboardVIA->run_for_half_cycles(2);
+				_userPortVIA->run_for_cycles(1);
+				_keyboardVIA->run_for_cycles(1);
 				_tape.run_for_cycles(1);
 			}
 		}
@@ -157,8 +157,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	_userPortVIA->run_for_half_cycles(2);
-	_keyboardVIA->run_for_half_cycles(2);
+	_userPortVIA->run_for_cycles(1);
+	_keyboardVIA->run_for_cycles(1);
 	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
 	{
 		if(!_typer->type_next_character())

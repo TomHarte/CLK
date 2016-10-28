@@ -61,7 +61,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	_via.run_for_half_cycles(2);
+	_via.run_for_cycles(1);
 	_via.tape->run_for_cycles(1);
 	_cycles_since_video_update++;
 	return 1;
