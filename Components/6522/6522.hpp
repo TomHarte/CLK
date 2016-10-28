@@ -242,46 +242,61 @@ template <class T> class MOS6522 {
 		*/
 		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
-			while(number_of_cycles--)
+#define phase2()	\
+	_registers.last_timer[0] = _registers.timer[0];\
+	_registers.last_timer[1] = _registers.timer[1];\
+\
+	if(_registers.timer_needs_reload)\
+	{\
+		_registers.timer_needs_reload = false;\
+		_registers.timer[0] = _registers.timer_latch[0];\
+	}\
+	else\
+		_registers.timer[0] --;\
+\
+	_registers.timer[1] --;
+
+	// IRQ is raised on the half cycle after overflow
+#define phase1()	\
+	if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])\
+	{\
+		_timer_is_running[1] = false;\
+		_registers.interrupt_flags |= InterruptFlag::Timer2;\
+		reevaluate_interrupts();\
+	}\
+\
+	if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])\
+	{\
+		_registers.interrupt_flags |= InterruptFlag::Timer1;\
+		reevaluate_interrupts();\
+\
+		if(_registers.auxiliary_control&0x40)\
+			_registers.timer_needs_reload = true;\
+		else\
+			_timer_is_running[0] = false;\
+	}
+
+			if(_is_phase2)
 			{
-				if(_is_phase2)
-				{
-					_registers.last_timer[0] = _registers.timer[0];
-					_registers.last_timer[1] = _registers.timer[1];
+				phase2();
+				number_of_cycles--;
+			}
 
-					if(_registers.timer_needs_reload)
-					{
-						_registers.timer_needs_reload = false;
-						_registers.timer[0] = _registers.timer_latch[0];
-					}
-					else
-						_registers.timer[0] --;
+			while(number_of_cycles > 2)
+			{
+				phase1();
+				phase2();
+				number_of_cycles -= 2;
+			}
 
-					_registers.timer[1] --;
-				}
-				else
-				{
-					// IRQ is raised on the half cycle after overflow
-					if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])
-					{
-						_timer_is_running[1] = false;
-						_registers.interrupt_flags |= InterruptFlag::Timer2;
-						reevaluate_interrupts();
-					}
-
-					if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])
-					{
-						_registers.interrupt_flags |= InterruptFlag::Timer1;
-						reevaluate_interrupts();
-
-						if(_registers.auxiliary_control&0x40)
-							_registers.timer_needs_reload = true;
-						else
-							_timer_is_running[0] = false;
-					}
-				}
-
-				_is_phase2 ^= true;
+			if(number_of_cycles)
+			{
+				phase1();
+				_is_phase2 = true;
+			}
+			else
+			{
+				_is_phase2 = false;
 			}
 		}
 

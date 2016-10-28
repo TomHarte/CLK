@@ -51,7 +51,7 @@ std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
 
 void VideoOutput::run_for_cycles(int number_of_cycles)
 {
-	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync
+	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 
 	while(number_of_cycles--)
@@ -77,6 +77,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				_counter_period = _next_frame_is_sixty_hertz ? PAL60Period : PAL50Period;
 			}
 		}
+
 
 		State new_state = Blank;
 		if(
