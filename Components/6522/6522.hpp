@@ -230,18 +230,6 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		/*!
-			Runs for a specified number of half cycles.
-
-			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
-			1.5 cycles after the timer hits zero. It is therefore necessary to emulate at half-cycle precision.
-
-			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
-			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
-			that which occurs during phase-2.
-		*/
-		inline void run_for_half_cycles(unsigned int number_of_cycles)
-		{
 #define phase2()	\
 	_registers.last_timer[0] = _registers.timer[0];\
 	_registers.last_timer[1] = _registers.timer[1];\
@@ -276,6 +264,21 @@ template <class T> class MOS6522 {
 			_timer_is_running[0] = false;\
 	}
 
+		/*!
+			Runs for a specified number of half cycles.
+
+			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
+			1.5 cycles after the timer hits zero. It therefore may be necessary to emulate at half-cycle precision.
+
+			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
+			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
+			that which occurs during phase-2.
+
+			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
+			intermingle usage.
+		*/
+		inline void run_for_half_cycles(unsigned int number_of_cycles)
+		{
 			if(_is_phase2)
 			{
 				phase2();
@@ -299,6 +302,24 @@ template <class T> class MOS6522 {
 				_is_phase2 = false;
 			}
 		}
+
+		/*!
+			Runs for a specified number of cycles.
+
+			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
+			intermingle usage.
+		*/
+		inline void run_for_cycles(unsigned int number_of_cycles)
+		{
+			while(number_of_cycles--)
+			{
+				phase1();
+				phase2();
+			}
+		}
+
+#undef phase1
+#undef phase2
 
 		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
 		inline bool get_interrupt_line()
