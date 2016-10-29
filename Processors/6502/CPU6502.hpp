@@ -143,7 +143,7 @@ template <class T> class Processor {
 		*/
 		RegisterPair _pc, _lastOperationPC;
 		uint8_t _a, _x, _y, _s;
-		uint8_t _carryFlag, _negativeResult, _zeroResult, _decimalFlag, _overflowFlag, _interruptFlag;
+		uint8_t _carryFlag, _negativeResult, _zeroResult, _decimalFlag, _overflowFlag, _inverseInterruptFlag;
 
 		/*
 			Temporary state for the micro programs.
@@ -191,7 +191,7 @@ template <class T> class Processor {
 		*/
 		uint8_t get_flags()
 		{
-			return _carryFlag | _overflowFlag | _interruptFlag | (_negativeResult & 0x80) | (_zeroResult ? 0 : Flag::Zero) | Flag::Always | _decimalFlag;
+			return _carryFlag | _overflowFlag | (_inverseInterruptFlag ^ Flag::Interrupt) | (_negativeResult & 0x80) | (_zeroResult ? 0 : Flag::Zero) | Flag::Always | _decimalFlag;
 		}
 
 		/*!
@@ -203,12 +203,12 @@ template <class T> class Processor {
 		*/
 		void set_flags(uint8_t flags)
 		{
-			_carryFlag		= flags		& Flag::Carry;
-			_negativeResult	= flags		& Flag::Sign;
-			_zeroResult		= (~flags)	& Flag::Zero;
-			_overflowFlag	= flags		& Flag::Overflow;
-			_interruptFlag	= flags		& Flag::Interrupt;
-			_decimalFlag	= flags		& Flag::Decimal;
+			_carryFlag				= flags		& Flag::Carry;
+			_negativeResult			= flags		& Flag::Sign;
+			_zeroResult				= (~flags)	& Flag::Zero;
+			_overflowFlag			= flags		& Flag::Overflow;
+			_inverseInterruptFlag	= (~flags)	& Flag::Interrupt;
+			_decimalFlag			= flags		& Flag::Decimal;
 		}
 
 		/*!
@@ -461,7 +461,7 @@ template <class T> class Processor {
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
-			IRQ			= 0x40,
+			IRQ			= Flag::Interrupt,
 			NMI			= 0x20,
 
 			PowerOn		= 0x10,
@@ -471,7 +471,7 @@ template <class T> class Processor {
 		bool _ready_is_active;
 		bool _ready_line_is_enabled;
 
-		bool _irq_line_is_enabled, _irq_request_history;
+		uint8_t _irq_line, _irq_request_history;
 		bool _nmi_line_is_enabled, _set_overflow_line_is_enabled;
 
 		/*!
@@ -547,11 +547,11 @@ template <class T> class Processor {
 			_ready_line_is_enabled(false),
 			_ready_is_active(false),
 			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
-			_interruptFlag(Flag::Interrupt),
+			_inverseInterruptFlag(Flag::Interrupt),
 			_s(0),
 			_nextBusOperation(BusOperation::None),
 			_interrupt_requests(InterruptRequestFlags::PowerOn),
-			_irq_line_is_enabled(false),
+			_irq_line(0),
 			_nmi_line_is_enabled(false),
 			_set_overflow_line_is_enabled(false)
 		{
@@ -617,8 +617,8 @@ template <class T> class Processor {
 	}
 
 #define bus_access() \
-	_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | (_irq_request_history ? InterruptRequestFlags::IRQ : 0);	\
-	_irq_request_history = _irq_line_is_enabled && !_interruptFlag;	\
+	_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | _irq_request_history;	\
+	_irq_request_history = _irq_line & _inverseInterruptFlag;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;
 
@@ -720,7 +720,7 @@ template <class T> class Processor {
 							case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
 							case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							break;
 							case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						break;
-							case OperationSetI:					_interruptFlag = Flag::Interrupt;									continue;
+							case OperationSetI:					_inverseInterruptFlag = 0;											continue;
 
 							case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
 							case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
@@ -925,14 +925,14 @@ template <class T> class Processor {
 							case OperationDecrementOperand: _operand--; continue;
 							case OperationIncrementOperand: _operand++; continue;
 
-							case OperationCLC: _carryFlag = 0;			continue;
-							case OperationCLI: _interruptFlag = 0;		continue;
-							case OperationCLV: _overflowFlag = 0;		continue;
-							case OperationCLD: _decimalFlag = 0;		continue;
+							case OperationCLC: _carryFlag = 0;								continue;
+							case OperationCLI: _inverseInterruptFlag = Flag::Interrupt;		continue;
+							case OperationCLV: _overflowFlag = 0;							continue;
+							case OperationCLD: _decimalFlag = 0;							continue;
 
-							case OperationSEC: _carryFlag = Flag::Carry;			continue;
-							case OperationSEI: _interruptFlag = Flag::Interrupt;	continue;
-							case OperationSED: _decimalFlag = Flag::Decimal;		continue;
+							case OperationSEC: _carryFlag = Flag::Carry;		continue;
+							case OperationSEI: _inverseInterruptFlag = 0;		continue;
+							case OperationSED: _decimalFlag = Flag::Decimal;	continue;
 
 							case OperationINC: _operand++; _negativeResult = _zeroResult = _operand; continue;
 							case OperationDEC: _operand--; _negativeResult = _zeroResult = _operand; continue;
@@ -1247,7 +1247,7 @@ template <class T> class Processor {
 		*/
 		inline void set_irq_line(bool active)
 		{
-			_irq_line_is_enabled = active;
+			_irq_line = active ? Flag::Interrupt : 0;
 		}
 
 		/*!
