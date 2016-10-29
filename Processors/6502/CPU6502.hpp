@@ -547,7 +547,7 @@ template <class T> class Processor {
 			_ready_line_is_enabled(false),
 			_ready_is_active(false),
 			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
-			_inverseInterruptFlag(Flag::Interrupt),
+			_inverseInterruptFlag(0),
 			_s(0),
 			_nextBusOperation(BusOperation::None),
 			_interrupt_requests(InterruptRequestFlags::PowerOn),
