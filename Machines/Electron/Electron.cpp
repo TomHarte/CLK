@@ -365,7 +365,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 									int cycles_left_while_plausibly_in_data = 50;
 									_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-									while(1)
+									while(!_tape.get_tape()->is_at_end())
 									{
 										_tape.run_for_input_pulse();
 										cycles_left_while_plausibly_in_data--;
