@@ -285,7 +285,7 @@ template <class T> class MOS6522 {
 				number_of_cycles--;
 			}
 
-			while(number_of_cycles > 2)
+			while(number_of_cycles >= 2)
 			{
 				phase1();
 				phase2();
