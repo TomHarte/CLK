@@ -54,16 +54,19 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 
+#define clamp(action)	\
+	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;
+
 	while(number_of_cycles)
 	{
 		int h_counter =_counter & 63;
 		int cycles_run_for = 0;
 
-		if(_counter >= _v_sync_start_position && _counter <= _v_sync_end_position)
+		if(_counter >= _v_sync_start_position && _counter < _v_sync_end_position)
 		{
 			// this is a sync line
-			cycles_run_for = std::min(64 - h_counter, number_of_cycles);
-			_crt->output_sync((unsigned int)cycles_run_for * 6);
+			cycles_run_for = _v_sync_end_position - _counter;
+			clamp(_crt->output_sync((unsigned int)(_v_sync_end_position - _v_sync_start_position) * 6));
 		}
 		else if(_counter < 224*64 && h_counter < 40)
 		{
@@ -90,6 +93,9 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 			cycles_run_for = std::min(40 - h_counter, number_of_cycles);
 			int columns = cycles_run_for;
+			int pixel_base_address = 0xa000 + (_counter >> 6) * 40;
+			int character_base_address = 0xbb80 + (_counter >> 9) * 40;
+			uint8_t blink_mask = (_blink_text && (_frame_counter&32)) ? 0x00 : 0xff;
 
 			while(columns--)
 			{
@@ -97,18 +103,18 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 				if(_is_graphics_mode && _counter < 200*64)
 				{
-					control_byte = pixels = _ram[0xa000 + (_counter >> 6) * 40 + h_counter];
+					control_byte = pixels = _ram[pixel_base_address + h_counter];
 				}
 				else
 				{
-					int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
+					int address = character_base_address + h_counter;
 					control_byte = _ram[address];
 					int line = _use_double_height_characters ? ((_counter >> 7) & 7) : ((_counter >> 6) & 7);
 					pixels = _ram[_character_set_base_address + (control_byte&127) * 8 + line];
 				}
 
 				uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
-				if(_blink_text && (_frame_counter&32)) pixels = 0;
+				pixels &= blink_mask;
 
 				if(control_byte & 0x60)
 				{
@@ -178,23 +184,26 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			// this is a blank line (or the equivalent part of a pixel line)
 			if(h_counter < 48)
 			{
-				cycles_run_for = std::min(48 - h_counter, number_of_cycles);
-				_crt->output_blank((unsigned int)cycles_run_for * 6);
+				cycles_run_for = 48 - h_counter;
+				clamp(
+					int period = (_counter < 224*64) ? 8 : 48;
+					_crt->output_blank((unsigned int)period * 6);
+				);
 			}
 			else if(h_counter < 54)
 			{
-				cycles_run_for = std::min(54 - h_counter, number_of_cycles);
-				_crt->output_sync((unsigned int)cycles_run_for * 6);
+				cycles_run_for = 54 - h_counter;
+				clamp(_crt->output_sync(6 * 6));
 			}
 			else if(h_counter < 56)
 			{
-				cycles_run_for = std::min(56 - h_counter, number_of_cycles);
-				_crt->output_colour_burst((unsigned int)cycles_run_for * 6, _phase, 128);
+				cycles_run_for = 56 - h_counter;
+				clamp(_crt->output_colour_burst(2 * 6, _phase, 128));
 			}
 			else
 			{
-				cycles_run_for = std::min(64 - h_counter, number_of_cycles);
-				_crt->output_blank((unsigned int)cycles_run_for * 6);
+				cycles_run_for = 64 - h_counter;
+				clamp(_crt->output_blank(8 * 6));
 			}
 		}
 
