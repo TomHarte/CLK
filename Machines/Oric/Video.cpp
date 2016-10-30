@@ -54,126 +54,151 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 
-	while(number_of_cycles--)
+	while(number_of_cycles)
 	{
-		_counter = (_counter + 1)%_counter_period;
 		int h_counter =_counter & 63;
+		int cycles_run_for = 0;
 
-		if(!h_counter)
+		if(_counter >= _v_sync_start_position && _counter <= _v_sync_end_position)
 		{
-			_ink = 0xff;
-			_paper = 0x00;
-			_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
-			set_character_set_base_address();
-			_phase += 64;
-
-			if(!_counter)
+			// this is a sync line
+			cycles_run_for = std::min(64 - h_counter, number_of_cycles);
+			_crt->output_sync((unsigned int)cycles_run_for * 6);
+		}
+		else if(_counter < 224*64 && h_counter < 40)
+		{
+			// this is a pixel line
+			if(!h_counter)
 			{
-				_phase += 128;
-				_frame_counter++;
+				_ink = 0xff;
+				_paper = 0x00;
+				_use_alternative_character_set = _use_double_height_characters = _blink_text = false;
+				set_character_set_base_address();
+				_phase += 64;
+				_pixel_target = _crt->allocate_write_area(120);
 
-				_v_sync_start_position = _next_frame_is_sixty_hertz ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
-				_v_sync_end_position = _next_frame_is_sixty_hertz ? PAL60VSyncEndPosition : PAL50VSyncEndPosition;
-				_counter_period = _next_frame_is_sixty_hertz ? PAL60Period : PAL50Period;
+				if(!_counter)
+				{
+					_phase += 128; // TODO: incorporate all the lines that were missed
+					_frame_counter++;
+
+					_v_sync_start_position = _next_frame_is_sixty_hertz ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
+					_v_sync_end_position = _next_frame_is_sixty_hertz ? PAL60VSyncEndPosition : PAL50VSyncEndPosition;
+					_counter_period = _next_frame_is_sixty_hertz ? PAL60Period : PAL50Period;
+				}
+			}
+
+			cycles_run_for = std::min(40 - h_counter, number_of_cycles);
+			int columns = cycles_run_for;
+
+			while(columns--)
+			{
+				uint8_t pixels, control_byte;
+
+				if(_is_graphics_mode && _counter < 200*64)
+				{
+					control_byte = pixels = _ram[0xa000 + (_counter >> 6) * 40 + h_counter];
+				}
+				else
+				{
+					int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
+					control_byte = _ram[address];
+					int line = _use_double_height_characters ? ((_counter >> 7) & 7) : ((_counter >> 6) & 7);
+					pixels = _ram[_character_set_base_address + (control_byte&127) * 8 + line];
+				}
+
+				uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
+				if(_blink_text && (_frame_counter&32)) pixels = 0;
+
+				if(control_byte & 0x60)
+				{
+					if(_pixel_target)
+					{
+						uint8_t colours[2] = {
+							(uint8_t)(_paper ^ inverse_mask),
+							(uint8_t)(_ink ^ inverse_mask),
+						};
+
+						_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
+						_pixel_target[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
+						_pixel_target[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+					}
+				}
+				else
+				{
+					switch(control_byte & 0x1f)
+					{
+						case 0x00:		_ink = 0x00;	break;
+						case 0x01:		_ink = 0x44;	break;
+						case 0x02:		_ink = 0x22;	break;
+						case 0x03:		_ink = 0x66;	break;
+						case 0x04:		_ink = 0x11;	break;
+						case 0x05:		_ink = 0x55;	break;
+						case 0x06:		_ink = 0x33;	break;
+						case 0x07:		_ink = 0x77;	break;
+
+						case 0x08:	case 0x09:	case 0x0a: case 0x0b:
+						case 0x0c:	case 0x0d:	case 0x0e: case 0x0f:
+							_use_alternative_character_set = (control_byte&1);
+							_use_double_height_characters = (control_byte&2);
+							_blink_text = (control_byte&4);
+							set_character_set_base_address();
+						break;
+
+						case 0x10:		_paper = 0x00;	break;
+						case 0x11:		_paper = 0x44;	break;
+						case 0x12:		_paper = 0x22;	break;
+						case 0x13:		_paper = 0x66;	break;
+						case 0x14:		_paper = 0x11;	break;
+						case 0x15:		_paper = 0x55;	break;
+						case 0x16:		_paper = 0x33;	break;
+						case 0x17:		_paper = 0x77;	break;
+
+						case 0x18: case 0x19: case 0x1a: case 0x1b:
+						case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+							_is_graphics_mode = (control_byte & 4);
+							_next_frame_is_sixty_hertz = !(control_byte & 2);
+						break;
+
+						default: break;
+					}
+					if(_pixel_target) _pixel_target[0] = _pixel_target[1] = _pixel_target[2] = (uint8_t)(_paper ^ inverse_mask);
+				}
+				if(_pixel_target) _pixel_target += 3;
+				h_counter++;
+			}
+
+			if(h_counter == 40)
+			{
+				_crt->output_data(40 * 6, 2);
 			}
 		}
-
-
-		State new_state = Blank;
-		if(
-			(h_counter >= 48 && h_counter <= 53) ||
-			(_counter >= _v_sync_start_position && _counter <= _v_sync_end_position)) new_state = Sync;
-		else if(h_counter >= 54 && h_counter <= 56) new_state = ColourBurst;
-		else if(_counter < 224*64 && h_counter < 40) new_state = Pixels;
-
-		if(_state != new_state)
+		else
 		{
-			switch(_state)
+			// this is a blank line (or the equivalent part of a pixel line)
+			if(h_counter < 48)
 			{
-				case ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 6, _phase, 128);	break;
-				case Sync:			_crt->output_sync(_cycles_in_state * 6);						break;
-				case Blank:			_crt->output_blank(_cycles_in_state * 6);						break;
-				case Pixels:		_crt->output_data(_cycles_in_state * 6, 2);						break;
+				cycles_run_for = std::min(48 - h_counter, number_of_cycles);
+				_crt->output_blank((unsigned int)cycles_run_for * 6);
 			}
-			_state = new_state;
-			_cycles_in_state = 0;
-			if(_state == Pixels) _pixel_target = _crt->allocate_write_area(120);
-		}
-		_cycles_in_state++;
-
-		if(new_state == Pixels) {
-			uint8_t pixels, control_byte;
-
-			if(_is_graphics_mode && _counter < 200*64)
+			else if(h_counter < 54)
 			{
-				control_byte = pixels = _ram[0xa000 + (_counter >> 6) * 40 + h_counter];
+				cycles_run_for = std::min(54 - h_counter, number_of_cycles);
+				_crt->output_sync((unsigned int)cycles_run_for * 6);
+			}
+			else if(h_counter < 56)
+			{
+				cycles_run_for = std::min(56 - h_counter, number_of_cycles);
+				_crt->output_colour_burst((unsigned int)cycles_run_for * 6, _phase, 128);
 			}
 			else
 			{
-				int address = 0xbb80 + (_counter >> 9) * 40 + h_counter;
-				control_byte = _ram[address];
-				int line = _use_double_height_characters ? ((_counter >> 7) & 7) : ((_counter >> 6) & 7);
-				pixels = _ram[_character_set_base_address + (control_byte&127) * 8 + line];
+				cycles_run_for = std::min(64 - h_counter, number_of_cycles);
+				_crt->output_blank((unsigned int)cycles_run_for * 6);
 			}
-
-			uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
-			if(_blink_text && (_frame_counter&32)) pixels = 0;
-
-			if(control_byte & 0x60)
-			{
-				if(_pixel_target)
-				{
-					uint8_t colours[2] = {
-						(uint8_t)(_paper ^ inverse_mask),
-						(uint8_t)(_ink ^ inverse_mask),
-					};
-
-					_pixel_target[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
-					_pixel_target[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
-					_pixel_target[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
-				}
-			}
-			else
-			{
-				switch(control_byte & 0x1f)
-				{
-					case 0x00:		_ink = 0x00;	break;
-					case 0x01:		_ink = 0x44;	break;
-					case 0x02:		_ink = 0x22;	break;
-					case 0x03:		_ink = 0x66;	break;
-					case 0x04:		_ink = 0x11;	break;
-					case 0x05:		_ink = 0x55;	break;
-					case 0x06:		_ink = 0x33;	break;
-					case 0x07:		_ink = 0x77;	break;
-
-					case 0x08:	case 0x09:	case 0x0a: case 0x0b:
-					case 0x0c:	case 0x0d:	case 0x0e: case 0x0f:
-						_use_alternative_character_set = (control_byte&1);
-						_use_double_height_characters = (control_byte&2);
-						_blink_text = (control_byte&4);
-						set_character_set_base_address();
-					break;
-
-					case 0x10:		_paper = 0x00;	break;
-					case 0x11:		_paper = 0x44;	break;
-					case 0x12:		_paper = 0x22;	break;
-					case 0x13:		_paper = 0x66;	break;
-					case 0x14:		_paper = 0x11;	break;
-					case 0x15:		_paper = 0x55;	break;
-					case 0x16:		_paper = 0x33;	break;
-					case 0x17:		_paper = 0x77;	break;
-
-					case 0x18: case 0x19: case 0x1a: case 0x1b:
-					case 0x1c: case 0x1d: case 0x1e: case 0x1f:
-						_is_graphics_mode = (control_byte & 4);
-						_next_frame_is_sixty_hertz = !(control_byte & 2);
-					break;
-
-					default: break;
-				}
-				if(_pixel_target) _pixel_target[0] = _pixel_target[1] = _pixel_target[2] = (uint8_t)(_paper ^ inverse_mask);
-			}
-			if(_pixel_target) _pixel_target += 3;
 		}
+
+		_counter = (_counter + cycles_run_for)%_counter_period;
+		number_of_cycles -= cycles_run_for;
 	}
 }
