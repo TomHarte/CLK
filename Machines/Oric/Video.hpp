@@ -27,11 +27,7 @@ class VideoOutput {
 		int _counter, _frame_counter;
 		int _v_sync_start_position, _v_sync_end_position, _counter_period;
 
-		// Output state
-		enum State {
-			Blank, Sync, Pixels, ColourBurst
-		} _state;
-		unsigned int _cycles_in_state;
+		// Output target
 		uint8_t *_pixel_target;
 
 		// Registers
