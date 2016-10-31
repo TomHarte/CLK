@@ -621,7 +621,7 @@ template <class T> class Processor {
 	_irq_request_history = _irq_line & _inverseInterruptFlag;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
-	if(number_of_cycles < 0) break;
+	if(number_of_cycles <= 0) break;
 
 			checkSchedule();
 			number_of_cycles += _cycles_left_to_run;
