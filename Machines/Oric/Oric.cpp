@@ -40,6 +40,21 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	if(address >= 0xc000)
 	{
+//		// 024D = 0 => fast; otherwise slow
+//		// E6C9 = read byte: return byte in A
+//		if(address == 0xe6c9 && operation == CPU6502::BusOperation::ReadOpcode)
+//		{
+//			printf(".");
+//		}
+
+		if(address == 0xe720 && operation == CPU6502::BusOperation::ReadOpcode)
+		{
+			while(!_via.tape->get_input())
+			{
+				_via.run_for_cycles(1);
+				_via.tape->run_for_cycles(1);
+			}
+		}
 		if(isReadOperation(operation)) *value = _rom[address&16383];
 	}
 	else
