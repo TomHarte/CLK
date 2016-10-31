@@ -620,7 +620,8 @@ template <class T> class Processor {
 	_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | _irq_request_history;	\
 	_irq_request_history = _irq_line & _inverseInterruptFlag;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
-	nextBusOperation = BusOperation::None;
+	nextBusOperation = BusOperation::None;	\
+	if(number_of_cycles <= 0) break;
 
 			checkSchedule();
 			number_of_cycles += _cycles_left_to_run;
@@ -639,7 +640,7 @@ template <class T> class Processor {
 						bus_access();
 					}
 
-					while(number_of_cycles > 0) {
+					while(1) {
 
 						const MicroOp cycle = program[scheduleProgramProgramCounter];
 						scheduleProgramProgramCounter++;

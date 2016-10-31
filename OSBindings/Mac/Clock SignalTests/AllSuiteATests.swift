@@ -24,9 +24,7 @@ class AllSuiteATests: XCTestCase {
 					machine.runForNumber(ofCycles: 1000)
 				}
 
-				if machine.value(forAddress: 0x0210) != 0xff {
-					NSException(name: NSExceptionName(rawValue: "Failed AllSuiteA"), reason: "Failed test \(machine.value(forAddress: 0x0210))", userInfo: nil).raise()
-				}
+				XCTAssert(machine.value(forAddress: 0x0210) == 0xff, "Failed test \(machine.value(forAddress: 0x0210))")
 			}
 		}
 	}
