@@ -22,7 +22,6 @@ namespace {
 VideoOutput::VideoOutput(uint8_t *memory) :
 	_ram(memory),
 	_frame_counter(0), _counter(0),
-	_state(Sync), _cycles_in_state(0),
 	_is_graphics_mode(false),
 	_character_set_base_address(0xb400),
 	_phase(0),
