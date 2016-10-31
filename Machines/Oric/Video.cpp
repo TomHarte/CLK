@@ -210,3 +210,9 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 		number_of_cycles -= cycles_run_for;
 	}
 }
+
+void VideoOutput::set_character_set_base_address()
+{
+	if(_is_graphics_mode) _character_set_base_address = _use_alternative_character_set ? 0x9c00 : 0x9800;
+	else _character_set_base_address = _use_alternative_character_set ? 0xb800 : 0xb400;
+}
