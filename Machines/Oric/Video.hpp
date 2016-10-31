@@ -34,11 +34,7 @@ class VideoOutput {
 		uint8_t _ink, _paper;
 
 		int _character_set_base_address;
-		inline void set_character_set_base_address()
-		{
-			if(_is_graphics_mode) _character_set_base_address = _use_alternative_character_set ? 0x9c00 : 0x9800;
-			else _character_set_base_address = _use_alternative_character_set ? 0xb800 : 0xb400;
-		}
+		inline void set_character_set_base_address();
 
 		bool _is_graphics_mode;
 		bool _next_frame_is_sixty_hertz;
