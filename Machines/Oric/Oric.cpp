@@ -123,7 +123,24 @@ void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player
 	_via.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
 }
 
+std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt()
+{
+	return _videoOutput->get_crt();
+}
+
+std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
+{
+	return _via.ay8910;
+}
+
+void Machine::run_for_cycles(int number_of_cycles)
+{
+	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+}
+
 #pragma mark - The 6522
+
+Machine::VIA::VIA() : MOS::MOS6522<Machine::VIA>(), _cycles_since_ay_update(0) {}
 
 void Machine::VIA::set_control_line_output(Port port, Line line, bool value)
 {
@@ -162,19 +179,19 @@ uint8_t Machine::VIA::get_port_input(Port port)
 
 void Machine::VIA::synchronise()
 {
-	ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
-	_half_cycles_since_ay_update &= 1;
+	ay8910->run_for_cycles(_cycles_since_ay_update);
+	_cycles_since_ay_update = 0;
 }
 
-void Machine::VIA::run_for_half_cycles(unsigned int number_of_cycles)
+void Machine::VIA::run_for_cycles(unsigned int number_of_cycles)
 {
-	_half_cycles_since_ay_update += number_of_cycles;
-	MOS::MOS6522<VIA>::run_for_half_cycles(number_of_cycles);
+	_cycles_since_ay_update += number_of_cycles;
+	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
 }
 
 void Machine::VIA::update_ay()
 {
-	ay8910->run_for_cycles(_half_cycles_since_ay_update >> 1);
-	_half_cycles_since_ay_update &= 1;
+	ay8910->run_for_cycles(_cycles_since_ay_update);
+	_cycles_since_ay_update = 0;
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }

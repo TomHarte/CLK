@@ -71,9 +71,9 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _videoOutput->get_crt(); }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _via.ay8910; }
-		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
+		virtual void run_for_cycles(int number_of_cycles);
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
 		void mos6522_did_change_interrupt_status(void *mos6522);
@@ -100,12 +100,13 @@ class Machine:
 		// VIA (which owns the tape and the AY)
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
 			public:
+				VIA();
 				using MOS6522IRQDelegate::set_interrupt_status;
 
 				void set_control_line_output(Port port, Line line, bool value);
 				void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
 				uint8_t get_port_input(Port port);
-				inline void run_for_half_cycles(unsigned int number_of_cycles);
+				inline void run_for_cycles(unsigned int number_of_cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
 				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
@@ -116,7 +117,7 @@ class Machine:
 			private:
 				void update_ay();
 				bool _ay_bdir, _ay_bc1;
-				unsigned int _half_cycles_since_ay_update;
+				unsigned int _cycles_since_ay_update;
 		};
 		VIA _via;
 		std::shared_ptr<Keyboard> _keyboard;
