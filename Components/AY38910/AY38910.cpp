@@ -15,6 +15,7 @@ AY38910::AY38910() :
 	_tone_counters{0, 0, 0}, _tone_periods{0, 0, 0}, _tone_outputs{0, 0, 0},
 	_noise_shift_register(0xffff), _noise_period(0), _noise_counter(0), _noise_output(0),
 	_envelope_divider(0), _envelope_period(0), _envelope_position(0),
+	_master_divider(0),
 	_output_registers{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 {
 	_output_registers[8] = _output_registers[9] = _output_registers[10] = 0;
@@ -137,6 +138,8 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 			_master_divider++;
 		}
 	}
+
+	_master_divider &= 15;
 }
 
 void AY38910::evaluate_output_volume()
