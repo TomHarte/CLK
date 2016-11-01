@@ -1109,7 +1109,7 @@ template <class T> class Processor {
 							continue;
 						}
 
-						if(isReadOperation(nextBusOperation) && _ready_line_is_enabled) {
+						if(_ready_line_is_enabled && isReadOperation(nextBusOperation)) {
 							_ready_is_active = true;
 							break;
 						}
