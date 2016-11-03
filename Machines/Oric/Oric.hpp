@@ -97,6 +97,28 @@ class Machine:
 				uint8_t rows[8];
 		};
 
+		// The tape
+		class TapePlayer: public Storage::Tape::BinaryTapePlayer {
+			public:
+				TapePlayer();
+				uint8_t get_next_byte(bool fast);
+
+			private:
+				bool _is_in_fast_mode;
+				bool _is_catching_bytes;
+
+				float _cycle_length;
+				bool _was_high;
+
+				int _queued_lengths[16];
+				int _queued_lengths_pointer;
+
+				int _shift_register;
+				int _bit_count;
+
+				virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
+		};
+
 		// VIA (which owns the tape and the AY)
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
 			public:
@@ -109,7 +131,7 @@ class Machine:
 				inline void run_for_cycles(unsigned int number_of_cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
-				std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape;
+				std::shared_ptr<TapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
 				void synchronise();

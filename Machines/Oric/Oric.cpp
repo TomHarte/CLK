@@ -14,7 +14,7 @@ using namespace Oric;
 Machine::Machine() : _cycles_since_video_update(0)
 {
 	set_clock_rate(1000000);
-	_via.tape.reset(new Storage::Tape::BinaryTapePlayer(1000000));
+	_via.tape.reset(new TapePlayer);
 	_via.set_interrupt_delegate(this);
 	_keyboard.reset(new Keyboard);
 	_via.keyboard = _keyboard;
@@ -42,33 +42,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		if(isReadOperation(operation)) *value = _rom[address&16383];
 
-//		// 024D = 0 => fast; otherwise slow
-//		// E6C9 = read byte: return byte in A
+		// 024D = 0 => fast; otherwise slow
+		// E6C9 = read byte: return byte in A
 		if(address == 0xe6c9 && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			static FILE *test = NULL;
-			static int lead_counter = 0;
-			if(!test)
-			{
-				test = fopen("/Users/thomasharte/Desktop/Soft/Oric/Tapes/Slalom.tap", "rb");
-			}
-			if(test && !feof(test))
-			{
-				uint8_t next_byte;
-//				if(lead_counter < 64)
-//				{
-//					next_byte = 0x16;
-//					lead_counter++;
-//				}
-//				else
-					next_byte = (uint8_t)fgetc(test);
-				set_value_of_register(CPU6502::A, next_byte);
-				set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
-				uint8_t stack = get_value_of_register(CPU6502::S) + 1;
-				uint16_t return_address = _ram[0x0100 | stack] | (_ram[0x0100 | (stack+1)] << 8);
-				printf("%02x -> %04x | ", next_byte, return_address+1);
-				*value = 0x60; // i.e. RTS
-			}
+			uint8_t next_byte = _via.tape->get_next_byte(!_ram[0x024d]);
+			set_value_of_register(CPU6502::A, next_byte);
+			set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
+			*value = 0x60; // i.e. RTS
 		}
 	}
 	else
@@ -223,4 +204,75 @@ void Machine::VIA::update_ay()
 	ay8910->run_for_cycles(_cycles_since_ay_update);
 	_cycles_since_ay_update = 0;
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+}
+
+#pragma mark - TapePlayer
+
+Machine::TapePlayer::TapePlayer() :
+	Storage::Tape::BinaryTapePlayer(1000000),
+	_is_catching_bytes(false),
+	_cycle_length(0.0f),
+	_was_high(false),
+	_queued_lengths_pointer(0)
+{}
+
+uint8_t Machine::TapePlayer::get_next_byte(bool fast)
+{
+	_is_in_fast_mode = fast;
+	_is_catching_bytes = true;
+
+	_bit_count = 0;
+	while(_bit_count < 13)
+	{
+		process_next_event();
+	}
+
+	_is_catching_bytes = false;
+	printf("%02x ", (uint8_t)(_shift_register >> 3));
+	return (uint8_t)(_shift_register >> 3);
+}
+
+void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
+{
+	Storage::Tape::BinaryTapePlayer::process_input_pulse(pulse);
+
+	if(_is_catching_bytes)
+	{
+		_cycle_length += pulse.length.get_float();
+		bool is_high = get_input();
+		if(is_high != _was_high)
+		{
+			// queue up the new length
+			_queued_lengths[_queued_lengths_pointer] = (int)(_cycle_length * 4800.0f + 0.5f);
+			_cycle_length = 0.0f;
+			_queued_lengths_pointer++;
+
+			// search for bits
+			if(_is_in_fast_mode)
+			{
+				if(_queued_lengths_pointer >= 2)
+				{
+					if(_queued_lengths[0] == 1)
+					{
+						int new_bit = 0;
+						if(_queued_lengths[1] == 2) new_bit = 0; else new_bit = 1;
+						_shift_register = (_shift_register >> 1) | (new_bit << 12);
+						_bit_count++;
+						memmove(_queued_lengths, &_queued_lengths[2], sizeof(int)*14);
+						_queued_lengths_pointer -= 2;
+					}
+					else
+					{
+						memmove(_queued_lengths, &_queued_lengths[1], sizeof(int)*15);
+						_queued_lengths_pointer--;
+					}
+				}
+			}
+			else
+			{
+				// TODO
+			}
+		}
+		_was_high = is_high;
+	}
 }
