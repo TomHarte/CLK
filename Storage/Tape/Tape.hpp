@@ -117,7 +117,7 @@ class BinaryTapePlayer: public TapePlayer {
 		};
 		void set_delegate(Delegate *delegate);
 
-	private:
+	protected:
 		Delegate *_delegate;
 		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
 		bool _input_level;

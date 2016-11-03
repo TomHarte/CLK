@@ -135,6 +135,13 @@
 
 #pragma mark - Options
 
+- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	@synchronized(self) {
+		_useFastLoadingHack = useFastLoadingHack;
+		_oric.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
+}
+
 - (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
 	@synchronized(self) {
 		_useCompositeOutput = useCompositeOutput;
