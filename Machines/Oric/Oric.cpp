@@ -40,22 +40,36 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 {
 	if(address >= 0xc000)
 	{
+		if(isReadOperation(operation)) *value = _rom[address&16383];
+
 //		// 024D = 0 => fast; otherwise slow
 //		// E6C9 = read byte: return byte in A
-//		if(address == 0xe6c9 && operation == CPU6502::BusOperation::ReadOpcode)
-//		{
-//			printf(".");
-//		}
-
-		if(address == 0xe720 && operation == CPU6502::BusOperation::ReadOpcode)
+		if(address == 0xe6c9 && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			while(!_via.tape->get_input())
+			static FILE *test = NULL;
+			static int lead_counter = 0;
+			if(!test)
 			{
-				_via.run_for_cycles(1);
-				_via.tape->run_for_cycles(1);
+				test = fopen("/Users/thomasharte/Desktop/Soft/Oric/Tapes/Slalom.tap", "rb");
+			}
+			if(test && !feof(test))
+			{
+				uint8_t next_byte;
+//				if(lead_counter < 64)
+//				{
+//					next_byte = 0x16;
+//					lead_counter++;
+//				}
+//				else
+					next_byte = (uint8_t)fgetc(test);
+				set_value_of_register(CPU6502::A, next_byte);
+				set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
+				uint8_t stack = get_value_of_register(CPU6502::S) + 1;
+				uint16_t return_address = _ram[0x0100 | stack] | (_ram[0x0100 | (stack+1)] << 8);
+				printf("%02x -> %04x | ", next_byte, return_address+1);
+				*value = 0x60; // i.e. RTS
 			}
 		}
-		if(isReadOperation(operation)) *value = _rom[address&16383];
 	}
 	else
 	{
