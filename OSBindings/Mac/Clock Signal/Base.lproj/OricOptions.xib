@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11201" systemVersion="16A323" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11201" systemVersion="16B2555" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11201"/>
     </dependencies>
@@ -14,12 +14,22 @@
         <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="OricOptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="83" y="102" width="200" height="61"/>
+            <rect key="contentRect" x="83" y="102" width="200" height="90"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
             <view key="contentView" id="tpZ-0B-QQu">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="61"/>
+                <rect key="frame" x="0.0" y="0.0" width="200" height="90"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="zPG-yW-4Gy">
+                        <rect key="frame" x="18" y="54" width="164" height="18"/>
+                        <buttonCell key="cell" type="check" title="Use Fast Loading" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="alI-Mw-35c">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="setFastLoading:" target="ZW7-Bw-4RP" id="yyv-gz-xoa"/>
+                        </connections>
+                    </button>
                     <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rh8-km-57n">
                         <rect key="frame" x="18" y="17" width="165" height="26"/>
                         <popUpButtonCell key="cell" type="push" title="SCART" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="tJM-kX-gaK" id="8SX-c5-ud1">
@@ -38,15 +48,20 @@
                     </popUpButton>
                 </subviews>
                 <constraints>
+                    <constraint firstAttribute="trailing" secondItem="zPG-yW-4Gy" secondAttribute="trailing" constant="20" id="Mtb-hf-4ap"/>
+                    <constraint firstItem="rh8-km-57n" firstAttribute="top" secondItem="zPG-yW-4Gy" secondAttribute="bottom" constant="15" id="ScX-pe-t0x"/>
                     <constraint firstItem="rh8-km-57n" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="VRo-6R-IKd"/>
+                    <constraint firstAttribute="bottom" secondItem="rh8-km-57n" secondAttribute="bottom" constant="20" id="g0Y-mW-nla"/>
+                    <constraint firstItem="zPG-yW-4Gy" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="imk-5k-8nm"/>
+                    <constraint firstItem="zPG-yW-4Gy" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="jAt-iF-uaT"/>
                     <constraint firstAttribute="trailing" secondItem="rh8-km-57n" secondAttribute="trailing" constant="20" id="urO-Ac-aqK"/>
-                    <constraint firstItem="rh8-km-57n" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="xJx-0U-vUw"/>
                 </constraints>
             </view>
             <connections>
                 <outlet property="displayTypeButton" destination="rh8-km-57n" id="FB2-Zg-VKq"/>
+                <outlet property="fastLoadingButton" destination="zPG-yW-4Gy" id="aMA-R2-EL8"/>
             </connections>
-            <point key="canvasLocation" x="129" y="35.5"/>
+            <point key="canvasLocation" x="34" y="50"/>
         </window>
     </objects>
 </document>

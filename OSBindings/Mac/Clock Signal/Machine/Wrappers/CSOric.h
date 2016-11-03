@@ -8,9 +8,11 @@
 
 #import "CSMachine.h"
 #import "CSKeyboardMachine.h"
+#import "CSFastLoading.h"
 
-@interface CSOric : CSMachine <CSKeyboardMachine>
+@interface CSOric : CSMachine <CSKeyboardMachine, CSFastLoading>
 
-@property(nonatomic, assign) BOOL useCompositeOutput;
+@property (nonatomic, assign) BOOL useFastLoadingHack;
+@property (nonatomic, assign) BOOL useCompositeOutput;
 
 @end

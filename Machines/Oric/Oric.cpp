@@ -11,7 +11,7 @@
 
 using namespace Oric;
 
-Machine::Machine() : _cycles_since_video_update(0)
+Machine::Machine() : _cycles_since_video_update(0), _use_fast_tape_hack(false)
 {
 	set_clock_rate(1000000);
 	_via.tape.reset(new TapePlayer);
@@ -44,7 +44,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == 0xe6c9 && operation == CPU6502::BusOperation::ReadOpcode)
+		if(address == 0xe6c9 && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode)
 		{
 			uint8_t next_byte = _via.tape->get_next_byte(!_ram[0x024d]);
 			set_value_of_register(CPU6502::A, next_byte);
@@ -126,6 +126,11 @@ void Machine::clear_all_keys()
 	memset(_keyboard->rows, 0, sizeof(_keyboard->rows));
 }
 
+void Machine::set_use_fast_tape_hack(bool activate)
+{
+	_use_fast_tape_hack = activate;
+}
+
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player)
 {
 	// set CB1
@@ -196,7 +201,7 @@ void Machine::VIA::run_for_cycles(unsigned int number_of_cycles)
 {
 	_cycles_since_ay_update += number_of_cycles;
 	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
-	tape->run_for_cycles(number_of_cycles);
+	tape->run_for_cycles((int)number_of_cycles);
 }
 
 void Machine::VIA::update_ay()
@@ -210,11 +215,7 @@ void Machine::VIA::update_ay()
 
 Machine::TapePlayer::TapePlayer() :
 	Storage::Tape::BinaryTapePlayer(1000000),
-	_is_catching_bytes(false),
-	_cycle_length(0.0f),
-	_was_high(false),
-	_queued_lengths_pointer(0),
-	_shift_register(0)
+	_is_catching_bytes(false)
 {}
 
 uint8_t Machine::TapePlayer::get_next_byte(bool fast)
@@ -222,17 +223,19 @@ uint8_t Machine::TapePlayer::get_next_byte(bool fast)
 	_is_in_fast_mode = fast;
 	_is_catching_bytes = true;
 
-	_bit_count = 0;
 	_was_high = get_input();
 	_queued_lengths_pointer = 0;
-	_shift_register = 0;
+	_data_register = 0;
+	_cycle_length = 0.0f;
+
+	_bit_count = 0;
 	while(_bit_count < 10)
 	{
 		process_next_event();
 	}
 
 	_is_catching_bytes = false;
-	return (uint8_t)(_shift_register >> 1);
+	return (uint8_t)(_data_register >> 1);
 }
 
 void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
@@ -261,7 +264,7 @@ void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 						int new_bit = (first_two < 0.000512) ? 1 : 0;
 						if(_bit_count || !new_bit)
 						{
-							_shift_register |= (new_bit << _bit_count);
+							_data_register |= (new_bit << _bit_count);
 							_bit_count++;
 						}
 						memmove(_queued_lengths, &_queued_lengths[2], sizeof(float)*14);
