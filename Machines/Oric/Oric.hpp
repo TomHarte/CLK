@@ -102,6 +102,7 @@ class Machine:
 			public:
 				TapePlayer();
 				uint8_t get_next_byte(bool fast);
+				void run_for_cycles(int number_of_cycles);
 
 			private:
 				bool _is_in_fast_mode;
@@ -110,7 +111,7 @@ class Machine:
 				float _cycle_length;
 				bool _was_high;
 
-				int _queued_lengths[16];
+				float _queued_lengths[16];
 				int _queued_lengths_pointer;
 
 				int _shift_register;

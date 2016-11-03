@@ -72,7 +72,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	_via.run_for_cycles(1);
-	_via.tape->run_for_cycles(1);
 	_cycles_since_video_update++;
 	return 1;
 }
@@ -197,6 +196,7 @@ void Machine::VIA::run_for_cycles(unsigned int number_of_cycles)
 {
 	_cycles_since_ay_update += number_of_cycles;
 	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
+	tape->run_for_cycles(number_of_cycles);
 }
 
 void Machine::VIA::update_ay()
@@ -213,7 +213,8 @@ Machine::TapePlayer::TapePlayer() :
 	_is_catching_bytes(false),
 	_cycle_length(0.0f),
 	_was_high(false),
-	_queued_lengths_pointer(0)
+	_queued_lengths_pointer(0),
+	_shift_register(0)
 {}
 
 uint8_t Machine::TapePlayer::get_next_byte(bool fast)
@@ -222,14 +223,16 @@ uint8_t Machine::TapePlayer::get_next_byte(bool fast)
 	_is_catching_bytes = true;
 
 	_bit_count = 0;
-	while(_bit_count < 13)
+	_was_high = get_input();
+	_queued_lengths_pointer = 0;
+	_shift_register = 0;
+	while(_bit_count < 10)
 	{
 		process_next_event();
 	}
 
 	_is_catching_bytes = false;
-	printf("%02x ", (uint8_t)(_shift_register >> 3));
-	return (uint8_t)(_shift_register >> 3);
+	return (uint8_t)(_shift_register >> 1);
 }
 
 void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
@@ -243,7 +246,7 @@ void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 		if(is_high != _was_high)
 		{
 			// queue up the new length
-			_queued_lengths[_queued_lengths_pointer] = (int)(_cycle_length * 4800.0f + 0.5f);
+			_queued_lengths[_queued_lengths_pointer] = _cycle_length;
 			_cycle_length = 0.0f;
 			_queued_lengths_pointer++;
 
@@ -252,18 +255,21 @@ void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 			{
 				if(_queued_lengths_pointer >= 2)
 				{
-					if(_queued_lengths[0] == 1)
+					float first_two = _queued_lengths[0] + _queued_lengths[1];
+					if(first_two < 0.000512*2.0 && _queued_lengths[0] >= _queued_lengths[1] - 0.000256)
 					{
-						int new_bit = 0;
-						if(_queued_lengths[1] == 2) new_bit = 0; else new_bit = 1;
-						_shift_register = (_shift_register >> 1) | (new_bit << 12);
-						_bit_count++;
-						memmove(_queued_lengths, &_queued_lengths[2], sizeof(int)*14);
+						int new_bit = (first_two < 0.000512) ? 1 : 0;
+						if(_bit_count || !new_bit)
+						{
+							_shift_register |= (new_bit << _bit_count);
+							_bit_count++;
+						}
+						memmove(_queued_lengths, &_queued_lengths[2], sizeof(float)*14);
 						_queued_lengths_pointer -= 2;
 					}
 					else
 					{
-						memmove(_queued_lengths, &_queued_lengths[1], sizeof(int)*15);
+						memmove(_queued_lengths, &_queued_lengths[1], sizeof(float)*15);
 						_queued_lengths_pointer--;
 					}
 				}
@@ -275,4 +281,9 @@ void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 		}
 		_was_high = is_high;
 	}
+}
+
+void Machine::TapePlayer::run_for_cycles(int number_of_cycles)
+{
+	if(!_is_catching_bytes) Storage::Tape::BinaryTapePlayer::run_for_cycles(number_of_cycles);
 }
