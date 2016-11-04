@@ -90,11 +90,12 @@ class Speaker {
 	protected:
 		void enqueue(std::function<void(void)> function)
 		{
-			_queue->enqueue(function);
+			function();
+//			_queue->enqueue(function);
 		}
 		void flush()
 		{
-			_queue->flush();
+//			_queue->flush();
 		}
 
 		std::unique_ptr<int16_t> _buffer_in_progress;
