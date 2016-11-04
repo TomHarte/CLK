@@ -42,8 +42,8 @@ class TypeRecipient: public Typer::Delegate {
 		}
 
 	protected:
-		virtual int get_typer_delay() = 0;
-		virtual int get_typer_frequency() = 0;
+		virtual int get_typer_delay() { return 0; }
+		virtual int get_typer_frequency() { return 0; }
 		std::unique_ptr<Typer> _typer;
 };
 

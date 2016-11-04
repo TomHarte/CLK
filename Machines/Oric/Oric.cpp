@@ -11,7 +11,10 @@
 
 using namespace Oric;
 
-Machine::Machine() : _cycles_since_video_update(0), _use_fast_tape_hack(false)
+Machine::Machine() :
+	_cycles_since_video_update(0),
+	_use_fast_tape_hack(false),
+	_typer_delay(2500000)
 {
 	set_clock_rate(1000000);
 	_via.tape.reset(new TapePlayer);
@@ -28,6 +31,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	if(target.tapes.size())
 	{
 		_via.tape->set_tape(target.tapes.front());
+	}
+
+	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+	{
+		set_typer_for_string(target.loadingCommand.c_str());
 	}
 }
 
@@ -65,10 +73,20 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				*value = _ram[address];
 			else
 			{
-				if(address >= 0x9800) update_video();
+				if(address >= 0x9800) { update_video(); _typer_delay = 0; }
 				_ram[address] = *value;
 			}
 		}
+	}
+
+//	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEE22)
+//	{
+//		if(!_typer->type_next_character())
+//			_typer.reset();
+//	}
+	if(_typer)
+	{
+		_typer->update(1);
 	}
 
 	_via.run_for_cycles(1);
@@ -150,6 +168,91 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
 void Machine::run_for_cycles(int number_of_cycles)
 {
 	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+}
+
+#pragma mark - Automatic typing
+
+bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
+{
+	if(!phase) clear_all_keys();
+
+	// The following table is arranged in ASCII order
+	Key key_sequences[][3] = {
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{KeyDelete, TerminateSequence},
+		{NotMapped},
+		{KeyReturn, TerminateSequence},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
+
+		{KeySpace, TerminateSequence},				// space
+
+		{KeyLeftShift, Key1, TerminateSequence},		{KeyLeftShift, KeyQuote, TerminateSequence},	// !, "
+		{KeyLeftShift, Key3, TerminateSequence},		{KeyLeftShift, Key4, TerminateSequence},		// #, $
+		{KeyLeftShift, Key5, TerminateSequence},		{KeyLeftShift, Key7, TerminateSequence},		// %, &
+		{KeyQuote, TerminateSequence},					{KeyLeftShift, Key9, TerminateSequence},		// ', (
+		{KeyLeftShift, Key0, TerminateSequence},		{KeyLeftShift, Key8, TerminateSequence},		// ), *
+		{KeyLeftShift, KeyEquals, TerminateSequence},	{KeyComma, TerminateSequence},				// +, ,
+		{KeyMinus, TerminateSequence},					{KeyFullStop, TerminateSequence},			// -, .
+		{KeyForwardSlash, TerminateSequence},			// /
+
+		{Key0, TerminateSequence},				{Key1, TerminateSequence},					// 0, 1
+		{Key2, TerminateSequence},				{Key3, TerminateSequence},					// 2, 3
+		{Key4, TerminateSequence},				{Key5, TerminateSequence},					// 4, 5
+		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
+		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
+
+		{KeyLeftShift, KeySemiColon, TerminateSequence},	{KeySemiColon, TerminateSequence},		// :, ;
+		{KeyLeftShift, KeyComma, TerminateSequence},		{KeyEquals, TerminateSequence},			// <, =
+		{KeyLeftShift, KeyFullStop, TerminateSequence},		{KeyLeftShift, KeyForwardSlash, TerminateSequence},		// >, ?
+		{KeyLeftShift, Key2, TerminateSequence},						// @
+
+		{KeyLeftShift, KeyA, TerminateSequence},	{KeyLeftShift, KeyB, TerminateSequence},	{KeyLeftShift, KeyC, TerminateSequence},	{KeyLeftShift, KeyD, TerminateSequence},	// A, B, C, D
+		{KeyLeftShift, KeyE, TerminateSequence},	{KeyLeftShift, KeyF, TerminateSequence},	{KeyLeftShift, KeyG, TerminateSequence},	{KeyLeftShift, KeyH, TerminateSequence},	// E, F, G, H
+		{KeyLeftShift, KeyI, TerminateSequence},	{KeyLeftShift, KeyJ, TerminateSequence},	{KeyLeftShift, KeyK, TerminateSequence},	{KeyLeftShift, KeyL, TerminateSequence},	// I, J, K L
+		{KeyLeftShift, KeyM, TerminateSequence},	{KeyLeftShift, KeyN, TerminateSequence},	{KeyLeftShift, KeyO, TerminateSequence},	{KeyLeftShift, KeyP, TerminateSequence},	// M, N, O, P
+		{KeyLeftShift, KeyQ, TerminateSequence},	{KeyLeftShift, KeyR, TerminateSequence},	{KeyLeftShift, KeyS, TerminateSequence},	{KeyLeftShift, KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyLeftShift, KeyU, TerminateSequence},	{KeyLeftShift, KeyV, TerminateSequence},	{KeyLeftShift, KeyW, TerminateSequence},	{KeyLeftShift, KeyX, TerminateSequence},	// U, V, W X
+		{KeyLeftShift, KeyY, TerminateSequence},	{KeyLeftShift, KeyZ, TerminateSequence},	// Y, Z
+
+		{KeyOpenSquare, TerminateSequence},		{KeyBackSlash, TerminateSequence},			// [, '\'
+		{KeyCloseSquare, TerminateSequence},	{KeyLeftShift, Key6, TerminateSequence},	// ], ^
+		{NotMapped},							{NotMapped},	// _, `
+
+		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
+		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
+		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
+		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
+		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
+		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
+		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
+
+		{KeyLeftShift, KeyOpenSquare, TerminateSequence},		{KeyLeftShift, KeyBackSlash, TerminateSequence},			// {, |
+		{KeyLeftShift, KeyCloseSquare, TerminateSequence},	// }, ~
+	};
+	Key *key_sequence = nullptr;
+
+	character &= 0x7f;
+	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
+	{
+		key_sequence = key_sequences[character];
+
+		if(key_sequence[0] != NotMapped)
+		{
+			if(phase)
+			{
+				set_key_state(key_sequence[phase-1], true);
+				return key_sequence[phase] == TerminateSequence;
+			}
+			else
+				return false;
+		}
+	}
+
+	return true;
 }
 
 #pragma mark - The 6522

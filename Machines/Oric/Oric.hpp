@@ -9,16 +9,17 @@
 #ifndef Oric_hpp
 #define Oric_hpp
 
-#include "../../Processors/6502/CPU6502.hpp"
-#include "../../Components/6522/6522.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
+#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Components/6522/6522.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
+
 #include "Video.hpp"
+
+#include "../../Storage/Tape/Tape.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -45,6 +46,8 @@ enum Key: uint16_t {
 	KeyForwardSlash	= 0x0700 | 0x08,	Key0			= 0x0700 | 0x04,	KeyL			= 0x0700 | 0x02,	Key8			= 0x0700 | 0x01,
 
 	KeyNMI			= 0xffff,
+
+	TerminateSequence = 0xfffe, NotMapped = 0xfffc
 };
 
 class Machine:
@@ -52,6 +55,7 @@ class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
+	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate {
 
 	public:
@@ -83,6 +87,11 @@ class Machine:
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player);
 
+		// for Utility::TypeRecipient
+		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+		virtual int get_typer_delay() { return _typer_delay; }
+		virtual int get_typer_frequency() { return 40000; }
+
 	private:
 		// RAM and ROM
 		uint8_t _ram[65536], _rom[16384];
@@ -98,6 +107,7 @@ class Machine:
 				uint8_t row;
 				uint8_t rows[8];
 		};
+		int _typer_delay;
 
 		// The tape
 		class TapePlayer: public Storage::Tape::BinaryTapePlayer {
