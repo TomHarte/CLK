@@ -79,14 +79,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-//	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEE22)
-//	{
-//		if(!_typer->type_next_character())
-//			_typer.reset();
-//	}
-	if(_typer)
+	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xF495)
 	{
-		_typer->update(1);
+		if(!_typer->type_next_character()) _typer.reset();
 	}
 
 	_via.run_for_cycles(1);

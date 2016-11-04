@@ -89,8 +89,6 @@ class Machine:
 
 		// for Utility::TypeRecipient
 		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
-		virtual int get_typer_delay() { return _typer_delay; }
-		virtual int get_typer_frequency() { return 40000; }
 
 	private:
 		// RAM and ROM
