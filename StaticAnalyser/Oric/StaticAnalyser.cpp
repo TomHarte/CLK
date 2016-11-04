@@ -24,5 +24,6 @@ void StaticAnalyser::Oric::AddTargets(
 	target.disks = disks;
 	target.tapes = tapes;
 	target.cartridges = cartridges;
+	target.loadingCommand = "CLOAD\"\"\n";
 	destination.push_back(target);
 }
