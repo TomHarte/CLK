@@ -186,9 +186,7 @@ class Machine:
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
 
 		// for Utility::TypeRecipient
-		virtual int get_typer_delay();
-		virtual int get_typer_frequency();
-		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 		// for Tape::Delegate
 		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);

@@ -60,9 +60,9 @@ enum Key: uint16_t {
 	KeyZ			= 0x00c0 | 0x08,	KeyA			= 0x00c0 | 0x04,	KeyQ			= 0x00c0 | 0x02,	Key1			= 0x00c0 | 0x01,
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
-	KeyBreak		= 0xffff,
+	KeyBreak		= 0xfffd,
 
-	TerminateSequence = 0, NotMapped		= 0xfffe,
+	TerminateSequence = 0xffff, NotMapped		= 0xfffe,
 };
 
 class Tape: public Storage::Tape::TapePlayer {
@@ -174,7 +174,7 @@ class Machine:
 		// for Utility::TypeRecipient
 		virtual int get_typer_delay();
 		virtual int get_typer_frequency();
-		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 	private:
 

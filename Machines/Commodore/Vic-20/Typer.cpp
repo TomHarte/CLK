@@ -1,9 +1,17 @@
-#include "Oric.hpp"
+//
+//  Typer.cpp
+//  Clock Signal
+//
+//  Created by Thomas Harte on 05/11/2016.
+//  Copyright © 2016 Thomas Harte. All rights reserved.
+//
 
-uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char character)
+#include "Vic20.hpp"
+
+uint16_t *Commodore::Vic20::Machine::sequence_for_character(Utility::Typer *typer, char character)
 {
 #define KEYS(...)	{__VA_ARGS__, TerminateSequence}
-#define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, TerminateSequence}
+#define SHIFT(...)	{KeyLShift, __VA_ARGS__, TerminateSequence}
 #define X			{NotMapped}
 	static Key key_sequences[][3] = {
 		/* NUL */	X,							/* SOH */	X,
@@ -23,22 +31,22 @@ uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char char
 		/* FS */	X,							/* GS */	X,
 		/* RS */	X,							/* US */	X,
 		/* space */	KEYS(KeySpace),				/* ! */		SHIFT(Key1),
-		/* " */		SHIFT(KeyQuote),			/* # */		SHIFT(Key3),
+		/* " */		SHIFT(Key2),				/* # */		SHIFT(Key3),
 		/* $ */		SHIFT(Key4),				/* % */		SHIFT(Key5),
-		/* & */		SHIFT(Key7),				/* ' */		KEYS(KeyQuote),
-		/* ( */		SHIFT(Key9),				/* ) */		SHIFT(Key0),
-		/* * */		SHIFT(Key8),				/* + */		SHIFT(KeyEquals),
-		/* , */		KEYS(KeyComma),				/* - */		KEYS(KeyMinus),
-		/* . */		KEYS(KeyFullStop),			/* / */		KEYS(KeyForwardSlash),
+		/* & */		SHIFT(Key6),				/* ' */		SHIFT(Key7),
+		/* ( */		SHIFT(Key8),				/* ) */		SHIFT(Key9),
+		/* * */		KEYS(KeyAsterisk),			/* + */		KEYS(KeyPlus),
+		/* , */		KEYS(KeyComma),				/* - */		KEYS(KeyDash),
+		/* . */		KEYS(KeyFullStop),			/* / */		KEYS(KeySlash),
 		/* 0 */		KEYS(Key0),					/* 1 */		KEYS(Key1),
 		/* 2 */		KEYS(Key2),					/* 3 */		KEYS(Key3),
 		/* 4 */		KEYS(Key4),					/* 5 */		KEYS(Key5),
 		/* 6 */		KEYS(Key6),					/* 7 */		KEYS(Key7),
 		/* 8 */		KEYS(Key8),					/* 9 */		KEYS(Key9),
-		/* : */		SHIFT(KeySemiColon),		/* ; */		KEYS(KeySemiColon),
+		/* : */		KEYS(KeyColon),				/* ; */		KEYS(KeySemicolon),
 		/* < */		SHIFT(KeyComma),			/* = */		KEYS(KeyEquals),
-		/* > */		SHIFT(KeyFullStop),			/* ? */		SHIFT(KeyForwardSlash),
-		/* @ */		SHIFT(Key2),				/* A */		SHIFT(KeyA),
+		/* > */		SHIFT(KeyFullStop),			/* ? */		SHIFT(KeySlash),
+		/* @ */		KEYS(KeyAt),				/* A */		SHIFT(KeyA),
 		/* B */		SHIFT(KeyB),				/* C */		SHIFT(KeyC),
 		/* D */		SHIFT(KeyD),				/* E */		SHIFT(KeyE),
 		/* F */		SHIFT(KeyF),				/* G */		SHIFT(KeyG),
@@ -51,9 +59,9 @@ uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char char
 		/* T */		SHIFT(KeyT),				/* U */		SHIFT(KeyU),
 		/* V */		SHIFT(KeyV),				/* W */		SHIFT(KeyW),
 		/* X */		SHIFT(KeyX),				/* Y */		SHIFT(KeyY),
-		/* Z */		SHIFT(KeyZ),				/* [ */		KEYS(KeyOpenSquare),
-		/* \ */		KEYS(KeyBackSlash),			/* ] */		KEYS(KeyCloseSquare),
-		/* ^ */		SHIFT(Key6),				/* _ */		X,
+		/* Z */		SHIFT(KeyZ),				/* [ */		SHIFT(KeyColon),
+		/* \ */		X,							/* ] */		SHIFT(KeyFullStop),
+		/* ^ */		X,							/* _ */		X,
 		/* ` */		X,							/* a */		KEYS(KeyA),
 		/* b */		KEYS(KeyB),					/* c */		KEYS(KeyC),
 		/* d */		KEYS(KeyD),					/* e */		KEYS(KeyE),
@@ -67,8 +75,7 @@ uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char char
 		/* t */		KEYS(KeyT),					/* u */		KEYS(KeyU),
 		/* v */		KEYS(KeyV),					/* w */		KEYS(KeyW),
 		/* x */		KEYS(KeyX),					/* y */		KEYS(KeyY),
-		/* z */		KEYS(KeyZ),					/* { */		SHIFT(KeyOpenSquare),
-		/* | */		SHIFT(KeyBackSlash),		/* } */		SHIFT(KeyCloseSquare),
+		/* z */		KEYS(KeyZ)
 	};
 #undef KEYS
 #undef SHIFT
