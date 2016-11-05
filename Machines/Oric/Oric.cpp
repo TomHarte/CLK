@@ -52,7 +52,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == 0xe6c9 && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode)
+		if(address == 0xe6c9 && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode && _via.tape->has_tape() && !_via.tape->get_tape()->is_at_end())
 		{
 			uint8_t next_byte = _via.tape->get_next_byte(!_ram[0x024d]);
 			set_value_of_register(CPU6502::A, next_byte);
