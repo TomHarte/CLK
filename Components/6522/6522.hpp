@@ -90,7 +90,7 @@ template <class T> class MOS6522 {
 					_registers.interrupt_flags &= ~InterruptFlag::Timer1;
 					if(address == 0x05)
 					{
-						_registers.timer[0] = _registers.timer_latch[0];
+						_registers.next_timer[0] = _registers.timer_latch[0];
 						_timer_is_running[0] = true;
 					}
 					reevaluate_interrupts();
@@ -100,7 +100,7 @@ template <class T> class MOS6522 {
 				case 0x8:	_registers.timer_latch[1] = value;	break;
 				case 0x9:
 					_registers.interrupt_flags &= ~InterruptFlag::Timer2;
-					_registers.timer[1] = _registers.timer_latch[1] | (uint16_t)(value << 8);
+					_registers.next_timer[1] = _registers.timer_latch[1] | (uint16_t)(value << 8);
 					_timer_is_running[1] = true;
 					reevaluate_interrupts();
 				break;
@@ -242,7 +242,9 @@ template <class T> class MOS6522 {
 	else\
 		_registers.timer[0] --;\
 \
-	_registers.timer[1] --;
+	_registers.timer[1] --; \
+	if(_registers.next_timer[0] >= 0) { _registers.timer[0] = _registers.next_timer[0]; _registers.next_timer[0] = -1; }\
+	if(_registers.next_timer[1] >= 0) { _registers.timer[1] = _registers.next_timer[1]; _registers.next_timer[1] = -1; }\
 
 	// IRQ is raised on the half cycle after overflow
 #define phase1()	\
@@ -367,6 +369,7 @@ template <class T> class MOS6522 {
 		struct Registers {
 			uint8_t output[2], input[2], data_direction[2];
 			uint16_t timer[2], timer_latch[2], last_timer[2];
+			int next_timer[2];
 			uint8_t shift;
 			uint8_t auxiliary_control, peripheral_control;
 			uint8_t interrupt_flags, interrupt_enable;
@@ -377,7 +380,8 @@ template <class T> class MOS6522 {
 				output{0, 0}, input{0, 0}, data_direction{0, 0},
 				auxiliary_control(0), peripheral_control(0),
 				interrupt_flags(0), interrupt_enable(0),
-				last_timer{0, 0}, timer_needs_reload(false) {}
+				last_timer{0, 0}, timer_needs_reload(false),
+				next_timer{-1, -1} {}
 		} _registers;
 
 		// control state
