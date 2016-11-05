@@ -243,8 +243,8 @@ template <class T> class MOS6522 {
 		_registers.timer[0] --;\
 \
 	_registers.timer[1] --; \
-	if(_registers.next_timer[0] >= 0) { _registers.timer[0] = _registers.next_timer[0]; _registers.next_timer[0] = -1; }\
-	if(_registers.next_timer[1] >= 0) { _registers.timer[1] = _registers.next_timer[1]; _registers.next_timer[1] = -1; }\
+	if(_registers.next_timer[0] >= 0) { _registers.timer[0] = (uint16_t)_registers.next_timer[0]; _registers.next_timer[0] = -1; }\
+	if(_registers.next_timer[1] >= 0) { _registers.timer[1] = (uint16_t)_registers.next_timer[1]; _registers.next_timer[1] = -1; }\
 
 	// IRQ is raised on the half cycle after overflow
 #define phase1()	\
