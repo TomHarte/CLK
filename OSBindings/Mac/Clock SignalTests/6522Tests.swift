@@ -24,6 +24,9 @@ class MOS6522Tests: XCTestCase {
 			$0.setValue(10, forRegister: 4)
 			$0.setValue(0, forRegister: 5)
 
+			// complete the setting cycle
+			$0.run(forHalfCycles: 2)
+
 			// run for 5 cycles
 			$0.run(forHalfCycles: 10)
 
@@ -42,12 +45,18 @@ class MOS6522Tests: XCTestCase {
 			// change the low-byte latch
 			$0.setValue(0x40, forRegister: 8)
 
+			// complete the cycle
+			$0.run(forHalfCycles: 2)
+
 			// chek that the new latched value hasn't been copied
 			XCTAssert($0.value(forRegister: 8) == 0x10, "Low order byte should be 0x10; was \($0.value(forRegister: 8))")
 			XCTAssert($0.value(forRegister: 9) == 0x20, "High order byte should be 0x20; was \($0.value(forRegister: 9))")
 
 			// write the low-byte latch
 			$0.setValue(0x50, forRegister: 9)
+
+			// complete the cycle
+			$0.run(forHalfCycles: 2)
 
 			// chek that the latched value has been copied
 			XCTAssert($0.value(forRegister: 8) == 0x40, "Low order byte should be 0x50; was \($0.value(forRegister: 8))")
@@ -62,6 +71,9 @@ class MOS6522Tests: XCTestCase {
 			$0.setValue(0, forRegister: 5)
 			$0.setValue(0x40, forRegister: 11)
 			$0.setValue(0x40 | 0x80, forRegister: 14)
+
+			// complete the cycle to set initial values
+			$0.run(forHalfCycles: 2)
 
 			// run for 16 cycles
 			$0.run(forHalfCycles: 32)
@@ -102,6 +114,9 @@ class MOS6522Tests: XCTestCase {
 
 			// ask to output 0x8c
 			$0.setValue(0x8c, forRegister: 0)
+
+			// complete the cycle
+			$0.run(forHalfCycles: 2)
 
 			// set current input as 0xda
 			$0.portBInput = 0xda
