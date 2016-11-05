@@ -162,7 +162,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
 	{
 		if(!_typer->type_next_character())
+		{
+			clear_all_keys();
 			_typer.reset();
+		}
 	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);
@@ -368,112 +371,6 @@ void Machine::install_disk_rom()
 	}
 }
 
-#pragma mark - Typer
-
-int Machine::get_typer_delay()
-{
-	return get_is_resetting() ? 1*263*60*65 : 0;	// wait a second if resetting
-}
-
-int Machine::get_typer_frequency()
-{
-	return 2*263*65;	// accept a new character every two fields
-}
-
-bool Machine::typer_set_next_character(::Utility::Typer *typer, char character, int phase)
-{
-	if(!phase) clear_all_keys();
-
-	// The following table is arranged in ASCII order
-	Key key_sequences[][3] = {
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-		{KeyDelete, TerminateSequence},
-		{NotMapped},
-		{KeyReturn, TerminateSequence},
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-		{NotMapped},	{NotMapped},	{NotMapped},	{NotMapped},
-
-		{KeySpace, TerminateSequence},				// space
-
-		{KeyLShift, Key1, TerminateSequence},	{KeyLShift, Key2, TerminateSequence},		// !, "
-		{KeyLShift, Key3, TerminateSequence},	{KeyLShift, Key4, TerminateSequence},		// #, $
-		{KeyLShift, Key5, TerminateSequence},	{KeyLShift, Key6, TerminateSequence},		// %, &
-		{KeyLShift, Key7, TerminateSequence},	{KeyLShift, Key8, TerminateSequence},		// ', (
-		{KeyLShift, Key9, TerminateSequence},	{KeyAsterisk, TerminateSequence},			// ), *
-		{KeyPlus, TerminateSequence},			{KeyComma, TerminateSequence},				// +, ,
-		{KeyDash, TerminateSequence},			{KeyFullStop, TerminateSequence},			// -, .
-		{KeySlash, TerminateSequence},			// /
-
-		{Key0, TerminateSequence},				{Key1, TerminateSequence},					// 0, 1
-		{Key2, TerminateSequence},				{Key3, TerminateSequence},					// 2, 3
-		{Key4, TerminateSequence},				{Key5, TerminateSequence},					// 4, 5
-		{Key6, TerminateSequence},				{Key7, TerminateSequence},					// 6, 7
-		{Key8, TerminateSequence},				{Key9, TerminateSequence},					// 8, 9
-
-		{KeyColon, TerminateSequence},					{KeySemicolon, TerminateSequence},		// :, ;
-		{KeyLShift, KeyComma, TerminateSequence},		{KeyEquals, TerminateSequence},			// <, =
-		{KeyLShift, KeyFullStop, TerminateSequence},	{KeyLShift, KeySlash, TerminateSequence},		// >, ?
-		{KeyAt, TerminateSequence},						// @
-
-		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
-		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
-		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
-		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
-		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
-		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
-		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
-
-		{KeyLShift, KeyColon, TerminateSequence},		{NotMapped},	// [, '\'
-		{KeyLShift, KeyFullStop, TerminateSequence},	{NotMapped},	// ], ^
-		{NotMapped},									{NotMapped},	// _, `
-
-		{KeyA, TerminateSequence},	{KeyB, TerminateSequence},	{KeyC, TerminateSequence},	{KeyD, TerminateSequence},	// A, B, C, D
-		{KeyE, TerminateSequence},	{KeyF, TerminateSequence},	{KeyG, TerminateSequence},	{KeyH, TerminateSequence},	// E, F, G, H
-		{KeyI, TerminateSequence},	{KeyJ, TerminateSequence},	{KeyK, TerminateSequence},	{KeyL, TerminateSequence},	// I, J, K L
-		{KeyM, TerminateSequence},	{KeyN, TerminateSequence},	{KeyO, TerminateSequence},	{KeyP, TerminateSequence},	// M, N, O, P
-		{KeyQ, TerminateSequence},	{KeyR, TerminateSequence},	{KeyS, TerminateSequence},	{KeyT, TerminateSequence},	// Q, R, S, T
-		{KeyU, TerminateSequence},	{KeyV, TerminateSequence},	{KeyW, TerminateSequence},	{KeyX, TerminateSequence},	// U, V, W X
-		{KeyY, TerminateSequence},	{KeyZ, TerminateSequence},	// Y, Z
-//		{KeyLShift, KeyA, TerminateSequence},					{KeyLShift, KeyB, TerminateSequence},					// a, b
-//		{KeyLShift, KeyC, TerminateSequence},					{KeyLShift, KeyD, TerminateSequence},					// c, d
-//		{KeyLShift, KeyE, TerminateSequence},					{KeyLShift, KeyF, TerminateSequence},					// e, f
-//		{KeyLShift, KeyG, TerminateSequence},					{KeyLShift, KeyH, TerminateSequence},					// g, h
-//		{KeyLShift, KeyI, TerminateSequence},					{KeyLShift, KeyJ, TerminateSequence},					// i, j
-//		{KeyLShift, KeyK, TerminateSequence},					{KeyLShift, KeyL, TerminateSequence},					// k, l
-//		{KeyLShift, KeyM, TerminateSequence},					{KeyLShift, KeyN, TerminateSequence},					// m, n
-//		{KeyLShift, KeyO, TerminateSequence},					{KeyLShift, KeyP, TerminateSequence},					// o, p
-//		{KeyLShift, KeyQ, TerminateSequence},					{KeyLShift, KeyR, TerminateSequence},					// q, r
-//		{KeyLShift, KeyS, TerminateSequence},					{KeyLShift, KeyT, TerminateSequence},					// s, t
-//		{KeyLShift, KeyU, TerminateSequence},					{KeyLShift, KeyV, TerminateSequence},					// u, v
-//		{KeyLShift, KeyW, TerminateSequence},					{KeyLShift, KeyX, TerminateSequence},					// w, x
-//		{KeyLShift, KeyY, TerminateSequence},					{KeyLShift, KeyZ, TerminateSequence},					// y, z
-
-	};
-	Key *key_sequence = nullptr;
-
-	character &= 0x7f;
-	if(character < sizeof(key_sequences) / sizeof(*key_sequences))
-	{
-		key_sequence = key_sequences[character];
-
-		if(key_sequence[0] != NotMapped)
-		{
-			if(phase > 0)
-			{
-				set_key_state(key_sequence[phase-1], true);
-				return key_sequence[phase] == TerminateSequence;
-			}
-			else
-				return false;
-		}
-	}
-
-	return true;
-}
-
 #pragma mark - UserPortVIA
 
 uint8_t UserPortVIA::get_port_input(Port port)
@@ -535,7 +432,7 @@ KeyboardVIA::KeyboardVIA() : _portB(0xff)
 	clear_all_keys();
 }
 
-void KeyboardVIA::set_key_state(Key key, bool isPressed)
+void KeyboardVIA::set_key_state(uint16_t key, bool isPressed)
 {
 	if(isPressed)
 		_columns[key & 7] &= ~(key >> 3);

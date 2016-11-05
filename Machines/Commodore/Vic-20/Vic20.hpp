@@ -64,7 +64,7 @@ enum Key: uint16_t {
 	Key1		= key(0, 0x01),		Key3		= key(0, 0x02),		Key5			= key(0, 0x04),		Key7		= key(0, 0x08),
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
 
-	TerminateSequence = 0,	NotMapped = 0xffff
+	TerminateSequence = 0xffff,	NotMapped = 0xfffe
 };
 
 enum JoystickInput {
@@ -98,7 +98,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		KeyboardVIA();
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		void set_key_state(Key key, bool isPressed);
+		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
 		// to satisfy MOS::MOS6522
@@ -157,7 +157,7 @@ class Machine:
 //		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 //		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
-		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
+		void set_key_state(uint16_t key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
 		void set_joystick_state(JoystickInput input, bool isPressed) {
 			_userPortVIA->set_joystick_state(input, isPressed);
@@ -186,9 +186,7 @@ class Machine:
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
 
 		// for Utility::TypeRecipient
-		virtual int get_typer_delay();
-		virtual int get_typer_frequency();
-		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 		// for Tape::Delegate
 		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);
