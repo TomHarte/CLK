@@ -535,7 +535,7 @@ KeyboardVIA::KeyboardVIA() : _portB(0xff)
 	clear_all_keys();
 }
 
-void KeyboardVIA::set_key_state(Key key, bool isPressed)
+void KeyboardVIA::set_key_state(uint16_t key, bool isPressed)
 {
 	if(isPressed)
 		_columns[key & 7] &= ~(key >> 3);

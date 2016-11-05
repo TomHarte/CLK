@@ -10,20 +10,29 @@
 #define Typer_hpp
 
 #include <memory>
+#include "KeyboardMachine.hpp"
 
 namespace Utility {
 
 class Typer {
 	public:
-		class Delegate {
+		class Delegate: public KeyboardMachine::Machine {
 			public:
-				virtual bool typer_set_next_character(Typer *typer, char character, int phase) = 0;
+				virtual bool typer_set_next_character(Typer *typer, char character, int phase);
+				virtual void typer_reset(Typer *typer);
+
+				virtual uint16_t *sequence_for_character(Typer *typer, char character);
+
+				const uint16_t EndSequence = 0xffff;
 		};
 
 		Typer(const char *string, int delay, int frequency, Delegate *delegate);
 		~Typer();
 		void update(int duration);
 		bool type_next_character();
+
+		const char BeginString = 0x02;	// i.e. ASCII start of text
+		const char EndString = 0x03;	// i.e. ASCII end of text
 
 	private:
 		char *_string;
@@ -39,6 +48,11 @@ class TypeRecipient: public Typer::Delegate {
 		void set_typer_for_string(const char *string)
 		{
 			_typer.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
+		}
+
+		void typer_reset(Typer *typer)
+		{
+			_typer.reset();
 		}
 
 	protected:

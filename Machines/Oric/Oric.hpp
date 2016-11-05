@@ -45,9 +45,9 @@ enum Key: uint16_t {
 	KeyEquals		= 0x0700 | 0x80,										KeyReturn		= 0x0700 | 0x20,	KeyRightShift	= 0x0700 | 0x10,
 	KeyForwardSlash	= 0x0700 | 0x08,	Key0			= 0x0700 | 0x04,	KeyL			= 0x0700 | 0x02,	Key8			= 0x0700 | 0x01,
 
-	KeyNMI			= 0xffff,
+	KeyNMI			= 0xfffd,
 
-	TerminateSequence = 0xfffe, NotMapped = 0xfffc
+	TerminateSequence = 0xffff, NotMapped = 0xfffe
 };
 
 class Machine:
@@ -62,7 +62,7 @@ class Machine:
 		Machine();
 
 		void set_rom(std::vector<uint8_t> data);
-		void set_key_state(Key key, bool isPressed);
+		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
 		void set_use_fast_tape_hack(bool activate);
@@ -87,8 +87,8 @@ class Machine:
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player);
 
-		// for Utility::TypeRecipient
-		virtual bool typer_set_next_character(Utility::Typer *typer, char character, int phase);
+		// for Utility::TypeRecipient::Delegate
+		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 	private:
 		// RAM and ROM

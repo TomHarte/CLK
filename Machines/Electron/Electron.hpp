@@ -149,7 +149,7 @@ class Machine:
 
 		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable);
 
-		void set_key_state(Key key, bool isPressed);
+		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
 		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }

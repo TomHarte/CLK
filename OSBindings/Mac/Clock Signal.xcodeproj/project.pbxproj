@@ -357,6 +357,7 @@
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC830CF1D6E7C690000A26F /* Tape.cpp */; };
+		4BC8A62A1DCE4F2700DAC693 /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC8A6291DCE4F2700DAC693 /* Typer.cpp */; };
 		4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
@@ -494,6 +495,7 @@
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
+		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2181DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ElectronOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -830,6 +832,7 @@
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BC830CF1D6E7C690000A26F /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Commodore/Tape.cpp; sourceTree = "<group>"; };
 		4BC830D01D6E7C690000A26F /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Commodore/Tape.hpp; sourceTree = "<group>"; };
+		4BC8A6291DCE4F2700DAC693 /* Typer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Typer.cpp; path = Oric/Typer.cpp; sourceTree = "<group>"; };
 		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
 		4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommodoreTAP.hpp; sourceTree = "<group>"; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
@@ -1607,6 +1610,7 @@
 				4B1E85731D170228001EF87D /* Typer.cpp */,
 				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
 				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
+				4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */,
 				4B2A33291DB8544D002876E3 /* MemoryFuzzer.hpp */,
 				4B1E85741D170228001EF87D /* Typer.hpp */,
 				4B2E2D961C3A06EC00138695 /* Atari2600 */,
@@ -1720,6 +1724,7 @@
 				4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */,
 				4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */,
 				4B2BFDB11DAEF5FF001A68B8 /* Video.hpp */,
+				4BC8A6291DCE4F2700DAC693 /* Typer.cpp */,
 			);
 			name = Oric;
 			sourceTree = "<group>";
@@ -2270,6 +2275,7 @@
 				4B1E85751D170228001EF87D /* Typer.cpp in Sources */,
 				4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
+				4BC8A62A1DCE4F2700DAC693 /* Typer.cpp in Sources */,
 				4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */,
 				4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,

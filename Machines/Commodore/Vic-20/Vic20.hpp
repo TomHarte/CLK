@@ -98,7 +98,7 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		KeyboardVIA();
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		void set_key_state(Key key, bool isPressed);
+		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
 		// to satisfy MOS::MOS6522
@@ -157,7 +157,7 @@ class Machine:
 //		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 //		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
-		void set_key_state(Key key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
+		void set_key_state(uint16_t key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
 		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
 		void set_joystick_state(JoystickInput input, bool isPressed) {
 			_userPortVIA->set_joystick_state(input, isPressed);
