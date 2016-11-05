@@ -1091,9 +1091,9 @@
 		4B4DC81E1D2C2425003C5BF8 /* Vic-20 */ = {
 			isa = PBXGroup;
 			children = (
+				4BC8A62E1DCE63CA00DAC693 /* Typer.cpp */,
 				4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */,
 				4B4DC8201D2C2425003C5BF8 /* Vic20.hpp */,
-				4BC8A62E1DCE63CA00DAC693 /* Typer.cpp */,
 			);
 			path = "Vic-20";
 			sourceTree = "<group>";
@@ -1728,9 +1728,9 @@
 			children = (
 				4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */,
 				4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */,
+				4BC8A6291DCE4F2700DAC693 /* Typer.cpp */,
 				4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */,
 				4B2BFDB11DAEF5FF001A68B8 /* Video.hpp */,
-				4BC8A6291DCE4F2700DAC693 /* Typer.cpp */,
 			);
 			name = Oric;
 			sourceTree = "<group>";
