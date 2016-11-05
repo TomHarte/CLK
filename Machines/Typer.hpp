@@ -19,7 +19,7 @@ class Typer {
 		class Delegate: public KeyboardMachine::Machine {
 			public:
 				virtual bool typer_set_next_character(Typer *typer, char character, int phase);
-				virtual void typer_reset(Typer *typer);
+				virtual void typer_reset(Typer *typer) = 0;
 
 				virtual uint16_t *sequence_for_character(Typer *typer, char character);
 
@@ -52,6 +52,7 @@ class TypeRecipient: public Typer::Delegate {
 
 		void typer_reset(Typer *typer)
 		{
+			clear_all_keys();
 			_typer.reset();
 		}
 

@@ -64,7 +64,7 @@ enum Key: uint16_t {
 	Key1		= key(0, 0x01),		Key3		= key(0, 0x02),		Key5			= key(0, 0x04),		Key7		= key(0, 0x08),
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
 
-	TerminateSequence = 0,	NotMapped = 0xffff
+	TerminateSequence = 0xffff,	NotMapped = 0xfffe
 };
 
 enum JoystickInput {

@@ -162,7 +162,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
 	{
 		if(!_typer->type_next_character())
+		{
+			clear_all_keys();
 			_typer.reset();
+		}
 	}
 	_tape.run_for_cycles(1);
 	if(_c1540) _c1540->run_for_cycles(1);

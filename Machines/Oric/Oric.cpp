@@ -81,7 +81,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xF495)
 	{
-		if(!_typer->type_next_character()) _typer.reset();
+		if(!_typer->type_next_character())
+		{
+			clear_all_keys();
+			_typer.reset();
+		}
 	}
 
 	_via.run_for_cycles(1);

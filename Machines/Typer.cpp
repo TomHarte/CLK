@@ -89,11 +89,6 @@ bool Typer::Delegate::typer_set_next_character(Utility::Typer *typer, char chara
 	return false;
 }
 
-void Typer::Delegate::typer_reset(Typer *typer)
-{
-	clear_all_keys();
-}
-
 uint16_t *Typer::Delegate::sequence_for_character(Typer *typer, char character)
 {
 	return nullptr;

@@ -15,7 +15,7 @@ int Electron::Machine::get_typer_delay()
 
 int Electron::Machine::get_typer_frequency()
 {
-	return 625*128;	// accept a new character every frame
+	return 625*128*2;	// accept a new character every two frames
 }
 
 uint16_t *Electron::Machine::sequence_for_character(Utility::Typer *typer, char character)
