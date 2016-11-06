@@ -9,7 +9,13 @@
 #ifndef TapeParser_hpp
 #define TapeParser_hpp
 
-namespace StaticAnalyer {
+#include "../Tape.hpp"
+
+#include <memory>
+#include <vector>
+
+namespace Storage {
+namespace Tape {
 
 /*!
 	A partly-abstract base class to help in the authorship of tape format parsers;
@@ -18,10 +24,10 @@ namespace StaticAnalyer {
 	
 	Very optional, not intended to box in the approaches taken for analysis.
 */
-template <typename WaveType, typename SymbolType> class TapeParser {
+template <typename WaveType, typename SymbolType> class Parser {
 	public:
 		/// Instantiates a new parser with the supplied @c tape.
-		TapeParser() : _has_next_symbol(false), _error_flag(false) {}
+		Parser() : _has_next_symbol(false), _error_flag(false) {}
 
 		/// Resets the error flag.
 		void reset_error_flag()		{	_error_flag = false;		}
@@ -106,6 +112,7 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 		bool _has_next_symbol;
 };
 
+}
 }
 
 #endif /* TapeParser_hpp */
