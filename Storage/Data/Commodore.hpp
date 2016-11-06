@@ -1,22 +1,24 @@
 //
-//  Utilities.hpp
+//  Commodore.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 06/09/2016.
+//  Created by Thomas Harte on 06/11/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Commodore_Utilities_hpp
-#define Analyser_Commodore_Utilities_hpp
+#ifndef Storage_Data_Commodore_hpp
+#define Storage_Data_Commodore_hpp
 
 #include <string>
 
-namespace StaticAnalyser {
+namespace Storage {
+namespace Data {
 namespace Commodore {
 
 std::wstring petscii_from_bytes(const uint8_t *string, int length, bool shifted);
 
 }
 }
+}
 
-#endif /* Utilities_hpp */
+#endif /* Commodore_hpp */

@@ -7,6 +7,7 @@
 //
 
 #include "Commodore.hpp"
+#include "../../Data/Commodore.hpp"
 
 using namespace Storage::Tape::Commodore;
 
@@ -111,7 +112,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 		{
 			header->raw_name.push_back(header->data[4 + c]);
 		}
-		header->name = petscii_from_bytes(&header->raw_name[0], 16, false);
+		header->name = Storage::Data::Commodore::petscii_from_bytes(&header->raw_name[0], 16, false);
 	}
 
 	if(get_error_flag()) return nullptr;
