@@ -49,7 +49,7 @@ struct Data {
 class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolType> {
 	public:
 		CommodoreROMTapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) :
-			TapeParser(tape),
+			TapeParser(),
 			_wave_period(0.0f),
 			_previous_was_high(false),
 			_parity_byte(0) {}
@@ -58,11 +58,11 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
 			Returns @c nullptr if any wave-encoding level errors are encountered.
 		*/
-		std::unique_ptr<Header> get_next_header()
+		std::unique_ptr<Header> get_next_header(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
 			return duplicate_match<Header>(
-				get_next_header_body(true),
-				get_next_header_body(false)
+				get_next_header_body(tape, true),
+				get_next_header_body(tape, false)
 			);
 		}
 
@@ -70,29 +70,29 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			Advances to the next block on the tape, treating it as data, then consumes, parses, and returns it.
 			Returns @c nullptr if any wave-encoding level errors are encountered.
 		*/
-		std::unique_ptr<Data> get_next_data()
+		std::unique_ptr<Data> get_next_data(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
 			return duplicate_match<Data>(
-				get_next_data_body(true),
-				get_next_data_body(false)
+				get_next_data_body(tape, true),
+				get_next_data_body(tape, false)
 			);
 		}
 
-		void spin()
-		{
-			while(!is_at_end())
-			{
-				SymbolType symbol = get_next_symbol();
-				switch(symbol)
-				{
-					case SymbolType::One:			printf("1");	break;
-					case SymbolType::Zero:			printf("0");	break;
-					case SymbolType::Word:			printf(" ");	break;
-					case SymbolType::EndOfBlock:	printf("\n");	break;
-					case SymbolType::LeadIn:		printf("-");	break;
-				}
-			}
-		}
+//		void spin()
+//		{
+//			while(!is_at_end())
+//			{
+//				SymbolType symbol = get_next_symbol();
+//				switch(symbol)
+//				{
+//					case SymbolType::One:			printf("1");	break;
+//					case SymbolType::Zero:			printf("0");	break;
+//					case SymbolType::Word:			printf(" ");	break;
+//					case SymbolType::EndOfBlock:	printf("\n");	break;
+//					case SymbolType::LeadIn:		printf("-");	break;
+//				}
+//			}
+//		}
 
 	private:
 		/*!
@@ -122,20 +122,20 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			return std::move(*copy_to_return);
 		}
 
-		std::unique_ptr<Header> get_next_header_body(bool is_original)
+		std::unique_ptr<Header> get_next_header_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original)
 		{
 			std::unique_ptr<Header> header(new Header);
 			reset_error_flag();
 
 			// find and proceed beyond lead-in tone
-			proceed_to_symbol(SymbolType::LeadIn);
+			proceed_to_symbol(tape, SymbolType::LeadIn);
 
 			// look for landing zone
-			proceed_to_landing_zone(is_original);
+			proceed_to_landing_zone(tape, is_original);
 			reset_parity_byte();
 
 			// get header type
-			uint8_t header_type = get_next_byte();
+			uint8_t header_type = get_next_byte(tape);
 			switch(header_type)
 			{
 				default:	header->type = Header::Unknown;					break;
@@ -150,11 +150,11 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			header->data.reserve(191);
 			for(size_t c = 0; c < 191; c++)
 			{
-				header->data.push_back(get_next_byte());
+				header->data.push_back(get_next_byte(tape));
 			}
 
 			uint8_t parity_byte = get_parity_byte();
-			header->parity_was_valid = get_next_byte() == parity_byte;
+			header->parity_was_valid = get_next_byte(tape) == parity_byte;
 
 			// parse if this is not pure data
 			if(header->type != Header::DataBlock)
@@ -174,22 +174,22 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		}
 
 
-		std::unique_ptr<Data> get_next_data_body(bool is_original)
+		std::unique_ptr<Data> get_next_data_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original)
 		{
 			std::unique_ptr<Data> data(new Data);
 			reset_error_flag();
 
 			// find and proceed beyond lead-in tone to the next landing zone
-			proceed_to_symbol(SymbolType::LeadIn);
-			proceed_to_landing_zone(is_original);
+			proceed_to_symbol(tape, SymbolType::LeadIn);
+			proceed_to_landing_zone(tape, is_original);
 			reset_parity_byte();
 
 			// accumulate until the next non-word marker is hit
-			while(!is_at_end())
+			while(!tape->is_at_end())
 			{
-				SymbolType start_symbol = get_next_symbol();
+				SymbolType start_symbol = get_next_symbol(tape);
 				if(start_symbol != SymbolType::Word) break;
-				data->data.push_back(get_next_byte_contents());
+				data->data.push_back(get_next_byte_contents(tape));
 			}
 
 			// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
@@ -205,13 +205,13 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		/*!
 			Finds and completes the next landing zone.
 		*/
-		void proceed_to_landing_zone(bool is_original)
+		void proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original)
 		{
 			uint8_t landing_zone[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-			while(!is_at_end())
+			while(!tape->is_at_end())
 			{
 				memmove(landing_zone, &landing_zone[1], sizeof(uint8_t) * 8);
-				landing_zone[8] = get_next_byte();
+				landing_zone[8] = get_next_byte(tape);
 
 				bool is_landing_zone = true;
 				for(int c = 0; c < 9; c++)
@@ -230,11 +230,11 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			Swallows symbols until it reaches the first instance of the required symbol, swallows that
 			and returns.
 		*/
-		void proceed_to_symbol(SymbolType required_symbol)
+		void proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol)
 		{
-			while(!is_at_end())
+			while(!tape->is_at_end())
 			{
-				SymbolType symbol = get_next_symbol();
+				SymbolType symbol = get_next_symbol(tape);
 				if(symbol == required_symbol) return;
 			}
 		}
@@ -242,9 +242,9 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		/*!
 			Swallows the next byte; sets the error flag if it is not equal to @c value.
 		*/
-		void expect_byte(uint8_t value)
+		void expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value)
 		{
-			uint8_t next_byte = get_next_byte();
+			uint8_t next_byte = get_next_byte(tape);
 			if(next_byte != value) set_error_flag();
 		}
 
@@ -256,10 +256,10 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		/*!
 			Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
 		*/
-		uint8_t get_next_byte()
+		uint8_t get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
-			proceed_to_symbol(SymbolType::Word);
-			return get_next_byte_contents();
+			proceed_to_symbol(tape, SymbolType::Word);
+			return get_next_byte_contents(tape);
 		}
 
 		/*!
@@ -267,13 +267,13 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 			Returns a byte composed of the first eight of those as bits; sets the error flag if any symbol is not
 			::One and not ::Zero, or if the ninth bit is not equal to the odd parity of the other eight.
 		*/
-		uint8_t get_next_byte_contents()
+		uint8_t get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
 			int byte_plus_parity = 0;
 			int c = 9;
 			while(c--)
 			{
-				SymbolType next_symbol = get_next_symbol();
+				SymbolType next_symbol = get_next_symbol(tape);
 				if((next_symbol != SymbolType::One) && (next_symbol != SymbolType::Zero)) set_error_flag();
 				byte_plus_parity = (byte_plus_parity >> 1) | (((next_symbol == SymbolType::One) ? 1 : 0) << 8);
 			}
@@ -292,10 +292,10 @@ class CommodoreROMTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolT
 		/*!
 			Returns the result of two consecutive @c get_next_byte calls, arranged in little-endian format.
 		*/
-		uint16_t get_next_short()
+		uint16_t get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
-			uint16_t value = get_next_byte();
-			value |= get_next_byte() << 8;
+			uint16_t value = get_next_byte(tape);
+			value |= get_next_byte(tape) << 8;
 			return value;
 		}
 
@@ -376,13 +376,13 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 	CommodoreROMTapeParser parser(tape);
 	std::list<File> file_list;
 
-	std::unique_ptr<Header> header = parser.get_next_header();
+	std::unique_ptr<Header> header = parser.get_next_header(tape);
 
-	while(!parser.is_at_end())
+	while(!tape->is_at_end())
 	{
 		if(!header)
 		{
-			header = parser.get_next_header();
+			header = parser.get_next_header(tape);
 			continue;
 		}
 
@@ -398,9 +398,9 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 				new_file.type = File::DataSequence;
 
 				new_file.data.swap(header->data);
-				while(!parser.is_at_end())
+				while(!tape->is_at_end())
 				{
-					header = parser.get_next_header();
+					header = parser.get_next_header(tape);
 					if(!header) continue;
 					if(header->type != Header::DataBlock) break;
 					std::copy(header->data.begin(), header->data.end(), std::back_inserter(new_file.data));
@@ -413,7 +413,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 			case Header::RelocatableProgram:
 			case Header::NonRelocatableProgram:
 			{
-				std::unique_ptr<Data> data = parser.get_next_data();
+				std::unique_ptr<Data> data = parser.get_next_data(tape);
 				if(data)
 				{
 					File new_file;
@@ -427,12 +427,12 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 					file_list.push_back(new_file);
 				}
 
-				header = parser.get_next_header();
+				header = parser.get_next_header(tape);
 			}
 			break;
 
 			default:
-				header = parser.get_next_header();
+				header = parser.get_next_header(tape);
 			break;
 		}
 	}

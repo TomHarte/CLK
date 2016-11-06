@@ -24,30 +24,30 @@ enum class SymbolType {
 
 class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, SymbolType> {
 	public:
-		Acorn1200BaudTapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) :
-			TapeParser(tape),
+		Acorn1200BaudTapeParser() :
+			TapeParser(),
 			_crc(0x1021, 0x0000) {}
 
-		int get_next_bit()
+		int get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
-			SymbolType symbol = get_next_symbol();
+			SymbolType symbol = get_next_symbol(tape);
 			return (symbol == SymbolType::One) ? 1 : 0;
 		}
 
-		int get_next_byte()
+		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
 			int value = 0;
 			int c = 8;
-			if(get_next_bit())
+			if(get_next_bit(tape))
 			{
 				set_error_flag();
 				return -1;
 			}
 			while(c--)
 			{
-				value = (value >> 1) | (get_next_bit() << 7);
+				value = (value >> 1) | (get_next_bit(tape) << 7);
 			}
-			if(!get_next_bit())
+			if(!get_next_bit(tape))
 			{
 				set_error_flag();
 				return -1;
@@ -56,17 +56,17 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 			return value;
 		}
 
-		int get_next_short()
+		int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
-			int result = get_next_byte();
-			result |= get_next_byte() << 8;
+			int result = get_next_byte(tape);
+			result |= get_next_byte(tape) << 8;
 			return result;
 		}
 
-		int get_next_word()
+		int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		{
-			int result = get_next_short();
-			result |= get_next_short() << 8;
+			int result = get_next_short(tape);
+			result |= get_next_short(tape) << 8;
 			return result;
 		}
 
@@ -117,22 +117,22 @@ class Acorn1200BaudTapeParser: public StaticAnalyer::TapeParser<WaveType, Symbol
 		NumberTheory::CRC16 _crc;
 };
 
-static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser)
+static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::Tape::Tape> &tape, Acorn1200BaudTapeParser &parser)
 {
 	std::unique_ptr<File::Chunk> new_chunk(new File::Chunk);
 	int shift_register = 0;
 
 // TODO: move this into the parser
-#define shift()	shift_register = (shift_register >> 1) |  (parser.get_next_bit() << 9)
+#define shift()	shift_register = (shift_register >> 1) |  (parser.get_next_bit(tape) << 9)
 
 	// find next area of high tone
-	while(!parser.is_at_end() && (shift_register != 0x3ff))
+	while(!tape->is_at_end() && (shift_register != 0x3ff))
 	{
 		shift();
 	}
 
 	// find next 0x2a (swallowing stop bit)
-	while(!parser.is_at_end() && (shift_register != 0x254))
+	while(!tape->is_at_end() && (shift_register != 0x254))
 	{
 		shift();
 	}
@@ -145,9 +145,9 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 	// read out name
 	char name[11];
 	int name_ptr = 0;
-	while(!parser.is_at_end() && name_ptr < sizeof(name))
+	while(!tape->is_at_end() && name_ptr < sizeof(name))
 	{
-		name[name_ptr] = (char)parser.get_next_byte();
+		name[name_ptr] = (char)parser.get_next_byte(tape);
 		if(!name[name_ptr]) break;
 		name_ptr++;
 	}
@@ -155,15 +155,15 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 	new_chunk->name = name;
 
 	// addresses
-	new_chunk->load_address = (uint32_t)parser.get_next_word();
-	new_chunk->execution_address = (uint32_t)parser.get_next_word();
-	new_chunk->block_number = (uint16_t)parser.get_next_short();
-	new_chunk->block_length = (uint16_t)parser.get_next_short();
-	new_chunk->block_flag = (uint8_t)parser.get_next_byte();
-	new_chunk->next_address = (uint32_t)parser.get_next_word();
+	new_chunk->load_address = (uint32_t)parser.get_next_word(tape);
+	new_chunk->execution_address = (uint32_t)parser.get_next_word(tape);
+	new_chunk->block_number = (uint16_t)parser.get_next_short(tape);
+	new_chunk->block_length = (uint16_t)parser.get_next_short(tape);
+	new_chunk->block_flag = (uint8_t)parser.get_next_byte(tape);
+	new_chunk->next_address = (uint32_t)parser.get_next_word(tape);
 
 	uint16_t calculated_header_crc = parser.get_crc();
-	uint16_t stored_header_crc = (uint16_t)parser.get_next_short();
+	uint16_t stored_header_crc = (uint16_t)parser.get_next_short(tape);
 	stored_header_crc = (uint16_t)((stored_header_crc >> 8) | (stored_header_crc << 8));
 	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;
 
@@ -171,13 +171,13 @@ static std::unique_ptr<File::Chunk> GetNextChunk(Acorn1200BaudTapeParser &parser
 	new_chunk->data.reserve(new_chunk->block_length);
 	for(int c = 0; c < new_chunk->block_length; c++)
 	{
-		new_chunk->data.push_back((uint8_t)parser.get_next_byte());
+		new_chunk->data.push_back((uint8_t)parser.get_next_byte(tape));
 	}
 
 	if(new_chunk->block_length && !(new_chunk->block_flag&0x40))
 	{
 		uint16_t calculated_data_crc = parser.get_crc();
-		uint16_t stored_data_crc = (uint16_t)parser.get_next_short();
+		uint16_t stored_data_crc = (uint16_t)parser.get_next_short(tape);
 		stored_data_crc = (uint16_t)((stored_data_crc >> 8) | (stored_data_crc << 8));
 		new_chunk->data_crc_matched = stored_data_crc == calculated_data_crc;
 	}
@@ -233,13 +233,13 @@ std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks)
 
 std::list<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
-	Acorn1200BaudTapeParser parser(tape);
+	Acorn1200BaudTapeParser parser;
 
 	// populate chunk list
 	std::deque<File::Chunk> chunk_list;
-	while(!parser.is_at_end())
+	while(!tape->is_at_end())
 	{
-		std::unique_ptr<File::Chunk> chunk = GetNextChunk(parser);
+		std::unique_ptr<File::Chunk> chunk = GetNextChunk(tape, parser);
 		if(chunk)
 		{
 			chunk_list.push_back(*chunk);
