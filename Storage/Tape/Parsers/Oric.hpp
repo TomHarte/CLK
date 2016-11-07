@@ -1,0 +1,44 @@
+//
+//  Oric.hpp
+//  Clock Signal
+//
+//  Created by Thomas Harte on 06/11/2016.
+//  Copyright © 2016 Thomas Harte. All rights reserved.
+//
+
+#ifndef Storage_Tape_Parsers_Oric_hpp
+#define Storage_Tape_Parsers_Oric_hpp
+
+#include "TapeParser.hpp"
+
+namespace Storage {
+namespace Tape {
+namespace Oric {
+
+enum class WaveType {
+	Short, Long, Unrecognised
+};
+
+enum class SymbolType {
+	One, Zero
+};
+
+class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
+	public:
+		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding);
+
+	private:
+		void process_pulse(Storage::Tape::Tape::Pulse pulse);
+		void inspect_waves(const std::vector<WaveType> &waves);
+
+		bool _use_fast_encoding;
+		bool _wave_was_high;
+		float _cycle_length;
+};
+
+
+}
+}
+}
+
+#endif /* Oric_hpp */

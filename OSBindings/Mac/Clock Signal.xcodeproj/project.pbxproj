@@ -59,6 +59,7 @@
 		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
 		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
 		4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
+		4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F91DCFF807003085B1 /* Oric.cpp */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */; };
@@ -505,6 +506,8 @@
 		4B8805F31DCFD22A003085B1 /* Commodore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Commodore.hpp; path = Parsers/Commodore.hpp; sourceTree = "<group>"; };
 		4B8805F51DCFF6C9003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Data/Commodore.cpp; sourceTree = "<group>"; };
 		4B8805F61DCFF6C9003085B1 /* Commodore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Commodore.hpp; path = Data/Commodore.hpp; sourceTree = "<group>"; };
+		4B8805F91DCFF807003085B1 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Oric.cpp; path = Parsers/Oric.cpp; sourceTree = "<group>"; };
+		4B8805FA1DCFF807003085B1 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Parsers/Oric.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
@@ -1205,6 +1208,8 @@
 				4B8805EF1DCFC99C003085B1 /* Acorn.hpp */,
 				4B8805F21DCFD22A003085B1 /* Commodore.cpp */,
 				4B8805F31DCFD22A003085B1 /* Commodore.hpp */,
+				4B8805F91DCFF807003085B1 /* Oric.cpp */,
+				4B8805FA1DCFF807003085B1 /* Oric.hpp */,
 			);
 			name = Parsers;
 			sourceTree = "<group>";
@@ -2330,6 +2335,7 @@
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
+				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
