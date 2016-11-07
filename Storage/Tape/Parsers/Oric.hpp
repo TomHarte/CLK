@@ -20,20 +20,32 @@ enum class WaveType {
 };
 
 enum class SymbolType {
-	One, Zero
+	One, Zero, FoundFast, FoundSlow
 };
 
 class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 	public:
 		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding);
+		bool sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 	private:
 		void process_pulse(Storage::Tape::Tape::Pulse pulse);
 		void inspect_waves(const std::vector<WaveType> &waves);
 
-		bool _use_fast_encoding;
+		enum DetectionMode {
+			FastData,
+			SlowData,
+			Sync
+		} _detection_mode;
 		bool _wave_was_high;
 		float _cycle_length;
+
+		struct Pattern
+		{
+			WaveType type;
+			int count;
+		};
+		size_t pattern_matching_depth(const std::vector<WaveType> &waves, Pattern *pattern);
 };
 
 
