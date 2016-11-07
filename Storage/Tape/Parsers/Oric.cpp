@@ -25,7 +25,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool
 		bit_count++;
 	}
 	// TODO: check parity?
-	return tape->is_at_end() ? -1 : (result >> 1);
+	return tape->is_at_end() ? -1 : (result&0xff);
 }
 
 bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape)
@@ -141,7 +141,10 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 				return;
 			}
 			if(slow_sync_matching_depth < waves.size() && fast_sync_matching_depth < waves.size())
-				remove_waves((int)std::min(slow_sync_matching_depth, fast_sync_matching_depth));
+			{
+				int least_depth = (int)std::min(slow_sync_matching_depth, fast_sync_matching_depth);
+				remove_waves(least_depth ? least_depth : 1);
+			}
 
 			return;
 		}
@@ -158,6 +161,7 @@ size_t Parser::pattern_matching_depth(const std::vector<WaveType> &waves, Patter
 	while(depth < waves.size() && pattern->type != WaveType::Unrecognised)
 	{
 		if(waves[depth] != pattern->type) break;
+		depth++;
 		pattern_depth++;
 		if(pattern_depth == pattern->count)
 		{
