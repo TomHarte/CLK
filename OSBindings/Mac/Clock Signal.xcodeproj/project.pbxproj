@@ -56,6 +56,11 @@
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */; };
+		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
+		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
+		4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
+		4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F91DCFF807003085B1 /* Oric.cpp */; };
+		4B8805FE1DD02552003085B1 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805FC1DD02552003085B1 /* Tape.cpp */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* ElectronOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */; };
@@ -352,7 +357,6 @@
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */; };
-		4BC5E4951D7EE0E0008CF980 /* Utilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5E4931D7EE0E0008CF980 /* Utilities.cpp */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
@@ -497,6 +501,16 @@
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
+		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
+		4B8805EF1DCFC99C003085B1 /* Acorn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Acorn.hpp; path = Parsers/Acorn.hpp; sourceTree = "<group>"; };
+		4B8805F21DCFD22A003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Parsers/Commodore.cpp; sourceTree = "<group>"; };
+		4B8805F31DCFD22A003085B1 /* Commodore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Commodore.hpp; path = Parsers/Commodore.hpp; sourceTree = "<group>"; };
+		4B8805F51DCFF6C9003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Data/Commodore.cpp; sourceTree = "<group>"; };
+		4B8805F61DCFF6C9003085B1 /* Commodore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Commodore.hpp; path = Data/Commodore.hpp; sourceTree = "<group>"; };
+		4B8805F91DCFF807003085B1 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Oric.cpp; path = Parsers/Oric.cpp; sourceTree = "<group>"; };
+		4B8805FA1DCFF807003085B1 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Parsers/Oric.hpp; sourceTree = "<group>"; };
+		4B8805FC1DD02552003085B1 /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Oric/Tape.cpp; sourceTree = "<group>"; };
+		4B8805FD1DD02552003085B1 /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Oric/Tape.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
@@ -826,8 +840,6 @@
 		4BC3B7511CD1956900F86E85 /* OutputShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OutputShader.hpp; sourceTree = "<group>"; };
 		4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Commodore/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BC5E4911D7ED365008CF980 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Commodore/StaticAnalyser.hpp; sourceTree = "<group>"; };
-		4BC5E4931D7EE0E0008CF980 /* Utilities.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Utilities.cpp; path = ../../StaticAnalyser/Commodore/Utilities.cpp; sourceTree = "<group>"; };
-		4BC5E4941D7EE0E0008CF980 /* Utilities.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Utilities.hpp; path = ../../StaticAnalyser/Commodore/Utilities.hpp; sourceTree = "<group>"; };
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
@@ -854,7 +866,6 @@
 		4BCF1FAA1DADD41B0039D2E7 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Oric/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.hpp; sourceTree = "<group>"; };
-		4BD328FD1D7E3EB5003B8C44 /* TapeParser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = TapeParser.hpp; path = ../../StaticAnalyser/TapeParser.hpp; sourceTree = "<group>"; };
 		4BD468F51D8DF41D0084958B /* 1770.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 1770.cpp; path = 1770/1770.cpp; sourceTree = "<group>"; };
 		4BD468F61D8DF41D0084958B /* 1770.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 1770.hpp; path = 1770/1770.hpp; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
@@ -1158,6 +1169,7 @@
 				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
 				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
 				4BEE0A691D72496600532C7B /* Cartridge */,
+				4B8805F81DCFF6CD003085B1 /* Data */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
 			);
@@ -1169,6 +1181,7 @@
 			isa = PBXGroup;
 			children = (
 				4B69FB411C4D941400B5F0AA /* Formats */,
+				4B8805F11DCFC9A2003085B1 /* Parsers */,
 				4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */,
 				4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */,
 			);
@@ -1189,6 +1202,28 @@
 				4B59199B1DAC6C46005BB85C /* OricTAP.hpp */,
 			);
 			path = Formats;
+			sourceTree = "<group>";
+		};
+		4B8805F11DCFC9A2003085B1 /* Parsers */ = {
+			isa = PBXGroup;
+			children = (
+				4B8805EE1DCFC99C003085B1 /* Acorn.cpp */,
+				4B8805EF1DCFC99C003085B1 /* Acorn.hpp */,
+				4B8805F21DCFD22A003085B1 /* Commodore.cpp */,
+				4B8805F31DCFD22A003085B1 /* Commodore.hpp */,
+				4B8805F91DCFF807003085B1 /* Oric.cpp */,
+				4B8805FA1DCFF807003085B1 /* Oric.hpp */,
+			);
+			name = Parsers;
+			sourceTree = "<group>";
+		};
+		4B8805F81DCFF6CD003085B1 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				4B8805F51DCFF6C9003085B1 /* Commodore.cpp */,
+				4B8805F61DCFF6C9003085B1 /* Commodore.hpp */,
+			);
+			name = Data;
 			sourceTree = "<group>";
 		};
 		4BA799961D8B65730045123D /* Atari */ = {
@@ -1678,8 +1713,6 @@
 				4BC5E4911D7ED365008CF980 /* StaticAnalyser.hpp */,
 				4BC830CF1D6E7C690000A26F /* Tape.cpp */,
 				4BC830D01D6E7C690000A26F /* Tape.hpp */,
-				4BC5E4931D7EE0E0008CF980 /* Utilities.cpp */,
-				4BC5E4941D7EE0E0008CF980 /* Utilities.hpp */,
 			);
 			name = Commodore;
 			sourceTree = "<group>";
@@ -1740,6 +1773,8 @@
 			children = (
 				4BCF1FA91DADD41B0039D2E7 /* StaticAnalyser.cpp */,
 				4BCF1FAA1DADD41B0039D2E7 /* StaticAnalyser.hpp */,
+				4B8805FC1DD02552003085B1 /* Tape.cpp */,
+				4B8805FD1DD02552003085B1 /* Tape.hpp */,
 			);
 			name = Oric;
 			sourceTree = "<group>";
@@ -1812,7 +1847,6 @@
 			children = (
 				4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */,
 				4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */,
-				4BD328FD1D7E3EB5003B8C44 /* TapeParser.hpp */,
 				4BD14B121D7462810088EAD6 /* Acorn */,
 				4BA799961D8B65730045123D /* Atari */,
 				4BC830D21D6E7C6D0000A26F /* Commodore */,
@@ -2236,7 +2270,6 @@
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
 				4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
-				4BC5E4951D7EE0E0008CF980 /* Utilities.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */,
@@ -2255,6 +2288,7 @@
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
 				4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */,
 				4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */,
+				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
 				4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
@@ -2294,8 +2328,11 @@
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
 				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
+				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
+				4B8805FE1DD02552003085B1 /* Tape.cpp in Sources */,
 				4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */,
+				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
@@ -2304,6 +2341,7 @@
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
+				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,

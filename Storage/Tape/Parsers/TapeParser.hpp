@@ -9,7 +9,13 @@
 #ifndef TapeParser_hpp
 #define TapeParser_hpp
 
-namespace StaticAnalyer {
+#include "../Tape.hpp"
+
+#include <memory>
+#include <vector>
+
+namespace Storage {
+namespace Tape {
 
 /*!
 	A partly-abstract base class to help in the authorship of tape format parsers;
@@ -18,17 +24,35 @@ namespace StaticAnalyer {
 	
 	Very optional, not intended to box in the approaches taken for analysis.
 */
-template <typename WaveType, typename SymbolType> class TapeParser {
+template <typename WaveType, typename SymbolType> class Parser {
 	public:
 		/// Instantiates a new parser with the supplied @c tape.
-		TapeParser(const std::shared_ptr<Storage::Tape::Tape> &tape) : _tape(tape), _has_next_symbol(false), _error_flag(false) {}
+		Parser() : _has_next_symbol(false), _error_flag(false) {}
 
 		/// Resets the error flag.
 		void reset_error_flag()		{	_error_flag = false;		}
 		/// @returns @c true if an error has occurred since the error flag was last reset; @c false otherwise.
 		bool get_error_flag()		{	return _error_flag;			}
-		/// @returns @c true if the encapsulated tape has reached its end; @c false otherwise.
-		bool is_at_end()			{	return _tape->is_at_end();	}
+
+		/*!
+			Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
+			or the tape runs out, returning the most-recently declared symbol.
+		*/
+		SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape)
+		{
+			while(!_has_next_symbol && !tape->is_at_end())
+			{
+				process_pulse(tape->get_next_pulse());
+			}
+			_has_next_symbol = false;
+			return _next_symbol;
+		}
+
+		/*!
+			Should be implemented by subclasses. Consumes @c pulse. Is likely either to call @c push_wave
+			or to take no action.
+		*/
+		virtual void process_pulse(Storage::Tape::Tape::Pulse pulse) = 0;
 
 	protected:
 
@@ -67,20 +91,6 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 			remove_waves(number_of_waves);
 		}
 
-		/*!
-			Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
-			or the tape runs out, returning the most-recently declared symbol.
-		*/
-		SymbolType get_next_symbol()
-		{
-			while(!_has_next_symbol && !is_at_end())
-			{
-				process_pulse(_tape->get_next_pulse());
-			}
-			_has_next_symbol = false;
-			return _next_symbol;
-		}
-
 		void set_error_flag()
 		{
 			_error_flag = true;
@@ -88,12 +98,6 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 
 	private:
 		bool _error_flag;
-
-		/*!
-			Should be implemented by subclasses. Consumes @c pulse. Is likely either to call @c push_wave
-			or to take no action.
-		*/
-		virtual void process_pulse(Storage::Tape::Tape::Pulse pulse) = 0;
 
 		/*!
 			Should be implemented by subclasses. Inspects @c waves for a potential new symbol. If one is
@@ -106,10 +110,9 @@ template <typename WaveType, typename SymbolType> class TapeParser {
 		std::vector<WaveType> _wave_queue;
 		SymbolType _next_symbol;
 		bool _has_next_symbol;
-
-		std::shared_ptr<Storage::Tape::Tape> _tape;
 };
 
+}
 }
 
 #endif /* TapeParser_hpp */

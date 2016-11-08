@@ -1,14 +1,14 @@
 //
-//  Utilities.cpp
+//  Commodore.cpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 06/09/2016.
+//  Created by Thomas Harte on 06/11/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "Utilities.hpp"
+#include "Commodore.hpp"
 
-std::wstring StaticAnalyser::Commodore::petscii_from_bytes(const uint8_t *string, int length, bool shifted)
+std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string, int length, bool shifted)
 {
 	std::wstring result;
 

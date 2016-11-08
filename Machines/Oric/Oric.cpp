@@ -17,7 +17,6 @@ Machine::Machine() :
 	_typer_delay(2500000)
 {
 	set_clock_rate(1000000);
-	_via.tape.reset(new TapePlayer);
 	_via.set_interrupt_delegate(this);
 	_keyboard.reset(new Keyboard);
 	_via.keyboard = _keyboard;
@@ -171,7 +170,10 @@ void Machine::run_for_cycles(int number_of_cycles)
 
 #pragma mark - The 6522
 
-Machine::VIA::VIA() : MOS::MOS6522<Machine::VIA>(), _cycles_since_ay_update(0) {}
+Machine::VIA::VIA() :
+	MOS::MOS6522<Machine::VIA>(),
+	_cycles_since_ay_update(0),
+	tape(new TapePlayer) {}
 
 void Machine::VIA::set_control_line_output(Port port, Line line, bool value)
 {
@@ -231,79 +233,10 @@ void Machine::VIA::update_ay()
 #pragma mark - TapePlayer
 
 Machine::TapePlayer::TapePlayer() :
-	Storage::Tape::BinaryTapePlayer(1000000),
-	_is_catching_bytes(false)
+	Storage::Tape::BinaryTapePlayer(1000000)
 {}
 
 uint8_t Machine::TapePlayer::get_next_byte(bool fast)
 {
-	_is_in_fast_mode = fast;
-	_is_catching_bytes = true;
-
-	_was_high = get_input();
-	_queued_lengths_pointer = 0;
-	_data_register = 0;
-	_cycle_length = 0.0f;
-
-	_bit_count = 0;
-	while(_bit_count < 10)
-	{
-		process_next_event();
-	}
-
-	_is_catching_bytes = false;
-	return (uint8_t)(_data_register >> 1);
-}
-
-void Machine::TapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
-{
-	Storage::Tape::BinaryTapePlayer::process_input_pulse(pulse);
-
-	if(_is_catching_bytes)
-	{
-		_cycle_length += pulse.length.get_float();
-		bool is_high = get_input();
-		if(is_high != _was_high)
-		{
-			// queue up the new length
-			_queued_lengths[_queued_lengths_pointer] = _cycle_length;
-			_cycle_length = 0.0f;
-			_queued_lengths_pointer++;
-
-			// search for bits
-			if(_is_in_fast_mode)
-			{
-				if(_queued_lengths_pointer >= 2)
-				{
-					float first_two = _queued_lengths[0] + _queued_lengths[1];
-					if(first_two < 0.000512*2.0 && _queued_lengths[0] >= _queued_lengths[1] - 0.000256)
-					{
-						int new_bit = (first_two < 0.000512) ? 1 : 0;
-						if(_bit_count || !new_bit)
-						{
-							_data_register |= (new_bit << _bit_count);
-							_bit_count++;
-						}
-						memmove(_queued_lengths, &_queued_lengths[2], sizeof(float)*14);
-						_queued_lengths_pointer -= 2;
-					}
-					else
-					{
-						memmove(_queued_lengths, &_queued_lengths[1], sizeof(float)*15);
-						_queued_lengths_pointer--;
-					}
-				}
-			}
-			else
-			{
-				// TODO
-			}
-		}
-		_was_high = is_high;
-	}
-}
-
-void Machine::TapePlayer::run_for_cycles(int number_of_cycles)
-{
-	if(!_is_catching_bytes) Storage::Tape::BinaryTapePlayer::run_for_cycles(number_of_cycles);
+	return (uint8_t)_parser.get_next_byte(get_tape(), fast);
 }

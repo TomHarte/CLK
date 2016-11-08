@@ -9,7 +9,7 @@
 #include "Disk.hpp"
 #include "../../Storage/Disk/DiskController.hpp"
 #include "../../Storage/Disk/Encodings/CommodoreGCR.hpp"
-#include "Utilities.hpp"
+#include "../../Storage/Data/Commodore.hpp"
 
 #include <limits>
 #include <vector>
@@ -234,7 +234,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 		{
 			new_file.raw_name.push_back(directory[header_pointer + 5 + c]);
 		}
-		new_file.name = petscii_from_bytes(&new_file.raw_name[0], 16, false);
+		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
 
 		size_t number_of_sectors = (size_t)directory[header_pointer + 0x1e] + ((size_t)directory[header_pointer + 0x1f] << 8);
 		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);

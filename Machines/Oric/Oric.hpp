@@ -16,6 +16,7 @@
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Components/6522/6522.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Storage/Tape/Parsers/Oric.hpp"
 
 #include "Video.hpp"
 
@@ -112,22 +113,9 @@ class Machine:
 			public:
 				TapePlayer();
 				uint8_t get_next_byte(bool fast);
-				void run_for_cycles(int number_of_cycles);
 
 			private:
-				bool _is_catching_bytes;		// `true` to enable tape byte parsing, `false` otherwise
-				bool _is_in_fast_mode;			// `true` to indicate that tape byte parsing should use the Oric's fast encoding, `false` otherwise
-
-				float _cycle_length;			// a counter for the amount of time since the tape input changed
-				bool _was_high;					// a latch to spot when the tape input changes
-
-				float _queued_lengths[16];		// a history of previous half-wave lengths
-				int _queued_lengths_pointer;	// a pointer into the history, showing the number of lengths waiting to be parsed
-
-				int _data_register;				// the accumulation of input bits
-				int _bit_count;					// a counter of accumulated bits
-
-				virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
+				Storage::Tape::Oric::Parser _parser;
 		};
 		bool _use_fast_tape_hack;
 
@@ -143,7 +131,7 @@ class Machine:
 				inline void run_for_cycles(unsigned int number_of_cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
-				std::shared_ptr<TapePlayer> tape;
+				std::unique_ptr<TapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
 				void synchronise();
