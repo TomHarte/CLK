@@ -35,6 +35,8 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 		enum DetectionMode {
 			FastData,
 			SlowData,
+			FastZero,
+			SlowZero,
 			Sync
 		} _detection_mode;
 		bool _wave_was_high;

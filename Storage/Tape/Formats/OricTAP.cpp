@@ -93,11 +93,11 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				if(_phase_counter == 6)	_data_start_address = (uint16_t)(next_byte << 8);
 				if(_phase_counter == 7)	_data_start_address |= next_byte;
 
-				_phase_counter++;
 				if(_phase_counter >= 9 && !next_byte)	// advance after the filename-ending NULL byte
 				{
 					_next_phase = Gap;
 				}
+				_phase_counter++;
 			break;
 
 			case Gap:
@@ -151,7 +151,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 
 		case Gap:
 			_bit_count = 13;
-			pulse.type = Pulse::Zero;
+			pulse.type = (_phase_counter&1) ? Pulse::Low : Pulse::High;
 			pulse.length.length = 100;
 		return pulse;
 

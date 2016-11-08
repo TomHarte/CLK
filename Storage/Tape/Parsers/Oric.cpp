@@ -12,20 +12,21 @@ using namespace Storage::Tape::Oric;
 
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding)
 {
-	_detection_mode = use_fast_encoding ? FastData : SlowData;
+	_detection_mode = use_fast_encoding ? FastZero : SlowZero;
 	_cycle_length = 0.0f;
 
 	int result = 0;
 	int bit_count = 0;
-	while(bit_count < 10 && !tape->is_at_end())
+	while(bit_count < 11 && !tape->is_at_end())
 	{
 		SymbolType symbol = get_next_symbol(tape);
 		if(!bit_count && symbol != SymbolType::Zero) continue;
+		_detection_mode = use_fast_encoding ? FastData : SlowData;
 		result |= ((symbol == SymbolType::One) ? 1 : 0) << bit_count;
 		bit_count++;
 	}
 	// TODO: check parity?
-	return tape->is_at_end() ? -1 : (result&0xff);
+	return tape->is_at_end() ? -1 : ((result >> 1)&0xff);
 }
 
 bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape)
@@ -49,15 +50,15 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
 	const float length_threshold = 0.0003125f;
 
 	bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-	bool did_change = (wave_is_high != _wave_was_high && _cycle_length > 0.0f);
-	_wave_was_high = wave_is_high;
-	if(did_change)
+	if(wave_is_high != _wave_was_high && _cycle_length > 0.0f)
 	{
-		if(_cycle_length > 2.0 * length_threshold) push_wave(WaveType::Unrecognised);
+		if(_cycle_length > 2.0 * length_threshold)
+			push_wave(WaveType::Unrecognised);
 		else push_wave(_cycle_length < length_threshold ? WaveType::Short : WaveType::Long);
 
 		_cycle_length = 0.0f;
 	}
+	_wave_was_high = wave_is_high;
 	_cycle_length += pulse.length.get_float();
 }
 
@@ -65,11 +66,32 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 {
 	switch(_detection_mode)
 	{
+		case FastZero:
+			if(waves.size() < 2) return;
+			if(waves[0] == WaveType::Short && waves[1] == WaveType::Long)
+			{
+				push_symbol(SymbolType::Zero, 2);
+				return;
+			}
+		break;
+
 		case FastData:
 			if(waves.size() < 2) return;
 			if(waves[0] == WaveType::Short && waves[1] != WaveType::Unrecognised)
 			{
 				push_symbol((waves[1] == WaveType::Long) ? SymbolType::Zero : SymbolType::One, 2);
+				return;
+			}
+		break;
+
+		case SlowZero:
+			if(waves.size() < 8) return;
+			if(
+				waves[0] == WaveType::Long && waves[1] == WaveType::Long && waves[2] == WaveType::Long && waves[3] == WaveType::Long &&
+				waves[4] == WaveType::Long && waves[5] == WaveType::Long && waves[6] == WaveType::Long && waves[7] == WaveType::Long
+			)
+			{
+				push_symbol(SymbolType::Zero, 8);
 				return;
 			}
 		break;

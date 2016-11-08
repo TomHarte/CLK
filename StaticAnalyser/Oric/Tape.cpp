@@ -49,7 +49,7 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 		}
 		switch(parser.get_next_byte(tape, is_fast))
 		{
-			case 0x80:	new_file.launch_type = File::ProgramType::BASIC;			break;
+			case 0x80:	new_file.launch_type = File::ProgramType::BASIC;		break;
 			case 0xc7:	new_file.launch_type = File::ProgramType::MachineCode;	break;
 			default:	new_file.launch_type = File::ProgramType::None;			break;
 		}
@@ -60,7 +60,7 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 		new_file.starting_address = (uint16_t)(parser.get_next_byte(tape, is_fast) << 8);
 		new_file.starting_address |= (uint16_t)parser.get_next_byte(tape, is_fast);
 
-		// skip an empty bytes
+		// skip an empty byte
 		parser.get_next_byte(tape, is_fast);
 
 		// read file name, up to 16 characters and null terminated
