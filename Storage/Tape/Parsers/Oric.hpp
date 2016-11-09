@@ -16,7 +16,10 @@ namespace Tape {
 namespace Oric {
 
 enum class WaveType {
-	Short, Long, Unrecognised
+	Short,	// i.e. 416µs
+	Medium,	// i.e. 624µs
+	Long,	// i.e. 832µs
+	Unrecognised
 };
 
 enum class SymbolType {

@@ -47,14 +47,17 @@ bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Ta
 
 void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
 {
-	const float length_threshold = 0.0003125f;
+	const float maximum_short_length = 0.000512f;
+	const float maximum_medium_length = 0.000728f;
+	const float maximum_long_length = 0.001456f;
 
 	bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-	if(wave_is_high != _wave_was_high && _cycle_length > 0.0f)
+	if(!_wave_was_high && wave_is_high != _wave_was_high)
 	{
-		if(_cycle_length > 2.0 * length_threshold)
-			push_wave(WaveType::Unrecognised);
-		else push_wave(_cycle_length < length_threshold ? WaveType::Short : WaveType::Long);
+		if(_cycle_length < maximum_short_length) push_wave(WaveType::Short);
+		else if(_cycle_length < maximum_medium_length) push_wave(WaveType::Medium);
+		else if(_cycle_length < maximum_long_length) push_wave(WaveType::Long);
+		else push_wave(WaveType::Unrecognised);
 
 		_cycle_length = 0.0f;
 	}
@@ -67,31 +70,33 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 	switch(_detection_mode)
 	{
 		case FastZero:
-			if(waves.size() < 2) return;
-			if(waves[0] == WaveType::Short && waves[1] == WaveType::Long)
+			if(waves.empty()) return;
+			if(waves[0] == WaveType::Medium)
 			{
-				push_symbol(SymbolType::Zero, 2);
+				push_symbol(SymbolType::Zero, 1);
 				return;
 			}
 		break;
 
 		case FastData:
-			if(waves.size() < 2) return;
-			if(waves[0] == WaveType::Short && waves[1] != WaveType::Unrecognised)
+			if(waves.empty()) return;
+			if(waves[0] == WaveType::Medium)
 			{
-				push_symbol((waves[1] == WaveType::Long) ? SymbolType::Zero : SymbolType::One, 2);
+				push_symbol(SymbolType::Zero, 1);
+				return;
+			}
+			if(waves[0] == WaveType::Short)
+			{
+				push_symbol(SymbolType::One, 1);
 				return;
 			}
 		break;
 
 		case SlowZero:
-			if(waves.size() < 8) return;
-			if(
-				waves[0] == WaveType::Long && waves[1] == WaveType::Long && waves[2] == WaveType::Long && waves[3] == WaveType::Long &&
-				waves[4] == WaveType::Long && waves[5] == WaveType::Long && waves[6] == WaveType::Long && waves[7] == WaveType::Long
-			)
+			if(waves.size() < 4) return;
+			if(waves[0] == WaveType::Long && waves[1] == WaveType::Long && waves[2] == WaveType::Long && waves[3] == WaveType::Long)
 			{
-				push_symbol(SymbolType::Zero, 8);
+				push_symbol(SymbolType::Zero, 4);
 				return;
 			}
 		break;
@@ -104,13 +109,13 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 				for(c = 0; c < length; c++) if(waves[c] != type) break;\
 				if(c == length)\
 				{\
-					push_symbol(symbol, 8);\
+					push_symbol(symbol, length);\
 					return;\
 				}\
 			}
 
-			CHECK_RUN(8, WaveType::Long, SymbolType::Zero);
-			CHECK_RUN(16, WaveType::Short, SymbolType::One);
+			CHECK_RUN(4, WaveType::Long, SymbolType::Zero);
+			CHECK_RUN(8, WaveType::Short, SymbolType::One);
 #undef CHECK_RUN
 			if(waves.size() < 16) return;	// TODO, maybe: if there are any inconsistencies in the first 8, don't return
 		break;
@@ -118,48 +123,38 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 		case Sync:
 		{
 			// Sync is 0x16, either encoded fast or slow; i.e. 0 0110 1000 1
-			// So, fast: [short, long]*2, [short, short]*2, [short, long], [short, short], [short, long]*3, [short, short] = 20
-			// [short, short] = 1; [short, long] = 0
-			// Slow: long*16, short*32, long*8, short*16, long*24, short*16 = 112
 			Pattern slow_sync[] =
 			{
-				{.type = WaveType::Long,	16},
-				{.type = WaveType::Short,	32},
-				{.type = WaveType::Long,	8},
-				{.type = WaveType::Short,	16},
-				{.type = WaveType::Long,	24},
-				{.type = WaveType::Short,	16},
+				{.type = WaveType::Long, 8},
+				{.type = WaveType::Short, 16},
+				{.type = WaveType::Long, 4},
+				{.type = WaveType::Short, 8},
+				{.type = WaveType::Long, 12},
+				{.type = WaveType::Short, 8},
 				{.type = WaveType::Unrecognised}
 			};
 			Pattern fast_sync[] =
 			{
-				{.type = WaveType::Short, 1},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 1},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 5},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 3},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 1},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 1},
-				{.type = WaveType::Long, 1},
-				{.type = WaveType::Short, 2},
+				{.type = WaveType::Medium,	2},
+				{.type = WaveType::Short,	2},
+				{.type = WaveType::Medium,	1},
+				{.type = WaveType::Short,	1},
+				{.type = WaveType::Medium,	3},
+				{.type = WaveType::Short,	1},
 				{.type = WaveType::Unrecognised}
 			};
 
 			size_t slow_sync_matching_depth = pattern_matching_depth(waves, slow_sync);
 			size_t fast_sync_matching_depth = pattern_matching_depth(waves, fast_sync);
 
-			if(slow_sync_matching_depth == 112)
+			if(slow_sync_matching_depth == 52)
 			{
-				push_symbol(SymbolType::FoundSlow, 112);
+				push_symbol(SymbolType::FoundSlow, 52);
 				return;
 			}
-			if(fast_sync_matching_depth == 20)
+			if(fast_sync_matching_depth == 10)
 			{
-				push_symbol(SymbolType::FoundFast, 20);
+				push_symbol(SymbolType::FoundFast, 10);
 				return;
 			}
 			if(slow_sync_matching_depth < waves.size() && fast_sync_matching_depth < waves.size())
