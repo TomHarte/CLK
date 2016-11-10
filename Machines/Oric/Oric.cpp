@@ -213,6 +213,7 @@ uint8_t Machine::VIA::get_port_input(Port port)
 void Machine::VIA::synchronise()
 {
 	ay8910->run_for_cycles(_cycles_since_ay_update);
+	ay8910->flush();
 	_cycles_since_ay_update = 0;
 }
 

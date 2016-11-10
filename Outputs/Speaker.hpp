@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+
+#include <memory>
+#include <list>
+
 #include "../SignalProcessing/Stepper.hpp"
 #include "../SignalProcessing/FIRFilter.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
@@ -87,16 +91,28 @@ class Speaker {
 
 		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0), _queue(new Concurrency::AsyncTaskQueue) {}
 
+		/*!
+			Ensures any deferred processing occurs now.
+		*/
+		void flush()
+		{
+			std::shared_ptr<std::list<std::function<void(void)>>> queued_functions = _queued_functions;
+			_queued_functions.reset();
+			_queue->enqueue([queued_functions] {
+				for(auto function : *queued_functions)
+				{
+					function();
+				}
+			});
+		}
+
 	protected:
 		void enqueue(std::function<void(void)> function)
 		{
-			function();
-//			_queue->enqueue(function);
+			if(!_queued_functions) _queued_functions.reset(new std::list<std::function<void(void)>>);
+			_queued_functions->push_back(function);
 		}
-		void flush()
-		{
-//			_queue->flush();
-		}
+		std::shared_ptr<std::list<std::function<void(void)>>> _queued_functions;
 
 		std::unique_ptr<int16_t> _buffer_in_progress;
 		float _high_frequency_cut_off;
@@ -137,7 +153,7 @@ template <class T> class Filter: public Speaker {
 	public:
 		~Filter()
 		{
-			flush();
+			_queue->flush();
 		}
 
 		void run_for_cycles(unsigned int input_cycles)
