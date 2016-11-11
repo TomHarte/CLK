@@ -124,7 +124,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		if(_envelope_divider) _envelope_divider--;
 		else
 		{
-			_envelope_divider = _envelope_period;
+			_envelope_divider = _envelope_period * 16;
 			_envelope_position ++;
 			if(_envelope_position == 32) _envelope_position = _envelope_overflow_masks[_output_registers[13]];
 		}
@@ -149,11 +149,12 @@ void AY38910::evaluate_output_volume()
 	// The output level for a channel is:
 	//	1 if neither tone nor noise is enabled;
 	//	0 if either tone or noise is enabled and its value is low.
-	// (which is implemented here with reverse logic, assuming _channel_output and _noise_output are already inverted)
-#define level(c, tb, nb)	\
-	(((((_output_registers[7] >> tb)&1)^1) & _tone_outputs[c]) | ((((_output_registers[7] >> nb)&1)^1) & _noise_output)) ^ 1
+	// The tone/noise enable bits use inverse logic — 0 = on, 1 = off — permitting the OR logic below.
+#define tone_level(c, tone_bit)		(_tone_outputs[c] | (_output_registers[7] >> tone_bit))
+#define noise_level(c, noise_bit)	(_noise_output | (_output_registers[7] >> noise_bit))
 
-	int channel_levels[3] = {
+#define level(c, tone_bit, noise_bit)	tone_level(c, tone_bit) & noise_level(c, noise_bit) & 1
+	const int channel_levels[3] = {
 		level(0, 0, 3),
 		level(1, 1, 4),
 		level(2, 2, 5),
@@ -164,7 +165,7 @@ void AY38910::evaluate_output_volume()
 #define channel_volume(c)	\
 	((_output_registers[c] >> 4)&1) * envelope_volume + (((_output_registers[c] >> 4)&1)^1) * (_output_registers[c]&0xf)
 
-	int volumes[3] = {
+	const int volumes[3] = {
 		channel_volume(8),
 		channel_volume(9),
 		channel_volume(10)
@@ -214,12 +215,12 @@ void AY38910::set_register_value(uint8_t value)
 
 				case 11:
 					_envelope_period = (_envelope_period & ~0xff) | value;
-					_envelope_divider = _envelope_period;
+					_envelope_divider = _envelope_period * 16;
 				break;
 
 				case 12:
 					_envelope_period = (_envelope_period & 0xff) | (int)(value << 8);
-					_envelope_divider = _envelope_period;
+					_envelope_divider = _envelope_period * 16;
 				break;
 
 				case 13:
@@ -235,7 +236,15 @@ void AY38910::set_register_value(uint8_t value)
 
 uint8_t AY38910::get_register_value()
 {
-	return _registers[_selected_register];
+	// This table ensures that bits that aren't defined within the AY are returned as 1s
+	// when read. I can't find documentation on this and don't have a machine to test, so
+	// this is provisionally a guess. TODO: investigate.
+	const uint8_t register_masks[16] = {
+		0x00, 0xf0, 0x00, 0xf0, 0x00, 0xf0, 0xe0, 0x00,
+		0xe0, 0xe0, 0xe0, 0x00, 0x00, 0xf0, 0x00, 0x00
+	};
+
+	return _registers[_selected_register] | register_masks[_selected_register];
 }
 
 uint8_t AY38910::get_port_output(bool port_b)
