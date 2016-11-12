@@ -50,6 +50,7 @@
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
+		4B5A12571DD55862007A2231 /* Disassembler6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5A12551DD55862007A2231 /* Disassembler6502.cpp */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
@@ -490,6 +491,8 @@
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
 		4B59199B1DAC6C46005BB85C /* OricTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricTAP.hpp; sourceTree = "<group>"; };
+		4B5A12551DD55862007A2231 /* Disassembler6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disassembler6502.cpp; path = ../../StaticAnalyser/Disassembler/Disassembler6502.cpp; sourceTree = "<group>"; };
+		4B5A12561DD55862007A2231 /* Disassembler6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disassembler6502.hpp; path = ../../StaticAnalyser/Disassembler/Disassembler6502.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
 		4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSStaticAnalyser.mm; path = StaticAnalyser/CSStaticAnalyser.mm; sourceTree = "<group>"; };
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
@@ -1143,6 +1146,15 @@
 				4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		4B5A12581DD55873007A2231 /* Disassembler */ = {
+			isa = PBXGroup;
+			children = (
+				4B5A12551DD55862007A2231 /* Disassembler6502.cpp */,
+				4B5A12561DD55862007A2231 /* Disassembler6502.hpp */,
+			);
+			name = Disassembler;
 			sourceTree = "<group>";
 		};
 		4B643F3B1D77AD6D00D431D6 /* StaticAnalyser */ = {
@@ -1851,6 +1863,7 @@
 				4BA799961D8B65730045123D /* Atari */,
 				4BC830D21D6E7C6D0000A26F /* Commodore */,
 				4BCF1FAC1DADD41F0039D2E7 /* Oric */,
+				4B5A12581DD55873007A2231 /* Disassembler */,
 			);
 			name = StaticAnalyser;
 			sourceTree = "<group>";
@@ -2313,6 +2326,7 @@
 				4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B4DC8281D2C2470003C5BF8 /* C1540.cpp in Sources */,
+				4B5A12571DD55862007A2231 /* Disassembler6502.cpp in Sources */,
 				4B1E85751D170228001EF87D /* Typer.cpp in Sources */,
 				4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
