@@ -124,7 +124,7 @@ void AY38910::get_samples(unsigned int number_of_samples, int16_t *target)
 		if(_envelope_divider) _envelope_divider--;
 		else
 		{
-			_envelope_divider = _envelope_period * 16;
+			_envelope_divider = _envelope_period;
 			_envelope_position ++;
 			if(_envelope_position == 32) _envelope_position = _envelope_overflow_masks[_output_registers[13]];
 		}
@@ -215,12 +215,12 @@ void AY38910::set_register_value(uint8_t value)
 
 				case 11:
 					_envelope_period = (_envelope_period & ~0xff) | value;
-					_envelope_divider = _envelope_period * 16;
+					_envelope_divider = _envelope_period;
 				break;
 
 				case 12:
 					_envelope_period = (_envelope_period & 0xff) | (int)(value << 8);
-					_envelope_divider = _envelope_period * 16;
+					_envelope_divider = _envelope_period;
 				break;
 
 				case 13:
