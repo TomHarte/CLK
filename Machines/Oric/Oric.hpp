@@ -102,6 +102,11 @@ class Machine:
 		int _cycles_since_video_update;
 		inline void update_video();
 
+		// ROM bookkeeping
+		bool _is_using_basic11;
+		uint16_t _tape_get_byte_address, _scan_keyboard_address, _tape_speed_address;
+		int _keyboard_read_count;
+
 		// Outputs
 		std::unique_ptr<VideoOutput> _videoOutput;
 
