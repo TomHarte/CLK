@@ -51,6 +51,10 @@ enum Key: uint16_t {
 	TerminateSequence = 0xffff, NotMapped = 0xfffe
 };
 
+enum ROM {
+	BASIC10, BASIC11
+};
+
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
@@ -62,7 +66,7 @@ class Machine:
 	public:
 		Machine();
 
-		void set_rom(std::vector<uint8_t> data);
+		void set_rom(ROM rom, const std::vector<uint8_t> &data);
 		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
@@ -93,6 +97,7 @@ class Machine:
 
 	private:
 		// RAM and ROM
+		std::vector<uint8_t> _basic11, _basic10;
 		uint8_t _ram[65536], _rom[16384];
 		int _cycles_since_video_update;
 		inline void update_video();

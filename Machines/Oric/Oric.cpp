@@ -36,11 +36,20 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	{
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
+
+	if(target.oric.use_atmos_rom)
+	{
+		memcpy(_rom, _basic11.data(), std::min(_basic11.size(), sizeof(_rom)));
+	}
+	else
+	{
+		memcpy(_rom, _basic10.data(), std::min(_basic10.size(), sizeof(_rom)));
+	}
 }
 
-void Machine::set_rom(std::vector<uint8_t> data)
+void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 {
-	memcpy(_rom, data.data(), std::min(data.size(), sizeof(_rom)));
+	if(rom == BASIC11) _basic11 = std::move(data); else _basic10 = std::move(data);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
