@@ -21,13 +21,16 @@ namespace MOS6502 {
 struct Instruction {
 	uint16_t address;
 	enum {
-		BRK, RTI, RTS,
+		BRK, JSR, RTI, RTS, JMP,
 		CLC, SEC, CLD, SED, CLI, SEI, CLV,
 		NOP,
 
-		KIL, SLO, ANC,
-		AND, EOR, ORA,
+		SLO, RLA, SRE, RRA, ALR, ARR,
+		SAX, LAX, DCP, ISC,
+		ANC, XAA, AXS,
+		AND, EOR, ORA, BIT,
 		ADC, SBC,
+		AHX, SHY, SHX, TAS, LAS,
 
 		LDA, STA, LDX, STX, LDY, STY,
 
@@ -37,14 +40,14 @@ struct Instruction {
 		INC, DEC, DEX, DEY, INX, INY,
 		ASL, ROL, LSR, ROR,
 		TAX, TXA, TAY, TYA, TSX, TXS,
-		PLA, PHA, PLP, PHP
+		PLA, PHA, PLP, PHP,
+
+		KIL
 	} operation;
 	enum {
 		Absolute,
 		AbsoluteX,
 		AbsoluteY,
-		AbsoluteIndirect,
-		Accumulator,
 		Immediate,
 		Implied,
 		ZeroPage,

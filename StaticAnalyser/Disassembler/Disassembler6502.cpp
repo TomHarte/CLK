@@ -23,7 +23,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 	while(1)
 	{
 		uint16_t local_address = address - start_address;
-		if(local_address > memory.size()) return;
+		if(local_address >= memory.size()) return;
 		address++;
 
 		struct Instruction instruction;
@@ -82,6 +82,11 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		instruction.operation = op;	\
 	break;
 
+#define URM_INSTRUCTION(base, op)	\
+	case base+0x07: case base+0x17: case base+0x03: case base+0x13: case base+0x0f: case base+0x1f: case base+0x1b:	\
+		instruction.operation = op;	\
+	break;
+
 #define M_INSTRUCTION(base, op)	\
 	case base+0x0a: case base+0x06: case base+0x16: case base+0x0e: case base+0x1e:	\
 		instruction.operation = op;	\
@@ -92,8 +97,21 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		switch(operation)
 		{
 			IM_INSTRUCTION(0x00, Instruction::BRK)
+			IM_INSTRUCTION(0x20, Instruction::JSR)
 			IM_INSTRUCTION(0x40, Instruction::RTI)
 			IM_INSTRUCTION(0x60, Instruction::RTS)
+			case 0x4c: case 0x6c:
+				instruction.operation = Instruction::JMP;
+			break;
+
+			IM_INSTRUCTION(0x10, Instruction::BPL)
+			IM_INSTRUCTION(0x30, Instruction::BMI)
+			IM_INSTRUCTION(0x50, Instruction::BVC)
+			IM_INSTRUCTION(0x70, Instruction::BVS)
+			IM_INSTRUCTION(0x90, Instruction::BCC)
+			IM_INSTRUCTION(0xb0, Instruction::BCS)
+			IM_INSTRUCTION(0xd0, Instruction::BNE)
+			IM_INSTRUCTION(0xf0, Instruction::BEQ)
 
 			IM_INSTRUCTION(0xca, Instruction::DEX)
 			IM_INSTRUCTION(0x88, Instruction::DEY)
@@ -120,9 +138,17 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			IM_INSTRUCTION(0x78, Instruction::SEI)
 			IM_INSTRUCTION(0xb8, Instruction::CLV)
 
+			URM_INSTRUCTION(0x00, Instruction::SLO)
+			URM_INSTRUCTION(0x20, Instruction::RLA)
+			URM_INSTRUCTION(0x40, Instruction::SRE)
+			URM_INSTRUCTION(0x60, Instruction::RRA)
+
 			RM_INSTRUCTION(0x00, Instruction::ORA)
 			RM_INSTRUCTION(0x20, Instruction::AND)
 			RM_INSTRUCTION(0x40, Instruction::EOR)
+			case 0x24: case 0x2c:
+				instruction.operation = Instruction::BIT;
+			break;
 			RM_INSTRUCTION(0x60, Instruction::ADC)
 			RM_INSTRUCTION(0xc0, Instruction::CMP)
 			RM_INSTRUCTION(0xe0, Instruction::SBC)
@@ -153,9 +179,104 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			case 0x84: case 0x94: case 0x8c:
 				instruction.operation = Instruction::STY;
 			break;
-			
+
+			case 0x04: case 0x0c: case 0x14: case 0x1a: case 0x1c:
+			case 0x34: case 0x3a: case 0x3c: case 0x44: case 0x54: case 0x5a: case 0x5c:
+			case 0x64: case 0x74: case 0x7a: case 0x7c:
+			case 0x80: case 0x82: case 0x89:
+			case 0xc2: case 0xd4: case 0xda: case 0xdc:
+			case 0xe2: case 0xea: case 0xf4: case 0xfa: case 0xfc:
+				instruction.operation = Instruction::NOP;
+			break;
+
+			case 0x87: case 0x97: case 0x83: case 0x8f:
+				instruction.operation = Instruction::SAX;
+			break;
+			case 0xa7: case 0xb7: case 0xa3: case 0xb3: case 0xaf: case 0xbf:
+				instruction.operation = Instruction::LAX;
+			break;
+			URM_INSTRUCTION(0xc0, Instruction::DCP)
+			URM_INSTRUCTION(0xe0, Instruction::ISC)
+
+			case 0x0b: case 0x2b:
+				instruction.operation = Instruction::ANC;
+			break;
+
+			IM_INSTRUCTION(0x4b, Instruction::ALR)
+			IM_INSTRUCTION(0x6b, Instruction::ARR)
+			IM_INSTRUCTION(0x8b, Instruction::XAA)
+			IM_INSTRUCTION(0xab, Instruction::LAX)
+			IM_INSTRUCTION(0xcb, Instruction::AXS)
+			IM_INSTRUCTION(0xeb, Instruction::SBC)
+			case 0x93: case 0x9f:
+				instruction.operation = Instruction::AHX;
+			break;
+			IM_INSTRUCTION(0x9c, Instruction::SHY)
+			IM_INSTRUCTION(0x9e, Instruction::SHX)
+			IM_INSTRUCTION(0x9b, Instruction::TAS)
+			IM_INSTRUCTION(0xbb, Instruction::LAS)
 		}
+#undef RM_INSTRUCTION
+#undef URM_INSTRUCTION
+#undef M_INSTRUCTION
+#undef IM_INSTRUCTION
+
+		// get operand
+		switch(instruction.addressing_mode)
+		{
+			// zero-byte operands
+			case Instruction::Implied:
+				instruction.operand = 0;
+			break;
+
+			// one-byte operands
+			case Instruction::Immediate:
+			case Instruction::ZeroPage: case Instruction::ZeroPageX: case Instruction::ZeroPageY:
+			case Instruction::IndexedIndirectX: case Instruction::IndirectIndexedY:
+			case Instruction::Relative:
+			{
+				uint16_t operand_address = address - start_address;
+				if(operand_address >= memory.size()) return;
+				address++;
+
+				instruction.operand = memory[operand_address];
+			}
+			break;
+
+			// two-byte operands
+			case Instruction::Absolute: case Instruction::AbsoluteX: case Instruction::AbsoluteY:
+			case Instruction::Indirect:
+			{
+				uint16_t operand_address = address - start_address;
+				if(operand_address >= memory.size()-1) return;
+				address += 2;
+
+				instruction.operand = memory[operand_address] | (uint16_t)(memory[operand_address+1] << 8);
+			}
+			break;
+		}
+
+		// store the instruction away
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
+
+		// decide on overall flow control
+		if(instruction.operation == Instruction::RTS || instruction.operation == Instruction::RTI) return;
+		if(instruction.operation == Instruction::BRK) return;	// TODO: check whether IRQ vector is within memory range
+		if(instruction.operation == Instruction::JSR)
+		{
+			disassembly.remaining_entry_points.push_back(instruction.operand);
+		}
+		if(instruction.operation == Instruction::JMP)
+		{
+			if(instruction.addressing_mode == Instruction::Absolute)
+				disassembly.remaining_entry_points.push_back(instruction.operand);
+			return;
+		}
+		if(instruction.addressing_mode == Instruction::Relative)
+		{
+			uint16_t destination = (uint16_t)(address + (int8_t)instruction.operand);
+			disassembly.remaining_entry_points.push_back(destination);
+		}
 	}
 }
 
