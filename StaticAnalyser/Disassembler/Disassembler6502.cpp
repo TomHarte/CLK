@@ -16,7 +16,6 @@ struct PartialDisassembly {
 	std::vector<uint16_t> remaining_entry_points;
 };
 
-
 static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, uint16_t start_address, uint16_t entry_point)
 {
 	uint16_t address = entry_point;
@@ -24,10 +23,10 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 	{
 		uint16_t local_address = address - start_address;
 		if(local_address >= memory.size()) return;
-		address++;
 
 		struct Instruction instruction;
 		instruction.address = address;
+		address++;
 
 		// get operation
 		uint8_t operation = memory[local_address];
@@ -259,6 +258,19 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		// store the instruction away
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
+		// TODO: something wider-ranging than this
+		if(instruction.addressing_mode == Instruction::Absolute && (instruction.operand < start_address || instruction.operand >= start_address + memory.size()))
+		{
+			if(	instruction.operation == Instruction::STY ||
+				instruction.operation == Instruction::STX ||
+				instruction.operation == Instruction::STA)
+					disassembly.disassembly.external_stores.insert(instruction.operand);
+			if(	instruction.operation == Instruction::LDY ||
+				instruction.operation == Instruction::LDX ||
+				instruction.operation == Instruction::LDA)
+					disassembly.disassembly.external_loads.insert(instruction.operand);
+		}
+
 		// decide on overall flow control
 		if(instruction.operation == Instruction::RTS || instruction.operation == Instruction::RTI) return;
 		if(instruction.operation == Instruction::BRK) return;	// TODO: check whether IRQ vector is within memory range
@@ -280,7 +292,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 	}
 }
 
-Disassembly Disassemble(const std::vector<uint8_t> &memory, uint16_t start_address, std::vector<uint16_t> entry_points)
+Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, uint16_t start_address, std::vector<uint16_t> entry_points)
 {
 	PartialDisassembly partialDisassembly;
 	partialDisassembly.remaining_entry_points = entry_points;
@@ -294,8 +306,11 @@ Disassembly Disassemble(const std::vector<uint8_t> &memory, uint16_t start_addre
 		// if that address has already bene visited, forget about it
 		if(partialDisassembly.disassembly.instructions_by_address.find(next_entry_point) != partialDisassembly.disassembly.instructions_by_address.end()) continue;
 
-		// otherwise perform a diassembly run
-		AddToDisassembly(partialDisassembly, memory, start_address, next_entry_point);
+		// if it's outgoing, log it as such and forget about it; otherwise disassemble
+		if(next_entry_point < start_address || next_entry_point >= start_address + memory.size())
+			partialDisassembly.disassembly.outward_calls.insert(next_entry_point);
+		else
+			AddToDisassembly(partialDisassembly, memory, start_address, next_entry_point);
 	}
 
 	return std::move(partialDisassembly.disassembly);

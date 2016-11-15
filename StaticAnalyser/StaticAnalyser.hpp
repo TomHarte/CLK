@@ -49,6 +49,10 @@ struct Target {
 			bool has_dfs;
 			bool should_hold_shift;
 		} acorn;
+
+		struct {
+			bool use_atmos_rom;
+		} oric;
 	};
 
 	std::string loadingCommand;
