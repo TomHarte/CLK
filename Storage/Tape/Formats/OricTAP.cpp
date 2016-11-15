@@ -97,6 +97,10 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				{
 					_next_phase = Gap;
 				}
+				if(feof(_file))
+				{
+					_next_phase = End;
+				}
 				_phase_counter++;
 			break;
 
