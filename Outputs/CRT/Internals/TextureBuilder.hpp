@@ -20,7 +20,7 @@ namespace Outputs {
 namespace CRT {
 
 /*!
-	Owns an OpenGL texture resource and provides mechanisms to fill it from top left to bottom right
+	Owns an OpenGL texture resource and provides mechanisms to fill it from bottom left to top right
 	with runs of data, ensuring each run is neighboured immediately to the left and right by copies of its
 	first and last pixels.
 */
