@@ -41,45 +41,6 @@ struct Range {
 	GLsizei location, length;
 };
 
-static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsizei buffer_length, GLsizei granularity, GLsizei offset, Range *ranges)
-{
-	GLsizei start = *start_pointer;
-	GLsizei end = *end_pointer;
-
-	*end_pointer %= buffer_length;
-	*start_pointer = *end_pointer;
-
-	start += offset;
-	end += offset;
-	start -= start%granularity;
-	end -= end%granularity;
-
-	GLsizei length = end - start;
-	if(!length) return 0;
-	if(length >= buffer_length)
-	{
-		ranges[0].location = 0;
-		ranges[0].length = buffer_length;
-		return 1;
-	}
-	else
-	{
-		ranges[0].location = start % buffer_length;
-		if(ranges[0].location + length <= buffer_length)
-		{
-			ranges[0].length = length;
-			return 1;
-		}
-		else
-		{
-			ranges[0].length = buffer_length - ranges[0].location;
-			ranges[1].location = 0;
-			ranges[1].length = length - ranges[0].length;
-			return 2;
-		}
-	}
-}
-
 static GLsizei submitArrayData(GLuint buffer, uint8_t *source, size_t *length_pointer)
 {
 	GLsizei length = (GLsizei)*length_pointer;
