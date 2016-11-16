@@ -105,6 +105,12 @@ class OpenGLOutputBuilder {
 			_line_buffer.pointer += SourceVertexSize;
 		}
 
+		inline uint8_t *get_buffered_source_runs(size_t &size)
+		{
+			size = _line_buffer.pointer;
+			return _line_buffer.data.data();
+		}
+
 		inline uint8_t *get_next_output_run()
 		{
 			if(_output_buffer.pointer == OutputVertexBufferDataSize) return nullptr;
@@ -161,7 +167,7 @@ class OpenGLOutputBuilder {
 
 		inline uint16_t get_composite_output_y()
 		{
-			return _composite_src_output_y % IntermediateBufferHeight;
+			return (uint16_t)_composite_src_output_y;
 		}
 
 		inline bool composite_output_buffer_is_full()

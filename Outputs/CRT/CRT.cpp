@@ -141,7 +141,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			source_input_position_x1() = tex_x;
 			source_input_position_y() = tex_y;
 			source_output_position_x1() = (uint16_t)_horizontal_flywheel->get_current_output_position();
-			source_output_position_y() = _openGL_output_builder->get_composite_output_y();
+			// Don't write output_y now, write it later; we won't necessarily know what it is outside of the locked region
+//			source_output_position_y() = _openGL_output_builder->get_composite_output_y();
 			source_phase() = _colour_burst_phase;
 			source_amplitude() = _colour_burst_amplitude;
 			source_phase_time() = (uint8_t)_colour_burst_time; // assumption: burst was within the first 1/16 of the line
@@ -190,17 +191,28 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				{
 					_output_run.x1 = (uint16_t)_horizontal_flywheel->get_current_output_position();
 					_output_run.y = (uint16_t)(_vertical_flywheel->get_current_output_position() / _vertical_flywheel_output_divider);
-					_output_run.tex_y = _openGL_output_builder->get_composite_output_y();
 				}
 				else
 				{
 					_openGL_output_builder->lock_output();
+
+					// Get and write all those previously unwritten output ys
+					uint16_t output_y = _openGL_output_builder->get_composite_output_y();
+					size_t size;
+					uint8_t *buffered_lines = _openGL_output_builder->get_buffered_source_runs(size);
+					for(size_t position = 0; position < size; position += SourceVertexSize)
+					{
+						(*(uint16_t *)&buffered_lines[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
+					}
+
+					// Construct the output run
 					uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 					output_x1() = _output_run.x1;
 					output_position_y() = _output_run.y;
-					output_tex_y() = _output_run.tex_y;
+					output_tex_y() = output_y;
 					output_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 					_openGL_output_builder->complete_output_run();
+
 					_openGL_output_builder->unlock_output();
 				}
 				_is_writing_composite_run ^= true;

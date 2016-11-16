@@ -83,7 +83,7 @@ class CRT {
 
 		// temporary storage used during the construction of output runs
 		struct {
-			uint16_t x1, y, tex_y;
+			uint16_t x1, y;
 		} _output_run;
 
 		// The delegate
