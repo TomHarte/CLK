@@ -80,7 +80,7 @@ class OpenGLOutputBuilder {
 
 		unsigned int _last_output_width, _last_output_height;
 
-		GLuint textureName, shadowMaskTextureName;
+		GLuint shadowMaskTextureName;
 
 		GLuint defaultFramebuffer;
 

@@ -13,30 +13,6 @@
 #include "../../../SignalProcessing/FIRFilter.hpp"
 #include "Shaders/OutputShader.hpp"
 
-static const GLint internalFormatForDepth(size_t depth)
-{
-	switch(depth)
-	{
-		default: return GL_FALSE;
-		case 1: return GL_R8UI;
-		case 2: return GL_RG8UI;
-		case 3: return GL_RGB8UI;
-		case 4: return GL_RGBA8UI;
-	}
-}
-
-static const GLenum formatForDepth(size_t depth)
-{
-	switch(depth)
-	{
-		default: return GL_FALSE;
-		case 1: return GL_RED_INTEGER;
-		case 2: return GL_RG_INTEGER;
-		case 3: return GL_RGB_INTEGER;
-		case 4: return GL_RGBA_INTEGER;
-	}
-}
-
 struct Range {
 	GLsizei location, length;
 };
@@ -78,8 +54,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_rgb_shader(nullptr),
 	_last_output_width(0),
 	_last_output_height(0),
-	_fence(nullptr),
-	_texture_builder(new TextureBuilder(buffer_depth))
+	_fence(nullptr)
 {
 	_output_buffer.data.resize(OutputVertexBufferDataSize);
 	_source_buffer.data.resize(SourceVertexBufferDataSize);
@@ -94,14 +69,8 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	filteredTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
 
 	// create the surce texture
-	glGenTextures(1, &textureName);
 	glActiveTexture(source_data_texture_unit);
-	glBindTexture(GL_TEXTURE_2D, textureName);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_texture_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_texture_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, nullptr);
+	_texture_builder.reset(new TextureBuilder(buffer_depth));
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
@@ -122,7 +91,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-	glDeleteTextures(1, &textureName);
 	glDeleteBuffers(1, &output_array_buffer);
 	glDeleteBuffers(1, &source_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
@@ -190,16 +158,8 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer.data.data(), &_source_buffer.pointer);
 
 	// upload new source pixels, if any
-	uint16_t completed_texture_y = _texture_builder->get_and_finalise_current_line();
-	if(completed_texture_y)
-	{
-		glActiveTexture(source_data_texture_unit);
-		glTexSubImage2D(	GL_TEXTURE_2D, 0,
-							0, 0,
-							InputBufferBuilderWidth, completed_texture_y,
-							formatForDepth(_texture_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
-							_texture_builder->get_image_pointer());
-	}
+	glActiveTexture(source_data_texture_unit);
+	_texture_builder->submit();
 
 	// buffer usage restart from 0 for the next time around
 	_composite_src_output_y = 0;
