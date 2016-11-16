@@ -96,7 +96,8 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_source_run()
 		{
-			_line_buffer.data.resize(_line_buffer.pointer + SourceVertexSize);
+			if(_line_buffer.data.size() < _line_buffer.pointer + SourceVertexSize)
+				_line_buffer.data.resize(_line_buffer.pointer + SourceVertexSize);
 			return &_line_buffer.data[_line_buffer.pointer];
 		}
 
@@ -125,7 +126,6 @@ class OpenGLOutputBuilder {
 				_output_buffer.pointer += OutputVertexSize;
 				memcpy(&_source_buffer.data[_source_buffer.pointer], _line_buffer.data.data(), _line_buffer.data.size());
 				_source_buffer.pointer += _line_buffer.data.size();
-				_line_buffer.data.resize(0);
 				_line_buffer.pointer = 0;
 			}
 		}
