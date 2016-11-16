@@ -75,4 +75,4 @@ class TextureBuilder {
 }
 }
 
-#endif /* CRTInputBufferBuilder_hpp */
+#endif /* Outputs_CRT_Internals_TextureBuilder_hpp */
