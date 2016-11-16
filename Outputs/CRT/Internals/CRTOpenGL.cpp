@@ -80,9 +80,9 @@ static int getCircularRanges(GLsizei *start_pointer, GLsizei *end_pointer, GLsiz
 	}
 }
 
-static GLsizei submitArrayData(GLuint buffer, uint8_t *source, GLsizei *length_pointer)
+static GLsizei submitArrayData(GLuint buffer, uint8_t *source, size_t *length_pointer)
 {
-	GLsizei length = *length_pointer;
+	GLsizei length = (GLsizei)*length_pointer;
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
@@ -114,15 +114,14 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_cleared_composite_output_y(0),
 	_composite_shader(nullptr),
 	_rgb_shader(nullptr),
-	_output_buffer_data(new uint8_t[OutputVertexBufferDataSize]),
-	_source_buffer_data(new uint8_t[SourceVertexBufferDataSize]),
-	_output_buffer_data_pointer(0),
-	_source_buffer_data_pointer(0),
 	_last_output_width(0),
 	_last_output_height(0),
 	_fence(nullptr)
 {
 	_buffer_builder.reset(new CRTInputBufferBuilder(buffer_depth));
+
+	_output_buffer.data.resize(OutputVertexBufferDataSize);
+	_source_buffer.data.resize(OutputVertexBufferDataSize);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
@@ -224,10 +223,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_output_mutex->lock();
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer_data.get(), &_output_buffer_data_pointer);
+	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer.data.data(), &_output_buffer.pointer);
 
 	// bind and flush the source array buffer
-	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer_data.get(), &_source_buffer_data_pointer);
+	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer.data.data(), &_source_buffer.pointer);
 
 	// determine how many lines are newly reclaimed; they'll need to be cleared
 	Range clearing_zones[2];

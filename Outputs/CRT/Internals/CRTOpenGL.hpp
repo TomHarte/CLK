@@ -20,6 +20,7 @@
 #include "Shaders/IntermediateShader.hpp"
 
 #include <mutex>
+#include <vector>
 
 namespace Outputs {
 namespace CRT {
@@ -93,6 +94,28 @@ class OpenGLOutputBuilder {
 		OpenGLOutputBuilder(unsigned int buffer_depth);
 		~OpenGLOutputBuilder();
 
+		inline uint8_t *get_next_source_run()
+		{
+			if(_source_buffer.pointer == SourceVertexBufferDataSize) return nullptr;
+			return &_source_buffer.data[_source_buffer.pointer];
+		}
+
+		inline void complete_source_run()
+		{
+			_source_buffer.pointer += SourceVertexSize;
+		}
+
+		inline uint8_t *get_next_output_run()
+		{
+			if(_output_buffer.pointer == OutputVertexBufferDataSize) return nullptr;
+			return &_output_buffer.data[_output_buffer.pointer];
+		}
+
+		inline void complete_output_run()
+		{
+			_output_buffer.pointer += OutputVertexSize;
+		}
+
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
 			_output_mutex->lock();
@@ -108,31 +131,9 @@ class OpenGLOutputBuilder {
 			_visible_area = visible_area;
 		}
 
-		inline uint8_t *get_next_source_run()
-		{
-			if(_source_buffer_data_pointer == SourceVertexBufferDataSize) return nullptr;
-			return &_source_buffer_data.get()[_source_buffer_data_pointer];
-		}
-
-		inline void complete_source_run()
-		{
-			_source_buffer_data_pointer += SourceVertexSize;
-		}
-
 		inline bool composite_output_run_has_room_for_vertex()
 		{
-			return _output_buffer_data_pointer < OutputVertexBufferDataSize;
-		}
-
-		inline uint8_t *get_next_output_run()
-		{
-			if(_output_buffer_data_pointer == OutputVertexBufferDataSize) return nullptr;
-			return &_output_buffer_data.get()[_output_buffer_data_pointer];
-		}
-
-		inline void complete_output_run()
-		{
-			_output_buffer_data_pointer += OutputVertexSize;
+			return _output_buffer.pointer < OutputVertexBufferDataSize;
 		}
 
 		inline void lock_output()
@@ -199,11 +200,11 @@ class OpenGLOutputBuilder {
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 
-		std::unique_ptr<uint8_t> _source_buffer_data;
-		GLsizei _source_buffer_data_pointer;
-
-		std::unique_ptr<uint8_t> _output_buffer_data;
-		GLsizei _output_buffer_data_pointer;
+		struct Buffer {
+			std::vector<uint8_t> data;
+			size_t pointer;
+			Buffer() : pointer(0) {}
+		} _line_buffer, _source_buffer, _output_buffer;
 
 		GLsync _fence;
 };
