@@ -14,7 +14,7 @@
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
-#include "InputTextureBuilder.hpp"
+#include "TextureBuilder.hpp"
 
 #include "Shaders/OutputShader.hpp"
 #include "Shaders/IntermediateShader.hpp"
@@ -57,7 +57,7 @@ class OpenGLOutputBuilder {
 		void prepare_source_vertex_array();
 
 		// the run and input data buffers
-		std::unique_ptr<InputTextureBuilder> _texture_builder;
+		std::unique_ptr<TextureBuilder> _texture_builder;
 		std::unique_ptr<std::mutex> _output_mutex;
 		std::unique_ptr<std::mutex> _draw_mutex;
 

@@ -1,18 +1,18 @@
 //
-//  InputTextureBuilder.cpp
+//  TextureBuilder.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 08/03/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "InputTextureBuilder.hpp"
+#include "TextureBuilder.hpp"
 #include "CRTOpenGL.hpp"
 #include <string.h>
 
 using namespace Outputs::CRT;
 
-InputTextureBuilder::InputTextureBuilder(size_t bytes_per_pixel) :
+TextureBuilder::TextureBuilder(size_t bytes_per_pixel) :
 	_bytes_per_pixel(bytes_per_pixel),
 	_next_write_x_position(0),
 	_next_write_y_position(0)
@@ -20,7 +20,7 @@ InputTextureBuilder::InputTextureBuilder(size_t bytes_per_pixel) :
 	_image.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 }
 
-uint8_t *InputTextureBuilder::allocate_write_area(size_t required_length)
+uint8_t *TextureBuilder::allocate_write_area(size_t required_length)
 {
 	if(_next_write_y_position != InputBufferBuilderHeight)
 	{
@@ -45,12 +45,12 @@ uint8_t *InputTextureBuilder::allocate_write_area(size_t required_length)
 	return &_image[_write_target_pointer * _bytes_per_pixel];
 }
 
-bool InputTextureBuilder::is_full()
+bool TextureBuilder::is_full()
 {
 	return (_next_write_y_position == InputBufferBuilderHeight);
 }
 
-void InputTextureBuilder::reduce_previous_allocation_to(size_t actual_length)
+void TextureBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
 	if(_next_write_y_position == InputBufferBuilderHeight) return;
 
@@ -81,29 +81,29 @@ void InputTextureBuilder::reduce_previous_allocation_to(size_t actual_length)
 	_next_write_x_position -= (_last_allocation_amount - actual_length);
 }
 
-uint8_t *InputTextureBuilder::get_image_pointer()
+uint8_t *TextureBuilder::get_image_pointer()
 {
 	return _image.data();
 }
 
-uint16_t InputTextureBuilder::get_and_finalise_current_line()
+uint16_t TextureBuilder::get_and_finalise_current_line()
 {
 	uint16_t result = _write_y_position + (_next_write_x_position ? 1 : 0);
 	_next_write_x_position = _next_write_y_position = 0;
 	return result;
 }
 
-uint16_t InputTextureBuilder::get_last_write_x_position()
+uint16_t TextureBuilder::get_last_write_x_position()
 {
 	return _write_x_position;
 }
 
-uint16_t InputTextureBuilder::get_last_write_y_position()
+uint16_t TextureBuilder::get_last_write_y_position()
 {
 	return _write_y_position;
 }
 
-size_t InputTextureBuilder::get_bytes_per_pixel()
+size_t TextureBuilder::get_bytes_per_pixel()
 {
 	return _bytes_per_pixel;
 }

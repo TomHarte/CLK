@@ -1,13 +1,13 @@
 //
-//  InputTextureBuilder.hpp
+//  TextureBuilder.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 08/03/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Outputs_CRT_Internals_InputBufferBuilder_hpp
-#define Outputs_CRT_Internals_InputBufferBuilder_hpp
+#ifndef Outputs_CRT_Internals_TextureBuilder_hpp
+#define Outputs_CRT_Internals_TextureBuilder_hpp
 
 #include <cstdint>
 #include <memory>
@@ -24,10 +24,10 @@ namespace CRT {
 	with runs of data, ensuring each run is neighboured immediately to the left and right by copies of its
 	first and last pixels.
 */
-class InputTextureBuilder {
+class TextureBuilder {
 	public:
 		/// Constructs an instance of InputTextureBuilder that contains a texture of colour depth @c bytes_per_pixel.
-		InputTextureBuilder(size_t bytes_per_pixel);
+		TextureBuilder(size_t bytes_per_pixel);
 
 		/// Finds the first available space of at least @c required_length pixels in size. Calls must be paired off
 		/// with calls to @c reduce_previous_allocation_to.

@@ -78,10 +78,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_rgb_shader(nullptr),
 	_last_output_width(0),
 	_last_output_height(0),
-	_fence(nullptr)
+	_fence(nullptr),
+	_texture_builder(new TextureBuilder(buffer_depth))
 {
-	_texture_builder.reset(new InputTextureBuilder(buffer_depth));
-
 	_output_buffer.data.resize(OutputVertexBufferDataSize);
 	_source_buffer.data.resize(SourceVertexBufferDataSize);
 

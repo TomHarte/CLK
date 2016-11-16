@@ -12,7 +12,7 @@
 #include "OpenGL.hpp"
 #include <string>
 #include <functional>
-#include <list>
+#include <vector>
 #include <mutex>
 
 namespace OpenGL {
@@ -110,7 +110,7 @@ private:
 	GLuint _shader_program;
 
 	void flush_functions();
-	std::list<std::function<void(void)>> _enqueued_functions;
+	std::vector<std::function<void(void)>> _enqueued_functions;
 	std::mutex _function_mutex;
 
 protected:
