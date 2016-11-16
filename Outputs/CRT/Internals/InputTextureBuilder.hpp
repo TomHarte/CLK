@@ -31,7 +31,8 @@ class InputTextureBuilder {
 
 		/// Finds the first available space of at least @c required_length pixels in size. Calls must be paired off
 		/// with calls to @c reduce_previous_allocation_to.
-		void allocate_write_area(size_t required_length);
+		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
+		uint8_t *allocate_write_area(size_t required_length);
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
@@ -44,14 +45,17 @@ class InputTextureBuilder {
 		/// @returns a pointer to the image data for this texture.
 		uint8_t *get_image_pointer();
 
-		uint8_t *get_write_target();
-
+		/// @returns the start column for the most recent allocated write area.
 		uint16_t get_last_write_x_position();
 
+		/// @returns the row of the most recent allocated write area.
 		uint16_t get_last_write_y_position();
 
+		/// @returns the number of bytes per pixel as supplied to the constructor.
 		size_t get_bytes_per_pixel();
 
+		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
+		/// being full; @c false if calls may succeed.
 		bool is_full();
 
 	private:

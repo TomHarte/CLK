@@ -183,8 +183,7 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			_texture_builder->allocate_write_area(required_length);
-			return _texture_builder->get_write_target();
+			return _texture_builder->allocate_write_area(required_length);
 		}
 
 		inline void reduce_previous_allocation_to(size_t actual_length)

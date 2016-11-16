@@ -20,7 +20,7 @@ InputTextureBuilder::InputTextureBuilder(size_t bytes_per_pixel) :
 	_image.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 }
 
-void InputTextureBuilder::allocate_write_area(size_t required_length)
+uint8_t *InputTextureBuilder::allocate_write_area(size_t required_length)
 {
 	if(_next_write_y_position != InputBufferBuilderHeight)
 	{
@@ -32,7 +32,7 @@ void InputTextureBuilder::allocate_write_area(size_t required_length)
 			_next_write_y_position++;
 
 			if(_next_write_y_position == InputBufferBuilderHeight)
-				return;
+				return nullptr;
 		}
 
 		_write_x_position = _next_write_x_position + 1;
@@ -40,6 +40,9 @@ void InputTextureBuilder::allocate_write_area(size_t required_length)
 		_write_target_pointer = (_write_y_position * InputBufferBuilderWidth) + _write_x_position;
 		_next_write_x_position += required_length + 2;
 	}
+	else return nullptr;
+
+	return &_image[_write_target_pointer * _bytes_per_pixel];
 }
 
 bool InputTextureBuilder::is_full()
@@ -88,11 +91,6 @@ uint16_t InputTextureBuilder::get_and_finalise_current_line()
 	uint16_t result = _write_y_position + (_next_write_x_position ? 1 : 0);
 	_next_write_x_position = _next_write_y_position = 0;
 	return result;
-}
-
-uint8_t *InputTextureBuilder::get_write_target()
-{
-	return (_next_write_y_position == InputBufferBuilderHeight) ? nullptr : &_image[_write_target_pointer * _bytes_per_pixel];
 }
 
 uint16_t InputTextureBuilder::get_last_write_x_position()
