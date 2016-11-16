@@ -25,8 +25,11 @@
 	self = [super init];
 	if(self)
 	{
-		NSData *rom = [self rom:@"basic11"];	// test108j
-		if(rom) _oric.set_rom(rom.stdVector8);
+		NSData *basic10 = [self rom:@"basic10"];
+		NSData *basic11 = [self rom:@"basic11"];	// test108j
+
+		if(basic10) _oric.set_rom(Oric::BASIC10, basic10.stdVector8);
+		if(basic11) _oric.set_rom(Oric::BASIC11, basic11.stdVector8);
 	}
 	return self;
 }

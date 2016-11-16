@@ -14,7 +14,8 @@ using namespace Oric;
 Machine::Machine() :
 	_cycles_since_video_update(0),
 	_use_fast_tape_hack(false),
-	_typer_delay(2500000)
+	_typer_delay(2500000),
+	_keyboard_read_count(0)
 {
 	set_clock_rate(1000000);
 	_via.set_interrupt_delegate(this);
@@ -36,11 +37,30 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	{
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
+
+	if(target.oric.use_atmos_rom)
+	{
+		memcpy(_rom, _basic11.data(), std::min(_basic11.size(), sizeof(_rom)));
+
+		_is_using_basic11 = true;
+		_tape_get_byte_address = 0xe6c9;
+		_scan_keyboard_address = 0xf495;
+		_tape_speed_address = 0x024d;
+	}
+	else
+	{
+		memcpy(_rom, _basic10.data(), std::min(_basic10.size(), sizeof(_rom)));
+
+		_is_using_basic11 = false;
+		_tape_get_byte_address = 0xe630;
+		_scan_keyboard_address = 0xf43c;
+		_tape_speed_address = 0x67;
+	}
 }
 
-void Machine::set_rom(std::vector<uint8_t> data)
+void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 {
-	memcpy(_rom, data.data(), std::min(data.size(), sizeof(_rom)));
+	if(rom == BASIC11) _basic11 = std::move(data); else _basic10 = std::move(data);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -51,9 +71,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == 0xe6c9 && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode && _via.tape->has_tape() && !_via.tape->get_tape()->is_at_end())
+		if(address == _tape_get_byte_address && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode && _via.tape->has_tape() && !_via.tape->get_tape()->is_at_end())
 		{
-			uint8_t next_byte = _via.tape->get_next_byte(!_ram[0x024d]);
+			uint8_t next_byte = _via.tape->get_next_byte(!_ram[_tape_speed_address]);
 			set_value_of_register(CPU6502::A, next_byte);
 			set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
 			*value = 0x60; // i.e. RTS
@@ -78,9 +98,12 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_typer && operation == CPU6502::BusOperation::ReadOpcode && address == 0xF495)
+	if(_typer && address == _scan_keyboard_address && operation == CPU6502::BusOperation::ReadOpcode)
 	{
-		if(!_typer->type_next_character())
+		// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
+		// do anything until at least the second, regardless of machine
+		if(!_keyboard_read_count) _keyboard_read_count++;
+		else if(!_typer->type_next_character())
 		{
 			clear_all_keys();
 			_typer.reset();
