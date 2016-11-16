@@ -194,12 +194,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				}
 				else
 				{
+					_openGL_output_builder->lock_output();
 					uint8_t *next_run = _openGL_output_builder->get_next_output_run();
 					output_x1() = _output_run.x1;
 					output_position_y() = _output_run.y;
 					output_tex_y() = _output_run.tex_y;
 					output_x2() = (uint16_t)_horizontal_flywheel->get_current_output_position();
 					_openGL_output_builder->complete_output_run();
+					_openGL_output_builder->unlock_output();
 				}
 				_is_writing_composite_run ^= true;
 			}
@@ -218,11 +220,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				_frames_since_last_delegate_call++;
 				if(_frames_since_last_delegate_call == 20)
 				{
-					// Yuck: to deal with the permitted ability of the delegate to make CRT changes that require the lock to be
-					// asserted during the delegate call, temporarily release the lock. TODO: find a less blunt instrument.
-					_openGL_output_builder->unlock_output();
 					_delegate->crt_did_end_batch_of_frames(this, _frames_since_last_delegate_call, _vertical_flywheel->get_and_reset_number_of_surprises());
-					_openGL_output_builder->lock_output();
 					_frames_since_last_delegate_call = 0;
 				}
 			}
@@ -283,29 +281,24 @@ void CRT::output_scan(const Scan *const scan)
 */
 void CRT::output_sync(unsigned int number_of_cycles)
 {
-	_openGL_output_builder->lock_output();
 	Scan scan{
 		.type = Scan::Type::Sync,
 		.number_of_cycles = number_of_cycles
 	};
 	output_scan(&scan);
-	_openGL_output_builder->unlock_output();
 }
 
 void CRT::output_blank(unsigned int number_of_cycles)
 {
-	_openGL_output_builder->lock_output();
 	Scan scan {
 		.type = Scan::Type::Blank,
 		.number_of_cycles = number_of_cycles
 	};
 	output_scan(&scan);
-	_openGL_output_builder->unlock_output();
 }
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	_openGL_output_builder->lock_output();
 	if(!_openGL_output_builder->input_buffer_is_full())
 	{
 		Scan scan {
@@ -324,12 +317,10 @@ void CRT::output_level(unsigned int number_of_cycles)
 		};
 		output_scan(&scan);
 	}
-	_openGL_output_builder->unlock_output();
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude)
 {
-	_openGL_output_builder->lock_output();
 	Scan scan {
 		.type = Scan::Type::ColourBurst,
 		.number_of_cycles = number_of_cycles,
@@ -337,12 +328,10 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 		.amplitude = amplitude
 	};
 	output_scan(&scan);
-	_openGL_output_builder->unlock_output();
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	_openGL_output_builder->lock_output();
 	if(!_openGL_output_builder->input_buffer_is_full())
 	{
 		_openGL_output_builder->reduce_previous_allocation_to(number_of_cycles / source_divider);
@@ -363,7 +352,6 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 		};
 		output_scan(&scan);
 	}
-	_openGL_output_builder->unlock_output();
 }
 
 Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)

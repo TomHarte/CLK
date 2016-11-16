@@ -281,25 +281,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array);
 		glDisable(GL_BLEND);
+		glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
 
 		while(active_pipeline->target)
 		{
 			// switch to the initial texture
 			active_pipeline->target->bind_framebuffer();
+			glClear(GL_COLOR_BUFFER_BIT);
 			active_pipeline->shader->bind();
-
-			// clear as desired
-			if(number_of_clearing_zones)
-			{
-				glEnable(GL_SCISSOR_TEST);
-				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
-				for(int c = 0; c < number_of_clearing_zones; c++)
-				{
-					glScissor(0, clearing_zones[c].location, IntermediateBufferWidth, clearing_zones[c].length);
-					glClear(GL_COLOR_BUFFER_BIT);
-				}
-				glDisable(GL_SCISSOR_TEST);
-			}
 
 			// draw as desired
 			glDrawArraysInstanced(GL_LINES, 0, 2, submitted_source_data / SourceVertexSize);
