@@ -272,7 +272,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array);
 		glDisable(GL_BLEND);
-		glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0);
 
 		while(active_pipeline->target)
 		{
