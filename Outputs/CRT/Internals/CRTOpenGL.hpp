@@ -96,13 +96,13 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *get_next_source_run()
 		{
-			if(_source_buffer.pointer == SourceVertexBufferDataSize) return nullptr;
-			return &_source_buffer.data[_source_buffer.pointer];
+			_line_buffer.data.resize(_line_buffer.pointer + SourceVertexSize);
+			return &_line_buffer.data[_line_buffer.pointer];
 		}
 
 		inline void complete_source_run()
 		{
-			_source_buffer.pointer += SourceVertexSize;
+			_line_buffer.pointer += SourceVertexSize;
 		}
 
 		inline uint8_t *get_next_output_run()
@@ -113,7 +113,15 @@ class OpenGLOutputBuilder {
 
 		inline void complete_output_run()
 		{
-			_output_buffer.pointer += OutputVertexSize;
+			size_t line_buffer_size = _line_buffer.data.size();
+			if(_source_buffer.pointer + line_buffer_size < SourceVertexBufferDataSize)
+			{
+				_output_buffer.pointer += OutputVertexSize;
+				memcpy(&_source_buffer.data[_source_buffer.pointer], _line_buffer.data.data(), _line_buffer.data.size());
+				_source_buffer.pointer += _line_buffer.data.size();
+				_line_buffer.data.resize(0);
+				_line_buffer.pointer = 0;
+			}
 		}
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)

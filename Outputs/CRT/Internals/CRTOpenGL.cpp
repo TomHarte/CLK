@@ -121,7 +121,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_buffer_builder.reset(new CRTInputBufferBuilder(buffer_depth));
 
 	_output_buffer.data.resize(OutputVertexBufferDataSize);
-	_source_buffer.data.resize(OutputVertexBufferDataSize);
+	_source_buffer.data.resize(SourceVertexBufferDataSize);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
