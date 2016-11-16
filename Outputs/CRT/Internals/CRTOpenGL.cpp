@@ -239,6 +239,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 							_buffer_builder->get_image_pointer());
 	}
 
+	// buffer usage restart from 0 for the next time around
+	_composite_src_output_y = 0;
+
 	// data having been grabbed, allow the machine to continue
 	_output_mutex->unlock();
 
@@ -285,14 +288,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			active_pipeline++;
 		}
-	}
-	_composite_src_output_y = 0;
 
-	// transfer to framebuffer
-	framebuffer->bind_framebuffer();
+		// transfer to framebuffer
+		framebuffer->bind_framebuffer();
 
-	if(submitted_output_data)
-	{
 		glEnable(GL_BLEND);
 
 		// Ensure we're back on the output framebuffer, drawing from the output array buffer
