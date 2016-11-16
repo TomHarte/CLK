@@ -62,7 +62,7 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<std::mutex> _draw_mutex;
 
 		// transient buffers indicating composite data not yet decoded
-		GLsizei _composite_src_output_y, _cleared_composite_output_y;
+		GLsizei _composite_src_output_y;
 
 		std::unique_ptr<OpenGL::OutputShader> output_shader_program;
 		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_separation_filter_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
@@ -166,7 +166,7 @@ class OpenGLOutputBuilder {
 
 		inline bool composite_output_buffer_is_full()
 		{
-			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
+			return _composite_src_output_y == IntermediateBufferHeight;
 		}
 
 		inline void increment_composite_output_y()
