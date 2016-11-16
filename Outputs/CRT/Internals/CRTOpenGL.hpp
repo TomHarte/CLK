@@ -14,7 +14,7 @@
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
-#include "CRTInputBufferBuilder.hpp"
+#include "InputTextureBuilder.hpp"
 
 #include "Shaders/OutputShader.hpp"
 #include "Shaders/IntermediateShader.hpp"
@@ -57,7 +57,7 @@ class OpenGLOutputBuilder {
 		void prepare_source_vertex_array();
 
 		// the run and input data buffers
-		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
+		std::unique_ptr<InputTextureBuilder> _texture_builder;
 		std::unique_ptr<std::mutex> _output_mutex;
 		std::unique_ptr<std::mutex> _draw_mutex;
 
@@ -183,28 +183,28 @@ class OpenGLOutputBuilder {
 
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			_buffer_builder->allocate_write_area(required_length);
-			return _buffer_builder->get_write_target();
+			_texture_builder->allocate_write_area(required_length);
+			return _texture_builder->get_write_target();
 		}
 
 		inline void reduce_previous_allocation_to(size_t actual_length)
 		{
-			_buffer_builder->reduce_previous_allocation_to(actual_length);
+			_texture_builder->reduce_previous_allocation_to(actual_length);
 		}
 
 		inline bool input_buffer_is_full()
 		{
-			return _buffer_builder->is_full();
+			return _texture_builder->is_full();
 		}
 
 		inline uint16_t get_last_write_x_posititon()
 		{
-			return _buffer_builder->get_last_write_x_position();
+			return _texture_builder->get_last_write_x_position();
 		}
 
 		inline uint16_t get_last_write_y_posititon()
 		{
-			return _buffer_builder->get_last_write_y_position();
+			return _texture_builder->get_last_write_y_position();
 		}
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);

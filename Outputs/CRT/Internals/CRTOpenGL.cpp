@@ -45,6 +45,8 @@ static GLsizei submitArrayData(GLuint buffer, uint8_t *source, size_t *length_po
 {
 	GLsizei length = (GLsizei)*length_pointer;
 
+	// The development machine is a Mac; Apple seemingly having given up on OpenGL (?), GL_MAP_PERSISTENT_BIT is not
+	// available. Which possibly means I'm doing no better here than a traditional buffer submit, but there it is.
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 	memcpy(data, source, (size_t)length);
@@ -78,7 +80,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_last_output_height(0),
 	_fence(nullptr)
 {
-	_buffer_builder.reset(new CRTInputBufferBuilder(buffer_depth));
+	_texture_builder.reset(new InputTextureBuilder(buffer_depth));
 
 	_output_buffer.data.resize(OutputVertexBufferDataSize);
 	_source_buffer.data.resize(SourceVertexBufferDataSize);
@@ -100,7 +102,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_buffer_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(_texture_builder->get_bytes_per_pixel()), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(_texture_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE, nullptr);
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
@@ -189,15 +191,15 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer.data.data(), &_source_buffer.pointer);
 
 	// upload new source pixels, if any
-	uint16_t completed_texture_y = _buffer_builder->get_and_finalise_current_line();
+	uint16_t completed_texture_y = _texture_builder->get_and_finalise_current_line();
 	if(completed_texture_y)
 	{
 		glActiveTexture(source_data_texture_unit);
 		glTexSubImage2D(	GL_TEXTURE_2D, 0,
 							0, 0,
 							InputBufferBuilderWidth, completed_texture_y,
-							formatForDepth(_buffer_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
-							_buffer_builder->get_image_pointer());
+							formatForDepth(_texture_builder->get_bytes_per_pixel()), GL_UNSIGNED_BYTE,
+							_texture_builder->get_image_pointer());
 	}
 
 	// buffer usage restart from 0 for the next time around

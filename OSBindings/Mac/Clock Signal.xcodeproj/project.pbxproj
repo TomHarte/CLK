@@ -352,7 +352,7 @@
 		4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */; };
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */; };
-		4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */; };
+		4BBF99141C8FBA6F0075DAFB /* InputTextureBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* InputTextureBuilder.cpp */; };
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
@@ -828,8 +828,8 @@
 		4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntermediateShader.cpp; sourceTree = "<group>"; };
 		4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IntermediateShader.hpp; sourceTree = "<group>"; };
 		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
-		4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTInputBufferBuilder.cpp; sourceTree = "<group>"; };
-		4BBF99091C8FBA6F0075DAFB /* CRTInputBufferBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTInputBufferBuilder.hpp; sourceTree = "<group>"; };
+		4BBF99081C8FBA6F0075DAFB /* InputTextureBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = InputTextureBuilder.cpp; sourceTree = "<group>"; };
+		4BBF99091C8FBA6F0075DAFB /* InputTextureBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = InputTextureBuilder.hpp; sourceTree = "<group>"; };
 		4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTOpenGL.cpp; sourceTree = "<group>"; };
 		4BBF990B1C8FBA6F0075DAFB /* CRTOpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTOpenGL.hpp; sourceTree = "<group>"; };
 		4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Flywheel.hpp; sourceTree = "<group>"; };
@@ -1688,8 +1688,8 @@
 			isa = PBXGroup;
 			children = (
 				4BC3B74C1CD194CC00F86E85 /* Shaders */,
-				4BBF99081C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp */,
-				4BBF99091C8FBA6F0075DAFB /* CRTInputBufferBuilder.hpp */,
+				4BBF99081C8FBA6F0075DAFB /* InputTextureBuilder.cpp */,
+				4BBF99091C8FBA6F0075DAFB /* InputTextureBuilder.hpp */,
 				4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */,
 				4BBF990B1C8FBA6F0075DAFB /* CRTOpenGL.hpp */,
 				4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */,
@@ -2320,7 +2320,7 @@
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,
 				4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
-				4BBF99141C8FBA6F0075DAFB /* CRTInputBufferBuilder.cpp in Sources */,
+				4BBF99141C8FBA6F0075DAFB /* InputTextureBuilder.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
 				4BCF1FA81DADC5250039D2E7 /* CSOric.mm in Sources */,
 				4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */,
