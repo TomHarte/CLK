@@ -370,7 +370,9 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 {
 	first_cycle_after_sync *= _time_multiplier;
 	number_of_cycles *= _time_multiplier;
-	number_of_lines++;
+
+	first_line_after_sync -= 2;
+	number_of_lines += 4;
 
 	// determine prima facie x extent
 	unsigned int horizontal_period = _horizontal_flywheel->get_standard_period();
