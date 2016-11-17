@@ -203,10 +203,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 					// Construct the output run
 					uint8_t *next_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
-					output_x1() = output_run_.x1;
-					output_position_y() = output_run_.y;
-					output_tex_y() = output_y;
-					output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
+					if(next_run)
+					{
+						output_x1() = output_run_.x1;
+						output_position_y() = output_run_.y;
+						output_tex_y() = output_y;
+						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
+					}
 					openGL_output_builder_.array_builder.flush();
 
 					openGL_output_builder_.unlock_output();

@@ -130,7 +130,13 @@ uint8_t *ArrayBuilder::Buffer::reget_storage(size_t &size)
 
 void ArrayBuilder::Buffer::flush()
 {
-	if(submitted_data && !is_full && allocated_data > submitted_data)
+	if(allocated_data > submitted_data)
+	{
+		flushed_data = allocated_data;
+		return;
+	}
+
+	if(submitted_data)
 	{
 		memcpy(data.data(), &data[flushed_data], allocated_data - flushed_data);
 		allocated_data -= flushed_data;

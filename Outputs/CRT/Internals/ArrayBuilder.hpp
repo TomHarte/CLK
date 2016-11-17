@@ -11,7 +11,7 @@
 
 #include <vector>
 #include <mutex>
-#include <atomic>
+#include <memory>
 
 #include "OpenGL.hpp"
 
