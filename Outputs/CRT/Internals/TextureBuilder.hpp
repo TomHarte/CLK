@@ -28,7 +28,7 @@ class TextureBuilder {
 	public:
 		/// Constructs an instance of InputTextureBuilder that contains a texture of colour depth @c bytes_per_pixel;
 		/// this creates a new texture and binds it to the current active texture unit.
-		TextureBuilder(size_t bytes_per_pixel);
+		TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit);
 		virtual ~TextureBuilder();
 
 		/// Finds the first available space of at least @c required_length pixels in size. Calls must be paired off

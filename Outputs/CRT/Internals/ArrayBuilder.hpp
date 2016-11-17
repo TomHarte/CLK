@@ -34,7 +34,12 @@ class ArrayBuilder {
 
 		/// Attempts to add @c size bytes
 		uint8_t *get_input_storage(size_t size);
+		uint8_t *reget_input_storage(size_t &size);
+
 		uint8_t *get_output_storage(size_t size);
+		uint8_t *reget_output_storage(size_t &size);
+
+		bool is_full();
 		void flush();
 
 		void bind_input();
@@ -51,17 +56,24 @@ class ArrayBuilder {
 			~Buffer();
 
 			std::vector<uint8_t> data;
-			size_t allocated_data, completed_data, vended_pointer;
+			size_t allocated_data;
+			size_t flushed_data;
+			size_t submitted_data;
+			bool is_full;
 			GLuint buffer;
 
 			uint8_t *get_storage(size_t size);
+			uint8_t *reget_storage(size_t &size);
+
 			void flush();
 			size_t submit();
 			void bind();
 			void reset();
 		} output_, input_;
+		uint8_t *get_storage(size_t size, Buffer &buffer);
+
 		std::mutex buffer_mutex_;
-		bool is_exhausted_;
+		bool is_full_;
 };
 
 }

@@ -37,13 +37,15 @@ static const GLenum formatForDepth(size_t depth)
 	}
 }
 
-TextureBuilder::TextureBuilder(size_t bytes_per_pixel) :
+TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
 	bytes_per_pixel_(bytes_per_pixel),
 	next_write_x_position_(0),
 	next_write_y_position_(0)
 {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
+
+	glActiveTexture(texture_unit);
 	glBindTexture(GL_TEXTURE_2D, texture_name_);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

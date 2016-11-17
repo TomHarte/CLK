@@ -13,27 +13,6 @@
 #include "../../../SignalProcessing/FIRFilter.hpp"
 #include "Shaders/OutputShader.hpp"
 
-struct Range {
-	GLsizei location, length;
-};
-
-static GLsizei submitArrayData(GLuint buffer, uint8_t *source, size_t *length_pointer)
-{
-	GLsizei length = (GLsizei)*length_pointer;
-
-	// The development machine is a Mac; Apple seemingly having given up on OpenGL (?), GL_MAP_PERSISTENT_BIT is not
-	// available. Which possibly means I'm doing no better here than a traditional buffer submit, but there it is.
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	uint8_t *data = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-	memcpy(data, source, (size_t)length);
-	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-
-	*length_pointer = 0;
-
-	return length;
-}
-
 using namespace Outputs::CRT;
 
 namespace {
@@ -45,7 +24,7 @@ namespace {
 	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE5;
 }
 
-OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
+OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	_output_mutex(new std::mutex),
 	_draw_mutex(new std::mutex),
 	_visible_area(Rect(0, 0, 1, 1)),
@@ -54,11 +33,10 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	_rgb_shader(nullptr),
 	_last_output_width(0),
 	_last_output_height(0),
-	_fence(nullptr)
+	_fence(nullptr),
+	texture_builder(bytes_per_pixel, source_data_texture_unit),
+	array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize)
 {
-	_output_buffer.data.resize(OutputVertexBufferDataSize);
-	_source_buffer.data.resize(SourceVertexBufferDataSize);
-
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
 
@@ -68,31 +46,15 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(unsigned int buffer_depth) :
 	filteredYTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_y_texture_unit));
 	filteredTexture.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
 
-	// create the surce texture
-	glActiveTexture(source_data_texture_unit);
-	_texture_builder.reset(new TextureBuilder(buffer_depth));
-
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array);
 
-	// create a buffer for output vertex attributes
-	glGenBuffers(1, &output_array_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
-	glBufferData(GL_ARRAY_BUFFER, OutputVertexBufferDataSize, NULL, GL_STREAM_DRAW);
-
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array);
-
-	// create a buffer for source vertex attributes
-	glGenBuffers(1, &source_array_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
-	glBufferData(GL_ARRAY_BUFFER, SourceVertexBufferDataSize, NULL, GL_STREAM_DRAW);
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
-	glDeleteBuffers(1, &output_array_buffer);
-	glDeleteBuffers(1, &source_array_buffer);
 	glDeleteVertexArrays(1, &output_vertex_array);
 
 	free(_composite_shader);
@@ -152,14 +114,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	_output_mutex->lock();
 
 	// release the mapping, giving up on trying to draw if data has been lost
-	GLsizei submitted_output_data = submitArrayData(output_array_buffer, _output_buffer.data.data(), &_output_buffer.pointer);
-
-	// bind and flush the source array buffer
-	GLsizei submitted_source_data = submitArrayData(source_array_buffer, _source_buffer.data.data(), &_source_buffer.pointer);
+	ArrayBuilder::Submission array_submission = array_builder.submit();
 
 	// upload new source pixels, if any
 	glActiveTexture(source_data_texture_unit);
-	_texture_builder->submit();
+	texture_builder.submit();
 
 	// buffer usage restart from 0 for the next time around
 	_composite_src_output_y = 0;
@@ -192,7 +151,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	RenderStage *active_pipeline = (_output_device == Television || !rgb_input_shader_program) ? composite_render_stages : rgb_render_stages;
 
 	// for television, update intermediate buffers and then draw; for a monitor, just draw
-	if(submitted_source_data)
+	if(array_submission.input_size || array_submission.output_size)
 	{
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array);
@@ -206,7 +165,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			active_pipeline->shader->bind();
 
 			// draw as desired
-			glDrawArraysInstanced(GL_LINES, 0, 2, submitted_source_data / SourceVertexSize);
+			glDrawArraysInstanced(GL_LINES, 0, 2, (GLsizei)array_submission.input_size / SourceVertexSize);
 
 			active_pipeline++;
 		}
@@ -229,7 +188,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		output_shader_program->bind();
 
 		// draw
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, submitted_output_data / OutputVertexSize);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)array_submission.output_size / OutputVertexSize);
 	}
 
 	// copy framebuffer to the intended place
@@ -325,7 +284,7 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	if(composite_input_shader_program)
 	{
 		glBindVertexArray(source_vertex_array);
-		glBindBuffer(GL_ARRAY_BUFFER, source_array_buffer);
+		array_builder.bind_input();
 
 		composite_input_shader_program->enable_vertex_attribute_with_pointer("inputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfInputStart, 1);
 		composite_input_shader_program->enable_vertex_attribute_with_pointer("outputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfOutputStart, 1);
@@ -345,7 +304,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 	if(output_shader_program)
 	{
 		glBindVertexArray(output_vertex_array);
-		glBindBuffer(GL_ARRAY_BUFFER, output_array_buffer);
+		array_builder.bind_output();
 		output_shader_program->enable_vertex_attribute_with_pointer("horizontal", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfHorizontal, 1);
 		output_shader_program->enable_vertex_attribute_with_pointer("vertical", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfVertical, 1);
 	}

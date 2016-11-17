@@ -67,9 +67,7 @@ CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
 	is_writing_composite_run_(false),
 	delegate_(nullptr),
 	frames_since_last_delegate_call_(0),
-	openGL_output_builder_(buffer_depth),
-	array_builder_(SourceVertexBufferDataSize, OutputVertexBufferDataSize),
-	texture_builder_(buffer_depth) {}
+	openGL_output_builder_(buffer_depth) {}
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) :
 	CRT(common_output_divisor, buffer_depth)
@@ -133,7 +131,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		uint8_t *next_run = nullptr;
 		if(is_output_segment && !openGL_output_builder_.composite_output_buffer_is_full())
 		{
-			next_run = openGL_output_builder_.get_next_source_run();
+			next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
 		}
 
 		if(next_run)
@@ -169,8 +167,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 			source_input_position_x2() = tex_x;
 			source_output_position_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-
-			openGL_output_builder_.complete_source_run();
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
@@ -184,7 +180,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 		if(needs_endpoint)
 		{
 			if(
-				openGL_output_builder_.composite_output_run_has_room_for_vertex() &&
+				!openGL_output_builder_.array_builder.is_full() &&
 				!openGL_output_builder_.composite_output_buffer_is_full())
 			{
 				if(!is_writing_composite_run_)
@@ -199,19 +195,19 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 					// Get and write all those previously unwritten output ys
 					uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 					size_t size;
-					uint8_t *buffered_lines = openGL_output_builder_.get_buffered_source_runs(size);
+					uint8_t *buffered_lines = openGL_output_builder_.array_builder.reget_input_storage(size);
 					for(size_t position = 0; position < size; position += SourceVertexSize)
 					{
 						(*(uint16_t *)&buffered_lines[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
 					}
 
 					// Construct the output run
-					uint8_t *next_run = openGL_output_builder_.get_next_output_run();
+					uint8_t *next_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
 					output_x1() = output_run_.x1;
 					output_position_y() = output_run_.y;
 					output_tex_y() = output_y;
 					output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-					openGL_output_builder_.complete_output_run();
+					openGL_output_builder_.array_builder.flush();
 
 					openGL_output_builder_.unlock_output();
 				}
@@ -311,13 +307,13 @@ void CRT::output_blank(unsigned int number_of_cycles)
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	if(!openGL_output_builder_.input_buffer_is_full())
+	if(!openGL_output_builder_.array_builder.is_full())
 	{
 		Scan scan {
 			.type = Scan::Type::Level,
 			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.get_last_write_x_posititon(),
-			.tex_y = openGL_output_builder_.get_last_write_y_posititon()
+			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
+			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position()
 		};
 		output_scan(&scan);
 	}
@@ -344,14 +340,14 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	if(!openGL_output_builder_.input_buffer_is_full())
+	if(!openGL_output_builder_.array_builder.is_full())
 	{
-		openGL_output_builder_.reduce_previous_allocation_to(number_of_cycles / source_divider);
+		openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
 		Scan scan {
 			.type = Scan::Type::Data,
 			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.get_last_write_x_posititon(),
-			.tex_y = openGL_output_builder_.get_last_write_y_posititon(),
+			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
+			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position(),
 			.source_divider = source_divider
 		};
 		output_scan(&scan);

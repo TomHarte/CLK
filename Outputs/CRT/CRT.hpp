@@ -78,8 +78,6 @@ class CRT {
 
 		// OpenGL state
 		OpenGLOutputBuilder openGL_output_builder_;
-		ArrayBuilder array_builder_;
-		TextureBuilder texture_builder_;
 
 		// temporary storage used during the construction of output runs
 		struct {
@@ -194,7 +192,7 @@ class CRT {
 		*/
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			return openGL_output_builder_.allocate_write_area(required_length);
+			return openGL_output_builder_.texture_builder.allocate_write_area(required_length);
 		}
 
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.

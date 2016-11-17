@@ -14,6 +14,8 @@
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
+
+#include "ArrayBuilder.hpp"
 #include "TextureBuilder.hpp"
 
 #include "Shaders/OutputShader.hpp"
@@ -57,7 +59,6 @@ class OpenGLOutputBuilder {
 		void prepare_source_vertex_array();
 
 		// the run and input data buffers
-		std::unique_ptr<TextureBuilder> _texture_builder;
 		std::unique_ptr<std::mutex> _output_mutex;
 		std::unique_ptr<std::mutex> _draw_mutex;
 
@@ -75,8 +76,8 @@ class OpenGLOutputBuilder {
 
 		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
 
-		GLuint output_array_buffer, output_vertex_array;
-		GLuint source_array_buffer, source_vertex_array;
+		GLuint output_vertex_array;
+		GLuint source_vertex_array;
 
 		unsigned int _last_output_width, _last_output_height;
 
@@ -91,44 +92,11 @@ class OpenGLOutputBuilder {
 		void reset_all_OpenGL_state();
 
 	public:
-		OpenGLOutputBuilder(unsigned int buffer_depth);
+		TextureBuilder texture_builder;
+		ArrayBuilder array_builder;
+
+		OpenGLOutputBuilder(size_t bytes_per_pixel);
 		~OpenGLOutputBuilder();
-
-		inline uint8_t *get_next_source_run()
-		{
-			if(_line_buffer.data.size() < _line_buffer.pointer + SourceVertexSize)
-				_line_buffer.data.resize(_line_buffer.pointer + SourceVertexSize);
-			return &_line_buffer.data[_line_buffer.pointer];
-		}
-
-		inline void complete_source_run()
-		{
-			_line_buffer.pointer += SourceVertexSize;
-		}
-
-		inline uint8_t *get_buffered_source_runs(size_t &size)
-		{
-			size = _line_buffer.pointer;
-			return _line_buffer.data.data();
-		}
-
-		inline uint8_t *get_next_output_run()
-		{
-			if(_output_buffer.pointer == OutputVertexBufferDataSize) return nullptr;
-			return &_output_buffer.data[_output_buffer.pointer];
-		}
-
-		inline void complete_output_run()
-		{
-			size_t line_buffer_size = _line_buffer.data.size();
-			if(_source_buffer.pointer + line_buffer_size < SourceVertexBufferDataSize)
-			{
-				_output_buffer.pointer += OutputVertexSize;
-				memcpy(&_source_buffer.data[_source_buffer.pointer], _line_buffer.data.data(), _line_buffer.data.size());
-				_source_buffer.pointer += _line_buffer.data.size();
-				_line_buffer.pointer = 0;
-			}
-		}
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
@@ -143,11 +111,6 @@ class OpenGLOutputBuilder {
 		inline void set_visible_area(Rect visible_area)
 		{
 			_visible_area = visible_area;
-		}
-
-		inline bool composite_output_run_has_room_for_vertex()
-		{
-			return _output_buffer.pointer < OutputVertexBufferDataSize;
 		}
 
 		inline void lock_output()
@@ -181,43 +144,12 @@ class OpenGLOutputBuilder {
 				_composite_src_output_y++;
 		}
 
-		inline uint8_t *allocate_write_area(size_t required_length)
-		{
-			return _texture_builder->allocate_write_area(required_length);
-		}
-
-		inline void reduce_previous_allocation_to(size_t actual_length)
-		{
-			_texture_builder->reduce_previous_allocation_to(actual_length);
-		}
-
-		inline bool input_buffer_is_full()
-		{
-			return _texture_builder->is_full();
-		}
-
-		inline uint16_t get_last_write_x_posititon()
-		{
-			return _texture_builder->get_last_write_x_position();
-		}
-
-		inline uint16_t get_last_write_y_posititon()
-		{
-			return _texture_builder->get_last_write_y_position();
-		}
-
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
 		void set_composite_sampling_function(const char *shader);
 		void set_rgb_sampling_function(const char *shader);
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
-
-		struct Buffer {
-			std::vector<uint8_t> data;
-			size_t pointer;
-			Buffer() : pointer(0) {}
-		} _line_buffer, _source_buffer, _output_buffer;
 
 		GLsync _fence;
 };
