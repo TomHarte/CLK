@@ -11,8 +11,13 @@
 using namespace Outputs::CRT;
 
 ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size) :
-	output_(output_size),
-	input_(input_size)
+	output_(output_size, nullptr),
+	input_(input_size, nullptr)
+{}
+
+ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
+	output_(output_size, submission_function),
+	input_(input_size, submission_function)
 {}
 
 bool ArrayBuilder::is_full()
@@ -70,8 +75,8 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 	ArrayBuilder::Submission submission;
 
 	buffer_mutex_.lock();
-	submission.input_size = input_.submit();
-	submission.output_size = output_.submit();
+	submission.input_size = input_.submit(true);
+	submission.output_size = output_.submit(false);
 	if(is_full_)
 	{
 		is_full_ = false;
@@ -83,18 +88,22 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 	return submission;
 }
 
-ArrayBuilder::Buffer::Buffer(size_t size) :
-	allocated_data(0), flushed_data(0), submitted_data(0), is_full(false)
+ArrayBuilder::Buffer::Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
+	allocated_data(0), flushed_data(0), submitted_data(0), is_full(false), submission_function_(submission_function)
 {
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, NULL, GL_STREAM_DRAW);
+	if(!submission_function_)
+	{
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, NULL, GL_STREAM_DRAW);
+	}
 	data.resize(size);
 }
 
 ArrayBuilder::Buffer::~Buffer()
 {
-	glDeleteBuffers(1, &buffer);
+	if(!submission_function_)
+		glDeleteBuffers(1, &buffer);
 }
 
 uint8_t *ArrayBuilder::get_storage(size_t size, Buffer &buffer)
@@ -151,16 +160,19 @@ void ArrayBuilder::Buffer::flush()
 	}
 }
 
-size_t ArrayBuilder::Buffer::submit()
+size_t ArrayBuilder::Buffer::submit(bool is_input)
 {
 	size_t length = flushed_data;
-
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	uint8_t *destination = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-	memcpy(destination, data.data(), length);
-	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-
+	if(submission_function_)
+		submission_function_(is_input, data.data(), length);
+	else
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		uint8_t *destination = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		memcpy(destination, data.data(), length);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length);
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+	}
 	submitted_data = flushed_data;
 	return length;
 }

@@ -32,6 +32,11 @@ class ArrayBuilder {
 		/// @c input_size bytes of storage for the input buffer.
 		ArrayBuilder(size_t input_size, size_t output_size);
 
+		/// Creates an instance of ArrayBuilder with @c output_size bytes of storage for the output buffer and
+		/// @c input_size bytes of storage for the input buffer that, rather than using OpenGL, will submit data
+		/// to the @c submission_function. [Teleological: this is provided as a testing hook.]
+		ArrayBuilder(size_t input_size, size_t output_size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function);
+
 		/// Attempts to add @c size bytes
 		uint8_t *get_input_storage(size_t size);
 		uint8_t *reget_input_storage(size_t &size);
@@ -52,7 +57,7 @@ class ArrayBuilder {
 
 	private:
 		struct Buffer {
-			Buffer(size_t size);
+			Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function);
 			~Buffer();
 
 			std::vector<uint8_t> data;
@@ -66,14 +71,16 @@ class ArrayBuilder {
 			uint8_t *reget_storage(size_t &size);
 
 			void flush();
-			size_t submit();
+			size_t submit(bool is_input);
 			void bind();
 			void reset();
+			std::function<void(bool is_input, uint8_t *, size_t)> submission_function_;
 		} output_, input_;
 		uint8_t *get_storage(size_t size, Buffer &buffer);
 
 		std::mutex buffer_mutex_;
 		bool is_full_;
+		;
 };
 
 }
