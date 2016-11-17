@@ -11,32 +11,57 @@
 
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 #include "OpenGL.hpp"
 
 namespace Outputs {
 namespace CRT {
 
+/*!
+	Owns two array buffers, an 'input' and an 'output' and vends pointers to allow an owner to write provisional data into those
+	plus a flush function to lock provisional data into place. Also supplies a submit method to transfer all currently locked
+	data to the GPU and bind_input/output methods to bind the internal buffers.
+
+	It is safe for one thread to communicate via the get_*_storage and flush inputs asynchronously from another that is making
+	use of the bind and submit outputs.
+*/
 class ArrayBuilder {
 	public:
-		ArrayBuilder();
-		virtual ~ArrayBuilder();
+		/// Creates an instance of ArrayBuilder with @c output_size bytes of storage for the output buffer and
+		/// @c input_size bytes of storage for the input buffer.
+		ArrayBuilder(size_t input_size, size_t output_size);
 
+		/// Attempts to add @c size bytes
 		uint8_t *get_input_storage(size_t size);
 		uint8_t *get_output_storage(size_t size);
-		void flush_storage();
+		void flush();
 
 		void bind_input();
 		void bind_output();
-		void submit();
+
+		struct Submission {
+			size_t input_size, output_size;
+		};
+		Submission submit();
 
 	private:
-		struct {
+		struct Buffer {
+			Buffer(size_t size);
+			~Buffer();
+
 			std::vector<uint8_t> data;
-			size_t allocated_data, completed_data;
+			size_t allocated_data, completed_data, vended_pointer;
 			GLuint buffer;
+
+			uint8_t *get_storage(size_t size);
+			void flush();
+			size_t submit();
+			void bind();
+			void reset();
 		} output_, input_;
 		std::mutex buffer_mutex_;
+		bool is_exhausted_;
 };
 
 }
