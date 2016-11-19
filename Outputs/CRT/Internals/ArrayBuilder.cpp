@@ -148,6 +148,14 @@ void ArrayBuilder::Buffer::flush()
 	}
 
 	flushed_data = allocated_data;
+
+	if(was_reset)
+	{
+		allocated_data = 0;
+		flushed_data = 0;
+		submitted_data = 0;
+		was_reset = false;
+	}
 }
 
 size_t ArrayBuilder::Buffer::submit(bool is_input)
@@ -174,8 +182,6 @@ void ArrayBuilder::Buffer::bind()
 
 void ArrayBuilder::Buffer::reset()
 {
-	allocated_data = 0;
-	flushed_data = 0;
-	submitted_data = 0;
+	was_reset = true;
 	is_full = false;
 }

@@ -64,7 +64,7 @@ class ArrayBuilder {
 			size_t allocated_data;
 			size_t flushed_data;
 			size_t submitted_data;
-			bool is_full;
+			bool is_full, was_reset;
 			GLuint buffer;
 
 			uint8_t *get_storage(size_t size);
