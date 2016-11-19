@@ -56,25 +56,27 @@ class ArrayBuilder {
 		Submission submit();
 
 	private:
-		struct Buffer {
-			Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function);
-			~Buffer();
+		class Buffer {
+			public:
+				Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function);
+				~Buffer();
 
-			std::vector<uint8_t> data;
-			size_t allocated_data;
-			size_t flushed_data;
-			size_t submitted_data;
-			bool is_full, was_reset;
-			GLuint buffer;
+				uint8_t *get_storage(size_t size);
+				uint8_t *reget_storage(size_t &size);
 
-			uint8_t *get_storage(size_t size);
-			uint8_t *reget_storage(size_t &size);
+				void flush();
+				size_t submit(bool is_input);
+				void bind();
+				void reset();
 
-			void flush();
-			size_t submit(bool is_input);
-			void bind();
-			void reset();
-			std::function<void(bool is_input, uint8_t *, size_t)> submission_function_;
+			private:
+				bool is_full, was_reset;
+				GLuint buffer;
+				std::function<void(bool is_input, uint8_t *, size_t)> submission_function_;
+				std::vector<uint8_t> data;
+				size_t allocated_data;
+				size_t flushed_data;
+				size_t submitted_data;
 		} output_, input_;
 		uint8_t *get_storage(size_t size, Buffer &buffer);
 
