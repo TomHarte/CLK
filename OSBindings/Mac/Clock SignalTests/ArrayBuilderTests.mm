@@ -30,8 +30,8 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	XCTAssert(inputData != nil, @"Should have received some input data");
 	XCTAssert(outputData != nil, @"Should have received some output data");
 
-	XCTAssert(inputData.length == inputSize, @"Input data should be 5 bytes long, was %lu", (unsigned long)inputData.length);
-	XCTAssert(outputData.length == outputSize, @"Output data should be 3 bytes long, was %lu", (unsigned long)outputData.length);
+	XCTAssert(inputData.length == inputSize, @"Input data should be %lu bytes long, was %lu", inputSize, (unsigned long)inputData.length);
+	XCTAssert(outputData.length == outputSize, @"Output data should be %lu bytes long, was %lu", outputSize, (unsigned long)outputData.length);
 
 	uint8_t *input = (uint8_t *)inputData.bytes;
 	uint8_t *output = (uint8_t *)outputData.bytes;
@@ -100,6 +100,29 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 
 	XCTAssert(inputData.length == 25, @"All input data should have been received; %lu bytes were received", (unsigned long)inputData.length);
 	XCTAssert(outputData.length == 9, @"All output data should have been received; %lu bytes were received", (unsigned long)outputData.length);
+}
+
+- (void)testSubmitContinuity
+{
+	Outputs::CRT::ArrayBuilder arrayBuilder(200, 100, setData);
+
+	arrayBuilder.get_input_storage(5);
+	arrayBuilder.get_output_storage(5);
+
+	arrayBuilder.flush();
+
+	uint8_t *input = arrayBuilder.get_input_storage(5);
+	uint8_t *output = arrayBuilder.get_output_storage(5);
+
+	arrayBuilder.submit();
+
+	for(int c = 0; c < 5; c++) input[c] = c;
+	for(int c = 0; c < 5; c++) output[c] = c + 0x80;
+
+	arrayBuilder.flush();
+	arrayBuilder.submit();
+
+	[self assertMonotonicForInputSize:5 outputSize:5];
 }
 
 @end
