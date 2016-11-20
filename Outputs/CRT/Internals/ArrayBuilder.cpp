@@ -44,7 +44,7 @@ uint8_t *ArrayBuilder::get_output_storage(size_t size)
 	return get_storage(size, output_);
 }
 
-uint8_t *ArrayBuilder::get_unflushed_input(size_t &size)
+uint8_t *ArrayBuilder::get_unflushed_output(size_t &size)
 {
 	return output_.get_unflushed(size);
 }
