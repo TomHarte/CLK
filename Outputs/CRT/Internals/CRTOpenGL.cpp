@@ -161,6 +161,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			// switch to the initial texture
 			active_pipeline->target->bind_framebuffer();
+			glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 			active_pipeline->shader->bind();
 
@@ -173,12 +174,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// transfer to framebuffer
 		framebuffer->bind_framebuffer();
 
+		// draw from from the output array buffer with blending
+		glBindVertexArray(output_vertex_array);
 		glEnable(GL_BLEND);
 
-		// Ensure we're back on the output framebuffer, drawing from the output array buffer
-		glBindVertexArray(output_vertex_array);
-
-		// update uniforms (implicitly binding the shader)
+		// update uniforms, then bind the thing
 		if(_last_output_width != output_width || _last_output_height != output_height)
 		{
 			output_shader_program->set_output_size(output_width, output_height, _visible_area);
