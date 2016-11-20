@@ -195,7 +195,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 					// Get and write all those previously unwritten output ys
 					uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 					size_t size;
-					uint8_t *buffered_lines = openGL_output_builder_.array_builder.reget_input_storage(size);
+					uint8_t *buffered_lines = openGL_output_builder_.array_builder.get_unflushed_input(size);
 					for(size_t position = 0; position < size; position += SourceVertexSize)
 					{
 						(*(uint16_t *)&buffered_lines[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
