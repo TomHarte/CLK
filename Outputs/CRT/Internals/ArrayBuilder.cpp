@@ -34,9 +34,9 @@ uint8_t *ArrayBuilder::get_input_storage(size_t size)
 	return get_storage(size, input_);
 }
 
-uint8_t *ArrayBuilder::reget_input_storage(size_t &size)
+uint8_t *ArrayBuilder::get_unflushed_input(size_t &size)
 {
-	return input_.reget_storage(size);
+	return input_.get_unflushed(size);
 }
 
 uint8_t *ArrayBuilder::get_output_storage(size_t size)
@@ -44,9 +44,9 @@ uint8_t *ArrayBuilder::get_output_storage(size_t size)
 	return get_storage(size, output_);
 }
 
-uint8_t *ArrayBuilder::reget_output_storage(size_t &size)
+uint8_t *ArrayBuilder::get_unflushed_input(size_t &size)
 {
-	return output_.reget_storage(size);
+	return output_.get_unflushed(size);
 }
 
 void ArrayBuilder::flush()
@@ -127,7 +127,7 @@ uint8_t *ArrayBuilder::Buffer::get_storage(size_t size)
 	return pointer;
 }
 
-uint8_t *ArrayBuilder::Buffer::reget_storage(size_t &size)
+uint8_t *ArrayBuilder::Buffer::get_unflushed(size_t &size)
 {
 	if(is_full)
 	{

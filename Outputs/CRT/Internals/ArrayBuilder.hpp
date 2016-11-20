@@ -37,22 +37,43 @@ class ArrayBuilder {
 		/// to the @c submission_function. [Teleological: this is provided as a testing hook.]
 		ArrayBuilder(size_t input_size, size_t output_size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function);
 
-		/// Attempts to add @c size bytes
+		/// Attempts to add @c size bytes to the input set.
+		/// @returns a pointer to the allocated area if allocation was possible; @c nullptr otherwise.
 		uint8_t *get_input_storage(size_t size);
-		uint8_t *reget_input_storage(size_t &size);
 
+		/// Gets the size of and a pointer to all data so far added to the input set but not yet flushed.
+		/// @returns a pointer from which it is safe to access @c size elements, which contains all regions returned via
+		/// @c get_input_storage in FIFO order.
+		uint8_t *get_unflushed_input(size_t &size);
+
+		/// Attempts to add @c size bytes to the output set.
+		/// @returns a pointer to the allocated area if allocation was possible; @c nullptr otherwise.
 		uint8_t *get_output_storage(size_t size);
-		uint8_t *reget_output_storage(size_t &size);
 
+		/// Gets the size of and a pointer to all data so far added to the output set but not yet flushed.
+		/// @returns a pointer from which it is safe to access @c size elements, which contains all regions returned via
+		/// @c get_input_storage in FIFO order.
+		uint8_t *get_unflushed_output(size_t &size);
+
+		/// @returns @c true if either of the input or output storage areas is currently exhausted; @c false otherwise.
 		bool is_full();
+
+		/// If neither input nor output was exhausted since the last flush, atomically commits both input and output
+		/// up to the currently allocated size for use upon the next @c submit. Otherwise acts as a no-op.
 		void flush();
 
+		/// Binds the input array to GL_ARRAY_BUFFER.
 		void bind_input();
+
+		/// Binds the output array to GL_ARRAY_BUFFER.
 		void bind_output();
 
 		struct Submission {
 			size_t input_size, output_size;
 		};
+
+		/// Submits all flushed input and output data to the corresponding arrays.
+		/// @returns A @c Submission record, indicating how much data of each type was submitted.
 		Submission submit();
 
 	private:
@@ -62,7 +83,7 @@ class ArrayBuilder {
 				~Buffer();
 
 				uint8_t *get_storage(size_t size);
-				uint8_t *reget_storage(size_t &size);
+				uint8_t *get_unflushed(size_t &size);
 
 				void flush();
 				size_t submit(bool is_input);
@@ -82,7 +103,6 @@ class ArrayBuilder {
 
 		std::mutex buffer_mutex_;
 		bool is_full_;
-		;
 };
 
 }
