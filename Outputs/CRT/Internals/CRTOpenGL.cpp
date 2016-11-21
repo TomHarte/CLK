@@ -161,8 +161,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{
 			// switch to the initial texture
 			active_pipeline->target->bind_framebuffer();
-			glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
+			if(!active_pipeline[1].target)
+			{
+				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
+			}
 			active_pipeline->shader->bind();
 
 			// draw as desired
