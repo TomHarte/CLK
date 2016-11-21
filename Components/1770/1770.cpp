@@ -19,7 +19,10 @@ WD1770::WD1770() :
 	delay_time_(0),
 	index_hole_count_target_(-1),
 	is_awaiting_marker_value_(false),
-	is_reading_data_(false)
+	is_reading_data_(false),
+	interrupt_request_line_(false),
+	data_request_line_(false),
+	delegate_(nullptr)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);
@@ -55,10 +58,10 @@ uint8_t WD1770::get_register(int address)
 {
 	switch(address&3)
 	{
-		default:	return status_;
+		default:	return status_ | (data_request_line_ ? Flag::DataRequest : 0);
 		case 1:		return track_;
 		case 2:		return sector_;
-		case 3:		status_ &= ~Flag::DataRequest; return data_;
+		case 3:		set_data_request(false); return data_;
 	}
 }
 
@@ -220,7 +223,7 @@ void WD1770::process_index_hole()
 			if(!distance_into_section_ && latest_token_.type == Token::ID) {is_reading_data_ = true; distance_into_section_++; }	\
 			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)	\
 			{	\
-				header[distance_into_section_ - 1] = latest_token_.byte_value;	\
+				header_[distance_into_section_ - 1] = latest_token_.byte_value;	\
 				distance_into_section_++;	\
 			}	\
 		}
@@ -262,8 +265,9 @@ void WD1770::posit_event(Event new_event_type)
 	*/
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
-		status_ &= ~(Flag::DataRequest | Flag::DataRequest | Flag::SeekError);
+		status_ &= ~Flag::SeekError;
 		set_interrupt_request(false);
+		set_data_request(false);
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type1_type;
 
 		// Perform spin up.
@@ -338,7 +342,7 @@ void WD1770::posit_event(Event new_event_type)
 		{
 			is_reading_data_ = false;
 			// TODO: CRC check
-			if(header[0] == track_)
+			if(header_[0] == track_)
 			{
 				printf("Reached track %d\n", track_);
 				status_ &= ~Flag::CRCError;
@@ -355,8 +359,9 @@ void WD1770::posit_event(Event new_event_type)
 		Type 2 entry point.
 	*/
 	begin_type_2:
-		status_ &= ~(Flag::DataRequest | Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
+		status_ &= ~(Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
 		set_interrupt_request(false);
+		set_data_request(false);
 		distance_into_section_ = 0;
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
 
@@ -389,7 +394,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 7)
 		{
 			is_reading_data_ = false;
-			if(header[0] == track_ && header[2] == sector_)
+			if(header_[0] == track_ && header_[2] == sector_)
 			{
 				// TODO: test CRC
 				goto type2_read_or_write_data;
@@ -418,11 +423,11 @@ void WD1770::posit_event(Event new_event_type)
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		if(status_ & Flag::DataRequest) status_ |= Flag::LostData;
+		if(data_request_line_) status_ |= Flag::LostData;
 		data_ = latest_token_.byte_value;
-		status_ |= Flag::DataRequest;
+		set_data_request(true);
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header[3])
+		if(distance_into_section_ == 128 << header_[3])
 		{
 			distance_into_section_ = 0;
 			goto type2_check_crc;
@@ -432,7 +437,7 @@ void WD1770::posit_event(Event new_event_type)
 	type2_check_crc:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		header[distance_into_section_] = latest_token_.byte_value;
+		header_[distance_into_section_] = latest_token_.byte_value;
 		distance_into_section_++;
 		if(distance_into_section_ == 2)
 		{
@@ -457,4 +462,22 @@ void WD1770::posit_event(Event new_event_type)
 
 
 	END_SECTION()
+}
+
+void WD1770::set_interrupt_request(bool interrupt_request)
+{
+	if(interrupt_request_line_ != interrupt_request)
+	{
+		interrupt_request_line_ = interrupt_request;
+		if(delegate_) delegate_->wd1770_did_change_interrupt_request_status(this);
+	}
+}
+
+void WD1770::set_data_request(bool data_request)
+{
+	if(data_request_line_ != data_request)
+	{
+		data_request_line_ = data_request;
+		if(delegate_) delegate_->wd1770_did_change_data_request_status(this);
+	}
 }
