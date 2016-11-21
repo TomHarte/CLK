@@ -112,6 +112,13 @@ void StaticAnalyser::Oric::AddTargets(
 		}
 	}
 
+	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
+	if(!disks.empty())
+	{
+		target.oric.has_microdisc = true;
+		target.disks = disks;
+	}
+
 	// TODO: really this should add two targets if not all votes agree
 	target.oric.use_atmos_rom = basic11_votes >= basic10_votes;
 

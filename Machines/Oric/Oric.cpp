@@ -60,7 +60,12 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 {
-	if(rom == BASIC11) _basic11 = std::move(data); else _basic10 = std::move(data);
+	switch(rom)
+	{
+		case BASIC11:	_basic11 = std::move(data);		break;
+		case BASIC10:	_basic10 = std::move(data);		break;
+		case Microdisc:	_microdisc = std::move(data);	break;
+	}
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
