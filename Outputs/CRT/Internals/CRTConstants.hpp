@@ -37,7 +37,7 @@ const GLsizei InputBufferBuilderHeight = 512;
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
 const GLsizei IntermediateBufferWidth = 2048;
-const GLsizei IntermediateBufferHeight = 1024;
+const GLsizei IntermediateBufferHeight = 512;
 
 // Some internal buffer sizes
 const GLsizeiptr OutputVertexBufferDataSize = OutputVertexSize * IntermediateBufferHeight;		// i.e. the maximum number of scans of output that can be created between draws
