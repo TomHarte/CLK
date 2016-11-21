@@ -202,14 +202,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	glDisable(GL_BLEND);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
-	glClear(GL_COLOR_BUFFER_BIT);
 
 	glActiveTexture(pixel_accumulation_texture_unit);
 	framebuffer->bind_texture();
 	framebuffer->draw((float)output_width / (float)output_height);
-//	glViewport(0, 0, (GLsizei)output_width / 4, (GLsizei)output_height / 4);
-//	compositeTexture->bind_texture();
-//	compositeTexture->draw((float)output_width / (float)output_height);
 
 	_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	_draw_mutex->unlock();
