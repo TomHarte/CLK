@@ -38,6 +38,15 @@ class WD1770: public Storage::Disk::Controller {
 			Busy			= 0x01
 		};
 
+		inline bool get_interrupt_request_line()		{	return interrupt_request_line_;	}
+		inline bool get_data_request_line()				{	return data_request_line_;		}
+		class Delegate {
+			public:
+				virtual void wd1770_did_change_interrupt_request_status(WD1770 *wd1770) = 0;
+				virtual void wd1770_did_change_data_request_status(WD1770 *wd1770) = 0;
+		};
+		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
+
 	private:
 		uint8_t status_;
 		uint8_t track_;
@@ -52,7 +61,8 @@ class WD1770: public Storage::Disk::Controller {
 		bool is_awaiting_marker_value_;
 
 		int step_direction_;
-		void set_interrupt_request(bool interrupt_request) {}
+		void set_interrupt_request(bool interrupt_request);
+		void set_data_request(bool interrupt_request);
 
 		// Tokeniser
 		bool is_reading_data_;
@@ -80,9 +90,14 @@ class WD1770: public Storage::Disk::Controller {
 		int delay_time_;
 
 		// ID buffer
-		uint8_t header[6];
+		uint8_t header_[6];
 
-		//
+		// output line statuses
+		bool interrupt_request_line_;
+		bool data_request_line_;
+		Delegate *delegate_;
+
+		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
 };
