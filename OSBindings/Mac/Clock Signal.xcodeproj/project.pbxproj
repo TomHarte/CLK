@@ -53,6 +53,8 @@
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B5A12571DD55862007A2231 /* Disassembler6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5A12551DD55862007A2231 /* Disassembler6502.cpp */; };
+		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
+		4B5FADBD1DE31D1500AEC565 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBB1DE31D1500AEC565 /* OricMFMDSK.cpp */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
@@ -499,6 +501,10 @@
 		4B59199B1DAC6C46005BB85C /* OricTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricTAP.hpp; sourceTree = "<group>"; };
 		4B5A12551DD55862007A2231 /* Disassembler6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disassembler6502.cpp; path = ../../StaticAnalyser/Disassembler/Disassembler6502.cpp; sourceTree = "<group>"; };
 		4B5A12561DD55862007A2231 /* Disassembler6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disassembler6502.hpp; path = ../../StaticAnalyser/Disassembler/Disassembler6502.hpp; sourceTree = "<group>"; };
+		4B5FADB81DE3151600AEC565 /* FileHolder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FileHolder.cpp; sourceTree = "<group>"; };
+		4B5FADB91DE3151600AEC565 /* FileHolder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FileHolder.hpp; sourceTree = "<group>"; };
+		4B5FADBB1DE31D1500AEC565 /* OricMFMDSK.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricMFMDSK.cpp; sourceTree = "<group>"; };
+		4B5FADBC1DE31D1500AEC565 /* OricMFMDSK.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricMFMDSK.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
 		4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSStaticAnalyser.mm; path = StaticAnalyser/CSStaticAnalyser.mm; sourceTree = "<group>"; };
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
@@ -1190,6 +1196,8 @@
 				4B8805F81DCFF6CD003085B1 /* Data */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
+				4B5FADB81DE3151600AEC565 /* FileHolder.cpp */,
+				4B5FADB91DE3151600AEC565 /* FileHolder.hpp */,
 			);
 			name = Storage;
 			path = ../../Storage;
@@ -1275,14 +1283,16 @@
 		4BAB62B21D327F7E00DF5BA0 /* Formats */ = {
 			isa = PBXGroup;
 			children = (
-				4BAB62B31D327F7E00DF5BA0 /* G64.cpp */,
-				4BAB62B41D327F7E00DF5BA0 /* G64.hpp */,
-				4B4C836E1D4F623200CD541F /* D64.cpp */,
-				4B4C836F1D4F623200CD541F /* D64.hpp */,
-				4BF829611D8F536B001BAE39 /* SSD.cpp */,
-				4BF829621D8F536B001BAE39 /* SSD.hpp */,
 				4BD69F921D98760000243FE1 /* AcornADF.cpp */,
 				4BD69F931D98760000243FE1 /* AcornADF.hpp */,
+				4B4C836E1D4F623200CD541F /* D64.cpp */,
+				4B4C836F1D4F623200CD541F /* D64.hpp */,
+				4BAB62B31D327F7E00DF5BA0 /* G64.cpp */,
+				4BAB62B41D327F7E00DF5BA0 /* G64.hpp */,
+				4B5FADBB1DE31D1500AEC565 /* OricMFMDSK.cpp */,
+				4B5FADBC1DE31D1500AEC565 /* OricMFMDSK.hpp */,
+				4BF829611D8F536B001BAE39 /* SSD.cpp */,
+				4BF829621D8F536B001BAE39 /* SSD.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2328,11 +2338,13 @@
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
 				4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */,
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,
+				4B5FADBD1DE31D1500AEC565 /* OricMFMDSK.cpp in Sources */,
 				4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */,
 				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
 				4BCF1FA81DADC5250039D2E7 /* CSOric.mm in Sources */,
+				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
 				4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B4DC8281D2C2470003C5BF8 /* C1540.cpp in Sources */,

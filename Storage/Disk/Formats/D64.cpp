@@ -15,42 +15,30 @@
 
 using namespace Storage::Disk;
 
-D64::D64(const char *file_name)
+D64::D64(const char *file_name) :
+	Storage::FileHolder(file_name)
 {
-	struct stat file_stats;
-	stat(file_name, &file_stats);
-
 	// in D64, this is it for validation without imposing potential false-negative tests — check that
 	// the file size appears to be correct. Stone-age stuff.
-	if(file_stats.st_size != 174848 && file_stats.st_size != 196608)
+	if(file_stats_.st_size != 174848 && file_stats_.st_size != 196608)
 		throw ErrorNotD64;
 
-	_number_of_tracks = (file_stats.st_size == 174848) ? 35 : 40;
-
-	_file = fopen(file_name, "rb");
-
-	if(!_file)
-		throw ErrorNotD64;
+	number_of_tracks_ = (file_stats_.st_size == 174848) ? 35 : 40;
 
 	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
 	// being the most stable thing available
-	_disk_id = 0;
+	disk_id_ = 0;
 	while(*file_name)
 	{
-		_disk_id ^= file_name[0];
-		_disk_id = (uint16_t)((_disk_id << 2) ^ (_disk_id >> 13));
+		disk_id_ ^= file_name[0];
+		disk_id_ = (uint16_t)((disk_id_ << 2) ^ (disk_id_ >> 13));
 		file_name++;
 	}
 }
 
-D64::~D64()
-{
-	if(_file) fclose(_file);
-}
-
 unsigned int D64::get_head_position_count()
 {
-	return _number_of_tracks*2;
+	return number_of_tracks_*2;
 }
 
 std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned int position)
@@ -75,7 +63,7 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned in
 	}
 
 	// seek to start of data
-	fseek(_file, offset_to_track * 256, SEEK_SET);
+	fseek(file_, offset_to_track * 256, SEEK_SET);
 
 	// build up a PCM sampling of the GCR version of this track
 
@@ -114,14 +102,14 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned in
 
 		uint8_t sector_number = (uint8_t)(sector);				// sectors count from 0
 		uint8_t track_number = (uint8_t)((position >> 1) + 1);	// tracks count from 1
-		uint8_t checksum = (uint8_t)(sector_number ^ track_number ^ _disk_id ^ (_disk_id >> 8));
+		uint8_t checksum = (uint8_t)(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
 		uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[3], header_start);
 
 		uint8_t header_end[4] = {
-			(uint8_t)(_disk_id & 0xff), (uint8_t)(_disk_id >> 8), 0, 0
+			(uint8_t)(disk_id_ & 0xff), (uint8_t)(disk_id_ >> 8), 0, 0
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
 
@@ -134,7 +122,7 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned in
 
 		// get the actual contents
 		uint8_t source_data[256];
-		fread(source_data, 1, 256, _file);
+		fread(source_data, 1, 256, file_);
 
 		// compute the latest checksum
 		checksum = 0;

@@ -41,13 +41,13 @@ class UEF : public Tape {
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 
-		gzFile _file;
-		unsigned int _time_base;
-		bool _is_at_end;
-		bool _is_300_baud;
+		gzFile file_;
+		unsigned int time_base_;
+		bool is_at_end_;
+		bool is_300_baud_;
 
-		std::vector<Pulse> _queued_pulses;
-		size_t _pulse_pointer;
+		std::vector<Pulse> queued_pulses_;
+		size_t pulse_pointer_;
 
 		void parse_next_tape_chunk();
 

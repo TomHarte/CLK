@@ -74,22 +74,22 @@ static int gzget32(gzFile file)
 using namespace Storage::Tape;
 
 UEF::UEF(const char *file_name) :
-	_time_base(1200),
-	_is_at_end(false),
-	_pulse_pointer(0),
-	_is_300_baud(false)
+	time_base_(1200),
+	is_at_end_(false),
+	pulse_pointer_(0),
+	is_300_baud_(false)
 {
-	_file = gzopen(file_name, "rb");
+	file_ = gzopen(file_name, "rb");
 
 	char identifier[10];
-	int bytes_read = gzread(_file, identifier, 10);
+	int bytes_read = gzread(file_, identifier, 10);
 	if(bytes_read < 10 || strcmp(identifier, "UEF File!"))
 	{
 		throw ErrorNotUEF;
 	}
 
 	uint8_t version[2];
-	gzread(_file, version, 2);
+	gzread(file_, version, 2);
 
 	if(version[1] > 0 || version[0] > 10)
 	{
@@ -101,41 +101,41 @@ UEF::UEF(const char *file_name) :
 
 UEF::~UEF()
 {
-	gzclose(_file);
+	gzclose(file_);
 }
 
 #pragma mark - Public methods
 
 void UEF::virtual_reset()
 {
-	gzseek(_file, 12, SEEK_SET);
-	_is_at_end = false;
+	gzseek(file_, 12, SEEK_SET);
+	is_at_end_ = false;
 	parse_next_tape_chunk();
 }
 
 bool UEF::is_at_end()
 {
-	return _is_at_end;
+	return is_at_end_;
 }
 
 Storage::Tape::Tape::Pulse UEF::virtual_get_next_pulse()
 {
 	Pulse next_pulse;
 
-	if(_is_at_end)
+	if(is_at_end_)
 	{
 		next_pulse.type = Pulse::Zero;
-		next_pulse.length.length = _time_base * 4;
-		next_pulse.length.clock_rate = _time_base * 4;
+		next_pulse.length.length = time_base_ * 4;
+		next_pulse.length.clock_rate = time_base_ * 4;
 		return next_pulse;
 	}
 
-	next_pulse = _queued_pulses[_pulse_pointer];
-	_pulse_pointer++;
-	if(_pulse_pointer == _queued_pulses.size())
+	next_pulse = queued_pulses_[pulse_pointer_];
+	pulse_pointer_++;
+	if(pulse_pointer_ == queued_pulses_.size())
 	{
-		_queued_pulses.clear();
-		_pulse_pointer = 0;
+		queued_pulses_.clear();
+		pulse_pointer_ = 0;
 		parse_next_tape_chunk();
 	}
 	return next_pulse;
@@ -145,18 +145,18 @@ Storage::Tape::Tape::Pulse UEF::virtual_get_next_pulse()
 
 void UEF::parse_next_tape_chunk()
 {
-	while(!_queued_pulses.size())
+	while(queued_pulses_.empty())
 	{
 		// read chunk details
-		uint16_t chunk_id = (uint16_t)gzget16(_file);
-		uint32_t chunk_length = (uint32_t)gzget32(_file);
+		uint16_t chunk_id = (uint16_t)gzget16(file_);
+		uint32_t chunk_length = (uint32_t)gzget32(file_);
 
 		// figure out where the next chunk will start
-		z_off_t start_of_next_chunk = gztell(_file) + chunk_length;
+		z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
 
-		if(gzeof(_file))
+		if(gzeof(file_))
 		{
-			_is_at_end = true;
+			is_at_end_ = true;
 			return;
 		}
 
@@ -176,15 +176,15 @@ void UEF::parse_next_tape_chunk()
 			case 0x0113: // change of base rate
 			{
 				// TODO: something smarter than just converting this to an int
-				float new_time_base = gzgetfloat(_file);
-				_time_base = (unsigned int)roundf(new_time_base);
+				float new_time_base = gzgetfloat(file_);
+				time_base_ = (unsigned int)roundf(new_time_base);
 			}
 			break;
 
 			case 0x0117:
 			{
-				int baud_rate = gzget16(_file);
-				_is_300_baud = (baud_rate == 300);
+				int baud_rate = gzget16(file_);
+				is_300_baud_ = (baud_rate == 300);
 			}
 			break;
 
@@ -193,7 +193,7 @@ void UEF::parse_next_tape_chunk()
 			break;
 		}
 
-		gzseek(_file, start_of_next_chunk, SEEK_SET);
+		gzseek(file_, start_of_next_chunk, SEEK_SET);
 	}
 }
 
@@ -203,17 +203,17 @@ void UEF::queue_implicit_bit_pattern(uint32_t length)
 {
 	while(length--)
 	{
-		queue_implicit_byte(gzget8(_file));
+		queue_implicit_byte(gzget8(file_));
 	}
 }
 
 void UEF::queue_explicit_bit_pattern(uint32_t length)
 {
-	size_t length_in_bits = (length << 3) - (size_t)gzget8(_file);
+	size_t length_in_bits = (length << 3) - (size_t)gzget8(file_);
 	uint8_t current_byte = 0;
 	for(size_t bit = 0; bit < length_in_bits; bit++)
 	{
-		if(!(bit&7)) current_byte = gzget8(_file);
+		if(!(bit&7)) current_byte = gzget8(file_);
 		queue_bit(current_byte&1);
 		current_byte >>= 1;
 	}
@@ -222,30 +222,30 @@ void UEF::queue_explicit_bit_pattern(uint32_t length)
 void UEF::queue_integer_gap()
 {
 	Time duration;
-	duration.length = (unsigned int)gzget16(_file);
-	duration.clock_rate = _time_base;
-	_queued_pulses.emplace_back(Pulse::Zero, duration);
+	duration.length = (unsigned int)gzget16(file_);
+	duration.clock_rate = time_base_;
+	queued_pulses_.emplace_back(Pulse::Zero, duration);
 }
 
 void UEF::queue_floating_point_gap()
 {
-	float length = gzgetfloat(_file);
+	float length = gzgetfloat(file_);
 	Time duration;
 	duration.length = (unsigned int)(length * 4000000);
 	duration.clock_rate = 4000000;
-	_queued_pulses.emplace_back(Pulse::Zero, duration);
+	queued_pulses_.emplace_back(Pulse::Zero, duration);
 }
 
 void UEF::queue_carrier_tone()
 {
-	unsigned int number_of_cycles = (unsigned int)gzget16(_file);
+	unsigned int number_of_cycles = (unsigned int)gzget16(file_);
 	while(number_of_cycles--) queue_bit(1);
 }
 
 void UEF::queue_carrier_tone_with_dummy()
 {
-	unsigned int pre_cycles = (unsigned int)gzget16(_file);
-	unsigned int post_cycles = (unsigned int)gzget16(_file);
+	unsigned int pre_cycles = (unsigned int)gzget16(file_);
+	unsigned int post_cycles = (unsigned int)gzget16(file_);
 	while(pre_cycles--) queue_bit(1);
 	queue_implicit_byte(0xaa);
 	while(post_cycles--) queue_bit(1);
@@ -253,33 +253,33 @@ void UEF::queue_carrier_tone_with_dummy()
 
 void UEF::queue_security_cycles()
 {
-	int number_of_cycles = gzget24(_file);
-	bool first_is_pulse = gzget8(_file) == 'P';
-	bool last_is_pulse = gzget8(_file) == 'P';
+	int number_of_cycles = gzget24(file_);
+	bool first_is_pulse = gzget8(file_) == 'P';
+	bool last_is_pulse = gzget8(file_) == 'P';
 
 	uint8_t current_byte = 0;
 	for(int cycle = 0; cycle < number_of_cycles; cycle++)
 	{
-		if(!(cycle&7)) current_byte = gzget8(_file);
+		if(!(cycle&7)) current_byte = gzget8(file_);
 		int bit = (current_byte >> 7);
 		current_byte <<= 1;
 
 		Time duration;
 		duration.length = bit ? 1 : 2;
-		duration.clock_rate = _time_base * 4;
+		duration.clock_rate = time_base_ * 4;
 
 		if(!cycle && first_is_pulse)
 		{
-			_queued_pulses.emplace_back(Pulse::High, duration);
+			queued_pulses_.emplace_back(Pulse::High, duration);
 		}
 		else if(cycle == number_of_cycles-1 && last_is_pulse)
 		{
-			_queued_pulses.emplace_back(Pulse::Low, duration);
+			queued_pulses_.emplace_back(Pulse::Low, duration);
 		}
 		else
 		{
-			_queued_pulses.emplace_back(Pulse::Low, duration);
-			_queued_pulses.emplace_back(Pulse::High, duration);
+			queued_pulses_.emplace_back(Pulse::Low, duration);
+			queued_pulses_.emplace_back(Pulse::High, duration);
 		}
 	}
 }
@@ -288,9 +288,9 @@ void UEF::queue_defined_data(uint32_t length)
 {
 	if(length < 3) return;
 
-	int bits_per_packet = gzget8(_file);
-	char parity_type = (char)gzget8(_file);
-	int number_of_stop_bits = gzget8(_file);
+	int bits_per_packet = gzget8(file_);
+	char parity_type = (char)gzget8(file_);
+	int number_of_stop_bits = gzget8(file_);
 
 	bool has_extra_stop_wave = (number_of_stop_bits < 0);
 	number_of_stop_bits = abs(number_of_stop_bits);
@@ -298,7 +298,7 @@ void UEF::queue_defined_data(uint32_t length)
 	length -= 3;
 	while(length--)
 	{
-		uint8_t byte = gzget8(_file);
+		uint8_t byte = gzget8(file_);
 
 		uint8_t parity_value = byte;
 		parity_value ^= (parity_value >> 4);
@@ -326,9 +326,9 @@ void UEF::queue_defined_data(uint32_t length)
 		{
 			Time duration;
 			duration.length = 1;
-			duration.clock_rate = _time_base * 4;
-			_queued_pulses.emplace_back(Pulse::Low, duration);
-			_queued_pulses.emplace_back(Pulse::High, duration);
+			duration.clock_rate = time_base_ * 4;
+			queued_pulses_.emplace_back(Pulse::Low, duration);
+			queued_pulses_.emplace_back(Pulse::High, duration);
 		}
 	}
 }
@@ -351,7 +351,7 @@ void UEF::queue_bit(int bit)
 {
 	int number_of_cycles;
 	Time duration;
-	duration.clock_rate = _time_base * 4;
+	duration.clock_rate = time_base_ * 4;
 
 	if(bit)
 	{
@@ -366,11 +366,11 @@ void UEF::queue_bit(int bit)
 		number_of_cycles = 1;
 	}
 
-	if(_is_300_baud) number_of_cycles *= 4;
+	if(is_300_baud_) number_of_cycles *= 4;
 
 	while(number_of_cycles--)
 	{
-		_queued_pulses.emplace_back(Pulse::Low, duration);
-		_queued_pulses.emplace_back(Pulse::High, duration);
+		queued_pulses_.emplace_back(Pulse::Low, duration);
+		queued_pulses_.emplace_back(Pulse::High, duration);
 	}
 }
