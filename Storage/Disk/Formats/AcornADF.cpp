@@ -18,33 +18,23 @@ namespace {
 
 using namespace Storage::Disk;
 
-AcornADF::AcornADF(const char *file_name) : _file(nullptr)
+AcornADF::AcornADF(const char *file_name) :
+	Storage::FileHolder(file_name)
 {
-	struct stat file_stats;
-	stat(file_name, &file_stats);
-
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
-	if(file_stats.st_size % bytes_per_sector) throw ErrorNotAcornADF;
-	if(file_stats.st_size < 7 * bytes_per_sector) throw ErrorNotAcornADF;
-
-	_file = fopen(file_name, "rb");
-	if(!_file) throw ErrorCantOpen;
+	if(file_stats_.st_size % bytes_per_sector) throw ErrorNotAcornADF;
+	if(file_stats_.st_size < 7 * bytes_per_sector) throw ErrorNotAcornADF;
 
 	// check that the initial directory's 'Hugo's are present
-	fseek(_file, 513, SEEK_SET);
+	fseek(file_, 513, SEEK_SET);
 	uint8_t bytes[4];
-	fread(bytes, 1, 4, _file);
+	fread(bytes, 1, 4, file_);
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 
-	fseek(_file, 0x6fb, SEEK_SET);
-	fread(bytes, 1, 4, _file);
+	fseek(file_, 0x6fb, SEEK_SET);
+	fread(bytes, 1, 4, file_);
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
-}
-
-AcornADF::~AcornADF()
-{
-	if(_file) fclose(_file);
 }
 
 unsigned int AcornADF::get_head_position_count()
@@ -63,7 +53,7 @@ std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsign
 
 	if(head >= 2) return track;
 	long file_offset = (position * 1 + head) * bytes_per_sector * sectors_per_track;
-	fseek(_file, file_offset, SEEK_SET);
+	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 	for(int sector = 0; sector < sectors_per_track; sector++)
@@ -74,8 +64,8 @@ std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsign
 		new_sector.sector = (uint8_t)sector;
 
 		new_sector.data.resize(bytes_per_sector);
-		fread(&new_sector.data[0], 1, bytes_per_sector, _file);
-		if(feof(_file))
+		fread(&new_sector.data[0], 1, bytes_per_sector, file_);
+		if(feof(file_))
 			break;
 
 		sectors.push_back(std::move(new_sector));

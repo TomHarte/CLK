@@ -10,7 +10,8 @@
 #define CommodoreTAP_hpp
 
 #include "../Tape.hpp"
-#include <stdint.h>
+#include "../../FileHolder.hpp"
+#include <cstdint>
 
 namespace Storage {
 namespace Tape {
@@ -18,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
-class CommodoreTAP: public Tape {
+class CommodoreTAP: public Tape, public Storage::FileHolder {
 	public:
 		/*!
 			Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
@@ -26,7 +27,6 @@ class CommodoreTAP: public Tape {
 			@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
 		*/
 		CommodoreTAP(const char *file_name);
-		~CommodoreTAP();
 
 		enum {
 			ErrorNotCommodoreTAP
@@ -39,12 +39,11 @@ class CommodoreTAP: public Tape {
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 
-		FILE *_file;
-		bool _updated_layout;
-		uint32_t _file_size;
+		bool updated_layout_;
+		uint32_t file_size_;
 
-		Pulse _current_pulse;
-		bool _is_at_end;
+		Pulse current_pulse_;
+		bool is_at_end_;
 };
 
 }

@@ -10,7 +10,8 @@
 #define Storage_Tape_PRG_hpp
 
 #include "../Tape.hpp"
-#include <stdint.h>
+#include "../../FileHolder.hpp"
+#include <cstdint>
 
 namespace Storage {
 namespace Tape {
@@ -18,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
 */
-class PRG: public Tape {
+class PRG: public Tape, public Storage::FileHolder {
 	public:
 		/*!
 			Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
@@ -28,7 +29,6 @@ class PRG: public Tape {
 			@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 		*/
 		PRG(const char *file_name);
-		~PRG();
 
 		enum {
 			ErrorBadFormat
@@ -41,9 +41,8 @@ class PRG: public Tape {
 		Pulse virtual_get_next_pulse();
 		void virtual_reset();
 
-		FILE *_file;
-		uint16_t _load_address;
-		uint16_t _length;
+		uint16_t load_address_;
+		uint16_t length_;
 
 		enum FilePhase {
 			FilePhaseLeadIn,
@@ -51,10 +50,10 @@ class PRG: public Tape {
 			FilePhaseHeaderDataGap,
 			FilePhaseData,
 			FilePhaseAtEnd
-		} _filePhase;
-		int _phaseOffset;
+		} file_phase_;
+		int phase_offset_;
 
-		int _bitPhase;
+		int bit_phase_;
 		enum OutputToken {
 			Leader,
 			Zero,
@@ -62,11 +61,11 @@ class PRG: public Tape {
 			WordMarker,
 			EndOfBlock,
 			Silence
-		} _outputToken;
+		} output_token_;
 		void get_next_output_token();
-		uint8_t _output_byte;
-		uint8_t _check_digit;
-		uint8_t _copy_mask;
+		uint8_t output_byte_;
+		uint8_t check_digit_;
+		uint8_t copy_mask_;
 };
 
 }

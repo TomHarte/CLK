@@ -10,7 +10,8 @@
 #define OricTAP_hpp
 
 #include "../Tape.hpp"
-#include <stdint.h>
+#include "../../FileHolder.hpp"
+#include <cstdint>
 
 namespace Storage {
 namespace Tape {
@@ -18,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing an Oric-format tape image, which is a byte stream capture.
 */
-class OricTAP: public Tape {
+class OricTAP: public Tape, public Storage::FileHolder {
 	public:
 		/*!
 			Constructs an @c OricTAP containing content from the file with name @c file_name.
@@ -26,7 +27,6 @@ class OricTAP: public Tape {
 			@throws ErrorNotOricTAP if this file could not be opened and recognised as a valid Oric-format TAP.
 		*/
 		OricTAP(const char *file_name);
-		~OricTAP();
 
 		enum {
 			ErrorNotOricTAP
@@ -39,19 +39,16 @@ class OricTAP: public Tape {
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 
-		FILE *_file;
-		size_t _file_length;
-
 		// byte serialisation and output
-		uint16_t _current_value;
-		int _bit_count;
-		int _pulse_counter;
+		uint16_t current_value_;
+		int bit_count_;
+		int pulse_counter_;
 
 		enum Phase {
 			LeadIn, Header, Data, Gap, End
-		} _phase, _next_phase;
-		int _phase_counter;
-		uint16_t _data_end_address, _data_start_address;
+		} phase_, next_phase_;
+		int phase_counter_;
+		uint16_t data_end_address_, data_start_address_;
 };
 
 }

@@ -12,20 +12,12 @@
 
 using namespace Storage::Tape;
 
-OricTAP::OricTAP(const char *file_name) : _file(NULL)
+OricTAP::OricTAP(const char *file_name) :
+	Storage::FileHolder(file_name)
 {
-	struct stat file_stats;
-	stat(file_name, &file_stats);
-	_file_length = (size_t)file_stats.st_size;
-
-	_file = fopen(file_name, "rb");
-
-	if(!_file)
-		throw ErrorNotOricTAP;
-
 	// read and check the file signature
 	uint8_t signature[4];
-	if(fread(signature, 1, 4, _file) != 4)
+	if(fread(signature, 1, 4, file_) != 4)
 		throw ErrorNotOricTAP;
 
 	if(signature[0] != 0x16 || signature[1] != 0x16 || signature[2] != 0x16 || signature[3] != 0x24)
@@ -35,45 +27,40 @@ OricTAP::OricTAP(const char *file_name) : _file(NULL)
 	virtual_reset();
 }
 
-OricTAP::~OricTAP()
-{
-	if(_file) fclose(_file);
-}
-
 void OricTAP::virtual_reset()
 {
-	fseek(_file, 0, SEEK_SET);
-	_bit_count = 13;
-	_phase = _next_phase = LeadIn;
-	_phase_counter = 0;
-	_pulse_counter = 0;
+	fseek(file_, 0, SEEK_SET);
+	bit_count_ = 13;
+	phase_ = next_phase_ = LeadIn;
+	phase_counter_ = 0;
+	pulse_counter_ = 0;
 }
 
 Tape::Pulse OricTAP::virtual_get_next_pulse()
 {
 	// Each byte byte is written as 13 bits: 0, eight bits of data, parity, three 1s.
-	if(_bit_count == 13)
+	if(bit_count_ == 13)
 	{
-		if(_next_phase != _phase)
+		if(next_phase_ != phase_)
 		{
-			_phase = _next_phase;
-			_phase_counter = 0;
+			phase_ = next_phase_;
+			phase_counter_ = 0;
 		}
 
-		_bit_count = 0;
+		bit_count_ = 0;
 		uint8_t next_byte = 0;
-		switch(_phase)
+		switch(phase_)
 		{
 			case LeadIn:
-				next_byte = _phase_counter < 258 ? 0x16 : 0x24;
-				_phase_counter++;
-				if(_phase_counter == 259)	// 256 artificial bytes plus the three in the file = 259
+				next_byte = phase_counter_ < 258 ? 0x16 : 0x24;
+				phase_counter_++;
+				if(phase_counter_ == 259)	// 256 artificial bytes plus the three in the file = 259
 				{
 					while(1)
 					{
-						if(fgetc(_file) != 0x16) break;
+						if(fgetc(file_) != 0x16) break;
 					}
-					_next_phase = Header;
+					next_phase_ = Header;
 				}
 			break;
 
@@ -86,44 +73,44 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				// [6, 7]:		start address of data
 				// 8:			"unused" (on the Oric 1)
 				// [9...]:		filename, up to NULL byte
-				next_byte = (uint8_t)fgetc(_file);
+				next_byte = (uint8_t)fgetc(file_);
 
-				if(_phase_counter == 4)	_data_end_address = (uint16_t)(next_byte << 8);
-				if(_phase_counter == 5)	_data_end_address |= next_byte;
-				if(_phase_counter == 6)	_data_start_address = (uint16_t)(next_byte << 8);
-				if(_phase_counter == 7)	_data_start_address |= next_byte;
+				if(phase_counter_ == 4)	data_end_address_ = (uint16_t)(next_byte << 8);
+				if(phase_counter_ == 5)	data_end_address_ |= next_byte;
+				if(phase_counter_ == 6)	data_start_address_ = (uint16_t)(next_byte << 8);
+				if(phase_counter_ == 7)	data_start_address_ |= next_byte;
 
-				if(_phase_counter >= 9 && !next_byte)	// advance after the filename-ending NULL byte
+				if(phase_counter_ >= 9 && !next_byte)	// advance after the filename-ending NULL byte
 				{
-					_next_phase = Gap;
+					next_phase_ = Gap;
 				}
-				if(feof(_file))
+				if(feof(file_))
 				{
-					_next_phase = End;
+					next_phase_ = End;
 				}
-				_phase_counter++;
+				phase_counter_++;
 			break;
 
 			case Gap:
-				_phase_counter++;
-				if(_phase_counter == 8)
+				phase_counter_++;
+				if(phase_counter_ == 8)
 				{
-					_next_phase = Data;
+					next_phase_ = Data;
 				}
 			break;
 
 			case Data:
-				next_byte = (uint8_t)fgetc(_file);
-				_phase_counter++;
-				if(_phase_counter >= (_data_end_address - _data_start_address)+1)
+				next_byte = (uint8_t)fgetc(file_);
+				phase_counter_++;
+				if(phase_counter_ >= (data_end_address_ - data_start_address_)+1)
 				{
 					if(next_byte == 0x16)
 					{
-						_next_phase = LeadIn;
+						next_phase_ = LeadIn;
 					}
-					else if(feof(_file))
+					else if(feof(file_))
 					{
-						_next_phase = End;
+						next_phase_ = End;
 					}
 				}
 			break;
@@ -136,7 +123,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 		parity ^= (parity >> 4);
 		parity ^= (parity >> 2);
 		parity ^= (parity >> 1);
-		_current_value = (uint16_t)(((uint16_t)next_byte << 1) | ((parity&1) << 9) | (7 << 10));
+		current_value_ = (uint16_t)(((uint16_t)next_byte << 1) | ((parity&1) << 9) | (7 << 10));
 	}
 
 	// In slow mode, a 0 is 4 periods of 1200 Hz, a 1 is 8 periods at 2400 Hz.
@@ -146,7 +133,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 	pulse.length.clock_rate = 4800;
 	int next_bit;
 
-	switch(_phase)
+	switch(phase_)
 	{
 		case End:
 			pulse.type = Pulse::Zero;
@@ -154,13 +141,13 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 		return pulse;
 
 		case Gap:
-			_bit_count = 13;
-			pulse.type = (_phase_counter&1) ? Pulse::Low : Pulse::High;
+			bit_count_ = 13;
+			pulse.type = (phase_counter_&1) ? Pulse::Low : Pulse::High;
 			pulse.length.length = 100;
 		return pulse;
 
 		default:
-			next_bit = _current_value & 1;
+			next_bit = current_value_ & 1;
 		break;
 	}
 
@@ -170,20 +157,20 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 	}
 	else
 	{
-		pulse.length.length = _pulse_counter ? 2 : 1;
+		pulse.length.length = pulse_counter_ ? 2 : 1;
 	}
-	pulse.type = _pulse_counter ? Pulse::High : Pulse::Low;	// TODO
+	pulse.type = pulse_counter_ ? Pulse::High : Pulse::Low;	// TODO
 
-	_pulse_counter ^= 1;
-	if(!_pulse_counter)
+	pulse_counter_ ^= 1;
+	if(!pulse_counter_)
 	{
-		_current_value >>= 1;
-		_bit_count++;
+		current_value_ >>= 1;
+		bit_count_++;
 	}
 	return pulse;
 }
 
 bool OricTAP::is_at_end()
 {
-	return _phase == End;
+	return phase_ == End;
 }

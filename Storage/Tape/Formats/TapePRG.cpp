@@ -48,30 +48,24 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const char *file_name) : _file(nullptr), _bitPhase(3), _filePhase(FilePhaseLeadIn), _phaseOffset(0), _copy_mask(0x80)
+PRG::PRG(const char *file_name) :
+	bit_phase_(3),
+	file_phase_(FilePhaseLeadIn),
+	phase_offset_(0),
+	copy_mask_(0x80),
+	Storage::FileHolder(file_name)
 {
-	struct stat file_stats;
-	stat(file_name, &file_stats);
-
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
-	if(file_stats.st_size >= 65538 || file_stats.st_size < 3)
+	if(file_stats_.st_size >= 65538 || file_stats_.st_size < 3)
 		throw ErrorBadFormat;
 
-	_file = fopen(file_name, "rb");
-	if(!_file) throw ErrorBadFormat;
+	load_address_ = (uint16_t)fgetc(file_);
+	load_address_ |= (uint16_t)fgetc(file_) << 8;
+	length_ = (uint16_t)(file_stats_.st_size - 2);
 
-	_load_address = (uint16_t)fgetc(_file);
-	_load_address |= (uint16_t)fgetc(_file) << 8;
-	_length = (uint16_t)(file_stats.st_size - 2);
-
-	if (_load_address + _length >= 65536)
+	if (load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
-}
-
-PRG::~PRG()
-{
-	if(_file) fclose(_file);
 }
 
 Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
@@ -82,19 +76,19 @@ Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 	static const unsigned int one_length = 247;
 	static const unsigned int marker_length = 328;
 
-	_bitPhase = (_bitPhase+1)&3;
-	if(!_bitPhase) get_next_output_token();
+	bit_phase_ = (bit_phase_+1)&3;
+	if(!bit_phase_) get_next_output_token();
 
 	Tape::Pulse pulse;
 	pulse.length.clock_rate = 1000000;
-	pulse.type = (_bitPhase&1) ? Tape::Pulse::High : Tape::Pulse::Low;
-	switch(_outputToken)
+	pulse.type = (bit_phase_&1) ? Tape::Pulse::High : Tape::Pulse::Low;
+	switch(output_token_)
 	{
 		case Leader:		pulse.length.length = leader_zero_length;							break;
-		case Zero:			pulse.length.length = (_bitPhase&2) ? one_length : zero_length;		break;
-		case One:			pulse.length.length = (_bitPhase&2) ? zero_length : one_length;		break;
-		case WordMarker:	pulse.length.length = (_bitPhase&2) ? one_length : marker_length;	break;
-		case EndOfBlock:	pulse.length.length = (_bitPhase&2) ? zero_length : marker_length;	break;
+		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;		break;
+		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;		break;
+		case WordMarker:	pulse.length.length = (bit_phase_&2) ? one_length : marker_length;	break;
+		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? zero_length : marker_length;	break;
 		case Silence:		pulse.type = Tape::Pulse::Zero; pulse.length.length = 5000;			break;
 	}
 	return pulse;
@@ -102,16 +96,16 @@ Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 
 void PRG::virtual_reset()
 {
-	_bitPhase = 3;
-	fseek(_file, 2, SEEK_SET);
-	_filePhase = FilePhaseLeadIn;
-	_phaseOffset = 0;
-	_copy_mask = 0x80;
+	bit_phase_ = 3;
+	fseek(file_, 2, SEEK_SET);
+	file_phase_ = FilePhaseLeadIn;
+	phase_offset_ = 0;
+	copy_mask_ = 0x80;
 }
 
 bool PRG::is_at_end()
 {
-	return _filePhase == FilePhaseAtEnd;
+	return file_phase_ == FilePhaseAtEnd;
 }
 
 void PRG::get_next_output_token()
@@ -121,54 +115,54 @@ void PRG::get_next_output_token()
 	static const int leadin_length = 20000;
 	static const int block_leadin_length = 5000;
 
-	if(_filePhase == FilePhaseHeaderDataGap || _filePhase == FilePhaseAtEnd)
+	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd)
 	{
-		_outputToken = Silence;
-		if(_filePhase != FilePhaseAtEnd) _filePhase = FilePhaseData;
+		output_token_ = Silence;
+		if(file_phase_ != FilePhaseAtEnd) file_phase_ = FilePhaseData;
 		return;
 	}
 
 	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
 	// before doing whatever it should be doing
-	if(_filePhase == FilePhaseLeadIn || _phaseOffset < block_leadin_length)
+	if(file_phase_ == FilePhaseLeadIn || phase_offset_ < block_leadin_length)
 	{
-		_outputToken = Leader;
-		_phaseOffset++;
-		if(_filePhase == FilePhaseLeadIn && _phaseOffset == leadin_length)
+		output_token_ = Leader;
+		phase_offset_++;
+		if(file_phase_ == FilePhaseLeadIn && phase_offset_ == leadin_length)
 		{
-			_phaseOffset = 0;
-			_filePhase = (_filePhase == FilePhaseLeadIn) ? FilePhaseHeader : FilePhaseData;
+			phase_offset_ = 0;
+			file_phase_ = (file_phase_ == FilePhaseLeadIn) ? FilePhaseHeader : FilePhaseData;
 		}
 		return;
 	}
 
 	// determine whether a new byte needs to be queued up
-	int block_offset = _phaseOffset - block_leadin_length;
+	int block_offset = phase_offset_ - block_leadin_length;
 	int bit_offset = block_offset % 10;
 	int byte_offset = block_offset / 10;
-	_phaseOffset++;
+	phase_offset_++;
 
 	if(!bit_offset &&
 		(
-			(_filePhase == FilePhaseHeader && byte_offset == block_length + countdown_bytes + 1) ||
-			feof(_file)
+			(file_phase_ == FilePhaseHeader && byte_offset == block_length + countdown_bytes + 1) ||
+			feof(file_)
 		)
 	)
 	{
-		_outputToken = EndOfBlock;
-		_phaseOffset = 0;
+		output_token_ = EndOfBlock;
+		phase_offset_ = 0;
 
-		switch(_filePhase)
+		switch(file_phase_)
 		{
 			default: break;
 			case FilePhaseHeader:
-				_copy_mask ^= 0x80;
-				if(_copy_mask) _filePhase = FilePhaseHeaderDataGap;
+				copy_mask_ ^= 0x80;
+				if(copy_mask_) file_phase_ = FilePhaseHeaderDataGap;
 			break;
 			case FilePhaseData:
-				_copy_mask ^= 0x80;
-				fseek(_file, 2, SEEK_SET);
-				if(_copy_mask) _filePhase = FilePhaseAtEnd;
+				copy_mask_ ^= 0x80;
+				fseek(file_, 2, SEEK_SET);
+				if(copy_mask_) file_phase_ = FilePhaseAtEnd;
 			break;
 		}
 		return;
@@ -179,34 +173,34 @@ void PRG::get_next_output_token()
 		// the first nine bytes are countdown; the high bit is set if this is a header
 		if(byte_offset < countdown_bytes)
 		{
-			_output_byte = (uint8_t)(countdown_bytes - byte_offset) | _copy_mask;
+			output_byte_ = (uint8_t)(countdown_bytes - byte_offset) | copy_mask_;
 		}
 		else
 		{
-			if(_filePhase == FilePhaseHeader)
+			if(file_phase_ == FilePhaseHeader)
 			{
 				if(byte_offset == countdown_bytes + block_length)
 				{
-					_output_byte = _check_digit;
+					output_byte_ = check_digit_;
 				}
 				else
 				{
-					if(byte_offset == countdown_bytes) _check_digit = 0;
-					if(_filePhase == FilePhaseHeader)
+					if(byte_offset == countdown_bytes) check_digit_ = 0;
+					if(file_phase_ == FilePhaseHeader)
 					{
 						switch(byte_offset - countdown_bytes)
 						{
-							case 0:	_output_byte = 0x03;										break;
-							case 1: _output_byte = _load_address & 0xff;						break;
-							case 2: _output_byte = (_load_address >> 8)&0xff;					break;
-							case 3: _output_byte = (_load_address + _length) & 0xff;			break;
-							case 4: _output_byte = ((_load_address + _length) >> 8) & 0xff;		break;
+							case 0:	output_byte_ = 0x03;										break;
+							case 1: output_byte_ = load_address_ & 0xff;						break;
+							case 2: output_byte_ = (load_address_ >> 8)&0xff;					break;
+							case 3: output_byte_ = (load_address_ + length_) & 0xff;			break;
+							case 4: output_byte_ = ((load_address_ + length_) >> 8) & 0xff;		break;
 
-							case 5: _output_byte = 0x50;	break; // P
-							case 6: _output_byte = 0x52;	break; // R
-							case 7: _output_byte = 0x47;	break; // G
+							case 5: output_byte_ = 0x50;	break; // P
+							case 6: output_byte_ = 0x52;	break; // R
+							case 7: output_byte_ = 0x47;	break; // G
 							default:
-								_output_byte = 0x20;
+								output_byte_ = 0x20;
 							break;
 						}
 					}
@@ -214,32 +208,32 @@ void PRG::get_next_output_token()
 			}
 			else
 			{
-				_output_byte = (uint8_t)fgetc(_file);
-				if(feof(_file))
+				output_byte_ = (uint8_t)fgetc(file_);
+				if(feof(file_))
 				{
-					_output_byte = _check_digit;
+					output_byte_ = check_digit_;
 				}
 			}
 
-			_check_digit ^= _output_byte;
+			check_digit_ ^= output_byte_;
 		}
 	}
 
 	switch(bit_offset)
 	{
 		case 0:
-			_outputToken = WordMarker;
+			output_token_ = WordMarker;
 		break;
 		default:	// i.e. 1–8
-			_outputToken = (_output_byte & (1 << (bit_offset - 1))) ? One : Zero;
+			output_token_ = (output_byte_ & (1 << (bit_offset - 1))) ? One : Zero;
 		break;
 		case 9:
 		{
-			uint8_t parity = _output_byte;
+			uint8_t parity = output_byte_;
 			parity ^= (parity >> 4);
 			parity ^= (parity >> 2);
 			parity ^= (parity >> 1);
-			_outputToken = (parity&1) ? Zero : One;
+			output_token_ = (parity&1) ? Zero : One;
 		}
 		break;
 	}

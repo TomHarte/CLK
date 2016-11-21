@@ -10,6 +10,7 @@
 #define D64_hpp
 
 #include "../Disk.hpp"
+#include "../../FileHolder.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -17,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing a D64 disk image — a decoded sector dump of a C1540-format disk.
 */
-class D64: public Disk {
+class D64: public Disk, public Storage::FileHolder {
 	public:
 		/*!
 			Construct a @c D64 containing content from the file with name @c file_name.
@@ -26,10 +27,8 @@ class D64: public Disk {
 			@throws ErrorNotD64 if the file doesn't appear to contain a .D64 format image.
 		*/
 		D64(const char *file_name);
-		~D64();
 
 		enum {
-			ErrorCantOpen,
 			ErrorNotD64,
 		};
 
@@ -38,9 +37,8 @@ class D64: public Disk {
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
-		FILE *_file;
-		unsigned int _number_of_tracks;
-		uint16_t _disk_id;
+		unsigned int number_of_tracks_;
+		uint16_t disk_id_;
 };
 
 }

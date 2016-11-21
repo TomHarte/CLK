@@ -10,6 +10,7 @@
 #define SSD_hpp
 
 #include "../Disk.hpp"
+#include "../../FileHolder.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -17,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing a DSD or SSD disk image — a decoded sector dump of an Acorn DFS disk.
 */
-class SSD: public Disk {
+class SSD: public Disk, public Storage::FileHolder {
 	public:
 		/*!
 			Construct an @c SSD containing content from the file with name @c file_name.
@@ -26,10 +27,8 @@ class SSD: public Disk {
 			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
 		*/
 		SSD(const char *file_name);
-		~SSD();
 
 		enum {
-			ErrorCantOpen,
 			ErrorNotSSD,
 		};
 
@@ -39,9 +38,8 @@ class SSD: public Disk {
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
-		FILE *_file;
-		unsigned int _head_count;
-		unsigned int _track_count;
+		unsigned int head_count_;
+		unsigned int track_count_;
 };
 
 }
