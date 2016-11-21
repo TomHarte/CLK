@@ -14,6 +14,8 @@
 #include "CRTTypes.hpp"
 #include "Internals/Flywheel.hpp"
 #include "Internals/CRTOpenGL.hpp"
+#include "Internals/ArrayBuilder.hpp"
+#include "Internals/TextureBuilder.hpp"
 
 namespace Outputs {
 namespace CRT {
@@ -27,26 +29,22 @@ class Delegate {
 
 class CRT {
 	private:
-		CRT(unsigned int common_output_divisor);
+		CRT(unsigned int common_output_divisor, unsigned int buffer_depth);
 
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
-		unsigned int _time_multiplier;
-		const unsigned int _common_output_divisor;
-
-		// fundamental creator-specified properties
-		unsigned int _cycles_per_line;
-		unsigned int _height_of_display;
+		unsigned int time_multiplier_;
+		const unsigned int common_output_divisor_;
 
 		// the two flywheels regulating scanning
-		std::unique_ptr<Flywheel> _horizontal_flywheel, _vertical_flywheel;
-		uint16_t _vertical_flywheel_output_divider;
+		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
+		uint16_t vertical_flywheel_output_divider_;
 
 		// elements of sync separation
-		bool _is_receiving_sync;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		int _sync_capacitor_charge_level;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int _sync_capacitor_charge_threshold;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int _sync_period;
+		bool is_receiving_sync_;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
+		int sync_capacitor_charge_level_;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		unsigned int sync_period_;
 
 		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
 		struct Scan {
@@ -66,9 +64,9 @@ class CRT {
 		};
 		void output_scan(const Scan *scan);
 
-		uint8_t _colour_burst_phase, _colour_burst_amplitude;
-		uint16_t _colour_burst_time;
-		bool _is_writing_composite_run;
+		uint8_t colour_burst_phase_, colour_burst_amplitude_;
+		uint16_t colour_burst_time_;
+		bool is_writing_composite_run_;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);
@@ -78,17 +76,17 @@ class CRT {
 		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
 		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
 
-		// OpenGL state, kept behind an opaque pointer to avoid inclusion of the GL headers here.
-		std::unique_ptr<OpenGLOutputBuilder> _openGL_output_builder;
+		// OpenGL state
+		OpenGLOutputBuilder openGL_output_builder_;
 
 		// temporary storage used during the construction of output runs
 		struct {
-			uint16_t x1, y, tex_y;
-		} _output_run;
+			uint16_t x1, y;
+		} output_run_;
 
 		// The delegate
-		Delegate *_delegate;
-		unsigned int _frames_since_last_delegate_call;
+		Delegate *delegate_;
+		unsigned int frames_since_last_delegate_call_;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -194,7 +192,7 @@ class CRT {
 		*/
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
-			return _openGL_output_builder->allocate_write_area(required_length);
+			return openGL_output_builder_.texture_builder.allocate_write_area(required_length);
 		}
 
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
@@ -202,7 +200,7 @@ class CRT {
 		*/
 		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 		{
-			_openGL_output_builder->draw_frame(output_width, output_height, only_if_dirty);
+			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
 		}
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
@@ -214,7 +212,7 @@ class CRT {
 		*/
 		inline void set_openGL_context_will_change(bool should_delete_resources)
 		{
-			_openGL_output_builder->set_openGL_context_will_change(should_delete_resources);
+			openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
@@ -226,7 +224,7 @@ class CRT {
 		*/
 		inline void set_composite_sampling_function(const char *shader)
 		{
-			_openGL_output_builder->set_composite_sampling_function(shader);
+			openGL_output_builder_.set_composite_sampling_function(shader);
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
@@ -244,24 +242,24 @@ class CRT {
 		*/
 		inline void set_rgb_sampling_function(const char *shader)
 		{
-			_openGL_output_builder->set_rgb_sampling_function(shader);
+			openGL_output_builder_.set_rgb_sampling_function(shader);
 		}
 
 		inline void set_output_device(OutputDevice output_device)
 		{
-			_openGL_output_builder->set_output_device(output_device);
+			openGL_output_builder_.set_output_device(output_device);
 		}
 
 		inline void set_visible_area(Rect visible_area)
 		{
-			_openGL_output_builder->set_visible_area(visible_area);
+			openGL_output_builder_.set_visible_area(visible_area);
 		}
 
 		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
 
 		inline void set_delegate(Delegate *delegate)
 		{
-			_delegate = delegate;
+			delegate_ = delegate;
 		}
 };
 

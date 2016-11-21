@@ -46,34 +46,34 @@ GLuint Shader::compile_shader(const char *source, GLenum type)
 
 Shader::Shader(const char *vertex_shader, const char *fragment_shader, const AttributeBinding *attribute_bindings)
 {
-	_shader_program = glCreateProgram();
+	shader_program_ = glCreateProgram();
 	GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
 
-	glAttachShader(_shader_program, vertex);
-	glAttachShader(_shader_program, fragment);
+	glAttachShader(shader_program_, vertex);
+	glAttachShader(shader_program_, fragment);
 
 	if(attribute_bindings)
 	{
 		while(attribute_bindings->name)
 		{
-			glBindAttribLocation(_shader_program, attribute_bindings->index, attribute_bindings->name);
+			glBindAttribLocation(shader_program_, attribute_bindings->index, attribute_bindings->name);
 			attribute_bindings++;
 		}
 	}
 
-	glLinkProgram(_shader_program);
+	glLinkProgram(shader_program_);
 
 #if defined(DEBUG)
 	GLint didLink = 0;
-	glGetProgramiv(_shader_program, GL_LINK_STATUS, &didLink);
+	glGetProgramiv(shader_program_, GL_LINK_STATUS, &didLink);
 	if(didLink == GL_FALSE)
 	{
 		GLint logLength;
-		glGetProgramiv(_shader_program, GL_INFO_LOG_LENGTH, &logLength);
+		glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
 			GLchar *log = (GLchar *)malloc((size_t)logLength);
-			glGetProgramInfoLog(_shader_program, logLength, &logLength, log);
+			glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
 			printf("Link log:\n%s\n", log);
 			free(log);
 		}
@@ -85,14 +85,14 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 Shader::~Shader()
 {
 	if(bound_shader == this) Shader::unbind();
-	glDeleteProgram(_shader_program);
+	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind()
 {
 	if(bound_shader != this)
 	{
-		glUseProgram(_shader_program);
+		glUseProgram(shader_program_);
 		bound_shader = this;
 	}
 	flush_functions();
@@ -106,12 +106,12 @@ void Shader::unbind()
 
 GLint Shader::get_attrib_location(const GLchar *name)
 {
-	return glGetAttribLocation(_shader_program, name);
+	return glGetAttribLocation(shader_program_, name);
 }
 
 GLint Shader::get_uniform_location(const GLchar *name)
 {
-	return glGetUniformLocation(_shader_program, name);
+	return glGetUniformLocation(shader_program_, name);
 }
 
 void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor)
@@ -123,7 +123,7 @@ void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, 
 }
 
 // The various set_uniforms...
-#define location() glGetUniformLocation(_shader_program, name.c_str())
+#define location() glGetUniformLocation(shader_program_, name.c_str())
 void Shader::set_uniform(const std::string &name, GLint value)
 {
 	enqueue_function([name, value, this] {
@@ -291,18 +291,18 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei cou
 
 void Shader::enqueue_function(std::function<void(void)> function)
 {
-	_function_mutex.lock();
-	_enqueued_functions.push_back(function);
-	_function_mutex.unlock();
+	function_mutex_.lock();
+	enqueued_functions_.push_back(function);
+	function_mutex_.unlock();
 }
 
 void Shader::flush_functions()
 {
-	_function_mutex.lock();
-	for(std::function<void(void)> function : _enqueued_functions)
+	function_mutex_.lock();
+	for(std::function<void(void)> function : enqueued_functions_)
 	{
 		function();
 	}
-	_enqueued_functions.clear();
-	_function_mutex.unlock();
+	enqueued_functions_.clear();
+	function_mutex_.unlock();
 }

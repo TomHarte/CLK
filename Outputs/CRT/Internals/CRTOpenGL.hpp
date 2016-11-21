@@ -14,12 +14,15 @@
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
 #include "Shader.hpp"
-#include "CRTInputBufferBuilder.hpp"
+
+#include "ArrayBuilder.hpp"
+#include "TextureBuilder.hpp"
 
 #include "Shaders/OutputShader.hpp"
 #include "Shaders/IntermediateShader.hpp"
 
 #include <mutex>
+#include <vector>
 
 namespace Outputs {
 namespace CRT {
@@ -27,25 +30,25 @@ namespace CRT {
 class OpenGLOutputBuilder {
 	private:
 		// colour information
-		ColourSpace _colour_space;
-		unsigned int _colour_cycle_numerator;
-		unsigned int _colour_cycle_denominator;
-		OutputDevice _output_device;
+		ColourSpace colour_space_;
+		unsigned int colour_cycle_numerator_;
+		unsigned int colour_cycle_denominator_;
+		OutputDevice output_device_;
 
 		// timing information to allow reasoning about input information
-		unsigned int _input_frequency;
-		unsigned int _cycles_per_line;
-		unsigned int _height_of_display;
-		unsigned int _horizontal_scan_period;
-		unsigned int _vertical_scan_period;
-		unsigned int _vertical_period_divider;
+		unsigned int input_frequency_;
+		unsigned int cycles_per_line_;
+		unsigned int height_of_display_;
+		unsigned int horizontal_scan_period_;
+		unsigned int vertical_scan_period_;
+		unsigned int vertical_period_divider_;
 
 		// The user-supplied visible area
-		Rect _visible_area;
+		Rect visible_area_;
 
 		// Other things the caller may have provided.
-		char *_composite_shader;
-		char *_rgb_shader;
+		char *composite_shader_;
+		char *rgb_shader_;
 
 		// Methods used by the OpenGL code
 		void prepare_output_shader();
@@ -56,32 +59,27 @@ class OpenGLOutputBuilder {
 		void prepare_source_vertex_array();
 
 		// the run and input data buffers
-		std::unique_ptr<CRTInputBufferBuilder> _buffer_builder;
-		std::unique_ptr<std::mutex> _output_mutex;
-		std::unique_ptr<std::mutex> _draw_mutex;
+		std::mutex output_mutex_;
+		std::mutex draw_mutex_;
 
 		// transient buffers indicating composite data not yet decoded
-		GLsizei _composite_src_output_y, _cleared_composite_output_y;
+		GLsizei composite_src_output_y_;
 
-		std::unique_ptr<OpenGL::OutputShader> output_shader_program;
-		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program, composite_separation_filter_program, composite_y_filter_shader_program, composite_chrominance_filter_shader_program;
-		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program, rgb_filter_shader_program;
+		std::unique_ptr<OpenGL::OutputShader> output_shader_program_;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program_, composite_separation_filter_program_, composite_y_filter_shader_program_, composite_chrominance_filter_shader_program_;
+		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program_, rgb_filter_shader_program_;
 
-		std::unique_ptr<OpenGL::TextureTarget> compositeTexture;	// receives raw composite levels
-		std::unique_ptr<OpenGL::TextureTarget> separatedTexture;	// receives unfiltered Y in the R channel plus unfiltered but demodulated chrominance in G and B
-		std::unique_ptr<OpenGL::TextureTarget> filteredYTexture;	// receives filtered Y in the R channel plus unfiltered chrominance in G and B
-		std::unique_ptr<OpenGL::TextureTarget> filteredTexture;		// receives filtered YIQ or YUV
+		OpenGL::TextureTarget composite_texture_;	// receives raw composite levels
+		OpenGL::TextureTarget separated_texture_;	// receives unfiltered Y in the R channel plus unfiltered but demodulated chrominance in G and B
+		OpenGL::TextureTarget filtered_y_texture_;	// receives filtered Y in the R channel plus unfiltered chrominance in G and B
+		OpenGL::TextureTarget filtered_texture_;	// receives filtered YIQ or YUV
 
-		std::unique_ptr<OpenGL::TextureTarget> framebuffer;			// the current pixel output
+		std::unique_ptr<OpenGL::TextureTarget> framebuffer_;		// the current pixel output
 
-		GLuint output_array_buffer, output_vertex_array;
-		GLuint source_array_buffer, source_vertex_array;
+		GLuint output_vertex_array_;
+		GLuint source_vertex_array_;
 
-		unsigned int _last_output_width, _last_output_height;
-
-		GLuint textureName, shadowMaskTextureName;
-
-		GLuint defaultFramebuffer;
+		unsigned int last_output_width_, last_output_height_;
 
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
@@ -89,107 +87,59 @@ class OpenGLOutputBuilder {
 		void establish_OpenGL_state();
 		void reset_all_OpenGL_state();
 
+		GLsync fence_;
+
 	public:
-		OpenGLOutputBuilder(unsigned int buffer_depth);
+		TextureBuilder texture_builder;
+		ArrayBuilder array_builder;
+
+		OpenGLOutputBuilder(size_t bytes_per_pixel);
 		~OpenGLOutputBuilder();
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
-			_output_mutex->lock();
-			_colour_space = colour_space;
-			_colour_cycle_numerator = colour_cycle_numerator;
-			_colour_cycle_denominator = colour_cycle_denominator;
+			output_mutex_.lock();
+			colour_space_ = colour_space;
+			colour_cycle_numerator_ = colour_cycle_numerator;
+			colour_cycle_denominator_ = colour_cycle_denominator;
 			set_colour_space_uniforms();
-			_output_mutex->unlock();
+			output_mutex_.unlock();
 		}
 
 		inline void set_visible_area(Rect visible_area)
 		{
-			_visible_area = visible_area;
-		}
-
-		inline uint8_t *get_next_source_run()
-		{
-			if(_source_buffer_data_pointer == SourceVertexBufferDataSize) return nullptr;
-			return &_source_buffer_data.get()[_source_buffer_data_pointer];
-		}
-
-		inline void complete_source_run()
-		{
-			_source_buffer_data_pointer += SourceVertexSize;
-		}
-
-		inline bool composite_output_run_has_room_for_vertex()
-		{
-			return _output_buffer_data_pointer < OutputVertexBufferDataSize;
-		}
-
-		inline uint8_t *get_next_output_run()
-		{
-			if(_output_buffer_data_pointer == OutputVertexBufferDataSize) return nullptr;
-			return &_output_buffer_data.get()[_output_buffer_data_pointer];
-		}
-
-		inline void complete_output_run()
-		{
-			_output_buffer_data_pointer += OutputVertexSize;
+			visible_area_ = visible_area;
 		}
 
 		inline void lock_output()
 		{
-			_output_mutex->lock();
+			output_mutex_.lock();
 		}
 
 		inline void unlock_output()
 		{
-			_output_mutex->unlock();
+			output_mutex_.unlock();
 		}
 
 		inline OutputDevice get_output_device()
 		{
-			return _output_device;
+			return output_device_;
 		}
 
 		inline uint16_t get_composite_output_y()
 		{
-			return _composite_src_output_y % IntermediateBufferHeight;
+			return (uint16_t)composite_src_output_y_;
 		}
 
 		inline bool composite_output_buffer_is_full()
 		{
-			return _composite_src_output_y == _cleared_composite_output_y + IntermediateBufferHeight;
+			return composite_src_output_y_ == IntermediateBufferHeight;
 		}
 
 		inline void increment_composite_output_y()
 		{
 			if(!composite_output_buffer_is_full())
-				_composite_src_output_y++;
-		}
-
-		inline uint8_t *allocate_write_area(size_t required_length)
-		{
-			_buffer_builder->allocate_write_area(required_length);
-			return _buffer_builder->get_write_target();
-		}
-
-		inline void reduce_previous_allocation_to(size_t actual_length)
-		{
-			_buffer_builder->reduce_previous_allocation_to(actual_length);
-		}
-
-		inline bool input_buffer_is_full()
-		{
-			return _buffer_builder->is_full();
-		}
-
-		inline uint16_t get_last_write_x_posititon()
-		{
-			return _buffer_builder->get_last_write_x_position();
-		}
-
-		inline uint16_t get_last_write_y_posititon()
-		{
-			return _buffer_builder->get_last_write_y_position();
+				composite_src_output_y_++;
 		}
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
@@ -198,14 +148,6 @@ class OpenGLOutputBuilder {
 		void set_rgb_sampling_function(const char *shader);
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
-
-		std::unique_ptr<uint8_t> _source_buffer_data;
-		GLsizei _source_buffer_data_pointer;
-
-		std::unique_ptr<uint8_t> _output_buffer_data;
-		GLsizei _output_buffer_data_pointer;
-
-		GLsync _fence;
 };
 
 }

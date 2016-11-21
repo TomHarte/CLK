@@ -485,6 +485,7 @@ void Machine::synchronise()
 {
 	update_display();
 	update_audio();
+	_speaker->flush();
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)

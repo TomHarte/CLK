@@ -12,7 +12,7 @@
 #include "OpenGL.hpp"
 #include <string>
 #include <functional>
-#include <list>
+#include <vector>
 #include <mutex>
 
 namespace OpenGL {
@@ -31,8 +31,8 @@ public:
 	};
 
 	struct AttributeBinding {
-		const GLchar *name;
-		GLuint index;
+		const GLchar *const name;
+		const GLuint index;
 	};
 
 	/*!
@@ -107,11 +107,11 @@ public:
 
 private:
 	GLuint compile_shader(const char *source, GLenum type);
-	GLuint _shader_program;
+	GLuint shader_program_;
 
 	void flush_functions();
-	std::list<std::function<void(void)>> _enqueued_functions;
-	std::mutex _function_mutex;
+	std::vector<std::function<void(void)>> enqueued_functions_;
+	std::mutex function_mutex_;
 
 protected:
 	void enqueue_function(std::function<void(void)> function);
