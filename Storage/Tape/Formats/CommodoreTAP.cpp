@@ -16,12 +16,7 @@ CommodoreTAP::CommodoreTAP(const char *file_name) :
 	is_at_end_(false),
 	Storage::FileHolder(file_name)
 {
-	// read and check the file signature
-	char signature[12];
-	if(fread(signature, 1, 12, file_) != 12)
-		throw ErrorNotCommodoreTAP;
-
-	if(memcmp(signature, "C64-TAPE-RAW", 12))
+	if(!check_signature("C64-TAPE-RAW", 12))
 		throw ErrorNotCommodoreTAP;
 
 	// check the file version
@@ -37,10 +32,7 @@ CommodoreTAP::CommodoreTAP(const char *file_name) :
 	fseek(file_, 3, SEEK_CUR);
 
 	// read file size
-	file_size_ = (uint32_t)fgetc(file_);
-	file_size_ |= (uint32_t)(fgetc(file_) << 8);
-	file_size_ |= (uint32_t)(fgetc(file_) << 16);
-	file_size_ |= (uint32_t)(fgetc(file_) << 24);
+	file_size_ = fgetc32le();
 
 	// set up for pulse output at the PAL clock rate, with each high and
 	// low being half of whatever length values will be read; pretend that
@@ -79,9 +71,7 @@ Storage::Tape::Tape::Pulse CommodoreTAP::virtual_get_next_pulse()
 		}
 		else
 		{
-			next_length = (uint32_t)fgetc(file_);
-			next_length |= (uint32_t)(fgetc(file_) << 8);
-			next_length |= (uint32_t)(fgetc(file_) << 16);
+			next_length = fgetc24le();
 		}
 
 		if(feof(file_))

@@ -18,11 +18,7 @@ G64::G64(const char *file_name) :
 	Storage::FileHolder(file_name)
 {
 	// read and check the file signature
-	char signature[8];
-	if(fread(signature, 1, 8, file_) != 8)
-		throw ErrorNotG64;
-
-	if(memcmp(signature, "GCR-1541", 8))
+	if(!check_signature("GCR-1541", 8))
 		throw ErrorNotG64;
 
 	// check the version number
@@ -34,8 +30,7 @@ G64::G64(const char *file_name) :
 
 	// get the number of tracks and track size
 	number_of_tracks_ = (uint8_t)fgetc(file_);
-	maximum_track_size_ = (uint16_t)fgetc(file_);
-	maximum_track_size_ |= (uint16_t)fgetc(file_) << 8;
+	maximum_track_size_ = fgetc16le();
 }
 
 unsigned int G64::get_head_position_count()
@@ -59,10 +54,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned in
 
 	// read the track offset
 	uint32_t track_offset;
-	track_offset = (uint32_t)fgetc(file_);
-	track_offset |= (uint32_t)fgetc(file_) << 8;
-	track_offset |= (uint32_t)fgetc(file_) << 16;
-	track_offset |= (uint32_t)fgetc(file_) << 24;
+	track_offset = fgetc32le();
 
 	// if the track offset is zero, this track doesn't exist, so...
 	if(!track_offset) return resulting_track;
@@ -72,8 +64,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned in
 
 	// get the real track length
 	uint16_t track_length;
-	track_length = (uint16_t)fgetc(file_);
-	track_length |= (uint16_t)fgetc(file_) << 8;
+	track_length = fgetc16le();
 
 	// grab the byte contents of this track
 	std::vector<uint8_t> track_contents(track_length);
@@ -84,10 +75,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned in
 
 	// read the speed zone offsrt
 	uint32_t speed_zone_offset;
-	speed_zone_offset = (uint32_t)fgetc(file_);
-	speed_zone_offset |= (uint32_t)fgetc(file_) << 8;
-	speed_zone_offset |= (uint32_t)fgetc(file_) << 16;
-	speed_zone_offset |= (uint32_t)fgetc(file_) << 24;
+	speed_zone_offset = fgetc32le();
 
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3)

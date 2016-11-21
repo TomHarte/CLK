@@ -49,7 +49,7 @@
 				<string>rom</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Electron/BBC ROM Image</string>
+			<string>ROM Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
@@ -141,6 +141,18 @@
 			</array>
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Disk Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>dsk</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Disk Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>NSDocumentClass</key>

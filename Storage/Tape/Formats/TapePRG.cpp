@@ -60,8 +60,7 @@ PRG::PRG(const char *file_name) :
 	if(file_stats_.st_size >= 65538 || file_stats_.st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = (uint16_t)fgetc(file_);
-	load_address_ |= (uint16_t)fgetc(file_) << 8;
+	load_address_ = fgetc16le();
 	length_ = (uint16_t)(file_stats_.st_size - 2);
 
 	if (load_address_ + length_ >= 65536)

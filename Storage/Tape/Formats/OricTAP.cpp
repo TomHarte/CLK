@@ -15,12 +15,8 @@ using namespace Storage::Tape;
 OricTAP::OricTAP(const char *file_name) :
 	Storage::FileHolder(file_name)
 {
-	// read and check the file signature
-	uint8_t signature[4];
-	if(fread(signature, 1, 4, file_) != 4)
-		throw ErrorNotOricTAP;
-
-	if(signature[0] != 0x16 || signature[1] != 0x16 || signature[2] != 0x16 || signature[3] != 0x24)
+	// check the file signature
+	if(!check_signature("\x16\x16\x16\x24", 4))
 		throw ErrorNotOricTAP;
 
 	// then rewind and start again
