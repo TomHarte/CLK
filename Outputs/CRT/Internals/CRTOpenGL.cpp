@@ -132,6 +132,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		float clear_colour[3];
 	};
 
+	// for composite video, go through four steps to get to something that can be painted to the output
 	RenderStage composite_render_stages[] =
 	{
 		{compositeTexture.get(),	composite_input_shader_program.get(),				{0.0, 0.0, 0.0}},
@@ -141,6 +142,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{nullptr}
 	};
 
+	// for RGB video, there's only two steps
 	RenderStage rgb_render_stages[] =
 	{
 		{compositeTexture.get(),	rgb_input_shader_program.get(),		{0.0, 0.0, 0.0}},
@@ -150,7 +152,6 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	RenderStage *active_pipeline = (_output_device == Television || !rgb_input_shader_program) ? composite_render_stages : rgb_render_stages;
 
-	// for television, update intermediate buffers and then draw; for a monitor, just draw
 	if(array_submission.input_size || array_submission.output_size)
 	{
 		// all drawing will be from the source vertex array and without blending
@@ -159,29 +160,32 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		while(active_pipeline->target)
 		{
-			// switch to the initial texture
+			// switch to the framebuffer and shader associated with this stage
+			active_pipeline->shader->bind();
 			active_pipeline->target->bind_framebuffer();
+
+			// if this is the final stage before painting to the CRT, clear the framebuffer before drawing in order to blank out
+			// those portions for which no input was provided
 			if(!active_pipeline[1].target)
 			{
 				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
 			}
-			active_pipeline->shader->bind();
 
-			// draw as desired
+			// draw
 			glDrawArraysInstanced(GL_LINES, 0, 2, (GLsizei)array_submission.input_size / SourceVertexSize);
 
 			active_pipeline++;
 		}
 
-		// transfer to framebuffer
+		// prepare to transfer to framebuffer
 		framebuffer->bind_framebuffer();
 
-		// draw from from the output array buffer with blending
+		// draw from the output array buffer, with blending
 		glBindVertexArray(output_vertex_array);
 		glEnable(GL_BLEND);
 
-		// update uniforms, then bind the thing
+		// update uniforms, then bind the target
 		if(_last_output_width != output_width || _last_output_height != output_height)
 		{
 			output_shader_program->set_output_size(output_width, output_height, _visible_area);
