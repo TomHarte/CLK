@@ -48,7 +48,7 @@ void Microdisc::set_control_register(uint8_t control)
 
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
-	int new_paging_flags = ((control & 0x01) ? BASICDisable : 0) | ((control & 0x80) ? 0 : MicrodscDisable);
+	int new_paging_flags = ((control & 0x02) ? 0 : BASICDisable) | ((control & 0x80) ? 0 : MicrodscDisable);
 	if(new_paging_flags != paging_flags_)
 	{
 		paging_flags_ = new_paging_flags;
