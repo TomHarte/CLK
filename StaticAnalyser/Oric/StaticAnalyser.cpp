@@ -121,6 +121,7 @@ void StaticAnalyser::Oric::AddTargets(
 
 	// TODO: really this should add two targets if not all votes agree
 	target.oric.use_atmos_rom = basic11_votes >= basic10_votes;
+	if(target.oric.has_microdisc) target.oric.use_atmos_rom = true;
 
 	if(target.tapes.size() || target.disks.size() || target.cartridges.size())
 		destination.push_back(target);
