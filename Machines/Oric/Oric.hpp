@@ -19,6 +19,7 @@
 #include "../../Storage/Tape/Parsers/Oric.hpp"
 
 #include "Video.hpp"
+#include "Microdisc.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -97,18 +98,18 @@ class Machine:
 
 	private:
 		// RAM and ROM
-		std::vector<uint8_t> _basic11, _basic10, _microdisc;
-		uint8_t _ram[65536], _rom[16384];
-		int _cycles_since_video_update;
+		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_;
+		uint8_t ram_[65536], rom_[16384];
+		int cycles_since_video_update_;
 		inline void update_video();
 
 		// ROM bookkeeping
-		bool _is_using_basic11;
-		uint16_t _tape_get_byte_address, _scan_keyboard_address, _tape_speed_address;
-		int _keyboard_read_count;
+		bool is_using_basic11_;
+		uint16_t tape_get_byte_address_, scan_keyboard_address_, tape_speed_address_;
+		int keyboard_read_count_;
 
 		// Outputs
-		std::unique_ptr<VideoOutput> _videoOutput;
+		std::unique_ptr<VideoOutput> video_output_;
 
 		// Keyboard
 		class Keyboard {
@@ -116,7 +117,7 @@ class Machine:
 				uint8_t row;
 				uint8_t rows[8];
 		};
-		int _typer_delay;
+		int typer_delay_;
 
 		// The tape
 		class TapePlayer: public Storage::Tape::BinaryTapePlayer {
@@ -125,9 +126,9 @@ class Machine:
 				uint8_t get_next_byte(bool fast);
 
 			private:
-				Storage::Tape::Oric::Parser _parser;
+				Storage::Tape::Oric::Parser parser_;
 		};
-		bool _use_fast_tape_hack;
+		bool use_fast_tape_hack_;
 
 		// VIA (which owns the tape and the AY)
 		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
@@ -148,11 +149,15 @@ class Machine:
 
 			private:
 				void update_ay();
-				bool _ay_bdir, _ay_bc1;
-				unsigned int _cycles_since_ay_update;
+				bool ay_bdir_, ay_bc1_;
+				unsigned int cycles_since_ay_update_;
 		};
-		VIA _via;
-		std::shared_ptr<Keyboard> _keyboard;
+		VIA via_;
+		std::shared_ptr<Keyboard> keyboard_;
+
+		// the Microdisc, if in use
+		class Microdisc microdisc_;
+		bool microdisc_is_enabled_;
 };
 
 }
