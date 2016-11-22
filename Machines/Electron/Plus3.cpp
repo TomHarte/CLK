@@ -12,8 +12,12 @@ using namespace Electron;
 
 void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 {
-	if(!_drives[drive]) _drives[drive].reset(new Storage::Disk::Drive);
-	_drives[drive]->set_disk(disk);
+	if(!drives_[drive])
+	{
+		drives_[drive].reset(new Storage::Disk::Drive);
+		if(drive == selected_drive_) set_drive(drives_[drive]);
+	}
+	drives_[drive]->set_disk(disk);
 }
 
 void Plus3::set_control_register(uint8_t control)
@@ -25,11 +29,11 @@ void Plus3::set_control_register(uint8_t control)
 	//	bit 3 => single density select
 	switch(control&3)
 	{
-		case 0:		set_drive(nullptr);		break;
-		default:	set_drive(_drives[0]);	break;
-		case 2:		set_drive(_drives[1]);	break;
+		case 0:		selected_drive_ = -1;	set_drive(nullptr);		break;
+		default:	selected_drive_ = 0;	set_drive(drives_[0]);	break;
+		case 2:		selected_drive_ = 1;	set_drive(drives_[1]);	break;
 	}
-	if(_drives[0]) _drives[0]->set_head((control & 0x04) ? 1 : 0);
-	if(_drives[1]) _drives[1]->set_head((control & 0x04) ? 1 : 0);
+	if(drives_[0]) drives_[0]->set_head((control & 0x04) ? 1 : 0);
+	if(drives_[1]) drives_[1]->set_head((control & 0x04) ? 1 : 0);
 	set_is_double_density(!(control & 0x08));
 }
