@@ -55,6 +55,7 @@
 		4B5A12571DD55862007A2231 /* Disassembler6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5A12551DD55862007A2231 /* Disassembler6502.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B5FADBD1DE31D1500AEC565 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBB1DE31D1500AEC565 /* OricMFMDSK.cpp */; };
+		4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
@@ -505,6 +506,8 @@
 		4B5FADB91DE3151600AEC565 /* FileHolder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FileHolder.hpp; sourceTree = "<group>"; };
 		4B5FADBB1DE31D1500AEC565 /* OricMFMDSK.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricMFMDSK.cpp; sourceTree = "<group>"; };
 		4B5FADBC1DE31D1500AEC565 /* OricMFMDSK.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricMFMDSK.hpp; sourceTree = "<group>"; };
+		4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Microdisc.cpp; path = Oric/Microdisc.cpp; sourceTree = "<group>"; };
+		4B5FADBF1DE3BF2B00AEC565 /* Microdisc.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Microdisc.hpp; path = Oric/Microdisc.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
 		4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSStaticAnalyser.mm; path = StaticAnalyser/CSStaticAnalyser.mm; sourceTree = "<group>"; };
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
@@ -1791,6 +1794,8 @@
 		4BCF1FA51DADC3E10039D2E7 /* Oric */ = {
 			isa = PBXGroup;
 			children = (
+				4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */,
+				4B5FADBF1DE3BF2B00AEC565 /* Microdisc.hpp */,
 				4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */,
 				4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */,
 				4BC8A6291DCE4F2700DAC693 /* Typer.cpp */,
@@ -2379,6 +2384,7 @@
 				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
+				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
