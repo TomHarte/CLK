@@ -20,29 +20,29 @@ class VideoOutput {
 		void run_for_cycles(int number_of_cycles);
 
 	private:
-		uint8_t *_ram;
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
+		uint8_t *ram_;
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		// Counters and limits
-		int _counter, _frame_counter;
-		int _v_sync_start_position, _v_sync_end_position, _counter_period;
+		int counter_, frame_counter_;
+		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
 		// Output target
-		uint8_t *_pixel_target;
+		uint8_t *pixel_target_;
 
 		// Registers
-		uint8_t _ink, _paper;
+		uint8_t ink_, paper_;
 
-		int _character_set_base_address;
+		int character_set_base_address_;
 		inline void set_character_set_base_address();
 
-		bool _is_graphics_mode;
-		bool _next_frame_is_sixty_hertz;
-		bool _use_alternative_character_set;
-		bool _use_double_height_characters;
-		bool _blink_text;
+		bool is_graphics_mode_;
+		bool next_frame_is_sixty_hertz_;
+		bool use_alternative_character_set_;
+		bool use_double_height_characters_;
+		bool blink_text_;
 
-		uint8_t _phase;
+		uint8_t phase_;
 };
 
 }
