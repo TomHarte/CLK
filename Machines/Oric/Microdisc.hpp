@@ -29,12 +29,12 @@ class Microdisc: public WD::WD1770 {
 			MicrodscDisable	=	(1 << 1)
 		};
 
-		class Delegate {
+		class Delegate: public WD1770::Delegate {
 			public:
 				virtual void microdisc_did_change_paging_flags(Microdisc *microdisc) = 0;
 		};
-		inline void set_microdisc_delegate(Delegate *delegate)	{	delegate_ = delegate;	}
-		inline int get_paging_flags()							{	return paging_flags_;	}
+		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;	WD1770::set_delegate(delegate);	}
+		inline int get_paging_flags()					{	return paging_flags_;									}
 
 	private:
 		std::shared_ptr<Storage::Disk::Drive> drives_[4];
