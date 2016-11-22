@@ -24,10 +24,24 @@ class Microdisc: public WD::WD1770 {
 
 		bool get_interrupt_request_line();
 
+		enum PagingFlags {
+			BASICDisable	=	(1 << 0),
+			MicrodscDisable	=	(1 << 1)
+		};
+
+		class Delegate {
+			public:
+				virtual void microdisc_did_change_paging_flags(Microdisc *microdisc) = 0;
+		};
+		inline void set_microdisc_delegate(Delegate *delegate)	{	delegate_ = delegate;	}
+		inline int get_paging_flags()							{	return paging_flags_;	}
+
 	private:
 		std::shared_ptr<Storage::Disk::Drive> drives_[4];
 		int selected_drive_;
 		bool irq_enable_;
+		int paging_flags_;
+		Delegate *delegate_;
 };
 
 }

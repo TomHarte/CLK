@@ -10,7 +10,10 @@
 
 using namespace Oric;
 
-Microdisc::Microdisc() : irq_enable_(false)
+Microdisc::Microdisc() :
+	irq_enable_(false),
+	delegate_(nullptr),
+	paging_flags_(BASICDisable)
 {}
 
 void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
@@ -25,9 +28,7 @@ void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 
 void Microdisc::set_control_register(uint8_t control)
 {
-	// b7: EPROM select (0 = select)
-	// b2: data separator clock rate select (1 = double)
-	// b1: ROM disable (0 = disable)
+	// b2: data separator clock rate select (1 = double)	[TODO]
 
 	// b65: drive select
 	selected_drive_ = (control >> 5)&3;
@@ -44,6 +45,15 @@ void Microdisc::set_control_register(uint8_t control)
 
 	// b0: IRQ enable
 	irq_enable_ = !(control & 0x01);
+
+	// b7: EPROM select (0 = select)
+	// b1: ROM disable (0 = disable)
+	int new_paging_flags = ((control & 0x01) ? BASICDisable : 0) | ((control & 0x80) ? 0 : MicrodscDisable);
+	if(new_paging_flags != paging_flags_)
+	{
+		paging_flags_ = new_paging_flags;
+		if(delegate_) delegate_->microdisc_did_change_paging_flags(this);
+	}
 }
 
 bool Microdisc::get_interrupt_request_line()
