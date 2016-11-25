@@ -62,7 +62,8 @@ class Machine:
 	public ConfigurationTarget::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public Utility::TypeRecipient,
-	public Storage::Tape::BinaryTapePlayer::Delegate {
+	public Storage::Tape::BinaryTapePlayer::Delegate,
+	public Microdisc::Delegate {
 
 	public:
 		Machine();
@@ -95,6 +96,11 @@ class Machine:
 
 		// for Utility::TypeRecipient::Delegate
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
+
+		// for Microdisc::Delegate
+		void microdisc_did_change_paging_flags(class Microdisc *microdisc);
+		void wd1770_did_change_interrupt_request_status(WD::WD1770 *wd1770);
+		void wd1770_did_change_data_request_status(WD::WD1770 *wd1770);
 
 	private:
 		// RAM and ROM
@@ -158,6 +164,10 @@ class Machine:
 		// the Microdisc, if in use
 		class Microdisc microdisc_;
 		bool microdisc_is_enabled_;
+		uint16_t ram_top_;
+		uint8_t *paged_rom_;
+
+		inline void set_interrupt_line();
 };
 
 }

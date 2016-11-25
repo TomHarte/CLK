@@ -16,7 +16,9 @@ Machine::Machine() :
 	use_fast_tape_hack_(false),
 	typer_delay_(2500000),
 	keyboard_read_count_(0),
-	keyboard_(new Keyboard)
+	keyboard_(new Keyboard),
+	ram_top_(0xbfff),
+	paged_rom_(rom_)
 {
 	set_clock_rate(1000000);
 	via_.set_interrupt_delegate(this);
@@ -36,6 +38,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 	{
 		set_typer_for_string(target.loadingCommand.c_str());
+	}
+
+	if(target.oric.has_microdisc)
+	{
+		microdisc_is_enabled_ = true;
+		microdisc_did_change_paging_flags(&microdisc_);
+		microdisc_.set_delegate(this);
 	}
 
 	if(target.oric.use_atmos_rom)
@@ -70,13 +79,13 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	if(address >= 0xc000)
+	if(address > ram_top_)
 	{
-		if(isReadOperation(operation)) *value = rom_[address&16383];
+		if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == tape_get_byte_address_ && use_fast_tape_hack_ && operation == CPU6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end())
+		if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end())
 		{
 			uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
 			set_value_of_register(CPU6502::A, next_byte);
@@ -88,8 +97,28 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		if((address & 0xff00) == 0x0300)
 		{
-			if(isReadOperation(operation)) *value = via_.get_register(address);
-			else via_.set_register(address, *value);
+			if(microdisc_is_enabled_ && address >= 0x0310)
+			{
+				switch(address)
+				{
+					case 0x0310: case 0x0311: case 0x0312: case 0x0313:
+						if(isReadOperation(operation)) *value = microdisc_.get_register(address);
+						else microdisc_.set_register(address, *value);
+					break;
+					case 0x314:
+						if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
+						else microdisc_.set_control_register(*value);
+					break;
+					case 0x318:
+						if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
+					break;
+				}
+			}
+			else
+			{
+				if(isReadOperation(operation)) *value = via_.get_register(address);
+				else via_.set_register(address, *value);
+			}
 		}
 		else
 		{
@@ -97,7 +126,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				*value = ram_[address];
 			else
 			{
-				if(address >= 0x9800) { update_video(); typer_delay_ = 0; }
+				if(address >= 0x9800 && address <= 0xc000) { update_video(); typer_delay_ = 0; }
 				ram_[address] = *value;
 			}
 		}
@@ -147,7 +176,7 @@ void Machine::close_output()
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	set_irq_line(via_.get_interrupt_line());
+	set_interrupt_line();
 }
 
 void Machine::set_key_state(uint16_t key, bool isPressed)
@@ -268,4 +297,45 @@ Machine::TapePlayer::TapePlayer() :
 uint8_t Machine::TapePlayer::get_next_byte(bool fast)
 {
 	return (uint8_t)parser_.get_next_byte(get_tape(), fast);
+}
+
+#pragma mark - Microdisc
+
+void Machine::microdisc_did_change_paging_flags(class Microdisc *microdisc)
+{
+	int flags = microdisc->get_paging_flags();
+	if(!(flags&Microdisc::PagingFlags::BASICDisable))
+	{
+		ram_top_ = 0xbfff;
+		paged_rom_ = rom_;
+	}
+	else
+	{
+		if(flags&Microdisc::PagingFlags::MicrodscDisable)
+		{
+			ram_top_ = 0xffff;
+		}
+		else
+		{
+			ram_top_ = 0xdfff;
+			paged_rom_ = microdisc_rom_.data();
+		}
+	}
+}
+
+void Machine::wd1770_did_change_interrupt_request_status(WD::WD1770 *wd1770)
+{
+	set_interrupt_line();
+}
+
+void Machine::wd1770_did_change_data_request_status(WD::WD1770 *wd1770)
+{
+	// Don't care.
+}
+
+void Machine::set_interrupt_line()
+{
+	set_irq_line(
+		via_.get_interrupt_line() ||
+		(microdisc_is_enabled_ && microdisc_.get_interrupt_request_line()));
 }
