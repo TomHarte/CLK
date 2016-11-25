@@ -261,6 +261,7 @@ void WD1770::posit_event(Event new_event_type)
 		status_ &= ~Flag::Busy;
 		index_hole_count_ = 0;
 		WAIT_FOR_EVENT(Event::Command);
+		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
 		printf("Starting %02x\n", command_);
 		status_ |= Flag::Busy;
 		if(!(command_ & 0x80)) goto begin_type_1;
