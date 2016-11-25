@@ -44,7 +44,7 @@ void Microdisc::set_control_register(uint8_t control)
 	set_is_double_density(!(control & 0x08));
 
 	// b0: IRQ enable
-	irq_enable_ = !(control & 0x01);
+	irq_enable_ = !!(control & 0x01);
 
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
@@ -63,10 +63,10 @@ bool Microdisc::get_interrupt_request_line()
 
 uint8_t Microdisc::get_interrupt_request_register()
 {
-	return get_interrupt_request_line() ? 0x00 : 0x80;
+	return 0x7f | (get_interrupt_request_line() ? 0x00 : 0x80);
 }
 
 uint8_t Microdisc::get_data_request_register()
 {
-	return get_data_request_line() ? 0x00 : 0x80;
+	return 0x7f | (get_data_request_line() ? 0x00 : 0x80);
 }
