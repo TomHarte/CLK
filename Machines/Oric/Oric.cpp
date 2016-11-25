@@ -18,7 +18,8 @@ Machine::Machine() :
 	keyboard_read_count_(0),
 	keyboard_(new Keyboard),
 	ram_top_(0xbfff),
-	paged_rom_(rom_)
+	paged_rom_(rom_),
+	microdisc_is_enabled_(false)
 {
 	set_clock_rate(1000000);
 	via_.set_interrupt_delegate(this);
