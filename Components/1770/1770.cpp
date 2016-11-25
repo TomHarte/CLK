@@ -1,4 +1,4 @@
-//
+	//
 //  1770.cpp
 //  Clock Signal
 //
@@ -44,9 +44,17 @@ void WD1770::set_register(int address, uint8_t value)
 	switch(address&3)
 	{
 		case 0:
-			command_ = value;
-			posit_event(Event::Command);
-			// TODO: is this force interrupt?
+		{
+			if((value&0xf0) == 0xd0)
+			{
+				printf("!!!TODO: force interrupt!!!\n");
+			}
+			else
+			{
+				command_ = value;
+				posit_event(Event::Command);
+			}
+		}
 		break;
 		case 1:		track_ = value;		break;
 		case 2:		sector_ = value;	break;
