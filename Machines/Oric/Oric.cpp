@@ -48,6 +48,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		microdisc_.set_delegate(this);
 	}
 
+	int drive_index = 0;
+	for(auto disk : target.disks)
+	{
+		if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
+		drive_index++;
+	}
+
 	if(target.oric.use_atmos_rom)
 	{
 		memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
