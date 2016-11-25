@@ -117,7 +117,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
 						else microdisc_.set_control_register(*value);
 					break;
-					case 0x318: case 0x319: case 0x31a: 0x31b:
+					case 0x318: case 0x319: case 0x31a: case 0x31b:
 						if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
 					break;
 				}
