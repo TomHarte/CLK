@@ -34,9 +34,9 @@ class D64: public Disk, public Storage::FileHolder {
 
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
+		std::shared_ptr<Track> virtual_get_track_at_position(unsigned int head, unsigned int position);
 		unsigned int number_of_tracks_;
 		uint16_t disk_id_;
 };

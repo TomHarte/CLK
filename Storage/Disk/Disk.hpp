@@ -10,6 +10,7 @@
 #define Disk_hpp
 
 #include <memory>
+#include <map>
 #include "../Storage.hpp"
 
 namespace Storage {
@@ -81,7 +82,13 @@ class Disk {
 		/*!
 			Returns the @c Track at @c position if there are any detectable events there; returns @c nullptr otherwise.
 		*/
-		virtual std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position) = 0;
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+
+	protected:
+		virtual std::shared_ptr<Track> virtual_get_track_at_position(unsigned int head, unsigned int position) = 0;
+
+	private:
+		std::map<int, std::shared_ptr<Track>> cached_tracks_;
 };
 
 }
