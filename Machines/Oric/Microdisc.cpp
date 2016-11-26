@@ -44,7 +44,13 @@ void Microdisc::set_control_register(uint8_t control)
 	set_is_double_density(!(control & 0x08));
 
 	// b0: IRQ enable
+	bool had_irq = get_interrupt_request_line();
 	irq_enable_ = !!(control & 0x01);
+	bool has_irq = get_interrupt_request_line();
+	if(has_irq != had_irq && delegate_)
+	{
+		delegate_->wd1770_did_change_interrupt_request_status(this);
+	}
 
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
