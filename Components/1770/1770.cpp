@@ -196,11 +196,11 @@ void WD1770::process_index_hole()
 	}
 
 	// motor power-down
-	if(index_hole_count_ == 9 && !(status_&Flag::Busy))
-	{
-		status_ &= ~Flag::MotorOn;
-		set_motor_on(false);
-	}
+//	if(index_hole_count_ == 9 && !(status_&Flag::Busy))
+//	{
+//		status_ &= ~Flag::MotorOn;
+//		set_motor_on(false);
+//	}
 }
 
 //     +------+----------+-------------------------+
@@ -266,6 +266,8 @@ void WD1770::posit_event(Event new_event_type)
 //		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
 		printf("Starting %02x\n", command_);
 		status_ |= Flag::Busy;
+		if(command_ == 0x8c)
+			printf(".");
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
 		goto begin_type_3;
