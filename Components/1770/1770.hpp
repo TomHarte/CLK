@@ -15,7 +15,11 @@ namespace WD {
 
 class WD1770: public Storage::Disk::Controller {
 	public:
-		WD1770();
+		enum Personality {
+			P1770,
+			P1773
+		};
+		WD1770(Personality p);
 
 		void set_is_double_density(bool is_double_density);
 		void set_register(int address, uint8_t value);
@@ -48,6 +52,8 @@ class WD1770: public Storage::Disk::Controller {
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
 
 	private:
+		Personality personality_;
+
 		uint8_t status_;
 		uint8_t track_;
 		uint8_t sector_;

@@ -11,7 +11,7 @@
 
 using namespace WD;
 
-WD1770::WD1770() :
+WD1770::WD1770(Personality p) :
 	Storage::Disk::Controller(8000000, 16, 300),
 	status_(0),
 	interesting_event_mask_(Event::Command),
@@ -22,7 +22,8 @@ WD1770::WD1770() :
 	is_reading_data_(false),
 	interrupt_request_line_(false),
 	data_request_line_(false),
-	delegate_(nullptr)
+	delegate_(nullptr),
+	personality_(p)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);

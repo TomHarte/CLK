@@ -13,7 +13,8 @@ using namespace Oric;
 Microdisc::Microdisc() :
 	irq_enable_(false),
 	delegate_(nullptr),
-	paging_flags_(BASICDisable)
+	paging_flags_(BASICDisable),
+	WD1770(P1773)
 {}
 
 void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)

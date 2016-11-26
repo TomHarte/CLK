@@ -10,6 +10,8 @@
 
 using namespace Electron;
 
+Plus3::Plus3() : WD1770(P1770) {}
+
 void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 {
 	if(!drives_[drive])
