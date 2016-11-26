@@ -39,7 +39,7 @@ class G64: public Disk, public Storage::FileHolder {
 		unsigned int get_head_position_count();
 
 	private:
-		std::shared_ptr<Track> virtual_get_track_at_position(unsigned int head, unsigned int position);
+		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 		uint8_t number_of_tracks_;
 		uint16_t maximum_track_size_;
 };

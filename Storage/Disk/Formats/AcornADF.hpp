@@ -36,7 +36,7 @@ class AcornADF: public Disk, public Storage::FileHolder {
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
 	private:
-		std::shared_ptr<Track> virtual_get_track_at_position(unsigned int head, unsigned int position);
+		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 };
 
 }

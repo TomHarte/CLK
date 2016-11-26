@@ -37,7 +37,7 @@ class OricMFMDSK: public Disk, public Storage::FileHolder {
 		unsigned int get_head_count();
 
 	private:
-		std::shared_ptr<Track> virtual_get_track_at_position(unsigned int head, unsigned int position);
+		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 		uint32_t head_count_;
 		uint32_t track_count_;
 		uint32_t geometry_type_;

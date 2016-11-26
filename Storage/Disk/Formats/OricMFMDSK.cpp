@@ -36,7 +36,7 @@ unsigned int OricMFMDSK::get_head_count()
 	return head_count_;
 }
 
-std::shared_ptr<Track> OricMFMDSK::virtual_get_track_at_position(unsigned int head, unsigned int position)
+std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	long seek_offset = 0;
 	switch(geometry_type_)
