@@ -260,8 +260,10 @@ void WD1770::posit_event(Event new_event_type)
 		is_reading_data_ = false;
 		status_ &= ~Flag::Busy;
 		index_hole_count_ = 0;
+		set_interrupt_request(true);
 		WAIT_FOR_EVENT(Event::Command);
-		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
+		set_interrupt_request(false);
+//		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
 		printf("Starting %02x\n", command_);
 		status_ |= Flag::Busy;
 		if(!(command_ & 0x80)) goto begin_type_1;
@@ -275,7 +277,6 @@ void WD1770::posit_event(Event new_event_type)
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
 		status_ &= ~Flag::SeekError;
-		set_interrupt_request(false);
 		set_data_request(false);
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type1_type;
 
@@ -330,7 +331,6 @@ void WD1770::posit_event(Event new_event_type)
 	verify:
 		if(!(command_ & 0x04))
 		{
-			set_interrupt_request(true);
 			goto wait_for_command;
 		}
 
@@ -343,7 +343,6 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 6)
 		{
-			set_interrupt_request(true);
 			status_ |= Flag::SeekError;
 			goto wait_for_command;
 		}
@@ -355,7 +354,6 @@ void WD1770::posit_event(Event new_event_type)
 			{
 				printf("Reached track %d\n", track_);
 				status_ &= ~Flag::CRCError;
-				set_interrupt_request(true);
 				goto wait_for_command;
 			}
 
@@ -369,7 +367,6 @@ void WD1770::posit_event(Event new_event_type)
 	*/
 	begin_type_2:
 		status_ &= ~(Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
-		set_interrupt_request(false);
 		set_data_request(false);
 		distance_into_section_ = 0;
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
@@ -385,7 +382,6 @@ void WD1770::posit_event(Event new_event_type)
 	test_type2_write_protection:
 		if(command_&0x20) // TODO:: && is_write_protected
 		{
-			set_interrupt_request(true);
 			status_ |= Flag::WriteProtect;
 			goto wait_for_command;
 		}
@@ -396,7 +392,6 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 5)
 		{
-			set_interrupt_request(true);
 			status_ |= Flag::RecordNotFound;
 			goto wait_for_command;
 		}
@@ -456,7 +451,6 @@ void WD1770::posit_event(Event new_event_type)
 				sector_++;
 				goto test_type2_write_protection;
 			}
-			set_interrupt_request(true);
 			printf("Read sector %d\n", sector_);
 			goto wait_for_command;
 		}
