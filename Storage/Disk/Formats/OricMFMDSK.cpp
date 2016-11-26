@@ -21,7 +21,7 @@ OricMFMDSK::OricMFMDSK(const char *file_name) :
 	track_count_ = fgetc32le();
 	geometry_type_ = fgetc32le();
 
-	if(geometry_type_ > 1)
+	if(geometry_type_ < 1 || geometry_type_ > 2)
 		throw ErrorNotOricMFMDSK;
 }
 
@@ -40,10 +40,10 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 	long offset = 0;
 	switch(geometry_type_)
 	{
-		case 0:
+		case 1:
 			offset = (head * track_count_) + position;
 		break;
-		case 1:
+		case 2:
 			offset = (position * track_count_ * head_count_) + head;
 		break;
 	}
