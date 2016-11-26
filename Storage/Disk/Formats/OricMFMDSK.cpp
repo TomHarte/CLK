@@ -49,6 +49,10 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 	}
 	fseek(file_, (offset * 6400) + 256, SEEK_SET);
 
+	// TODO: upon review, the file format actually seems to omit clock bits. So it's not an MFM capture.
+	// A consumer must contextually guess when an FB, FC, etc is meant to be a control mark. So turfing
+	// the data over directly as below isn't correct.
+
 	PCMSegment segment;
 	segment.number_of_bits = 6250*8;
 	segment.data.resize(6250);
