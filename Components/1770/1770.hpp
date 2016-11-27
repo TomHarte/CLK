@@ -54,7 +54,8 @@ class WD1770: public Storage::Disk::Controller {
 	private:
 		Personality personality_;
 
-		uint8_t status_;
+		uint8_t status_;	// TODO: to ensure correctness, this probably needs either to be a different value per command type,
+							// or — probably more easily — to be an ordinary struct of flags with the value put together upon request.
 		uint8_t track_;
 		uint8_t sector_;
 		uint8_t data_;

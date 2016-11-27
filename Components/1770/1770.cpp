@@ -372,6 +372,7 @@ void WD1770::posit_event(Event new_event_type)
 		status_ &= ~(Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
 		set_data_request(false);
 		distance_into_section_ = 0;
+		// TODO: this bit doesn't mean this if the personality is 1773.
 		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
 
 		// Perform spin up.
@@ -401,6 +402,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 7)
 		{
 			is_reading_data_ = false;
+			// TODO: check the side too, if this is a 1773 and we've been asked to.
 			if(header_[0] == track_ && header_[2] == sector_)
 			{
 				// TODO: test CRC
