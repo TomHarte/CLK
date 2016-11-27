@@ -17,6 +17,7 @@ class WD1770: public Storage::Disk::Controller {
 	public:
 		enum Personality {
 			P1770,
+			P1772,
 			P1773
 		};
 		WD1770(Personality p);
