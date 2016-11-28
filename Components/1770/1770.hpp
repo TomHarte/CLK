@@ -16,9 +16,10 @@ namespace WD {
 class WD1770: public Storage::Disk::Controller {
 	public:
 		enum Personality {
-			P1770,
-			P1772,
-			P1773
+			P1770,	// implies automatic motor-on management with Type 2 commands offering a spin-up disable
+			P1772,	// as per the 1770, with different stepping rates
+			P1773,	// implements the side number-testing logic of the 1793; omits spin-up/loading logic
+			P1793	// implies Type 2 commands use side number testing logic; spin-up/loading is by HLD and HLT
 		};
 		WD1770(Personality p);
 
