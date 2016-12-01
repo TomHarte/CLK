@@ -58,6 +58,7 @@ class WD1770: public Storage::Disk::Controller {
 		inline bool is_73() { return (personality_ == P1793 ) || (personality_ == P1773); }
 
 		struct Status {
+			Status();
 			bool write_protect;
 			bool record_type;
 			bool spin_up;
@@ -65,7 +66,7 @@ class WD1770: public Storage::Disk::Controller {
 			bool crc_error;
 			bool seek_error;
 			bool lost_data;
-			bool data_request;
+//			bool data_request;	// TODO: pick between this and data_request_line_
 			bool busy;
 			enum {
 				One, Two, Three

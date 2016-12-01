@@ -11,6 +11,19 @@
 
 using namespace WD;
 
+WD1770::Status::Status() :
+	type(Status::One),
+	write_protect(false),
+	record_type(false),
+	spin_up(false),
+	record_not_found(false),
+	crc_error(false),
+	seek_error(false),
+	lost_data(false),
+//	data_request(false),
+	busy(false)
+{}
+
 WD1770::WD1770(Personality p) :
 	Storage::Disk::Controller(8000000, 16, 300),
 	interesting_event_mask_(Event::Command),
@@ -87,7 +100,7 @@ uint8_t WD1770::get_register(int address)
 					status |=
 						(status_.record_type ? Flag::RecordType : 0) |
 						(status_.lost_data ? Flag::LostData : 0) |
-						(status_.data_request ? Flag::DataRequest : 0) |
+						(data_request_line_ ? Flag::DataRequest : 0) |
 						(status_.record_not_found ? Flag::RecordNotFound : 0);
 				break;
 			}
@@ -297,10 +310,16 @@ void WD1770::posit_event(Event new_event_type)
 		is_reading_data_ = false;
 		status_.busy = false;
 		index_hole_count_ = 0;
+
+		if(is_73())
+		{
+			// TODO: ???
+			set_motor_on(false);
+		}
+
 		set_interrupt_request(true);
 		WAIT_FOR_EVENT(Event::Command);
 		set_interrupt_request(false);
-//		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
 		printf("Starting %02x\n", command_);
 
 		if(is_73())
@@ -320,6 +339,7 @@ void WD1770::posit_event(Event new_event_type)
 	*/
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
+		status_.type = Status::One;
 		status_.seek_error = false;
 		status_.crc_error = false;
 		set_data_request(false);
@@ -411,6 +431,7 @@ void WD1770::posit_event(Event new_event_type)
 		Type 2 entry point.
 	*/
 	begin_type_2:
+		status_.type = Status::Two;
 		status_.lost_data = status_.record_not_found = status_.write_protect = status_.record_type = false;
 		set_data_request(false);
 		distance_into_section_ = 0;
@@ -508,6 +529,7 @@ void WD1770::posit_event(Event new_event_type)
 		printf("!!!TODO: data portion of sector!!!\n");
 
 	begin_type_3:
+		status_.type = Status::Three;
 		printf("!!!TODO: type 3 commands!!!\n");
 
 
