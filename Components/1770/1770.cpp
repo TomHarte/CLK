@@ -13,7 +13,6 @@ using namespace WD;
 
 WD1770::WD1770(Personality p) :
 	Storage::Disk::Controller(8000000, 16, 300),
-	status_(0),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
 	delay_time_(0),
@@ -49,6 +48,7 @@ void WD1770::set_register(int address, uint8_t value)
 			if((value&0xf0) == 0xd0)
 			{
 				printf("!!!TODO: force interrupt!!!\n");
+				status_.type = Status::One;
 			}
 			else
 			{
@@ -67,7 +67,44 @@ uint8_t WD1770::get_register(int address)
 {
 	switch(address&3)
 	{
-		default:	return status_ | (data_request_line_ ? Flag::DataRequest : 0);
+		default:
+		{
+			uint8_t status =
+					(status_.write_protect ? Flag::WriteProtect : 0) |
+					(status_.crc_error ? Flag::CRCError : 0) |
+					(status_.busy ? Flag::Busy : 0);
+			switch(status_.type)
+			{
+				case Status::One:
+					status |=
+						(get_is_track_zero() ? Flag::TrackZero : 0) |
+						(status_.seek_error ? Flag::SeekError : 0);
+						// TODO: index hole
+				break;
+
+				case Status::Two:
+				case Status::Three:
+					status |=
+						(status_.record_type ? Flag::RecordType : 0) |
+						(status_.lost_data ? Flag::LostData : 0) |
+						(status_.data_request ? Flag::DataRequest : 0) |
+						(status_.record_not_found ? Flag::RecordNotFound : 0);
+				break;
+			}
+
+			if(is_73())
+			{
+				// TODO: sample ready line for bit 7
+				// TODO: report head loaded if reporting a Type 1 status
+			}
+			else
+			{
+				status |= (get_motor_on() ? Flag::MotorOn : 0);
+				if(status_.type == Status::One)
+					status |= (status_.spin_up ? Flag::SpinUp : 0);
+			}
+			return status;
+		}
 		case 1:		return track_;
 		case 2:		return sector_;
 		case 3:		set_data_request(false); return data_;
@@ -197,11 +234,10 @@ void WD1770::process_index_hole()
 	}
 
 	// motor power-down
-//	if(index_hole_count_ == 9 && !(status_&Flag::Busy))
-//	{
-//		status_ &= ~Flag::MotorOn;
-//		set_motor_on(false);
-//	}
+	if(index_hole_count_ == 9 && !status_.busy && !is_73())
+	{
+		set_motor_on(false);
+	}
 }
 
 //     +------+----------+-------------------------+
@@ -242,11 +278,11 @@ void WD1770::process_index_hole()
 #define LINE_LABEL INDIRECT_CONCATENATE(label, __LINE__)
 
 #define SPIN_UP()	\
-		status_ |= Flag::MotorOn;	\
 		set_motor_on(true);	\
 		index_hole_count_ = 0;	\
 		index_hole_count_target_ = 6;	\
-		WAIT_FOR_EVENT(Event::IndexHoleTarget);
+		WAIT_FOR_EVENT(Event::IndexHoleTarget);	\
+		status_.spin_up = true;
 
 void WD1770::posit_event(Event new_event_type)
 {
@@ -259,16 +295,21 @@ void WD1770::posit_event(Event new_event_type)
 	wait_for_command:
 		printf("Idle...\n");
 		is_reading_data_ = false;
-		status_ &= ~Flag::Busy;
+		status_.busy = false;
 		index_hole_count_ = 0;
 		set_interrupt_request(true);
 		WAIT_FOR_EVENT(Event::Command);
 		set_interrupt_request(false);
 //		WAIT_FOR_TIME(1);	// TODO: what should the time cost here really be?
 		printf("Starting %02x\n", command_);
-		status_ |= Flag::Busy;
-		if(command_ == 0x8c)
-			printf(".");
+
+		if(is_73())
+		{
+			// TODO: set HDL, wait for HDT
+			set_motor_on(true);
+		}
+
+		status_.busy = true;
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
 		goto begin_type_3;
@@ -279,13 +320,14 @@ void WD1770::posit_event(Event new_event_type)
 	*/
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
-		status_ &= ~Flag::SeekError;
+		status_.seek_error = false;
+		status_.crc_error = false;
 		set_data_request(false);
-		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type1_type;
+
+		if((command_&0x08) || get_motor_on() || is_73()) goto test_type1_type;
 
 		// Perform spin up.
 		SPIN_UP();
-		status_ |= Flag::SpinUp;
 
 	test_type1_type:
 		// Set step direction if this is a step in or out.
@@ -318,10 +360,10 @@ void WD1770::posit_event(Event new_event_type)
 		switch(command_ & 3)
 		{
 			default:
-			case 0: time_to_wait = 6;	break;	// 2 on a 1772
-			case 1: time_to_wait = 12;	break;	// 3 on a 1772
-			case 2: time_to_wait = 20;	break;	// 5 on a 1772
-			case 3: time_to_wait = 30;	break;	// 6 on a 1772
+			case 0: time_to_wait = 6;	break;
+			case 1: time_to_wait = 12;	break;
+			case 2: time_to_wait = (personality_ == P1772) ? 2 : 20;	break;
+			case 3: time_to_wait = (personality_ == P1772) ? 3 : 30;	break;
 		}
 		WAIT_FOR_TIME(time_to_wait);
 		if(command_ >> 5) goto verify;
@@ -346,7 +388,7 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 6)
 		{
-			status_ |= Flag::SeekError;
+			status_.seek_error = true;
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7)
@@ -356,7 +398,7 @@ void WD1770::posit_event(Event new_event_type)
 			if(header_[0] == track_)
 			{
 				printf("Reached track %d\n", track_);
-				status_ &= ~Flag::CRCError;
+				status_.crc_error = false;
 				goto wait_for_command;
 			}
 
@@ -369,11 +411,11 @@ void WD1770::posit_event(Event new_event_type)
 		Type 2 entry point.
 	*/
 	begin_type_2:
-		status_ &= ~(Flag::LostData | Flag::RecordNotFound | Flag::WriteProtect | Flag::RecordType);
+		status_.lost_data = status_.record_not_found = status_.write_protect = status_.record_type = false;
 		set_data_request(false);
 		distance_into_section_ = 0;
-		// TODO: this bit doesn't mean this if the personality is 1773.
-		if((command_&0x08) || (status_ & Flag::MotorOn)) goto test_type2_delay;
+
+		if((command_&0x08) || get_motor_on() || is_73()) goto test_type2_delay;
 
 		// Perform spin up.
 		SPIN_UP();
@@ -386,7 +428,7 @@ void WD1770::posit_event(Event new_event_type)
 	test_type2_write_protection:
 		if(command_&0x20) // TODO:: && is_write_protected
 		{
-			status_ |= Flag::WriteProtect;
+			status_.write_protect = true;
 			goto wait_for_command;
 		}
 
@@ -396,14 +438,14 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 5)
 		{
-			status_ |= Flag::RecordNotFound;
+			status_.record_not_found = true;
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7)
 		{
 			is_reading_data_ = false;
-			// TODO: check the side too, if this is a 1773 and we've been asked to.
-			if(header_[0] == track_ && header_[2] == sector_)
+			if(header_[0] == track_ && header_[2] == sector_ &&
+				(!is_73() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
 				// TODO: test CRC
 				goto type2_read_or_write_data;
@@ -422,7 +464,7 @@ void WD1770::posit_event(Event new_event_type)
 		// TODO: timeout
 		if(latest_token_.type == Token::Data || latest_token_.type == Token::DeletedData)
 		{
-			status_ |= (latest_token_.type == Token::DeletedData) ? Flag::RecordType : 0;
+			status_.record_type = (latest_token_.type == Token::DeletedData);
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
 			goto type2_read_byte;
@@ -432,7 +474,7 @@ void WD1770::posit_event(Event new_event_type)
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		if(data_request_line_) status_ |= Flag::LostData;
+		status_.lost_data |= data_request_line_;
 		data_ = latest_token_.byte_value;
 		set_data_request(true);
 		distance_into_section_++;

@@ -55,9 +55,22 @@ class WD1770: public Storage::Disk::Controller {
 
 	private:
 		Personality personality_;
+		inline bool is_73() { return (personality_ == P1793 ) || (personality_ == P1773); }
 
-		uint8_t status_;	// TODO: to ensure correctness, this probably needs either to be a different value per command type,
-							// or — probably more easily — to be an ordinary struct of flags with the value put together upon request.
+		struct Status {
+			bool write_protect;
+			bool record_type;
+			bool spin_up;
+			bool record_not_found;
+			bool crc_error;
+			bool seek_error;
+			bool lost_data;
+			bool data_request;
+			bool busy;
+			enum {
+				One, Two, Three
+			} type;
+		} status_;
 		uint8_t track_;
 		uint8_t sector_;
 		uint8_t data_;

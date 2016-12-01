@@ -139,6 +139,11 @@ void Controller::set_motor_on(bool motor_on)
 	_motor_is_on = motor_on;
 }
 
+bool Controller::get_motor_on()
+{
+	return _motor_is_on;
+}
+
 void Controller::set_drive(std::shared_ptr<Drive> drive)
 {
 	_drive = drive;
