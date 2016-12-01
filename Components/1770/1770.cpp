@@ -1,4 +1,4 @@
-	//
+//
 //  1770.cpp
 //  Clock Signal
 //
@@ -20,7 +20,7 @@ WD1770::Status::Status() :
 	crc_error(false),
 	seek_error(false),
 	lost_data(false),
-//	data_request(false),
+	data_request(false),
 	busy(false)
 {}
 
@@ -32,8 +32,6 @@ WD1770::WD1770(Personality p) :
 	index_hole_count_target_(-1),
 	is_awaiting_marker_value_(false),
 	is_reading_data_(false),
-	interrupt_request_line_(false),
-	data_request_line_(false),
 	delegate_(nullptr),
 	personality_(p)
 {
@@ -61,7 +59,9 @@ void WD1770::set_register(int address, uint8_t value)
 			if((value&0xf0) == 0xd0)
 			{
 				printf("!!!TODO: force interrupt!!!\n");
-				status_.type = Status::One;
+				update_status([] (Status &status) {
+					status.type = Status::One;
+				});
 			}
 			else
 			{
@@ -100,12 +100,12 @@ uint8_t WD1770::get_register(int address)
 					status |=
 						(status_.record_type ? Flag::RecordType : 0) |
 						(status_.lost_data ? Flag::LostData : 0) |
-						(data_request_line_ ? Flag::DataRequest : 0) |
+						(status_.data_request ? Flag::DataRequest : 0) |
 						(status_.record_not_found ? Flag::RecordNotFound : 0);
 				break;
 			}
 
-			if(is_73())
+			if(!has_motor_on_line())
 			{
 				// TODO: sample ready line for bit 7
 				// TODO: report head loaded if reporting a Type 1 status
@@ -120,7 +120,11 @@ uint8_t WD1770::get_register(int address)
 		}
 		case 1:		return track_;
 		case 2:		return sector_;
-		case 3:		set_data_request(false); return data_;
+		case 3:
+			update_status([] (Status &status) {
+				status.data_request = false;
+			});
+		return data_;
 	}
 }
 
@@ -247,7 +251,7 @@ void WD1770::process_index_hole()
 	}
 
 	// motor power-down
-	if(index_hole_count_ == 9 && !status_.busy && !is_73())
+	if(index_hole_count_ == 9 && !status_.busy && has_motor_on_line())
 	{
 		set_motor_on(false);
 	}
@@ -302,33 +306,39 @@ void WD1770::posit_event(Event new_event_type)
 	if(!(interesting_event_mask_ & (int)new_event_type)) return;
 	interesting_event_mask_ &= ~new_event_type;
 
+	Status new_status;
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
 		printf("Idle...\n");
 		is_reading_data_ = false;
-		status_.busy = false;
 		index_hole_count_ = 0;
 
-		if(is_73())
+		if(!has_motor_on_line())
 		{
 			// TODO: ???
 			set_motor_on(false);
 		}
 
-		set_interrupt_request(true);
+		update_status([] (Status &status) {
+			status.busy = false;
+		});
+
 		WAIT_FOR_EVENT(Event::Command);
-		set_interrupt_request(false);
+
+		update_status([] (Status &status) {
+			status.busy = true;
+		});
+
 		printf("Starting %02x\n", command_);
 
-		if(is_73())
+		if(!has_motor_on_line())
 		{
 			// TODO: set HDL, wait for HDT
 			set_motor_on(true);
 		}
 
-		status_.busy = true;
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
 		goto begin_type_3;
@@ -339,12 +349,14 @@ void WD1770::posit_event(Event new_event_type)
 	*/
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
-		status_.type = Status::One;
-		status_.seek_error = false;
-		status_.crc_error = false;
-		set_data_request(false);
+		update_status([] (Status &status) {
+			status.type = Status::One;
+			status.seek_error = false;
+			status.crc_error = false;
+			status.data_request = false;
+		});
 
-		if((command_&0x08) || get_motor_on() || is_73()) goto test_type1_type;
+		if((command_&0x08) || get_motor_on() || !has_motor_on_line()) goto test_type1_type;
 
 		// Perform spin up.
 		SPIN_UP();
@@ -408,7 +420,9 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 6)
 		{
-			status_.seek_error = true;
+			update_status([] (Status &status) {
+				status.seek_error = true;
+			});
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7)
@@ -418,7 +432,9 @@ void WD1770::posit_event(Event new_event_type)
 			if(header_[0] == track_)
 			{
 				printf("Reached track %d\n", track_);
-				status_.crc_error = false;
+				update_status([] (Status &status) {
+					status.crc_error = false;
+				});
 				goto wait_for_command;
 			}
 
@@ -431,12 +447,17 @@ void WD1770::posit_event(Event new_event_type)
 		Type 2 entry point.
 	*/
 	begin_type_2:
-		status_.type = Status::Two;
-		status_.lost_data = status_.record_not_found = status_.write_protect = status_.record_type = false;
-		set_data_request(false);
+		update_status([] (Status &status) {
+			status.type = Status::Two;
+			status.lost_data = false;
+			status.record_not_found = false;
+			status.write_protect = false;
+			status.record_type = false;
+			status.data_request = false;
+		});
 		distance_into_section_ = 0;
 
-		if((command_&0x08) || get_motor_on() || is_73()) goto test_type2_delay;
+		if((command_&0x08) || get_motor_on() || !has_motor_on_line()) goto test_type2_delay;
 
 		// Perform spin up.
 		SPIN_UP();
@@ -449,7 +470,9 @@ void WD1770::posit_event(Event new_event_type)
 	test_type2_write_protection:
 		if(command_&0x20) // TODO:: && is_write_protected
 		{
-			status_.write_protect = true;
+			update_status([] (Status &status) {
+				status.write_protect = true;
+			});
 			goto wait_for_command;
 		}
 
@@ -459,14 +482,16 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 5)
 		{
-			status_.record_not_found = true;
+			update_status([] (Status &status) {
+				status.record_not_found = true;
+			});
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7)
 		{
 			is_reading_data_ = false;
 			if(header_[0] == track_ && header_[2] == sector_ &&
-				(!is_73() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
+				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
 				// TODO: test CRC
 				goto type2_read_or_write_data;
@@ -485,7 +510,9 @@ void WD1770::posit_event(Event new_event_type)
 		// TODO: timeout
 		if(latest_token_.type == Token::Data || latest_token_.type == Token::DeletedData)
 		{
-			status_.record_type = (latest_token_.type == Token::DeletedData);
+			update_status([this] (Status &status) {
+				status.record_type = (latest_token_.type == Token::DeletedData);
+			});
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
 			goto type2_read_byte;
@@ -495,9 +522,11 @@ void WD1770::posit_event(Event new_event_type)
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		status_.lost_data |= data_request_line_;
 		data_ = latest_token_.byte_value;
-		set_data_request(true);
+		update_status([] (Status &status) {
+			status.lost_data |= status.data_request;
+			status.data_request = true;
+		});
 		distance_into_section_++;
 		if(distance_into_section_ == 128 << header_[3])
 		{
@@ -529,27 +558,25 @@ void WD1770::posit_event(Event new_event_type)
 		printf("!!!TODO: data portion of sector!!!\n");
 
 	begin_type_3:
-		status_.type = Status::Three;
+		update_status([] (Status &status) {
+			status.type = Status::Three;
+		});
 		printf("!!!TODO: type 3 commands!!!\n");
 
 
 	END_SECTION()
 }
 
-void WD1770::set_interrupt_request(bool interrupt_request)
+void WD1770::update_status(std::function<void(Status &)> updater)
 {
-	if(interrupt_request_line_ != interrupt_request)
+	if(delegate_)
 	{
-		interrupt_request_line_ = interrupt_request;
-		if(delegate_) delegate_->wd1770_did_change_interrupt_request_status(this);
+		Status old_status = status_;
+		updater(status_);
+		bool did_change =
+			(status_.busy != old_status.busy) ||
+			(status_.data_request != old_status.data_request);
+		if(did_change) delegate_->wd1770_did_change_output(this);
 	}
-}
-
-void WD1770::set_data_request(bool data_request)
-{
-	if(data_request_line_ != data_request)
-	{
-		data_request_line_ = data_request;
-		if(delegate_) delegate_->wd1770_did_change_data_request_status(this);
-	}
+	else updater(status_);
 }

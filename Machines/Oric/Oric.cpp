@@ -332,14 +332,9 @@ void Machine::microdisc_did_change_paging_flags(class Microdisc *microdisc)
 	}
 }
 
-void Machine::wd1770_did_change_interrupt_request_status(WD::WD1770 *wd1770)
+void Machine::wd1770_did_change_output(WD::WD1770 *wd1770)
 {
 	set_interrupt_line();
-}
-
-void Machine::wd1770_did_change_data_request_status(WD::WD1770 *wd1770)
-{
-	// Don't care.
 }
 
 void Machine::set_interrupt_line()

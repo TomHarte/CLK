@@ -44,18 +44,18 @@ class WD1770: public Storage::Disk::Controller {
 			Busy			= 0x01
 		};
 
-		inline bool get_interrupt_request_line()		{	return interrupt_request_line_;	}
-		inline bool get_data_request_line()				{	return data_request_line_;		}
+		inline bool get_interrupt_request_line()		{	return !status_.busy;			}
+		inline bool get_data_request_line()				{	return status_.data_request;	}
 		class Delegate {
 			public:
-				virtual void wd1770_did_change_interrupt_request_status(WD1770 *wd1770) = 0;
-				virtual void wd1770_did_change_data_request_status(WD1770 *wd1770) = 0;
+				virtual void wd1770_did_change_output(WD1770 *wd1770) = 0;
 		};
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
 
 	private:
 		Personality personality_;
-		inline bool is_73() { return (personality_ == P1793 ) || (personality_ == P1773); }
+		inline bool has_motor_on_line() { return (personality_ != P1793 ) && (personality_ != P1773); }
+		inline bool has_head_load_line() { return (personality_ == P1793 ); }
 
 		struct Status {
 			Status();
@@ -66,7 +66,7 @@ class WD1770: public Storage::Disk::Controller {
 			bool crc_error;
 			bool seek_error;
 			bool lost_data;
-//			bool data_request;	// TODO: pick between this and data_request_line_
+			bool data_request;
 			bool busy;
 			enum {
 				One, Two, Three
@@ -84,8 +84,7 @@ class WD1770: public Storage::Disk::Controller {
 		bool is_awaiting_marker_value_;
 
 		int step_direction_;
-		void set_interrupt_request(bool interrupt_request);
-		void set_data_request(bool interrupt_request);
+		void update_status(std::function<void(Status &)> updater);
 
 		// Tokeniser
 		bool is_reading_data_;
@@ -116,8 +115,6 @@ class WD1770: public Storage::Disk::Controller {
 		uint8_t header_[6];
 
 		// output line statuses
-		bool interrupt_request_line_;
-		bool data_request_line_;
 		Delegate *delegate_;
 
 		// Storage::Disk::Controller

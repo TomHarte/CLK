@@ -99,8 +99,7 @@ class Machine:
 
 		// for Microdisc::Delegate
 		void microdisc_did_change_paging_flags(class Microdisc *microdisc);
-		void wd1770_did_change_interrupt_request_status(WD::WD1770 *wd1770);
-		void wd1770_did_change_data_request_status(WD::WD1770 *wd1770);
+		void wd1770_did_change_output(WD::WD1770 *wd1770);
 
 	private:
 		// RAM and ROM

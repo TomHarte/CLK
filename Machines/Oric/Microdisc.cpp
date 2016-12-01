@@ -50,7 +50,7 @@ void Microdisc::set_control_register(uint8_t control)
 	bool has_irq = get_interrupt_request_line();
 	if(has_irq != had_irq && delegate_)
 	{
-		delegate_->wd1770_did_change_interrupt_request_status(this);
+		delegate_->wd1770_did_change_output(this);
 	}
 
 	// b7: EPROM select (0 = select)
