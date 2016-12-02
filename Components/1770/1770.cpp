@@ -108,8 +108,9 @@ uint8_t WD1770::get_register(int address)
 
 			if(!has_motor_on_line())
 			{
-				// TODO: sample ready line for bit 7
-				// TODO: report head loaded if reporting a Type 1 status
+				status |= get_drive_is_ready() ? 0 : Flag::NotReady;
+				if(status_.type == Status::One)
+					status |= (head_is_loaded_ ? Flag::HeadLoaded : 0);
 			}
 			else
 			{
@@ -365,7 +366,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		set_head_load_request(true);
 		if(head_is_loaded_) goto test_type1_type;
-		WAIT_FOR_EVENT(Event::HeadLoaded);
+		WAIT_FOR_EVENT(Event::HeadLoad);
 		goto test_type1_type;
 
 	begin_type1_spin_up:
@@ -477,7 +478,7 @@ void WD1770::posit_event(Event new_event_type)
 	begin_type2_load_head:
 		set_head_load_request(true);
 		if(head_is_loaded_) goto test_type2_delay;
-		WAIT_FOR_EVENT(Event::HeadLoaded);
+		WAIT_FOR_EVENT(Event::HeadLoad);
 		goto test_type2_delay;
 
 	begin_type2_spin_up:
@@ -609,5 +610,5 @@ void WD1770::set_head_load_request(bool head_load) {}
 void WD1770::set_head_loaded(bool head_loaded)
 {
 	head_is_loaded_ = head_loaded;
-	if(head_loaded) posit_event(Event::HeadLoaded);
+	if(head_loaded) posit_event(Event::HeadLoad);
 }

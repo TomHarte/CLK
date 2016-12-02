@@ -10,10 +10,15 @@
 
 using namespace Oric;
 
+namespace {
+	const int head_load_request_counter_target = 7653333;
+}
+
 Microdisc::Microdisc() :
 	irq_enable_(false),
 	delegate_(nullptr),
 	paging_flags_(BASICDisable),
+	head_load_request_counter_(-1),
 	WD1770(P1793)
 {}
 
@@ -81,6 +86,28 @@ uint8_t Microdisc::get_data_request_register()
 void Microdisc::set_head_load_request(bool head_load)
 {
 	set_motor_on(head_load);
-	// TODO: delay
-	set_head_loaded(head_load);
+	if(head_load)
+	{
+		head_load_request_counter_ = 0;
+	}
+	else
+	{
+		head_load_request_counter_ = head_load_request_counter_target;
+		set_head_loaded(head_load);
+	}
+}
+
+void Microdisc::run_for_cycles(unsigned int number_of_cycles)
+{
+	if(head_load_request_counter_ < head_load_request_counter_target)
+	{
+		head_load_request_counter_ += number_of_cycles;
+		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
+	}
+	WD::WD1770::run_for_cycles(number_of_cycles);
+}
+
+bool Microdisc::get_drive_is_ready()
+{
+	return true;
 }

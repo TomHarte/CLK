@@ -128,6 +128,12 @@ bool Controller::get_is_track_zero()
 	return _drive->get_is_track_zero();
 }
 
+bool Controller::get_drive_is_ready()
+{
+	if(!_drive) return false;
+	return _drive->has_disk();
+}
+
 void Controller::step(int direction)
 {
 	if(_drive) _drive->step(direction);

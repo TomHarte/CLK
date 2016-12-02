@@ -30,10 +30,12 @@ class WD1770: public Storage::Disk::Controller {
 		void run_for_cycles(unsigned int number_of_cycles);
 
 		enum Flag: uint8_t {
+			NotReady		= 0x80,
 			MotorOn			= 0x80,
 			WriteProtect	= 0x40,
 			RecordType		= 0x20,
 			SpinUp			= 0x20,
+			HeadLoaded		= 0x20,
 			RecordNotFound	= 0x10,
 			SeekError		= 0x10,
 			CRCError		= 0x08,
@@ -106,7 +108,7 @@ class WD1770: public Storage::Disk::Controller {
 			Command			= (1 << 0),	// Indicates receipt of a new command.
 			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
 			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
-			HeadLoaded		= (1 << 3),	// Indicates the head has been loaded (1973 only).
+			HeadLoad		= (1 << 3),	// Indicates the head has been loaded (1973 only).
 
 			Timer			= (1 << 4),	// Indicates that the delay_time_-powered timer has timed out.
 			IndexHoleTarget	= (1 << 5)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
