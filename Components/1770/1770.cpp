@@ -323,12 +323,6 @@ void WD1770::posit_event(Event new_event_type)
 		is_reading_data_ = false;
 		index_hole_count_ = 0;
 
-		if(!has_motor_on_line())
-		{
-			// TODO: ???
-			set_motor_on(false);
-		}
-
 		update_status([] (Status &status) {
 			status.busy = false;
 		});
@@ -340,12 +334,6 @@ void WD1770::posit_event(Event new_event_type)
 		});
 
 		printf("Starting %02x\n", command_);
-
-		if(!has_motor_on_line())
-		{
-			// TODO: set HDL, wait for HDT
-			set_motor_on(true);
-		}
 
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
