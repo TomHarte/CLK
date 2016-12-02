@@ -25,13 +25,11 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 	set_expected_bit_length(one);
 }
 
-void Controller::setup_track()	// Time initial_offset
+void Controller::setup_track()
 {
 	_track = _drive->get_track();
-//	_track = _disk->get_track_at_position(0, (unsigned int)_head_position);
 
-	// TODO: probably a better implementation of the empty track?
-/*	Time offset;
+	Time offset;
 	if(_track && _time_into_track.length > 0)
 	{
 		Time time_found = _track->seek_to(_time_into_track).simplify();
@@ -42,11 +40,10 @@ void Controller::setup_track()	// Time initial_offset
 	{
 		offset = _time_into_track;
 		_time_into_track.set_zero();
-	}*/
+	}
 
-	reset_timer();
+	reset_timer_to_offset(offset * _rotational_multiplier);
 	get_next_event();
-//	reset_timer_to_offset(offset * _rotational_multiplier);
 }
 
 void Controller::run_for_cycles(int number_of_cycles)

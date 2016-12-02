@@ -506,6 +506,7 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(index_hole_count_ == 5)
 		{
+			printf("Failed to find sector %d\n", sector_);
 			update_status([] (Status &status) {
 				status.record_not_found = true;
 			});
