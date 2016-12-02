@@ -77,3 +77,10 @@ uint8_t Microdisc::get_data_request_register()
 {
 	return 0x7f | (get_data_request_line() ? 0x00 : 0x80);
 }
+
+void Microdisc::set_head_load_request(bool head_load)
+{
+	set_motor_on(head_load);
+	// TODO: delay
+	set_head_loaded(head_load);
+}

@@ -33,7 +33,8 @@ WD1770::WD1770(Personality p) :
 	is_awaiting_marker_value_(false),
 	is_reading_data_(false),
 	delegate_(nullptr),
-	personality_(p)
+	personality_(p),
+	head_is_loaded_(false)
 {
 	set_is_double_density(false);
 	posit_event(Event::Command);
@@ -255,6 +256,12 @@ void WD1770::process_index_hole()
 	{
 		set_motor_on(false);
 	}
+
+	// head unload
+	if(index_hole_count_ == 15 && !status_.busy && has_head_load_line())
+	{
+		set_head_load_request(false);
+	}
 }
 
 //     +------+----------+-------------------------+
@@ -300,6 +307,7 @@ void WD1770::process_index_hole()
 		index_hole_count_target_ = 6;	\
 		WAIT_FOR_EVENT(Event::IndexHoleTarget);	\
 		status_.spin_up = true;
+
 
 void WD1770::posit_event(Event new_event_type)
 {
@@ -356,9 +364,24 @@ void WD1770::posit_event(Event new_event_type)
 			status.data_request = false;
 		});
 
-		if((command_&0x08) || get_motor_on() || !has_motor_on_line()) goto test_type1_type;
+		if(!has_motor_on_line() && !has_head_load_line()) goto test_type1_type;
 
-		// Perform spin up.
+		if(has_motor_on_line()) goto begin_type1_spin_up;
+		goto begin_type1_load_head;
+
+	begin_type1_load_head:
+		if(!(command_&0x08))
+		{
+			set_head_load_request(false);
+			goto test_type1_type;
+		}
+		set_head_load_request(true);
+		if(head_is_loaded_) goto test_type1_type;
+		WAIT_FOR_EVENT(Event::HeadLoaded);
+		goto test_type1_type;
+
+	begin_type1_spin_up:
+		if((command_&0x08) || get_motor_on()) goto test_type1_type;
 		SPIN_UP();
 
 	test_type1_type:
@@ -457,8 +480,20 @@ void WD1770::posit_event(Event new_event_type)
 		});
 		distance_into_section_ = 0;
 
-		if((command_&0x08) || get_motor_on() || !has_motor_on_line()) goto test_type2_delay;
+		if((command_&0x08) && has_motor_on_line()) goto test_type2_delay;
+		if(!has_motor_on_line() && !has_head_load_line()) goto test_type2_delay;
 
+		if(has_motor_on_line()) goto begin_type2_spin_up;
+		goto begin_type2_load_head;
+
+	begin_type2_load_head:
+		set_head_load_request(true);
+		if(head_is_loaded_) goto test_type2_delay;
+		WAIT_FOR_EVENT(Event::HeadLoaded);
+		goto test_type2_delay;
+
+	begin_type2_spin_up:
+		if(get_motor_on()) goto test_type2_delay;
 		// Perform spin up.
 		SPIN_UP();
 
@@ -579,4 +614,12 @@ void WD1770::update_status(std::function<void(Status &)> updater)
 		if(did_change) delegate_->wd1770_did_change_output(this);
 	}
 	else updater(status_);
+}
+
+void WD1770::set_head_load_request(bool head_load) {}
+
+void WD1770::set_head_loaded(bool head_loaded)
+{
+	head_is_loaded_ = head_loaded;
+	if(head_loaded) posit_event(Event::HeadLoaded);
 }

@@ -52,6 +52,10 @@ class WD1770: public Storage::Disk::Controller {
 		};
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
 
+	protected:
+		virtual void set_head_load_request(bool head_load);
+		void set_head_loaded(bool head_loaded);
+
 	private:
 		Personality personality_;
 		inline bool has_motor_on_line() { return (personality_ != P1793 ) && (personality_ != P1773); }
@@ -102,9 +106,10 @@ class WD1770: public Storage::Disk::Controller {
 			Command			= (1 << 0),	// Indicates receipt of a new command.
 			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
 			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
+			HeadLoaded		= (1 << 3),	// Indicates the head has been loaded (1973 only).
 
-			Timer			= (1 << 3),	// Indicates that the delay_time_-powered timer has timed out.
-			IndexHoleTarget	= (1 << 4)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
+			Timer			= (1 << 4),	// Indicates that the delay_time_-powered timer has timed out.
+			IndexHoleTarget	= (1 << 5)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		};
 		void posit_event(Event type);
 		int interesting_event_mask_;
@@ -114,7 +119,10 @@ class WD1770: public Storage::Disk::Controller {
 		// ID buffer
 		uint8_t header_[6];
 
-		// output line statuses
+		// 1793 head-loading logic
+		bool head_is_loaded_;
+
+		// delegate
 		Delegate *delegate_;
 
 		// Storage::Disk::Controller

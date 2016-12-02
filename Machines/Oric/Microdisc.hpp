@@ -37,6 +37,7 @@ class Microdisc: public WD::WD1770 {
 		inline int get_paging_flags()					{	return paging_flags_;									}
 
 	private:
+		void set_head_load_request(bool head_load);
 		std::shared_ptr<Storage::Disk::Drive> drives_[4];
 		int selected_drive_;
 		bool irq_enable_;
