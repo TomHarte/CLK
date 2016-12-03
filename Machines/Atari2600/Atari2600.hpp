@@ -46,26 +46,26 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 		// TODO: different rate for PAL
 
 	private:
-		uint8_t *_rom, *_romPages[4];
-		size_t _rom_size;
+		uint8_t *rom_, *rom_pages_[4];
+		size_t rom_size_;
 
 		// the RIOT
-		PIA _mos6532;
+		PIA mos6532_;
 
 		// playfield registers
-		uint8_t _playfieldControl;
-		uint8_t _playfieldColour;
-		uint8_t _backgroundColour;
-		uint8_t _playfield[41];
+		uint8_t playfield_control_;
+		uint8_t playfield_colour_;
+		uint8_t background_colour_;
+		uint8_t playfield_[41];
 
 		// ... and derivatives
-		int _ballSize, _missileSize[2];
+		int ball_size_, missile_size_[2];
 
 		// delayed clock events
 		enum OutputState {
@@ -87,12 +87,12 @@ class Machine:
 			int updates;
 
 			OutputState state;
-			uint8_t playfieldPixel;
+			uint8_t playfield_pixel;
 			int counter;
 
-			Event() : updates(0), playfieldPixel(0) {}
-		} _upcomingEvents[number_of_upcoming_events];
-		unsigned int _upcomingEventsPointer;
+			Event() : updates(0), playfield_pixel(0) {}
+		} upcoming_events_[number_of_upcoming_events];
+		unsigned int upcoming_events_pointer_;
 
 		// object counters
 		struct ObjectCounter {
@@ -101,74 +101,73 @@ class Machine:
 			int broad_pixel;	// for sprite objects, a count of cycles since the last counter reset; otherwise unused
 
 			ObjectCounter() : count(0), pixel(0), broad_pixel(0) {}
-		} _objectCounter[number_of_recorded_counters][5];
-		unsigned int _objectCounterPointer;
+		} object_counter_[number_of_recorded_counters][5];
+		unsigned int object_counter_pointer_;
 
 		// the latched playfield output
-		uint8_t _playfieldOutput, _nextPlayfieldOutput;
+		uint8_t playfield_output_, next_playfield_output_;
 
 		// player registers
-		uint8_t _playerColour[2];
-		uint8_t _playerReflectionMask[2];
-		uint8_t _playerGraphics[2][2];
-		uint8_t _playerGraphicsSelector[2];
-		bool _playerStart[2];
+		uint8_t player_colour_[2];
+		uint8_t player_reflection_mask_[2];
+		uint8_t player_graphics_[2][2];
+		uint8_t player_graphics_selector_[2];
 
 		// object flags
-		bool _hasSecondCopy[2];
-		bool _hasThirdCopy[2];
-		bool _hasFourthCopy[2];
-		uint8_t _objectMotion[5];		// the value stored to this counter's motion register
+		bool has_second_copy_[2];
+		bool has_third_copy_[2];
+		bool has_fourth_copy_[2];
+		uint8_t object_motions_[5];		// the value stored to this counter's motion register
 
 		// player + missile registers
-		uint8_t _playerAndMissileSize[2];
+		uint8_t player_and_missile_size_[2];
 
 		// missile registers
-		uint8_t _missileGraphicsEnable[2];
-		bool _missileGraphicsReset[2];
+		uint8_t missile_graphics_enable_[2];
+		bool missile_graphics_reset_[2];
 
 		// ball registers
-		uint8_t _ballGraphicsEnable[2];
-		uint8_t _ballGraphicsSelector;
+		uint8_t ball_graphics_enable_[2];
+		uint8_t ball_graphics_selector_;
 
 		// graphics output
-		unsigned int _horizontalTimer;
-		bool _vSyncEnabled, _vBlankEnabled;
+		unsigned int horizontal_timer_;
+		bool vsync_enabled_, vblank_enabled_;
 
 		// horizontal motion control
-		uint8_t _hMoveCounter;
-		uint8_t _hMoveFlags;
+		uint8_t hmove_counter_;
+		uint8_t hmove_flags_;
 
 		// joystick state
-		uint8_t _tiaInputValue[2];
+		uint8_t tia_input_value_[2];
 
 		// collisions
-		uint8_t _collisions[8];
+		uint8_t collisions_[8];
 
 		void output_pixels(unsigned int count);
 		uint8_t get_output_pixel();
 		void update_timers(int mask);
 
 		// outputs
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
-		std::shared_ptr<Speaker> _speaker;
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::shared_ptr<Speaker> speaker_;
 
 		// current mode
-		bool _is_pal_region;
+		bool is_pal_region_;
 
 		// speaker backlog accumlation counter
-		unsigned int _cycles_since_speaker_update;
+		unsigned int cycles_since_speaker_update_;
 		void update_audio();
 
 		// latched output state
-		unsigned int _lastOutputStateDuration;
-		OutputState _stateByExtendTime[2][57];
-		OutputState *_stateByTime;
-		OutputState _lastOutputState;
-		uint8_t *_outputBuffer;
+		unsigned int last_output_state_duration_;
+		OutputState state_by_extend_time_[2][57];
+		OutputState *state_by_time_;
+		OutputState last_output_state_;
+		uint8_t *output_buffer_;
 
 		// lookup table for collision reporting
-		uint8_t _reportedCollisions[64][8];
+		uint8_t reported_collisions_[64][8];
 		void setup_reported_collisions();
 };
 
