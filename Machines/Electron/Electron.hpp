@@ -16,6 +16,7 @@
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 #include "Plus3.hpp"
+#include "Speaker.hpp"
 #include "Tape.hpp"
 #include "Interrupts.hpp"
 
@@ -56,21 +57,6 @@ enum Key: uint16_t {
 	KeyBreak		= 0xfffd,
 
 	TerminateSequence = 0xffff, NotMapped		= 0xfffe,
-};
-
-class Speaker: public ::Outputs::Filter<Speaker> {
-	public:
-		void set_divider(uint8_t divider);
-
-		void set_is_enabled(bool is_enabled);
-
-		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
-
-	private:
-		unsigned int _counter;
-		unsigned int _divider;
-		bool _is_enabled;
 };
 
 /*!

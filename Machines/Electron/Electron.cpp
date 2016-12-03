@@ -31,8 +31,6 @@ namespace {
 
 	static const unsigned int real_time_clock_interrupt_1 = 16704;
 	static const unsigned int real_time_clock_interrupt_2 = 56704;
-
-	static const unsigned int clock_rate_audio_divider = 8;
 }
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
@@ -76,7 +74,7 @@ void Machine::setup_output(float aspect_ratio)
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
 	// run the speaker at a 2000000Hz input rate, at least for the time being.
-	_speaker->set_input_rate(2000000 / clock_rate_audio_divider);
+	_speaker->set_input_rate(2000000 / Speaker::clock_rate_divider);
 }
 
 void Machine::close_output()
@@ -583,8 +581,8 @@ inline void Machine::update_audio()
 {
 	unsigned int difference = _frameCycles - _audioOutputPosition;
 	_audioOutputPosition = _frameCycles;
-	_speaker->run_for_cycles(difference / clock_rate_audio_divider);
-	_audioOutputPositionError = difference % clock_rate_audio_divider;
+	_speaker->run_for_cycles(difference / Speaker::clock_rate_divider);
+	_audioOutputPositionError = difference % Speaker::clock_rate_divider;
 }
 
 inline void Machine::start_pixel_line()
@@ -931,45 +929,3 @@ void Machine::set_key_state(uint16_t key, bool isPressed)
 			_key_states[key >> 4] &= ~(key&0xf);
 	}
 }
-
-/*
-	Speaker
-*/
-
-void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
-{
-	if(_is_enabled)
-	{
-		while(number_of_samples--)
-		{
-			*target = (int16_t)((_counter / (_divider+1)) * 8192);
-			target++;
-			_counter = (_counter + 1) % ((_divider+1) * 2);
-		}
-	}
-	else
-	{
-		memset(target, 0, sizeof(int16_t) * number_of_samples);
-	}
-}
-
-void Speaker::skip_samples(unsigned int number_of_samples)
-{
-	_counter = (_counter + number_of_samples) % ((_divider+1) * 2);
-}
-
-void Speaker::set_divider(uint8_t divider)
-{
-	enqueue([=]() {
-		_divider = divider * 32 / clock_rate_audio_divider;
-	});
-}
-
-void Speaker::set_is_enabled(bool is_enabled)
-{
-	enqueue([=]() {
-		_is_enabled = is_enabled;
-		_counter = 0;
-	});
-}
-
