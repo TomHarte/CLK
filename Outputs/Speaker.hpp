@@ -40,13 +40,13 @@ class Speaker {
 		float get_ideal_clock_rate_in_range(float minimum, float maximum)
 		{
 			// return twice the cut off, if applicable
-			if(_high_frequency_cut_off > 0.0f && _input_cycles_per_second >= _high_frequency_cut_off * 3.0f && _input_cycles_per_second <= _high_frequency_cut_off * 3.0f) return _high_frequency_cut_off * 3.0f;
+			if(high_frequency_cut_off_ > 0.0f && input_cycles_per_second_ >= high_frequency_cut_off_ * 3.0f && input_cycles_per_second_ <= high_frequency_cut_off_ * 3.0f) return high_frequency_cut_off_ * 3.0f;
 
 			// return exactly the input rate if possible
-			if(_input_cycles_per_second >= minimum && _input_cycles_per_second <= maximum) return _input_cycles_per_second;
+			if(input_cycles_per_second_ >= minimum && input_cycles_per_second_ <= maximum) return input_cycles_per_second_;
 
 			// if the input rate is lower, return the minimum
-			if(_input_cycles_per_second < minimum) return minimum;
+			if(input_cycles_per_second_ < minimum) return minimum;
 
 			// otherwise, return the maximum
 			return maximum;
@@ -54,29 +54,29 @@ class Speaker {
 
 		void set_output_rate(float cycles_per_second, int buffer_size)
 		{
-			_output_cycles_per_second = cycles_per_second;
-			if(_buffer_size != buffer_size)
+			output_cycles_per_second_ = cycles_per_second;
+			if(buffer_size_ != buffer_size)
 			{
-				_buffer_in_progress.reset(new int16_t[buffer_size]);
-				_buffer_size = buffer_size;
+				buffer_in_progress_.reset(new int16_t[buffer_size]);
+				buffer_size_ = buffer_size;
 			}
 			set_needs_updated_filter_coefficients();
 		}
 
 		void set_output_quality(int number_of_taps)
 		{
-			_requested_number_of_taps = number_of_taps;
+			requested_number_of_taps_ = number_of_taps;
 			set_needs_updated_filter_coefficients();
 		}
 
 		void set_delegate(Delegate *delegate)
 		{
-			_delegate = delegate;
+			delegate_ = delegate;
 		}
 
 		void set_input_rate(float cycles_per_second)
 		{
-			_input_cycles_per_second = cycles_per_second;
+			input_cycles_per_second_ = cycles_per_second;
 			set_needs_updated_filter_coefficients();
 		}
 
@@ -85,19 +85,19 @@ class Speaker {
 		*/
 		void set_high_frequency_cut_off(float high_frequency)
 		{
-			_high_frequency_cut_off = high_frequency;
+			high_frequency_cut_off_ = high_frequency;
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : _buffer_in_progress_pointer(0), _requested_number_of_taps(0), _high_frequency_cut_off(-1.0), _queue(new Concurrency::AsyncTaskQueue) {}
+		Speaker() : buffer_in_progress_pointer_(0), requested_number_of_taps_(0), high_frequency_cut_off_(-1.0), _queue(new Concurrency::AsyncTaskQueue) {}
 
 		/*!
 			Ensures any deferred processing occurs now.
 		*/
 		void flush()
 		{
-			std::shared_ptr<std::list<std::function<void(void)>>> queued_functions = _queued_functions;
-			_queued_functions.reset();
+			std::shared_ptr<std::list<std::function<void(void)>>> queued_functions = queued_functions_;
+			queued_functions_.reset();
 			_queue->enqueue([queued_functions] {
 				for(auto function : *queued_functions)
 				{
@@ -109,24 +109,24 @@ class Speaker {
 	protected:
 		void enqueue(std::function<void(void)> function)
 		{
-			if(!_queued_functions) _queued_functions.reset(new std::list<std::function<void(void)>>);
-			_queued_functions->push_back(function);
+			if(!queued_functions_) queued_functions_.reset(new std::list<std::function<void(void)>>);
+			queued_functions_->push_back(function);
 		}
-		std::shared_ptr<std::list<std::function<void(void)>>> _queued_functions;
+		std::shared_ptr<std::list<std::function<void(void)>>> queued_functions_;
 
-		std::unique_ptr<int16_t> _buffer_in_progress;
-		float _high_frequency_cut_off;
-		int _buffer_size;
-		int _buffer_in_progress_pointer;
-		int _number_of_taps, _requested_number_of_taps;
-		bool _coefficients_are_dirty;
-		Delegate *_delegate;
+		std::unique_ptr<int16_t> buffer_in_progress_;
+		float high_frequency_cut_off_;
+		int buffer_size_;
+		int buffer_in_progress_pointer_;
+		int number_of_taps_, requested_number_of_taps_;
+		bool coefficients_are_dirty_;
+		Delegate *delegate_;
 
-		float _input_cycles_per_second, _output_cycles_per_second;
+		float input_cycles_per_second_, output_cycles_per_second_;
 
 		void set_needs_updated_filter_coefficients()
 		{
-			_coefficients_are_dirty = true;
+			coefficients_are_dirty_ = true;
 		}
 
 		void get_samples(unsigned int quantity, int16_t *target)	{}
@@ -160,26 +160,26 @@ template <class T> class Filter: public Speaker {
 		{
 			enqueue([=]() {
 				unsigned int cycles_remaining = input_cycles;
-				if(_coefficients_are_dirty) update_filter_coefficients();
+				if(coefficients_are_dirty_) update_filter_coefficients();
 
 				// if input and output rates exactly match, just accumulate results and pass on
-				if(_input_cycles_per_second == _output_cycles_per_second && _high_frequency_cut_off < 0.0)
+				if(input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ < 0.0)
 				{
 					while(cycles_remaining)
 					{
-						unsigned int cycles_to_read = (unsigned int)(_buffer_size - _buffer_in_progress_pointer);
+						unsigned int cycles_to_read = (unsigned int)(buffer_size_ - buffer_in_progress_pointer_);
 						if(cycles_to_read > cycles_remaining) cycles_to_read = cycles_remaining;
 
-						static_cast<T *>(this)->get_samples(cycles_to_read, &_buffer_in_progress.get()[_buffer_in_progress_pointer]);
-						_buffer_in_progress_pointer += cycles_to_read;
+						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_.get()[buffer_in_progress_pointer_]);
+						buffer_in_progress_pointer_ += cycles_to_read;
 
 						// announce to delegate if full
-						if(_buffer_in_progress_pointer == _buffer_size)
+						if(buffer_in_progress_pointer_ == buffer_size_)
 						{
-							_buffer_in_progress_pointer = 0;
-							if(_delegate)
+							buffer_in_progress_pointer_ = 0;
+							if(delegate_)
 							{
-								_delegate->speaker_did_complete_samples(this, _buffer_in_progress.get(), _buffer_size);
+								delegate_->speaker_did_complete_samples(this, buffer_in_progress_.get(), buffer_size_);
 							}
 						}
 
@@ -190,45 +190,45 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// if the output rate is less than the input rate, use the filter
-				if(_input_cycles_per_second > _output_cycles_per_second)
+				if(input_cycles_per_second_ > output_cycles_per_second_)
 				{
 					while(cycles_remaining)
 					{
-						unsigned int cycles_to_read = (unsigned int)std::min((int)cycles_remaining, _number_of_taps - _input_buffer_depth);
-						static_cast<T *>(this)->get_samples(cycles_to_read, &_input_buffer.get()[_input_buffer_depth]);
+						unsigned int cycles_to_read = (unsigned int)std::min((int)cycles_remaining, number_of_taps_ - input_buffer_depth_);
+						static_cast<T *>(this)->get_samples(cycles_to_read, &input_buffer_.get()[input_buffer_depth_]);
 						cycles_remaining -= cycles_to_read;
-						_input_buffer_depth += cycles_to_read;
+						input_buffer_depth_ += cycles_to_read;
 
-						if(_input_buffer_depth == _number_of_taps)
+						if(input_buffer_depth_ == number_of_taps_)
 						{
-							_buffer_in_progress.get()[_buffer_in_progress_pointer] = _filter->apply(_input_buffer.get());
-							_buffer_in_progress_pointer++;
+							buffer_in_progress_.get()[buffer_in_progress_pointer_] = filter_->apply(input_buffer_.get());
+							buffer_in_progress_pointer_++;
 
 							// announce to delegate if full
-							if(_buffer_in_progress_pointer == _buffer_size)
+							if(buffer_in_progress_pointer_ == buffer_size_)
 							{
-								_buffer_in_progress_pointer = 0;
-								if(_delegate)
+								buffer_in_progress_pointer_ = 0;
+								if(delegate_)
 								{
-									_delegate->speaker_did_complete_samples(this, _buffer_in_progress.get(), _buffer_size);
+									delegate_->speaker_did_complete_samples(this, buffer_in_progress_.get(), buffer_size_);
 								}
 							}
 
 							// If the next loop around is going to reuse some of the samples just collected, use a memmove to
 							// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
 							// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-							uint64_t steps = _stepper->step();
-							if(steps < _number_of_taps)
+							uint64_t steps = stepper_->step();
+							if(steps < number_of_taps_)
 							{
-								int16_t *input_buffer = _input_buffer.get();
-								memmove(input_buffer, &input_buffer[steps], sizeof(int16_t) * ((size_t)_number_of_taps - (size_t)steps));
-								_input_buffer_depth -= steps;
+								int16_t *input_buffer = input_buffer_.get();
+								memmove(input_buffer, &input_buffer[steps], sizeof(int16_t) * ((size_t)number_of_taps_ - (size_t)steps));
+								input_buffer_depth_ -= steps;
 							}
 							else
 							{
-								if(steps > _number_of_taps)
-									static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)_number_of_taps);
-								_input_buffer_depth = 0;
+								if(steps > number_of_taps_)
+									static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)number_of_taps_);
+								input_buffer_depth_ = 0;
 							}
 						}
 					}
@@ -241,44 +241,44 @@ template <class T> class Filter: public Speaker {
 		}
 
 	private:
-		std::unique_ptr<SignalProcessing::Stepper> _stepper;
-		std::unique_ptr<SignalProcessing::FIRFilter> _filter;
+		std::unique_ptr<SignalProcessing::Stepper> stepper_;
+		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
-		std::unique_ptr<int16_t> _input_buffer;
-		int _input_buffer_depth;
+		std::unique_ptr<int16_t> input_buffer_;
+		int input_buffer_depth_;
 
 		void update_filter_coefficients()
 		{
 			// make a guess at a good number of taps if this hasn't been provided explicitly
-			if(_requested_number_of_taps)
+			if(requested_number_of_taps_)
 			{
-				_number_of_taps = _requested_number_of_taps;
+				number_of_taps_ = requested_number_of_taps_;
 			}
 			else
 			{
-				_number_of_taps = (int)ceilf((_input_cycles_per_second + _output_cycles_per_second) / _output_cycles_per_second);
-				_number_of_taps *= 2;
-				_number_of_taps |= 1;
+				number_of_taps_ = (int)ceilf((input_cycles_per_second_ + output_cycles_per_second_) / output_cycles_per_second_);
+				number_of_taps_ *= 2;
+				number_of_taps_ |= 1;
 			}
 
-			_coefficients_are_dirty = false;
-			_buffer_in_progress_pointer = 0;
+			coefficients_are_dirty_ = false;
+			buffer_in_progress_pointer_ = 0;
 
-			_stepper.reset(new SignalProcessing::Stepper((uint64_t)_input_cycles_per_second, (uint64_t)_output_cycles_per_second));
+			stepper_.reset(new SignalProcessing::Stepper((uint64_t)input_cycles_per_second_, (uint64_t)output_cycles_per_second_));
 
 			float high_pass_frequency;
-			if(_high_frequency_cut_off > 0.0)
+			if(high_frequency_cut_off_ > 0.0)
 			{
-				high_pass_frequency = std::min((float)_output_cycles_per_second / 2.0f, _high_frequency_cut_off);
+				high_pass_frequency = std::min((float)output_cycles_per_second_ / 2.0f, high_frequency_cut_off_);
 			}
 			else
 			{
-				high_pass_frequency = (float)_output_cycles_per_second / 2.0f;
+				high_pass_frequency = (float)output_cycles_per_second_ / 2.0f;
 			}
-			_filter.reset(new SignalProcessing::FIRFilter((unsigned int)_number_of_taps, (float)_input_cycles_per_second, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
+			filter_.reset(new SignalProcessing::FIRFilter((unsigned int)number_of_taps_, (float)input_cycles_per_second_, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
 
-			_input_buffer.reset(new int16_t[_number_of_taps]);
-			_input_buffer_depth = 0;
+			input_buffer_.reset(new int16_t[number_of_taps_]);
+			input_buffer_depth_ = 0;
 		}
 };
 
