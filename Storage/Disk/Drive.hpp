@@ -47,9 +47,9 @@ class Drive {
 		std::shared_ptr<Track> get_track();
 
 	private:
-		std::shared_ptr<Disk> _disk;
-		int _head_position;
-		unsigned int _head;
+		std::shared_ptr<Disk> disk_;
+		int head_position_;
+		unsigned int head_;
 };
 
 

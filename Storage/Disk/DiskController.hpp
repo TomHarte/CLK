@@ -81,20 +81,20 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		virtual bool get_drive_is_ready();
 
 	private:
-		Time _bit_length;
-		unsigned int _clock_rate;
-		unsigned int _clock_rate_multiplier;
-		Time _rotational_multiplier;
+		Time bit_length_;
+		unsigned int clock_rate_;
+		unsigned int clock_rate_multiplier_;
+		Time rotational_multiplier_;
 
-		std::shared_ptr<DigitalPhaseLockedLoop> _pll;
-		std::shared_ptr<Drive> _drive;
-		std::shared_ptr<Track> _track;
-		unsigned int _cycles_since_index_hole;
+		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
+		std::shared_ptr<Drive> drive_;
+		std::shared_ptr<Track> track_;
+		unsigned int cycles_since_index_hole_;
 
 		inline void get_next_event();
-		Track::Event _current_event;
-		Time _time_into_track;
-		bool _motor_is_on;
+		Track::Event current_event_;
+		Time time_into_track_;
+		bool motor_is_on_;
 
 		void setup_track();
 };

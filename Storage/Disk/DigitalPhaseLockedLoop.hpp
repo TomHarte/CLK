@@ -46,22 +46,22 @@ class DigitalPhaseLockedLoop {
 		};
 		void set_delegate(Delegate *delegate)
 		{
-			_delegate = delegate;
+			delegate_ = delegate;
 		}
 
 	private:
-		Delegate *_delegate;
+		Delegate *delegate_;
 
 		void post_phase_error(int error);
-		std::unique_ptr<std::vector<int>> _phase_error_history;
-		size_t _phase_error_pointer;
+		std::unique_ptr<std::vector<int>> phase_error_history_;
+		size_t phase_error_pointer_;
 
-		int _phase;
-		int _window_length;
-		bool _window_was_filled;
+		int phase_;
+		int window_length_;
+		bool window_was_filled_;
 
-		int _clocks_per_bit;
-		int _tolerance;
+		int clocks_per_bit_;
+		int tolerance_;
 };
 
 }

@@ -28,7 +28,7 @@ BinaryDump::BinaryDump(const char *file_name)
 	fclose(file);
 
 	// enshrine
-	_segments.emplace_back(
+	segments_.emplace_back(
 		::Storage::Cartridge::Cartridge::Segment::UnknownAddress,
 		::Storage::Cartridge::Cartridge::Segment::UnknownAddress,
 		std::move(contents));

@@ -90,10 +90,9 @@ namespace Storage {
 			Time get_time_into_next_event();
 
 		private:
-			unsigned int _input_clock_rate;
-			int _cycles_until_event;
-			Time _subcycles_until_event;
-			Time _event_interval;
+			unsigned int input_clock_rate_;
+			int cycles_until_event_;
+			Time subcycles_until_event_;
 	};
 
 }
