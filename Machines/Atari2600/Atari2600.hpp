@@ -14,6 +14,7 @@
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../../Components/6532/6532.hpp"
 #include "../CRTMachine.hpp"
+#include "Speaker.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "Atari2600Inputs.h"
@@ -23,55 +24,27 @@ namespace Atari2600 {
 const unsigned int number_of_upcoming_events = 6;
 const unsigned int number_of_recorded_counters = 7;
 
-class Speaker: public ::Outputs::Filter<Speaker> {
-	public:
-		Speaker();
-		~Speaker();
-
-		void set_volume(int channel, uint8_t volume);
-		void set_divider(int channel, uint8_t divider);
-		void set_control(int channel, uint8_t control);
-
-		void get_samples(unsigned int number_of_samples, int16_t *target);
-
-	private:
-		uint8_t _volume[2];
-		uint8_t _divider[2];
-		uint8_t _control[2];
-
-		int _poly4_counter[2];
-		int _poly5_counter[2];
-		int _poly9_counter[2];
-		int _output_state[2];
-
-		int _divider_counter[2];
-
-		int _pattern_periods[16];
-		int _patterns[16][512];
-};
-
 class PIA: public MOS::MOS6532<PIA> {
 	public:
 		inline uint8_t get_port_input(int port)
 		{
-			return _portValues[port];
+			return port_values_[port];
 		}
 
 		inline void update_port_input(int port, uint8_t mask, bool set)
 		{
-			if(set) _portValues[port] &= ~mask; else _portValues[port] |= mask;
+			if(set) port_values_[port] &= ~mask; else port_values_[port] |= mask;
 			set_port_did_change(port);
 		}
 
 		PIA() :
-			_portValues{0xff, 0xff}
+			port_values_{0xff, 0xff}
 		{}
 
 	private:
-		uint8_t _portValues[2];
+		uint8_t port_values_[2];
 
 };
-
 
 class Machine:
 	public CPU6502::Processor<Machine>,
