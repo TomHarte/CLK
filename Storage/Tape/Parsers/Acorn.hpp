@@ -38,7 +38,7 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 	private:
 		void process_pulse(Storage::Tape::Tape::Pulse pulse);
 		void inspect_waves(const std::vector<WaveType> &waves);
-		NumberTheory::CRC16 _crc;
+		NumberTheory::CRC16 crc_;
 };
 
 }

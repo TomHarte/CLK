@@ -13,9 +13,9 @@ using namespace Storage::Tape::Commodore;
 
 Parser::Parser() :
 	Storage::Tape::Parser<WaveType, SymbolType>(),
-	_wave_period(0.0f),
-	_previous_was_high(false),
-	_parity_byte(0) {}
+	wave_period_(0.0f),
+	previous_was_high_(false),
+	parity_byte_(0) {}
 
 /*!
 	Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
@@ -193,9 +193,9 @@ void Parser::expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8
 	if(next_byte != value) set_error_flag();
 }
 
-void Parser::reset_parity_byte()			{ _parity_byte = 0;		}
-uint8_t Parser::get_parity_byte()			{ return _parity_byte;	}
-void Parser::add_parity_byte(uint8_t byte)	{ _parity_byte ^= byte;	}
+void Parser::reset_parity_byte()			{ parity_byte_ = 0;		}
+uint8_t Parser::get_parity_byte()			{ return parity_byte_;	}
+void Parser::add_parity_byte(uint8_t byte)	{ parity_byte_ ^= byte;	}
 
 /*!
 	Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
@@ -255,19 +255,19 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
 	// medium: 262µs	=>	0.000524s cycle
 	// long: 342µs		=>	0.000684s cycle
 	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-	if(!is_high && _previous_was_high)
+	if(!is_high && previous_was_high_)
 	{
-		if(_wave_period >= 0.000764)		push_wave(WaveType::Unrecognised);
-		else if(_wave_period >= 0.000604)	push_wave(WaveType::Long);
-		else if(_wave_period >= 0.000444)	push_wave(WaveType::Medium);
-		else if(_wave_period >= 0.000284)	push_wave(WaveType::Short);
+		if(wave_period_ >= 0.000764)		push_wave(WaveType::Unrecognised);
+		else if(wave_period_ >= 0.000604)	push_wave(WaveType::Long);
+		else if(wave_period_ >= 0.000444)	push_wave(WaveType::Medium);
+		else if(wave_period_ >= 0.000284)	push_wave(WaveType::Short);
 		else push_wave(WaveType::Unrecognised);
 
-		_wave_period = 0.0f;
+		wave_period_ = 0.0f;
 	}
 
-	_wave_period += pulse.length.get_float();
-	_previous_was_high = is_high;
+	wave_period_ += pulse.length.get_float();
+	previous_was_high_ = is_high;
 }
 
 /*!

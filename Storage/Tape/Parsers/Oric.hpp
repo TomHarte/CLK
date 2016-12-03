@@ -41,9 +41,9 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 			FastZero,
 			SlowZero,
 			Sync
-		} _detection_mode;
-		bool _wave_was_high;
-		float _cycle_length;
+		} detection_mode_;
+		bool wave_was_high_;
+		float cycle_length_;
 
 		struct Pattern
 		{

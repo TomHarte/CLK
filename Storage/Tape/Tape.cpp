@@ -21,23 +21,23 @@ TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 
 void Storage::Tape::Tape::seek(Time &seek_time)
 {
-	_current_time.set_zero();
-	_next_time.set_zero();
-	while(_next_time < seek_time) get_next_pulse();
+	current_time_.set_zero();
+	next_time_.set_zero();
+	while(next_time_ < seek_time) get_next_pulse();
 }
 
 void Storage::Tape::Tape::reset()
 {
-	_current_time.set_zero();
-	_next_time.set_zero();
+	current_time_.set_zero();
+	next_time_.set_zero();
 	virtual_reset();
 }
 
 Tape::Pulse Tape::get_next_pulse()
 {
 	Tape::Pulse pulse = virtual_get_next_pulse();
-	_current_time = _next_time;
-	_next_time += pulse.length;
+	current_time_ = next_time_;
+	next_time_ += pulse.length;
 	return pulse;
 }
 
@@ -45,34 +45,34 @@ Tape::Pulse Tape::get_next_pulse()
 
 void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape)
 {
-	_tape = tape;
+	tape_ = tape;
 	reset_timer();
 	get_next_pulse();
 }
 
 std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape()
 {
-	return _tape;
+	return tape_;
 }
 
 bool TapePlayer::has_tape()
 {
-	return (bool)_tape;
+	return (bool)tape_;
 }
 
 void TapePlayer::get_next_pulse()
 {
 	// get the new pulse
-	if(_tape)
-		_current_pulse = _tape->get_next_pulse();
+	if(tape_)
+		current_pulse_ = tape_->get_next_pulse();
 	else
 	{
-		_current_pulse.length.length = 1;
-		_current_pulse.length.clock_rate = 1;
-		_current_pulse.type = Tape::Pulse::Zero;
+		current_pulse_.length.length = 1;
+		current_pulse_.length.clock_rate = 1;
+		current_pulse_.type = Tape::Pulse::Zero;
 	}
 
-	set_next_event_time_interval(_current_pulse.length);
+	set_next_event_time_interval(current_pulse_.length);
 }
 
 void TapePlayer::run_for_cycles(int number_of_cycles)
@@ -90,19 +90,19 @@ void TapePlayer::run_for_input_pulse()
 
 void TapePlayer::process_next_event()
 {
-	process_input_pulse(_current_pulse);
+	process_input_pulse(current_pulse_);
 	get_next_pulse();
 }
 
 #pragma mark - Binary Player
 
 BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
-	TapePlayer(input_clock_rate), _motor_is_running(false)
+	TapePlayer(input_clock_rate), motor_is_running_(false)
 {}
 
 void BinaryTapePlayer::set_motor_control(bool enabled)
 {
-	_motor_is_running = enabled;
+	motor_is_running_ = enabled;
 }
 
 void BinaryTapePlayer::set_tape_output(bool set)
@@ -112,26 +112,26 @@ void BinaryTapePlayer::set_tape_output(bool set)
 
 bool BinaryTapePlayer::get_input()
 {
-	return _input_level;
+	return input_level_;
 }
 
 void BinaryTapePlayer::run_for_cycles(int number_of_cycles)
 {
-	if(_motor_is_running) TapePlayer::run_for_cycles(number_of_cycles);
+	if(motor_is_running_) TapePlayer::run_for_cycles(number_of_cycles);
 }
 
 void BinaryTapePlayer::set_delegate(Delegate *delegate)
 {
-	_delegate = delegate;
+	delegate_ = delegate;
 }
 
 void BinaryTapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse)
 {
 	bool new_input_level = pulse.type == Tape::Pulse::Low;
-	if(_input_level != new_input_level)
+	if(input_level_ != new_input_level)
 	{
-		_input_level = new_input_level;
-		if(_delegate) _delegate->tape_did_change_input(this);
+		input_level_ = new_input_level;
+		if(delegate_) delegate_->tape_did_change_input(this);
 	}
 }
 

@@ -53,13 +53,13 @@ class Tape {
 		virtual bool is_at_end() = 0;
 
 		/// @returns the amount of time preceeding the most recently-returned pulse.
-		virtual Time get_current_time() { return _current_time; }
+		virtual Time get_current_time() { return current_time_; }
 
 		/// Advances or reverses the tape to the last time before or at @c time from which a pulse starts.
 		virtual void seek(Time &time);
 
 	private:
-		Time _current_time, _next_time;
+		Time current_time_, next_time_;
 
 		virtual Pulse virtual_get_next_pulse() = 0;
 		virtual void virtual_reset() = 0;
@@ -90,8 +90,8 @@ class TapePlayer: public TimedEventLoop {
 	private:
 		inline void get_next_pulse();
 
-		std::shared_ptr<Storage::Tape::Tape> _tape;
-		Tape::Pulse _current_pulse;
+		std::shared_ptr<Storage::Tape::Tape> tape_;
+		Tape::Pulse current_pulse_;
 };
 
 /*!
@@ -118,10 +118,10 @@ class BinaryTapePlayer: public TapePlayer {
 		void set_delegate(Delegate *delegate);
 
 	protected:
-		Delegate *_delegate;
+		Delegate *delegate_;
 		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
-		bool _input_level;
-		bool _motor_is_running;
+		bool input_level_;
+		bool motor_is_running_;
 };
 
 }
