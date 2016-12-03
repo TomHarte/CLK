@@ -16,6 +16,8 @@
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 #include "Plus3.hpp"
+#include "Tape.hpp"
+#include "Interrupts.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -33,15 +35,6 @@ enum ROMSlot: uint8_t {
 	ROMSlot12,	ROMSlot13,	ROMSlot14,	ROMSlot15,
 
 	ROMSlotOS,	ROMSlotDFS,	ROMSlotADFS
-};
-
-enum Interrupt: uint8_t {
-	PowerOnReset		= 0x02,
-	DisplayEnd			= 0x04,
-	RealTimeClock		= 0x08,
-	ReceiveDataFull		= 0x10,
-	TransmitDataEmpty	= 0x20,
-	HighToneDetect		= 0x40
 };
 
 enum Key: uint16_t {
@@ -63,57 +56,6 @@ enum Key: uint16_t {
 	KeyBreak		= 0xfffd,
 
 	TerminateSequence = 0xffff, NotMapped		= 0xfffe,
-};
-
-class Tape: public Storage::Tape::TapePlayer {
-	public:
-		Tape();
-
-		inline void run_for_cycles(unsigned int number_of_cycles);
-
-		inline uint8_t get_data_register();
-		inline void set_data_register(uint8_t value);
-		inline void set_counter(uint8_t value);
-
-		inline uint8_t get_interrupt_status() { return _interrupt_status; }
-		inline void clear_interrupts(uint8_t interrupts);
-
-		class Delegate {
-			public:
-				virtual void tape_did_change_interrupt_status(Tape *tape) = 0;
-		};
-		inline void set_delegate(Delegate *delegate) { _delegate = delegate; }
-
-		inline void set_is_running(bool is_running) { _is_running = is_running; }
-		inline void set_is_enabled(bool is_enabled) { _is_enabled = is_enabled; }
-		inline void set_is_in_input_mode(bool is_in_input_mode);
-
-	private:
-		void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
-		inline void push_tape_bit(uint16_t bit);
-		inline void get_next_tape_pulse();
-
-		struct {
-			int minimum_bits_until_full;
-		} _input;
-		struct {
-			unsigned int cycles_into_pulse;
-			unsigned int bits_remaining_until_empty;
-		} _output;
-
-		bool _is_running;
-		bool _is_enabled;
-		bool _is_in_input_mode;
-
-		inline void evaluate_interrupts();
-		uint16_t _data_register;
-
-		uint8_t _interrupt_status, _last_posted_interrupt_status;
-		Delegate *_delegate;
-
-		enum {
-			Long, Short, Unrecognised, Recognised
-		} _crossings[4];
 };
 
 class Speaker: public ::Outputs::Filter<Speaker> {
