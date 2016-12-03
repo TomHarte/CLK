@@ -57,64 +57,64 @@ template <class T> class MOS6522 {
 			switch(address)
 			{
 				case 0x0:
-					_registers.output[1] = value;
-					static_cast<T *>(this)->set_port_output(Port::B, value, _registers.data_direction[1]);	// TODO: handshake
+					registers_.output[1] = value;
+					static_cast<T *>(this)->set_port_output(Port::B, value, registers_.data_direction[1]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((_registers.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
+					registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 				case 0xf:
 				case 0x1:
-					_registers.output[0] = value;
-					static_cast<T *>(this)->set_port_output(Port::A, value, _registers.data_direction[0]);	// TODO: handshake
+					registers_.output[0] = value;
+					static_cast<T *>(this)->set_port_output(Port::A, value, registers_.data_direction[0]);	// TODO: handshake
 
-					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((_registers.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
+					registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
 					reevaluate_interrupts();
 				break;
 //					// No handshake, so write directly
-//					_registers.output[0] = value;
+//					registers_.output[0] = value;
 //					static_cast<T *>(this)->set_port_output(0, value);
 //				break;
 
 				case 0x2:
-					_registers.data_direction[1] = value;
+					registers_.data_direction[1] = value;
 				break;
 				case 0x3:
-					_registers.data_direction[0] = value;
+					registers_.data_direction[0] = value;
 				break;
 
 				// Timer 1
-				case 0x6:	case 0x4:	_registers.timer_latch[0] = (_registers.timer_latch[0]&0xff00) | value;	break;
+				case 0x6:	case 0x4:	registers_.timer_latch[0] = (registers_.timer_latch[0]&0xff00) | value;	break;
 				case 0x5:	case 0x7:
-					_registers.timer_latch[0] = (_registers.timer_latch[0]&0x00ff) | (uint16_t)(value << 8);
-					_registers.interrupt_flags &= ~InterruptFlag::Timer1;
+					registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | (uint16_t)(value << 8);
+					registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 					if(address == 0x05)
 					{
-						_registers.next_timer[0] = _registers.timer_latch[0];
-						_timer_is_running[0] = true;
+						registers_.next_timer[0] = registers_.timer_latch[0];
+						timer_is_running_[0] = true;
 					}
 					reevaluate_interrupts();
 				break;
 
 				// Timer 2
-				case 0x8:	_registers.timer_latch[1] = value;	break;
+				case 0x8:	registers_.timer_latch[1] = value;	break;
 				case 0x9:
-					_registers.interrupt_flags &= ~InterruptFlag::Timer2;
-					_registers.next_timer[1] = _registers.timer_latch[1] | (uint16_t)(value << 8);
-					_timer_is_running[1] = true;
+					registers_.interrupt_flags &= ~InterruptFlag::Timer2;
+					registers_.next_timer[1] = registers_.timer_latch[1] | (uint16_t)(value << 8);
+					timer_is_running_[1] = true;
 					reevaluate_interrupts();
 				break;
 
 				// Shift
-				case 0xa:	_registers.shift = value;				break;
+				case 0xa:	registers_.shift = value;				break;
 
 				// Control
 				case 0xb:
-					_registers.auxiliary_control = value;
+					registers_.auxiliary_control = value;
 				break;
 				case 0xc:
 //					printf("Peripheral control %02x\n", value);
-					_registers.peripheral_control = value;
+					registers_.peripheral_control = value;
 
 					// TODO: simplify below; trying to avoid improper logging of unimplemented warnings in input mode
 					if(value & 0x08)
@@ -139,14 +139,14 @@ template <class T> class MOS6522 {
 
 				// Interrupt control
 				case 0xd:
-					_registers.interrupt_flags &= ~value;
+					registers_.interrupt_flags &= ~value;
 					reevaluate_interrupts();
 				break;
 				case 0xe:
 					if(value&0x80)
-						_registers.interrupt_enable |= value;
+						registers_.interrupt_enable |= value;
 					else
-						_registers.interrupt_enable &= ~value;
+						registers_.interrupt_enable &= ~value;
 					reevaluate_interrupts();
 				break;
 			}
@@ -160,41 +160,41 @@ template <class T> class MOS6522 {
 			switch(address)
 			{
 				case 0x0:
-					_registers.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
+					registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 					reevaluate_interrupts();
-				return get_port_input(Port::B, _registers.data_direction[1], _registers.output[1]);
+				return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1]);
 				case 0xf:	// TODO: handshake, latching
 				case 0x1:
-					_registers.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+					registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
 					reevaluate_interrupts();
-				return get_port_input(Port::A, _registers.data_direction[0], _registers.output[0]);
+				return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0]);
 
-				case 0x2:	return _registers.data_direction[1];
-				case 0x3:	return _registers.data_direction[0];
+				case 0x2:	return registers_.data_direction[1];
+				case 0x3:	return registers_.data_direction[0];
 
 				// Timer 1
 				case 0x4:
-					_registers.interrupt_flags &= ~InterruptFlag::Timer1;
+					registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 					reevaluate_interrupts();
-				return _registers.timer[0] & 0x00ff;
-				case 0x5:	return _registers.timer[0] >> 8;
-				case 0x6:	return _registers.timer_latch[0] & 0x00ff;
-				case 0x7:	return _registers.timer_latch[0] >> 8;
+				return registers_.timer[0] & 0x00ff;
+				case 0x5:	return registers_.timer[0] >> 8;
+				case 0x6:	return registers_.timer_latch[0] & 0x00ff;
+				case 0x7:	return registers_.timer_latch[0] >> 8;
 
 				// Timer 2
 				case 0x8:
-					_registers.interrupt_flags &= ~InterruptFlag::Timer2;
+					registers_.interrupt_flags &= ~InterruptFlag::Timer2;
 					reevaluate_interrupts();
-				return _registers.timer[1] & 0x00ff;
-				case 0x9:	return _registers.timer[1] >> 8;
+				return registers_.timer[1] & 0x00ff;
+				case 0x9:	return registers_.timer[1] >> 8;
 
-				case 0xa:	return _registers.shift;
+				case 0xa:	return registers_.shift;
 
-				case 0xb:	return _registers.auxiliary_control;
-				case 0xc:	return _registers.peripheral_control;
+				case 0xb:	return registers_.auxiliary_control;
+				case 0xc:	return registers_.peripheral_control;
 
-				case 0xd:	return _registers.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
-				case 0xe:	return _registers.interrupt_enable | 0x80;
+				case 0xd:	return registers_.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
+				case 0xe:	return registers_.interrupt_enable | 0x80;
 			}
 
 			return 0xff;
@@ -205,65 +205,65 @@ template <class T> class MOS6522 {
 			switch(line)
 			{
 				case Line::One:
-					if(	value != _control_inputs[port].line_one &&
-						value == !!(_registers.peripheral_control & (port ? 0x10 : 0x01))
+					if(	value != control_inputs_[port].line_one &&
+						value == !!(registers_.peripheral_control & (port ? 0x10 : 0x01))
 					)
 					{
-						_registers.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
+						registers_.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
 						reevaluate_interrupts();
 					}
-					_control_inputs[port].line_one = value;
+					control_inputs_[port].line_one = value;
 				break;
 
 				case Line::Two:
 					// TODO: output modes, but probably elsewhere?
-					if(	value != _control_inputs[port].line_two &&							// i.e. value has changed ...
-						!(_registers.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
-						value == !!(_registers.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
+					if(	value != control_inputs_[port].line_two &&							// i.e. value has changed ...
+						!(registers_.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
+						value == !!(registers_.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
 					)
 					{
-						_registers.interrupt_flags |= port ? InterruptFlag::CB2ActiveEdge : InterruptFlag::CA2ActiveEdge;
+						registers_.interrupt_flags |= port ? InterruptFlag::CB2ActiveEdge : InterruptFlag::CA2ActiveEdge;
 						reevaluate_interrupts();
 					}
-					_control_inputs[port].line_two = value;
+					control_inputs_[port].line_two = value;
 				break;
 			}
 		}
 
 #define phase2()	\
-	_registers.last_timer[0] = _registers.timer[0];\
-	_registers.last_timer[1] = _registers.timer[1];\
+	registers_.last_timer[0] = registers_.timer[0];\
+	registers_.last_timer[1] = registers_.timer[1];\
 \
-	if(_registers.timer_needs_reload)\
+	if(registers_.timer_needs_reload)\
 	{\
-		_registers.timer_needs_reload = false;\
-		_registers.timer[0] = _registers.timer_latch[0];\
+		registers_.timer_needs_reload = false;\
+		registers_.timer[0] = registers_.timer_latch[0];\
 	}\
 	else\
-		_registers.timer[0] --;\
+		registers_.timer[0] --;\
 \
-	_registers.timer[1] --; \
-	if(_registers.next_timer[0] >= 0) { _registers.timer[0] = (uint16_t)_registers.next_timer[0]; _registers.next_timer[0] = -1; }\
-	if(_registers.next_timer[1] >= 0) { _registers.timer[1] = (uint16_t)_registers.next_timer[1]; _registers.next_timer[1] = -1; }\
+	registers_.timer[1] --; \
+	if(registers_.next_timer[0] >= 0) { registers_.timer[0] = (uint16_t)registers_.next_timer[0]; registers_.next_timer[0] = -1; }\
+	if(registers_.next_timer[1] >= 0) { registers_.timer[1] = (uint16_t)registers_.next_timer[1]; registers_.next_timer[1] = -1; }\
 
 	// IRQ is raised on the half cycle after overflow
 #define phase1()	\
-	if((_registers.timer[1] == 0xffff) && !_registers.last_timer[1] && _timer_is_running[1])\
+	if((registers_.timer[1] == 0xffff) && !registers_.last_timer[1] && timer_is_running_[1])\
 	{\
-		_timer_is_running[1] = false;\
-		_registers.interrupt_flags |= InterruptFlag::Timer2;\
+		timer_is_running_[1] = false;\
+		registers_.interrupt_flags |= InterruptFlag::Timer2;\
 		reevaluate_interrupts();\
 	}\
 \
-	if((_registers.timer[0] == 0xffff) && !_registers.last_timer[0] && _timer_is_running[0])\
+	if((registers_.timer[0] == 0xffff) && !registers_.last_timer[0] && timer_is_running_[0])\
 	{\
-		_registers.interrupt_flags |= InterruptFlag::Timer1;\
+		registers_.interrupt_flags |= InterruptFlag::Timer1;\
 		reevaluate_interrupts();\
 \
-		if(_registers.auxiliary_control&0x40)\
-			_registers.timer_needs_reload = true;\
+		if(registers_.auxiliary_control&0x40)\
+			registers_.timer_needs_reload = true;\
 		else\
-			_timer_is_running[0] = false;\
+			timer_is_running_[0] = false;\
 	}
 
 		/*!
@@ -281,7 +281,7 @@ template <class T> class MOS6522 {
 		*/
 		inline void run_for_half_cycles(unsigned int number_of_cycles)
 		{
-			if(_is_phase2)
+			if(is_phase2_)
 			{
 				phase2();
 				number_of_cycles--;
@@ -297,11 +297,11 @@ template <class T> class MOS6522 {
 			if(number_of_cycles)
 			{
 				phase1();
-				_is_phase2 = true;
+				is_phase2_ = true;
 			}
 			else
 			{
-				_is_phase2 = false;
+				is_phase2_ = false;
 			}
 		}
 
@@ -326,14 +326,14 @@ template <class T> class MOS6522 {
 		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
 		inline bool get_interrupt_line()
 		{
-			uint8_t interrupt_status = _registers.interrupt_flags & _registers.interrupt_enable & 0x7f;
+			uint8_t interrupt_status = registers_.interrupt_flags & registers_.interrupt_enable & 0x7f;
 			return !!interrupt_status;
 		}
 
 		MOS6522() :
-			_timer_is_running{false, false},
-			_last_posted_interrupt_status(false),
-			_is_phase2(false)
+			timer_is_running_{false, false},
+			last_posted_interrupt_status_(false),
+			is_phase2_(false)
 		{}
 
 	private:
@@ -351,16 +351,16 @@ template <class T> class MOS6522 {
 		}
 
 		// Phase toggle
-		bool _is_phase2;
+		bool is_phase2_;
 
 		// Delegate and communications
-		bool _last_posted_interrupt_status;
+		bool last_posted_interrupt_status_;
 		inline void reevaluate_interrupts()
 		{
 			bool new_interrupt_status = get_interrupt_line();
-			if(new_interrupt_status != _last_posted_interrupt_status)
+			if(new_interrupt_status != last_posted_interrupt_status_)
 			{
-				_last_posted_interrupt_status = new_interrupt_status;
+				last_posted_interrupt_status_ = new_interrupt_status;
 				static_cast<T *>(this)->set_interrupt_status(new_interrupt_status);
 			}
 		}
@@ -382,15 +382,15 @@ template <class T> class MOS6522 {
 				interrupt_flags(0), interrupt_enable(0),
 				last_timer{0, 0}, timer_needs_reload(false),
 				next_timer{-1, -1} {}
-		} _registers;
+		} registers_;
 
 		// control state
 		struct {
 			bool line_one, line_two;
-		} _control_inputs[2];
+		} control_inputs_[2];
 
 		// Internal state other than the registers
-		bool _timer_is_running[2];
+		bool timer_is_running_[2];
 };
 
 /*!
@@ -404,18 +404,18 @@ class MOS6522IRQDelegate {
 				virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
 		};
 
-		void set_interrupt_delegate(Delegate *delegate)
+		inline void set_interrupt_delegate(Delegate *delegate)
 		{
-			_delegate = delegate;
+			delegate_ = delegate;
 		}
 
-		void set_interrupt_status(bool new_status)
+		inline void set_interrupt_status(bool new_status)
 		{
-			if(_delegate) _delegate->mos6522_did_change_interrupt_status(this);
+			if(delegate_) delegate_->mos6522_did_change_interrupt_status(this);
 		}
 
 	private:
-		Delegate *_delegate;
+		Delegate *delegate_;
 };
 
 }

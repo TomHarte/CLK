@@ -26,10 +26,10 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		void skip_samples(unsigned int number_of_samples);
 
 	private:
-		unsigned int _counters[4];
-		unsigned int _shift_registers[4];
-		uint8_t _control_registers[4];
-		uint8_t _volume;
+		unsigned int counters_[4];
+		unsigned int shift_registers_[4];
+		uint8_t control_registers_[4];
+		uint8_t volume_;
 };
 
 /*!
@@ -43,15 +43,15 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 template <class T> class MOS6560 {
 	public:
 		MOS6560() :
-			_crt(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
-			_speaker(new Speaker),
-			_horizontal_counter(0),
-			_vertical_counter(0),
-			_cycles_since_speaker_update(0),
-			_is_odd_frame(false),
-			_is_odd_line(false)
+			crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
+			speaker_(new Speaker),
+			horizontal_counter_(0),
+			vertical_counter_(0),
+			cycles_since_speaker_update_(0),
+			is_odd_frame_(false),
+			is_odd_line_(false)
 		{
-			_crt->set_composite_sampling_function(
+			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
 					"uint c = texture(texID, coordinate).r;"
@@ -69,11 +69,11 @@ template <class T> class MOS6560 {
 
 		void set_clock_rate(double clock_rate)
 		{
-			_speaker->set_input_rate((float)(clock_rate / 4.0));
+			speaker_->set_input_rate((float)(clock_rate / 4.0));
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
-		std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
+		std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
 
 		enum OutputMode {
 			PAL, NTSC
@@ -84,7 +84,7 @@ template <class T> class MOS6560 {
 		*/
 		void set_output_mode(OutputMode output_mode)
 		{
-			_output_mode = output_mode;
+			output_mode_ = output_mode;
 			uint8_t luminances[16] = {		// range is 0–4
 				0, 4, 1, 3, 2, 2, 1, 3,
 				2, 1, 2, 1, 2, 3, 2, 3
@@ -105,38 +105,38 @@ template <class T> class MOS6560 {
 				case OutputMode::PAL:
 					chrominances = pal_chrominances;
 					display_type = Outputs::CRT::PAL50;
-					_timing.cycles_per_line = 71;
-					_timing.line_counter_increment_offset = 0;
-					_timing.lines_per_progressive_field = 312;
-					_timing.supports_interlacing = false;
+					timing_.cycles_per_line = 71;
+					timing_.line_counter_increment_offset = 0;
+					timing_.lines_per_progressive_field = 312;
+					timing_.supports_interlacing = false;
 				break;
 
 				case OutputMode::NTSC:
 					chrominances = ntsc_chrominances;
 					display_type = Outputs::CRT::NTSC60;
-					_timing.cycles_per_line = 65;
-					_timing.line_counter_increment_offset = 65 - 33;	// TODO: this is a bit of a hack; separate vertical and horizontal counting
-					_timing.lines_per_progressive_field = 261;
-					_timing.supports_interlacing = true;
+					timing_.cycles_per_line = 65;
+					timing_.line_counter_increment_offset = 65 - 33;	// TODO: this is a bit of a hack; separate vertical and horizontal counting
+					timing_.lines_per_progressive_field = 261;
+					timing_.supports_interlacing = true;
 				break;
 			}
 
-			_crt->set_new_display_type((unsigned int)(_timing.cycles_per_line*4), display_type);
-//			_crt->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+			crt_->set_new_display_type((unsigned int)(timing_.cycles_per_line*4), display_type);
+//			crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 
 //			switch(output_mode)
 //			{
 //				case OutputMode::PAL:
-//					_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 15*4, 55*4, 4.0f / 3.0f));
+//					crt_->set_visible_area(crt_->get_rect_for_area(16, 237, 15*4, 55*4, 4.0f / 3.0f));
 //				break;
 //				case OutputMode::NTSC:
-//					_crt->set_visible_area(_crt->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
+//					crt_->set_visible_area(crt_->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
 //				break;
 //			}
 
 			for(int c = 0; c < 16; c++)
 			{
-				_colours[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
+				colours_[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
 			}
 		}
 
@@ -146,88 +146,88 @@ template <class T> class MOS6560 {
 		inline void run_for_cycles(unsigned int number_of_cycles)
 		{
 			// keep track of the amount of time since the speaker was updated; lazy updates are applied
-			_cycles_since_speaker_update += number_of_cycles;
+			cycles_since_speaker_update_ += number_of_cycles;
 
 			while(number_of_cycles--)
 			{
 				// keep an old copy of the vertical count because that test is a cycle later than the actual changes
-				int previous_vertical_counter = _vertical_counter;
+				int previous_vertical_counter = vertical_counter_;
 
 				// keep track of internal time relative to this scanline
-				_horizontal_counter++;
-				_full_frame_counter++;
-				if(_horizontal_counter == _timing.cycles_per_line)
+				horizontal_counter_++;
+				full_frame_counter_++;
+				if(horizontal_counter_ == timing_.cycles_per_line)
 				{
-					if(_horizontal_drawing_latch)
+					if(horizontal_drawing_latch_)
 					{
-						_current_character_row++;
+						current_character_row_++;
 						if(
-							(_current_character_row == 16) ||
-							(_current_character_row == 8 && !_registers.tall_characters)
+							(current_character_row_ == 16) ||
+							(current_character_row_ == 8 && !registers_.tall_characters)
 						) {
-							_current_character_row = 0;
-							_current_row++;
+							current_character_row_ = 0;
+							current_row_++;
 						}
 
-						_pixel_line_cycle = -1;
-						_columns_this_line = -1;
-						_column_counter = -1;
+						pixel_line_cycle_ = -1;
+						columns_this_line_ = -1;
+						column_counter_ = -1;
 					}
 
-					_horizontal_counter = 0;
-					if(_output_mode == OutputMode::PAL) _is_odd_line ^= true;
-					_horizontal_drawing_latch = false;
+					horizontal_counter_ = 0;
+					if(output_mode_ == OutputMode::PAL) is_odd_line_ ^= true;
+					horizontal_drawing_latch_ = false;
 
-					_vertical_counter ++;
-					if(_vertical_counter == (_registers.interlaced ? (_is_odd_frame ? 262 : 263) : _timing.lines_per_progressive_field))
+					vertical_counter_ ++;
+					if(vertical_counter_ == (registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field))
 					{
-						_vertical_counter = 0;
-						_full_frame_counter = 0;
+						vertical_counter_ = 0;
+						full_frame_counter_ = 0;
 
-						if(_output_mode == OutputMode::NTSC) _is_odd_frame ^= true;
-						_current_row = 0;
-						_rows_this_field = -1;
-						_vertical_drawing_latch = false;
-						_base_video_matrix_address_counter = 0;
-						_current_character_row = 0;
+						if(output_mode_ == OutputMode::NTSC) is_odd_frame_ ^= true;
+						current_row_ = 0;
+						rows_this_field_ = -1;
+						vertical_drawing_latch_ = false;
+						base_video_matrix_address_counter_ = 0;
+						current_character_row_ = 0;
 					}
 				}
 
 				// check for vertical starting events
-				_vertical_drawing_latch |= _registers.first_row_location == (previous_vertical_counter >> 1);
-				_horizontal_drawing_latch |= _vertical_drawing_latch && (_horizontal_counter == _registers.first_column_location);
+				vertical_drawing_latch_ |= registers_.first_row_location == (previous_vertical_counter >> 1);
+				horizontal_drawing_latch_ |= vertical_drawing_latch_ && (horizontal_counter_ == registers_.first_column_location);
 
-				if(_pixel_line_cycle >= 0) _pixel_line_cycle++;
-				switch(_pixel_line_cycle)
+				if(pixel_line_cycle_ >= 0) pixel_line_cycle_++;
+				switch(pixel_line_cycle_)
 				{
 					case -1:
-						if(_horizontal_drawing_latch)
+						if(horizontal_drawing_latch_)
 						{
-							_pixel_line_cycle = 0;
-							_video_matrix_address_counter = _base_video_matrix_address_counter;
+							pixel_line_cycle_ = 0;
+							video_matrix_address_counter_ = base_video_matrix_address_counter_;
 						}
 					break;
-					case 1:	_columns_this_line = _registers.number_of_columns;	break;
-					case 2:	if(_rows_this_field < 0) _rows_this_field = _registers.number_of_rows;	break;
-					case 3: if(_current_row < _rows_this_field) _column_counter = 0;	break;
+					case 1:	columns_this_line_ = registers_.number_of_columns;	break;
+					case 2:	if(rows_this_field_ < 0) rows_this_field_ = registers_.number_of_rows;	break;
+					case 3: if(current_row_ < rows_this_field_) column_counter_ = 0;	break;
 				}
 
 				uint16_t fetch_address = 0x1c;
-				if(_column_counter >= 0 && _column_counter < _columns_this_line*2)
+				if(column_counter_ >= 0 && column_counter_ < columns_this_line_*2)
 				{
-					if(_column_counter&1)
+					if(column_counter_&1)
 					{
-						fetch_address = _registers.character_cell_start_address + (_character_code*(_registers.tall_characters ? 16 : 8)) + _current_character_row;
+						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					}
 					else
 					{
-						fetch_address = (uint16_t)(_registers.video_matrix_start_address + _video_matrix_address_counter);
-						_video_matrix_address_counter++;
+						fetch_address = (uint16_t)(registers_.video_matrix_start_address + video_matrix_address_counter_);
+						video_matrix_address_counter_++;
 						if(
-							(_current_character_row == 15) ||
-							(_current_character_row == 7 && !_registers.tall_characters)
+							(current_character_row_ == 15) ||
+							(current_character_row_ == 7 && !registers_.tall_characters)
 						) {
-							_base_video_matrix_address_counter = _video_matrix_address_counter;
+							base_video_matrix_address_counter_ = video_matrix_address_counter_;
 						}
 					}
 				}
@@ -242,99 +242,99 @@ template <class T> class MOS6560 {
 				// divide the byte it is set for 3:1 and then continue as usual.
 
 				// determine output state; colour burst and sync timing are currently a guess
-				if(_horizontal_counter > _timing.cycles_per_line-4) _this_state = State::ColourBurst;
-				else if(_horizontal_counter > _timing.cycles_per_line-7) _this_state = State::Sync;
+				if(horizontal_counter_ > timing_.cycles_per_line-4) this_state_ = State::ColourBurst;
+				else if(horizontal_counter_ > timing_.cycles_per_line-7) this_state_ = State::Sync;
 				else
 				{
-					_this_state = (_column_counter >= 0 && _column_counter < _columns_this_line*2) ? State::Pixels : State::Border;
+					this_state_ = (column_counter_ >= 0 && column_counter_ < columns_this_line_*2) ? State::Pixels : State::Border;
 				}
 
 				// apply vertical sync
 				if(
-					(_vertical_counter < 3 && (_is_odd_frame || !_registers.interlaced)) ||
-					(_registers.interlaced &&
+					(vertical_counter_ < 3 && (is_odd_frame_ || !registers_.interlaced)) ||
+					(registers_.interlaced &&
 						(
-							(_vertical_counter == 0 && _horizontal_counter > 32) ||
-							(_vertical_counter == 1) || (_vertical_counter == 2) ||
-							(_vertical_counter == 3 && _horizontal_counter <= 32)
+							(vertical_counter_ == 0 && horizontal_counter_ > 32) ||
+							(vertical_counter_ == 1) || (vertical_counter_ == 2) ||
+							(vertical_counter_ == 3 && horizontal_counter_ <= 32)
 						)
 					))
-					_this_state = State::Sync;
+					this_state_ = State::Sync;
 
 				// update the CRT
-				if(_this_state != _output_state)
+				if(this_state_ != output_state_)
 				{
-					switch(_output_state)
+					switch(output_state_)
 					{
-						case State::Sync:			_crt->output_sync(_cycles_in_state * 4);														break;
-						case State::ColourBurst:	_crt->output_colour_burst(_cycles_in_state * 4, (_is_odd_frame || _is_odd_line) ? 128 : 0, 0);	break;
-						case State::Border:			output_border(_cycles_in_state * 4);															break;
-						case State::Pixels:			_crt->output_data(_cycles_in_state * 4, 1);														break;
+						case State::Sync:			crt_->output_sync(cycles_in_state_ * 4);														break;
+						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0, 0);	break;
+						case State::Border:			output_border(cycles_in_state_ * 4);															break;
+						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4, 1);														break;
 					}
-					_output_state = _this_state;
-					_cycles_in_state = 0;
+					output_state_ = this_state_;
+					cycles_in_state_ = 0;
 
 					pixel_pointer = nullptr;
-					if(_output_state == State::Pixels)
+					if(output_state_ == State::Pixels)
 					{
-						pixel_pointer = _crt->allocate_write_area(260);
+						pixel_pointer = crt_->allocate_write_area(260);
 					}
 				}
-				_cycles_in_state++;
+				cycles_in_state_++;
 
-				if(_this_state == State::Pixels)
+				if(this_state_ == State::Pixels)
 				{
-					if(_column_counter&1)
+					if(column_counter_&1)
 					{
-						_character_value = pixel_data;
+						character_value_ = pixel_data;
 
 						if(pixel_pointer)
 						{
-							uint8_t cell_colour = _colours[_character_colour & 0x7];
-							if(!(_character_colour&0x8))
+							uint8_t cell_colour = colours_[character_colour_ & 0x7];
+							if(!(character_colour_&0x8))
 							{
 								uint8_t colours[2];
-								if(_registers.invertedCells)
+								if(registers_.invertedCells)
 								{
 									colours[0] = cell_colour;
-									colours[1] = _registers.backgroundColour;
+									colours[1] = registers_.backgroundColour;
 								}
 								else
 								{
-									colours[0] = _registers.backgroundColour;
+									colours[0] = registers_.backgroundColour;
 									colours[1] = cell_colour;
 								}
-								pixel_pointer[0] = colours[(_character_value >> 7)&1];
-								pixel_pointer[1] = colours[(_character_value >> 6)&1];
-								pixel_pointer[2] = colours[(_character_value >> 5)&1];
-								pixel_pointer[3] = colours[(_character_value >> 4)&1];
-								pixel_pointer[4] = colours[(_character_value >> 3)&1];
-								pixel_pointer[5] = colours[(_character_value >> 2)&1];
-								pixel_pointer[6] = colours[(_character_value >> 1)&1];
-								pixel_pointer[7] = colours[(_character_value >> 0)&1];
+								pixel_pointer[0] = colours[(character_value_ >> 7)&1];
+								pixel_pointer[1] = colours[(character_value_ >> 6)&1];
+								pixel_pointer[2] = colours[(character_value_ >> 5)&1];
+								pixel_pointer[3] = colours[(character_value_ >> 4)&1];
+								pixel_pointer[4] = colours[(character_value_ >> 3)&1];
+								pixel_pointer[5] = colours[(character_value_ >> 2)&1];
+								pixel_pointer[6] = colours[(character_value_ >> 1)&1];
+								pixel_pointer[7] = colours[(character_value_ >> 0)&1];
 							}
 							else
 							{
-								uint8_t colours[4] = {_registers.backgroundColour, _registers.borderColour, cell_colour, _registers.auxiliary_colour};
+								uint8_t colours[4] = {registers_.backgroundColour, registers_.borderColour, cell_colour, registers_.auxiliary_colour};
 								pixel_pointer[0] =
-								pixel_pointer[1] = colours[(_character_value >> 6)&3];
+								pixel_pointer[1] = colours[(character_value_ >> 6)&3];
 								pixel_pointer[2] =
-								pixel_pointer[3] = colours[(_character_value >> 4)&3];
+								pixel_pointer[3] = colours[(character_value_ >> 4)&3];
 								pixel_pointer[4] =
-								pixel_pointer[5] = colours[(_character_value >> 2)&3];
+								pixel_pointer[5] = colours[(character_value_ >> 2)&3];
 								pixel_pointer[6] =
-								pixel_pointer[7] = colours[(_character_value >> 0)&3];
+								pixel_pointer[7] = colours[(character_value_ >> 0)&3];
 							}
 							pixel_pointer += 8;
 						}
 					}
 					else
 					{
-						_character_code = pixel_data;
-						_character_colour = colour_data;
+						character_code_ = pixel_data;
+						character_colour_ = colour_data;
 					}
 
-					_column_counter++;
+					column_counter_++;
 				}
 			}
 		}
@@ -350,31 +350,31 @@ template <class T> class MOS6560 {
 		void set_register(int address, uint8_t value)
 		{
 			address &= 0xf;
-			_registers.direct_values[address] = value;
+			registers_.direct_values[address] = value;
 			switch(address)
 			{
 				case 0x0:
-					_registers.interlaced = !!(value&0x80) && _timing.supports_interlacing;
-					_registers.first_column_location = value & 0x7f;
+					registers_.interlaced = !!(value&0x80) && timing_.supports_interlacing;
+					registers_.first_column_location = value & 0x7f;
 				break;
 
 				case 0x1:
-					_registers.first_row_location = value;
+					registers_.first_row_location = value;
 				break;
 
 				case 0x2:
-					_registers.number_of_columns = value & 0x7f;
-					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+					registers_.number_of_columns = value & 0x7f;
+					registers_.video_matrix_start_address = (uint16_t)((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 				break;
 
 				case 0x3:
-					_registers.number_of_rows = (value >> 1)&0x3f;
-					_registers.tall_characters = !!(value&0x01);
+					registers_.number_of_rows = (value >> 1)&0x3f;
+					registers_.tall_characters = !!(value&0x01);
 				break;
 
 				case 0x5:
-					_registers.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
-					_registers.video_matrix_start_address = (uint16_t)((_registers.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+					registers_.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
+					registers_.video_matrix_start_address = (uint16_t)((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 				break;
 
 				case 0xa:
@@ -382,26 +382,26 @@ template <class T> class MOS6560 {
 				case 0xc:
 				case 0xd:
 					update_audio();
-					_speaker->set_control(address - 0xa, value);
+					speaker_->set_control(address - 0xa, value);
 				break;
 
 				case 0xe:
 					update_audio();
-					_registers.auxiliary_colour = _colours[value >> 4];
-					_speaker->set_volume(value & 0xf);
+					registers_.auxiliary_colour = colours_[value >> 4];
+					speaker_->set_volume(value & 0xf);
 				break;
 
 				case 0xf:
 				{
-					uint8_t new_border_colour = _colours[value & 0x07];
-					if(_this_state == State::Border && new_border_colour != _registers.borderColour)
+					uint8_t new_border_colour = colours_[value & 0x07];
+					if(this_state_ == State::Border && new_border_colour != registers_.borderColour)
 					{
-						output_border(_cycles_in_state * 4);
-						_cycles_in_state = 0;
+						output_border(cycles_in_state_ * 4);
+						cycles_in_state_ = 0;
 					}
-					_registers.invertedCells = !((value >> 3)&1);
-					_registers.borderColour = new_border_colour;
-					_registers.backgroundColour = _colours[value >> 4];
+					registers_.invertedCells = !((value >> 3)&1);
+					registers_.borderColour = new_border_colour;
+					registers_.backgroundColour = colours_[value >> 4];
 				}
 				break;
 
@@ -418,24 +418,24 @@ template <class T> class MOS6560 {
 		uint8_t get_register(int address)
 		{
 			address &= 0xf;
-			int current_line = (_full_frame_counter + _timing.line_counter_increment_offset) / _timing.cycles_per_line;
+			int current_line = (full_frame_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
 			switch(address)
 			{
-				default: return _registers.direct_values[address];
-				case 0x03: return (uint8_t)(current_line << 7) | (_registers.direct_values[3] & 0x7f);
+				default: return registers_.direct_values[address];
+				case 0x03: return (uint8_t)(current_line << 7) | (registers_.direct_values[3] & 0x7f);
 				case 0x04: return (current_line >> 1) & 0xff;
 			}
 		}
 
 	private:
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
-		std::shared_ptr<Speaker> _speaker;
-		unsigned int _cycles_since_speaker_update;
+		std::shared_ptr<Speaker> speaker_;
+		unsigned int cycles_since_speaker_update_;
 		void update_audio()
 		{
-			_speaker->run_for_cycles(_cycles_since_speaker_update >> 2);
-			_cycles_since_speaker_update &= 3;
+			speaker_->run_for_cycles(cycles_since_speaker_update_ >> 2);
+			cycles_since_speaker_update_ &= 3;
 		}
 
 		// register state
@@ -448,41 +448,41 @@ template <class T> class MOS6560 {
 			bool invertedCells;
 
 			uint8_t direct_values[16];
-		} _registers;
+		} registers_;
 
 		// output state
 		enum State {
 			Sync, ColourBurst, Border, Pixels
-		} _this_state, _output_state;
-		unsigned int _cycles_in_state;
+		} this_state_, output_state_;
+		unsigned int cycles_in_state_;
 
 		// counters that cover an entire field
-		int _horizontal_counter, _vertical_counter, _full_frame_counter;
+		int horizontal_counter_, vertical_counter_, full_frame_counter_;
 
 		// latches dictating start and length of drawing
-		bool _vertical_drawing_latch, _horizontal_drawing_latch;
-		int _rows_this_field, _columns_this_line;
+		bool vertical_drawing_latch_, horizontal_drawing_latch_;
+		int rows_this_field_, columns_this_line_;
 
 		// current drawing position counter
-		int _pixel_line_cycle, _column_counter;
-		int _current_row;
-		uint16_t _current_character_row;
-		uint16_t _video_matrix_address_counter, _base_video_matrix_address_counter;
+		int pixel_line_cycle_, column_counter_;
+		int current_row_;
+		uint16_t current_character_row_;
+		uint16_t video_matrix_address_counter_, base_video_matrix_address_counter_;
 
 		// data latched from the bus
-		uint8_t _character_code, _character_colour, _character_value;
+		uint8_t character_code_, character_colour_, character_value_;
 
-		bool _is_odd_frame, _is_odd_line;
+		bool is_odd_frame_, is_odd_line_;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
-		uint8_t _colours[16];
+		uint8_t colours_[16];
 
 		uint8_t *pixel_pointer;
 		void output_border(unsigned int number_of_cycles)
 		{
-			uint8_t *colour_pointer = _crt->allocate_write_area(1);
-			if(colour_pointer) *colour_pointer = _registers.borderColour;
-			_crt->output_level(number_of_cycles);
+			uint8_t *colour_pointer = crt_->allocate_write_area(1);
+			if(colour_pointer) *colour_pointer = registers_.borderColour;
+			crt_->output_level(number_of_cycles);
 		}
 
 		struct {
@@ -490,8 +490,8 @@ template <class T> class MOS6560 {
 			int line_counter_increment_offset;
 			int lines_per_progressive_field;
 			bool supports_interlacing;
-		} _timing;
-		OutputMode _output_mode;
+		} timing_;
+		OutputMode output_mode_;
 };
 
 }

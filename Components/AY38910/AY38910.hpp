@@ -51,42 +51,42 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 
 	private:
-		int _selected_register;
-		uint8_t _registers[16], _output_registers[16];
+		int selected_register_;
+		uint8_t registers_[16], output_registers_[16];
 
-		int _master_divider;
+		int master_divider_;
 
-		int _tone_periods[3];
-		int _tone_counters[3];
-		int _tone_outputs[3];
+		int tone_periods_[3];
+		int tone_counters_[3];
+		int tone_outputs_[3];
 
-		int _noise_period;
-		int _noise_counter;
-		int _noise_shift_register;
-		int _noise_output;
+		int noise_period_;
+		int noise_counter_;
+		int noise_shift_register_;
+		int noise_output_;
 
-		int _envelope_period;
-		int _envelope_divider;
-		int _envelope_position;
-		int _envelope_shapes[16][32];
-		int _envelope_overflow_masks[16];
+		int envelope_period_;
+		int envelope_divider_;
+		int envelope_position_;
+		int envelope_shapes_[16][32];
+		int envelope_overflow_masks_[16];
 
-		int _volumes[16];
+		int volumes_[16];
 
 		enum ControlState {
 			Inactive,
 			LatchAddress,
 			Read,
 			Write
-		} _control_state;
+		} control_state_;
 
 		void select_register(uint8_t r);
 		void set_register_value(uint8_t value);
 		uint8_t get_register_value();
 
-		uint8_t _data_input, _data_output;
+		uint8_t data_input_, data_output_;
 
-		int16_t _output_volume;
+		int16_t output_volume_;
 		inline void evaluate_output_volume();
 };
 
