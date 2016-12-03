@@ -41,17 +41,17 @@ class SerialPortVIA: public MOS::MOS6522<SerialPortVIA>, public MOS::MOS6522IRQD
 
 		SerialPortVIA();
 
-		uint8_t get_port_input(Port port);
+		uint8_t get_port_input(Port);
 
-		void set_port_output(Port port, uint8_t value, uint8_t mask);
-		void set_serial_line_state(::Commodore::Serial::Line line, bool value);
+		void set_port_output(Port, uint8_t value, uint8_t mask);
+		void set_serial_line_state(::Commodore::Serial::Line, bool);
 
-		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort);
+		void set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &);
 
 	private:
-		uint8_t _portB;
-		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
-		bool _attention_acknowledge_level, _attention_level_input, _data_level_output;
+		uint8_t port_b_;
+		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
+		bool attention_acknowledge_level_, attention_level_input_, data_level_output_;
 
 		void update_data_line();
 };
@@ -79,7 +79,7 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 				virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
 				virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
 		};
-		void set_delegate(Delegate *delegate);
+		void set_delegate(Delegate *);
 
 		using MOS6522IRQDelegate::set_interrupt_status;
 
@@ -87,21 +87,21 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 
 		uint8_t get_port_input(Port port);
 
-		void set_sync_detected(bool sync_detected);
-		void set_data_input(uint8_t value);
+		void set_sync_detected(bool);
+		void set_data_input(uint8_t);
 		bool get_should_set_overflow();
 		bool get_motor_enabled();
 
-		void set_control_line_output(Port port, Line line, bool value);
+		void set_control_line_output(Port, Line, bool value);
 
-		void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
+		void set_port_output(Port, uint8_t value, uint8_t direction_mask);
 
 	private:
-		uint8_t _port_b, _port_a;
-		bool _should_set_overflow;
-		bool _drive_motor;
-		uint8_t _previous_port_b_output;
-		Delegate *_delegate;
+		uint8_t port_b_, port_a_;
+		bool should_set_overflow_;
+		bool drive_motor_;
+		uint8_t previous_port_b_output_;
+		Delegate *delegate_;
 };
 
 /*!
@@ -109,11 +109,11 @@ class DriveVIA: public MOS::MOS6522<DriveVIA>, public MOS::MOS6522IRQDelegate {
 */
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
-		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level);
-		void set_serial_port_via(std::shared_ptr<SerialPortVIA> serialPortVIA);
+		void set_input(::Commodore::Serial::Line, ::Commodore::Serial::LineLevel);
+		void set_serial_port_via(const std::shared_ptr<SerialPortVIA> &);
 
 	private:
-		std::weak_ptr<SerialPortVIA> _serialPortVIA;
+		std::weak_ptr<SerialPortVIA> serial_port_VIA_;
 };
 
 /*!
@@ -152,16 +152,14 @@ class Machine:
 		void drive_via_did_set_data_density(void *driveVIA, int density);
 
 	private:
-		uint8_t _ram[0x800];
-		uint8_t _rom[0x4000];
+		uint8_t ram_[0x800];
+		uint8_t rom_[0x4000];
 
-		std::shared_ptr<SerialPortVIA> _serialPortVIA;
-		std::shared_ptr<SerialPort> _serialPort;
-		DriveVIA _driveVIA;
+		std::shared_ptr<SerialPortVIA> serial_port_VIA_;
+		std::shared_ptr<SerialPort> serial_port_;
+		DriveVIA drive_VIA_;
 
-		std::shared_ptr<Storage::Disk::Disk> _disk;
-
-		int _shift_register, _bit_window_offset;
+		int shift_register_, bit_window_offset_;
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
 };
