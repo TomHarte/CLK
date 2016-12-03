@@ -89,7 +89,9 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 }
 
 ArrayBuilder::Buffer::Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
-	allocated_data(0), flushed_data(0), submitted_data(0), is_full(false), submission_function_(submission_function)
+	is_full(false), was_reset(false),
+	submission_function_(submission_function),
+	allocated_data(0), flushed_data(0), submitted_data(0)
 {
 	if(!submission_function_)
 	{
