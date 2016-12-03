@@ -15,28 +15,28 @@
 using namespace Commodore::Vic20;
 
 Machine::Machine() :
-	_rom(nullptr),
-	_is_running_at_zero_cost(false),
-	_tape(1022727)
+	rom_(nullptr),
+	is_running_at_zero_cost_(false),
+	tape_(1022727)
 {
 	// create 6522s, serial port and bus
-	_userPortVIA.reset(new UserPortVIA);
-	_keyboardVIA.reset(new KeyboardVIA);
-	_serialPort.reset(new SerialPort);
-	_serialBus.reset(new ::Commodore::Serial::Bus);
+	user_port_via_.reset(new UserPortVIA);
+	keyboard_via_.reset(new KeyboardVIA);
+	serial_port_.reset(new SerialPort);
+	serial_bus_.reset(new ::Commodore::Serial::Bus);
 
 	// wire up the serial bus and serial port
-	Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
+	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus_);
 
 	// wire up 6522s and serial port
-	_userPortVIA->set_serial_port(_serialPort);
-	_keyboardVIA->set_serial_port(_serialPort);
-	_serialPort->set_user_port_via(_userPortVIA);
+	user_port_via_->set_serial_port(serial_port_);
+	keyboard_via_->set_serial_port(serial_port_);
+	serial_port_->set_user_port_via(user_port_via_);
 
 	// wire up the 6522s, tape and machine
-	_userPortVIA->set_interrupt_delegate(this);
-	_keyboardVIA->set_interrupt_delegate(this);
-	_tape.set_delegate(this);
+	user_port_via_->set_interrupt_delegate(this);
+	keyboard_via_->set_interrupt_delegate(this);
+	tape_.set_delegate(this);
 
 	// establish the memory maps
 	set_memory_size(MemorySize::Default);
@@ -44,44 +44,44 @@ Machine::Machine() :
 	// set the NTSC clock rate
 	set_region(NTSC);
 //	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-//	_debugPort->set_serial_bus(_serialBus);
-//	_serialBus->add_port(_debugPort);
+//	_debugPort->set_serial_bus(serial_bus_);
+//	serial_bus_->add_port(_debugPort);
 }
 
 void Machine::set_memory_size(MemorySize size)
 {
-	memset(_processorReadMemoryMap, 0, sizeof(_processorReadMemoryMap));
-	memset(_processorWriteMemoryMap, 0, sizeof(_processorWriteMemoryMap));
+	memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
+	memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 
 	switch(size)
 	{
 		default: break;
 		case ThreeKB:
-			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x1000);
-			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x1000);
+			write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x1000);
+			write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x1000);
 		break;
 		case ThirtyTwoKB:
-			write_to_map(_processorReadMemoryMap, _expansionRAM, 0x0000, 0x8000);
-			write_to_map(_processorWriteMemoryMap, _expansionRAM, 0x0000, 0x8000);
+			write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x8000);
+			write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x8000);
 		break;
 	}
 
 	// install the system ROMs and VIC-visible memory
-	write_to_map(_processorReadMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
-	write_to_map(_processorReadMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
-	write_to_map(_processorReadMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
-	write_to_map(_processorReadMemoryMap, _characterROM, 0x8000, sizeof(_characterROM));
-	write_to_map(_processorReadMemoryMap, _basicROM, 0xc000, sizeof(_basicROM));
-	write_to_map(_processorReadMemoryMap, _kernelROM, 0xe000, sizeof(_kernelROM));
+	write_to_map(processor_read_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
+	write_to_map(processor_read_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
+	write_to_map(processor_read_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
+	write_to_map(processor_read_memory_map_, character_rom_, 0x8000, sizeof(character_rom_));
+	write_to_map(processor_read_memory_map_, basic_rom_, 0xc000, sizeof(basic_rom_));
+	write_to_map(processor_read_memory_map_, kernel_rom_, 0xe000, sizeof(kernel_rom_));
 
-	write_to_map(_processorWriteMemoryMap, _userBASICMemory, 0x0000, sizeof(_userBASICMemory));
-	write_to_map(_processorWriteMemoryMap, _screenMemory, 0x1000, sizeof(_screenMemory));
-	write_to_map(_processorWriteMemoryMap, _colorMemory, 0x9400, sizeof(_colorMemory));
+	write_to_map(processor_write_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
+	write_to_map(processor_write_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
+	write_to_map(processor_write_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
 
 	// install the inserted ROM if there is one
-	if(_rom)
+	if(rom_)
 	{
-		write_to_map(_processorReadMemoryMap, _rom, _rom_address, _rom_length);
+		write_to_map(processor_read_memory_map_, rom_, rom_address_, rom_length_);
 	}
 }
 
@@ -99,7 +99,7 @@ void Machine::write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint1
 
 Machine::~Machine()
 {
-	delete[] _rom;
+	delete[] rom_;
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -117,17 +117,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	if(!_is_running_at_zero_cost) _mos6560->run_for_cycles(1);
+	if(!is_running_at_zero_cost_) mos6560_->run_for_cycles(1);
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation))
 	{
-		uint8_t result = _processorReadMemoryMap[address >> 10] ? _processorReadMemoryMap[address >> 10][address & 0x3ff] : 0xff;
+		uint8_t result = processor_read_memory_map_[address >> 10] ? processor_read_memory_map_[address >> 10][address & 0x3ff] : 0xff;
 		if((address&0xfc00) == 0x9000)
 		{
-			if((address&0xff00) == 0x9000)	result &= _mos6560->get_register(address);
-			if((address&0xfc10) == 0x9010)	result &= _userPortVIA->get_register(address);
-			if((address&0xfc20) == 0x9020)	result &= _keyboardVIA->get_register(address);
+			if((address&0xff00) == 0x9000)	result &= mos6560_->get_register(address);
+			if((address&0xfc10) == 0x9010)	result &= user_port_via_->get_register(address);
+			if((address&0xfc20) == 0x9020)	result &= keyboard_via_->get_register(address);
 		}
 		*value = result;
 
@@ -135,30 +135,30 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
 		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
 		// CPU or 6560 costs.
-		if(_use_fast_tape_hack && _tape.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
+		if(use_fast_tape_hack_ && tape_.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			while(!_userPortVIA->get_interrupt_line() && !_keyboardVIA->get_interrupt_line() && !_tape.get_tape()->is_at_end())
+			while(!user_port_via_->get_interrupt_line() && !keyboard_via_->get_interrupt_line() && !tape_.get_tape()->is_at_end())
 			{
-				_userPortVIA->run_for_cycles(1);
-				_keyboardVIA->run_for_cycles(1);
-				_tape.run_for_cycles(1);
+				user_port_via_->run_for_cycles(1);
+				keyboard_via_->run_for_cycles(1);
+				tape_.run_for_cycles(1);
 			}
 		}
 	}
 	else
 	{
-		uint8_t *ram = _processorWriteMemoryMap[address >> 10];
+		uint8_t *ram = processor_write_memory_map_[address >> 10];
 		if(ram) ram[address & 0x3ff] = *value;
 		if((address&0xfc00) == 0x9000)
 		{
-			if((address&0xff00) == 0x9000)	_mos6560->set_register(address, *value);
-			if((address&0xfc10) == 0x9010)	_userPortVIA->set_register(address, *value);
-			if((address&0xfc20) == 0x9020)	_keyboardVIA->set_register(address, *value);
+			if((address&0xff00) == 0x9000)	mos6560_->set_register(address, *value);
+			if((address&0xfc10) == 0x9010)	user_port_via_->set_register(address, *value);
+			if((address&0xfc20) == 0x9020)	keyboard_via_->set_register(address, *value);
 		}
 	}
 
-	_userPortVIA->run_for_cycles(1);
-	_keyboardVIA->run_for_cycles(1);
+	user_port_via_->run_for_cycles(1);
+	keyboard_via_->run_for_cycles(1);
 	if(typer_ && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E)
 	{
 		if(!typer_->type_next_character())
@@ -167,8 +167,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			typer_.reset();
 		}
 	}
-	_tape.run_for_cycles(1);
-	if(_c1540) _c1540->run_for_cycles(1);
+	tape_.run_for_cycles(1);
+	if(c1540_) c1540_->run_for_cycles(1);
 
 	// If using fast tape then:
 	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
@@ -181,19 +181,19 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
 	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
 	// the CPU out of the action.
-	if(_use_fast_tape_hack && _tape.has_tape())
+	if(use_fast_tape_hack_ && tape_.has_tape())
 	{
 		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode)
 		{
-			_is_running_at_zero_cost = true;
+			is_running_at_zero_cost_ = true;
 			set_clock_is_unlimited(true);
 		}
 		if(
 			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
-			_tape.get_tape()->is_at_end()
+			tape_.get_tape()->is_at_end()
 		)
 		{
-			_is_running_at_zero_cost = false;
+			is_running_at_zero_cost_ = false;
 			set_clock_is_unlimited(false);
 		}
 	}
@@ -205,31 +205,31 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	set_nmi_line(_userPortVIA->get_interrupt_line());
-	set_irq_line(_keyboardVIA->get_interrupt_line());
+	set_nmi_line(user_port_via_->get_interrupt_line());
+	set_irq_line(keyboard_via_->get_interrupt_line());
 }
 
 #pragma mark - Setup
 
 void Machine::set_region(Commodore::Vic20::Region region)
 {
-	_region = region;
+	region_ = region;
 	switch(region)
 	{
 		case PAL:
 			set_clock_rate(1108404);
-			if(_mos6560)
+			if(mos6560_)
 			{
-				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
-				_mos6560->set_clock_rate(1108404);
+				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+				mos6560_->set_clock_rate(1108404);
 			}
 		break;
 		case NTSC:
 			set_clock_rate(1022727);
-			if(_mos6560)
+			if(mos6560_)
 			{
-				_mos6560->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
-				_mos6560->set_clock_rate(1022727);
+				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+				mos6560_->set_clock_rate(1022727);
 			}
 		break;
 	}
@@ -237,20 +237,20 @@ void Machine::set_region(Commodore::Vic20::Region region)
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_mos6560.reset(new Vic6560());
-	_mos6560->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
-	set_region(_region);
+	mos6560_.reset(new Vic6560());
+	mos6560_->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
+	set_region(region_);
 
-	memset(_mos6560->_videoMemoryMap, 0, sizeof(_mos6560->_videoMemoryMap));
-	write_to_map(_mos6560->_videoMemoryMap, _characterROM, 0x0000, sizeof(_characterROM));
-	write_to_map(_mos6560->_videoMemoryMap, _userBASICMemory, 0x2000, sizeof(_userBASICMemory));
-	write_to_map(_mos6560->_videoMemoryMap, _screenMemory, 0x3000, sizeof(_screenMemory));
-	_mos6560->_colorMemory = _colorMemory;
+	memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
+	write_to_map(mos6560_->video_memory_map, character_rom_, 0x0000, sizeof(character_rom_));
+	write_to_map(mos6560_->video_memory_map, user_basic_memory_, 0x2000, sizeof(user_basic_memory_));
+	write_to_map(mos6560_->video_memory_map, screen_memory_, 0x3000, sizeof(screen_memory_));
+	mos6560_->colour_memory = colour_memory_;
 }
 
 void Machine::close_output()
 {
-	_mos6560 = nullptr;
+	mos6560_ = nullptr;
 }
 
 void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
@@ -259,12 +259,12 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 	size_t max_length = 0x2000;
 	switch(slot)
 	{
-		case Kernel:		target = _kernelROM;							break;
-		case Characters:	target = _characterROM;	max_length = 0x1000;	break;
-		case BASIC:			target = _basicROM;								break;
+		case Kernel:		target = kernel_rom_;								break;
+		case Characters:	target = character_rom_;	max_length = 0x1000;	break;
+		case BASIC:			target = basic_rom_;								break;
 		case Drive:
-			_driveROM.reset(new uint8_t[length]);
-			memcpy(_driveROM.get(), data, length);
+			drive_rom_.reset(new uint8_t[length]);
+			memcpy(drive_rom_.get(), data, length);
 			install_disk_rom();
 		return;
 	}
@@ -288,7 +288,7 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data)
 //		{
 //			_rom = new uint8_t[0x2000];
 //			memcpy(_rom, &data[2], length - 2);
-//			write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+//			write_to_map(processor_read_memory_map_, _rom, _rom_address, 0x2000);
 //		}
 //		else
 //		{
@@ -303,19 +303,19 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
 	if(target.tapes.size())
 	{
-		_tape.set_tape(target.tapes.front());
+		tape_.set_tape(target.tapes.front());
 	}
 
 	if(target.disks.size())
 	{
 		// construct the 1540
-		_c1540.reset(new ::Commodore::C1540::Machine);
+		c1540_.reset(new ::Commodore::C1540::Machine);
 
 		// attach it to the serial bus
-		_c1540->set_serial_bus(_serialBus);
+		c1540_->set_serial_bus(serial_bus_);
 
 		// hand it the disk
-		_c1540->set_disk(target.disks.front());
+		c1540_->set_disk(target.disks.front());
 
 		// install the ROM if it was previously set
 		install_disk_rom();
@@ -323,16 +323,16 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	if(target.cartridges.size())
 	{
-		_rom_address = 0xa000;
+		rom_address_ = 0xa000;
 		std::vector<uint8_t> rom_image = target.cartridges.front()->get_segments().front().data;
-		_rom_length = (uint16_t)(rom_image.size());
+		rom_length_ = (uint16_t)(rom_image.size());
 
-		_rom = new uint8_t[0x2000];
-		memcpy(_rom, rom_image.data(), rom_image.size());
-		write_to_map(_processorReadMemoryMap, _rom, _rom_address, 0x2000);
+		rom_ = new uint8_t[0x2000];
+		memcpy(rom_, rom_image.data(), rom_image.size());
+		write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
 	}
 
-	if(_should_automatically_load_media)
+	if(should_automatically_load_media_)
 	{
 		if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 		{
@@ -356,18 +356,18 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape)
 {
-	_keyboardVIA->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
+	keyboard_via_->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
 }
 
 #pragma mark - Disc
 
 void Machine::install_disk_rom()
 {
-	if(_driveROM && _c1540)
+	if(drive_rom_ && c1540_)
 	{
-		_c1540->set_rom(_driveROM.get());
-		_c1540->run_for_cycles(2000000);
-		_driveROM.reset();
+		c1540_->set_rom(drive_rom_.get());
+		c1540_->run_for_cycles(2000000);
+		drive_rom_.reset();
 	}
 }
 
@@ -377,7 +377,7 @@ uint8_t UserPortVIA::get_port_input(Port port)
 {
 	if(!port)
 	{
-		return _portA;	// TODO: bit 6 should be high if there is no tape, low otherwise
+		return port_a_;	// TODO: bit 6 should be high if there is no tape, low otherwise
 	}
 	return 0xff;
 }
@@ -394,8 +394,8 @@ void UserPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool val
 	switch(line)
 	{
 		default: break;
-		case ::Commodore::Serial::Line::Data: _portA = (_portA & ~0x02) | (value ? 0x02 : 0x00);	break;
-		case ::Commodore::Serial::Line::Clock: _portA = (_portA & ~0x01) | (value ? 0x01 : 0x00);	break;
+		case ::Commodore::Serial::Line::Data: port_a_ = (port_a_ & ~0x02) | (value ? 0x02 : 0x00);	break;
+		case ::Commodore::Serial::Line::Clock: port_a_ = (port_a_ & ~0x01) | (value ? 0x01 : 0x00);	break;
 	}
 }
 
@@ -403,7 +403,7 @@ void UserPortVIA::set_joystick_state(JoystickInput input, bool value)
 {
 	if(input != JoystickInput::Right)
 	{
-		_portA = (_portA & ~input) | (value ? 0 : input);
+		port_a_ = (port_a_ & ~input) | (value ? 0 : input);
 	}
 }
 
@@ -412,22 +412,22 @@ void UserPortVIA::set_port_output(Port port, uint8_t value, uint8_t mask)
 	// Line 7 of port A is inverted and output as serial ATN
 	if(!port)
 	{
-		std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort)
 			serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
 	}
 }
 
-UserPortVIA::UserPortVIA() : _portA(0xbf) {}
+UserPortVIA::UserPortVIA() : port_a_(0xbf) {}
 
 void UserPortVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort)
 {
-	_serialPort = serialPort;
+	serial_port_ = serialPort;
 }
 
 #pragma mark - KeyboardVIA
 
-KeyboardVIA::KeyboardVIA() : _portB(0xff)
+KeyboardVIA::KeyboardVIA() : port_b_(0xff)
 {
 	clear_all_keys();
 }
@@ -435,14 +435,14 @@ KeyboardVIA::KeyboardVIA() : _portB(0xff)
 void KeyboardVIA::set_key_state(uint16_t key, bool isPressed)
 {
 	if(isPressed)
-		_columns[key & 7] &= ~(key >> 3);
+		columns_[key & 7] &= ~(key >> 3);
 	else
-		_columns[key & 7] |= (key >> 3);
+		columns_[key & 7] |= (key >> 3);
 }
 
 void KeyboardVIA::clear_all_keys()
 {
-	memset(_columns, 0xff, sizeof(_columns));
+	memset(columns_, 0xff, sizeof(columns_));
 }
 
 uint8_t KeyboardVIA::get_port_input(Port port)
@@ -452,26 +452,26 @@ uint8_t KeyboardVIA::get_port_input(Port port)
 		uint8_t result = 0xff;
 		for(int c = 0; c < 8; c++)
 		{
-			if(!(_activation_mask&(1 << c)))
-				result &= _columns[c];
+			if(!(activation_mask_&(1 << c)))
+				result &= columns_[c];
 		}
 		return result;
 	}
 
-	return _portB;
+	return port_b_;
 }
 
 void KeyboardVIA::set_port_output(Port port, uint8_t value, uint8_t mask)
 {
 	if(port)
-		_activation_mask = (value & mask) | (~mask);
+		activation_mask_ = (value & mask) | (~mask);
 }
 
 void KeyboardVIA::set_control_line_output(Port port, Line line, bool value)
 {
 	if(line == Line::Two)
 	{
-		std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort)
 		{
 			// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
@@ -487,24 +487,24 @@ void KeyboardVIA::set_joystick_state(JoystickInput input, bool value)
 {
 	if(input == JoystickInput::Right)
 	{
-		_portB = (_portB & ~input) | (value ? 0 : input);
+		port_b_ = (port_b_ & ~input) | (value ? 0 : input);
 	}
 }
 
 void KeyboardVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort)
 {
-	_serialPort = serialPort;
+	serial_port_ = serialPort;
 }
 
 #pragma mark - SerialPort
 
 void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level)
 {
-	std::shared_ptr<UserPortVIA> userPortVIA = _userPortVIA.lock();
+	std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
 	if(userPortVIA) userPortVIA->set_serial_line_state(line, (bool)level);
 }
 
 void SerialPort::set_user_port_via(std::shared_ptr<UserPortVIA> userPortVIA)
 {
-	_userPortVIA = userPortVIA;
+	user_port_via_ = userPortVIA;
 }
