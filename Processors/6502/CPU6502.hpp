@@ -141,15 +141,15 @@ template <class T> class Processor {
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
 		*/
-		RegisterPair _pc, _lastOperationPC;
-		uint8_t _a, _x, _y, _s;
-		uint8_t _carryFlag, _negativeResult, _zeroResult, _decimalFlag, _overflowFlag, _inverseInterruptFlag;
+		RegisterPair pc_, last_operation_pc_;
+		uint8_t a_, x_, y_, s_;
+		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_;
 
 		/*
 			Temporary state for the micro programs.
 		*/
-		uint8_t _operation, _operand;
-		RegisterPair _address, _nextAddress;
+		uint8_t operation_, operand_;
+		RegisterPair address_, next_address_;
 
 		/*
 			Up to four programs can be scheduled; each will be carried out in turn. This
@@ -158,16 +158,16 @@ template <class T> class Processor {
 			Programs should be terminated by an OperationMoveToNextProgram, causing this
 			queue to take that step.
 		*/
-		const MicroOp *_scheduledPrograms[4];
-		unsigned int _scheduleProgramsWritePointer, _scheduleProgramsReadPointer, _scheduleProgramProgramCounter;
+		const MicroOp *scheduled_programs_[4];
+		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_, schedule_program_program_counter_;
 
 		/*
 			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
 			possibly deferring is no longer of value.
 		*/
-		BusOperation _nextBusOperation;
-		uint16_t _busAddress;
-		uint8_t *_busValue;
+		BusOperation next_bus_operation_;
+		uint16_t bus_address_;
+		uint8_t *bus_value_;
 
 		/*!
 			Schedules a new program, adding it to the end of the queue. Programs should be
@@ -178,8 +178,8 @@ template <class T> class Processor {
 		*/
 		inline void schedule_program(const MicroOp *program)
 		{
-			_scheduledPrograms[_scheduleProgramsWritePointer] = program;
-			_scheduleProgramsWritePointer = (_scheduleProgramsWritePointer+1)&3;
+			scheduled_programs_[schedule_programs_write_pointer_] = program;
+			schedule_programs_write_pointer_ = (schedule_programs_write_pointer_+1)&3;
 		}
 
 		/*!
@@ -191,7 +191,7 @@ template <class T> class Processor {
 		*/
 		uint8_t get_flags()
 		{
-			return _carryFlag | _overflowFlag | (_inverseInterruptFlag ^ Flag::Interrupt) | (_negativeResult & 0x80) | (_zeroResult ? 0 : Flag::Zero) | Flag::Always | _decimalFlag;
+			return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
 		}
 
 		/*!
@@ -203,12 +203,12 @@ template <class T> class Processor {
 		*/
 		void set_flags(uint8_t flags)
 		{
-			_carryFlag				= flags		& Flag::Carry;
-			_negativeResult			= flags		& Flag::Sign;
-			_zeroResult				= (~flags)	& Flag::Zero;
-			_overflowFlag			= flags		& Flag::Overflow;
-			_inverseInterruptFlag	= (~flags)	& Flag::Interrupt;
-			_decimalFlag			= flags		& Flag::Decimal;
+			carry_flag_				= flags		& Flag::Carry;
+			negative_result_		= flags		& Flag::Sign;
+			zero_result_			= (~flags)	& Flag::Zero;
+			overflow_flag_			= flags		& Flag::Overflow;
+			inverse_interrupt_flag_	= (~flags)	& Flag::Interrupt;
+			decimal_flag_			= flags		& Flag::Decimal;
 		}
 
 		/*!
@@ -454,10 +454,10 @@ template <class T> class Processor {
 			schedule_program(operations[operation]);
 		}
 
-		bool _is_jammed;
-		JamHandler *_jam_handler;
+		bool is_jammed_;
+		JamHandler *jam_handler_;
 
-		int _cycles_left_to_run;
+		int cycles_left_to_run_;
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
@@ -466,13 +466,13 @@ template <class T> class Processor {
 
 			PowerOn		= 0x10,
 		};
-		uint8_t _interrupt_requests;
+		uint8_t interrupt_requests_;
 
-		bool _ready_is_active;
-		bool _ready_line_is_enabled;
+		bool ready_is_active_;
+		bool ready_line_is_enabled_;
 
-		uint8_t _irq_line, _irq_request_history;
-		bool _nmi_line_is_enabled, _set_overflow_line_is_enabled;
+		uint8_t irq_line_, irq_request_history_;
+		bool nmi_line_is_enabled_, set_overflow_line_is_enabled_;
 
 		/*!
 			Gets the program representing an RST response.
@@ -539,27 +539,27 @@ template <class T> class Processor {
 
 	protected:
 		Processor() :
-			_scheduleProgramsReadPointer(0),
-			_scheduleProgramsWritePointer(0),
-			_is_jammed(false),
-			_jam_handler(nullptr),
-			_cycles_left_to_run(0),
-			_ready_line_is_enabled(false),
-			_ready_is_active(false),
-			_scheduledPrograms{nullptr, nullptr, nullptr, nullptr},
-			_inverseInterruptFlag(0),
-			_s(0),
-			_nextBusOperation(BusOperation::None),
-			_interrupt_requests(InterruptRequestFlags::PowerOn),
-			_irq_line(0),
-			_nmi_line_is_enabled(false),
-			_set_overflow_line_is_enabled(false)
+			schedule_programs_read_pointer_(0),
+			schedule_programs_write_pointer_(0),
+			is_jammed_(false),
+			jam_handler_(nullptr),
+			cycles_left_to_run_(0),
+			ready_line_is_enabled_(false),
+			ready_is_active_(false),
+			scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
+			inverse_interrupt_flag_(0),
+			s_(0),
+			next_bus_operation_(BusOperation::None),
+			interrupt_requests_(InterruptRequestFlags::PowerOn),
+			irq_line_(0),
+			nmi_line_is_enabled_(false),
+			set_overflow_line_is_enabled_(false)
 		{
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
-			_carryFlag &= Flag::Carry;
-			_decimalFlag &= Flag::Decimal;
-			_overflowFlag &= Flag::Overflow;
+			carry_flag_ &= Flag::Carry;
+			decimal_flag_ &= Flag::Decimal;
+			overflow_flag_ &= Flag::Overflow;
 		}
 
 	public:
@@ -590,24 +590,24 @@ template <class T> class Processor {
 			// These plus program below act to give the compiler permission to update these values
 			// without touching the class storage (i.e. it explicitly says they need be completely up
 			// to date in this stack frame only); which saves some complicated addressing
-			unsigned int scheduleProgramsReadPointer = _scheduleProgramsReadPointer;
-			unsigned int scheduleProgramProgramCounter = _scheduleProgramProgramCounter;
-			RegisterPair nextAddress = _nextAddress;
-			BusOperation nextBusOperation = _nextBusOperation;
-			uint16_t busAddress = _busAddress;
-			uint8_t *busValue = _busValue;
+			unsigned int scheduleProgramsReadPointer = schedule_programs_read_pointer_;
+			unsigned int scheduleProgramProgramCounter = schedule_program_program_counter_;
+			RegisterPair nextAddress = next_address_;
+			BusOperation nextBusOperation = next_bus_operation_;
+			uint16_t busAddress = bus_address_;
+			uint8_t *busValue = bus_value_;
 
 #define checkSchedule(op) \
-	if(!_scheduledPrograms[scheduleProgramsReadPointer]) {\
-		scheduleProgramsReadPointer = _scheduleProgramsWritePointer = scheduleProgramProgramCounter = 0;\
-		if(_interrupt_requests) {\
-			if(_interrupt_requests & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-				_interrupt_requests &= ~InterruptRequestFlags::PowerOn;\
+	if(!scheduled_programs_[scheduleProgramsReadPointer]) {\
+		scheduleProgramsReadPointer = schedule_programs_write_pointer_ = scheduleProgramProgramCounter = 0;\
+		if(interrupt_requests_) {\
+			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
+				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
 				schedule_program(get_reset_program());\
-			} else if(_interrupt_requests & InterruptRequestFlags::NMI) {\
-				_interrupt_requests &= ~InterruptRequestFlags::NMI;\
+			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
+				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
 				schedule_program(get_nmi_program());\
-			} else if(_interrupt_requests & InterruptRequestFlags::IRQ) {\
+			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
 				schedule_program(get_irq_program());\
 			} \
 		} else {\
@@ -617,23 +617,23 @@ template <class T> class Processor {
 	}
 
 #define bus_access() \
-	_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::IRQ) | _irq_request_history;	\
-	_irq_request_history = _irq_line & _inverseInterruptFlag;	\
+	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
+	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
 	if(number_of_cycles <= 0) break;
 
 			checkSchedule();
-			number_of_cycles += _cycles_left_to_run;
-			const MicroOp *program = _scheduledPrograms[scheduleProgramsReadPointer];
+			number_of_cycles += cycles_left_to_run_;
+			const MicroOp *program = scheduled_programs_[scheduleProgramsReadPointer];
 
 			while(number_of_cycles > 0) {
 
-				while (_ready_is_active && number_of_cycles > 0) {
+				while (ready_is_active_ && number_of_cycles > 0) {
 					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
-				if(!_ready_is_active)
+				if(!ready_is_active_)
 				{
 					if(nextBusOperation != BusOperation::None)
 					{
@@ -655,414 +655,414 @@ template <class T> class Processor {
 #pragma mark - Fetch/Decode
 
 							case CycleFetchOperation: {
-								_lastOperationPC = _pc;
-//								printf("%04x	x:%02x\n", _pc.full, _x);
-								_pc.full++;
-								read_op(_operation, _lastOperationPC.full);
+								last_operation_pc_ = pc_;
+//								printf("%04x	x:%02x\n", pc_.full, x_);
+								pc_.full++;
+								read_op(operation_, last_operation_pc_.full);
 
 //								static int last_cycles_left_to_run = 0;
 //								static bool printed_map[256] = {false};
-//								if(!printed_map[_operation]) {
-//									printed_map[_operation] = true;
-//									if(last_cycles_left_to_run > _cycles_left_to_run)
-//										printf("%02x %d\n", _operation, last_cycles_left_to_run - _cycles_left_to_run);
+//								if(!printed_map[operation_]) {
+//									printed_map[operation_] = true;
+//									if(last_cycles_left_to_run > cycles_left_to_run_)
+//										printf("%02x %d\n", operation_, last_cycles_left_to_run - cycles_left_to_run_);
 //									else
-//										printf("%02x\n", _operation);
+//										printf("%02x\n", operation_);
 //								}
-//								last_cycles_left_to_run = _cycles_left_to_run;
+//								last_cycles_left_to_run = cycles_left_to_run_;
 							} break;
 
 							case CycleFetchOperand:
-								read_mem(_operand, _pc.full);
+								read_mem(operand_, pc_.full);
 							break;
 
 							case OperationDecodeOperation:
-//								printf("d %02x\n", _operation);
-								decode_operation(_operation);
+//								printf("d %02x\n", operation_);
+								decode_operation(operation_);
 							continue;
 
 							case OperationMoveToNextProgram:
-								_scheduledPrograms[scheduleProgramsReadPointer] = NULL;
+								scheduled_programs_[scheduleProgramsReadPointer] = NULL;
 								scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
 								scheduleProgramProgramCounter = 0;
 								checkSchedule();
-								program = _scheduledPrograms[scheduleProgramsReadPointer];
+								program = scheduled_programs_[scheduleProgramsReadPointer];
 							continue;
 
 #define push(v) \
 		{\
-			uint16_t targetAddress = _s | 0x100; _s--;\
+			uint16_t targetAddress = s_ | 0x100; s_--;\
 			write_mem(v, targetAddress);\
 		}
 
-							case CycleIncPCPushPCH:				_pc.full++;														// deliberate fallthrough
-							case CyclePushPCH:					push(_pc.bytes.high);											break;
-							case CyclePushPCL:					push(_pc.bytes.low);											break;
-							case CyclePushOperand:				push(_operand);													break;
-							case CyclePushA:					push(_a);														break;
+							case CycleIncPCPushPCH:				pc_.full++;														// deliberate fallthrough
+							case CyclePushPCH:					push(pc_.bytes.high);											break;
+							case CyclePushPCL:					push(pc_.bytes.low);											break;
+							case CyclePushOperand:				push(operand_);													break;
+							case CyclePushA:					push(a_);														break;
 							case CycleNoWritePush:
 							{
-								uint16_t targetAddress = _s | 0x100; _s--;
-								read_mem(_operand, targetAddress);
+								uint16_t targetAddress = s_ | 0x100; s_--;
+								read_mem(operand_, targetAddress);
 							}
 							break;
 
 #undef push
 
-							case CycleReadFromS:				throwaway_read(_s | 0x100);										break;
-							case CycleReadFromPC:				throwaway_read(_pc.full);										break;
+							case CycleReadFromS:				throwaway_read(s_ | 0x100);										break;
+							case CycleReadFromPC:				throwaway_read(pc_.full);										break;
 
 							case OperationBRKPickVector:
 								// NMI can usurp BRK-vector operations
-								nextAddress.full = (_interrupt_requests & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
-								_interrupt_requests &= ~InterruptRequestFlags::NMI;	// TODO: this probably doesn't happen now?
+								nextAddress.full = (interrupt_requests_ & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
+								interrupt_requests_ &= ~InterruptRequestFlags::NMI;	// TODO: this probably doesn't happen now?
 							continue;
 							case OperationNMIPickVector:		nextAddress.full = 0xfffa;											continue;
 							case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
-							case CycleReadVectorLow:			read_mem(_pc.bytes.low, nextAddress.full);							break;
-							case CycleReadVectorHigh:			read_mem(_pc.bytes.high, nextAddress.full+1);						break;
-							case OperationSetI:					_inverseInterruptFlag = 0;											continue;
+							case CycleReadVectorLow:			read_mem(pc_.bytes.low, nextAddress.full);							break;
+							case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
+							case OperationSetI:					inverse_interrupt_flag_ = 0;										continue;
 
-							case CyclePullPCL:					_s++; read_mem(_pc.bytes.low, _s | 0x100);							break;
-							case CyclePullPCH:					_s++; read_mem(_pc.bytes.high, _s | 0x100);							break;
-							case CyclePullA:					_s++; read_mem(_a, _s | 0x100);										break;
-							case CyclePullOperand:				_s++; read_mem(_operand, _s | 0x100);								break;
-							case OperationSetFlagsFromOperand:	set_flags(_operand);												continue;
-							case OperationSetOperandFromFlagsWithBRKSet: _operand = get_flags() | Flag::Break;						continue;
-							case OperationSetOperandFromFlags:  _operand = get_flags();												continue;
-							case OperationSetFlagsFromA:		_zeroResult = _negativeResult = _a;									continue;
+							case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
+							case CyclePullPCH:					s_++; read_mem(pc_.bytes.high, s_ | 0x100);							break;
+							case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);										break;
+							case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);								break;
+							case OperationSetFlagsFromOperand:	set_flags(operand_);												continue;
+							case OperationSetOperandFromFlagsWithBRKSet: operand_ = get_flags() | Flag::Break;						continue;
+							case OperationSetOperandFromFlags:  operand_ = get_flags();												continue;
+							case OperationSetFlagsFromA:		zero_result_ = negative_result_ = a_;								continue;
 
-							case CycleIncrementPCAndReadStack:	_pc.full++; throwaway_read(_s | 0x100);								break;
-							case CycleReadPCLFromAddress:		read_mem(_pc.bytes.low, _address.full);								break;
-							case CycleReadPCHFromAddress:		_address.bytes.low++; read_mem(_pc.bytes.high, _address.full);		break;
+							case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);								break;
+							case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);								break;
+							case CycleReadPCHFromAddress:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);		break;
 
 							case CycleReadAndIncrementPC: {
-								uint16_t oldPC = _pc.full;
-								_pc.full++;
+								uint16_t oldPC = pc_.full;
+								pc_.full++;
 								throwaway_read(oldPC);
 							} break;
 
 #pragma mark - JAM
 
 							case CycleScheduleJam: {
-								_is_jammed = true;
+								is_jammed_ = true;
 								static const MicroOp jam[] = JAM;
 								schedule_program(jam);
 
-								if(_jam_handler) {
-									_jam_handler->processor_did_jam(this, _pc.full - 1);
-									checkSchedule(_is_jammed = false; program = _scheduledPrograms[scheduleProgramsReadPointer]);
+								if(jam_handler_) {
+									jam_handler_->processor_did_jam(this, pc_.full - 1);
+									checkSchedule(is_jammed_ = false; program = scheduled_programs_[scheduleProgramsReadPointer]);
 								}
 							} continue;
 
 #pragma mark - Bitwise
 
-							case OperationORA:	_a |= _operand;	_negativeResult = _zeroResult = _a;		continue;
-							case OperationAND:	_a &= _operand;	_negativeResult = _zeroResult = _a;		continue;
-							case OperationEOR:	_a ^= _operand;	_negativeResult = _zeroResult = _a;		continue;
+							case OperationORA:	a_ |= operand_;	negative_result_ = zero_result_ = a_;		continue;
+							case OperationAND:	a_ &= operand_;	negative_result_ = zero_result_ = a_;		continue;
+							case OperationEOR:	a_ ^= operand_;	negative_result_ = zero_result_ = a_;		continue;
 
 #pragma mark - Load and Store
 
-							case OperationLDA:	_a = _negativeResult = _zeroResult = _operand;			continue;
-							case OperationLDX:	_x = _negativeResult = _zeroResult = _operand;			continue;
-							case OperationLDY:	_y = _negativeResult = _zeroResult = _operand;			continue;
-							case OperationLAX:	_a = _x = _negativeResult = _zeroResult = _operand;		continue;
+							case OperationLDA:	a_ = negative_result_ = zero_result_ = operand_;			continue;
+							case OperationLDX:	x_ = negative_result_ = zero_result_ = operand_;			continue;
+							case OperationLDY:	y_ = negative_result_ = zero_result_ = operand_;			continue;
+							case OperationLAX:	a_ = x_ = negative_result_ = zero_result_ = operand_;		continue;
 
-							case OperationSTA:	_operand = _a;											continue;
-							case OperationSTX:	_operand = _x;											continue;
-							case OperationSTY:	_operand = _y;											continue;
-							case OperationSAX:	_operand = _a & _x;										continue;
-							case OperationSHA:	_operand = _a & _x & (_address.bytes.high+1);			continue;
-							case OperationSHX:	_operand = _x & (_address.bytes.high+1);				continue;
-							case OperationSHY:	_operand = _y & (_address.bytes.high+1);				continue;
-							case OperationSHS:	_s = _a & _x; _operand = _s & (_address.bytes.high+1);	continue;
+							case OperationSTA:	operand_ = a_;											continue;
+							case OperationSTX:	operand_ = x_;											continue;
+							case OperationSTY:	operand_ = y_;											continue;
+							case OperationSAX:	operand_ = a_ & x_;										continue;
+							case OperationSHA:	operand_ = a_ & x_ & (address_.bytes.high+1);			continue;
+							case OperationSHX:	operand_ = x_ & (address_.bytes.high+1);				continue;
+							case OperationSHY:	operand_ = y_ & (address_.bytes.high+1);				continue;
+							case OperationSHS:	s_ = a_ & x_; operand_ = s_ & (address_.bytes.high+1);	continue;
 
 							case OperationLXA:
-								_a = _x = (_a | 0xee) & _operand;
-								_negativeResult = _zeroResult = _a;
+								a_ = x_ = (a_ | 0xee) & operand_;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 #pragma mark - Compare
 
 							case OperationCMP: {
-								const uint16_t temp16 = _a - _operand;
-								_negativeResult = _zeroResult = (uint8_t)temp16;
-								_carryFlag = ((~temp16) >> 8)&1;
+								const uint16_t temp16 = a_ - operand_;
+								negative_result_ = zero_result_ = (uint8_t)temp16;
+								carry_flag_ = ((~temp16) >> 8)&1;
 							} continue;
 							case OperationCPX: {
-								const uint16_t temp16 = _x - _operand;
-								_negativeResult = _zeroResult = (uint8_t)temp16;
-								_carryFlag = ((~temp16) >> 8)&1;
+								const uint16_t temp16 = x_ - operand_;
+								negative_result_ = zero_result_ = (uint8_t)temp16;
+								carry_flag_ = ((~temp16) >> 8)&1;
 							} continue;
 							case OperationCPY: {
-								const uint16_t temp16 = _y - _operand;
-								_negativeResult = _zeroResult = (uint8_t)temp16;
-								_carryFlag = ((~temp16) >> 8)&1;
+								const uint16_t temp16 = y_ - operand_;
+								negative_result_ = zero_result_ = (uint8_t)temp16;
+								carry_flag_ = ((~temp16) >> 8)&1;
 							} continue;
 
 #pragma mark - BIT
 
 							case OperationBIT:
-								_zeroResult = _operand & _a;
-								_negativeResult = _operand;
-								_overflowFlag = _operand&Flag::Overflow;
+								zero_result_ = operand_ & a_;
+								negative_result_ = operand_;
+								overflow_flag_ = operand_&Flag::Overflow;
 							continue;
 
 #pragma mark ADC/SBC (and INS)
 
 							case OperationINS:
-								_operand++;			// deliberate fallthrough
+								operand_++;			// deliberate fallthrough
 							case OperationSBC:
-								if(_decimalFlag) {
-									const uint16_t notCarry = _carryFlag ^ 0x1;
-									const uint16_t decimalResult = (uint16_t)_a - (uint16_t)_operand - notCarry;
+								if(decimal_flag_) {
+									const uint16_t notCarry = carry_flag_ ^ 0x1;
+									const uint16_t decimalResult = (uint16_t)a_ - (uint16_t)operand_ - notCarry;
 									uint16_t temp16;
 
-									temp16 = (_a&0xf) - (_operand&0xf) - notCarry;
+									temp16 = (a_&0xf) - (operand_&0xf) - notCarry;
 									if(temp16 > 0xf) temp16 -= 0x6;
 									temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
-									temp16 += (_a&0xf0) - (_operand&0xf0);
+									temp16 += (a_&0xf0) - (operand_&0xf0);
 
-									_overflowFlag = ( ( (decimalResult^_a)&(~decimalResult^_operand) )&0x80) >> 1;
-									_negativeResult = (uint8_t)temp16;
-									_zeroResult = (uint8_t)decimalResult;
+									overflow_flag_ = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
+									negative_result_ = (uint8_t)temp16;
+									zero_result_ = (uint8_t)decimalResult;
 
 									if(temp16 > 0xff) temp16 -= 0x60;
 
-									_carryFlag = (temp16 > 0xff) ? 0 : Flag::Carry;
-									_a = (uint8_t)temp16;
+									carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
+									a_ = (uint8_t)temp16;
 									continue;
 								} else {
-									_operand = ~_operand;
+									operand_ = ~operand_;
 								}
 
 							// deliberate fallthrough
 							case OperationADC:
-								if(_decimalFlag) {
-									const uint16_t decimalResult = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
+								if(decimal_flag_) {
+									const uint16_t decimalResult = (uint16_t)a_ + (uint16_t)operand_ + (uint16_t)carry_flag_;
 
-									uint8_t low_nibble = (_a & 0xf) + (_operand & 0xf) + _carryFlag;
+									uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + carry_flag_;
 									if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
-									uint16_t result = (uint16_t)(_a & 0xf0) + (uint16_t)(_operand & 0xf0) + (uint16_t)low_nibble;
-									_negativeResult = (uint8_t)result;
-									_overflowFlag =  (( (result^_a)&(result^_operand) )&0x80) >> 1;
+									uint16_t result = (uint16_t)(a_ & 0xf0) + (uint16_t)(operand_ & 0xf0) + (uint16_t)low_nibble;
+									negative_result_ = (uint8_t)result;
+									overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
 									if(result >= 0xa0) result += 0x60;
 
-									_carryFlag = (result >> 8) ? 1 : 0;
-									_a = (uint8_t)result;
-									_zeroResult = (uint8_t)decimalResult;
+									carry_flag_ = (result >> 8) ? 1 : 0;
+									a_ = (uint8_t)result;
+									zero_result_ = (uint8_t)decimalResult;
 								} else {
-									const uint16_t result = (uint16_t)_a + (uint16_t)_operand + (uint16_t)_carryFlag;
-									_overflowFlag =  (( (result^_a)&(result^_operand) )&0x80) >> 1;
-									_negativeResult = _zeroResult = _a = (uint8_t)result;
-									_carryFlag = (result >> 8)&1;
+									const uint16_t result = (uint16_t)a_ + (uint16_t)operand_ + (uint16_t)carry_flag_;
+									overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
+									negative_result_ = zero_result_ = a_ = (uint8_t)result;
+									carry_flag_ = (result >> 8)&1;
 								}
 
 								// fix up in case this was INS
-								if(cycle == OperationINS) _operand = ~_operand;
+								if(cycle == OperationINS) operand_ = ~operand_;
 							continue;
 
 #pragma mark - Shifts and Rolls
 
 							case OperationASL:
-								_carryFlag = _operand >> 7;
-								_operand <<= 1;
-								_negativeResult = _zeroResult = _operand;
+								carry_flag_ = operand_ >> 7;
+								operand_ <<= 1;
+								negative_result_ = zero_result_ = operand_;
 							continue;
 
 							case OperationASO:
-								_carryFlag = _operand >> 7;
-								_operand <<= 1;
-								_a |= _operand;
-								_negativeResult = _zeroResult = _a;
+								carry_flag_ = operand_ >> 7;
+								operand_ <<= 1;
+								a_ |= operand_;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 							case OperationROL: {
-								const uint8_t temp8 = (uint8_t)((_operand << 1) | _carryFlag);
-								_carryFlag = _operand >> 7;
-								_operand = _negativeResult = _zeroResult = temp8;
+								const uint8_t temp8 = (uint8_t)((operand_ << 1) | carry_flag_);
+								carry_flag_ = operand_ >> 7;
+								operand_ = negative_result_ = zero_result_ = temp8;
 							} continue;
 
 							case OperationRLA: {
-								const uint8_t temp8 = (uint8_t)((_operand << 1) | _carryFlag);
-								_carryFlag = _operand >> 7;
-								_operand = temp8;
-								_a &= _operand;
-								_negativeResult = _zeroResult = _a;
+								const uint8_t temp8 = (uint8_t)((operand_ << 1) | carry_flag_);
+								carry_flag_ = operand_ >> 7;
+								operand_ = temp8;
+								a_ &= operand_;
+								negative_result_ = zero_result_ = a_;
 							} continue;
 
 							case OperationLSR:
-								_carryFlag = _operand & 1;
-								_operand >>= 1;
-								_negativeResult = _zeroResult = _operand;
+								carry_flag_ = operand_ & 1;
+								operand_ >>= 1;
+								negative_result_ = zero_result_ = operand_;
 							continue;
 
 							case OperationLSE:
-								_carryFlag = _operand & 1;
-								_operand >>= 1;
-								_a ^= _operand;
-								_negativeResult = _zeroResult = _a;
+								carry_flag_ = operand_ & 1;
+								operand_ >>= 1;
+								a_ ^= operand_;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 							case OperationASR:
-								_a &= _operand;
-								_carryFlag = _a & 1;
-								_a >>= 1;
-								_negativeResult = _zeroResult = _a;
+								a_ &= operand_;
+								carry_flag_ = a_ & 1;
+								a_ >>= 1;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 							case OperationROR: {
-								const uint8_t temp8 = (uint8_t)((_operand >> 1) | (_carryFlag << 7));
-								_carryFlag = _operand & 1;
-								_operand = _negativeResult = _zeroResult = temp8;
+								const uint8_t temp8 = (uint8_t)((operand_ >> 1) | (carry_flag_ << 7));
+								carry_flag_ = operand_ & 1;
+								operand_ = negative_result_ = zero_result_ = temp8;
 							} continue;
 
 							case OperationRRA: {
-								const uint8_t temp8 = (uint8_t)((_operand >> 1) | (_carryFlag << 7));
-								_carryFlag = _operand & 1;
-								_operand = temp8;
+								const uint8_t temp8 = (uint8_t)((operand_ >> 1) | (carry_flag_ << 7));
+								carry_flag_ = operand_ & 1;
+								operand_ = temp8;
 							} continue;
 
-							case OperationDecrementOperand: _operand--; continue;
-							case OperationIncrementOperand: _operand++; continue;
+							case OperationDecrementOperand: operand_--; continue;
+							case OperationIncrementOperand: operand_++; continue;
 
-							case OperationCLC: _carryFlag = 0;								continue;
-							case OperationCLI: _inverseInterruptFlag = Flag::Interrupt;		continue;
-							case OperationCLV: _overflowFlag = 0;							continue;
-							case OperationCLD: _decimalFlag = 0;							continue;
+							case OperationCLC: carry_flag_ = 0;								continue;
+							case OperationCLI: inverse_interrupt_flag_ = Flag::Interrupt;	continue;
+							case OperationCLV: overflow_flag_ = 0;							continue;
+							case OperationCLD: decimal_flag_ = 0;							continue;
 
-							case OperationSEC: _carryFlag = Flag::Carry;		continue;
-							case OperationSEI: _inverseInterruptFlag = 0;		continue;
-							case OperationSED: _decimalFlag = Flag::Decimal;	continue;
+							case OperationSEC: carry_flag_ = Flag::Carry;		continue;
+							case OperationSEI: inverse_interrupt_flag_ = 0;		continue;
+							case OperationSED: decimal_flag_ = Flag::Decimal;	continue;
 
-							case OperationINC: _operand++; _negativeResult = _zeroResult = _operand; continue;
-							case OperationDEC: _operand--; _negativeResult = _zeroResult = _operand; continue;
-							case OperationINX: _x++; _negativeResult = _zeroResult = _x; continue;
-							case OperationDEX: _x--; _negativeResult = _zeroResult = _x; continue;
-							case OperationINY: _y++; _negativeResult = _zeroResult = _y; continue;
-							case OperationDEY: _y--; _negativeResult = _zeroResult = _y; continue;
+							case OperationINC: operand_++; negative_result_ = zero_result_ = operand_; continue;
+							case OperationDEC: operand_--; negative_result_ = zero_result_ = operand_; continue;
+							case OperationINX: x_++; negative_result_ = zero_result_ = x_; continue;
+							case OperationDEX: x_--; negative_result_ = zero_result_ = x_; continue;
+							case OperationINY: y_++; negative_result_ = zero_result_ = y_; continue;
+							case OperationDEY: y_--; negative_result_ = zero_result_ = y_; continue;
 
 							case OperationANE:
-								_a = (_a | 0xee) & _operand & _x;
-								_negativeResult = _zeroResult = _a;
+								a_ = (a_ | 0xee) & operand_ & x_;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 							case OperationANC:
-								_a &= _operand;
-								_negativeResult = _zeroResult = _a;
-								_carryFlag = _a >> 7;
+								a_ &= operand_;
+								negative_result_ = zero_result_ = a_;
+								carry_flag_ = a_ >> 7;
 							continue;
 
 							case OperationLAS:
-								_a = _x = _s = _s & _operand;
-								_negativeResult = _zeroResult = _a;
+								a_ = x_ = s_ = s_ & operand_;
+								negative_result_ = zero_result_ = a_;
 							continue;
 
 #pragma mark - Addressing Mode Work
 
 							case CycleAddXToAddressLow:
-								nextAddress.full = _address.full + _x;
-								_address.bytes.low = nextAddress.bytes.low;
-								if(_address.bytes.high != nextAddress.bytes.high) {
-									throwaway_read(_address.full);
+								nextAddress.full = address_.full + x_;
+								address_.bytes.low = nextAddress.bytes.low;
+								if(address_.bytes.high != nextAddress.bytes.high) {
+									throwaway_read(address_.full);
 									break;
 								}
 							continue;
 							case CycleAddXToAddressLowRead:
-								nextAddress.full = _address.full + _x;
-								_address.bytes.low = nextAddress.bytes.low;
-								throwaway_read(_address.full);
+								nextAddress.full = address_.full + x_;
+								address_.bytes.low = nextAddress.bytes.low;
+								throwaway_read(address_.full);
 							break;
 							case CycleAddYToAddressLow:
-								nextAddress.full = _address.full + _y;
-								_address.bytes.low = nextAddress.bytes.low;
-								if(_address.bytes.high != nextAddress.bytes.high) {
-									throwaway_read(_address.full);
+								nextAddress.full = address_.full + y_;
+								address_.bytes.low = nextAddress.bytes.low;
+								if(address_.bytes.high != nextAddress.bytes.high) {
+									throwaway_read(address_.full);
 									break;
 								}
 							continue;
 							case CycleAddYToAddressLowRead:
-								nextAddress.full = _address.full + _y;
-								_address.bytes.low = nextAddress.bytes.low;
-								throwaway_read(_address.full);
+								nextAddress.full = address_.full + y_;
+								address_.bytes.low = nextAddress.bytes.low;
+								throwaway_read(address_.full);
 							break;
 							case OperationCorrectAddressHigh:
-								_address.full = nextAddress.full;
+								address_.full = nextAddress.full;
 							continue;
 							case CycleIncrementPCFetchAddressLowFromOperand:
-								_pc.full++;
-								read_mem(_address.bytes.low, _operand);
+								pc_.full++;
+								read_mem(address_.bytes.low, operand_);
 							break;
 							case CycleAddXToOperandFetchAddressLow:
-								_operand += _x;
-								read_mem(_address.bytes.low, _operand);
+								operand_ += x_;
+								read_mem(address_.bytes.low, operand_);
 							break;
 							case CycleIncrementOperandFetchAddressHigh:
-								_operand++;
-								read_mem(_address.bytes.high, _operand);
+								operand_++;
+								read_mem(address_.bytes.high, operand_);
 							break;
 							case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
-								_pc.full++;
+								pc_.full++;
 							case CycleReadPCHLoadPCL: {
-								uint16_t oldPC = _pc.full;
-								_pc.bytes.low = _operand;
-								read_mem(_pc.bytes.high, oldPC);
+								uint16_t oldPC = pc_.full;
+								pc_.bytes.low = operand_;
+								read_mem(pc_.bytes.high, oldPC);
 							} break;
 
 							case CycleReadAddressHLoadAddressL:
-								_address.bytes.low = _operand; _pc.full++;
-								read_mem(_address.bytes.high, _pc.full);
+								address_.bytes.low = operand_; pc_.full++;
+								read_mem(address_.bytes.high, pc_.full);
 							break;
 
 							case CycleLoadAddressAbsolute: {
-								uint16_t nextPC = _pc.full+1;
-								_pc.full += 2;
-								_address.bytes.low = _operand;
-								read_mem(_address.bytes.high, nextPC);
+								uint16_t nextPC = pc_.full+1;
+								pc_.full += 2;
+								address_.bytes.low = operand_;
+								read_mem(address_.bytes.high, nextPC);
 							} break;
 
 							case OperationLoadAddressZeroPage:
-								_pc.full++;
-								_address.full = _operand;
+								pc_.full++;
+								address_.full = operand_;
 							continue;
 
 							case CycleLoadAddessZeroX:
-								_pc.full++;
-								_address.full = (_operand + _x)&0xff;
-								throwaway_read(_operand);
+								pc_.full++;
+								address_.full = (operand_ + x_)&0xff;
+								throwaway_read(operand_);
 							break;
 
 							case CycleLoadAddessZeroY:
-								_pc.full++;
-								_address.full = (_operand + _y)&0xff;
-								throwaway_read(_operand);
+								pc_.full++;
+								address_.full = (operand_ + y_)&0xff;
+								throwaway_read(operand_);
 							break;
 
-							case OperationIncrementPC:			_pc.full++;						continue;
-							case CycleFetchOperandFromAddress:	read_mem(_operand, _address.full);	break;
-							case CycleWriteOperandToAddress:	write_mem(_operand, _address.full);	break;
-							case OperationCopyOperandFromA:		_operand = _a;					continue;
-							case OperationCopyOperandToA:		_a = _operand;					continue;
+							case OperationIncrementPC:			pc_.full++;						continue;
+							case CycleFetchOperandFromAddress:	read_mem(operand_, address_.full);	break;
+							case CycleWriteOperandToAddress:	write_mem(operand_, address_.full);	break;
+							case OperationCopyOperandFromA:		operand_ = a_;					continue;
+							case OperationCopyOperandToA:		a_ = operand_;					continue;
 
 #pragma mark - Branching
 
-#define BRA(condition)	_pc.full++; if(condition) schedule_program(doBranch)
+#define BRA(condition)	pc_.full++; if(condition) schedule_program(doBranch)
 
-							case OperationBPL: BRA(!(_negativeResult&0x80));				continue;
-							case OperationBMI: BRA(_negativeResult&0x80);					continue;
-							case OperationBVC: BRA(!_overflowFlag);							continue;
-							case OperationBVS: BRA(_overflowFlag);							continue;
-							case OperationBCC: BRA(!_carryFlag);							continue;
-							case OperationBCS: BRA(_carryFlag);								continue;
-							case OperationBNE: BRA(_zeroResult);							continue;
-							case OperationBEQ: BRA(!_zeroResult);							continue;
+							case OperationBPL: BRA(!(negative_result_&0x80));				continue;
+							case OperationBMI: BRA(negative_result_&0x80);					continue;
+							case OperationBVC: BRA(!overflow_flag_);						continue;
+							case OperationBVS: BRA(overflow_flag_);							continue;
+							case OperationBCC: BRA(!carry_flag_);							continue;
+							case OperationBCS: BRA(carry_flag_);							continue;
+							case OperationBNE: BRA(zero_result_);							continue;
+							case OperationBEQ: BRA(!zero_result_);							continue;
 
 							case CycleAddSignedOperandToPC:
-								nextAddress.full = (uint16_t)(_pc.full + (int8_t)_operand);
-								_pc.bytes.low = nextAddress.bytes.low;
-								if(nextAddress.bytes.high != _pc.bytes.high) {
-									uint16_t halfUpdatedPc = _pc.full;
-									_pc.full = nextAddress.full;
+								nextAddress.full = (uint16_t)(pc_.full + (int8_t)operand_);
+								pc_.bytes.low = nextAddress.bytes.low;
+								if(nextAddress.bytes.high != pc_.bytes.high) {
+									uint16_t halfUpdatedPc = pc_.full;
+									pc_.full = nextAddress.full;
 									throwaway_read(halfUpdatedPc);
 									break;
 								}
@@ -1072,45 +1072,45 @@ template <class T> class Processor {
 
 #pragma mark - Transfers
 
-							case OperationTXA: _zeroResult = _negativeResult = _a = _x; continue;
-							case OperationTYA: _zeroResult = _negativeResult = _a = _y; continue;
-							case OperationTXS: _s = _x;									continue;
-							case OperationTAY: _zeroResult = _negativeResult = _y = _a; continue;
-							case OperationTAX: _zeroResult = _negativeResult = _x = _a; continue;
-							case OperationTSX: _zeroResult = _negativeResult = _x = _s; continue;
+							case OperationTXA: zero_result_ = negative_result_ = a_ = x_;	continue;
+							case OperationTYA: zero_result_ = negative_result_ = a_ = y_;	continue;
+							case OperationTXS: s_ = x_;										continue;
+							case OperationTAY: zero_result_ = negative_result_ = y_ = a_;	continue;
+							case OperationTAX: zero_result_ = negative_result_ = x_ = a_;	continue;
+							case OperationTSX: zero_result_ = negative_result_ = x_ = s_;	continue;
 
 							case OperationARR:
-								if(_decimalFlag) {
-									_a &= _operand;
-									uint8_t unshiftedA = _a;
-									_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
-									_zeroResult = _negativeResult = _a;
-									_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
+								if(decimal_flag_) {
+									a_ &= operand_;
+									uint8_t unshiftedA = a_;
+									a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
+									zero_result_ = negative_result_ = a_;
+									overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
 
-									if((unshiftedA&0xf) + (unshiftedA&0x1) > 5) _a = ((_a + 6)&0xf) | (_a & 0xf0);
+									if((unshiftedA&0xf) + (unshiftedA&0x1) > 5) a_ = ((a_ + 6)&0xf) | (a_ & 0xf0);
 
-									_carryFlag = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
-									if(_carryFlag) _a += 0x60;
+									carry_flag_ = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
+									if(carry_flag_) a_ += 0x60;
 								} else {
-									_a &= _operand;
-									_a = (uint8_t)((_a >> 1) | (_carryFlag << 7));
-									_negativeResult = _zeroResult = _a;
-									_carryFlag = (_a >> 6)&1;
-									_overflowFlag = (_a^(_a << 1))&Flag::Overflow;
+									a_ &= operand_;
+									a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
+									negative_result_ = zero_result_ = a_;
+									carry_flag_ = (a_ >> 6)&1;
+									overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
 								}
 							continue;
 
 							case OperationSBX:
-								_x &= _a;
-								uint16_t difference = _x - _operand;
-								_x = (uint8_t)difference;
-								_negativeResult = _zeroResult = _x;
-								_carryFlag = ((difference >> 8)&1)^1;
+								x_ &= a_;
+								uint16_t difference = x_ - operand_;
+								x_ = (uint8_t)difference;
+								negative_result_ = zero_result_ = x_;
+								carry_flag_ = ((difference >> 8)&1)^1;
 							continue;
 						}
 
-						if(_ready_line_is_enabled && isReadOperation(nextBusOperation)) {
-							_ready_is_active = true;
+						if(ready_line_is_enabled_ && isReadOperation(nextBusOperation)) {
+							ready_is_active_ = true;
 							break;
 						}
 						bus_access();
@@ -1118,13 +1118,13 @@ template <class T> class Processor {
 				}
 			}
 
-			_cycles_left_to_run = number_of_cycles;
-			_scheduleProgramsReadPointer = scheduleProgramsReadPointer;
-			_scheduleProgramProgramCounter = scheduleProgramProgramCounter;
-			_nextAddress = nextAddress;
-			_nextBusOperation = nextBusOperation;
-			_busAddress = busAddress;
-			_busValue = busValue;
+			cycles_left_to_run_ = number_of_cycles;
+			schedule_programs_read_pointer_ = scheduleProgramsReadPointer;
+			schedule_program_program_counter_ = scheduleProgramProgramCounter;
+			next_address_ = nextAddress;
+			next_bus_operation_ = nextBusOperation;
+			bus_address_ = busAddress;
+			bus_value_ = busValue;
 
 			static_cast<T *>(this)->synchronise();
 		}
@@ -1147,14 +1147,14 @@ template <class T> class Processor {
 		uint16_t get_value_of_register(Register r)
 		{
 			switch (r) {
-				case Register::ProgramCounter:			return _pc.full;
-				case Register::LastOperationAddress:	return _lastOperationPC.full;
-				case Register::StackPointer:			return _s;
+				case Register::ProgramCounter:			return pc_.full;
+				case Register::LastOperationAddress:	return last_operation_pc_.full;
+				case Register::StackPointer:			return s_;
 				case Register::Flags:					return get_flags();
-				case Register::A:						return _a;
-				case Register::X:						return _x;
-				case Register::Y:						return _y;
-				case Register::S:						return _s;
+				case Register::A:						return a_;
+				case Register::X:						return x_;
+				case Register::Y:						return y_;
+				case Register::S:						return s_;
 				default: return 0;
 			}
 		}
@@ -1170,13 +1170,13 @@ template <class T> class Processor {
 		void set_value_of_register(Register r, uint16_t value)
 		{
 			switch (r) {
-				case Register::ProgramCounter:	_pc.full = value;			break;
-				case Register::StackPointer:	_s = (uint8_t)value;		break;
+				case Register::ProgramCounter:	pc_.full = value;			break;
+				case Register::StackPointer:	s_ = (uint8_t)value;		break;
 				case Register::Flags:			set_flags((uint8_t)value);	break;
-				case Register::A:				_a = (uint8_t)value;		break;
-				case Register::X:				_x = (uint8_t)value;		break;
-				case Register::Y:				_y = (uint8_t)value;		break;
-				case Register::S:				_s = (uint8_t)value;		break;
+				case Register::A:				a_ = (uint8_t)value;		break;
+				case Register::X:				x_ = (uint8_t)value;		break;
+				case Register::Y:				y_ = (uint8_t)value;		break;
+				case Register::S:				s_ = (uint8_t)value;		break;
 				default: break;
 			}
 		}
@@ -1187,13 +1187,13 @@ template <class T> class Processor {
 		*/
 		void return_from_subroutine()
 		{
-			_s++;
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | _s, &_pc.bytes.low); _s++;
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | _s, &_pc.bytes.high);
-			_pc.full++;
+			s_++;
+			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
+			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
+			pc_.full++;
 
-			if(_is_jammed) {
-				_scheduledPrograms[0] = _scheduledPrograms[1] = _scheduledPrograms[2] = _scheduledPrograms[3] = nullptr;
+			if(is_jammed_) {
+				scheduled_programs_[0] = scheduled_programs_[1] = scheduled_programs_[2] = scheduled_programs_[3] = nullptr;
 			}
 		}
 
@@ -1205,10 +1205,10 @@ template <class T> class Processor {
 		inline void set_ready_line(bool active)
 		{
 			if(active) {
-				_ready_line_is_enabled = true;
+				ready_line_is_enabled_ = true;
 			} else {
-				_ready_line_is_enabled = false;
-				_ready_is_active = false;
+				ready_line_is_enabled_ = false;
+				ready_is_active_ = false;
 			}
 		}
 
@@ -1219,7 +1219,7 @@ template <class T> class Processor {
 		*/
 		inline void set_reset_line(bool active)
 		{
-			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
+			interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 		}
 
 		/*!
@@ -1229,7 +1229,7 @@ template <class T> class Processor {
 		*/
 		inline bool get_is_resetting()
 		{
-			return !!(_interrupt_requests & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
+			return !!(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
 		}
 
 		/*!
@@ -1238,7 +1238,7 @@ template <class T> class Processor {
 		*/
 		inline void set_power_on(bool active)
 		{
-			_interrupt_requests = (_interrupt_requests & ~InterruptRequestFlags::PowerOn) | (active ? InterruptRequestFlags::PowerOn : 0);
+			interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::PowerOn) | (active ? InterruptRequestFlags::PowerOn : 0);
 		}
 
 		/*!
@@ -1248,7 +1248,7 @@ template <class T> class Processor {
 		*/
 		inline void set_irq_line(bool active)
 		{
-			_irq_line = active ? Flag::Interrupt : 0;
+			irq_line_ = active ? Flag::Interrupt : 0;
 		}
 
 		/*!
@@ -1259,9 +1259,9 @@ template <class T> class Processor {
 		inline void set_overflow_line(bool active)
 		{
 			// a leading edge will set the overflow flag
-			if(active && !_set_overflow_line_is_enabled)
-				_overflowFlag = Flag::Overflow;
-			_set_overflow_line_is_enabled = active;
+			if(active && !set_overflow_line_is_enabled_)
+				overflow_flag_ = Flag::Overflow;
+			set_overflow_line_is_enabled_ = active;
 		}
 
 		/*!
@@ -1272,9 +1272,9 @@ template <class T> class Processor {
 		inline void set_nmi_line(bool active)
 		{
 			// NMI is edge triggered, not level
-			if(active && !_nmi_line_is_enabled)
-				_interrupt_requests |= InterruptRequestFlags::NMI;
-			_nmi_line_is_enabled = active;
+			if(active && !nmi_line_is_enabled_)
+				interrupt_requests_ |= InterruptRequestFlags::NMI;
+			nmi_line_is_enabled_ = active;
 		}
 
 		/*!
@@ -1285,7 +1285,7 @@ template <class T> class Processor {
 		*/
 		inline bool is_jammed()
 		{
-			return _is_jammed;
+			return is_jammed_;
 		}
 
 		/*!
@@ -1295,7 +1295,7 @@ template <class T> class Processor {
 		*/
 		inline void set_jam_handler(JamHandler *handler)
 		{
-			_jam_handler = handler;
+			jam_handler_ = handler;
 		}
 };
 
