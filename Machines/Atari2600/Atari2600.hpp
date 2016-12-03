@@ -12,8 +12,8 @@
 #include <stdint.h>
 
 #include "../../Processors/6502/CPU6502.hpp"
-#include "../../Components/6532/6532.hpp"
 #include "../CRTMachine.hpp"
+#include "PIA.hpp"
 #include "Speaker.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -23,28 +23,6 @@ namespace Atari2600 {
 
 const unsigned int number_of_upcoming_events = 6;
 const unsigned int number_of_recorded_counters = 7;
-
-class PIA: public MOS::MOS6532<PIA> {
-	public:
-		inline uint8_t get_port_input(int port)
-		{
-			return port_values_[port];
-		}
-
-		inline void update_port_input(int port, uint8_t mask, bool set)
-		{
-			if(set) port_values_[port] &= ~mask; else port_values_[port] |= mask;
-			set_port_did_change(port);
-		}
-
-		PIA() :
-			port_values_{0xff, 0xff}
-		{}
-
-	private:
-		uint8_t port_values_[2];
-
-};
 
 class Machine:
 	public CPU6502::Processor<Machine>,

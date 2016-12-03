@@ -902,6 +902,7 @@
 		4BEA52621DF339D7007E74F2 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = Electron/Speaker.hpp; sourceTree = "<group>"; };
 		4BEA52641DF3472B007E74F2 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Speaker.cpp; sourceTree = "<group>"; };
 		4BEA52651DF3472B007E74F2 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
+		4BEA52671DF34909007E74F2 /* PIA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PIA.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -1056,6 +1057,7 @@
 				4B2E2D991C3A06EC00138695 /* Atari2600Inputs.h */,
 				4B2E2D981C3A06EC00138695 /* Atari2600.hpp */,
 				4BEA52651DF3472B007E74F2 /* Speaker.hpp */,
+				4BEA52671DF34909007E74F2 /* PIA.hpp */,
 			);
 			path = Atari2600;
 			sourceTree = "<group>";
