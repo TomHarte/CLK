@@ -37,30 +37,29 @@ namespace {
 #define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
 
 Machine::Machine() :
-	_interrupt_control(0),
-	_interrupt_status(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
-	_frameCycles(0),
-	_displayOutputPosition(0),
-	_audioOutputPosition(0),
-	_current_pixel_line(-1),
-	_use_fast_tape_hack(false),
-	_crt(nullptr),
-	_phase(0)
+	interrupt_control_(0),
+	interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
+	frame_cycles_(0),
+	display_output_position_(0),
+	audio_output_position_(0),
+	current_pixel_line_(-1),
+	use_fast_tape_hack_(false),
+	phase_(0)
 {
-	memset(_key_states, 0, sizeof(_key_states));
-	memset(_palette, 0xf, sizeof(_palette));
+	memset(key_states_, 0, sizeof(key_states_));
+	memset(palette_, 0xf, sizeof(palette_));
 	for(int c = 0; c < 16; c++)
-		memset(_roms[c], 0xff, 16384);
+		memset(roms_[c], 0xff, 16384);
 
-	_tape.set_delegate(this);
+	tape_.set_delegate(this);
 	set_clock_rate(2000000);
 }
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_speaker.reset(new Speaker);
-	_crt.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
-	_crt->set_rgb_sampling_function(
+	speaker_.reset(new Speaker);
+	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
+	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
@@ -69,17 +68,17 @@ void Machine::setup_output(float aspect_ratio)
 		"}");
 
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
-	_crt->set_visible_area(_crt->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 
 	// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
 	// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
 	// run the speaker at a 2000000Hz input rate, at least for the time being.
-	_speaker->set_input_rate(2000000 / Speaker::clock_rate_divider);
+	speaker_->set_input_rate(2000000 / Speaker::clock_rate_divider);
 }
 
 void Machine::close_output()
 {
-	_crt = nullptr;
+	crt_ = nullptr;
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
@@ -90,29 +89,29 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		if(isReadOperation(operation))
 		{
-			*value = _ram[address];
+			*value = ram_[address];
 		}
 		else
 		{
 			if(
 				(
-					((_frameCycles >= first_graphics_line * cycles_per_line) && (_frameCycles < (first_graphics_line + 256) * cycles_per_line)) ||
-					((_frameCycles >= (first_graphics_line + field_divider_line)  * cycles_per_line) && (_frameCycles < (first_graphics_line + 256 + field_divider_line) * cycles_per_line))
+					((frame_cycles_ >= first_graphics_line * cycles_per_line) && (frame_cycles_ < (first_graphics_line + 256) * cycles_per_line)) ||
+					((frame_cycles_ >= (first_graphics_line + field_divider_line)  * cycles_per_line) && (frame_cycles_ < (first_graphics_line + 256 + field_divider_line) * cycles_per_line))
 				)
 			)
 				update_display();
 
-			_ram[address] = *value;
+			ram_[address] = *value;
 		}
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += 1 + (_frameCycles&1);
-		if(_screen_mode < 4)
+		cycles += 1 + (frame_cycles_&1);
+		if(screen_mode_ < 4)
 		{
-			const int current_line = graphics_line(_frameCycles + (_frameCycles&1));
-			const int current_column = graphics_column(_frameCycles + (_frameCycles&1));
-			if(current_line < 256 && current_column < 80 && !_isBlankLine)
+			const int current_line = graphics_line(frame_cycles_ + (frame_cycles_&1));
+			const int current_column = graphics_column(frame_cycles_ + (frame_cycles_&1));
+			if(current_line < 256 && current_column < 80 && !is_blank_line_)
 				cycles += (unsigned int)(80 - current_column);
 		}
 	}
@@ -127,39 +126,39 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			case 0xfe00:
 				if(isReadOperation(operation))
 				{
-					*value = _interrupt_status;
-					_interrupt_status &= ~PowerOnReset;
+					*value = interrupt_status_;
+					interrupt_status_ &= ~PowerOnReset;
 				}
 				else
 				{
-					_interrupt_control = (*value) & ~1;
+					interrupt_control_ = (*value) & ~1;
 					evaluate_interrupts();
 				}
 			break;
 			case 0xfe02:
 				if(!isReadOperation(operation))
 				{
-					_startScreenAddress = (_startScreenAddress & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
-					if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+					start_screen_address_ = (start_screen_address_ & 0xfe00) | (uint16_t)(((*value) & 0xe0) << 1);
+					if(!start_screen_address_) start_screen_address_ |= 0x8000;
 				}
 			break;
 			case 0xfe03:
 				if(!isReadOperation(operation))
 				{
-					_startScreenAddress = (_startScreenAddress & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
-					if(!_startScreenAddress) _startScreenAddress |= 0x8000;
+					start_screen_address_ = (start_screen_address_ & 0x01ff) | (uint16_t)(((*value) & 0x3f) << 9);
+					if(!start_screen_address_) start_screen_address_ |= 0x8000;
 				}
 			break;
 			case 0xfe04:
 				if(isReadOperation(operation))
 				{
-					*value = _tape.get_data_register();
-					_tape.clear_interrupts(Interrupt::ReceiveDataFull);
+					*value = tape_.get_data_register();
+					tape_.clear_interrupts(Interrupt::ReceiveDataFull);
 				}
 				else
 				{
-					_tape.set_data_register(*value);
-					_tape.clear_interrupts(Interrupt::TransmitDataEmpty);
+					tape_.set_data_register(*value);
+					tape_.clear_interrupts(Interrupt::TransmitDataEmpty);
 				}
 			break;
 			case 0xfe05:
@@ -168,29 +167,29 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					const uint8_t interruptDisable = (*value)&0xf0;
 					if( interruptDisable )
 					{
-						if( interruptDisable&0x10 ) _interrupt_status &= ~Interrupt::DisplayEnd;
-						if( interruptDisable&0x20 ) _interrupt_status &= ~Interrupt::RealTimeClock;
-						if( interruptDisable&0x40 ) _interrupt_status &= ~Interrupt::HighToneDetect;
+						if( interruptDisable&0x10 ) interrupt_status_ &= ~Interrupt::DisplayEnd;
+						if( interruptDisable&0x20 ) interrupt_status_ &= ~Interrupt::RealTimeClock;
+						if( interruptDisable&0x40 ) interrupt_status_ &= ~Interrupt::HighToneDetect;
 						evaluate_interrupts();
 
 						// TODO: NMI
 					}
 
 					// latch the paged ROM in case external hardware is being emulated
-					_active_rom = (Electron::ROMSlot)(*value & 0xf);
+					active_rom_ = (Electron::ROMSlot)(*value & 0xf);
 
 					// apply the ULA's test
 					if(*value & 0x08)
 					{
 						if(*value & 0x04)
 						{
-							_keyboard_is_active = false;
-							_basic_is_active = false;
+							keyboard_is_active_ = false;
+							basic_is_active_ = false;
 						}
 						else
 						{
-							_keyboard_is_active = !(*value & 0x02);
-							_basic_is_active = !_keyboard_is_active;
+							keyboard_is_active_ = !(*value & 0x02);
+							basic_is_active_ = !keyboard_is_active_;
 						}
 					}
 				}
@@ -199,8 +198,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				if(!isReadOperation(operation))
 				{
 					update_audio();
-					_speaker->set_divider(*value);
-					_tape.set_counter(*value);
+					speaker_->set_divider(*value);
+					tape_.set_counter(*value);
 				}
 			break;
 			case 0xfe07:
@@ -209,16 +208,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					// update screen mode
 					uint8_t new_screen_mode = ((*value) >> 3)&7;
 					if(new_screen_mode == 7) new_screen_mode = 4;
-					if(new_screen_mode != _screen_mode)
+					if(new_screen_mode != screen_mode_)
 					{
 						update_display();
-						_screen_mode = new_screen_mode;
-						switch(_screen_mode)
+						screen_mode_ = new_screen_mode;
+						switch(screen_mode_)
 						{
-							case 0: case 1: case 2: _screenModeBaseAddress = 0x3000; break;
-							case 3: _screenModeBaseAddress = 0x4000; break;
-							case 4: case 5: _screenModeBaseAddress = 0x5800; break;
-							case 6: _screenModeBaseAddress = 0x6000; break;
+							case 0: case 1: case 2: screen_mode_base_address_ = 0x3000; break;
+							case 3: screen_mode_base_address_ = 0x4000; break;
+							case 4: case 5: screen_mode_base_address_ = 0x5800; break;
+							case 6: screen_mode_base_address_ = 0x6000; break;
 						}
 					}
 
@@ -227,13 +226,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					if(new_speaker_is_enabled != speaker_is_enabled_)
 					{
 						update_audio();
-						_speaker->set_is_enabled(new_speaker_is_enabled);
+						speaker_->set_is_enabled(new_speaker_is_enabled);
 						speaker_is_enabled_ = new_speaker_is_enabled;
 					}
 
-					_tape.set_is_enabled((*value & 6) != 6);
-					_tape.set_is_in_input_mode((*value & 6) == 0);
-					_tape.set_is_running(((*value)&0x40) ? true : false);
+					tape_.set_is_enabled((*value & 6) != 6);
+					tape_.set_is_in_input_mode((*value & 6) == 0);
+					tape_.set_is_running(((*value)&0x40) ? true : false);
 
 					// TODO: caps lock LED
 				}
@@ -254,46 +253,46 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					const uint8_t colour = ~(*value);
 					if(address&1)
 					{
-						_palette[registers[index][0]]	= (_palette[registers[index][0]]&3)	| ((colour >> 1)&4);
-						_palette[registers[index][1]]	= (_palette[registers[index][1]]&3)	| ((colour >> 0)&4);
-						_palette[registers[index][2]]	= (_palette[registers[index][2]]&3)	| ((colour << 1)&4);
-						_palette[registers[index][3]]	= (_palette[registers[index][3]]&3)	| ((colour << 2)&4);
+						palette_[registers[index][0]]	= (palette_[registers[index][0]]&3)	| ((colour >> 1)&4);
+						palette_[registers[index][1]]	= (palette_[registers[index][1]]&3)	| ((colour >> 0)&4);
+						palette_[registers[index][2]]	= (palette_[registers[index][2]]&3)	| ((colour << 1)&4);
+						palette_[registers[index][3]]	= (palette_[registers[index][3]]&3)	| ((colour << 2)&4);
 
-						_palette[registers[index][2]]	= (_palette[registers[index][2]]&5)	| ((colour >> 4)&2);
-						_palette[registers[index][3]]	= (_palette[registers[index][3]]&5)	| ((colour >> 3)&2);
+						palette_[registers[index][2]]	= (palette_[registers[index][2]]&5)	| ((colour >> 4)&2);
+						palette_[registers[index][3]]	= (palette_[registers[index][3]]&5)	| ((colour >> 3)&2);
 					}
 					else
 					{
-						_palette[registers[index][0]]	= (_palette[registers[index][0]]&6)	| ((colour >> 7)&1);
-						_palette[registers[index][1]]	= (_palette[registers[index][1]]&6)	| ((colour >> 6)&1);
-						_palette[registers[index][2]]	= (_palette[registers[index][2]]&6)	| ((colour >> 5)&1);
-						_palette[registers[index][3]]	= (_palette[registers[index][3]]&6)	| ((colour >> 4)&1);
+						palette_[registers[index][0]]	= (palette_[registers[index][0]]&6)	| ((colour >> 7)&1);
+						palette_[registers[index][1]]	= (palette_[registers[index][1]]&6)	| ((colour >> 6)&1);
+						palette_[registers[index][2]]	= (palette_[registers[index][2]]&6)	| ((colour >> 5)&1);
+						palette_[registers[index][3]]	= (palette_[registers[index][3]]&6)	| ((colour >> 4)&1);
 
-						_palette[registers[index][0]]	= (_palette[registers[index][0]]&5)	| ((colour >> 2)&2);
-						_palette[registers[index][1]]	= (_palette[registers[index][1]]&5)	| ((colour >> 1)&2);
+						palette_[registers[index][0]]	= (palette_[registers[index][0]]&5)	| ((colour >> 2)&2);
+						palette_[registers[index][1]]	= (palette_[registers[index][1]]&5)	| ((colour >> 1)&2);
 					}
 
 					// regenerate all palette tables for now
 #define pack(a, b) (uint8_t)((a << 4) | (b))
 					for(int byte = 0; byte < 256; byte++)
 					{
-						uint8_t *target = (uint8_t *)&_paletteTables.forty1bpp[byte];
-						target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
-						target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
+						uint8_t *target = (uint8_t *)&palette_tables_.forty1bpp[byte];
+						target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
+						target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
 
-						target = (uint8_t *)&_paletteTables.eighty2bpp[byte];
-						target[0] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-						target[1] = pack(_palette[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], _palette[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
+						target = (uint8_t *)&palette_tables_.eighty2bpp[byte];
+						target[0] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+						target[1] = pack(palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
 
-						target = (uint8_t *)&_paletteTables.eighty1bpp[byte];
-						target[0] = pack(_palette[(byte&0x80) >> 4], _palette[(byte&0x40) >> 3]);
-						target[1] = pack(_palette[(byte&0x20) >> 2], _palette[(byte&0x10) >> 1]);
-						target[2] = pack(_palette[(byte&0x08) >> 0], _palette[(byte&0x04) << 1]);
-						target[3] = pack(_palette[(byte&0x02) << 2], _palette[(byte&0x01) << 3]);
+						target = (uint8_t *)&palette_tables_.eighty1bpp[byte];
+						target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
+						target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
+						target[2] = pack(palette_[(byte&0x08) >> 0], palette_[(byte&0x04) << 1]);
+						target[3] = pack(palette_[(byte&0x02) << 2], palette_[(byte&0x01) << 3]);
 
-						_paletteTables.forty2bpp[byte] = pack(_palette[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], _palette[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-						_paletteTables.eighty4bpp[byte] = pack(	_palette[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
-																_palette[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
+						palette_tables_.forty2bpp[byte] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+						palette_tables_.eighty4bpp[byte] = pack(	palette_[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
+																palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
 					}
 #undef pack
 				}
@@ -301,7 +300,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			break;
 
 			case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
-				if(_plus3 && (address&0x00f0) == 0x00c0)
+				if(plus3_ && (address&0x00f0) == 0x00c0)
 				{
 					if(is_holding_shift_ && address == 0xfcc4)
 					{
@@ -309,17 +308,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						set_key_state(KeyShift, false);
 					}
 					if(isReadOperation(operation))
-						*value = _plus3->get_register(address);
+						*value = plus3_->get_register(address);
 					else
-						_plus3->set_register(address, *value);
+						plus3_->set_register(address, *value);
 				}
 			break;
 			case 0xfc00:
-				if(_plus3 && (address&0x00f0) == 0x00c0)
+				if(plus3_ && (address&0x00f0) == 0x00c0)
 				{
 					if(!isReadOperation(operation))
 					{
-						_plus3->set_control_register(*value);
+						plus3_->set_control_register(*value);
 					}
 					else
 						*value = 1;
@@ -332,8 +331,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					if(isReadOperation(operation))
 					{
 						if(
-							_use_fast_tape_hack &&
-							_tape.has_tape() &&
+							use_fast_tape_hack_ &&
+							tape_.has_tape() &&
 							(operation == CPU6502::BusOperation::ReadOpcode) &&
 							(
 								(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
@@ -355,41 +354,41 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 							uint8_t service_call = (uint8_t)get_value_of_register(CPU6502::Register::X);
 							if(address == 0xf0a8)
 							{
-								if(!_ram[0x247] && service_call == 14)
+								if(!ram_[0x247] && service_call == 14)
 								{
-									_tape.set_delegate(nullptr);
+									tape_.set_delegate(nullptr);
 
 									// TODO: handle tape wrap around.
 
 									int cycles_left_while_plausibly_in_data = 50;
-									_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-									while(!_tape.get_tape()->is_at_end())
+									tape_.clear_interrupts(Interrupt::ReceiveDataFull);
+									while(!tape_.get_tape()->is_at_end())
 									{
-										_tape.run_for_input_pulse();
+										tape_.run_for_input_pulse();
 										cycles_left_while_plausibly_in_data--;
-										if(!cycles_left_while_plausibly_in_data) _fast_load_is_in_data = false;
-										if(	(_tape.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
-											(_fast_load_is_in_data || _tape.get_data_register() == 0x2a)
+										if(!cycles_left_while_plausibly_in_data) fast_load_is_in_data_ = false;
+										if(	(tape_.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
+											(fast_load_is_in_data_ || tape_.get_data_register() == 0x2a)
 										) break;
 									}
-									_tape.set_delegate(this);
-									_tape.clear_interrupts(Interrupt::ReceiveDataFull);
-									_interrupt_status |= _tape.get_interrupt_status();
+									tape_.set_delegate(this);
+									tape_.clear_interrupts(Interrupt::ReceiveDataFull);
+									interrupt_status_ |= tape_.get_interrupt_status();
 
-									_fast_load_is_in_data = true;
+									fast_load_is_in_data_ = true;
 									set_value_of_register(CPU6502::Register::A, 0);
-									set_value_of_register(CPU6502::Register::Y, _tape.get_data_register());
+									set_value_of_register(CPU6502::Register::Y, tape_.get_data_register());
 									*value = 0x60; // 0x60 is RTS
 								}
 								else
-									*value = _os[address & 16383];
+									*value = os_[address & 16383];
 							}
 							else
 								*value = 0xea;
 						}
 						else
 						{
-							*value = _os[address & 16383];
+							*value = os_[address & 16383];
 						}
 					}
 				}
@@ -397,22 +396,22 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					if(isReadOperation(operation))
 					{
-						*value = _roms[_active_rom][address & 16383];
-						if(_keyboard_is_active)
+						*value = roms_[active_rom_][address & 16383];
+						if(keyboard_is_active_)
 						{
 							*value &= 0xf0;
 							for(int address_line = 0; address_line < 14; address_line++)
 							{
-								if(!(address&(1 << address_line))) *value |= _key_states[address_line];
+								if(!(address&(1 << address_line))) *value |= key_states_[address_line];
 							}
 						}
-						if(_basic_is_active)
+						if(basic_is_active_)
 						{
-							*value &= _roms[ROMSlotBASIC][address & 16383];
+							*value &= roms_[ROMSlotBASIC][address & 16383];
 						}
-					} else if(_rom_write_masks[_active_rom])
+					} else if(rom_write_masks_[active_rom_])
 					{
-						_roms[_active_rom][address & 16383] = *value;
+						roms_[active_rom_][address & 16383] = *value;
 					}
 				}
 			break;
@@ -425,9 +424,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 //	}
 
 //	const int end_of_field =
-//	if(_frameCycles < (256 + first_graphics_line) << 7))
+//	if(frame_cycles_ < (256 + first_graphics_line) << 7))
 
-	const unsigned int pixel_line_clock = _frameCycles;// + 128 - first_graphics_cycle + 80;
+	const unsigned int pixel_line_clock = frame_cycles_;// + 128 - first_graphics_cycle + 80;
 	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
 	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
 
@@ -451,30 +450,30 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		signal_interrupt(Interrupt::RealTimeClock);
 	}
 
-	_frameCycles += cycles;
+	frame_cycles_ += cycles;
 
-	if(!(_frameCycles&127)) _phase += 64;
+	if(!(frame_cycles_&127)) phase_ += 64;
 
 	// deal with frame wraparound by updating the two dependent subsystems
 	// as though the exact end of frame had been hit, then reset those
 	// and allow the frame cycle counter to assume its real value
-	if(_frameCycles >= cycles_per_frame)
+	if(frame_cycles_ >= cycles_per_frame)
 	{
-		unsigned int nextFrameCycles = _frameCycles - cycles_per_frame;
-		_frameCycles = cycles_per_frame;
+		unsigned int nextFrameCycles = frame_cycles_ - cycles_per_frame;
+		frame_cycles_ = cycles_per_frame;
 		update_display();
 		update_audio();
-		_displayOutputPosition = 0;
-		_audioOutputPosition = 0;
-		_frameCycles = nextFrameCycles;
+		display_output_position_ = 0;
+		audio_output_position_ = 0;
+		frame_cycles_ = nextFrameCycles;
 	}
 
-	if(!(_frameCycles&16383))
+	if(!(frame_cycles_&16383))
 		update_audio();
-	_tape.run_for_cycles(cycles);
+	tape_.run_for_cycles(cycles);
 
 	if(typer_) typer_->update((int)cycles);
-	if(_plus3) _plus3->run_for_cycles(4*cycles);
+	if(plus3_) plus3_->run_for_cycles(4*cycles);
 
 	return cycles;
 }
@@ -483,31 +482,31 @@ void Machine::synchronise()
 {
 	update_display();
 	update_audio();
-	_speaker->flush();
+	speaker_->flush();
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
 	if(target.tapes.size())
 	{
-		_tape.set_tape(target.tapes.front());
+		tape_.set_tape(target.tapes.front());
 	}
 
 	if(target.disks.size())
 	{
-		_plus3.reset(new Plus3);
+		plus3_.reset(new Plus3);
 
 		if(target.acorn.has_dfs)
 		{
-			set_rom(ROMSlot0, _dfs, true);
+			set_rom(ROMSlot0, dfs_, true);
 		}
 		if(target.acorn.has_adfs)
 		{
-			set_rom(ROMSlot4, _adfs, true);
-			set_rom(ROMSlot5, std::vector<uint8_t>(_adfs.begin() + 16384, _adfs.end()), true);
+			set_rom(ROMSlot4, adfs_, true);
+			set_rom(ROMSlot5, std::vector<uint8_t>(adfs_.begin() + 16384, adfs_.end()), true);
 		}
 
-		_plus3->set_disk(target.disks.front(), 0);
+		plus3_->set_disk(target.disks.front(), 0);
 	}
 
 	ROMSlot slot = ROMSlot12;
@@ -533,13 +532,13 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable
 	uint8_t *target = nullptr;
 	switch(slot)
 	{
-		case ROMSlotDFS:	_dfs = data;			return;
-		case ROMSlotADFS:	_adfs = data;			return;
+		case ROMSlotDFS:	dfs_ = data;			return;
+		case ROMSlotADFS:	adfs_ = data;			return;
 
-		case ROMSlotOS:		target = _os;			break;
+		case ROMSlotOS:		target = os_;			break;
 		default:
-			target = _roms[slot];
-			_rom_write_masks[slot] = is_writeable;
+			target = roms_[slot];
+			rom_write_masks_[slot] = is_writeable;
 		break;
 	}
 
@@ -548,221 +547,221 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable
 
 inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
 {
-	_interrupt_status |= interrupt;
+	interrupt_status_ |= interrupt;
 	evaluate_interrupts();
 }
 
 inline void Machine::clear_interrupt(Electron::Interrupt interrupt)
 {
-	_interrupt_status &= ~interrupt;
+	interrupt_status_ &= ~interrupt;
 	evaluate_interrupts();
 }
 
 void Machine::tape_did_change_interrupt_status(Tape *tape)
 {
-	_interrupt_status = (_interrupt_status & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | _tape.get_interrupt_status();
+	interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 	evaluate_interrupts();
 }
 
 inline void Machine::evaluate_interrupts()
 {
-	if(_interrupt_status & _interrupt_control)
+	if(interrupt_status_ & interrupt_control_)
 	{
-		_interrupt_status |= 1;
+		interrupt_status_ |= 1;
 	}
 	else
 	{
-		_interrupt_status &= ~1;
+		interrupt_status_ &= ~1;
 	}
-	set_irq_line(_interrupt_status & 1);
+	set_irq_line(interrupt_status_ & 1);
 }
 
 inline void Machine::update_audio()
 {
-	unsigned int difference = _frameCycles - _audioOutputPosition;
-	_audioOutputPosition = _frameCycles;
-	_speaker->run_for_cycles(difference / Speaker::clock_rate_divider);
-	_audioOutputPositionError = difference % Speaker::clock_rate_divider;
+	unsigned int difference = frame_cycles_ - audio_output_position_ + audio_output_position_error_;
+	audio_output_position_ = frame_cycles_;
+	speaker_->run_for_cycles(difference / Speaker::clock_rate_divider);
+	audio_output_position_error_ = difference % Speaker::clock_rate_divider;
 }
 
 inline void Machine::start_pixel_line()
 {
-	_current_pixel_line = (_current_pixel_line+1)&255;
-	if(!_current_pixel_line)
+	current_pixel_line_ = (current_pixel_line_+1)&255;
+	if(!current_pixel_line_)
 	{
-		_startLineAddress = _startScreenAddress;
-		_current_character_row = 0;
-		_isBlankLine = false;
+		start_line_address_ = start_screen_address_;
+		current_character_row_ = 0;
+		is_blank_line_ = false;
 	}
 	else
 	{
-		bool mode_has_blank_lines = (_screen_mode == 6) || (_screen_mode == 3);
-		_isBlankLine = (mode_has_blank_lines && ((_current_character_row > 7 && _current_character_row < 10) || (_current_pixel_line > 249)));
+		bool mode_has_blank_lines = (screen_mode_ == 6) || (screen_mode_ == 3);
+		is_blank_line_ = (mode_has_blank_lines && ((current_character_row_ > 7 && current_character_row_ < 10) || (current_pixel_line_ > 249)));
 
-		if(!_isBlankLine)
+		if(!is_blank_line_)
 		{
-			_startLineAddress++;
+			start_line_address_++;
 
-			if(_current_character_row > 7)
+			if(current_character_row_ > 7)
 			{
-				_startLineAddress += ((_screen_mode < 4) ? 80 : 40) * 8 - 8;
-				_current_character_row = 0;
+				start_line_address_ += ((screen_mode_ < 4) ? 80 : 40) * 8 - 8;
+				current_character_row_ = 0;
 			}
 		}
 	}
-	_currentScreenAddress = _startLineAddress;
-	_current_pixel_column = 0;
-	_initial_output_target = _current_output_target = nullptr;
+	current_screen_address_ = start_line_address_;
+	current_pixel_column_ = 0;
+	initial_output_target_ = current_output_target_ = nullptr;
 }
 
 inline void Machine::end_pixel_line()
 {
-	if(_current_output_target) _crt->output_data((unsigned int)((_current_output_target - _initial_output_target) * _current_output_divider), _current_output_divider);
-	_current_character_row++;
+	if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+	current_character_row_++;
 }
 
 inline void Machine::output_pixels(unsigned int number_of_cycles)
 {
 	if(!number_of_cycles) return;
 
-	if(_isBlankLine)
+	if(is_blank_line_)
 	{
-		_crt->output_blank(number_of_cycles * crt_cycles_multiplier);
+		crt_->output_blank(number_of_cycles * crt_cycles_multiplier);
 	}
 	else
 	{
 		unsigned int divider = 0;
-		switch(_screen_mode)
+		switch(screen_mode_)
 		{
 			case 0: case 3: divider = 2; break;
 			case 1: case 4: case 6: divider = 4; break;
 			case 2: case 5: divider = 8; break;
 		}
 
-		if(!_initial_output_target || divider != _current_output_divider)
+		if(!initial_output_target_ || divider != current_output_divider_)
 		{
-			if(_current_output_target) _crt->output_data((unsigned int)((_current_output_target - _initial_output_target) * _current_output_divider), _current_output_divider);
-			_current_output_divider = divider;
-			_initial_output_target = _current_output_target = _crt->allocate_write_area(640 / _current_output_divider);
+			if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+			current_output_divider_ = divider;
+			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_);
 		}
 
 #define get_pixel()	\
-				if(_currentScreenAddress&32768)\
+				if(current_screen_address_&32768)\
 				{\
-					_currentScreenAddress = (_screenModeBaseAddress + _currentScreenAddress)&32767;\
+					current_screen_address_ = (screen_mode_base_address_ + current_screen_address_)&32767;\
 				}\
-				_last_pixel_byte = _ram[_currentScreenAddress];\
-				_currentScreenAddress = _currentScreenAddress+8
+				last_pixel_byte_ = ram_[current_screen_address_];\
+				current_screen_address_ = current_screen_address_+8
 
-		switch(_screen_mode)
+		switch(screen_mode_)
 		{
 			case 0: case 3:
-				if(_initial_output_target)
+				if(initial_output_target_)
 				{
 					while(number_of_cycles--)
 					{
 						get_pixel();
-						*(uint32_t *)_current_output_target = _paletteTables.eighty1bpp[_last_pixel_byte];
-						_current_output_target += 4;
-						_current_pixel_column++;
+						*(uint32_t *)current_output_target_ = palette_tables_.eighty1bpp[last_pixel_byte_];
+						current_output_target_ += 4;
+						current_pixel_column_++;
 					}
-				} else _current_output_target += 4*number_of_cycles;
+				} else current_output_target_ += 4*number_of_cycles;
 			break;
 
 			case 1:
-				if(_initial_output_target)
+				if(initial_output_target_)
 				{
 					while(number_of_cycles--)
 					{
 						get_pixel();
-						*(uint16_t *)_current_output_target = _paletteTables.eighty2bpp[_last_pixel_byte];
-						_current_output_target += 2;
-						_current_pixel_column++;
+						*(uint16_t *)current_output_target_ = palette_tables_.eighty2bpp[last_pixel_byte_];
+						current_output_target_ += 2;
+						current_pixel_column_++;
 					}
-				} else _current_output_target += 2*number_of_cycles;
+				} else current_output_target_ += 2*number_of_cycles;
 			break;
 
 			case 2:
-				if(_initial_output_target)
+				if(initial_output_target_)
 				{
 					while(number_of_cycles--)
 					{
 						get_pixel();
-						*_current_output_target = _paletteTables.eighty4bpp[_last_pixel_byte];
-						_current_output_target += 1;
-						_current_pixel_column++;
+						*current_output_target_ = palette_tables_.eighty4bpp[last_pixel_byte_];
+						current_output_target_ += 1;
+						current_pixel_column_++;
 					}
-				} else _current_output_target += number_of_cycles;
+				} else current_output_target_ += number_of_cycles;
 			break;
 
 			case 4: case 6:
-				if(_initial_output_target)
+				if(initial_output_target_)
 				{
-					if(_current_pixel_column&1)
+					if(current_pixel_column_&1)
 					{
-						_last_pixel_byte <<= 4;
-						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-						_current_output_target += 2;
+						last_pixel_byte_ <<= 4;
+						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
 						number_of_cycles--;
-						_current_pixel_column++;
+						current_pixel_column_++;
 					}
 					while(number_of_cycles > 1)
 					{
 						get_pixel();
-						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-						_current_output_target += 2;
+						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
-						_last_pixel_byte <<= 4;
-						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-						_current_output_target += 2;
+						last_pixel_byte_ <<= 4;
+						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
 						number_of_cycles -= 2;
-						_current_pixel_column+=2;
+						current_pixel_column_+=2;
 					}
 					if(number_of_cycles)
 					{
 						get_pixel();
-						*(uint16_t *)_current_output_target = _paletteTables.forty1bpp[_last_pixel_byte];
-						_current_output_target += 2;
-						_current_pixel_column++;
+						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 2;
+						current_pixel_column_++;
 					}
-				} else _current_output_target += 2 * number_of_cycles;
+				} else current_output_target_ += 2 * number_of_cycles;
 			break;
 
 			case 5:
-				if(_initial_output_target)
+				if(initial_output_target_)
 				{
-					if(_current_pixel_column&1)
+					if(current_pixel_column_&1)
 					{
-						_last_pixel_byte <<= 2;
-						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-						_current_output_target += 1;
+						last_pixel_byte_ <<= 2;
+						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 1;
 
 						number_of_cycles--;
-						_current_pixel_column++;
+						current_pixel_column_++;
 					}
 					while(number_of_cycles > 1)
 					{
 						get_pixel();
-						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-						_current_output_target += 1;
+						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 1;
 
-						_last_pixel_byte <<= 2;
-						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-						_current_output_target += 1;
+						last_pixel_byte_ <<= 2;
+						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 1;
 
 						number_of_cycles -= 2;
-						_current_pixel_column+=2;
+						current_pixel_column_+=2;
 					}
 					if(number_of_cycles)
 					{
 						get_pixel();
-						*_current_output_target = _paletteTables.forty2bpp[_last_pixel_byte];
-						_current_output_target += 1;
-						_current_pixel_column++;
+						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 1;
+						current_pixel_column_++;
 					}
-				} else _current_output_target += number_of_cycles;
+				} else current_output_target_ += number_of_cycles;
 			break;
 		}
 
@@ -786,10 +785,10 @@ inline void Machine::update_display()
 
 	*/
 
-	int final_line = _frameCycles >> 7;
-	while(_displayOutputPosition < _frameCycles)
+	int final_line = frame_cycles_ >> 7;
+	while(display_output_position_ < frame_cycles_)
 	{
-		int line = _displayOutputPosition >> 7;
+		int line = display_output_position_ >> 7;
 
 		// Priority one: sync.
 		// ===================
@@ -799,8 +798,8 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_sync(128 * crt_cycles_multiplier);
-			_displayOutputPosition += 128;
+			crt_->output_sync(128 * crt_cycles_multiplier);
+			display_output_position_ += 128;
 			continue;
 		}
 
@@ -809,9 +808,9 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_sync(64 * crt_cycles_multiplier);
-			_crt->output_blank(64 * crt_cycles_multiplier);
-			_displayOutputPosition += 128;
+			crt_->output_sync(64 * crt_cycles_multiplier);
+			crt_->output_blank(64 * crt_cycles_multiplier);
+			display_output_position_ += 128;
 			continue;
 		}
 
@@ -820,10 +819,10 @@ inline void Machine::update_display()
 		{
 			// wait for the line to complete before signalling
 			if(final_line == line) return;
-			_crt->output_sync(9 * crt_cycles_multiplier);
-			_crt->output_blank(55 * crt_cycles_multiplier);
-			_crt->output_sync(64 * crt_cycles_multiplier);
-			_displayOutputPosition += 128;
+			crt_->output_sync(9 * crt_cycles_multiplier);
+			crt_->output_blank(55 * crt_cycles_multiplier);
+			crt_->output_sync(64 * crt_cycles_multiplier);
+			display_output_position_ += 128;
 			continue;
 		}
 
@@ -839,9 +838,9 @@ inline void Machine::update_display()
 			line > first_graphics_line+field_divider_line+255)
 		{
 			if(final_line == line) return;
-			_crt->output_sync(9 * crt_cycles_multiplier);
-			_crt->output_blank(119 * crt_cycles_multiplier);
-			_displayOutputPosition += 128;
+			crt_->output_sync(9 * crt_cycles_multiplier);
+			crt_->output_blank(119 * crt_cycles_multiplier);
+			display_output_position_ += 128;
 			continue;
 		}
 
@@ -849,8 +848,8 @@ inline void Machine::update_display()
 		// ========================================
 
 		// determine how far we're going from left to right
-		unsigned int this_cycle = _displayOutputPosition&127;
-		unsigned int final_cycle = _frameCycles&127;
+		unsigned int this_cycle = display_output_position_&127;
+		unsigned int final_cycle = frame_cycles_&127;
 		if(final_line > line)
 		{
 			final_cycle = 128;
@@ -867,16 +866,16 @@ inline void Machine::update_display()
 			if(this_cycle < 9)
 			{
 				if(final_cycle < 9) return;
-				_crt->output_sync(9 * crt_cycles_multiplier);
-				_displayOutputPosition += 9;
+				crt_->output_sync(9 * crt_cycles_multiplier);
+				display_output_position_ += 9;
 				this_cycle = 9;
 			}
 
 			if(this_cycle < 24)
 			{
 				if(final_cycle < 24) return;
-				_crt->output_colour_burst((24-9) * crt_cycles_multiplier, _phase, 12);
-				_displayOutputPosition += 24-9;
+				crt_->output_colour_burst((24-9) * crt_cycles_multiplier, phase_, 12);
+				display_output_position_ += 24-9;
 				this_cycle = 24;
 				// TODO: phase shouldn't be zero on every line
 			}
@@ -884,8 +883,8 @@ inline void Machine::update_display()
 			if(this_cycle < first_graphics_cycle)
 			{
 				if(final_cycle < first_graphics_cycle) return;
-				_crt->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
-				_displayOutputPosition += first_graphics_cycle - 24;
+				crt_->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
+				display_output_position_ += first_graphics_cycle - 24;
 				this_cycle = first_graphics_cycle;
 				start_pixel_line();
 			}
@@ -894,7 +893,7 @@ inline void Machine::update_display()
 			{
 				unsigned int length_to_output = std::min(final_cycle, (first_graphics_cycle + 80)) - this_cycle;
 				output_pixels(length_to_output);
-				_displayOutputPosition += length_to_output;
+				display_output_position_ += length_to_output;
 				this_cycle += length_to_output;
 			}
 
@@ -902,8 +901,8 @@ inline void Machine::update_display()
 			{
 				if(final_cycle < 128) return;
 				end_pixel_line();
-				_crt->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
-				_displayOutputPosition += 128 - (first_graphics_cycle + 80);
+				crt_->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
+				display_output_position_ += 128 - (first_graphics_cycle + 80);
 				this_cycle = 128;
 			}
 		}
@@ -912,7 +911,7 @@ inline void Machine::update_display()
 
 void Machine::clear_all_keys()
 {
-	memset(_key_states, 0, sizeof(_key_states));
+	memset(key_states_, 0, sizeof(key_states_));
 }
 
 void Machine::set_key_state(uint16_t key, bool isPressed)
@@ -924,8 +923,8 @@ void Machine::set_key_state(uint16_t key, bool isPressed)
 	else
 	{
 		if(isPressed)
-			_key_states[key >> 4] |= key&0xf;
+			key_states_[key >> 4] |= key&0xf;
 		else
-			_key_states[key >> 4] &= ~(key&0xf);
+			key_states_[key >> 4] &= ~(key&0xf);
 	}
 }

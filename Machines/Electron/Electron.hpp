@@ -80,7 +80,7 @@ class Machine:
 		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
-		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
+		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
 
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
@@ -92,8 +92,8 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _crt; }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _speaker; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy Tape::Delegate
@@ -117,25 +117,25 @@ class Machine:
 		inline void evaluate_interrupts();
 
 		// Things that directly constitute the memory map.
-		uint8_t _roms[16][16384];
-		bool _rom_write_masks[16];
-		uint8_t _os[16384], _ram[32768];
-		std::vector<uint8_t> _dfs, _adfs;
+		uint8_t roms_[16][16384];
+		bool rom_write_masks_[16];
+		uint8_t os_[16384], ram_[32768];
+		std::vector<uint8_t> dfs_, adfs_;
 
 		// Things affected by registers, explicitly or otherwise.
-		uint8_t _interrupt_status, _interrupt_control;
-		uint8_t _palette[16];
-		uint8_t _key_states[14];
-		ROMSlot _active_rom;
-		bool _keyboard_is_active, _basic_is_active;
-		uint8_t _screen_mode;
-		uint16_t _screenModeBaseAddress;
-		uint16_t _startScreenAddress;
+		uint8_t interrupt_status_, interrupt_control_;
+		uint8_t palette_[16];
+		uint8_t key_states_[14];
+		ROMSlot active_rom_;
+		bool keyboard_is_active_, basic_is_active_;
+		uint8_t screen_mode_;
+		uint16_t screen_mode_base_address_;
+		uint16_t start_screen_address_;
 
 		// Counters related to simultaneous subsystems
-		unsigned int _frameCycles, _displayOutputPosition;
-		unsigned int _audioOutputPosition, _audioOutputPositionError;
-		uint8_t _phase;
+		unsigned int frame_cycles_, display_output_position_;
+		unsigned int audio_output_position_, audio_output_position_error_;
+		uint8_t phase_;
 
 		struct {
 			uint16_t forty1bpp[256];
@@ -143,30 +143,30 @@ class Machine:
 			uint32_t eighty1bpp[256];
 			uint16_t eighty2bpp[256];
 			uint8_t eighty4bpp[256];
-		} _paletteTables;
+		} palette_tables_;
 
 		// Display generation.
-		uint16_t _startLineAddress, _currentScreenAddress;
-		int _current_pixel_line, _current_pixel_column, _current_character_row;
-		uint8_t _last_pixel_byte;
-		bool _isBlankLine;
+		uint16_t start_line_address_, current_screen_address_;
+		int current_pixel_line_, current_pixel_column_, current_character_row_;
+		uint8_t last_pixel_byte_;
+		bool is_blank_line_;
 
 		// CRT output
-		uint8_t *_current_output_target, *_initial_output_target;
-		unsigned int _current_output_divider;
+		uint8_t *current_output_target_, *initial_output_target_;
+		unsigned int current_output_divider_;
 
 		// Tape
-		Tape _tape;
-		bool _use_fast_tape_hack;
-		bool _fast_load_is_in_data;
+		Tape tape_;
+		bool use_fast_tape_hack_;
+		bool fast_load_is_in_data_;
 
 		// Disk
-		std::unique_ptr<Plus3> _plus3;
+		std::unique_ptr<Plus3> plus3_;
 		bool is_holding_shift_;
 
 		// Outputs
-		std::shared_ptr<Outputs::CRT::CRT> _crt;
-		std::shared_ptr<Speaker> _speaker;
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::shared_ptr<Speaker> speaker_;
 		bool speaker_is_enabled_;
 };
 
