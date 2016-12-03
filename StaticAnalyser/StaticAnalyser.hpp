@@ -52,6 +52,7 @@ struct Target {
 
 		struct {
 			bool use_atmos_rom;
+			bool has_microdisc;
 		} oric;
 	};
 

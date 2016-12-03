@@ -29,7 +29,6 @@ const uint8_t MFMIDAddressByte			= 0xfe;
 const uint8_t MFMDataAddressByte		= 0xfb;
 const uint8_t MFMDeletedDataAddressByte	= 0xf8;
 
-
 struct Sector {
 	uint8_t track, side, sector;
 	std::vector<uint8_t> data;
@@ -37,6 +36,25 @@ struct Sector {
 
 std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors);
 std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors);
+
+class Encoder {
+	public:
+		Encoder(std::vector<uint8_t> &target);
+		virtual void add_byte(uint8_t input) = 0;
+		virtual void add_index_address_mark() = 0;
+		virtual void add_ID_address_mark() = 0;
+		virtual void add_data_address_mark() = 0;
+		virtual void add_deleted_data_address_mark() = 0;
+
+	protected:
+		void output_short(uint16_t value);
+
+	private:
+		std::vector<uint8_t> &target_;
+};
+
+std::unique_ptr<Encoder> GetMFMEncoder(std::vector<uint8_t> &target);
+std::unique_ptr<Encoder> GetFMEncoder(std::vector<uint8_t> &target);
 
 }
 }

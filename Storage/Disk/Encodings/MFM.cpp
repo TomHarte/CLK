@@ -13,24 +13,10 @@
 
 using namespace Storage::Encodings::MFM;
 
-template <class T> class Shifter {
+class MFMEncoder: public Encoder {
 	public:
-		virtual void add_byte(uint8_t input) = 0;
-		virtual void add_index_address_mark() = 0;
-		virtual void add_ID_address_mark() = 0;
-		virtual void add_data_address_mark() = 0;
-		virtual void add_deleted_data_address_mark() = 0;
+		MFMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
 
-	protected:
-		/*!
-			Intended to be overridden by subclasses; should write value out as PCM data,
-			MSB first.
-		*/
-		void output_short(uint16_t value);
-};
-
-template <class T> class MFMShifter: public Shifter<T> {
-	public:
 		void add_byte(uint8_t input) {
 			uint16_t spread_value =
 				(uint16_t)(
@@ -45,26 +31,26 @@ template <class T> class MFMShifter: public Shifter<T> {
 				);
 			uint16_t or_bits = (uint16_t)((spread_value << 1) | (spread_value >> 1) | (output_ << 15));
 			output_ = spread_value | ((~or_bits) & 0xaaaa);
-			static_cast<T *>(this)->output_short(output_);
+			output_short(output_);
 		}
 
 		void add_index_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = MFMIndexAddressMark);
+			output_short(output_ = MFMIndexAddressMark);
 			add_byte(MFMIndexAddressByte);
 		}
 
 		void add_ID_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			output_short(output_ = MFMAddressMark);
 			add_byte(MFMIDAddressByte);
 		}
 
 		void add_data_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			output_short(output_ = MFMAddressMark);
 			add_byte(MFMDataAddressByte);
 		}
 
 		void add_deleted_data_address_mark() {
-			static_cast<T *>(this)->output_short(output_ = MFMAddressMark);
+			output_short(output_ = MFMAddressMark);
 			add_byte(MFMDeletedDataAddressByte);
 		}
 
@@ -72,11 +58,13 @@ template <class T> class MFMShifter: public Shifter<T> {
 		uint16_t output_;
 };
 
-template <class T> class FMShifter: public Shifter<T> {
+class FMEncoder: public Encoder {
 	// encodes each 16-bit part as clock, data, clock, data [...]
 	public:
+		FMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
+
 		void add_byte(uint8_t input) {
-			static_cast<T *>(this)->output_short(
+			output_short(
 				(uint16_t)(
 					((input & 0x01) << 0) |
 					((input & 0x02) << 1) |
@@ -90,10 +78,10 @@ template <class T> class FMShifter: public Shifter<T> {
 				));
 		}
 
-		void add_index_address_mark()			{	static_cast<T *>(this)->output_short(FMIndexAddressMark);		}
-		void add_ID_address_mark()				{	static_cast<T *>(this)->output_short(FMIDAddressMark);			}
-		void add_data_address_mark()			{	static_cast<T *>(this)->output_short(FMDataAddressMark);		}
-		void add_deleted_data_address_mark()	{	static_cast<T *>(this)->output_short(FMDeletedDataAddressMark);	}
+		void add_index_address_mark()			{	output_short(FMIndexAddressMark);		}
+		void add_ID_address_mark()				{	output_short(FMIDAddressMark);			}
+		void add_data_address_mark()			{	output_short(FMDataAddressMark);		}
+		void add_deleted_data_address_mark()	{	output_short(FMDeletedDataAddressMark);	}
 };
 
 static uint8_t logarithmic_size_for_size(size_t size)
@@ -118,7 +106,9 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		size_t inter_sector_gap,
 		size_t expected_track_bytes)
 {
-	T shifter;
+	Storage::Disk::PCMSegment segment;
+	segment.data.reserve(expected_track_bytes);
+	T shifter(segment.data);
 	NumberTheory::CRC16 crc_generator(0x1021, 0xffff);
 
 	// output the index mark
@@ -174,26 +164,25 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(int c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
 	}
 
-	while(shifter.segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
+	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
 
-	shifter.segment.number_of_bits = (unsigned int)(shifter.segment.data.size() * 8);
-	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(shifter.segment)));
+	segment.number_of_bits = (unsigned int)(segment.data.size() * 8);
+	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
 }
 
-struct VectorReceiver {
-	void output_short(uint16_t value) {
-		segment.data.push_back(value >> 8);
-		segment.data.push_back(value & 0xff);
-	}
-	Storage::Disk::PCMSegment segment;
-};
+Encoder::Encoder(std::vector<uint8_t> &target) :
+	target_(target)
+{}
+
+void Encoder::output_short(uint16_t value)
+{
+	target_.push_back(value >> 8);
+	target_.push_back(value & 0xff);
+}
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
 {
-	struct VectorShifter: public FMShifter<VectorShifter>, VectorReceiver {
-		using VectorReceiver::output_short;
-	};
-	return GetTrackWithSectors<VectorShifter>(
+	return GetTrackWithSectors<FMEncoder>(
 		sectors,
 		16, 0x00,
 		6, 0,
@@ -204,14 +193,21 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors)
 {
-	struct VectorShifter: public MFMShifter<VectorShifter>, VectorReceiver {
-		using VectorReceiver::output_short;
-	};
-	return GetTrackWithSectors<VectorShifter>(
+	return GetTrackWithSectors<MFMEncoder>(
 		sectors,
 		50, 0x4e,
 		12, 22,
 		12, 18,
 		32,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
+}
+
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint8_t> &target)
+{
+	return std::unique_ptr<Encoder>(new MFMEncoder(target));
+}
+
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8_t> &target)
+{
+	return std::unique_ptr<Encoder>(new FMEncoder(target));
 }

@@ -55,6 +55,11 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		void set_motor_on(bool motor_on);
 
 		/*!
+			@returns @c true if the motor is on; @c false otherwise.
+		*/
+		bool get_motor_on();
+
+		/*!
 			Should be implemented by subclasses; communicates each bit that the PLL recognises, also specifying
 			the amount of time since the index hole was last seen.
 		*/
@@ -73,6 +78,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 
 		bool get_is_track_zero();
 		void step(int direction);
+		virtual bool get_drive_is_ready();
 
 	private:
 		Time _bit_length;

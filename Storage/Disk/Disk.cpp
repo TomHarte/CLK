@@ -7,3 +7,16 @@
 //
 
 #include "Disk.hpp"
+
+using namespace Storage::Disk;
+
+std::shared_ptr<Track> Disk::get_track_at_position(unsigned int head, unsigned int position)
+{
+	int address = (int)(position * get_head_count() + head);
+	std::map<int, std::shared_ptr<Track>>::iterator cached_track = cached_tracks_.find(address);
+	if(cached_track != cached_tracks_.end()) return cached_track->second;
+
+	std::shared_ptr<Track> track = get_uncached_track_at_position(head, position);
+	cached_tracks_[address] = track;
+	return track;
+}

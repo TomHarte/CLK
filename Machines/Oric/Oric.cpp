@@ -12,25 +12,28 @@
 using namespace Oric;
 
 Machine::Machine() :
-	_cycles_since_video_update(0),
-	_use_fast_tape_hack(false),
-	_typer_delay(2500000),
-	_keyboard_read_count(0)
+	cycles_since_video_update_(0),
+	use_fast_tape_hack_(false),
+	typer_delay_(2500000),
+	keyboard_read_count_(0),
+	keyboard_(new Keyboard),
+	ram_top_(0xbfff),
+	paged_rom_(rom_),
+	microdisc_is_enabled_(false)
 {
 	set_clock_rate(1000000);
-	_via.set_interrupt_delegate(this);
-	_keyboard.reset(new Keyboard);
-	_via.keyboard = _keyboard;
+	via_.set_interrupt_delegate(this);
+	via_.keyboard = keyboard_;
 	clear_all_keys();
-	_via.tape->set_delegate(this);
-	Memory::Fuzz(_ram, sizeof(_ram));
+	via_.tape->set_delegate(this);
+	Memory::Fuzz(ram_, sizeof(ram_));
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target)
 {
 	if(target.tapes.size())
 	{
-		_via.tape->set_tape(target.tapes.front());
+		via_.tape->set_tape(target.tapes.front());
 	}
 
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
@@ -38,42 +41,61 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
+	if(target.oric.has_microdisc)
+	{
+		microdisc_is_enabled_ = true;
+		microdisc_did_change_paging_flags(&microdisc_);
+		microdisc_.set_delegate(this);
+	}
+
+	int drive_index = 0;
+	for(auto disk : target.disks)
+	{
+		if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
+		drive_index++;
+	}
+
 	if(target.oric.use_atmos_rom)
 	{
-		memcpy(_rom, _basic11.data(), std::min(_basic11.size(), sizeof(_rom)));
+		memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
 
-		_is_using_basic11 = true;
-		_tape_get_byte_address = 0xe6c9;
-		_scan_keyboard_address = 0xf495;
-		_tape_speed_address = 0x024d;
+		is_using_basic11_ = true;
+		tape_get_byte_address_ = 0xe6c9;
+		scan_keyboard_address_ = 0xf495;
+		tape_speed_address_ = 0x024d;
 	}
 	else
 	{
-		memcpy(_rom, _basic10.data(), std::min(_basic10.size(), sizeof(_rom)));
+		memcpy(rom_, basic10_rom_.data(), std::min(basic10_rom_.size(), sizeof(rom_)));
 
-		_is_using_basic11 = false;
-		_tape_get_byte_address = 0xe630;
-		_scan_keyboard_address = 0xf43c;
-		_tape_speed_address = 0x67;
+		is_using_basic11_ = false;
+		tape_get_byte_address_ = 0xe630;
+		scan_keyboard_address_ = 0xf43c;
+		tape_speed_address_ = 0x67;
 	}
 }
 
 void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 {
-	if(rom == BASIC11) _basic11 = std::move(data); else _basic10 = std::move(data);
+	switch(rom)
+	{
+		case BASIC11:	basic11_rom_ = std::move(data);		break;
+		case BASIC10:	basic10_rom_ = std::move(data);		break;
+		case Microdisc:	microdisc_rom_ = std::move(data);	break;
+	}
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-	if(address >= 0xc000)
+	if(address > ram_top_)
 	{
-		if(isReadOperation(operation)) *value = _rom[address&16383];
+		if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == _tape_get_byte_address && _use_fast_tape_hack && operation == CPU6502::BusOperation::ReadOpcode && _via.tape->has_tape() && !_via.tape->get_tape()->is_at_end())
+		if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end())
 		{
-			uint8_t next_byte = _via.tape->get_next_byte(!_ram[_tape_speed_address]);
+			uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
 			set_value_of_register(CPU6502::A, next_byte);
 			set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
 			*value = 0x60; // i.e. RTS
@@ -83,26 +105,46 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	{
 		if((address & 0xff00) == 0x0300)
 		{
-			if(isReadOperation(operation)) *value = _via.get_register(address);
-			else _via.set_register(address, *value);
+			if(microdisc_is_enabled_ && address >= 0x0310)
+			{
+				switch(address)
+				{
+					case 0x0310: case 0x0311: case 0x0312: case 0x0313:
+						if(isReadOperation(operation)) *value = microdisc_.get_register(address);
+						else microdisc_.set_register(address, *value);
+					break;
+					case 0x314: case 0x315: case 0x316: case 0x317:
+						if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
+						else microdisc_.set_control_register(*value);
+					break;
+					case 0x318: case 0x319: case 0x31a: case 0x31b:
+						if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
+					break;
+				}
+			}
+			else
+			{
+				if(isReadOperation(operation)) *value = via_.get_register(address);
+				else via_.set_register(address, *value);
+			}
 		}
 		else
 		{
 			if(isReadOperation(operation))
-				*value = _ram[address];
+				*value = ram_[address];
 			else
 			{
-				if(address >= 0x9800) { update_video(); _typer_delay = 0; }
-				_ram[address] = *value;
+				if(address >= 0x9800 && address <= 0xc000) { update_video(); typer_delay_ = 0; }
+				ram_[address] = *value;
 			}
 		}
 	}
 
-	if(_typer && address == _scan_keyboard_address && operation == CPU6502::BusOperation::ReadOpcode)
+	if(_typer && address == scan_keyboard_address_ && operation == CPU6502::BusOperation::ReadOpcode)
 	{
 		// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
 		// do anything until at least the second, regardless of machine
-		if(!_keyboard_read_count) _keyboard_read_count++;
+		if(!keyboard_read_count_) keyboard_read_count_++;
 		else if(!_typer->type_next_character())
 		{
 			clear_all_keys();
@@ -110,39 +152,40 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	_via.run_for_cycles(1);
-	_cycles_since_video_update++;
+	via_.run_for_cycles(1);
+	if(microdisc_is_enabled_) microdisc_.run_for_cycles(8);
+	cycles_since_video_update_++;
 	return 1;
 }
 
 void Machine::synchronise()
 {
 	update_video();
-	_via.synchronise();
+	via_.synchronise();
 }
 
 void Machine::update_video()
 {
-	_videoOutput->run_for_cycles(_cycles_since_video_update);
-	_cycles_since_video_update = 0;
+	video_output_->run_for_cycles(cycles_since_video_update_);
+	cycles_since_video_update_ = 0;
 }
 
 void Machine::setup_output(float aspect_ratio)
 {
-	_videoOutput.reset(new VideoOutput(_ram));
-	_via.ay8910.reset(new GI::AY38910());
-	_via.ay8910->set_clock_rate(1000000);
+	video_output_.reset(new VideoOutput(ram_));
+	via_.ay8910.reset(new GI::AY38910());
+	via_.ay8910->set_clock_rate(1000000);
 }
 
 void Machine::close_output()
 {
-	_videoOutput.reset();
-	_via.ay8910.reset();
+	video_output_.reset();
+	via_.ay8910.reset();
 }
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
-	set_irq_line(_via.get_interrupt_line());
+	set_interrupt_line();
 }
 
 void Machine::set_key_state(uint16_t key, bool isPressed)
@@ -154,36 +197,36 @@ void Machine::set_key_state(uint16_t key, bool isPressed)
 	else
 	{
 		if(isPressed)
-			_keyboard->rows[key >> 8] |= (key & 0xff);
+			keyboard_->rows[key >> 8] |= (key & 0xff);
 		else
-			_keyboard->rows[key >> 8] &= ~(key & 0xff);
+			keyboard_->rows[key >> 8] &= ~(key & 0xff);
 	}
 }
 
 void Machine::clear_all_keys()
 {
-	memset(_keyboard->rows, 0, sizeof(_keyboard->rows));
+	memset(keyboard_->rows, 0, sizeof(keyboard_->rows));
 }
 
 void Machine::set_use_fast_tape_hack(bool activate)
 {
-	_use_fast_tape_hack = activate;
+	use_fast_tape_hack_ = activate;
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player)
 {
 	// set CB1
-	_via.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
+	via_.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt()
 {
-	return _videoOutput->get_crt();
+	return video_output_->get_crt();
 }
 
 std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
 {
-	return _via.ay8910;
+	return via_.ay8910;
 }
 
 void Machine::run_for_cycles(int number_of_cycles)
@@ -195,14 +238,14 @@ void Machine::run_for_cycles(int number_of_cycles)
 
 Machine::VIA::VIA() :
 	MOS::MOS6522<Machine::VIA>(),
-	_cycles_since_ay_update(0),
+	cycles_since_ay_update_(0),
 	tape(new TapePlayer) {}
 
 void Machine::VIA::set_control_line_output(Port port, Line line, bool value)
 {
 	if(line)
 	{
-		if(port) _ay_bdir = value; else _ay_bc1 = value;
+		if(port) ay_bdir_ = value; else ay_bc1_ = value;
 		update_ay();
 	}
 }
@@ -235,23 +278,23 @@ uint8_t Machine::VIA::get_port_input(Port port)
 
 void Machine::VIA::synchronise()
 {
-	ay8910->run_for_cycles(_cycles_since_ay_update);
+	ay8910->run_for_cycles(cycles_since_ay_update_);
 	ay8910->flush();
-	_cycles_since_ay_update = 0;
+	cycles_since_ay_update_ = 0;
 }
 
 void Machine::VIA::run_for_cycles(unsigned int number_of_cycles)
 {
-	_cycles_since_ay_update += number_of_cycles;
+	cycles_since_ay_update_ += number_of_cycles;
 	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
 	tape->run_for_cycles((int)number_of_cycles);
 }
 
 void Machine::VIA::update_ay()
 {
-	ay8910->run_for_cycles(_cycles_since_ay_update);
-	_cycles_since_ay_update = 0;
-	ay8910->set_control_lines( (GI::AY38910::ControlLines)((_ay_bdir ? GI::AY38910::BCDIR : 0) | (_ay_bc1 ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+	ay8910->run_for_cycles(cycles_since_ay_update_);
+	cycles_since_ay_update_ = 0;
+	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }
 
 #pragma mark - TapePlayer
@@ -262,5 +305,41 @@ Machine::TapePlayer::TapePlayer() :
 
 uint8_t Machine::TapePlayer::get_next_byte(bool fast)
 {
-	return (uint8_t)_parser.get_next_byte(get_tape(), fast);
+	return (uint8_t)parser_.get_next_byte(get_tape(), fast);
+}
+
+#pragma mark - Microdisc
+
+void Machine::microdisc_did_change_paging_flags(class Microdisc *microdisc)
+{
+	int flags = microdisc->get_paging_flags();
+	if(!(flags&Microdisc::PagingFlags::BASICDisable))
+	{
+		ram_top_ = 0xbfff;
+		paged_rom_ = rom_;
+	}
+	else
+	{
+		if(flags&Microdisc::PagingFlags::MicrodscDisable)
+		{
+			ram_top_ = 0xffff;
+		}
+		else
+		{
+			ram_top_ = 0xdfff;
+			paged_rom_ = microdisc_rom_.data();
+		}
+	}
+}
+
+void Machine::wd1770_did_change_output(WD::WD1770 *wd1770)
+{
+	set_interrupt_line();
+}
+
+void Machine::set_interrupt_line()
+{
+	set_irq_line(
+		via_.get_interrupt_line() ||
+		(microdisc_is_enabled_ && microdisc_.get_interrupt_request_line()));
 }

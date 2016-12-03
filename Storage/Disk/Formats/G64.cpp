@@ -40,7 +40,7 @@ unsigned int G64::get_head_position_count()
 	return number_of_tracks_ > 84 ? number_of_tracks_ : 84;
 }
 
-std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned int position)
+std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> resulting_track;
 

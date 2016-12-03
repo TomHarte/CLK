@@ -10,6 +10,7 @@
 #define Disk_hpp
 
 #include <memory>
+#include <map>
 #include "../Storage.hpp"
 
 namespace Storage {
@@ -66,22 +67,34 @@ class Disk {
 	public:
 
 		/*!
-			Returns the number of discrete positions that this disk uses to model its complete surface area.
+			@returns the number of discrete positions that this disk uses to model its complete surface area.
 
 			This is not necessarily a track count. There is no implicit guarantee that every position will
-			return a distinct track, or — if the media is holeless — will return any track at all.
+			return a distinct track, or — e.g. if the media is holeless — will return any track at all.
 		*/
 		virtual unsigned int get_head_position_count() = 0;
 
 		/*!
-			Returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
+			@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
 		*/
 		virtual unsigned int get_head_count() { return 1; }
 
 		/*!
-			Returns the @c Track at @c position if there are any detectable events there; returns @c nullptr otherwise.
+			@returns the @c Track at @c position underneath @c head if there are any detectable events there;
+			returns @c nullptr otherwise.
 		*/
-		virtual std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position) = 0;
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+
+	protected:
+		/*!
+			Subclasses should implement this to return the @c Track at @c position underneath @c head. Returned tracks
+			are cached internally so subclasses shouldn't attempt to build their own caches or worry about preparing
+			for track accesses at file load time. Appropriate behaviour is to create them lazily, on demand.
+		*/
+		virtual std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position) = 0;
+
+	private:
+		std::map<int, std::shared_ptr<Track>> cached_tracks_;
 };
 
 }

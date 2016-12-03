@@ -47,7 +47,7 @@ unsigned int AcornADF::get_head_count()
 	return 1;
 }
 
-std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsigned int position)
+std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
 

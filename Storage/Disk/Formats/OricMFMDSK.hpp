@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provies a @c Disk containing an Oric MFM-stype disk image — an MFM bit stream.
+	Provies a @c Disk containing an Oric MFM-stype disk image — a stream of the MFM data bits with clocks omitted.
 */
 class OricMFMDSK: public Disk, public Storage::FileHolder {
 	public:
@@ -35,9 +35,9 @@ class OricMFMDSK: public Disk, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
+		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 		uint32_t head_count_;
 		uint32_t track_count_;
 		uint32_t geometry_type_;

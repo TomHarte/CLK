@@ -26,10 +26,12 @@
 	if(self)
 	{
 		NSData *basic10 = [self rom:@"basic10"];
-		NSData *basic11 = [self rom:@"basic11"];	// test108j
+		NSData *basic11 = [self rom:@"basic11"];
+		NSData *microdisc = [self rom:@"microdisc"];
 
-		if(basic10) _oric.set_rom(Oric::BASIC10, basic10.stdVector8);
-		if(basic11) _oric.set_rom(Oric::BASIC11, basic11.stdVector8);
+		if(basic10)		_oric.set_rom(Oric::BASIC10, basic10.stdVector8);
+		if(basic11)		_oric.set_rom(Oric::BASIC11, basic11.stdVector8);
+		if(microdisc)	_oric.set_rom(Oric::Microdisc, microdisc.stdVector8);
 	}
 	return self;
 }
