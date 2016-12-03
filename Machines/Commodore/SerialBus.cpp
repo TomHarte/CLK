@@ -30,14 +30,14 @@ void ::Commodore::Serial::AttachPortAndBus(std::shared_ptr<Port> port, std::shar
 
 void Bus::add_port(std::shared_ptr<Port> port)
 {
-	_ports.push_back(port);
+	ports_.push_back(port);
 	for(int line = (int)ServiceRequest; line <= (int)Reset; line++)
 	{
 		// the addition of a new device may change the line output...
 		set_line_output_did_change((Line)line);
 
 		// ... but the new device will need to be told the current state regardless
-		port->set_input((Line)line, _line_levels[line]);
+		port->set_input((Line)line, line_levels_[line]);
 	}
 }
 
@@ -45,7 +45,7 @@ void Bus::set_line_output_did_change(Line line)
 {
 	// i.e. I believe these lines to be open collector
 	LineLevel new_line_level = High;
-	for(std::weak_ptr<Port> port : _ports)
+	for(std::weak_ptr<Port> port : ports_)
 	{
 		std::shared_ptr<Port> locked_port = port.lock();
 		if(locked_port)
@@ -55,11 +55,11 @@ void Bus::set_line_output_did_change(Line line)
 	}
 
 	// post an update only if one occurred
-	if(new_line_level != _line_levels[line])
+	if(new_line_level != line_levels_[line])
 	{
-		_line_levels[line] = new_line_level;
+		line_levels_[line] = new_line_level;
 
-		for(std::weak_ptr<Port> port : _ports)
+		for(std::weak_ptr<Port> port : ports_)
 		{
 			std::shared_ptr<Port> locked_port = port.lock();
 			if(locked_port)
@@ -74,20 +74,20 @@ void Bus::set_line_output_did_change(Line line)
 
 void DebugPort::set_input(Line line, LineLevel value)
 {
-	_input_levels[line] = value;
+	input_levels_[line] = value;
 
 	printf("[Bus] %s is %s\n", StringForLine(line), value ? "high" : "low");
-	if(!_incoming_count)
+	if(!incoming_count_)
 	{
-		_incoming_count = (!_input_levels[Line::Clock] && !_input_levels[Line::Data]) ? 8 : 0;
+		incoming_count_ = (!input_levels_[Line::Clock] && !input_levels_[Line::Data]) ? 8 : 0;
 	}
 	else
 	{
 		if(line == Line::Clock && value)
 		{
-			_incoming_byte = (_incoming_byte >> 1) | (_input_levels[Line::Data] ? 0x80 : 0x00);
+			incoming_byte_ = (incoming_byte_ >> 1) | (input_levels_[Line::Data] ? 0x80 : 0x00);
 		}
-		_incoming_count--;
-		if(_incoming_count == 0) printf("[Bus] Observed %02x\n", _incoming_byte);
+		incoming_count_--;
+		if(incoming_count_ == 0) printf("[Bus] Observed %02x\n", incoming_byte_);
 	}
 }

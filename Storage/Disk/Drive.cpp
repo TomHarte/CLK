@@ -12,35 +12,35 @@
 using namespace Storage::Disk;
 
 Drive::Drive()
-	: _head_position(0), _head(0) {}
+	: head_position_(0), head_(0) {}
 
 void Drive::set_disk(std::shared_ptr<Disk> disk)
 {
-	_disk = disk;
+	disk_ = disk;
 }
 
 bool Drive::has_disk()
 {
-	return (bool)_disk;
+	return (bool)disk_;
 }
 
 bool Drive::get_is_track_zero()
 {
-	return _head_position == 0;
+	return head_position_ == 0;
 }
 
 void Drive::step(int direction)
 {
-	_head_position = std::max(_head_position + direction, 0);
+	head_position_ = std::max(head_position_ + direction, 0);
 }
 
 void Drive::set_head(unsigned int head)
 {
-	_head = head;
+	head_ = head;
 }
 
 std::shared_ptr<Track> Drive::get_track()
 {
-	if(_disk) return _disk->get_track_at_position(_head, (unsigned int)_head_position);
+	if(disk_) return disk_->get_track_at_position(head_, (unsigned int)head_position_);
 	return nullptr;
 }

@@ -51,10 +51,10 @@ class Cartridge {
 			std::vector<uint8_t> data;
 		};
 
-		const std::list<Segment> &get_segments() {	return _segments; }
+		const std::list<Segment> &get_segments() {	return segments_; }
 
 	protected:
-		std::list<Segment> _segments;
+		std::list<Segment> segments_;
 };
 
 }

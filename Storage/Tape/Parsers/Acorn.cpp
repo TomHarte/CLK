@@ -12,7 +12,7 @@ using namespace Storage::Tape::Acorn;
 
 Parser::Parser() :
 	::Storage::Tape::Parser<WaveType, SymbolType>(),
-	_crc(0x1021, 0x0000) {}
+	crc_(0x1021, 0x0000) {}
 
 int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
@@ -38,7 +38,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape)
 		set_error_flag();
 		return -1;
 	}
-	_crc.add((uint8_t)value);
+	crc_.add((uint8_t)value);
 	return value;
 }
 
@@ -56,8 +56,8 @@ int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape)
 	return result;
 }
 
-void Parser::reset_crc()	{	_crc.reset();				}
-uint16_t Parser::get_crc()	{	return _crc.get_value();	}
+void Parser::reset_crc()	{	crc_.reset();				}
+uint16_t Parser::get_crc()	{	return crc_.get_value();	}
 
 void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
 {

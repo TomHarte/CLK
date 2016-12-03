@@ -11,23 +11,23 @@
 using namespace MOS;
 
 Speaker::Speaker() :
-	_volume(0),
-	_control_registers{0, 0, 0, 0},
-	_shift_registers{0, 0, 0, 0},
-	_counters{2, 1, 0, 0}	// create a slight phase offset for the three channels
+	volume_(0),
+	control_registers_{0, 0, 0, 0},
+	shift_registers_{0, 0, 0, 0},
+	counters_{2, 1, 0, 0}	// create a slight phase offset for the three channels
 {}
 
 void Speaker::set_volume(uint8_t volume)
 {
 	enqueue([=]() {
-		_volume = volume;
+		volume_ = volume;
 	});
 }
 
 void Speaker::set_control(int channel, uint8_t value)
 {
 	enqueue([=]() {
-		_control_registers[channel] = value;
+		control_registers_[channel] = value;
 	});
 }
 
@@ -99,9 +99,9 @@ static uint8_t noise_pattern[] = {
 	0xf0, 0xe1, 0xe0, 0x78, 0x70, 0x38, 0x3c, 0x3e, 0x1e, 0x3c, 0x1e, 0x1c, 0x70, 0x3c, 0x38, 0x3f,
 };
 
-#define shift(r) _shift_registers[r] = (_shift_registers[r] << 1) | (((_shift_registers[r]^0x80)&_control_registers[r]) >> 7)
-#define increment(r) _shift_registers[r] = (_shift_registers[r]+1)%8191
-#define update(r, m, up) _counters[r]++; if((_counters[r] >> m) == 0x80) { up(r); _counters[r] = (unsigned int)(_control_registers[r]&0x7f) << m; }
+#define shift(r) shift_registers_[r] = (shift_registers_[r] << 1) | (((shift_registers_[r]^0x80)&control_registers_[r]) >> 7)
+#define increment(r) shift_registers_[r] = (shift_registers_[r]+1)%8191
+#define update(r, m, up) counters_[r]++; if((counters_[r] >> m) == 0x80) { up(r); counters_[r] = (unsigned int)(control_registers_[r]&0x7f) << m; }
 // Note on slightly askew test: as far as I can make out, if the value in the register is 0x7f then what's supposed to happen
 // is that the 0x7f is loaded, on the next clocked cycle the Vic spots a 0x7f, pumps the output, reloads, etc. No increment
 // ever occurs. It's conditional. I don't really want two conditionals if I can avoid it so I'm incrementing regardless and
@@ -120,11 +120,11 @@ void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 		// this sums the output of all three sounds channels plus a DC offset for volume;
 		// TODO: what's the real ratio of this stuff?
 		target[c] = (
-			(_shift_registers[0]&1) +
-			(_shift_registers[1]&1) +
-			(_shift_registers[2]&1) +
-			((noise_pattern[_shift_registers[3] >> 3] >> (_shift_registers[3]&7))&(_control_registers[3] >> 7)&1)
-		) * _volume * 700 + _volume * 44;
+			(shift_registers_[0]&1) +
+			(shift_registers_[1]&1) +
+			(shift_registers_[2]&1) +
+			((noise_pattern[shift_registers_[3] >> 3] >> (shift_registers_[3]&7))&(control_registers_[3] >> 7)&1)
+		) * volume_ * 700 + volume_ * 44;
 	}
 }
 

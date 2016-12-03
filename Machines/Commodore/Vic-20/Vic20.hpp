@@ -89,8 +89,8 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort);
 
 	private:
-		uint8_t _portA;
-		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
+		uint8_t port_a_;
+		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
@@ -112,10 +112,10 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort);
 
 	private:
-		uint8_t _portB;
-		uint8_t _columns[8];
-		uint8_t _activation_mask;
-		std::weak_ptr<::Commodore::Serial::Port> _serialPort;
+		uint8_t port_b_;
+		uint8_t columns_[8];
+		uint8_t activation_mask_;
+		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
 };
 
 class SerialPort : public ::Commodore::Serial::Port {
@@ -124,19 +124,19 @@ class SerialPort : public ::Commodore::Serial::Port {
 		void set_user_port_via(std::shared_ptr<UserPortVIA> userPortVIA);
 
 	private:
-		std::weak_ptr<UserPortVIA> _userPortVIA;
+		std::weak_ptr<UserPortVIA> user_port_via_;
 };
 
 class Vic6560: public MOS::MOS6560<Vic6560> {
 	public:
 		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
 		{
-			*pixel_data = _videoMemoryMap[address >> 10] ? _videoMemoryMap[address >> 10][address & 0x3ff] : 0xff; // TODO
-			*colour_data = _colorMemory[address & 0x03ff];
+			*pixel_data = video_memory_map[address >> 10] ? video_memory_map[address >> 10][address & 0x3ff] : 0xff; // TODO
+			*colour_data = colour_memory[address & 0x03ff];
 		}
 
-		uint8_t *_videoMemoryMap[16];
-		uint8_t *_colorMemory;
+		uint8_t *video_memory_map[16];
+		uint8_t *colour_memory;
 };
 
 class Machine:
@@ -153,34 +153,30 @@ class Machine:
 
 		void set_rom(ROMSlot slot, size_t length, const uint8_t *data);
 		void configure_as_target(const StaticAnalyser::Target &target);
-//		void set_prg(const char *file_name, size_t length, const uint8_t *data);
-//		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
-//		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
-		void set_key_state(uint16_t key, bool isPressed) { _keyboardVIA->set_key_state(key, isPressed); }
-		void clear_all_keys() { _keyboardVIA->clear_all_keys(); }
+		void set_key_state(uint16_t key, bool isPressed) { keyboard_via_->set_key_state(key, isPressed); }
+		void clear_all_keys() { keyboard_via_->clear_all_keys(); }
 		void set_joystick_state(JoystickInput input, bool isPressed) {
-			_userPortVIA->set_joystick_state(input, isPressed);
-			_keyboardVIA->set_joystick_state(input, isPressed);
+			user_port_via_->set_joystick_state(input, isPressed);
+			keyboard_via_->set_joystick_state(input, isPressed);
 		}
 
 		void set_memory_size(MemorySize size);
 		void set_region(Region region);
 
-		inline void set_use_fast_tape_hack(bool activate) { _use_fast_tape_hack = activate; }
-		inline void set_should_automatically_load_media(bool activate) { _should_automatically_load_media = activate; }
+		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
+		inline void set_should_automatically_load_media(bool activate) { should_automatically_load_media_ = activate; }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise() { _mos6560->synchronise(); }
+		void synchronise() { mos6560_->synchronise(); }
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return _mos6560->get_crt(); }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return _mos6560->get_speaker(); }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return mos6560_->get_crt(); }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return mos6560_->get_speaker(); }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
-		// TODO: or 1108405 for PAL; see http://www.antimon.org/dl/c64/code/stable.txt
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
@@ -192,40 +188,38 @@ class Machine:
 		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);
 
 	private:
-		uint8_t _characterROM[0x1000];
-		uint8_t _basicROM[0x2000];
-		uint8_t _kernelROM[0x2000];
-		uint8_t _expansionRAM[0x8000];
+		uint8_t character_rom_[0x1000];
+		uint8_t basic_rom_[0x2000];
+		uint8_t kernel_rom_[0x2000];
+		uint8_t expansion_ram_[0x8000];
 
-		uint8_t *_rom;
-		uint16_t _rom_address, _rom_length;
+		uint8_t *rom_;
+		uint16_t rom_address_, rom_length_;
 
-		uint8_t _userBASICMemory[0x0400];
-		uint8_t _screenMemory[0x1000];
-		uint8_t _colorMemory[0x0400];
-		uint8_t _junkMemory[0x0400];
-		std::unique_ptr<uint8_t> _driveROM;
+		uint8_t user_basic_memory_[0x0400];
+		uint8_t screen_memory_[0x1000];
+		uint8_t colour_memory_[0x0400];
+		std::unique_ptr<uint8_t> drive_rom_;
 
-		uint8_t *_processorReadMemoryMap[64];
-		uint8_t *_processorWriteMemoryMap[64];
+		uint8_t *processor_read_memory_map_[64];
+		uint8_t *processor_write_memory_map_[64];
 		void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length);
 
-		Region _region;
+		Region region_;
 
-		std::unique_ptr<Vic6560> _mos6560;
-		std::shared_ptr<UserPortVIA> _userPortVIA;
-		std::shared_ptr<KeyboardVIA> _keyboardVIA;
-		std::shared_ptr<SerialPort> _serialPort;
-		std::shared_ptr<::Commodore::Serial::Bus> _serialBus;
-//		std::shared_ptr<::Commodore::Serial::DebugPort> _debugPort;
+		std::unique_ptr<Vic6560> mos6560_;
+		std::shared_ptr<UserPortVIA> user_port_via_;
+		std::shared_ptr<KeyboardVIA> keyboard_via_;
+		std::shared_ptr<SerialPort> serial_port_;
+		std::shared_ptr<::Commodore::Serial::Bus> serial_bus_;
 
 		// Tape
-		Storage::Tape::BinaryTapePlayer _tape;
-		bool _use_fast_tape_hack, _should_automatically_load_media;
-		bool _is_running_at_zero_cost;
+		Storage::Tape::BinaryTapePlayer tape_;
+		bool use_fast_tape_hack_, should_automatically_load_media_;
+		bool is_running_at_zero_cost_;
 
 		// Disk
-		std::shared_ptr<::Commodore::C1540::Machine> _c1540;
+		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
 		void install_disk_rom();
 
 		// Autoload string

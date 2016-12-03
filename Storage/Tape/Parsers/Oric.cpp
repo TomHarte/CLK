@@ -12,8 +12,8 @@ using namespace Storage::Tape::Oric;
 
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding)
 {
-	_detection_mode = use_fast_encoding ? FastZero : SlowZero;
-	_cycle_length = 0.0f;
+	detection_mode_ = use_fast_encoding ? FastZero : SlowZero;
+	cycle_length_ = 0.0f;
 
 	int result = 0;
 	int bit_count = 0;
@@ -21,7 +21,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool
 	{
 		SymbolType symbol = get_next_symbol(tape);
 		if(!bit_count && symbol != SymbolType::Zero) continue;
-		_detection_mode = use_fast_encoding ? FastData : SlowData;
+		detection_mode_ = use_fast_encoding ? FastData : SlowData;
 		result |= ((symbol == SymbolType::One) ? 1 : 0) << bit_count;
 		bit_count++;
 	}
@@ -31,7 +31,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool
 
 bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape)
 {
-	_detection_mode = Sync;
+	detection_mode_ = Sync;
 	while(!tape->is_at_end())
 	{
 		SymbolType symbol = get_next_symbol(tape);
@@ -52,22 +52,22 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
 	const float maximum_long_length = 0.001456f;
 
 	bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-	if(!_wave_was_high && wave_is_high != _wave_was_high)
+	if(!wave_was_high_ && wave_is_high != wave_was_high_)
 	{
-		if(_cycle_length < maximum_short_length) push_wave(WaveType::Short);
-		else if(_cycle_length < maximum_medium_length) push_wave(WaveType::Medium);
-		else if(_cycle_length < maximum_long_length) push_wave(WaveType::Long);
+		if(cycle_length_ < maximum_short_length) push_wave(WaveType::Short);
+		else if(cycle_length_ < maximum_medium_length) push_wave(WaveType::Medium);
+		else if(cycle_length_ < maximum_long_length) push_wave(WaveType::Long);
 		else push_wave(WaveType::Unrecognised);
 
-		_cycle_length = 0.0f;
+		cycle_length_ = 0.0f;
 	}
-	_wave_was_high = wave_is_high;
-	_cycle_length += pulse.length.get_float();
+	wave_was_high_ = wave_is_high;
+	cycle_length_ += pulse.length.get_float();
 }
 
 void Parser::inspect_waves(const std::vector<WaveType> &waves)
 {
-	switch(_detection_mode)
+	switch(detection_mode_)
 	{
 		case FastZero:
 			if(waves.empty()) return;

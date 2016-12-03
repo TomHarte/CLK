@@ -13,21 +13,19 @@
 using namespace Commodore::C1540;
 
 Machine::Machine() :
-	_shift_register(0),
-	Storage::Disk::Controller(1000000, 4, 300)
+	shift_register_(0),
+	Storage::Disk::Controller(1000000, 4, 300),
+	serial_port_(new SerialPort),
+	serial_port_VIA_(new SerialPortVIA)
 {
-	// create a serial port and a VIA to run it
-	_serialPortVIA.reset(new SerialPortVIA);
-	_serialPort.reset(new SerialPort);
-
 	// attach the serial port to its VIA and vice versa
-	_serialPort->set_serial_port_via(_serialPortVIA);
-	_serialPortVIA->set_serial_port(_serialPort);
+	serial_port_->set_serial_port_via(serial_port_VIA_);
+	serial_port_VIA_->set_serial_port(serial_port_);
 
 	// set this instance as the delegate to receive interrupt requests from both VIAs
-	_serialPortVIA->set_interrupt_delegate(this);
-	_driveVIA.set_interrupt_delegate(this);
-	_driveVIA.set_delegate(this);
+	serial_port_VIA_->set_interrupt_delegate(this);
+	drive_VIA_.set_interrupt_delegate(this);
+	drive_VIA_.set_delegate(this);
 
 	// set a bit rate
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
@@ -35,27 +33,11 @@ Machine::Machine() :
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus)
 {
-	Commodore::Serial::AttachPortAndBus(_serialPort, serial_bus);
+	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
-//	static bool log = false;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xF3C0)) log = true;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && log) printf("%04x\n", address);
-//	if(operation == CPU6502::BusOperation::ReadOpcode) printf("%04x\n", address);
-//	if(operation == CPU6502::BusOperation::ReadOpcode && (address >= 0xF510 && address <= 0xF553)) printf("%04x\n", address);
-//	if(operation == CPU6502::BusOperation::ReadOpcode && (address == 0xE887)) printf("A: %02x\n", get_value_of_register(CPU6502::Register::A));
-
-/*	static bool log = false;
-
-	if(operation == CPU6502::BusOperation::ReadOpcode)
-	{
-		log = (address >= 0xE85B && address <= 0xE907) || (address >= 0xE9C9 && address <= 0xEA2D);
-		 if(log) printf("\n%04x: ", address);
-	}
-	if(log)  printf("[%c %04x] ", isReadOperation(operation) ? 'r' : 'w', address);*/
-
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -67,39 +49,39 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	if(address < 0x800)
 	{
 		if(isReadOperation(operation))
-			*value = _ram[address];
+			*value = ram_[address];
 		else
-			_ram[address] = *value;
+			ram_[address] = *value;
 	}
 	else if(address >= 0xc000)
 	{
 		if(isReadOperation(operation))
-			*value = _rom[address & 0x3fff];
+			*value = rom_[address & 0x3fff];
 	}
 	else if(address >= 0x1800 && address <= 0x180f)
 	{
 		if(isReadOperation(operation))
-			*value = _serialPortVIA->get_register(address);
+			*value = serial_port_VIA_->get_register(address);
 		else
-			_serialPortVIA->set_register(address, *value);
+			serial_port_VIA_->set_register(address, *value);
 	}
 	else if(address >= 0x1c00 && address <= 0x1c0f)
 	{
 		if(isReadOperation(operation))
-			*value = _driveVIA.get_register(address);
+			*value = drive_VIA_.get_register(address);
 		else
-			_driveVIA.set_register(address, *value);
+			drive_VIA_.set_register(address, *value);
 	}
 
-	_serialPortVIA->run_for_cycles(1);
-	_driveVIA.run_for_cycles(1);
+	serial_port_VIA_->run_for_cycles(1);
+	drive_VIA_.run_for_cycles(1);
 
 	return 1;
 }
 
 void Machine::set_rom(const uint8_t *rom)
 {
-	memcpy(_rom, rom, sizeof(_rom));
+	memcpy(rom_, rom, sizeof(rom_));
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
@@ -112,8 +94,8 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk)
 void Machine::run_for_cycles(int number_of_cycles)
 {
 	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
-	set_motor_on(_driveVIA.get_motor_enabled());
-	if(_driveVIA.get_motor_enabled()) // TODO: motor speed up/down
+	set_motor_on(drive_VIA_.get_motor_enabled());
+	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
 		Storage::Disk::Controller::run_for_cycles(number_of_cycles);
 }
 
@@ -122,29 +104,29 @@ void Machine::run_for_cycles(int number_of_cycles)
 void Machine::mos6522_did_change_interrupt_status(void *mos6522)
 {
 	// both VIAs are connected to the IRQ line
-	set_irq_line(_serialPortVIA->get_interrupt_line() || _driveVIA.get_interrupt_line());
+	set_irq_line(serial_port_VIA_->get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
 #pragma mark - Disk drive
 
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
-	_shift_register = (_shift_register << 1) | value;
-	if((_shift_register & 0x3ff) == 0x3ff)
+	shift_register_ = (shift_register_ << 1) | value;
+	if((shift_register_ & 0x3ff) == 0x3ff)
 	{
-		_driveVIA.set_sync_detected(true);
-		_bit_window_offset = -1; // i.e. this bit isn't the first within a data window, but the next might be
+		drive_VIA_.set_sync_detected(true);
+		bit_window_offset_ = -1; // i.e. this bit isn't the first within a data window, but the next might be
 	}
 	else
 	{
-		_driveVIA.set_sync_detected(false);
+		drive_VIA_.set_sync_detected(false);
 	}
-	_bit_window_offset++;
-	if(_bit_window_offset == 8)
+	bit_window_offset_++;
+	if(bit_window_offset_ == 8)
 	{
-		_driveVIA.set_data_input((uint8_t)_shift_register);
-		_bit_window_offset = 0;
-		if(_driveVIA.get_should_set_overflow())
+		drive_VIA_.set_data_input((uint8_t)shift_register_);
+		bit_window_offset_ = 0;
+		if(drive_VIA_.get_should_set_overflow())
 		{
 			set_overflow_line(true);
 		}
@@ -171,12 +153,12 @@ void Machine::drive_via_did_set_data_density(void *driveVIA, int density)
 #pragma mark - SerialPortVIA
 
 SerialPortVIA::SerialPortVIA() :
-	_portB(0x00), _attention_acknowledge_level(false), _attention_level_input(true), _data_level_output(false)
+	port_b_(0x00), attention_acknowledge_level_(false), attention_level_input_(true), data_level_output_(false)
 {}
 
 uint8_t SerialPortVIA::get_port_input(Port port)
 {
-	if(port) return _portB;
+	if(port) return port_b_;
 	return 0xff;
 }
 
@@ -184,10 +166,10 @@ void SerialPortVIA::set_port_output(Port port, uint8_t value, uint8_t mask)
 {
 	if(port)
 	{
-		std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort) {
-			_attention_acknowledge_level = !(value&0x10);
-			_data_level_output = (value&0x02);
+			attention_acknowledge_level_ = !(value&0x10);
+			data_level_output_ = (value&0x02);
 
 			serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!(value&0x08));
 			update_data_line();
@@ -200,31 +182,30 @@ void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool v
 	switch(line)
 	{
 		default: break;
-		case ::Commodore::Serial::Line::Data:		_portB = (_portB & ~0x01) | (value ? 0x00 : 0x01);		break;
-		case ::Commodore::Serial::Line::Clock:		_portB = (_portB & ~0x04) | (value ? 0x00 : 0x04);		break;
+		case ::Commodore::Serial::Line::Data:		port_b_ = (port_b_ & ~0x01) | (value ? 0x00 : 0x01);		break;
+		case ::Commodore::Serial::Line::Clock:		port_b_ = (port_b_ & ~0x04) | (value ? 0x00 : 0x04);		break;
 		case ::Commodore::Serial::Line::Attention:
-			_attention_level_input = !value;
-			_portB = (_portB & ~0x80) | (value ? 0x00 : 0x80);
+			attention_level_input_ = !value;
+			port_b_ = (port_b_ & ~0x80) | (value ? 0x00 : 0x80);
 			set_control_line_input(Port::A, Line::One, !value);
 			update_data_line();
 		break;
 	}
 }
 
-void SerialPortVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort)
+void SerialPortVIA::set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &serialPort)
 {
-	_serialPort = serialPort;
+	serial_port_ = serialPort;
 }
 
 void SerialPortVIA::update_data_line()
 {
-	std::shared_ptr<::Commodore::Serial::Port> serialPort = _serialPort.lock();
+	std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 	if(serialPort)
 	{
 		// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 		serialPort->set_output(::Commodore::Serial::Line::Data,
-			(::Commodore::Serial::LineLevel)(!_data_level_output
-			&& (_attention_level_input != _attention_acknowledge_level)));
+			(::Commodore::Serial::LineLevel)(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
 	}
 }
 
@@ -232,35 +213,35 @@ void SerialPortVIA::update_data_line()
 
 void DriveVIA::set_delegate(Delegate *delegate)
 {
-	_delegate = delegate;
+	delegate_ = delegate;
 }
 
 // write protect tab uncovered
-DriveVIA::DriveVIA() : _port_b(0xff), _port_a(0xff), _delegate(nullptr) {}
+DriveVIA::DriveVIA() : port_b_(0xff), port_a_(0xff), delegate_(nullptr) {}
 
 uint8_t DriveVIA::get_port_input(Port port) {
-	return port ? _port_b : _port_a;
+	return port ? port_b_ : port_a_;
 }
 
 void DriveVIA::set_sync_detected(bool sync_detected) {
-	_port_b = (_port_b & 0x7f) | (sync_detected ? 0x00 : 0x80);
+	port_b_ = (port_b_ & 0x7f) | (sync_detected ? 0x00 : 0x80);
 }
 
 void DriveVIA::set_data_input(uint8_t value) {
-	_port_a = value;
+	port_a_ = value;
 }
 
 bool DriveVIA::get_should_set_overflow() {
-	return _should_set_overflow;
+	return should_set_overflow_;
 }
 
 bool DriveVIA::get_motor_enabled() {
-	return _drive_motor;
+	return drive_motor_;
 }
 
 void DriveVIA::set_control_line_output(Port port, Line line, bool value) {
 	if(port == Port::A && line == Line::Two) {
-		_should_set_overflow = value;
+		should_set_overflow_ = value;
 	}
 }
 
@@ -268,36 +249,36 @@ void DriveVIA::set_port_output(Port port, uint8_t value, uint8_t direction_mask)
 	if(port)
 	{
 		// record drive motor state
-		_drive_motor = !!(value&4);
+		drive_motor_ = !!(value&4);
 
 		// check for a head step
-		int step_difference = ((value&3) - (_previous_port_b_output&3))&3;
+		int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
 		if(step_difference)
 		{
-			if(_delegate) _delegate->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+			if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
 		}
 
 		// check for a change in density
-		int density_difference = (_previous_port_b_output^value) & (3 << 5);
-		if(density_difference && _delegate)
+		int density_difference = (previous_port_b_output_^value) & (3 << 5);
+		if(density_difference && delegate_)
 		{
-			_delegate->drive_via_did_set_data_density(this, (value >> 5)&3);
+			delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
 		}
 
 		// TODO: something with the drive LED
 //		printf("LED: %s\n", value&8 ? "On" : "Off");
 
-		_previous_port_b_output = value;
+		previous_port_b_output_ = value;
 	}
 }
 
 #pragma mark - SerialPort
 
 void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
-	std::shared_ptr<SerialPortVIA> serialPortVIA = _serialPortVIA.lock();
+	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();
 	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, (bool)level);
 }
 
-void SerialPort::set_serial_port_via(std::shared_ptr<SerialPortVIA> serialPortVIA) {
-	_serialPortVIA = serialPortVIA;
+void SerialPort::set_serial_port_via(const std::shared_ptr<SerialPortVIA> &serialPortVIA) {
+	serial_port_VIA_ = serialPortVIA;
 }

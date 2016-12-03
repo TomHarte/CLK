@@ -12,32 +12,32 @@
 using namespace Utility;
 
 Typer::Typer(const char *string, int delay, int frequency, Delegate *delegate) :
-	_counter(-delay), _frequency(frequency), _string_pointer(0), _delegate(delegate), _phase(0)
+	counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0)
 {
 	size_t string_size = strlen(string) + 3;
-	 _string = (char *)malloc(string_size);
-	snprintf(_string, strlen(string) + 3, "%c%s%c", Typer::BeginString, string, Typer::EndString);
+	string_ = (char *)malloc(string_size);
+	snprintf(string_, strlen(string) + 3, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
 void Typer::update(int duration)
 {
-	if(_string)
+	if(string_)
 	{
-		if(_counter < 0 && _counter + duration >= 0)
+		if(counter_ < 0 && counter_ + duration >= 0)
 		{
 			if(!type_next_character())
 			{
-				_delegate->typer_reset(this);
+				delegate_->typer_reset(this);
 			}
 		}
 
-		_counter += duration;
-		while(_string && _counter > _frequency)
+		counter_ += duration;
+		while(string_ && counter_ > frequency_)
 		{
-			_counter -= _frequency;
+			counter_ -= frequency_;
 			if(!type_next_character())
 			{
-				_delegate->typer_reset(this);
+				delegate_->typer_reset(this);
 			}
 		}
 	}
@@ -45,23 +45,23 @@ void Typer::update(int duration)
 
 bool Typer::type_next_character()
 {
-	if(_string == nullptr) return false;
+	if(string_ == nullptr) return false;
 
-	if(_delegate->typer_set_next_character(this, _string[_string_pointer], _phase))
+	if(delegate_->typer_set_next_character(this, string_[string_pointer_], phase_))
 	{
-		_phase = 0;
-		if(!_string[_string_pointer])
+		phase_ = 0;
+		if(!string_[string_pointer_])
 		{
-			free(_string);
-			_string = nullptr;
+			free(string_);
+			string_ = nullptr;
 			return false;
 		}
 
-		_string_pointer++;
+		string_pointer_++;
 	}
 	else
 	{
-		_phase++;
+		phase_++;
 	}
 
 	return true;
@@ -69,7 +69,7 @@ bool Typer::type_next_character()
 
 Typer::~Typer()
 {
-	free(_string);
+	free(string_);
 }
 
 #pragma mark - Delegate

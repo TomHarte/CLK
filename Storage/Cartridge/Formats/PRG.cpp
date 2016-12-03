@@ -46,5 +46,5 @@ PRG::PRG(const char *file_name)
 	if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(contents))
 		throw ErrorNotROM;
 
-	_segments.emplace_back(0xa000, 0xa000 + data_length, std::move(contents));
+	segments_.emplace_back(0xa000, 0xa000 + data_length, std::move(contents));
 }

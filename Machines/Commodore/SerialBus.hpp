@@ -48,7 +48,7 @@ namespace Serial {
 	*/
 	class Bus {
 		public:
-			Bus() : _line_levels{High, High, High, High, High} {}
+			Bus() : line_levels_{High, High, High, High, High} {}
 
 			/*!
 				Adds the supplied port to the bus.
@@ -62,8 +62,8 @@ namespace Serial {
 			void set_line_output_did_change(Line line);
 
 		private:
-			LineLevel _line_levels[5];
-			std::vector<std::weak_ptr<Port>> _ports;
+			LineLevel line_levels_[5];
+			std::vector<std::weak_ptr<Port>> ports_;
 	};
 
 	/*!
@@ -72,16 +72,16 @@ namespace Serial {
 	*/
 	class Port {
 		public:
-			Port() : _line_levels{High, High, High, High, High} {}
+			Port() : line_levels_{High, High, High, High, High} {}
 
 			/*!
 				Sets the current level of an output line on this serial port.
 			*/
 			void set_output(Line line, LineLevel level) {
-				if(_line_levels[line] != level)
+				if(line_levels_[line] != level)
 				{
-					_line_levels[line] = level;
-					std::shared_ptr<Bus> bus = _serial_bus.lock();
+					line_levels_[line] = level;
+					std::shared_ptr<Bus> bus = serial_bus_.lock();
 					if(bus) bus->set_line_output_did_change(line);
 				}
 			}
@@ -90,7 +90,7 @@ namespace Serial {
 				Gets the previously set level of an output line.
 			*/
 			LineLevel get_output(Line line) {
-				return _line_levels[line];
+				return line_levels_[line];
 			}
 
 			/*!
@@ -102,12 +102,12 @@ namespace Serial {
 				Sets the supplied serial bus as that to which line levels will be communicated.
 			*/
 			inline void set_serial_bus(std::shared_ptr<Bus> serial_bus) {
-				_serial_bus = serial_bus;
+				serial_bus_ = serial_bus;
 			}
 
 		private:
-			std::weak_ptr<Bus> _serial_bus;
-			LineLevel _line_levels[5];
+			std::weak_ptr<Bus> serial_bus_;
+			LineLevel line_levels_[5];
 	};
 
 	/*!
@@ -117,12 +117,12 @@ namespace Serial {
 		public:
 			void set_input(Line line, LineLevel value);
 
-			DebugPort() : _incoming_count(0) {}
+			DebugPort() : incoming_count_(0) {}
 
 		private:
-			uint8_t _incoming_byte;
-			int _incoming_count;
-			LineLevel _input_levels[5];
+			uint8_t incoming_byte_;
+			int incoming_count_;
+			LineLevel input_levels_[5];
 	};
 
 }

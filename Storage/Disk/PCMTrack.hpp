@@ -52,21 +52,21 @@ class PCMTrack: public Track {
 
 	private:
 		// storage for the segments that describe this track
-		std::vector<PCMSegment> _segments;
+		std::vector<PCMSegment> segments_;
 
 		// a helper to determine the overall track clock rate and it's length
 		void fix_length();
 
 		// the event perpetually returned; impliedly contains the length of the entire track
 		// as its clock rate, per the need for everything on a Track to sum to a length of 1
-		PCMTrack::Event _next_event;
+		PCMTrack::Event next_event_;
 
 		// contains the master clock rate
-		unsigned int _track_clock_rate;
+		unsigned int track_clock_rate_;
 
 		// a pointer to the first bit to consider as the next event
-		size_t _segment_pointer;
-		size_t _bit_pointer;
+		size_t segment_pointer_;
+		size_t bit_pointer_;
 };
 
 }

@@ -35,31 +35,31 @@ class Typer {
 		const char EndString = 0x03;	// i.e. ASCII end of text
 
 	private:
-		char *_string;
-		int _frequency;
-		int _counter;
-		int _phase;
-		Delegate *_delegate;
-		size_t _string_pointer;
+		char *string_;
+		int frequency_;
+		int counter_;
+		int phase_;
+		Delegate *delegate_;
+		size_t string_pointer_;
 };
 
 class TypeRecipient: public Typer::Delegate {
 	public:
 		void set_typer_for_string(const char *string)
 		{
-			_typer.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
+			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
 		}
 
 		void typer_reset(Typer *typer)
 		{
 			clear_all_keys();
-			_typer.reset();
+			typer_.reset();
 		}
 
 	protected:
 		virtual int get_typer_delay() { return 0; }
 		virtual int get_typer_frequency() { return 0; }
-		std::unique_ptr<Typer> _typer;
+		std::unique_ptr<Typer> typer_;
 };
 
 }

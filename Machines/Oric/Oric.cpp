@@ -140,15 +140,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(_typer && address == scan_keyboard_address_ && operation == CPU6502::BusOperation::ReadOpcode)
+	if(typer_ && address == scan_keyboard_address_ && operation == CPU6502::BusOperation::ReadOpcode)
 	{
 		// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
 		// do anything until at least the second, regardless of machine
 		if(!keyboard_read_count_) keyboard_read_count_++;
-		else if(!_typer->type_next_character())
+		else if(!typer_->type_next_character())
 		{
 			clear_all_keys();
-			_typer.reset();
+			typer_.reset();
 		}
 	}
 
