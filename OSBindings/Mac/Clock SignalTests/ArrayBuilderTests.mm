@@ -33,11 +33,14 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	XCTAssert(inputData.length == inputSize, @"Input data should be %lu bytes long, was %lu", inputSize, (unsigned long)inputData.length);
 	XCTAssert(outputData.length == outputSize, @"Output data should be %lu bytes long, was %lu", outputSize, (unsigned long)outputData.length);
 
-	uint8_t *input = (uint8_t *)inputData.bytes;
-	uint8_t *output = (uint8_t *)outputData.bytes;
+	if(inputData.length == inputSize && outputData.length == outputSize)
+	{
+		uint8_t *input = (uint8_t *)inputData.bytes;
+		uint8_t *output = (uint8_t *)outputData.bytes;
 
-	for(int c = 0; c < inputSize; c++) XCTAssert(input[c] == c, @"Input item %d should be %d, was %d", c, c, input[c]);
-	for(int c = 0; c < outputSize; c++) XCTAssert(output[c] == c + 0x80, @"Output item %d should be %d, was %d", c, c+0x80, output[c]);
+		for(int c = 0; c < inputSize; c++) XCTAssert(input[c] == c, @"Input item %d should be %d, was %d", c, c, input[c]);
+		for(int c = 0; c < outputSize; c++) XCTAssert(output[c] == c + 0x80, @"Output item %d should be %d, was %d", c, c+0x80, output[c]);
+	}
 }
 
 - (void)testSingleWriteSingleFlush
