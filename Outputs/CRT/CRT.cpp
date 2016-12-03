@@ -140,7 +140,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 			source_input_position_y() = tex_y;
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 			// Don't write output_y now, write it later; we won't necessarily know what it is outside of the locked region
-//			source_output_position_y() = openGL_output_builder_->get_composite_output_y();
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
 			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
@@ -193,13 +192,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 					openGL_output_builder_.lock_output();
 
 					// Get and write all those previously unwritten output ys
-					uint16_t output_y = openGL_output_builder_.get_composite_output_y();
-					size_t size;
-					uint8_t *buffered_lines = openGL_output_builder_.array_builder.get_unflushed_input(size);
-					for(size_t position = 0; position < size; position += SourceVertexSize)
-					{
-						(*(uint16_t *)&buffered_lines[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
-					}
+					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 
 					// Construct the output run
 					uint8_t *next_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
@@ -210,7 +203,14 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 						output_tex_y() = output_y;
 						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 					}
-					openGL_output_builder_.array_builder.flush();
+					openGL_output_builder_.array_builder.flush(
+						[output_y] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size)
+						{
+							for(size_t position = 0; position < input_size; position += SourceVertexSize)
+							{
+								(*(uint16_t *)&input_buffer[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
+							}
+						});
 
 					openGL_output_builder_.unlock_output();
 				}
