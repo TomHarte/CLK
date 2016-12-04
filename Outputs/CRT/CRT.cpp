@@ -315,8 +315,8 @@ void CRT::output_level(unsigned int number_of_cycles)
 		Scan scan {
 			.type = Scan::Type::Level,
 			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position()
+//			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
+//			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position()
 		};
 		output_scan(&scan);
 	}
@@ -349,8 +349,8 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 		Scan scan {
 			.type = Scan::Type::Data,
 			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position(),
+//			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
+//			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position(),
 			.source_divider = source_divider
 		};
 		output_scan(&scan);

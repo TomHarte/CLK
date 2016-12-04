@@ -40,12 +40,6 @@ class TextureBuilder {
 		/// and indicates that its actual final size was @c actual_length.
 		void reduce_previous_allocation_to(size_t actual_length);
 
-		/// @returns the start column for the most recent allocated write area.
-		uint16_t get_last_write_x_position();
-
-		/// @returns the row of the most recent allocated write area.
-		uint16_t get_last_write_y_position();
-
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
 		bool is_full();
@@ -53,13 +47,13 @@ class TextureBuilder {
 		/// Updates the currently-bound texture with all new data provided since the last @c submit.
 		void submit();
 
+		struct WriteArea {
+			uint16_t x, y;
+			size_t length;
+		};
+		void flush(std::function<void(const std::vector<WriteArea> &write_areas, size_t count)>);
+
 	private:
-		// where pixel data will be put to the next time a write is requested
-		uint16_t next_write_x_position_, next_write_y_position_;
-
-		// the most recent position returned for pixel data writing
-		uint16_t write_x_position_, write_y_position_;
-
 		// details of the most recent allocation
 		size_t write_target_pointer_;
 		size_t last_allocation_amount_;
@@ -70,6 +64,10 @@ class TextureBuilder {
 		// the buffer
 		std::vector<uint8_t> image_;
 		GLuint texture_name_;
+
+		std::vector<WriteArea> write_areas_;
+		size_t number_of_write_areas_;
+		uint16_t write_areas_start_x_, write_areas_start_y_;
 };
 
 }
