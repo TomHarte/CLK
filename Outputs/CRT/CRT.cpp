@@ -136,8 +136,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			source_input_position_x1() = tex_x;
-			source_input_position_y() = tex_y;
+//			source_input_position_x1() = tex_x;
+//			source_input_position_y() = tex_y;
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 			// Don't write output_y now, write it later; we won't necessarily know what it is outside of the locked region
 			source_phase() = colour_burst_phase_;
@@ -204,8 +204,18 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 					}
 					openGL_output_builder_.array_builder.flush(
-						[output_y] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size)
+						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size)
 						{
+							openGL_output_builder_.texture_builder.flush(
+								[output_y, input_buffer] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas)
+								{
+									for(size_t run = 0; run < number_of_write_areas; run++)
+									{
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0] = write_areas[run].x + write_areas[run].length;
+									}
+								});
 							for(size_t position = 0; position < input_size; position += SourceVertexSize)
 							{
 								(*(uint16_t *)&input_buffer[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
