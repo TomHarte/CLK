@@ -156,7 +156,7 @@ void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea>
 
 	if(number_of_write_areas_ && !was_full)
 	{
-		if(write_areas_[0].x != write_areas_start_x_ || write_areas_[0].y != write_areas_start_y_)
+		if(write_areas_[0].x != write_areas_start_x_+1 || write_areas_[0].y != write_areas_start_y_)
 		{
 			for(auto write_area : write_areas_)
 			{
@@ -182,7 +182,12 @@ void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea>
 		}
 
 		if(!is_full_)
+		{
 			function(write_areas_, number_of_write_areas_);
+
+			write_areas_start_x_ = write_areas_[number_of_write_areas_-1].x + write_areas_[number_of_write_areas_-1].length + 1;
+			write_areas_start_y_ = write_areas_[number_of_write_areas_-1].y;
+		}
 	}
 
 	did_submit_ = false;
