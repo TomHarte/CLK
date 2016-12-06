@@ -192,6 +192,7 @@ class CRT {
 		*/
 		inline uint8_t *allocate_write_area(size_t required_length)
 		{
+			std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 			return openGL_output_builder_.texture_builder.allocate_write_area(required_length);
 		}
 

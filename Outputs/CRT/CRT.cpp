@@ -110,6 +110,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 
 void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
 {
+	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 	number_of_cycles *= time_multiplier_;
 
 	bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
@@ -189,8 +190,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				}
 				else
 				{
-					openGL_output_builder_.lock_output();
-
 					// Get and write all those previously unwritten output ys
 					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 
@@ -221,8 +220,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 								(*(uint16_t *)&input_buffer[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
 							}
 						});
-
-					openGL_output_builder_.unlock_output();
 				}
 				is_writing_composite_run_ ^= true;
 			}
@@ -320,24 +317,11 @@ void CRT::output_blank(unsigned int number_of_cycles)
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	if(!openGL_output_builder_.array_builder.is_full())
-	{
-		Scan scan {
-			.type = Scan::Type::Level,
-			.number_of_cycles = number_of_cycles,
-//			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-//			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position()
-		};
-		output_scan(&scan);
-	}
-	else
-	{
-		Scan scan {
-			.type = Scan::Type::Blank,
-			.number_of_cycles = number_of_cycles
-		};
-		output_scan(&scan);
-	}
+	Scan scan {
+		.type = Scan::Type::Level,
+		.number_of_cycles = number_of_cycles,
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude)
@@ -353,26 +337,13 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	if(!openGL_output_builder_.array_builder.is_full())
-	{
-		openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
-		Scan scan {
-			.type = Scan::Type::Data,
-			.number_of_cycles = number_of_cycles,
-//			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-//			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position(),
-			.source_divider = source_divider
-		};
-		output_scan(&scan);
-	}
-	else
-	{
-		Scan scan {
-			.type = Scan::Type::Blank,
-			.number_of_cycles = number_of_cycles
-		};
-		output_scan(&scan);
-	}
+	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
+	Scan scan {
+		.type = Scan::Type::Data,
+		.number_of_cycles = number_of_cycles,
+		.source_divider = source_divider
+	};
+	output_scan(&scan);
 }
 
 Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)

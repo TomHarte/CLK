@@ -9,9 +9,9 @@
 #ifndef ArrayBuilder_hpp
 #define ArrayBuilder_hpp
 
-#include <vector>
-#include <mutex>
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "OpenGL.hpp"
 
@@ -92,7 +92,6 @@ class ArrayBuilder {
 		} output_, input_;
 		uint8_t *get_storage(size_t size, Buffer &buffer);
 
-		std::mutex buffer_mutex_;
 		bool is_full_;
 };
 

@@ -23,7 +23,6 @@ ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size, std::function<
 bool ArrayBuilder::is_full()
 {
 	bool was_full;
-	std::lock_guard<std::mutex> guard(buffer_mutex_);
 	was_full = is_full_;
 	return was_full;
 }
@@ -40,7 +39,6 @@ uint8_t *ArrayBuilder::get_output_storage(size_t size)
 
 void ArrayBuilder::flush(const std::function<void(uint8_t *input, size_t input_size, uint8_t *output, size_t output_size)> &function)
 {
-	std::lock_guard<std::mutex> guard(buffer_mutex_);
 	if(!is_full_)
 	{
 		size_t input_size, output_size;
@@ -67,7 +65,6 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 {
 	ArrayBuilder::Submission submission;
 
-	std::lock_guard<std::mutex> guard(buffer_mutex_);
 	submission.input_size = input_.submit(true);
 	submission.output_size = output_.submit(false);
 	if(is_full_)
@@ -102,7 +99,6 @@ ArrayBuilder::Buffer::~Buffer()
 
 uint8_t *ArrayBuilder::get_storage(size_t size, Buffer &buffer)
 {
-	std::lock_guard<std::mutex> guard(buffer_mutex_);
 	uint8_t *pointer = buffer.get_storage(size);
 	if(!pointer) is_full_ = true;
 	return pointer;
