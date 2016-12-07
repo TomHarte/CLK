@@ -108,8 +108,9 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
 #define source_phase_time()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
-void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
+void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type)
 {
+	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 	number_of_cycles *= time_multiplier_;
 
 	bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
@@ -136,11 +137,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			source_input_position_x1() = tex_x;
-			source_input_position_y() = tex_y;
+			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-			// Don't write output_y now, write it later; we won't necessarily know what it is outside of the locked region
-//			source_output_position_y() = openGL_output_builder_->get_composite_output_y();
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
 			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
@@ -162,10 +160,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			// if this is a data run then advance the buffer pointer
-			if(type == Scan::Type::Data && source_divider) tex_x += next_run_length / (time_multiplier_ * source_divider);
-
-			source_input_position_x2() = tex_x;
 			source_output_position_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 		}
 
@@ -190,16 +184,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 				}
 				else
 				{
-					openGL_output_builder_.lock_output();
-
 					// Get and write all those previously unwritten output ys
-					uint16_t output_y = openGL_output_builder_.get_composite_output_y();
-					size_t size;
-					uint8_t *buffered_lines = openGL_output_builder_.array_builder.get_unflushed_input(size);
-					for(size_t position = 0; position < size; position += SourceVertexSize)
-					{
-						(*(uint16_t *)&buffered_lines[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
-					}
+					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 
 					// Construct the output run
 					uint8_t *next_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
@@ -210,9 +196,24 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 						output_tex_y() = output_y;
 						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 					}
-					openGL_output_builder_.array_builder.flush();
-
-					openGL_output_builder_.unlock_output();
+					openGL_output_builder_.array_builder.flush(
+						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size)
+						{
+							openGL_output_builder_.texture_builder.flush(
+								[output_y, input_buffer] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas)
+								{
+									for(size_t run = 0; run < number_of_write_areas; run++)
+									{
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
+										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0] = write_areas[run].x + write_areas[run].length;
+									}
+								});
+							for(size_t position = 0; position < input_size; position += SourceVertexSize)
+							{
+								(*(uint16_t *)&input_buffer[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
+							}
+						});
 				}
 				is_writing_composite_run_ ^= true;
 			}
@@ -284,7 +285,7 @@ void CRT::output_scan(const Scan *const scan)
 	// TODO: inspect raw data for potential colour burst if required
 
 	sync_period_ = is_receiving_sync_ ? (sync_period_ + scan->number_of_cycles) : 0;
-	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type, scan->tex_x, scan->tex_y);
+	advance_cycles(scan->number_of_cycles, hsync_requested, vsync_requested, this_is_sync, scan->type);
 }
 
 /*
@@ -310,24 +311,11 @@ void CRT::output_blank(unsigned int number_of_cycles)
 
 void CRT::output_level(unsigned int number_of_cycles)
 {
-	if(!openGL_output_builder_.array_builder.is_full())
-	{
-		Scan scan {
-			.type = Scan::Type::Level,
-			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position()
-		};
-		output_scan(&scan);
-	}
-	else
-	{
-		Scan scan {
-			.type = Scan::Type::Blank,
-			.number_of_cycles = number_of_cycles
-		};
-		output_scan(&scan);
-	}
+	Scan scan {
+		.type = Scan::Type::Level,
+		.number_of_cycles = number_of_cycles,
+	};
+	output_scan(&scan);
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude)
@@ -343,26 +331,12 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider)
 {
-	if(!openGL_output_builder_.array_builder.is_full())
-	{
-		openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
-		Scan scan {
-			.type = Scan::Type::Data,
-			.number_of_cycles = number_of_cycles,
-			.tex_x = openGL_output_builder_.texture_builder.get_last_write_x_position(),
-			.tex_y = openGL_output_builder_.texture_builder.get_last_write_y_position(),
-			.source_divider = source_divider
-		};
-		output_scan(&scan);
-	}
-	else
-	{
-		Scan scan {
-			.type = Scan::Type::Blank,
-			.number_of_cycles = number_of_cycles
-		};
-		output_scan(&scan);
-	}
+	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
+	Scan scan {
+		.type = Scan::Type::Data,
+		.number_of_cycles = number_of_cycles,
+	};
+	output_scan(&scan);
 }
 
 Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio)

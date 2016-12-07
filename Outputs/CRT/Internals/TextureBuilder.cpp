@@ -39,8 +39,11 @@ static const GLenum formatForDepth(size_t depth)
 
 TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
 	bytes_per_pixel_(bytes_per_pixel),
-	next_write_x_position_(0),
-	next_write_y_position_(0)
+	write_areas_start_x_(0),
+	write_areas_start_y_(0),
+	is_full_(false),
+	did_submit_(false),
+	number_of_write_areas_(0)
 {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
@@ -59,85 +62,136 @@ TextureBuilder::~TextureBuilder()
 	glDeleteTextures(1, &texture_name_);
 }
 
+inline uint8_t *TextureBuilder::pointer_to_location(uint16_t x, uint16_t y)
+{
+	return &image_[((y * InputBufferBuilderWidth) + x) * bytes_per_pixel_];
+}
+
 uint8_t *TextureBuilder::allocate_write_area(size_t required_length)
 {
-	if(next_write_y_position_ != InputBufferBuilderHeight)
+	if(is_full_) return nullptr;
+
+	uint16_t starting_x, starting_y;
+
+	if(!number_of_write_areas_)
 	{
-		last_allocation_amount_ = required_length;
-
-		if(next_write_x_position_ + required_length + 2 > InputBufferBuilderWidth)
-		{
-			next_write_x_position_ = 0;
-			next_write_y_position_++;
-
-			if(next_write_y_position_ == InputBufferBuilderHeight)
-				return nullptr;
-		}
-
-		write_x_position_ = next_write_x_position_ + 1;
-		write_y_position_ = next_write_y_position_;
-		write_target_pointer_ = (write_y_position_ * InputBufferBuilderWidth) + write_x_position_;
-		next_write_x_position_ += required_length + 2;
+		starting_x = write_areas_start_x_;
+		starting_y = write_areas_start_y_;
 	}
-	else return nullptr;
+	else
+	{
+		starting_x = write_areas_[number_of_write_areas_ - 1].x + write_areas_[number_of_write_areas_ - 1].length + 1;
+		starting_y = write_areas_[number_of_write_areas_ - 1].y;
+	}
 
-	return &image_[write_target_pointer_ * bytes_per_pixel_];
+	WriteArea next_write_area;
+	if(starting_x + required_length + 2 > InputBufferBuilderWidth)
+	{
+		starting_x = 0;
+		starting_y++;
+
+		if(starting_y == InputBufferBuilderHeight)
+		{
+			is_full_ = true;
+			return nullptr;
+		}
+	}
+
+	next_write_area.x = starting_x + 1;
+	next_write_area.y = starting_y;
+	next_write_area.length = (uint16_t)required_length;
+	if(number_of_write_areas_ < write_areas_.size())
+		write_areas_[number_of_write_areas_] = next_write_area;
+	else
+		write_areas_.push_back(next_write_area);
+	number_of_write_areas_++;
+
+	return pointer_to_location(next_write_area.x, next_write_area.y);
 }
 
 bool TextureBuilder::is_full()
 {
-	return (next_write_y_position_ == InputBufferBuilderHeight);
+	return is_full_;
 }
 
 void TextureBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
-	if(next_write_y_position_ == InputBufferBuilderHeight) return;
+	if(is_full_) return;
 
-	uint8_t *const image_pointer = image_.data();
-
-	// correct if the writing cursor was reset while a client was writing
-	if(next_write_x_position_ == 0 && next_write_y_position_ == 0)
-	{
-		memmove(&image_pointer[bytes_per_pixel_], &image_pointer[write_target_pointer_ * bytes_per_pixel_], actual_length * bytes_per_pixel_);
-		write_target_pointer_ = 1;
-		last_allocation_amount_ = actual_length;
-		next_write_x_position_ = (uint16_t)(actual_length + 2);
-		write_x_position_ = 1;
-		write_y_position_ = 0;
-	}
+	WriteArea &write_area = write_areas_[number_of_write_areas_-1];
+	write_area.length = (uint16_t)actual_length;
 
 	// book end the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn
-	memcpy(	&image_pointer[(write_target_pointer_ - 1) * bytes_per_pixel_],
-			&image_pointer[write_target_pointer_ * bytes_per_pixel_],
+	uint8_t *start_pointer = pointer_to_location(write_area.x, write_area.y);
+	memcpy(	&start_pointer[-bytes_per_pixel_],
+			start_pointer,
 			bytes_per_pixel_);
 
-	memcpy(	&image_pointer[(write_target_pointer_ + actual_length) * bytes_per_pixel_],
-			&image_pointer[(write_target_pointer_ + actual_length - 1) * bytes_per_pixel_],
+	memcpy(	&start_pointer[actual_length * bytes_per_pixel_],
+			&start_pointer[(actual_length - 1) * bytes_per_pixel_],
 			bytes_per_pixel_);
-
-	// return any allocated length that wasn't actually used to the available pool
-	next_write_x_position_ -= (last_allocation_amount_ - actual_length);
-}
-
-uint16_t TextureBuilder::get_last_write_x_position()
-{
-	return write_x_position_;
-}
-
-uint16_t TextureBuilder::get_last_write_y_position()
-{
-	return write_y_position_;
 }
 
 void TextureBuilder::submit()
 {
-	uint16_t height = write_y_position_ + (next_write_x_position_ ? 1 : 0);
-	next_write_x_position_ = next_write_y_position_ = 0;
+	uint16_t height = write_areas_start_y_ + (write_areas_start_x_ ? 1 : 0);
+	did_submit_ = true;
 
 	glTexSubImage2D(	GL_TEXTURE_2D, 0,
 						0, 0,
 						InputBufferBuilderWidth, height,
 						formatForDepth(bytes_per_pixel_), GL_UNSIGNED_BYTE,
 						image_.data());
+}
+
+void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &function)
+{
+	bool was_full = is_full_;
+	if(did_submit_)
+	{
+		write_areas_start_y_ = write_areas_start_x_ = 0;
+		is_full_ = false;
+	}
+
+	if(number_of_write_areas_ && !was_full)
+	{
+		if(write_areas_[0].x != write_areas_start_x_+1 || write_areas_[0].y != write_areas_start_y_)
+		{
+			for(size_t area = 0; area < number_of_write_areas_; area++)
+			{
+				WriteArea &write_area = write_areas_[area];
+
+				if(write_areas_start_x_ + write_area.length + 2 > InputBufferBuilderWidth)
+				{
+					write_areas_start_x_ = 0;
+					write_areas_start_y_ ++;
+
+					if(write_areas_start_y_ == InputBufferBuilderHeight)
+					{
+						is_full_ = true;
+						break;
+					}
+				}
+
+				memmove(
+					pointer_to_location(write_areas_start_x_, write_areas_start_y_),
+					pointer_to_location(write_area.x - 1, write_area.y),
+					(write_area.length + 2) * bytes_per_pixel_);
+				write_area.x = write_areas_start_x_ + 1;
+				write_area.y = write_areas_start_y_;
+			}
+		}
+
+		if(!is_full_)
+		{
+			function(write_areas_, number_of_write_areas_);
+
+			write_areas_start_x_ = write_areas_[number_of_write_areas_-1].x + write_areas_[number_of_write_areas_-1].length + 1;
+			write_areas_start_y_ = write_areas_[number_of_write_areas_-1].y;
+		}
+	}
+
+	did_submit_ = false;
+	number_of_write_areas_ = 0;
 }

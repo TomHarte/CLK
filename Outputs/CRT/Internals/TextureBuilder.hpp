@@ -10,6 +10,7 @@
 #define Outputs_CRT_Internals_TextureBuilder_hpp
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -40,12 +41,6 @@ class TextureBuilder {
 		/// and indicates that its actual final size was @c actual_length.
 		void reduce_previous_allocation_to(size_t actual_length);
 
-		/// @returns the start column for the most recent allocated write area.
-		uint16_t get_last_write_x_position();
-
-		/// @returns the row of the most recent allocated write area.
-		uint16_t get_last_write_y_position();
-
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
 		bool is_full();
@@ -53,23 +48,33 @@ class TextureBuilder {
 		/// Updates the currently-bound texture with all new data provided since the last @c submit.
 		void submit();
 
+		struct WriteArea {
+			uint16_t x, y, length;
+		};
+		/// Finalises all write areas allocated since the last call to @c flush. Only finalised areas will be
+		/// submitted upon the next @c submit. The supplied function will be called with a list of write areas
+		/// allocated, indicating their final resting locations and their lengths.
+		void flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &);
+
 	private:
-		// where pixel data will be put to the next time a write is requested
-		uint16_t next_write_x_position_, next_write_y_position_;
-
-		// the most recent position returned for pixel data writing
-		uint16_t write_x_position_, write_y_position_;
-
-		// details of the most recent allocation
-		size_t write_target_pointer_;
-		size_t last_allocation_amount_;
-
 		// the buffer size
 		size_t bytes_per_pixel_;
 
 		// the buffer
 		std::vector<uint8_t> image_;
 		GLuint texture_name_;
+
+		// the current list of write areas
+		std::vector<WriteArea> write_areas_;
+		size_t number_of_write_areas_;
+		bool is_full_;
+		bool did_submit_;
+		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);
+
+		// Usually: the start position for the current batch of write areas.
+		// Caveat: reset to the origin upon a submit. So used in comparison by flush to
+		// determine whether the current batch of write areas needs to be relocated.
+		uint16_t write_areas_start_x_, write_areas_start_y_;
 };
 
 }

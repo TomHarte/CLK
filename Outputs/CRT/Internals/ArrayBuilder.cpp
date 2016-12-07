@@ -23,9 +23,7 @@ ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size, std::function<
 bool ArrayBuilder::is_full()
 {
 	bool was_full;
-	buffer_mutex_.lock();
 	was_full = is_full_;
-	buffer_mutex_.unlock();
 	return was_full;
 }
 
@@ -34,30 +32,23 @@ uint8_t *ArrayBuilder::get_input_storage(size_t size)
 	return get_storage(size, input_);
 }
 
-uint8_t *ArrayBuilder::get_unflushed_input(size_t &size)
-{
-	return input_.get_unflushed(size);
-}
-
 uint8_t *ArrayBuilder::get_output_storage(size_t size)
 {
 	return get_storage(size, output_);
 }
 
-uint8_t *ArrayBuilder::get_unflushed_output(size_t &size)
+void ArrayBuilder::flush(const std::function<void(uint8_t *input, size_t input_size, uint8_t *output, size_t output_size)> &function)
 {
-	return output_.get_unflushed(size);
-}
-
-void ArrayBuilder::flush()
-{
-	buffer_mutex_.lock();
 	if(!is_full_)
 	{
+		size_t input_size, output_size;
+		uint8_t *input = input_.get_unflushed(input_size);
+		uint8_t *output = output_.get_unflushed(output_size);
+		function(input, input_size, output, output_size);
+
 		input_.flush();
 		output_.flush();
 	}
-	buffer_mutex_.unlock();
 }
 
 void ArrayBuilder::bind_input()
@@ -74,7 +65,6 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 {
 	ArrayBuilder::Submission submission;
 
-	buffer_mutex_.lock();
 	submission.input_size = input_.submit(true);
 	submission.output_size = output_.submit(false);
 	if(is_full_)
@@ -83,7 +73,6 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 		input_.reset();
 		output_.reset();
 	}
-	buffer_mutex_.unlock();
 
 	return submission;
 }
@@ -110,10 +99,8 @@ ArrayBuilder::Buffer::~Buffer()
 
 uint8_t *ArrayBuilder::get_storage(size_t size, Buffer &buffer)
 {
-	buffer_mutex_.lock();
 	uint8_t *pointer = buffer.get_storage(size);
 	if(!pointer) is_full_ = true;
-	buffer_mutex_.unlock();
 	return pointer;
 }
 

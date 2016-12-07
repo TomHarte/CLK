@@ -9,9 +9,9 @@
 #ifndef ArrayBuilder_hpp
 #define ArrayBuilder_hpp
 
-#include <vector>
-#include <mutex>
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "OpenGL.hpp"
 
@@ -41,26 +41,17 @@ class ArrayBuilder {
 		/// @returns a pointer to the allocated area if allocation was possible; @c nullptr otherwise.
 		uint8_t *get_input_storage(size_t size);
 
-		/// Gets the size of and a pointer to all data so far added to the input set but not yet flushed.
-		/// @returns a pointer from which it is safe to access @c size elements, which contains all regions returned via
-		/// @c get_input_storage in FIFO order.
-		uint8_t *get_unflushed_input(size_t &size);
-
 		/// Attempts to add @c size bytes to the output set.
 		/// @returns a pointer to the allocated area if allocation was possible; @c nullptr otherwise.
 		uint8_t *get_output_storage(size_t size);
-
-		/// Gets the size of and a pointer to all data so far added to the output set but not yet flushed.
-		/// @returns a pointer from which it is safe to access @c size elements, which contains all regions returned via
-		/// @c get_input_storage in FIFO order.
-		uint8_t *get_unflushed_output(size_t &size);
 
 		/// @returns @c true if either of the input or output storage areas is currently exhausted; @c false otherwise.
 		bool is_full();
 
 		/// If neither input nor output was exhausted since the last flush, atomically commits both input and output
-		/// up to the currently allocated size for use upon the next @c submit. Otherwise acts as a no-op.
-		void flush();
+		/// up to the currently allocated size for use upon the next @c submit, giving the supplied function a
+		/// chance to perform last-minute processing. Otherwise acts as a no-op.
+		void flush(const std::function<void(uint8_t *input, size_t input_size, uint8_t *output, size_t output_size)> &);
 
 		/// Binds the input array to GL_ARRAY_BUFFER.
 		void bind_input();
@@ -101,7 +92,6 @@ class ArrayBuilder {
 		} output_, input_;
 		uint8_t *get_storage(size_t size, Buffer &buffer);
 
-		std::mutex buffer_mutex_;
 		bool is_full_;
 };
 

@@ -90,6 +90,7 @@ class OpenGLOutputBuilder {
 		GLsync fence_;
 
 	public:
+		// These two are protected by output_mutex_.
 		TextureBuilder texture_builder;
 		ArrayBuilder array_builder;
 
@@ -98,12 +99,11 @@ class OpenGLOutputBuilder {
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
 		{
-			output_mutex_.lock();
+			std::lock_guard<std::mutex> output_guard(output_mutex_);
 			colour_space_ = colour_space;
 			colour_cycle_numerator_ = colour_cycle_numerator;
 			colour_cycle_denominator_ = colour_cycle_denominator;
 			set_colour_space_uniforms();
-			output_mutex_.unlock();
 		}
 
 		inline void set_visible_area(Rect visible_area)
@@ -111,14 +111,9 @@ class OpenGLOutputBuilder {
 			visible_area_ = visible_area;
 		}
 
-		inline void lock_output()
+		inline std::unique_lock<std::mutex> get_output_lock()
 		{
-			output_mutex_.lock();
-		}
-
-		inline void unlock_output()
-		{
-			output_mutex_.unlock();
+			return std::unique_lock<std::mutex>(output_mutex_);
 		}
 
 		inline OutputDevice get_output_device()
