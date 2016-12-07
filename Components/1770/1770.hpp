@@ -46,8 +46,8 @@ class WD1770: public Storage::Disk::Controller {
 			Busy			= 0x01
 		};
 
-		inline bool get_interrupt_request_line()		{	return !status_.busy;			}
-		inline bool get_data_request_line()				{	return status_.data_request;	}
+		inline bool get_interrupt_request_line()		{	return status_.interrupt_request;	}
+		inline bool get_data_request_line()				{	return status_.data_request;		}
 		class Delegate {
 			public:
 				virtual void wd1770_did_change_output(WD1770 *wd1770) = 0;
@@ -73,6 +73,7 @@ class WD1770: public Storage::Disk::Controller {
 			bool seek_error;
 			bool lost_data;
 			bool data_request;
+			bool interrupt_request;
 			bool busy;
 			enum {
 				One, Two, Three

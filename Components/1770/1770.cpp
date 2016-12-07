@@ -21,6 +21,7 @@ WD1770::Status::Status() :
 	seek_error(false),
 	lost_data(false),
 	data_request(false),
+	interrupt_request(false),
 	busy(false)
 {}
 
@@ -83,6 +84,9 @@ uint8_t WD1770::get_register(int address)
 	{
 		default:
 		{
+			update_status([] (Status &status) {
+				status.interrupt_request = false;
+			});
 			uint8_t status =
 					(status_.write_protect ? Flag::WriteProtect : 0) |
 					(status_.crc_error ? Flag::CRCError : 0) |
@@ -326,12 +330,14 @@ void WD1770::posit_event(Event new_event_type)
 
 		update_status([] (Status &status) {
 			status.busy = false;
+			status.interrupt_request = true;
 		});
 
 		WAIT_FOR_EVENT(Event::Command);
 
 		update_status([] (Status &status) {
 			status.busy = true;
+			status.interrupt_request = false;
 		});
 
 		printf("Starting %02x\n", command_);

@@ -90,7 +90,7 @@ bool Microdisc::get_interrupt_request_line()
 
 uint8_t Microdisc::get_interrupt_request_register()
 {
-	return 0x7f | (get_interrupt_request_line() ? 0x00 : 0x80);
+	return 0x7f | (WD1770::get_interrupt_request_line() ? 0x00 : 0x80);
 }
 
 uint8_t Microdisc::get_data_request_register()
