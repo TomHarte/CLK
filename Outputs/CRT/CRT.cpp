@@ -108,7 +108,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
 #define source_phase_time()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
-void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y)
+void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type)
 {
 	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 	number_of_cycles *= time_multiplier_;
@@ -137,10 +137,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-//			source_input_position_x1() = tex_x;
-//			source_input_position_y() = tex_y;
+			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-			// Don't write output_y now, write it later; we won't necessarily know what it is outside of the locked region
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
 			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
@@ -162,10 +160,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, unsigned int source_divi
 
 		if(next_run)
 		{
-			// if this is a data run then advance the buffer pointer
-			if(type == Scan::Type::Data && source_divider) tex_x += next_run_length / (time_multiplier_ * source_divider);
-
-			source_input_position_x2() = tex_x;
 			source_output_position_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 		}
 
@@ -291,7 +285,7 @@ void CRT::output_scan(const Scan *const scan)
 	// TODO: inspect raw data for potential colour burst if required
 
 	sync_period_ = is_receiving_sync_ ? (sync_period_ + scan->number_of_cycles) : 0;
-	advance_cycles(scan->number_of_cycles, scan->source_divider, hsync_requested, vsync_requested, this_is_sync, scan->type, scan->tex_x, scan->tex_y);
+	advance_cycles(scan->number_of_cycles, hsync_requested, vsync_requested, this_is_sync, scan->type);
 }
 
 /*
@@ -341,7 +335,6 @@ void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider
 	Scan scan {
 		.type = Scan::Type::Data,
 		.number_of_cycles = number_of_cycles,
-		.source_divider = source_divider
 	};
 	output_scan(&scan);
 }

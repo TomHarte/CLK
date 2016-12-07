@@ -51,6 +51,9 @@ class TextureBuilder {
 		struct WriteArea {
 			uint16_t x, y, length;
 		};
+		/// Finalises all write areas allocated since the last call to @c flush. Only finalised areas will be
+		/// submitted upon the next @c submit. The supplied function will be called with a list of write areas
+		/// allocated, indicating their final resting locations and their lengths.
 		void flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &);
 
 	private:

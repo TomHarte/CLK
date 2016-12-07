@@ -54,10 +54,6 @@ class CRT {
 			unsigned int number_of_cycles;
 			union {
 				struct {
-					unsigned int source_divider;
-					uint16_t tex_x, tex_y;
-				};
-				struct {
 					uint8_t phase, amplitude;
 				};
 			};
@@ -69,7 +65,7 @@ class CRT {
 		bool is_writing_composite_run_;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
-		void advance_cycles(unsigned int number_of_cycles, unsigned int source_divider, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type, uint16_t tex_x, uint16_t tex_y);
+		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window
