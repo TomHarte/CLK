@@ -158,8 +158,10 @@ void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea>
 	{
 		if(write_areas_[0].x != write_areas_start_x_+1 || write_areas_[0].y != write_areas_start_y_)
 		{
-			for(auto write_area : write_areas_)
+			for(size_t area = 0; area < number_of_write_areas_; area++)
 			{
+				WriteArea &write_area = write_areas_[area];
+
 				if(write_areas_start_x_ + write_area.length + 2 > InputBufferBuilderWidth)
 				{
 					write_areas_start_x_ = 0;
