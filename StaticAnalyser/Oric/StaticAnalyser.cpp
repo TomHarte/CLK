@@ -118,6 +118,10 @@ void StaticAnalyser::Oric::AddTargets(
 		target.oric.has_microdisc = true;
 		target.disks = disks;
 	}
+	else
+	{
+		target.oric.has_microdisc = false;
+	}
 
 	// TODO: really this should add two targets if not all votes agree
 	target.oric.use_atmos_rom = basic11_votes >= basic10_votes;
