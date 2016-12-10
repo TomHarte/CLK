@@ -37,6 +37,26 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
+	crt_->set_composite_sampling_function(
+		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
+		"{"
+			"float[] array = float[]("
+"0.0000, 0.0000, 0.0000, 0.0000, "
+"0.1100, 0.3250, 0.3750, 0.1600, "
+"0.4100, 0.2150, 0.3250, 0.5200, "
+"0.3750, 0.4100, 0.5700, 0.5200, "
+"0.2650, 0.2150, 0.0500, 0.1100, "
+"0.2650, 0.4100, 0.3250, 0.1600, "
+"0.5200, 0.3250, 0.2650, 0.4600, "
+"0.5200, 0.5200, 0.5200, 0.5200"
+			");"
+			"uint texValue = texture(sampler, coordinate).r;"
+			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
+			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
+			"return array[((texValue & 7u) << 2) + iPhase];"	// (texValue << 2)
+//			"return (mod(phase, 2.0 * 3.141592654) > 3.141592654) ? 0.7273 : 0.3636;"	// (texValue << 2)
+		"}"
+	);
 
 	crt_->set_output_device(Outputs::CRT::Television);
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
