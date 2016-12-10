@@ -53,7 +53,7 @@ enum Key: uint16_t {
 };
 
 enum ROM {
-	BASIC10, BASIC11, Microdisc
+	BASIC10, BASIC11, Microdisc, Colour
 };
 
 class Machine:
@@ -103,7 +103,7 @@ class Machine:
 
 	private:
 		// RAM and ROM
-		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_;
+		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536], rom_[16384];
 		int cycles_since_video_update_;
 		inline void update_video();

@@ -18,6 +18,7 @@ class VideoOutput {
 		VideoOutput(uint8_t *memory);
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		void run_for_cycles(int number_of_cycles);
+		void set_colour_rom(const std::vector<uint8_t> &rom);
 
 	private:
 		uint8_t *ram_;
@@ -28,7 +29,8 @@ class VideoOutput {
 		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
 		// Output target
-		uint8_t *pixel_target_;
+		uint16_t *pixel_target_;
+		uint16_t colour_forms_[8];
 
 		// Registers
 		uint8_t ink_, paper_;

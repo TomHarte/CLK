@@ -27,7 +27,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	phase_(0),
 	v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 	counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
-	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1))
+	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2))
 {
 	// TODO: this is a copy and paste from the Electron; factor out.
 	crt_->set_rgb_sampling_function(
@@ -40,26 +40,26 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_->set_composite_sampling_function(
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
-			"float[] array = float[]("
-"0.0000, 0.0000, 0.0000, 0.0000, "
-"0.1100, 0.3250, 0.3750, 0.1600, "
-"0.4100, 0.2150, 0.3250, 0.5200, "
-"0.3750, 0.4100, 0.5700, 0.5200, "
-"0.2650, 0.2150, 0.0500, 0.1100, "
-"0.2650, 0.4100, 0.3250, 0.1600, "
-"0.5200, 0.3250, 0.2650, 0.4600, "
-"0.5200, 0.5200, 0.5200, 0.5200"
-			");"
-			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
+			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
 			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
-			"return array[((texValue & 7u) << 2) + iPhase];"	// (texValue << 2)
-//			"return (mod(phase, 2.0 * 3.141592654) > 3.141592654) ? 0.7273 : 0.3636;"	// (texValue << 2)
+			"texValue = (texValue >> (4u*(3u - iPhase))) & 15u;"
+			"return (float(texValue) - 4.0) / 20.0;"
 		"}"
 	);
 
 	crt_->set_output_device(Outputs::CRT::Television);
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+}
+
+void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
+{
+	for(size_t c = 0; c < 8; c++)
+	{
+		size_t index = (c << 2);
+		uint16_t rom_value = (uint16_t)(((uint16_t)rom[index] << 8) | (uint16_t)rom[index+1]);
+		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
+		colour_forms_[c] = rom_value;
+	}
 }
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
@@ -96,11 +96,11 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
 				phase_ += 64;
-				pixel_target_ = crt_->allocate_write_area(120);
+				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
 
 				if(!counter_)
 				{
-					phase_ += 128; // TODO: incorporate all the lines that were missed
+					phase_ += 3; // TODO: incorporate all the lines that were missed
 					frame_counter_++;
 
 					v_sync_start_position_ = next_frame_is_sixty_hertz_ ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
@@ -138,14 +138,25 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				{
 					if(pixel_target_)
 					{
-						uint8_t colours[2] = {
-							(uint8_t)(paper_ ^ inverse_mask),
-							(uint8_t)(ink_ ^ inverse_mask),
-						};
+//						uint8_t colours[2] = {
+//							(uint8_t)(paper_ ^ inverse_mask),
+//							(uint8_t)(ink_ ^ inverse_mask),
+//						};
+//
+//						pixel_target_[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
+//						pixel_target_[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
+//						pixel_target_[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
 
-						pixel_target_[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
-						pixel_target_[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
-						pixel_target_[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+						uint16_t colours[2] = {
+							colour_forms_[(paper_ ^ inverse_mask)&0xf],
+							colour_forms_[(ink_ ^ inverse_mask)&0xf],
+						};
+						pixel_target_[0] = colours[(pixels >> 5)&1];
+						pixel_target_[1] = colours[(pixels >> 4)&1];
+						pixel_target_[2] = colours[(pixels >> 3)&1];
+						pixel_target_[3] = colours[(pixels >> 2)&1];
+						pixel_target_[4] = colours[(pixels >> 1)&1];
+						pixel_target_[5] = colours[(pixels >> 0)&1];
 					}
 				}
 				else
@@ -186,15 +197,16 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 						default: break;
 					}
-					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = (uint8_t)(paper_ ^ inverse_mask);
+//					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = (uint8_t)(paper_ ^ inverse_mask);
+					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = pixel_target_[3] = pixel_target_[4] = pixel_target_[5] = colour_forms_[(paper_&0xf) ^ inverse_mask];
 				}
-				if(pixel_target_) pixel_target_ += 3;
+				if(pixel_target_) pixel_target_ += 6;
 				h_counter++;
 			}
 
 			if(h_counter == 40)
 			{
-				crt_->output_data(40 * 6, 2);
+				crt_->output_data(40 * 6, 1);
 			}
 		}
 		else

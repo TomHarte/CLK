@@ -82,6 +82,10 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 		case BASIC11:	basic11_rom_ = std::move(data);		break;
 		case BASIC10:	basic10_rom_ = std::move(data);		break;
 		case Microdisc:	microdisc_rom_ = std::move(data);	break;
+		case Colour:
+			colour_rom_ = std::move(data);
+			if(video_output_) video_output_->set_colour_rom(colour_rom_);
+		break;
 	}
 }
 
@@ -172,9 +176,10 @@ void Machine::update_video()
 
 void Machine::setup_output(float aspect_ratio)
 {
-	video_output_.reset(new VideoOutput(ram_));
 	via_.ay8910.reset(new GI::AY38910());
 	via_.ay8910->set_clock_rate(1000000);
+	video_output_.reset(new VideoOutput(ram_));
+	if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
 }
 
 void Machine::close_output()
