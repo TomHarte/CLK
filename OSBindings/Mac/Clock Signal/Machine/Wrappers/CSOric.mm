@@ -152,7 +152,7 @@
 - (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
 	@synchronized(self) {
 		_useCompositeOutput = useCompositeOutput;
-		_oric.get_crt()->set_output_device(useCompositeOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
+		_oric.set_output_device(useCompositeOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
 	}
 }
 

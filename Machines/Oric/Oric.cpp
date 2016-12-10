@@ -218,6 +218,11 @@ void Machine::set_use_fast_tape_hack(bool activate)
 	use_fast_tape_hack_ = activate;
 }
 
+void Machine::set_output_device(Outputs::CRT::OutputDevice output_device)
+{
+	video_output_->set_output_device(output_device);
+}
+
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player)
 {
 	// set CB1

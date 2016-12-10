@@ -33,7 +33,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
 	crt_->set_composite_sampling_function(
@@ -46,8 +45,14 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		"}"
 	);
 
-	crt_->set_output_device(Outputs::CRT::Television);
+	set_output_device(Outputs::CRT::Television);
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+}
+
+void VideoOutput::set_output_device(Outputs::CRT::OutputDevice output_device)
+{
+	output_device_ = output_device;
+	crt_->set_output_device(output_device);
 }
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
@@ -135,19 +140,17 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				{
 					if(pixel_target_)
 					{
-//						uint8_t colours[2] = {
-//							(uint8_t)(paper_ ^ inverse_mask),
-//							(uint8_t)(ink_ ^ inverse_mask),
-//						};
-//
-//						pixel_target_[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
-//						pixel_target_[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
-//						pixel_target_[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
-
-						uint16_t colours[2] = {
-							colour_forms_[(paper_ ^ inverse_mask)&0xf],
-							colour_forms_[(ink_ ^ inverse_mask)&0xf],
-						};
+						uint16_t colours[2];
+						if(output_device_ == Outputs::CRT::Monitor)
+						{
+							colours[0] = (uint8_t)((paper_ ^ inverse_mask) & 0xf);
+							colours[1] = (uint8_t)((ink_ ^ inverse_mask) & 0xf);
+						}
+						else
+						{
+							colours[0] = colour_forms_[(paper_ ^ inverse_mask)&0xf];
+							colours[1] = colour_forms_[(ink_ ^ inverse_mask)&0xf];
+						}
 						pixel_target_[0] = colours[(pixels >> 5)&1];
 						pixel_target_[1] = colours[(pixels >> 4)&1];
 						pixel_target_[2] = colours[(pixels >> 3)&1];
@@ -194,8 +197,13 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 						default: break;
 					}
-//					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = (uint8_t)(paper_ ^ inverse_mask);
-					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = pixel_target_[3] = pixel_target_[4] = pixel_target_[5] = colour_forms_[(paper_&0xf) ^ inverse_mask];
+					if(pixel_target_)
+					{
+						pixel_target_[0] = pixel_target_[1] =
+						pixel_target_[2] = pixel_target_[3] =
+						pixel_target_[4] = pixel_target_[5] =
+							(output_device_ == Outputs::CRT::Monitor) ? (paper_ ^ inverse_mask)&0xf : colour_forms_[(paper_ ^ inverse_mask)&0xf];
+					}
 				}
 				if(pixel_target_) pixel_target_ += 6;
 				h_counter++;

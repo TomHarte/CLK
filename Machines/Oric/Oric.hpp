@@ -73,6 +73,7 @@ class Machine:
 		void clear_all_keys();
 
 		void set_use_fast_tape_hack(bool activate);
+		void set_output_device(Outputs::CRT::OutputDevice output_device);
 
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
