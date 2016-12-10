@@ -78,7 +78,7 @@ ArrayBuilder::Submission ArrayBuilder::submit()
 }
 
 ArrayBuilder::Buffer::Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
-	is_full(false), was_reset(false),
+	is_full(false),
 	submission_function_(submission_function),
 	allocated_data(0), flushed_data(0), submitted_data(0)
 {
@@ -137,14 +137,6 @@ void ArrayBuilder::Buffer::flush()
 	}
 
 	flushed_data = allocated_data;
-
-	if(was_reset)
-	{
-		allocated_data = 0;
-		flushed_data = 0;
-		submitted_data = 0;
-		was_reset = false;
-	}
 }
 
 size_t ArrayBuilder::Buffer::submit(bool is_input)
@@ -171,6 +163,8 @@ void ArrayBuilder::Buffer::bind()
 
 void ArrayBuilder::Buffer::reset()
 {
-	was_reset = true;
 	is_full = false;
+	allocated_data = 0;
+	flushed_data = 0;
+	submitted_data = 0;
 }

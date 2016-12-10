@@ -95,8 +95,8 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			// this is a pixel line
 			if(!h_counter)
 			{
-				ink_ = 0xff;
-				paper_ = 0x00;
+				ink_ = 0xf;
+				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
 				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
@@ -133,7 +133,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 					pixels = ram_[character_set_base_address_ + (control_byte&127) * 8 + line];
 				}
 
-				uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
+				uint8_t inverse_mask = (control_byte & 0x80) ? 0x7 : 0x0;
 				pixels &= blink_mask;
 
 				if(control_byte & 0x60)
@@ -143,13 +143,13 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 						uint16_t colours[2];
 						if(output_device_ == Outputs::CRT::Monitor)
 						{
-							colours[0] = (uint8_t)((paper_ ^ inverse_mask) & 0xf);
-							colours[1] = (uint8_t)((ink_ ^ inverse_mask) & 0xf);
+							colours[0] = (uint8_t)(paper_ ^ inverse_mask);
+							colours[1] = (uint8_t)(ink_ ^ inverse_mask);
 						}
 						else
 						{
-							colours[0] = colour_forms_[(paper_ ^ inverse_mask)&0xf];
-							colours[1] = colour_forms_[(ink_ ^ inverse_mask)&0xf];
+							colours[0] = colour_forms_[paper_ ^ inverse_mask];
+							colours[1] = colour_forms_[ink_ ^ inverse_mask];
 						}
 						pixel_target_[0] = colours[(pixels >> 5)&1];
 						pixel_target_[1] = colours[(pixels >> 4)&1];
@@ -163,14 +163,14 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				{
 					switch(control_byte & 0x1f)
 					{
-						case 0x00:		ink_ = 0x00;	break;
-						case 0x01:		ink_ = 0x44;	break;
-						case 0x02:		ink_ = 0x22;	break;
-						case 0x03:		ink_ = 0x66;	break;
-						case 0x04:		ink_ = 0x11;	break;
-						case 0x05:		ink_ = 0x55;	break;
-						case 0x06:		ink_ = 0x33;	break;
-						case 0x07:		ink_ = 0x77;	break;
+						case 0x00:		ink_ = 0x0;	break;
+						case 0x01:		ink_ = 0x4;	break;
+						case 0x02:		ink_ = 0x2;	break;
+						case 0x03:		ink_ = 0x6;	break;
+						case 0x04:		ink_ = 0x1;	break;
+						case 0x05:		ink_ = 0x5;	break;
+						case 0x06:		ink_ = 0x3;	break;
+						case 0x07:		ink_ = 0x7;	break;
 
 						case 0x08:	case 0x09:	case 0x0a: case 0x0b:
 						case 0x0c:	case 0x0d:	case 0x0e: case 0x0f:
@@ -180,14 +180,14 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 							set_character_set_base_address();
 						break;
 
-						case 0x10:		paper_ = 0x00;	break;
-						case 0x11:		paper_ = 0x44;	break;
-						case 0x12:		paper_ = 0x22;	break;
-						case 0x13:		paper_ = 0x66;	break;
-						case 0x14:		paper_ = 0x11;	break;
-						case 0x15:		paper_ = 0x55;	break;
-						case 0x16:		paper_ = 0x33;	break;
-						case 0x17:		paper_ = 0x77;	break;
+						case 0x10:		paper_ = 0x0;	break;
+						case 0x11:		paper_ = 0x4;	break;
+						case 0x12:		paper_ = 0x2;	break;
+						case 0x13:		paper_ = 0x6;	break;
+						case 0x14:		paper_ = 0x1;	break;
+						case 0x15:		paper_ = 0x5;	break;
+						case 0x16:		paper_ = 0x3;	break;
+						case 0x17:		paper_ = 0x7;	break;
 
 						case 0x18: case 0x19: case 0x1a: case 0x1b:
 						case 0x1c: case 0x1d: case 0x1e: case 0x1f:
@@ -202,7 +202,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 						pixel_target_[0] = pixel_target_[1] =
 						pixel_target_[2] = pixel_target_[3] =
 						pixel_target_[4] = pixel_target_[5] =
-							(output_device_ == Outputs::CRT::Monitor) ? (paper_ ^ inverse_mask)&0xf : colour_forms_[(paper_ ^ inverse_mask)&0xf];
+							(output_device_ == Outputs::CRT::Monitor) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
 					}
 				}
 				if(pixel_target_) pixel_target_ += 6;
