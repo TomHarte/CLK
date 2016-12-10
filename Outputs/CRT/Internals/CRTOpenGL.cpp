@@ -385,7 +385,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 
 	float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
 	if(composite_separation_filter_program_)			composite_separation_filter_program_->set_separation_frequency(cycles_per_line_, colour_subcarrier_frequency);
-	if(composite_y_filter_shader_program_)				composite_y_filter_shader_program_->set_filter_coefficients(cycles_per_line_, colour_subcarrier_frequency * 0.66f);
+	if(composite_y_filter_shader_program_)				composite_y_filter_shader_program_->set_filter_coefficients(cycles_per_line_, colour_subcarrier_frequency * 0.25f);
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_filter_coefficients(cycles_per_line_, colour_subcarrier_frequency * 0.5f);
 	if(rgb_filter_shader_program_)						rgb_filter_shader_program_->set_filter_coefficients(cycles_per_line_, (float)input_frequency_ * 0.5f);
 }
