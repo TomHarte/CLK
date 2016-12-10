@@ -28,7 +28,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
 	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2))
 {
-	// TODO: this is a copy and paste from the Electron; factor out.
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -95,7 +94,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			// this is a pixel line
 			if(!h_counter)
 			{
-				ink_ = 0xf;
+				ink_ = 0x7;
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
