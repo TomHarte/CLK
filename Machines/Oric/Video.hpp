@@ -43,8 +43,6 @@ class VideoOutput {
 		bool use_alternative_character_set_;
 		bool use_double_height_characters_;
 		bool blink_text_;
-
-		uint8_t phase_;
 };
 
 }

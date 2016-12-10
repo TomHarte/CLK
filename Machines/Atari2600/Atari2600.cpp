@@ -60,7 +60,7 @@ Machine::Machine() :
 void Machine::setup_output(float aspect_ratio)
 {
 	speaker_.reset(new Speaker);
-	crt_.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, 1));
+	crt_.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, false, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
 
 	// this is the NTSC phase offset function; see below for PAL
@@ -93,7 +93,7 @@ void Machine::switch_region()
 			"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
 		"}");
 
-	crt_->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1);
+	crt_->set_new_timing(228, 312, Outputs::CRT::ColourSpace::YUV, 228, 1, true);
 
 	is_pal_region_ = true;
 	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));

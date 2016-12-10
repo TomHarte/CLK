@@ -135,7 +135,6 @@ class Machine:
 		// Counters related to simultaneous subsystems
 		unsigned int frame_cycles_, display_output_position_;
 		unsigned int audio_output_position_, audio_output_position_error_;
-		uint8_t phase_;
 
 		struct {
 			uint16_t forty1bpp[256];

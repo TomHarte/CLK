@@ -24,7 +24,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	frame_counter_(0), counter_(0),
 	is_graphics_mode_(false),
 	character_set_base_address_(0xb400),
-	phase_(0),
 	v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 	counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
 	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2))
@@ -95,12 +94,10 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				paper_ = 0x00;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				phase_ += 64;
 				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
 
 				if(!counter_)
 				{
-					phase_ += 3; // TODO: incorporate all the lines that were missed
 					frame_counter_++;
 
 					v_sync_start_position_ = next_frame_is_sixty_hertz_ ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
@@ -228,7 +225,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			else if(h_counter < 56)
 			{
 				cycles_run_for = 56 - h_counter;
-				clamp(crt_->output_colour_burst(2 * 6, phase_, 128));
+				clamp(crt_->output_default_colour_burst(2 * 6));
 			}
 			else
 			{
