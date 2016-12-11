@@ -12,37 +12,15 @@
 #include <algorithm>
 #include <cassert>
 
-namespace {
-	static const unsigned int cycles_per_line = 128;
-	static const unsigned int lines_per_frame = 625;
-	static const unsigned int cycles_per_frame = lines_per_frame * cycles_per_line;
-	static const unsigned int crt_cycles_multiplier = 8;
-	static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
-
-	static const unsigned int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-														// the first line with pixels in field 1 is the 20th in the frame, the first line
-														// with pixels in field 2 will be 20+field_divider_line
-	static const unsigned int first_graphics_line = 31;
-	static const unsigned int first_graphics_cycle = 33;
-
-	static const unsigned int display_end_interrupt_line = 256;
-
-	static const unsigned int real_time_clock_interrupt_1 = 16704;
-	static const unsigned int real_time_clock_interrupt_2 = 56704;
-}
-
 using namespace Electron;
-
-#define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
-#define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
 
 Machine::Machine() :
 	interrupt_control_(0),
 	interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
-	frame_cycles_(0),
-	display_output_position_(0),
-	audio_output_position_(0),
-	use_fast_tape_hack_(false)
+	cycles_since_display_update_(0),
+	cycles_since_audio_update_(0),
+	use_fast_tape_hack_(false),
+	cycles_until_display_interrupt_(0)
 {
 	memset(key_states_, 0, sizeof(key_states_));
 	for(int c = 0; c < 16; c++)
@@ -80,27 +58,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else
 		{
-			if(
-				(
-					((frame_cycles_ >= first_graphics_line * cycles_per_line) && (frame_cycles_ < (first_graphics_line + 256) * cycles_per_line)) ||
-					((frame_cycles_ >= (first_graphics_line + field_divider_line)  * cycles_per_line) && (frame_cycles_ < (first_graphics_line + 256 + field_divider_line) * cycles_per_line))
-				)
-			)
-				update_display();
-
+			update_display();
 			ram_[address] = *value;
 		}
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += 1 + (frame_cycles_&1);
-//		if(screen_mode_ < 4)
-//		{
-//			const int current_line = graphics_line(frame_cycles_ + (frame_cycles_&1));
-//			const int current_column = graphics_column(frame_cycles_ + (frame_cycles_&1));
-//			if(current_line < 256 && current_column < 80 && !is_blank_line_)
-//				cycles += (unsigned int)(80 - current_column);
-//		}
+		cycles += video_output_->get_cycles_until_next_ram_availability(cycles_since_display_update_ + 1);
 	}
 	else
 	{
@@ -145,6 +109,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					update_display();
 					video_output_->set_register(address, *value);
+					queue_next_display_interrupt();
 				}
 			break;
 			case 0xfe04:
@@ -320,52 +285,18 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-//	const int end_of_field =
-//	if(frame_cycles_ < (256 + first_graphics_line) << 7))
-
-	const unsigned int pixel_line_clock = frame_cycles_;// + 128 - first_graphics_cycle + 80;
-	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
-	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
-
-	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
-	// is never longer than a line. On the Electron, it's a safe one.
-	if(line_before_cycle != line_after_cycle)
-	{
-		switch(line_before_cycle)
-		{
-//			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
-//			case real_time_clock_interrupt_line+1:	clear_interrupt(Interrupt::RealTimeClock);	break;
-			case display_end_interrupt_line:		signal_interrupt(Interrupt::DisplayEnd);	break;
-//			case display_end_interrupt_line+1:		clear_interrupt(Interrupt::DisplayEnd);		break;
-		}
-	}
-
-	if(
-		(pixel_line_clock < real_time_clock_interrupt_1 && pixel_line_clock + cycles >= real_time_clock_interrupt_1) ||
-		(pixel_line_clock < real_time_clock_interrupt_2 && pixel_line_clock + cycles >= real_time_clock_interrupt_2))
-	{
-		signal_interrupt(Interrupt::RealTimeClock);
-	}
-
-	frame_cycles_ += cycles;
-
-	// deal with frame wraparound by updating the two dependent subsystems
-	// as though the exact end of frame had been hit, then reset those
-	// and allow the frame cycle counter to assume its real value
-	if(frame_cycles_ >= cycles_per_frame)
-	{
-		unsigned int nextFrameCycles = frame_cycles_ - cycles_per_frame;
-		frame_cycles_ = cycles_per_frame;
-		update_display();
-		update_audio();
-		display_output_position_ = 0;
-		audio_output_position_ = 0;
-		frame_cycles_ = nextFrameCycles;
-	}
-
-	if(!(frame_cycles_&16383))
-		update_audio();
+	cycles_since_display_update_ += cycles;
+	cycles_since_audio_update_ += cycles;
+	if(cycles_since_audio_update_ > 16384) update_audio();
 	tape_.run_for_cycles(cycles);
+
+	cycles_until_display_interrupt_ -= cycles;
+	if(cycles_until_display_interrupt_ < 0)
+	{
+		signal_interrupt(next_display_interrupt_);
+		update_display();
+		queue_next_display_interrupt();
+	}
 
 	if(typer_) typer_->update((int)cycles);
 	if(plus3_) plus3_->run_for_cycles(4*cycles);
@@ -473,16 +404,22 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_display()
 {
-	video_output_->run_for_cycles((int)(frame_cycles_ - display_output_position_));
-	display_output_position_ = frame_cycles_;
+	video_output_->run_for_cycles((int)cycles_since_display_update_);
+	cycles_since_display_update_ = 0;
+}
+
+inline void Machine::queue_next_display_interrupt()
+{
+	VideoOutput::Interrupt next_interrupt = video_output_->get_next_interrupt();
+	cycles_until_display_interrupt_ = next_interrupt.cycles;
+	next_display_interrupt_ = next_interrupt.interrupt;
 }
 
 inline void Machine::update_audio()
 {
-	unsigned int difference = frame_cycles_ - audio_output_position_ + audio_output_position_error_;
-	audio_output_position_ = frame_cycles_;
-	speaker_->run_for_cycles(difference / Speaker::clock_rate_divider);
-	audio_output_position_error_ = difference % Speaker::clock_rate_divider;
+	unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
+	cycles_since_audio_update_ %= Speaker::clock_rate_divider;
+	speaker_->run_for_cycles(difference);
 }
 
 void Machine::clear_all_keys()

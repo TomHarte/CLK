@@ -10,6 +10,9 @@
 
 using namespace Electron;
 
+#define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
+#define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
+
 namespace {
 	static const unsigned int cycles_per_line = 128;
 	static const unsigned int lines_per_frame = 625;
@@ -23,10 +26,12 @@ namespace {
 	static const unsigned int first_graphics_line = 31;
 	static const unsigned int first_graphics_cycle = 33;
 
-	static const unsigned int display_end_interrupt_line = 256;
+	static const int display_end_interrupt_line = 256;
 
-	static const unsigned int real_time_clock_interrupt_1 = 16704;
-	static const unsigned int real_time_clock_interrupt_2 = 56704;
+	static const int real_time_clock_interrupt_1 = 16704;
+	static const int real_time_clock_interrupt_2 = 56704;
+	static const int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
+	static const int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
 }
 
 VideoOutput::VideoOutput(uint8_t *memory) :
@@ -481,12 +486,105 @@ void VideoOutput::set_register(int address, uint8_t value)
 
 #pragma mark - Interrupts
 
-int VideoOutput::get_cycles_until_next_interrupt()
+//int VideoOutput::get_cycles_until_next_interrupt()
+//{
+//	const int end_of_field =
+//	if(frame_cycles_ < (256 + first_graphics_line) << 7))
+
+//	const unsigned int pixel_line_clock = frame_cycles_;// + 128 - first_graphics_cycle + 80;
+//	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
+//	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
+
+	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
+	// is never longer than a line. On the Electron, it's a safe one.
+//	if(line_before_cycle != line_after_cycle)
+//	{
+//		switch(line_before_cycle)
+//		{
+//			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
+//			case real_time_clock_interrupt_line+1:	clear_interrupt(Interrupt::RealTimeClock);	break;
+//			case display_end_interrupt_line:		signal_interrupt(Interrupt::DisplayEnd);	break;
+//			case display_end_interrupt_line+1:		clear_interrupt(Interrupt::DisplayEnd);		break;
+//		}
+//	}
+
+//	if(
+//		(pixel_line_clock < real_time_clock_interrupt_1 && pixel_line_clock + cycles >= real_time_clock_interrupt_1) ||
+//		(pixel_line_clock < real_time_clock_interrupt_2 && pixel_line_clock + cycles >= real_time_clock_interrupt_2))
+//	{
+//		signal_interrupt(Interrupt::RealTimeClock);
+//	}
+
+//	frame_cycles_ += cycles;
+
+	// deal with frame wraparound by updating the two dependent subsystems
+	// as though the exact end of frame had been hit, then reset those
+	// and allow the frame cycle counter to assume its real value
+//	if(frame_cycles_ >= cycles_per_frame)
+//	{
+//		unsigned int nextFrameCycles = frame_cycles_ - cycles_per_frame;
+//		frame_cycles_ = cycles_per_frame;
+//		update_display();
+//		update_audio();
+//		display_output_position_ = 0;
+//		audio_output_position_ = 0;
+//		frame_cycles_ = nextFrameCycles;
+//	}
+
+//	if(!(frame_cycles_&16383))
+//		update_audio();
+//	return 0;
+//}
+
+VideoOutput::Interrupt VideoOutput::get_next_interrupt()
 {
-	return 0;
+	VideoOutput::Interrupt interrupt;
+
+	if(output_position_ < real_time_clock_interrupt_1)
+	{
+		interrupt.cycles = real_time_clock_interrupt_1 - output_position_;
+		interrupt.interrupt = RealTimeClock;
+		return interrupt;
+	}
+
+	if(output_position_ < display_end_interrupt_1)
+	{
+		interrupt.cycles = display_end_interrupt_1 - output_position_;
+		interrupt.interrupt = DisplayEnd;
+		return interrupt;
+	}
+
+	if(output_position_ < real_time_clock_interrupt_2)
+	{
+		interrupt.cycles = real_time_clock_interrupt_2 - output_position_;
+		interrupt.interrupt = RealTimeClock;
+		return interrupt;
+	}
+
+	if(output_position_ < display_end_interrupt_2)
+	{
+		interrupt.cycles = display_end_interrupt_2 - output_position_;
+		interrupt.interrupt = DisplayEnd;
+		return interrupt;
+	}
+
+	interrupt.cycles = real_time_clock_interrupt_1 + cycles_per_frame - output_position_;
+	interrupt.interrupt = RealTimeClock;
+	return interrupt;
 }
 
-Interrupt VideoOutput::get_next_interrupt()
+#pragma mark - RAM timing
+
+unsigned int VideoOutput::get_cycles_until_next_ram_availability(unsigned int from_time)
 {
-	return DisplayEnd;
+	unsigned int result = 0;
+//	cycles += 1 + (frame_cycles_&1);
+//	if(screen_mode_ < 4)
+//	{
+//		const int current_line = graphics_line(frame_cycles_ + (frame_cycles_&1));
+//		const int current_column = graphics_column(frame_cycles_ + (frame_cycles_&1));
+//		if(current_line < 256 && current_column < 80 && !is_blank_line_)
+//			cycles += (unsigned int)(80 - current_column);
+//	}
+	return result;
 }

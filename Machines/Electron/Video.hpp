@@ -20,10 +20,15 @@ class VideoOutput {
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		void run_for_cycles(int number_of_cycles);
 
-		int get_cycles_until_next_interrupt();
+		struct Interrupt {
+			Electron::Interrupt interrupt;
+			int cycles;
+		};
 		Interrupt get_next_interrupt();
 
 		void set_register(int address, uint8_t value);
+
+		unsigned int get_cycles_until_next_ram_availability(unsigned int from_time);
 
 	private:
 		inline void start_pixel_line();

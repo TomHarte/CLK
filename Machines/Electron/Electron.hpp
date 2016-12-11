@@ -108,6 +108,7 @@ class Machine:
 
 	private:
 		inline void update_display();
+		inline void queue_next_display_interrupt();
 		inline void update_audio();
 
 		inline void signal_interrupt(Interrupt interrupt);
@@ -129,8 +130,10 @@ class Machine:
 		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
-		unsigned int frame_cycles_, display_output_position_;
-		unsigned int audio_output_position_, audio_output_position_error_;
+		unsigned int cycles_since_display_update_;
+		unsigned int cycles_since_audio_update_;
+		int cycles_until_display_interrupt_;
+		Interrupt next_display_interrupt_;
 
 		// Tape
 		Tape tape_;
