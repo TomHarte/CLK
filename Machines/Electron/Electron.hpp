@@ -120,11 +120,13 @@ class Machine:
 		uint8_t os_[16384], ram_[32768];
 		std::vector<uint8_t> dfs_, adfs_;
 
-		// Things affected by registers, explicitly or otherwise.
-		uint8_t interrupt_status_, interrupt_control_;
-		uint8_t key_states_[14];
+		// Paging
 		ROMSlot active_rom_;
 		bool keyboard_is_active_, basic_is_active_;
+
+		// Interrupt and keyboard state
+		uint8_t interrupt_status_, interrupt_control_;
+		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
 		unsigned int frame_cycles_, display_output_position_;

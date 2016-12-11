@@ -13,7 +13,7 @@ using namespace Electron;
 namespace {
 	static const unsigned int cycles_per_line = 128;
 	static const unsigned int lines_per_frame = 625;
-	static const unsigned int cycles_per_frame = lines_per_frame * cycles_per_line;
+	static const int cycles_per_frame = lines_per_frame * cycles_per_line;
 	static const unsigned int crt_cycles_multiplier = 8;
 	static const unsigned int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
@@ -255,130 +255,138 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 	*/
 	int final_position = output_position_ + number_of_cycles;
-	int final_line = final_position >> 7;
-	while(output_position_ < final_position)
+
+	int number_of_frames = 1 + (final_position / cycles_per_frame);
+
+	while(number_of_frames--)
 	{
-		int line = output_position_ >> 7;
+		int frame_final = number_of_frames ? cycles_per_frame : (final_position % cycles_per_frame);
+		int final_line = frame_final >> 7;
 
-		// Priority one: sync.
-		// ===================
-
-		// full sync lines are 0, 1, field_divider_line+1 and field_divider_line+2
-		if(line == 0 || line == 1 || line == field_divider_line+1 || line == field_divider_line+2)
+		while(output_position_ < frame_final)
 		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(128 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
+			int line = output_position_ >> 7;
 
-		// line 2 is a left-sync line
-		if(line == 2)
-		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(64 * crt_cycles_multiplier);
-			crt_->output_blank(64 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
+			// Priority one: sync.
+			// ===================
 
-		// line field_divider_line is a right-sync line
-		if(line == field_divider_line)
-		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(9 * crt_cycles_multiplier);
-			crt_->output_blank(55 * crt_cycles_multiplier);
-			crt_->output_sync(64 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// Priority two: blank lines.
-		// ==========================
-		//
-		// Given that it is not a sync line, this is a blank line if it is less than first_graphics_line, or greater
-		// than first_graphics_line+255 and less than first_graphics_line+field_divider_line, or greater than
-		// first_graphics_line+field_divider_line+255 (TODO: or this is Mode 3 or 6 and this should be blank)
-		if(
-			line < first_graphics_line ||
-			(line > first_graphics_line+255 && line < first_graphics_line+field_divider_line) ||
-			line > first_graphics_line+field_divider_line+255)
-		{
-			if(final_line == line) return;
-			crt_->output_sync(9 * crt_cycles_multiplier);
-			crt_->output_blank(119 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// Final possibility: this is a pixel line.
-		// ========================================
-
-		// determine how far we're going from left to right
-		unsigned int this_cycle = output_position_&127;
-		unsigned int final_cycle = final_position&127;
-		if(final_line > line)
-		{
-			final_cycle = 128;
-		}
-
-		// output format is:
-		// 9 cycles: sync
-		// ... to 24 cycles: colour burst
-		// ... to first_graphics_cycle: blank
-		// ... for 80 cycles: pixels
-		// ... until end of line: blank
-		while(this_cycle < final_cycle)
-		{
-			if(this_cycle < 9)
+			// full sync lines are 0, 1, field_divider_line+1 and field_divider_line+2
+			if(line == 0 || line == 1 || line == field_divider_line+1 || line == field_divider_line+2)
 			{
-				if(final_cycle < 9) return;
+				// wait for the line to complete before signalling
+				if(final_line == line) return;
+				crt_->output_sync(128 * crt_cycles_multiplier);
+				output_position_ += 128;
+				continue;
+			}
+
+			// line 2 is a left-sync line
+			if(line == 2)
+			{
+				// wait for the line to complete before signalling
+				if(final_line == line) return;
+				crt_->output_sync(64 * crt_cycles_multiplier);
+				crt_->output_blank(64 * crt_cycles_multiplier);
+				output_position_ += 128;
+				continue;
+			}
+
+			// line field_divider_line is a right-sync line
+			if(line == field_divider_line)
+			{
+				// wait for the line to complete before signalling
+				if(final_line == line) return;
 				crt_->output_sync(9 * crt_cycles_multiplier);
-				output_position_ += 9;
-				this_cycle = 9;
+				crt_->output_blank(55 * crt_cycles_multiplier);
+				crt_->output_sync(64 * crt_cycles_multiplier);
+				output_position_ += 128;
+				continue;
 			}
 
-			if(this_cycle < 24)
+			// Priority two: blank lines.
+			// ==========================
+			//
+			// Given that it is not a sync line, this is a blank line if it is less than first_graphics_line, or greater
+			// than first_graphics_line+255 and less than first_graphics_line+field_divider_line, or greater than
+			// first_graphics_line+field_divider_line+255 (TODO: or this is Mode 3 or 6 and this should be blank)
+			if(
+				line < first_graphics_line ||
+				(line > first_graphics_line+255 && line < first_graphics_line+field_divider_line) ||
+				line > first_graphics_line+field_divider_line+255)
 			{
-				if(final_cycle < 24) return;
-				crt_->output_default_colour_burst((24-9) * crt_cycles_multiplier);
-				output_position_ += 24-9;
-				this_cycle = 24;
-				// TODO: phase shouldn't be zero on every line
+				if(final_line == line) return;
+				crt_->output_sync(9 * crt_cycles_multiplier);
+				crt_->output_blank(119 * crt_cycles_multiplier);
+				output_position_ += 128;
+				continue;
 			}
 
-			if(this_cycle < first_graphics_cycle)
+			// Final possibility: this is a pixel line.
+			// ========================================
+
+			// determine how far we're going from left to right
+			unsigned int this_cycle = output_position_&127;
+			unsigned int final_cycle = frame_final&127;
+			if(final_line > line)
 			{
-				if(final_cycle < first_graphics_cycle) return;
-				crt_->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
-				output_position_ += first_graphics_cycle - 24;
-				this_cycle = first_graphics_cycle;
-				start_pixel_line();
+				final_cycle = 128;
 			}
 
-			if(this_cycle < first_graphics_cycle + 80)
+			// output format is:
+			// 9 cycles: sync
+			// ... to 24 cycles: colour burst
+			// ... to first_graphics_cycle: blank
+			// ... for 80 cycles: pixels
+			// ... until end of line: blank
+			while(this_cycle < final_cycle)
 			{
-				unsigned int length_to_output = std::min(final_cycle, (first_graphics_cycle + 80)) - this_cycle;
-				output_pixels(length_to_output);
-				output_position_ += length_to_output;
-				this_cycle += length_to_output;
-			}
+				if(this_cycle < 9)
+				{
+					if(final_cycle < 9) return;
+					crt_->output_sync(9 * crt_cycles_multiplier);
+					output_position_ += 9;
+					this_cycle = 9;
+				}
 
-			if(this_cycle >= first_graphics_cycle + 80)
-			{
-				if(final_cycle < 128) return;
-				end_pixel_line();
-				crt_->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
-				output_position_ += 128 - (first_graphics_cycle + 80);
-				this_cycle = 128;
+				if(this_cycle < 24)
+				{
+					if(final_cycle < 24) return;
+					crt_->output_default_colour_burst((24-9) * crt_cycles_multiplier);
+					output_position_ += 24-9;
+					this_cycle = 24;
+					// TODO: phase shouldn't be zero on every line
+				}
+
+				if(this_cycle < first_graphics_cycle)
+				{
+					if(final_cycle < first_graphics_cycle) return;
+					crt_->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
+					output_position_ += first_graphics_cycle - 24;
+					this_cycle = first_graphics_cycle;
+					start_pixel_line();
+				}
+
+				if(this_cycle < first_graphics_cycle + 80)
+				{
+					unsigned int length_to_output = std::min(final_cycle, (first_graphics_cycle + 80)) - this_cycle;
+					output_pixels(length_to_output);
+					output_position_ += length_to_output;
+					this_cycle += length_to_output;
+				}
+
+				if(this_cycle >= first_graphics_cycle + 80)
+				{
+					if(final_cycle < 128) return;
+					end_pixel_line();
+					crt_->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
+					output_position_ += 128 - (first_graphics_cycle + 80);
+					this_cycle = 128;
+				}
 			}
 		}
-	}
 
-	output_position_ %= cycles_per_frame;
+		output_position_ %= cycles_per_frame;
+	}
 }
 
 void VideoOutput::set_register(int address, uint8_t value)
@@ -469,4 +477,16 @@ void VideoOutput::set_register(int address, uint8_t value)
 		}
 		break;
 	}
+}
+
+#pragma mark - Interrupts
+
+int VideoOutput::get_cycles_until_next_interrupt()
+{
+	return 0;
+}
+
+Interrupt VideoOutput::get_next_interrupt()
+{
+	return DisplayEnd;
 }

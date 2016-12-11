@@ -104,10 +104,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	else
 	{
-//		if((address >> 8) == 0xfc)
-//		{
-//			printf("d");
-//		}
 		switch(address & 0xff0f)
 		{
 			case 0xfe00:
@@ -122,6 +118,26 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					evaluate_interrupts();
 				}
 			break;
+			case 0xfe07:
+				if(!isReadOperation(operation))
+				{
+					// update speaker mode
+					bool new_speaker_is_enabled = (*value & 6) == 2;
+					if(new_speaker_is_enabled != speaker_is_enabled_)
+					{
+						update_audio();
+						speaker_->set_is_enabled(new_speaker_is_enabled);
+						speaker_is_enabled_ = new_speaker_is_enabled;
+					}
+
+					tape_.set_is_enabled((*value & 6) != 6);
+					tape_.set_is_in_input_mode((*value & 6) == 0);
+					tape_.set_is_running(((*value)&0x40) ? true : false);
+
+					// TODO: caps lock LED
+				}
+
+			// deliberate fallthrough
 			case 0xfe02: case 0xfe03:
 			case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
 			case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
@@ -182,28 +198,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					update_audio();
 					speaker_->set_divider(*value);
 					tape_.set_counter(*value);
-				}
-			break;
-			case 0xfe07:
-				if(!isReadOperation(operation))
-				{
-					update_display();
-					video_output_->set_register(address, *value);
-
-					// update speaker mode
-					bool new_speaker_is_enabled = (*value & 6) == 2;
-					if(new_speaker_is_enabled != speaker_is_enabled_)
-					{
-						update_audio();
-						speaker_->set_is_enabled(new_speaker_is_enabled);
-						speaker_is_enabled_ = new_speaker_is_enabled;
-					}
-
-					tape_.set_is_enabled((*value & 6) != 6);
-					tape_.set_is_in_input_mode((*value & 6) == 0);
-					tape_.set_is_running(((*value)&0x40) ? true : false);
-
-					// TODO: caps lock LED
 				}
 			break;
 
@@ -325,11 +319,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			break;
 		}
 	}
-
-//	if(operation == CPU6502::BusOperation::ReadOpcode)
-//	{
-//		printf("%04x: %02x (%d)\n", address, *value, _fieldCycles);
-//	}
 
 //	const int end_of_field =
 //	if(frame_cycles_ < (256 + first_graphics_line) << 7))
@@ -484,7 +473,7 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_display()
 {
-	video_output_->run_for_cycles(frame_cycles_ - display_output_position_);
+	video_output_->run_for_cycles((int)(frame_cycles_ - display_output_position_));
 	display_output_position_ = frame_cycles_;
 }
 
