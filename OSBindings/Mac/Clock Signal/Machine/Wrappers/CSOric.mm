@@ -27,10 +27,12 @@
 	{
 		NSData *basic10 = [self rom:@"basic10"];
 		NSData *basic11 = [self rom:@"basic11"];
+		NSData *colour = [self rom:@"colour"];
 		NSData *microdisc = [self rom:@"microdisc"];
 
 		if(basic10)		_oric.set_rom(Oric::BASIC10, basic10.stdVector8);
 		if(basic11)		_oric.set_rom(Oric::BASIC11, basic11.stdVector8);
+		if(colour)		_oric.set_rom(Oric::Colour, colour.stdVector8);
 		if(microdisc)	_oric.set_rom(Oric::Microdisc, microdisc.stdVector8);
 	}
 	return self;
@@ -150,7 +152,7 @@
 - (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
 	@synchronized(self) {
 		_useCompositeOutput = useCompositeOutput;
-		_oric.get_crt()->set_output_device(useCompositeOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
+		_oric.set_output_device(useCompositeOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
 	}
 }
 

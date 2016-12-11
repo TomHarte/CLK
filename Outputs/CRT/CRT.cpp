@@ -14,7 +14,7 @@
 
 using namespace Outputs::CRT;
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate)
 {
 	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
@@ -29,6 +29,11 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
 
 	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
+	phase_denominator_ = cycles_per_line * colour_cycle_denominator;
+	phase_numerator_ = 0;
+	colour_cycle_numerator_ = colour_cycle_numerator * time_multiplier_;
+	phase_alternates_ = should_alternate;
+	is_alernate_line_ &= phase_alternates_;
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
 	// generate timing values implied by the given arbuments
@@ -50,11 +55,11 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	switch(displayType)
 	{
 		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500);	// i.e. 283.7516
+			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, true);	// i.e. 283.7516
 		break;
 
 		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 545, 2);
+			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 545, 2, false);
 		break;
 	}
 }
@@ -67,12 +72,13 @@ CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
 	is_writing_composite_run_(false),
 	delegate_(nullptr),
 	frames_since_last_delegate_call_(0),
-	openGL_output_builder_(buffer_depth) {}
+	openGL_output_builder_(buffer_depth),
+	is_alernate_line_(false) {}
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth) :
+CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate, unsigned int buffer_depth) :
 	CRT(common_output_divisor, buffer_depth)
 {
-	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator);
+	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, should_alternate);
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) :
@@ -124,6 +130,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
 		// set it to false for the next run through this loop (if any)
 		unsigned int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
+		phase_numerator_ += next_run_length * colour_cycle_numerator_;
+		phase_numerator_ %= phase_denominator_;
 
 		hsync_requested = false;
 		vsync_requested = false;
@@ -170,6 +178,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		bool needs_endpoint =
 			(honoured_event == Flywheel::SyncEvent::StartRetrace && is_writing_composite_run_) ||
 			(honoured_event == Flywheel::SyncEvent::EndRetrace && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
+
+		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) is_alernate_line_ ^= phase_alternates_;
 
 		if(needs_endpoint)
 		{
@@ -325,6 +335,17 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 		.number_of_cycles = number_of_cycles,
 		.phase = phase,
 		.amplitude = amplitude
+	};
+	output_scan(&scan);
+}
+
+void CRT::output_default_colour_burst(unsigned int number_of_cycles)
+{
+	Scan scan {
+		.type = Scan::Type::ColourBurst,
+		.number_of_cycles = number_of_cycles,
+		.phase = (uint8_t)((phase_numerator_ * 255) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
+		.amplitude = 32
 	};
 	output_scan(&scan);
 }

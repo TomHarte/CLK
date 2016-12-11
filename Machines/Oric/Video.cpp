@@ -24,22 +24,55 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	frame_counter_(0), counter_(0),
 	is_graphics_mode_(false),
 	character_set_base_address_(0xb400),
-	phase_(0),
 	v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 	counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
-	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 1))
+	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2))
 {
-	// TODO: this is a copy and paste from the Electron; factor out.
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
+	crt_->set_composite_sampling_function(
+		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
+		"{"
+			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
+			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
+			"texValue = (texValue >> (4u*(3u - iPhase))) & 15u;"
+			"return (float(texValue) - 4.0) / 20.0;"
+		"}"
+	);
 
-	crt_->set_output_device(Outputs::CRT::Television);
+	set_output_device(Outputs::CRT::Television);
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+}
+
+void VideoOutput::set_output_device(Outputs::CRT::OutputDevice output_device)
+{
+	output_device_ = output_device;
+	crt_->set_output_device(output_device);
+}
+
+void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
+{
+	for(size_t c = 0; c < 8; c++)
+	{
+		size_t index = (c << 2);
+		uint16_t rom_value = (uint16_t)(((uint16_t)rom[index] << 8) | (uint16_t)rom[index+1]);
+		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
+		colour_forms_[c] = rom_value;
+	}
+
+	// check for big endianness and byte swap if required
+	uint16_t test_value = 0x0001;
+	if(*(uint8_t *)&test_value != 0x01)
+	{
+		for(size_t c = 0; c < 8; c++)
+		{
+			colour_forms_[c] = (uint16_t)((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
+		}
+	}
 }
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
@@ -71,16 +104,14 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			// this is a pixel line
 			if(!h_counter)
 			{
-				ink_ = 0xff;
-				paper_ = 0x00;
+				ink_ = 0x7;
+				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				phase_ += 64;
-				pixel_target_ = crt_->allocate_write_area(120);
+				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
 
 				if(!counter_)
 				{
-					phase_ += 128; // TODO: incorporate all the lines that were missed
 					frame_counter_++;
 
 					v_sync_start_position_ = next_frame_is_sixty_hertz_ ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
@@ -111,35 +142,44 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 					pixels = ram_[character_set_base_address_ + (control_byte&127) * 8 + line];
 				}
 
-				uint8_t inverse_mask = (control_byte & 0x80) ? 0x77 : 0x00;
+				uint8_t inverse_mask = (control_byte & 0x80) ? 0x7 : 0x0;
 				pixels &= blink_mask;
 
 				if(control_byte & 0x60)
 				{
 					if(pixel_target_)
 					{
-						uint8_t colours[2] = {
-							(uint8_t)(paper_ ^ inverse_mask),
-							(uint8_t)(ink_ ^ inverse_mask),
-						};
-
-						pixel_target_[0] = (colours[(pixels >> 4)&1] & 0x0f) | (colours[(pixels >> 5)&1] & 0xf0);
-						pixel_target_[1] = (colours[(pixels >> 2)&1] & 0x0f) | (colours[(pixels >> 3)&1] & 0xf0);
-						pixel_target_[2] = (colours[(pixels >> 0)&1] & 0x0f) | (colours[(pixels >> 1)&1] & 0xf0);
+						uint16_t colours[2];
+						if(output_device_ == Outputs::CRT::Monitor)
+						{
+							colours[0] = (uint8_t)(paper_ ^ inverse_mask);
+							colours[1] = (uint8_t)(ink_ ^ inverse_mask);
+						}
+						else
+						{
+							colours[0] = colour_forms_[paper_ ^ inverse_mask];
+							colours[1] = colour_forms_[ink_ ^ inverse_mask];
+						}
+						pixel_target_[0] = colours[(pixels >> 5)&1];
+						pixel_target_[1] = colours[(pixels >> 4)&1];
+						pixel_target_[2] = colours[(pixels >> 3)&1];
+						pixel_target_[3] = colours[(pixels >> 2)&1];
+						pixel_target_[4] = colours[(pixels >> 1)&1];
+						pixel_target_[5] = colours[(pixels >> 0)&1];
 					}
 				}
 				else
 				{
 					switch(control_byte & 0x1f)
 					{
-						case 0x00:		ink_ = 0x00;	break;
-						case 0x01:		ink_ = 0x44;	break;
-						case 0x02:		ink_ = 0x22;	break;
-						case 0x03:		ink_ = 0x66;	break;
-						case 0x04:		ink_ = 0x11;	break;
-						case 0x05:		ink_ = 0x55;	break;
-						case 0x06:		ink_ = 0x33;	break;
-						case 0x07:		ink_ = 0x77;	break;
+						case 0x00:		ink_ = 0x0;	break;
+						case 0x01:		ink_ = 0x4;	break;
+						case 0x02:		ink_ = 0x2;	break;
+						case 0x03:		ink_ = 0x6;	break;
+						case 0x04:		ink_ = 0x1;	break;
+						case 0x05:		ink_ = 0x5;	break;
+						case 0x06:		ink_ = 0x3;	break;
+						case 0x07:		ink_ = 0x7;	break;
 
 						case 0x08:	case 0x09:	case 0x0a: case 0x0b:
 						case 0x0c:	case 0x0d:	case 0x0e: case 0x0f:
@@ -149,14 +189,14 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 							set_character_set_base_address();
 						break;
 
-						case 0x10:		paper_ = 0x00;	break;
-						case 0x11:		paper_ = 0x44;	break;
-						case 0x12:		paper_ = 0x22;	break;
-						case 0x13:		paper_ = 0x66;	break;
-						case 0x14:		paper_ = 0x11;	break;
-						case 0x15:		paper_ = 0x55;	break;
-						case 0x16:		paper_ = 0x33;	break;
-						case 0x17:		paper_ = 0x77;	break;
+						case 0x10:		paper_ = 0x0;	break;
+						case 0x11:		paper_ = 0x4;	break;
+						case 0x12:		paper_ = 0x2;	break;
+						case 0x13:		paper_ = 0x6;	break;
+						case 0x14:		paper_ = 0x1;	break;
+						case 0x15:		paper_ = 0x5;	break;
+						case 0x16:		paper_ = 0x3;	break;
+						case 0x17:		paper_ = 0x7;	break;
 
 						case 0x18: case 0x19: case 0x1a: case 0x1b:
 						case 0x1c: case 0x1d: case 0x1e: case 0x1f:
@@ -166,15 +206,21 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 						default: break;
 					}
-					if(pixel_target_) pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = (uint8_t)(paper_ ^ inverse_mask);
+					if(pixel_target_)
+					{
+						pixel_target_[0] = pixel_target_[1] =
+						pixel_target_[2] = pixel_target_[3] =
+						pixel_target_[4] = pixel_target_[5] =
+							(output_device_ == Outputs::CRT::Monitor) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
+					}
 				}
-				if(pixel_target_) pixel_target_ += 3;
+				if(pixel_target_) pixel_target_ += 6;
 				h_counter++;
 			}
 
 			if(h_counter == 40)
 			{
-				crt_->output_data(40 * 6, 2);
+				crt_->output_data(40 * 6, 1);
 			}
 		}
 		else
@@ -196,7 +242,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			else if(h_counter < 56)
 			{
 				cycles_run_for = 56 - h_counter;
-				clamp(crt_->output_colour_burst(2 * 6, phase_, 128));
+				clamp(crt_->output_default_colour_burst(2 * 6));
 			}
 			else
 			{

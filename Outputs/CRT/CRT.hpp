@@ -46,7 +46,6 @@ class CRT {
 		int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
 		unsigned int sync_period_;
 
-		// each call to output_* generates a scan. A two-slot queue for scans allows edge extensions.
 		struct Scan {
 			enum Type {
 				Sync, Level, Data, Blank, ColourBurst
@@ -63,6 +62,9 @@ class CRT {
 		uint8_t colour_burst_phase_, colour_burst_amplitude_;
 		uint16_t colour_burst_time_;
 		bool is_writing_composite_run_;
+
+		unsigned int phase_denominator_, phase_numerator_, colour_cycle_numerator_;
+		bool is_alernate_line_, phase_alternates_;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type);
@@ -91,7 +93,7 @@ class CRT {
 
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
-			
+
 			@param common_output_divisor The greatest a priori common divisor of all cycle counts that will be
 			supplied to @c output_sync, @c output_data, etc; supply 1 if no greater divisor is known. For many
 			machines output will run at a fixed multiple of the clock rate; knowing this divisor can improve
@@ -113,7 +115,7 @@ class CRT {
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int buffer_depth);
+		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate, unsigned int buffer_depth);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -126,7 +128,7 @@ class CRT {
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
-		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator);
+		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate);
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
@@ -174,6 +176,12 @@ class CRT {
 			positive portion of the wave.
 		*/
 		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude);
+
+		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
+
+			@param number_of_cycles The length of the colour burst;
+		*/
+		void output_default_colour_burst(unsigned int number_of_cycles);
 
 		/*!	Attempts to allocate the given number of output samples for writing.
 
