@@ -31,7 +31,8 @@ namespace {
 
 VideoOutput::VideoOutput(uint8_t *memory) :
 	ram_(memory),
-	current_pixel_line_(-1)
+	current_pixel_line_(-1),
+	output_position_(0)
 {
 	memset(palette_, 0xf, sizeof(palette_));
 
@@ -318,7 +319,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 		// determine how far we're going from left to right
 		unsigned int this_cycle = output_position_&127;
-		unsigned int final_cycle = output_position_&127;
+		unsigned int final_cycle = final_position&127;
 		if(final_line > line)
 		{
 			final_cycle = 128;
