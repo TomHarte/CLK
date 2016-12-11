@@ -32,7 +32,8 @@ namespace {
 VideoOutput::VideoOutput(uint8_t *memory) :
 	ram_(memory),
 	current_pixel_line_(-1),
-	output_position_(0)
+	output_position_(0),
+	screen_mode_(6)
 {
 	memset(palette_, 0xf, sizeof(palette_));
 
@@ -44,7 +45,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
-
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
 	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
@@ -377,6 +377,8 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			}
 		}
 	}
+
+	output_position_ %= cycles_per_frame;
 }
 
 void VideoOutput::set_register(int address, uint8_t value)
