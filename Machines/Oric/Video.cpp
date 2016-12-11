@@ -63,6 +63,16 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
 		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
 		colour_forms_[c] = rom_value;
 	}
+
+	// check for big endianness and byte swap if required
+	uint16_t test_value = 0x0001;
+	if(*(uint8_t *)&test_value != 0x01)
+	{
+		for(size_t c = 0; c < 8; c++)
+		{
+			colour_forms_[c] = (uint16_t)((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
+		}
+	}
 }
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
