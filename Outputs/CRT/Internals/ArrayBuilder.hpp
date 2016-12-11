@@ -82,7 +82,7 @@ class ArrayBuilder {
 				void reset();
 
 			private:
-				bool is_full, was_reset;
+				bool is_full;
 				GLuint buffer;
 				std::function<void(bool is_input, uint8_t *, size_t)> submission_function_;
 				std::vector<uint8_t> data;

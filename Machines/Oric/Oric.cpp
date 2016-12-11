@@ -82,6 +82,10 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data)
 		case BASIC11:	basic11_rom_ = std::move(data);		break;
 		case BASIC10:	basic10_rom_ = std::move(data);		break;
 		case Microdisc:	microdisc_rom_ = std::move(data);	break;
+		case Colour:
+			colour_rom_ = std::move(data);
+			if(video_output_) video_output_->set_colour_rom(colour_rom_);
+		break;
 	}
 }
 
@@ -172,9 +176,10 @@ void Machine::update_video()
 
 void Machine::setup_output(float aspect_ratio)
 {
-	video_output_.reset(new VideoOutput(ram_));
 	via_.ay8910.reset(new GI::AY38910());
 	via_.ay8910->set_clock_rate(1000000);
+	video_output_.reset(new VideoOutput(ram_));
+	if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
 }
 
 void Machine::close_output()
@@ -211,6 +216,11 @@ void Machine::clear_all_keys()
 void Machine::set_use_fast_tape_hack(bool activate)
 {
 	use_fast_tape_hack_ = activate;
+}
+
+void Machine::set_output_device(Outputs::CRT::OutputDevice output_device)
+{
+	video_output_->set_output_device(output_device);
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player)

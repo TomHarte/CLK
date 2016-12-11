@@ -53,7 +53,7 @@ enum Key: uint16_t {
 };
 
 enum ROM {
-	BASIC10, BASIC11, Microdisc
+	BASIC10, BASIC11, Microdisc, Colour
 };
 
 class Machine:
@@ -73,6 +73,7 @@ class Machine:
 		void clear_all_keys();
 
 		void set_use_fast_tape_hack(bool activate);
+		void set_output_device(Outputs::CRT::OutputDevice output_device);
 
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
@@ -103,7 +104,7 @@ class Machine:
 
 	private:
 		// RAM and ROM
-		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_;
+		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536], rom_[16384];
 		int cycles_since_video_update_;
 		inline void update_video();
