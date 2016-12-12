@@ -344,12 +344,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 	{
-		set_typer_for_string(target.loadingCommand.c_str());
+//		set_typer_for_string(target.loadingCommand.c_str());
 	}
+
 	if(target.acorn.should_hold_shift)
 	{
-		set_key_state(KeyShift, true);
-		is_holding_shift_ = true;
+//		set_key_state(KeyShift, true);
+//		is_holding_shift_ = true;
 	}
 }
 
@@ -404,8 +405,11 @@ inline void Machine::evaluate_interrupts()
 
 inline void Machine::update_display()
 {
-	video_output_->run_for_cycles((int)cycles_since_display_update_);
-	cycles_since_display_update_ = 0;
+	if(cycles_since_display_update_)
+	{
+		video_output_->run_for_cycles((int)cycles_since_display_update_);
+		cycles_since_display_update_ = 0;
+	}
 }
 
 inline void Machine::queue_next_display_interrupt()
@@ -417,9 +421,12 @@ inline void Machine::queue_next_display_interrupt()
 
 inline void Machine::update_audio()
 {
-	unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
-	cycles_since_audio_update_ %= Speaker::clock_rate_divider;
-	speaker_->run_for_cycles(difference);
+	if(cycles_since_audio_update_)
+	{
+		unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
+		cycles_since_audio_update_ %= Speaker::clock_rate_divider;
+		speaker_->run_for_cycles(difference);
+	}
 }
 
 void Machine::clear_all_keys()

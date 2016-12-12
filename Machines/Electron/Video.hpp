@@ -28,14 +28,16 @@ class VideoOutput {
 
 		void set_register(int address, uint8_t value);
 
-		unsigned int get_cycles_until_next_ram_availability(unsigned int from_time);
+		unsigned int get_cycles_until_next_ram_availability(int from_time);
 
 	private:
 		inline void start_pixel_line();
 		inline void end_pixel_line();
 		inline void output_pixels(unsigned int number_of_cycles);
 
-		int output_position_;
+		inline void run_for_inner_frame_cycles(int number_of_cycles);
+
+		int output_position_, unused_cycles_;
 
 		uint8_t palette_[16];
 		uint8_t screen_mode_;
