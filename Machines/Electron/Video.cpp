@@ -38,9 +38,14 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	ram_(memory),
 	current_pixel_line_(-1),
 	output_position_(0),
-	screen_mode_(6)
+	screen_mode_(6),
+	screen_map_pointer_(0),
+	cycles_into_draw_action_(0)
 {
 	memset(palette_, 0xf, sizeof(palette_));
+	setup_screen_map();
+
+
 
 	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
@@ -244,163 +249,29 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 	}
 }
 
-void VideoOutput::run_for_inner_frame_cycles(int number_of_cycles)
-{
-	int target_output_position = output_position_ + number_of_cycles;
-	int final_line = target_output_position >> 7;
-
-	while(output_position_ < target_output_position)
-	{
-		int line = output_position_ >> 7;
-
-		// Priority one: sync.
-		// ===================
-
-		// full sync lines are 0, 1, field_divider_line+1 and field_divider_line+2
-		if(line == 0 || line == 1 || line == field_divider_line+1 || line == field_divider_line+2)
-		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(128 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// line 2 is a left-sync line
-		if(line == 2)
-		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(64 * crt_cycles_multiplier);
-			crt_->output_blank(64 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// line field_divider_line is a right-sync line
-		if(line == field_divider_line)
-		{
-			// wait for the line to complete before signalling
-			if(final_line == line) return;
-			crt_->output_sync(9 * crt_cycles_multiplier);
-			crt_->output_blank(55 * crt_cycles_multiplier);
-			crt_->output_sync(64 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// Priority two: blank lines.
-		// ==========================
-		//
-		// Given that it is not a sync line, this is a blank line if it is less than first_graphics_line, or greater
-		// than first_graphics_line+255 and less than first_graphics_line+field_divider_line, or greater than
-		// first_graphics_line+field_divider_line+255 (TODO: or this is Mode 3 or 6 and this should be blank)
-		if(
-			line < first_graphics_line ||
-			(line > first_graphics_line+255 && line < first_graphics_line+field_divider_line) ||
-			line > first_graphics_line+field_divider_line+255)
-		{
-			if(final_line == line) return;
-			crt_->output_sync(9 * crt_cycles_multiplier);
-			crt_->output_blank(119 * crt_cycles_multiplier);
-			output_position_ += 128;
-			continue;
-		}
-
-		// Final possibility: this is a pixel line.
-		// ========================================
-
-		// determine how far we're going from left to right
-		int this_cycle = output_position_&127;
-		int final_cycle = target_output_position&127;
-		if(final_line > line)
-		{
-			final_cycle = 128;
-		}
-
-		// output format is:
-		// 9 cycles: sync
-		// ... to 24 cycles: colour burst
-		// ... to first_graphics_cycle: blank
-		// ... for 80 cycles: pixels
-		// ... until end of line: blank
-		while(this_cycle < final_cycle)
-		{
-			if(this_cycle < 9)
-			{
-				if(final_cycle < 9) return;
-				crt_->output_sync(9 * crt_cycles_multiplier);
-				output_position_ += 9;
-				this_cycle = 9;
-			}
-
-			if(this_cycle < 24)
-			{
-				if(final_cycle < 24) return;
-				crt_->output_default_colour_burst((24-9) * crt_cycles_multiplier);
-				output_position_ += 24-9;
-				this_cycle = 24;
-				// TODO: phase shouldn't be zero on every line
-			}
-
-			if(this_cycle < first_graphics_cycle)
-			{
-				if(final_cycle < first_graphics_cycle) return;
-				crt_->output_blank((first_graphics_cycle - 24) * crt_cycles_multiplier);
-				output_position_ += first_graphics_cycle - 24;
-				this_cycle = first_graphics_cycle;
-				start_pixel_line();
-			}
-
-			if(this_cycle < first_graphics_cycle + 80)
-			{
-				unsigned int length_to_output = std::min(final_cycle, (first_graphics_cycle + 80)) - this_cycle;
-				output_pixels(length_to_output);
-				output_position_ += length_to_output;
-				this_cycle += length_to_output;
-			}
-
-			if(this_cycle >= first_graphics_cycle + 80)
-			{
-				if(final_cycle < 128) return;
-				end_pixel_line();
-				crt_->output_blank((128 - (first_graphics_cycle + 80)) * crt_cycles_multiplier);
-				output_position_ += 128 - (first_graphics_cycle + 80);
-				this_cycle = 128;
-			}
-		}
-	}
-}
-
 void VideoOutput::run_for_cycles(int number_of_cycles)
 {
-	/*
-
-		Odd field:					Even field:
-
-		|--S--|						   -S-|
-		|--S--|						|--S--|
-		|-S-B-|	= 3					|--S--| = 2.5
-		|--B--|						|--B--|
-		|--P--|						|--P--|
-		|--B--| = 312				|--B--| = 312.5
-		|-B-
-
-	*/
-	int cycles_at_end = unused_cycles_ + output_position_ + number_of_cycles;
-	unused_cycles_ = 0;
-
-	int number_of_frames = 1 + (cycles_at_end / cycles_per_frame);
-	while(number_of_frames--)
+	while(number_of_cycles)
 	{
-		int frame_target = number_of_frames ? cycles_per_frame : (cycles_at_end % cycles_per_frame);
-		run_for_inner_frame_cycles(frame_target - output_position_);
-//		unused_cycles_ += (frame_final - output_position_);
-//		if(unused_cycles_)
-//		{
-//		}
+		int draw_action_length = screen_map_[screen_map_pointer_].length;
+		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
+		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels((unsigned int)time_left_in_action);
 
-		output_position_ %= cycles_per_frame;
+		number_of_cycles -= time_left_in_action;
+		cycles_into_draw_action_ += time_left_in_action;
+		if(cycles_into_draw_action_ == draw_action_length)
+		{
+			switch(screen_map_[screen_map_pointer_].type)
+			{
+				case DrawAction::Sync:			crt_->output_sync((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::ColourBurst:	crt_->output_default_colour_burst((unsigned int)(draw_action_length * crt_cycles_multiplier));	break;
+				case DrawAction::Blank:			crt_->output_blank((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::Pixels:		end_pixel_line();																				break;
+			}
+			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();
+			cycles_into_draw_action_ = 0;
+			if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) start_pixel_line();
+		}
 	}
 }
 
@@ -484,9 +355,9 @@ void VideoOutput::set_register(int address, uint8_t value)
 				target[2] = pack(palette_[(byte&0x08) >> 0], palette_[(byte&0x04) << 1]);
 				target[3] = pack(palette_[(byte&0x02) << 2], palette_[(byte&0x01) << 3]);
 
-				palette_tables_.forty2bpp[byte] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
+				palette_tables_.forty2bpp[byte] = pack(		palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
 				palette_tables_.eighty4bpp[byte] = pack(	palette_[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
-														palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
+															palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
 			}
 #undef pack
 		}
@@ -495,56 +366,6 @@ void VideoOutput::set_register(int address, uint8_t value)
 }
 
 #pragma mark - Interrupts
-
-//int VideoOutput::get_cycles_until_next_interrupt()
-//{
-//	const int end_of_field =
-//	if(frame_cycles_ < (256 + first_graphics_line) << 7))
-
-//	const unsigned int pixel_line_clock = frame_cycles_;// + 128 - first_graphics_cycle + 80;
-//	const unsigned int line_before_cycle = graphics_line(pixel_line_clock);
-//	const unsigned int line_after_cycle = graphics_line(pixel_line_clock + cycles);
-
-	// implicit assumption here: the number of 2Mhz cycles this bus operation will take
-	// is never longer than a line. On the Electron, it's a safe one.
-//	if(line_before_cycle != line_after_cycle)
-//	{
-//		switch(line_before_cycle)
-//		{
-//			case real_time_clock_interrupt_line:	signal_interrupt(Interrupt::RealTimeClock);	break;
-//			case real_time_clock_interrupt_line+1:	clear_interrupt(Interrupt::RealTimeClock);	break;
-//			case display_end_interrupt_line:		signal_interrupt(Interrupt::DisplayEnd);	break;
-//			case display_end_interrupt_line+1:		clear_interrupt(Interrupt::DisplayEnd);		break;
-//		}
-//	}
-
-//	if(
-//		(pixel_line_clock < real_time_clock_interrupt_1 && pixel_line_clock + cycles >= real_time_clock_interrupt_1) ||
-//		(pixel_line_clock < real_time_clock_interrupt_2 && pixel_line_clock + cycles >= real_time_clock_interrupt_2))
-//	{
-//		signal_interrupt(Interrupt::RealTimeClock);
-//	}
-
-//	frame_cycles_ += cycles;
-
-	// deal with frame wraparound by updating the two dependent subsystems
-	// as though the exact end of frame had been hit, then reset those
-	// and allow the frame cycle counter to assume its real value
-//	if(frame_cycles_ >= cycles_per_frame)
-//	{
-//		unsigned int nextFrameCycles = frame_cycles_ - cycles_per_frame;
-//		frame_cycles_ = cycles_per_frame;
-//		update_display();
-//		update_audio();
-//		display_output_position_ = 0;
-//		audio_output_position_ = 0;
-//		frame_cycles_ = nextFrameCycles;
-//	}
-
-//	if(!(frame_cycles_&16383))
-//		update_audio();
-//	return 0;
-//}
 
 VideoOutput::Interrupt VideoOutput::get_next_interrupt()
 {
@@ -599,4 +420,62 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 //			result += (unsigned int)(80 - current_column);
 //	}
 	return result;
+}
+
+#pragma mark - The screen map
+
+void VideoOutput::setup_screen_map()
+{
+	/*
+
+		Odd field:					Even field:
+
+		|--S--|						   -S-|
+		|--S--|						|--S--|
+		|-S-B-|	= 3					|--S--| = 2.5
+		|--B--|						|--B--|
+		|--P--|						|--P--|
+		|--B--| = 312				|--B--| = 312.5
+		|-B-
+
+	*/
+	for(int c = 0; c < 2; c++)
+	{
+		if(c&1)
+		{
+			screen_map_.emplace_back(DrawAction::Sync, (cycles_per_line * 5) >> 1);
+			screen_map_.emplace_back(DrawAction::Blank, cycles_per_line >> 1);
+		}
+		else
+		{
+			screen_map_.emplace_back(DrawAction::Blank, cycles_per_line >> 1);
+			screen_map_.emplace_back(DrawAction::Sync, (cycles_per_line * 5) >> 1);
+		}
+		for(int c = 0; c < first_graphics_line - 3; c++) emplace_blank_line();
+		for(int c = 0; c < 256; c++) emplace_pixel_line();
+		for(int c = 256 + first_graphics_line; c < 312; c++) emplace_blank_line();
+		if(c&1) emplace_blank_line();
+	}
+}
+
+void VideoOutput::emplace_blank_line()
+{
+	screen_map_.emplace_back(DrawAction::Sync, 9);
+	screen_map_.emplace_back(DrawAction::ColourBurst, 24 - 9);
+	screen_map_.emplace_back(DrawAction::Blank, 128 - 24);
+}
+
+void VideoOutput::emplace_pixel_line()
+{
+	// output format is:
+	// 9 cycles: sync
+	// ... to 24 cycles: colour burst
+	// ... to first_graphics_cycle: blank
+	// ... for 80 cycles: pixels
+	// ... until end of line: blank
+	screen_map_.emplace_back(DrawAction::Sync, 9);
+	screen_map_.emplace_back(DrawAction::ColourBurst, 24 - 9);
+	screen_map_.emplace_back(DrawAction::Blank, first_graphics_cycle - 24);
+	screen_map_.emplace_back(DrawAction::Pixels, 80);
+	screen_map_.emplace_back(DrawAction::Blank, 48 - first_graphics_cycle);
 }

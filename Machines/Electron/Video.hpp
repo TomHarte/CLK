@@ -35,8 +35,6 @@ class VideoOutput {
 		inline void end_pixel_line();
 		inline void output_pixels(unsigned int number_of_cycles);
 
-		inline void run_for_inner_frame_cycles(int number_of_cycles);
-
 		int output_position_, unused_cycles_;
 
 		uint8_t palette_[16];
@@ -64,6 +62,20 @@ class VideoOutput {
 		unsigned int current_output_divider_;
 
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+
+		struct DrawAction {
+			enum Type {
+				Sync, ColourBurst, Blank, Pixels
+			} type;
+			int length;
+			DrawAction(Type type, int length) : type(type), length(length) {}
+		};
+		std::vector<DrawAction> screen_map_;
+		void setup_screen_map();
+		void emplace_blank_line();
+		void emplace_pixel_line();
+		size_t screen_map_pointer_;
+		int cycles_into_draw_action_;
 };
 
 }
