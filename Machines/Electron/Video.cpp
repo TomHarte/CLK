@@ -413,13 +413,23 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 	int position = output_position_ + from_time;
 
 	result += 1 + (position&1);
-//	if(screen_mode_ < 4)
-//	{
-//		const int current_line = graphics_line(position + (position&1));
-//		const int current_column = graphics_column(position + (position&1));
-//		if(current_line < 256 && current_column < 80 && !is_blank_line_)
-//			result += (unsigned int)(80 - current_column);
-//	}
+	if(screen_mode_ < 4)
+	{
+		const int current_column = graphics_column(position + (position&1));
+		int current_line = graphics_line(position);
+		if(current_line < 256)
+		{
+			if(screen_mode_ == 3)
+			{
+				int output_position_line = graphics_line(output_position_);
+				int implied_row = current_character_row_ + (current_line - output_position_line) % 10;
+				if(implied_row < 8)
+					result += (unsigned int)(80 - current_column);
+			}
+			else
+				result += (unsigned int)(80 - current_column);
+		}
+	}
 	return result;
 }
 
