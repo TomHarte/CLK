@@ -58,13 +58,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 		else
 		{
-			update_display();
+			if(address >= video_access_range_.low_address && address <= video_access_range_.high_address) update_display();
 			ram_[address] = *value;
 		}
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += video_output_->get_cycles_until_next_ram_availability(cycles_since_display_update_ + 1);
+		cycles += video_output_->get_cycles_until_next_ram_availability((int)(cycles_since_display_update_ + 1));
 	}
 	else
 	{
@@ -109,6 +109,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				{
 					update_display();
 					video_output_->set_register(address, *value);
+					video_access_range_ = video_output_->get_memory_access_range();
 					queue_next_display_interrupt();
 				}
 			break;
@@ -344,13 +345,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
 	{
-//		set_typer_for_string(target.loadingCommand.c_str());
+		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
 	if(target.acorn.should_hold_shift)
 	{
-//		set_key_state(KeyShift, true);
-//		is_holding_shift_ = true;
+		set_key_state(KeyShift, true);
+		is_holding_shift_ = true;
 	}
 }
 

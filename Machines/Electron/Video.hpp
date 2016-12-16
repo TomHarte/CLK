@@ -30,6 +30,11 @@ class VideoOutput {
 
 		unsigned int get_cycles_until_next_ram_availability(int from_time);
 
+		struct Range {
+			uint16_t low_address, high_address;
+		};
+		Range get_memory_access_range();
+
 	private:
 		inline void start_pixel_line();
 		inline void end_pixel_line();

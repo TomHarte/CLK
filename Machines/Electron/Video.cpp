@@ -417,7 +417,7 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 	{
 		const int current_column = graphics_column(position + (position&1));
 		int current_line = graphics_line(position);
-		if(current_line < 256)
+		if(current_column < 80 && current_line < 256)
 		{
 			if(screen_mode_ == 3)
 			{
@@ -431,6 +431,14 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 		}
 	}
 	return result;
+}
+
+VideoOutput::Range VideoOutput::get_memory_access_range()
+{
+	VideoOutput::Range range;
+	range.low_address = std::min(start_screen_address_, screen_mode_base_address_);
+	range.high_address = 0x8000;
+	return range;
 }
 
 #pragma mark - The screen map

@@ -134,6 +134,7 @@ class Machine:
 		unsigned int cycles_since_audio_update_;
 		int cycles_until_display_interrupt_;
 		Interrupt next_display_interrupt_;
+		VideoOutput::Range video_access_range_;
 
 		// Tape
 		Tape tape_;
