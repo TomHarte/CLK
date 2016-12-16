@@ -14,25 +14,63 @@
 
 namespace Electron {
 
+/*!
+	Implements the Electron's video subsystem plus appropriate signalling.
+
+	The Electron has an interlaced fully-bitmapped display with six different output modes,
+	running either at 40 or 80 columns. Memory is shared between video and CPU; when the video
+	is accessing it the CPU may not.
+*/
 class VideoOutput {
 	public:
+		/*!
+			Instantiates a VideoOutput that will read its pixels from @c memory. The pointer supplied
+			should be to address 0 in the unexpanded Electron's memory map.
+		*/
 		VideoOutput(uint8_t *memory);
+
+		/// @returns the CRT to which output is being painted.
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+
+		/// Produces the next @c number_of_cycles cycles of video output.
 		void run_for_cycles(int number_of_cycles);
 
-		struct Interrupt {
-			Electron::Interrupt interrupt;
-			int cycles;
-		};
-		Interrupt get_next_interrupt();
-
+		/*!
+			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
+			@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
+		*/
 		void set_register(int address, uint8_t value);
 
+		/*!
+			Describes an interrupt the video hardware will generate by its identity and scheduling time.
+		*/
+		struct Interrupt {
+			/// The interrupt that will be signalled.
+			Electron::Interrupt interrupt;
+			/// The number of cycles until it is signalled.
+			int cycles;
+		};
+		/*!
+			@returns the next interrupt that should be generated as a result of the video hardware.
+			The time until signalling returned is the number of cycles after the final one triggered
+			by the most recent call to @c run_for_cycles.
+
+			This result may be mutated by calls to @c set_register.
+		*/
+		Interrupt get_next_interrupt();
+
+		/*!
+			@returns the number of cycles after (final cycle of last run_for_cycles batch + @c from_time)
+			before the video circuits will allow the CPU to access RAM.
+		*/
 		unsigned int get_cycles_until_next_ram_availability(int from_time);
 
 		struct Range {
 			uint16_t low_address, high_address;
 		};
+		/*!
+			@returns the range of addresses that the video might read from.
+		*/
 		Range get_memory_access_range();
 
 	private:

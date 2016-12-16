@@ -435,6 +435,11 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 
 VideoOutput::Range VideoOutput::get_memory_access_range()
 {
+	// This can't be more specific than this without applying a lot more thought because of mixed modes:
+	// suppose a program runs half the screen in an 80-column mode then switches to 40 columns. Then the
+	// real end address will be at 128*80 + 128*40 after the original base, subject to wrapping that depends
+	// on where the overflow occurred. Assuming accesses may run from the lowest possible position through to
+	// the end of RAM is good enough for 95% of use cases however.
 	VideoOutput::Range range;
 	range.low_address = std::min(start_screen_address_, screen_mode_base_address_);
 	range.high_address = 0x8000;
