@@ -21,8 +21,8 @@ namespace {
 	static const int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
 	static const int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-														// the first line with pixels in field 1 is the 20th in the frame, the first line
-														// with pixels in field 2 will be 20+field_divider_line
+												// the first line with pixels in field 1 is the 20th in the frame, the first line
+												// with pixels in field 2 will be 20+field_divider_line
 	static const int first_graphics_line = 31;
 	static const int first_graphics_cycle = 33;
 
@@ -34,6 +34,8 @@ namespace {
 	static const int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
 }
 
+#pragma mark - Lifecycle
+
 VideoOutput::VideoOutput(uint8_t *memory) :
 	ram_(memory),
 	current_pixel_line_(-1),
@@ -44,8 +46,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
-
-
 
 	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
@@ -59,10 +59,14 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
 
+#pragma mark - CRT getter
+
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
 {
 	return crt_;
 }
+
+#pragma mark - Display update methods
 
 void VideoOutput::start_pixel_line()
 {
@@ -276,6 +280,8 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 	}
 }
 
+#pragma mark - Register hub
+
 void VideoOutput::set_register(int address, uint8_t value)
 {
 	switch(address & 0xf)
@@ -405,7 +411,7 @@ VideoOutput::Interrupt VideoOutput::get_next_interrupt()
 	return interrupt;
 }
 
-#pragma mark - RAM timing
+#pragma mark - RAM timing and access information
 
 unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
 {
