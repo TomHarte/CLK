@@ -15,10 +15,12 @@
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
+
+#include "Interrupts.hpp"
 #include "Plus3.hpp"
 #include "Speaker.hpp"
 #include "Tape.hpp"
-#include "Interrupts.hpp"
+#include "Video.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -92,8 +94,8 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy Tape::Delegate
@@ -105,13 +107,10 @@ class Machine:
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 	private:
-
 		inline void update_display();
-		inline void start_pixel_line();
-		inline void end_pixel_line();
-		inline void output_pixels(unsigned int number_of_cycles);
-
+		inline void queue_next_display_interrupt();
 		inline void update_audio();
+
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void clear_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
@@ -122,37 +121,20 @@ class Machine:
 		uint8_t os_[16384], ram_[32768];
 		std::vector<uint8_t> dfs_, adfs_;
 
-		// Things affected by registers, explicitly or otherwise.
-		uint8_t interrupt_status_, interrupt_control_;
-		uint8_t palette_[16];
-		uint8_t key_states_[14];
+		// Paging
 		ROMSlot active_rom_;
 		bool keyboard_is_active_, basic_is_active_;
-		uint8_t screen_mode_;
-		uint16_t screen_mode_base_address_;
-		uint16_t start_screen_address_;
+
+		// Interrupt and keyboard state
+		uint8_t interrupt_status_, interrupt_control_;
+		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
-		unsigned int frame_cycles_, display_output_position_;
-		unsigned int audio_output_position_, audio_output_position_error_;
-
-		struct {
-			uint16_t forty1bpp[256];
-			uint8_t forty2bpp[256];
-			uint32_t eighty1bpp[256];
-			uint16_t eighty2bpp[256];
-			uint8_t eighty4bpp[256];
-		} palette_tables_;
-
-		// Display generation.
-		uint16_t start_line_address_, current_screen_address_;
-		int current_pixel_line_, current_pixel_column_, current_character_row_;
-		uint8_t last_pixel_byte_;
-		bool is_blank_line_;
-
-		// CRT output
-		uint8_t *current_output_target_, *initial_output_target_;
-		unsigned int current_output_divider_;
+		unsigned int cycles_since_display_update_;
+		unsigned int cycles_since_audio_update_;
+		int cycles_until_display_interrupt_;
+		Interrupt next_display_interrupt_;
+		VideoOutput::Range video_access_range_;
 
 		// Tape
 		Tape tape_;
@@ -164,7 +146,7 @@ class Machine:
 		bool is_holding_shift_;
 
 		// Outputs
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<VideoOutput> video_output_;
 		std::shared_ptr<Speaker> speaker_;
 		bool speaker_is_enabled_;
 };
