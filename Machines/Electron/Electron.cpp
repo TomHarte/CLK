@@ -7,12 +7,10 @@
 //
 
 #include "Electron.hpp"
-#include "TapeUEF.hpp"
-
-#include <algorithm>
-#include <cassert>
 
 using namespace Electron;
+
+#pragma mark - Lifecycle
 
 Machine::Machine() :
 	interrupt_control_(0),
@@ -30,6 +28,8 @@ Machine::Machine() :
 	set_clock_rate(2000000);
 }
 
+#pragma mark - Output
+
 void Machine::setup_output(float aspect_ratio)
 {
 	video_output_.reset(new VideoOutput(ram_));
@@ -45,6 +45,103 @@ void Machine::close_output()
 {
 	video_output_.reset();
 }
+
+std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt()
+{
+	return video_output_->get_crt();
+}
+
+std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
+{
+	return speaker_;
+}
+
+#pragma mark - The keyboard
+
+void Machine::clear_all_keys()
+{
+	memset(key_states_, 0, sizeof(key_states_));
+}
+
+void Machine::set_key_state(uint16_t key, bool isPressed)
+{
+	if(key == KeyBreak)
+	{
+		set_reset_line(isPressed);
+	}
+	else
+	{
+		if(isPressed)
+			key_states_[key >> 4] |= key&0xf;
+		else
+			key_states_[key >> 4] &= ~(key&0xf);
+	}
+}
+
+#pragma mark - Machine configuration
+
+void Machine::configure_as_target(const StaticAnalyser::Target &target)
+{
+	if(target.tapes.size())
+	{
+		tape_.set_tape(target.tapes.front());
+	}
+
+	if(target.disks.size())
+	{
+		plus3_.reset(new Plus3);
+
+		if(target.acorn.has_dfs)
+		{
+			set_rom(ROMSlot0, dfs_, true);
+		}
+		if(target.acorn.has_adfs)
+		{
+			set_rom(ROMSlot4, adfs_, true);
+			set_rom(ROMSlot5, std::vector<uint8_t>(adfs_.begin() + 16384, adfs_.end()), true);
+		}
+
+		plus3_->set_disk(target.disks.front(), 0);
+	}
+
+	ROMSlot slot = ROMSlot12;
+	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : target.cartridges)
+	{
+		set_rom(slot, cartridge->get_segments().front().data, false);
+		slot = (ROMSlot)(((int)slot + 1)&15);
+	}
+
+	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
+	{
+		set_typer_for_string(target.loadingCommand.c_str());
+	}
+
+	if(target.acorn.should_hold_shift)
+	{
+		set_key_state(KeyShift, true);
+		is_holding_shift_ = true;
+	}
+}
+
+void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable)
+{
+	uint8_t *target = nullptr;
+	switch(slot)
+	{
+		case ROMSlotDFS:	dfs_ = data;			return;
+		case ROMSlotADFS:	adfs_ = data;			return;
+
+		case ROMSlotOS:		target = os_;			break;
+		default:
+			target = roms_[slot];
+			rom_write_masks_[slot] = is_writeable;
+		break;
+	}
+
+	memcpy(target, &data[0], std::min((size_t)16384, data.size()));
+}
+
+#pragma mark - The bus
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
 {
@@ -312,97 +409,7 @@ void Machine::synchronise()
 	speaker_->flush();
 }
 
-void Machine::configure_as_target(const StaticAnalyser::Target &target)
-{
-	if(target.tapes.size())
-	{
-		tape_.set_tape(target.tapes.front());
-	}
-
-	if(target.disks.size())
-	{
-		plus3_.reset(new Plus3);
-
-		if(target.acorn.has_dfs)
-		{
-			set_rom(ROMSlot0, dfs_, true);
-		}
-		if(target.acorn.has_adfs)
-		{
-			set_rom(ROMSlot4, adfs_, true);
-			set_rom(ROMSlot5, std::vector<uint8_t>(adfs_.begin() + 16384, adfs_.end()), true);
-		}
-
-		plus3_->set_disk(target.disks.front(), 0);
-	}
-
-	ROMSlot slot = ROMSlot12;
-	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : target.cartridges)
-	{
-		set_rom(slot, cartridge->get_segments().front().data, false);
-		slot = (ROMSlot)(((int)slot + 1)&15);
-	}
-
-	if(target.loadingCommand.length())	// TODO: and automatic loading option enabled
-	{
-		set_typer_for_string(target.loadingCommand.c_str());
-	}
-
-	if(target.acorn.should_hold_shift)
-	{
-		set_key_state(KeyShift, true);
-		is_holding_shift_ = true;
-	}
-}
-
-void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable)
-{
-	uint8_t *target = nullptr;
-	switch(slot)
-	{
-		case ROMSlotDFS:	dfs_ = data;			return;
-		case ROMSlotADFS:	adfs_ = data;			return;
-
-		case ROMSlotOS:		target = os_;			break;
-		default:
-			target = roms_[slot];
-			rom_write_masks_[slot] = is_writeable;
-		break;
-	}
-
-	memcpy(target, &data[0], std::min((size_t)16384, data.size()));
-}
-
-inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
-{
-	interrupt_status_ |= interrupt;
-	evaluate_interrupts();
-}
-
-inline void Machine::clear_interrupt(Electron::Interrupt interrupt)
-{
-	interrupt_status_ &= ~interrupt;
-	evaluate_interrupts();
-}
-
-void Machine::tape_did_change_interrupt_status(Tape *tape)
-{
-	interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
-	evaluate_interrupts();
-}
-
-inline void Machine::evaluate_interrupts()
-{
-	if(interrupt_status_ & interrupt_control_)
-	{
-		interrupt_status_ |= 1;
-	}
-	else
-	{
-		interrupt_status_ &= ~1;
-	}
-	set_irq_line(interrupt_status_ & 1);
-}
+#pragma mark - Deferred scheduling
 
 inline void Machine::update_display()
 {
@@ -430,32 +437,37 @@ inline void Machine::update_audio()
 	}
 }
 
-void Machine::clear_all_keys()
+#pragma mark - Interrupts
+
+inline void Machine::signal_interrupt(Electron::Interrupt interrupt)
 {
-	memset(key_states_, 0, sizeof(key_states_));
+	interrupt_status_ |= interrupt;
+	evaluate_interrupts();
 }
 
-void Machine::set_key_state(uint16_t key, bool isPressed)
+inline void Machine::clear_interrupt(Electron::Interrupt interrupt)
 {
-	if(key == KeyBreak)
+	interrupt_status_ &= ~interrupt;
+	evaluate_interrupts();
+}
+
+inline void Machine::evaluate_interrupts()
+{
+	if(interrupt_status_ & interrupt_control_)
 	{
-		set_reset_line(isPressed);
+		interrupt_status_ |= 1;
 	}
 	else
 	{
-		if(isPressed)
-			key_states_[key >> 4] |= key&0xf;
-		else
-			key_states_[key >> 4] &= ~(key&0xf);
+		interrupt_status_ &= ~1;
 	}
+	set_irq_line(interrupt_status_ & 1);
 }
 
-std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt()
-{
-	return video_output_->get_crt();
-}
+#pragma mark - Tape::Delegate
 
-std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
+void Machine::tape_did_change_interrupt_status(Tape *tape)
 {
-	return speaker_;
+	interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
+	evaluate_interrupts();
 }
