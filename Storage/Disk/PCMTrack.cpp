@@ -25,7 +25,7 @@ PCMTrack::PCMTrack(PCMSegment segment)
 	fix_length();
 }
 
-PCMTrack::Event PCMTrack::get_next_event()
+Track::Event PCMTrack::get_next_event()
 {
 	// find the next 1 in the input stream, keeping count of length as we go, and assuming it's going
 	// to be a flux transition
@@ -61,15 +61,16 @@ PCMTrack::Event PCMTrack::get_next_event()
 	return next_event_;
 }
 
-Storage::Time PCMTrack::seek_to(Time time_since_index_hole)
+Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole)
 {
 	segment_pointer_ = 0;
 
 	// pick a common clock rate for counting time on this track and multiply up the time being sought appropriately
 	Time time_so_far;
-	time_so_far.clock_rate = NumberTheory::least_common_multiple(next_event_.length.clock_rate, time_since_index_hole.clock_rate);
-	time_since_index_hole.length *= time_so_far.clock_rate / time_since_index_hole.clock_rate;
-	time_since_index_hole.clock_rate = time_so_far.clock_rate;
+	Time target_time = time_since_index_hole;
+	time_so_far.clock_rate = NumberTheory::least_common_multiple(next_event_.length.clock_rate, target_time.clock_rate);
+	target_time.length *= time_so_far.clock_rate / target_time.clock_rate;
+	target_time.clock_rate = time_so_far.clock_rate;
 
 	while(segment_pointer_ < segments_.size())
 	{
@@ -79,7 +80,7 @@ Storage::Time PCMTrack::seek_to(Time time_since_index_hole)
 		unsigned int time_in_this_segment = bit_length * segments_[segment_pointer_].number_of_bits;
 
 		// if this segment goes on longer than the time being sought, end here
-		unsigned int time_remaining = time_since_index_hole.length - time_so_far.length;
+		unsigned int time_remaining = target_time.length - time_so_far.length;
 		if(time_in_this_segment >= time_remaining)
 		{
 			// get the amount of time actually to move into this segment
@@ -97,7 +98,7 @@ Storage::Time PCMTrack::seek_to(Time time_since_index_hole)
 		time_so_far.length += time_in_this_segment;
 		segment_pointer_++;
 	}
-	return time_since_index_hole;
+	return target_time;
 }
 
 void PCMTrack::fix_length()

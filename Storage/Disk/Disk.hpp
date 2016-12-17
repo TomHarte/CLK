@@ -48,7 +48,7 @@ class Track {
 
 			@returns the time jumped to.
 		*/
-		virtual Time seek_to(Time time_since_index_hole) = 0;
+		virtual Time seek_to(const Time &time_since_index_hole) = 0;
 };
 
 /*!
