@@ -23,7 +23,7 @@ class PCMPatchedTrack: public Track {
 			Constructs a @c PCMPatchedTrack that will return events from @c underlying_track in
 			regions where it has not had alternative PCM data installed.
 		*/
-		PCMPatchedTrack(Track &underlying_track);
+		PCMPatchedTrack(std::shared_ptr<Track> underlying_track);
 
 		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
@@ -36,7 +36,7 @@ class PCMPatchedTrack: public Track {
 		Time seek_to(const Time &time_since_index_hole);
 
 	private:
-		Track &underlying_track_;
+		std::shared_ptr<Track> underlying_track_;
 		struct Patch {
 			Time start_position;
 			PCMSegment segment;

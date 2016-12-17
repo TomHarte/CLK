@@ -13,27 +13,41 @@
 
 @implementation PCMPatchedTrackTests
 
-- (Storage::Disk::PCMTrack)togglingTrack
+- (std::shared_ptr<Storage::Disk::Track>)togglingTrack
 {
 	Storage::Disk::PCMSegment segment;
 	segment.data = { 0xff, 0xff, 0xff, 0xff };
 	segment.number_of_bits = 32;
-	return Storage::Disk::PCMTrack(segment);
+	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(segment));
 }
 
-- (void)testUnpatchedTrack
+- (std::shared_ptr<Storage::Disk::Track>)patchableTogglingTrack
 {
-	Storage::Disk::PCMTrack track = self.togglingTrack;
+	std::shared_ptr<Storage::Disk::Track> track = self.togglingTrack;
+	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMPatchedTrack(track));
+}
 
+- (void)assertOneThirtyTwosForTrack:(std::shared_ptr<Storage::Disk::Track>)track
+{
 	// Confirm that there are now flux transitions (just the first five will do)
 	// located 1/32nd of a rotation apart.
 	int c = 5;
 	while(c--)
 	{
-		Storage::Disk::Track::Event event = track.get_next_event();
+		Storage::Disk::Track::Event event = track->get_next_event();
 		Storage::Time simplified_time = event.length.simplify();
 		XCTAssert(simplified_time.length == 1 && simplified_time.clock_rate == 32, "flux transitions should be 1/32nd of a track apart");
 	}
+}
+
+- (void)testUnpatchedRawTrack
+{
+	[self assertOneThirtyTwosForTrack:self.togglingTrack];
+}
+
+- (void)testUnpatchedTrack
+{
+	[self assertOneThirtyTwosForTrack:self.patchableTogglingTrack];
 }
 
 @end
