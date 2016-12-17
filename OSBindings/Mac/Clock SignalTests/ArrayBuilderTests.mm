@@ -43,6 +43,11 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	}
 }
 
+- (std::function<void(uint8_t *input, size_t input_size, uint8_t *output, size_t output_size)>)emptyFlushFunction
+{
+	return [=] (uint8_t *input, size_t input_size, uint8_t *output, size_t output_size) {};
+}
+
 - (void)testSingleWriteSingleFlush
 {
 	Outputs::CRT::ArrayBuilder arrayBuilder(200, 100, setData);
@@ -53,7 +58,7 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	for(int c = 0; c < 5; c++) input[c] = c;
 	for(int c = 0; c < 3; c++) output[c] = c + 0x80;
 
-	arrayBuilder.flush();
+	arrayBuilder.flush(self.emptyFlushFunction);
 	arrayBuilder.submit();
 
 	[self assertMonotonicForInputSize:5 outputSize:3];
@@ -77,7 +82,7 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	for(int c = 0; c < 2; c++) input[c] = c+2;
 	for(int c = 0; c < 2; c++) output[c] = c+2 + 0x80;
 
-	arrayBuilder.flush();
+	arrayBuilder.flush(self.emptyFlushFunction);
 	arrayBuilder.submit();
 
 	[self assertMonotonicForInputSize:4 outputSize:4];
@@ -98,7 +103,7 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	XCTAssert(inputData.length == 0, @"No input data should have been received; %lu bytes were received", (unsigned long)inputData.length);
 	XCTAssert(outputData.length == 0, @"No output data should have been received; %lu bytes were received", (unsigned long)outputData.length);
 
-	arrayBuilder.flush();
+	arrayBuilder.flush(self.emptyFlushFunction);
 	arrayBuilder.submit();
 
 	XCTAssert(inputData.length == 25, @"All input data should have been received; %lu bytes were received", (unsigned long)inputData.length);
@@ -112,7 +117,7 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	arrayBuilder.get_input_storage(5);
 	arrayBuilder.get_output_storage(5);
 
-	arrayBuilder.flush();
+	arrayBuilder.flush(self.emptyFlushFunction);
 
 	uint8_t *input = arrayBuilder.get_input_storage(5);
 	uint8_t *output = arrayBuilder.get_output_storage(5);
@@ -122,7 +127,7 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	for(int c = 0; c < 5; c++) input[c] = c;
 	for(int c = 0; c < 5; c++) output[c] = c + 0x80;
 
-	arrayBuilder.flush();
+	arrayBuilder.flush(self.emptyFlushFunction);
 	arrayBuilder.submit();
 
 	[self assertMonotonicForInputSize:5 outputSize:5];
