@@ -77,10 +77,12 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start)
 		return zero;
 	}
 
-	// adjust for time to get to bit zero and determine number of bits in
+	// adjust for time to get to bit zero and determine number of bits in;
+	// bit_pointer_ always records _the next bit_ that might trigger an event,
+	// so should be one beyond the one reached by a seek.
 	Time relative_time = time_from_start - half_bit_length;
-	bit_pointer_ = (relative_time / segment_.length_of_a_bit).get_unsigned_int();
+	bit_pointer_ = 1 + (relative_time / segment_.length_of_a_bit).get_unsigned_int();
 
 	// map up to the correct amount of time
-	return half_bit_length + segment_.length_of_a_bit * (unsigned int)bit_pointer_;
+	return half_bit_length + segment_.length_of_a_bit * (unsigned int)(bit_pointer_ - 1);
 }

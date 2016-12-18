@@ -20,6 +20,7 @@ namespace Storage {
 struct Time {
 	unsigned int length, clock_rate;
 	Time() : length(0), clock_rate(1) {}
+	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
 
 	/*!
 		Reduces this @c Time to its simplest form — eliminates all common factors from @c length
@@ -116,8 +117,8 @@ struct Time {
 	inline Time operator * (unsigned int multiplier) const
 	{
 		Time result;
-		result.clock_rate = clock_rate * multiplier;
-		result.length = length;
+		result.clock_rate = clock_rate;
+		result.length = length * multiplier;
 		return result;
 	}
 
@@ -139,6 +140,20 @@ struct Time {
 	{
 		length *= other.clock_rate;
 		clock_rate *= other.length;
+		return *this;
+	}
+
+	inline Time operator / (unsigned int divisor) const
+	{
+		Time result;
+		result.length = length;
+		result.clock_rate = clock_rate * divisor;
+		return result;
+	}
+
+	inline Time &operator /= (unsigned int divisor)
+	{
+		clock_rate *= divisor;
 		return *this;
 	}
 

@@ -77,4 +77,37 @@
 	[self assertFirstTwoEventLengthsForSource:segmentSource];
 }
 
+- (void)testSeekToSecondBit
+{
+	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
+	Storage::Time target_time(1, 10);
+
+	Storage::Time found_time = segmentSource.seek_to(target_time);
+	found_time.simplify();
+
+	XCTAssertTrue(found_time.length == 1 && found_time.clock_rate == 20, @"A request to seek to 1/10th should have seeked to 1/20th");
+
+	Storage::Disk::Track::Event next_event = segmentSource.get_next_event();
+	next_event.length.simplify();
+
+	XCTAssertTrue(next_event.length.length == 1 && next_event.length.clock_rate == 10, @"Next event should be 1/10th later");
+}
+
+- (void)testSeekBeyondFinalBit
+{
+	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
+	Storage::Time target_time(24, 10);
+
+	Storage::Time found_time = segmentSource.seek_to(target_time);
+	found_time.simplify();
+
+	XCTAssertTrue(found_time.length == 47 && found_time.clock_rate == 20, @"A request to seek to 24/10ths should have seeked to 47/20ths");
+
+	Storage::Disk::Track::Event next_event = segmentSource.get_next_event();
+	next_event.length.simplify();
+
+	XCTAssertTrue(next_event.length.length == 17 && next_event.length.clock_rate == 20, @"Next event should be 17/20ths later");
+	XCTAssertTrue(next_event.type == Storage::Disk::Track::Event::IndexHole, @"End should have been reached");
+}
+
 @end
