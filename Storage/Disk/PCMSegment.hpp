@@ -36,6 +36,9 @@ class PCMSegmentEventSource {
 		Track::Event get_next_event();
 		void reset();
 
+		Time seek_to(const Time &time_from_start);
+		Time get_length();
+
 	private:
 		PCMSegment segment_;
 		size_t bit_pointer_;

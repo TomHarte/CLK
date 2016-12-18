@@ -36,17 +36,37 @@ struct Time {
 	/*!
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
-	inline float get_float()
+	inline float get_float() const
 	{
 		return (float)length / (float)clock_rate;
 	}
 
-	inline bool operator < (Time other)
+	inline unsigned int get_unsigned_int() const
+	{
+		return length / clock_rate;
+	}
+
+	inline bool operator < (const Time &other) const
 	{
 		return other.clock_rate * length < clock_rate * other.length;
 	}
 
-	inline Time operator + (Time other)
+	inline bool operator <= (const Time &other) const
+	{
+		return other.clock_rate * length <= clock_rate * other.length;
+	}
+
+	inline bool operator > (const Time &other) const
+	{
+		return other.clock_rate * length > clock_rate * other.length;
+	}
+
+	inline bool operator >= (const Time &other) const
+	{
+		return other.clock_rate * length >= clock_rate * other.length;
+	}
+
+	inline Time operator + (const Time &other) const
 	{
 		Time result;
 		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
@@ -54,7 +74,7 @@ struct Time {
 		return result;
 	}
 
-	inline Time &operator += (Time other)
+	inline Time &operator += (const Time &other)
 	{
 		unsigned int combined_clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
 		length = length * (combined_clock_rate / clock_rate) + other.length * (combined_clock_rate / other.clock_rate);
@@ -62,7 +82,7 @@ struct Time {
 		return *this;
 	}
 
-	inline Time operator - (Time other)
+	inline Time operator - (const Time &other) const
 	{
 		Time result;
 		result.clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
@@ -70,7 +90,7 @@ struct Time {
 		return result;
 	}
 
-	inline Time operator -= (Time other)
+	inline Time operator -= (const Time &other)
 	{
 		unsigned int combined_clock_rate = NumberTheory::least_common_multiple(clock_rate, other.clock_rate);
 		length = length * (combined_clock_rate / clock_rate) - other.length * (combined_clock_rate / other.clock_rate);
@@ -78,7 +98,7 @@ struct Time {
 		return *this;
 	}
 
-	inline Time operator * (Time other)
+	inline Time operator * (const Time &other) const
 	{
 		Time result;
 		result.clock_rate = clock_rate * other.clock_rate;
@@ -86,14 +106,28 @@ struct Time {
 		return result;
 	}
 
-	inline Time &operator *= (Time other)
+	inline Time &operator *= (const Time &other)
 	{
 		length *= other.length;
 		clock_rate *= other.clock_rate;
 		return *this;
 	}
 
-	inline Time operator / (Time other)
+	inline Time operator * (unsigned int multiplier) const
+	{
+		Time result;
+		result.clock_rate = clock_rate * multiplier;
+		result.length = length;
+		return result;
+	}
+
+	inline Time &operator *= (unsigned int multiplier)
+	{
+		length *= multiplier;
+		return *this;
+	}
+
+	inline Time operator / (const Time &other) const
 	{
 		Time result;
 		result.clock_rate = clock_rate * other.length;
@@ -101,7 +135,7 @@ struct Time {
 		return result;
 	}
 
-	inline Time &operator /= (Time other)
+	inline Time &operator /= (const Time &other)
 	{
 		length *= other.clock_rate;
 		clock_rate *= other.length;
