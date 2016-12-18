@@ -11,6 +11,7 @@
 		4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
+		4B121F981E060CF000BFDA12 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F961E060CF000BFDA12 /* PCMSegment.cpp */; };
 		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
@@ -426,8 +427,9 @@
 		4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DigitalPhaseLockedLoop.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
-		4B121F931E05E66800BFDA12 /* PCMPatchedTrackTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PCMPatchedTrackTests.h; sourceTree = "<group>"; };
 		4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMPatchedTrackTests.mm; sourceTree = "<group>"; };
+		4B121F961E060CF000BFDA12 /* PCMSegment.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMSegment.cpp; sourceTree = "<group>"; };
+		4B121F971E060CF000BFDA12 /* PCMSegment.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMSegment.hpp; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
 		4B1414571B58879D00E04248 /* CPU6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPU6502.cpp; sourceTree = "<group>"; };
 		4B1414581B58879D00E04248 /* CPU6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502.hpp; sourceTree = "<group>"; };
@@ -503,7 +505,6 @@
 		4B4DC82A1D2C27A4003C5BF8 /* SerialBus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SerialBus.hpp; sourceTree = "<group>"; };
 		4B5073051DDD3B9400C48FBD /* ArrayBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ArrayBuilder.cpp; sourceTree = "<group>"; };
 		4B5073061DDD3B9400C48FBD /* ArrayBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ArrayBuilder.hpp; sourceTree = "<group>"; };
-		4B5073081DDFCFDF00C48FBD /* ArrayBuilderTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArrayBuilderTests.h; sourceTree = "<group>"; };
 		4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ArrayBuilderTests.mm; sourceTree = "<group>"; };
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
 		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
@@ -1302,12 +1303,14 @@
 				4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */,
 				4B30512B1D989E2200B4FED8 /* Drive.cpp */,
 				4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */,
+				4B121F961E060CF000BFDA12 /* PCMSegment.cpp */,
 				4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */,
 				4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */,
 				4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */,
 				4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */,
 				4B30512C1D989E2200B4FED8 /* Drive.hpp */,
 				4B3F1B451E0388D200DB26EE /* PCMPatchedTrack.hpp */,
+				4B121F971E060CF000BFDA12 /* PCMSegment.hpp */,
 				4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */,
 				4BB697CF1D4BA44900248BDF /* Encodings */,
 				4BAB62B21D327F7E00DF5BA0 /* Formats */,
@@ -1681,8 +1684,6 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
-				4B5073081DDFCFDF00C48FBD /* ArrayBuilderTests.h */,
-				4B121F931E05E66800BFDA12 /* PCMPatchedTrackTests.h */,
 				4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */,
 				4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
@@ -2450,6 +2451,7 @@
 				4B3BA0D11D318B44005DD7A7 /* TestMachine.mm in Sources */,
 				4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
+				4B121F981E060CF000BFDA12 /* PCMSegment.cpp in Sources */,
 				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,

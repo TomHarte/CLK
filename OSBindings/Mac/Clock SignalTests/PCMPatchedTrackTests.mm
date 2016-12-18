@@ -6,10 +6,13 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#import "PCMPatchedTrackTests.h"
+#import <XCTest/XCTest.h>
 
 #include "PCMTrack.hpp"
 #include "PCMPatchedTrack.hpp"
+
+@interface PCMPatchedTrackTests : XCTestCase
+@end
 
 @implementation PCMPatchedTrackTests
 
@@ -48,6 +51,16 @@
 - (void)testUnpatchedTrack
 {
 	[self assertOneThirtyTwosForTrack:self.patchableTogglingTrack];
+}
+
+- (void)testZeroPatch
+{
+	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.togglingTrack;
+	Storage::Disk::PCMPatchedTrack *patchable = dynamic_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
+	if(patchable)
+	{
+		printf(".");
+	}
 }
 
 @end

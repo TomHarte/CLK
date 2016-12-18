@@ -6,7 +6,8 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#import "ArrayBuilderTests.h"
+#import <XCTest/XCTest.h>
+
 #include "ArrayBuilder.hpp"
 
 static NSData *inputData, *outputData;
@@ -16,6 +17,9 @@ static void setData(bool is_input, uint8_t *data, size_t size)
 	NSData *dataObject = [NSData dataWithBytes:data length:size];
 	if(is_input) inputData = dataObject; else outputData = dataObject;
 }
+
+@interface ArrayBuilderTests : XCTestCase
+@end
 
 @implementation ArrayBuilderTests
 

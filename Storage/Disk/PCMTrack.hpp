@@ -10,21 +10,11 @@
 #define PCMTrack_hpp
 
 #include "Disk.hpp"
+#include "PCMSegment.hpp"
 #include <vector>
 
 namespace Storage {
 namespace Disk {
-
-/*!
-	A segment of PCM-sampled data.
-
-	Bits from each byte are taken MSB to LSB.
-*/
-struct PCMSegment {
-	Time length_of_a_bit;
-	unsigned int number_of_bits;
-	std::vector<uint8_t> data;
-};
 
 /*!
 	A subclass of @c Track that provides its @c Events by querying a pulse-code modulated record of original
