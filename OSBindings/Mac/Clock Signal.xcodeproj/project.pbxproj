@@ -385,6 +385,7 @@
 		4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD4A8CD1E077E8A0020D856 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F961E060CF000BFDA12 /* PCMSegment.cpp */; };
+		4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
 		4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD69F921D98760000243FE1 /* AcornADF.cpp */; };
 		4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
@@ -901,6 +902,7 @@
 		4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BD468F51D8DF41D0084958B /* 1770.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 1770.cpp; path = 1770/1770.cpp; sourceTree = "<group>"; };
 		4BD468F61D8DF41D0084958B /* 1770.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 1770.hpp; path = 1770/1770.hpp; sourceTree = "<group>"; };
+		4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMTrackTests.mm; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
 		4BD69F921D98760000243FE1 /* AcornADF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AcornADF.cpp; sourceTree = "<group>"; };
@@ -1687,8 +1689,9 @@
 			isa = PBXGroup;
 			children = (
 				4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */,
-				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */,
+				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
+				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -2463,6 +2466,7 @@
 				4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
+				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 				4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */,
 			);

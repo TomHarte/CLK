@@ -67,6 +67,11 @@ struct Time {
 		return other.clock_rate * length >= clock_rate * other.length;
 	}
 
+	inline bool operator == (const Time &other) const
+	{
+		return other.clock_rate * length == clock_rate * other.length;
+	}
+
 	inline Time operator + (const Time &other) const
 	{
 		Time result;

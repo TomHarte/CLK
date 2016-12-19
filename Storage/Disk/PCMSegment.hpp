@@ -29,14 +29,39 @@ struct PCMSegment {
 	std::vector<uint8_t> data;
 };
 
+/*!
+	Provides a stream of events by inspecting a PCMSegment.
+*/
 class PCMSegmentEventSource {
 	public:
+		/*!
+			Constructs a @c PCMSegmentEventSource that will derive events from @c segment.
+			The event source is initially @c reset.
+		*/
 		PCMSegmentEventSource(const PCMSegment &segment);
 
+		/*!
+			@returns the next event that will occur in this event stream.
+		*/
 		Track::Event get_next_event();
+
+		/*!
+			Resets the event source to the beginning of its event stream, exactly as if
+			it has just been constructed.
+		*/
 		void reset();
 
+		/*!
+			Seeks as close to @c time_from_start as the event source can manage while not
+			exceeding it.
+
+			@returns the time the source is now at.
+		*/
 		Time seek_to(const Time &time_from_start);
+
+		/*!
+			@returns the total length of the stream of data that the source will provide.
+		*/
 		Time get_length();
 
 	private:
