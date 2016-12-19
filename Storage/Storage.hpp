@@ -20,6 +20,7 @@ namespace Storage {
 struct Time {
 	unsigned int length, clock_rate;
 	Time() : length(0), clock_rate(1) {}
+	Time(unsigned int int_value) : length(int_value), clock_rate(1) {}
 	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
 
 	/*!

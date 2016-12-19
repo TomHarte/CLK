@@ -10,6 +10,7 @@
 #define PCMPatchedTrack_hpp
 
 #include "PCMTrack.hpp"
+#include "PCMSegment.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -29,7 +30,7 @@ class PCMPatchedTrack: public Track {
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
 			with the contents of @c segment.
 		*/
-		void add_segment(const Time &start_position, const PCMSegment &segment);
+		void add_segment(const Time &start_time, const PCMSegment &segment);
 
 		// To satisfy Storage::Disk::Track
 		Event get_next_event();
@@ -37,13 +38,20 @@ class PCMPatchedTrack: public Track {
 
 	private:
 		std::shared_ptr<Track> underlying_track_;
-		struct Patch {
-			Time start_position;
-			PCMSegment segment;
-			Patch(const Time &start_position, const PCMSegment &segment) : start_position(start_position), segment(segment) {}
+		std::vector<PCMSegmentEventSource> event_sources_;
+
+		struct Period {
+			Time start_time, end_time;
+			Time segment_start_time;
+			PCMSegmentEventSource *event_source;	// nullptr => use the underlying track
+
+			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, PCMSegmentEventSource *event_source) :
+				start_time(start_time), end_time(end_time), segment_start_time(segment_start_time), event_source(event_source) {}
 		};
-		std::vector<Patch> patches_;
-		size_t active_patch_;
+		std::vector<Period> periods_;
+		Period *active_period_;
+
+		void insert_period(const Period &period);
 };
 
 }
