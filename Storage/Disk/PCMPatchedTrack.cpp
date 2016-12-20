@@ -13,10 +13,11 @@ using namespace Storage::Disk;
 PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
 	underlying_track_(underlying_track)
 {
-	Time zero(0);
-	Time one(1);
+	const Time zero(0);
+	const Time one(1);
 	periods_.emplace_back(zero, one, zero, nullptr);
-	active_period_ = &periods_.back();
+	active_period_ = periods_.begin();
+	underlying_track_->seek_to(zero);
 }
 
 void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment)
@@ -42,14 +43,8 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 
 	// the vector may have been resized, potentially invalidating active_period_ even if
 	// the thing it pointed to is still the same thing. So work it out afresh.
-	for(auto period : periods_)
-	{
-		if(period.start_time <= current_time_ && period.end_time > current_time_)
-		{
-			active_period_ = &period;
-			break;
-		}
-	}
+	active_period_ = periods_.begin();
+	while(active_period_->start_time > current_time_) active_period_++;
 }
 
 void PCMPatchedTrack::insert_period(const Period &period)
@@ -94,44 +89,66 @@ void PCMPatchedTrack::insert_period(const Period &period)
 
 Track::Event PCMPatchedTrack::get_next_event()
 {
+	const Time one(1);
+	const Time zero(0);
+	Time extra_time(0);
+	Time period_error(0);
+
 	while(1)
 	{
+		// get the next event from the current active period
 		Track::Event event;
 		if(active_period_->event_source) event = active_period_->event_source->get_next_event();
 		else event = underlying_track_->get_next_event();
 
+		// see what time that gets us to. If it's still within the current period, return the found event
 		current_time_ += event.length;
-		if(current_time_ >= active_period_->end_time)
+		if(current_time_ < active_period_->end_time)
 		{
-			current_time_ -= active_period_->end_time;
-			active_period_++;
-//			if(active_period_
+			event.length += extra_time - period_error;
+			return event;
+		}
+
+		// otherwise move time back to the end of the outgoing period, accumulating the error into
+		// extra_time, and advance the extra period
+		extra_time += (current_time_ - active_period_->end_time);
+		current_time_ = active_period_->end_time;
+		active_period_++;
+
+		// test for having reached the end of the track
+		if(active_period_ == periods_.end())
+		{
+			// if this is the end of the track then jump the active pointer back to the beginning
+			// of the list of periods and reset current_time_ to zero
+			active_period_ = periods_.begin();
+			if(active_period_->event_source) active_period_->event_source->reset();
+			else underlying_track_->seek_to(zero);
+			current_time_ = zero;
+
+			// then return an index hole that is the aggregation of accumulated extra_time away
+			event.type = Storage::Disk::Track::Event::IndexHole;
+			event.length = extra_time;
+			return event;
+		}
+		else
+		{
+			// if this is not the end of the track then move to the next period and note how much will need
+			// to be subtracted if an event is found here
+			if(active_period_->event_source) period_error = active_period_->segment_start_time - active_period_->event_source->seek_to(active_period_->segment_start_time);
+			else period_error = underlying_track_->seek_to(current_time_) - current_time_;
 		}
 	}
-//		return active_period_->event_source->seek_to(zero);
-
-	return underlying_track_->get_next_event();
 }
 
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 {
-	for(auto period : periods_)
-	{
-		if(period.start_time <= time_since_index_hole && period.end_time > time_since_index_hole)
-		{
-			active_period_ = &period;
-			if(period.event_source)
-				return period.event_source->seek_to(time_since_index_hole - period.start_time) + period.start_time;
-			else
-				return underlying_track_->seek_to(time_since_index_hole);
-		}
-	}
+	// start at the beginning and continue while segments start after the time sought
+	active_period_ = periods_.begin();
+	while(active_period_->start_time > time_since_index_hole) active_period_++;
 
-	// this should never be reached
-	Time zero(0);
-	active_period_ = &periods_[0];
+	// allow whatever storage represents the period found to perform its seek
 	if(active_period_->event_source)
-		return active_period_->event_source->seek_to(zero);
+		return active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
 	else
-		return underlying_track_->seek_to(zero);
+		return underlying_track_->seek_to(time_since_index_hole);
 }
