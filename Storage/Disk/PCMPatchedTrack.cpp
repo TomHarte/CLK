@@ -60,30 +60,75 @@ void PCMPatchedTrack::insert_period(const Period &period)
 	// perform a division if called for
 	if(start_period == end_period)
 	{
-		Period right_period = *start_period;
+		if(start_period->start_time == period.start_time)
+		{
+			if(start_period->end_time == period.end_time)
+			{
+				// period has the same start and end time as start_period. So just replace it.
+				*start_period = period;
+			}
+			else
+			{
+				// period has the same start time as start_period but a different end time.
+				// So trim the left-hand side of start_period and insert the new period in front.
+				start_period->push_start_to_time(period.end_time);
+				periods_.insert(start_period, period);
+			}
+		}
+		else
+		{
+			if(start_period->end_time == period.end_time)
+			{
+				// period has the same end time as start_period but a different start time.
+				// So trim the right-hand side of start_period and insert the new period afterwards
+				start_period->trim_end_to_time(period.start_time);
+				periods_.insert(start_period + 1, period);
+			}
+			else
+			{
+				// start_period has an earlier start and a later end than period. So copy it,
+				// trim the right off the original and the left off the copy, then insert the
+				// new period and the copy after start_period
+				Period right_period = *start_period;
 
-		Time adjustment = period.end_time - right_period.start_time;
-		right_period.start_time += adjustment;
-		right_period.segment_start_time += adjustment;
+				right_period.push_start_to_time(period.end_time);
+				start_period->trim_end_to_time(period.start_time);
 
-		start_period->end_time = period.start_time;
-		periods_.insert(start_period + 1, period);
-		periods_.insert(start_period + 2, right_period);
+				periods_.insert(start_period + 1, period);
+				periods_.insert(start_period + 2, right_period);
+			}
+		}
 	}
 	else
 	{
-		// perform a left chop on the thing at the start and a right chop on the thing at the end
-		start_period->end_time = period.start_time;
+		bool should_insert;
 
-		Time adjustment = period.end_time - end_period->start_time;
-		end_period->start_time += adjustment;
-		end_period->segment_start_time += adjustment;
+		if(start_period->start_time == period.start_time)
+		{
+			// start_period starts at the same place as period. Period then
+			// ends after start_period. So replace.
+			*start_period = period;
+			should_insert = false;
+		}
+		else
+		{
+			// start_period starts before period. So trim and plan to insert afterwards.
+			start_period->trim_end_to_time(period.start_time);
+			should_insert = true;
+		}
 
-		// remove anything in between
+		if(end_period->end_time > period.end_time)
+		{
+			// end_period exactly after period does. So exclude it from the list to delete
+			end_period--;
+		}
+
+		// remove everything that is exiting in between
 		periods_.erase(start_period + 1, end_period - 1);
 
-		// insert the new period
-		periods_.insert(start_period + 1, period);
+		// insert the new period if required
+		if(should_insert)
+			periods_.insert(start_period + 1, period);
 	}
 }
 
@@ -152,4 +197,15 @@ Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 		return active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
 	else
 		return underlying_track_->seek_to(time_since_index_hole);
+}
+
+void PCMPatchedTrack::Period::push_start_to_time(const Storage::Time &new_start_time)
+{
+	segment_start_time += new_start_time - start_time;
+	start_time = new_start_time;
+}
+
+void PCMPatchedTrack::Period::trim_end_to_time(const Storage::Time &new_end_time)
+{
+	end_time = new_end_time;
 }

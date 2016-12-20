@@ -44,6 +44,9 @@ class PCMPatchedTrack: public Track {
 			Time segment_start_time;
 			std::shared_ptr<PCMSegmentEventSource> event_source; // nullptr => use the underlying track
 
+			void push_start_to_time(const Storage::Time &new_start_time);
+			void trim_end_to_time(const Storage::Time &new_end_time);
+
 			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, std::shared_ptr<PCMSegmentEventSource> event_source) :
 				start_time(start_time), end_time(end_time), segment_start_time(segment_start_time), event_source(event_source) {}
 		};
