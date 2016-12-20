@@ -50,40 +50,40 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 void PCMPatchedTrack::insert_period(const Period &period)
 {
 	// find the existing period that the new period starts in
-	size_t start_index = 0;
-	while(periods_[start_index].start_time >= period.end_time) start_index++;
+	std::vector<Period>::iterator start_period = periods_.begin();
+	while(start_period->start_time >= period.end_time) start_period++;
 
 	// find the existing period that the new period end in
-	size_t end_index = start_index;
-	while(periods_[end_index].end_time < period.end_time) end_index++;
+	std::vector<Period>::iterator end_period = start_period;
+	while(end_period->end_time < period.end_time) end_period++;
 
 	// perform a division if called for
-	if(start_index == end_index)
+	if(start_period == end_period)
 	{
-		Period right_period = periods_[start_index];
+		Period right_period = *start_period;
 
 		Time adjustment = period.end_time - right_period.start_time;
 		right_period.start_time += adjustment;
 		right_period.segment_start_time += adjustment;
 
-		periods_[start_index].end_time = period.start_time;
-		periods_.insert(periods_.begin() + (int)start_index + 1, period);
-		periods_.insert(periods_.begin() + (int)start_index + 2, right_period);
+		start_period->end_time = period.start_time;
+		periods_.insert(start_period + 1, period);
+		periods_.insert(start_period + 2, right_period);
 	}
 	else
 	{
 		// perform a left chop on the thing at the start and a right chop on the thing at the end
-		periods_[start_index].end_time = period.start_time;
+		start_period->end_time = period.start_time;
 
-		Time adjustment = period.end_time - periods_[end_index].start_time;
-		periods_[end_index].start_time += adjustment;
-		periods_[end_index].segment_start_time += adjustment;
+		Time adjustment = period.end_time - end_period->start_time;
+		end_period->start_time += adjustment;
+		end_period->segment_start_time += adjustment;
 
 		// remove anything in between
-		periods_.erase(periods_.begin() + (int)start_index + 1, periods_.begin() + (int)end_index - 1);
+		periods_.erase(start_period + 1, end_period - 1);
 
 		// insert the new period
-		periods_.insert(periods_.begin() + (int)start_index + 1, period);
+		periods_.insert(start_period + 1, period);
 	}
 }
 
