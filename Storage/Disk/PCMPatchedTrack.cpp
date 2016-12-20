@@ -24,7 +24,8 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 	event_sources_.emplace_back(segment);
 
 	Time zero(0);
-	Period insertion_period(start_time, start_time + event_sources_.back().get_length(), zero, &event_sources_.back());
+	Time end_time = start_time + event_sources_.back().get_length();
+	Period insertion_period(start_time, end_time, zero, &event_sources_.back());
 
 	// the new segment may wrap around, so divide it up into track-length parts if required
 	Time one = Time(1);
@@ -38,6 +39,17 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 		insertion_period.end_time = next_end_time;
 	}
 	insert_period(insertion_period);
+
+	// the vector may have been resized, potentially invalidating active_period_ even if
+	// the thing it pointed to is still the same thing. So work it out afresh.
+	for(auto period : periods_)
+	{
+		if(period.start_time <= current_time_ && period.end_time > current_time_)
+		{
+			active_period_ = &period;
+			break;
+		}
+	}
 }
 
 void PCMPatchedTrack::insert_period(const Period &period)
@@ -82,10 +94,44 @@ void PCMPatchedTrack::insert_period(const Period &period)
 
 Track::Event PCMPatchedTrack::get_next_event()
 {
+	while(1)
+	{
+		Track::Event event;
+		if(active_period_->event_source) event = active_period_->event_source->get_next_event();
+		else event = underlying_track_->get_next_event();
+
+		current_time_ += event.length;
+		if(current_time_ >= active_period_->end_time)
+		{
+			current_time_ -= active_period_->end_time;
+			active_period_++;
+//			if(active_period_
+		}
+	}
+//		return active_period_->event_source->seek_to(zero);
+
 	return underlying_track_->get_next_event();
 }
 
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 {
-	return underlying_track_->seek_to(time_since_index_hole);
+	for(auto period : periods_)
+	{
+		if(period.start_time <= time_since_index_hole && period.end_time > time_since_index_hole)
+		{
+			active_period_ = &period;
+			if(period.event_source)
+				return period.event_source->seek_to(time_since_index_hole - period.start_time) + period.start_time;
+			else
+				return underlying_track_->seek_to(time_since_index_hole);
+		}
+	}
+
+	// this should never be reached
+	Time zero(0);
+	active_period_ = &periods_[0];
+	if(active_period_->event_source)
+		return active_period_->event_source->seek_to(zero);
+	else
+		return underlying_track_->seek_to(zero);
 }

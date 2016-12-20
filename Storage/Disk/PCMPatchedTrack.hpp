@@ -50,6 +50,7 @@ class PCMPatchedTrack: public Track {
 		};
 		std::vector<Period> periods_;
 		Period *active_period_;
+		Time current_time_;
 
 		void insert_period(const Period &period);
 };
