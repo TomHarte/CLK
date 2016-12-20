@@ -22,11 +22,11 @@ PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
 
 void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment)
 {
-	event_sources_.emplace_back(segment);
+	std::shared_ptr<PCMSegmentEventSource> event_source(new PCMSegmentEventSource(segment));
 
 	Time zero(0);
-	Time end_time = start_time + event_sources_.back().get_length();
-	Period insertion_period(start_time, end_time, zero, &event_sources_.back());
+	Time end_time = start_time + event_source->get_length();
+	Period insertion_period(start_time, end_time, zero, event_source);
 
 	// the new segment may wrap around, so divide it up into track-length parts if required
 	Time one = Time(1);

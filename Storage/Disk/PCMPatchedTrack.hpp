@@ -38,14 +38,13 @@ class PCMPatchedTrack: public Track {
 
 	private:
 		std::shared_ptr<Track> underlying_track_;
-		std::vector<PCMSegmentEventSource> event_sources_;
 
 		struct Period {
 			Time start_time, end_time;
 			Time segment_start_time;
-			PCMSegmentEventSource *event_source;	// nullptr => use the underlying track
+			std::shared_ptr<PCMSegmentEventSource> event_source; // nullptr => use the underlying track
 
-			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, PCMSegmentEventSource *event_source) :
+			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, std::shared_ptr<PCMSegmentEventSource> event_source) :
 				start_time(start_time), end_time(end_time), segment_start_time(segment_start_time), event_source(event_source) {}
 		};
 		std::vector<Period> periods_;
