@@ -55,11 +55,24 @@
 
 - (void)testZeroPatch
 {
-	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.togglingTrack;
+	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	Storage::Disk::PCMPatchedTrack *patchable = dynamic_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
 	if(patchable)
 	{
-		printf(".");
+		// add a single one, at 1/32 length at 3/128. So that should shift the location of the second flux transition
+		Storage::Disk::PCMSegment zero_segment;
+		zero_segment.data = {0xff};
+		zero_segment.number_of_bits = 1;
+		zero_segment.length_of_a_bit.length = 1;
+		zero_segment.length_of_a_bit.clock_rate = 32;
+		patchable->add_segment(Storage::Time(3, 128), zero_segment);
+	}
+
+	std::vector<Storage::Disk::Track::Event> events;
+	int c = 5;
+	while(c--)
+	{
+		events.push_back(patchableTrack->get_next_event());
 	}
 }
 

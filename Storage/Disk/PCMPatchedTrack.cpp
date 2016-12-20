@@ -54,7 +54,7 @@ void PCMPatchedTrack::insert_period(const Period &period)
 	while(periods_[start_index].start_time >= period.end_time) start_index++;
 
 	// find the existing period that the new period end in
-	size_t end_index = 0;
+	size_t end_index = start_index;
 	while(periods_[end_index].end_time < period.end_time) end_index++;
 
 	// perform a division if called for
@@ -62,8 +62,8 @@ void PCMPatchedTrack::insert_period(const Period &period)
 	{
 		Period right_period = periods_[start_index];
 
-		Time adjustment = period.start_time - right_period.start_time;
-		right_period.end_time += adjustment;
+		Time adjustment = period.end_time - right_period.start_time;
+		right_period.start_time += adjustment;
 		right_period.segment_start_time += adjustment;
 
 		periods_[start_index].end_time = period.start_time;
@@ -75,8 +75,8 @@ void PCMPatchedTrack::insert_period(const Period &period)
 		// perform a left chop on the thing at the start and a right chop on the thing at the end
 		periods_[start_index].end_time = period.start_time;
 
-		Time adjustment = period.start_time - periods_[end_index].start_time;
-		periods_[end_index].end_time += adjustment;
+		Time adjustment = period.end_time - periods_[end_index].start_time;
+		periods_[end_index].start_time += adjustment;
 		periods_[end_index].segment_start_time += adjustment;
 
 		// remove anything in between
