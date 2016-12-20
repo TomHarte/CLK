@@ -102,16 +102,17 @@ Track::Event PCMPatchedTrack::get_next_event()
 		else event = underlying_track_->get_next_event();
 
 		// see what time that gets us to. If it's still within the current period, return the found event
-		current_time_ += event.length;
-		if(current_time_ < active_period_->end_time)
+		Time event_time = current_time_ + event.length;
+		if(event_time < active_period_->end_time)
 		{
+			current_time_ = event_time;
 			event.length += extra_time - period_error;
 			return event;
 		}
 
 		// otherwise move time back to the end of the outgoing period, accumulating the error into
 		// extra_time, and advance the extra period
-		extra_time += (current_time_ - active_period_->end_time);
+		extra_time += (active_period_->end_time - current_time_);
 		current_time_ = active_period_->end_time;
 		active_period_++;
 
@@ -135,7 +136,7 @@ Track::Event PCMPatchedTrack::get_next_event()
 			// if this is not the end of the track then move to the next period and note how much will need
 			// to be subtracted if an event is found here
 			if(active_period_->event_source) period_error = active_period_->segment_start_time - active_period_->event_source->seek_to(active_period_->segment_start_time);
-			else period_error = underlying_track_->seek_to(current_time_) - current_time_;
+			else period_error = current_time_ - underlying_track_->seek_to(current_time_);
 		}
 	}
 }
