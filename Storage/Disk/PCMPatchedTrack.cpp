@@ -51,7 +51,7 @@ void PCMPatchedTrack::insert_period(const Period &period)
 {
 	// find the existing period that the new period starts in
 	std::vector<Period>::iterator start_period = periods_.begin();
-	while(start_period->start_time >= period.end_time) start_period++;
+	while(start_period->end_time <= period.start_time) start_period++;
 
 	// find the existing period that the new period end in
 	std::vector<Period>::iterator end_period = start_period;

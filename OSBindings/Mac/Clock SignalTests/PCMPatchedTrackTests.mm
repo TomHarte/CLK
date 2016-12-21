@@ -158,8 +158,7 @@
 		if(events.back().type == Storage::Disk::Track::Event::IndexHole) break;
 	}
 
-	XCTAssert(events.size() == 17, @"Should still be 17 total events");
-	XCTAssert(events[16].length == Storage::Time(33, 64), @"Final event should take 33/64");
+	XCTAssert(events.size() == 33, @"Should still be 33 total events");
 	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
 }
 
