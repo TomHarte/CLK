@@ -103,7 +103,8 @@ void PCMPatchedTrack::insert_period(const Period &period)
 	}
 	else
 	{
-		bool should_insert;
+		bool should_insert = false;
+		std::vector<Period>::difference_type insertion_offset = 0;
 
 		if(start_period->start_time == period.start_time)
 		{
@@ -117,20 +118,25 @@ void PCMPatchedTrack::insert_period(const Period &period)
 			// start_period starts before period. So trim and plan to insert afterwards.
 			start_period->trim_end_to_time(period.start_time);
 			should_insert = true;
+			insertion_offset = start_period + 1 - periods_.begin();
 		}
 
-		if(end_period->end_time > period.end_time)
+		if(end_period->end_time == period.end_time)
 		{
-			// end_period exactly after period does. So exclude it from the list to delete
-			end_period--;
+			// end_period ends exactly when period does. So include it from the list to delete
+			end_period++;
+		}
+		else
+		{
+			end_period->push_start_to_time(period.end_time);
 		}
 
 		// remove everything that is exiting in between
-		periods_.erase(start_period + 1, end_period - 1);
+		periods_.erase(start_period + 1, end_period);
 
 		// insert the new period if required
 		if(should_insert)
-			periods_.insert(start_period + 1, period);
+			periods_.insert(periods_.begin()+insertion_offset, period);
 	}
 }
 

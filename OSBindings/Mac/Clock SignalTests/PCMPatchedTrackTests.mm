@@ -134,7 +134,7 @@
 	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
 }
 
-- (void)testMultiReplace
+- (std::shared_ptr<Storage::Disk::Track>)fourSegmentPatchedTrack
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
@@ -149,6 +149,13 @@
 		patchable->add_segment(Storage::Time(c, 4), segment);
 	}
 
+	return patchableTrack;
+}
+
+- (void)testMultiSegmentTrack
+{
+	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
+
 	Storage::Time total_length;
 	std::vector<Storage::Disk::Track::Event> events;
 	while(1)
@@ -159,6 +166,32 @@
 	}
 
 	XCTAssert(events.size() == 33, @"Should still be 33 total events");
+	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+}
+
+- (void)testMultiReplace
+{
+	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
+	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
+
+	Storage::Disk::PCMSegment segment;
+	segment.data = {0x00};
+	segment.number_of_bits = 8;
+	segment.length_of_a_bit.length = 1;
+	segment.length_of_a_bit.clock_rate = 16;
+	patchable->add_segment(Storage::Time(1, 8), segment);
+
+	Storage::Time total_length;
+	std::vector<Storage::Disk::Track::Event> events;
+	while(1)
+	{
+		events.push_back(patchableTrack->get_next_event());
+		total_length += events.back().length;
+		if(events.back().type == Storage::Disk::Track::Event::IndexHole) break;
+	}
+
+	XCTAssert(events.size() == 17, @"Should still be 17 total events");
+	XCTAssert(events[4].length == Storage::Time(17, 32), @"Should have added a 17/32 gap after the fourth event");
 	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
 }
 
