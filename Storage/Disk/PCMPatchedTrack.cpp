@@ -94,8 +94,10 @@ void PCMPatchedTrack::insert_period(const Period &period)
 				right_period.push_start_to_time(period.end_time);
 				start_period->trim_end_to_time(period.start_time);
 
+				// the iterator isn't guaranteed to survive the insert, e.g. if it causes a resize
+				std::vector<Period>::difference_type offset = start_period - periods_.begin();
 				periods_.insert(start_period + 1, period);
-				periods_.insert(start_period + 2, right_period);
+				periods_.insert(periods_.begin() + offset + 2, right_period);
 			}
 		}
 	}
@@ -147,7 +149,7 @@ Track::Event PCMPatchedTrack::get_next_event()
 		else event = underlying_track_->get_next_event();
 
 		// see what time that gets us to. If it's still within the current period, return the found event
-		Time event_time = current_time_ + event.length;
+		Time event_time = current_time_ + event.length - period_error;
 		if(event_time < active_period_->end_time)
 		{
 			current_time_ = event_time;

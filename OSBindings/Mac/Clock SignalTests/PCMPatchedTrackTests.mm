@@ -34,12 +34,12 @@
 {
 	// Confirm that there are now flux transitions (just the first five will do)
 	// located 1/32nd of a rotation apart.
-	int c = 5;
-	while(c--)
+	for(int c = 0; c < 5; c++)
 	{
 		Storage::Disk::Track::Event event = track->get_next_event();
-		Storage::Time simplified_time = event.length.simplify();
-		XCTAssert(simplified_time.length == 1 && simplified_time.clock_rate == 32, "flux transitions should be 1/32nd of a track apart");
+		XCTAssert(
+			event.length == (c ? Storage::Time(1, 32) : Storage::Time(1, 64)),
+			@"flux transitions should be 1/32nd of a track apart");
 	}
 }
 
@@ -53,27 +53,35 @@
 	[self assertOneThirtyTwosForTrack:self.patchableTogglingTrack];
 }
 
-- (void)testZeroPatch
+- (void)testSingleSplice
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	Storage::Disk::PCMPatchedTrack *patchable = dynamic_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
 	if(patchable)
 	{
 		// add a single one, at 1/32 length at 3/128. So that should shift the location of the second flux transition
-		Storage::Disk::PCMSegment zero_segment;
-		zero_segment.data = {0xff};
-		zero_segment.number_of_bits = 1;
-		zero_segment.length_of_a_bit.length = 1;
-		zero_segment.length_of_a_bit.clock_rate = 32;
-		patchable->add_segment(Storage::Time(3, 128), zero_segment);
+		Storage::Disk::PCMSegment one_segment;
+		one_segment.data = {0xff};
+		one_segment.number_of_bits = 1;
+		one_segment.length_of_a_bit.length = 1;
+		one_segment.length_of_a_bit.clock_rate = 32;
+		patchable->add_segment(Storage::Time(3, 128), one_segment);
 	}
 
+	Storage::Time total_length;
 	std::vector<Storage::Disk::Track::Event> events;
-	int c = 5;
-	while(c--)
+	while(1)
 	{
 		events.push_back(patchableTrack->get_next_event());
+		total_length += events.back().length;
+		if(events.back().type == Storage::Disk::Track::Event::IndexHole) break;
 	}
+
+	XCTAssert(events.size() == 33, @"Should still be 33 total events");
+	XCTAssert(events[0].length == Storage::Time(1, 64), @"First event should be after 1/64 as usual");
+	XCTAssert(events[1].length == Storage::Time(3, 128), @"Second event should be 3/128 later");	// ... as it was inserted at 3/128 and runs at the same rate as the main data, so first inserted event is at 3/128+1/64-1/64
+	XCTAssert(events[2].length == Storage::Time(5, 128), @"Should still be 33 total events");	// 1/64 = 2/128 to exit the patch, plus 3/128 to get to the next event, having spliced in 1/128 ahead of the normal clock
+	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
 }
 
 @end
