@@ -94,6 +94,16 @@
 	}
 }
 
+- (void)assertEvents:(const std::vector<Storage::Disk::Track::Event> &)events hasEntries:(size_t)numberOfEntries withEntry:(size_t)entry ofLength:(Storage::Time)time
+{
+	XCTAssert(events.size() == numberOfEntries, @"Should be %zu total events", numberOfEntries);
+
+	XCTAssert(events[entry].length == time, @"Event %zu should have been %d/%d long, was %d/%d", entry, time.length, time.clock_rate, events[entry].length.length, events[entry].length.clock_rate);
+
+	Storage::Time eventTime = [self timeForEvents:events];
+	XCTAssert(eventTime == Storage::Time(1), @"Total track length should be 1; was %d/%d", eventTime.length, eventTime.clock_rate);
+}
+
 #pragma mark - Unpatched tracks
 
 - (void)testUnpatchedRawTrack
@@ -128,12 +138,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(0)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 17, @"Should still be 17 total events");
-	XCTAssert(events[0].length == Storage::Time(33, 64), @"First event should not occur until 33/64");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:17 withEntry:0 ofLength:Storage::Time(33, 64)];
 }
 
 - (void)testRightReplace
@@ -141,12 +146,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 2)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 17, @"Should still be 17 total events");
-	XCTAssert(events[16].length == Storage::Time(33, 64), @"Final event should take 33/64");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:17 withEntry:16 ofLength:Storage::Time(33, 64)];
 }
 
 #pragma mark - Insertions affecting three existing segments
@@ -154,12 +154,7 @@
 - (void)testMultiSegmentTrack
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 33, @"Should still be 33 total events");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:33 withEntry:4 ofLength:Storage::Time(1, 32)];
 }
 
 - (void)testMultiTrimBothSideReplace
@@ -167,12 +162,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 17, @"Should still be 17 total events");
-	XCTAssert(events[4].length == Storage::Time(17, 32), @"Should have added a 17/32 gap after the fourth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:17 withEntry:4 ofLength:Storage::Time(17, 32)];
 }
 
 - (void)testMultiTrimRightReplace
@@ -180,12 +170,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 21, @"Should still be 17 total events");
-	XCTAssert(events[4].length == Storage::Time(13, 32), @"Should have added a 13/32 gap after the fourth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:4 ofLength:Storage::Time(13, 32)];
 }
 
 - (void)testMultiTrimLeftReplace
@@ -193,12 +178,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 4)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 21, @"Should still be 17 total events");
-	XCTAssert(events[8].length == Storage::Time(13, 32), @"Should have added a 13/32 gap after the eighth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:8 ofLength:Storage::Time(13, 32)];
 }
 
 #pragma mark - Insertions affecting two existing segments
@@ -208,12 +188,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 32), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 25, @"Should still be 25 total events");
-	XCTAssert(events[4].length == Storage::Time(18, 64), @"Should have added an 18/64 gap after the fourth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:25 withEntry:4 ofLength:Storage::Time(9, 32)];
 }
 
 - (void)testTwoSegmentRightReplace
@@ -221,12 +196,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 21, @"Should still be 25 total events");
-	XCTAssert(events[4].length == Storage::Time(13, 32), @"Should have added an 13/32 gap after the fourth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:4 ofLength:Storage::Time(13, 32)];
 }
 
 - (void)testTwoSegmentLeftReplace
@@ -234,12 +204,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(0)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 21, @"Should still be 25 total events");
-	XCTAssert(events[0].length == Storage::Time(25, 64), @"Should have added an 25/64 gap after the fourth event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:0 ofLength:Storage::Time(25, 64)];
 }
 
 #pragma mark - Wrapping segment
@@ -249,11 +214,7 @@
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(5, 2), 1, {0x00}) atTime:Storage::Time(0)];
 
-	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
-	Storage::Time total_length = [self timeForEvents:events];
-
-	XCTAssert(events.size() == 1, @"Should be only one event");
-	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
+	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:1 withEntry:0 ofLength:Storage::Time(1, 1)];
 }
 
 @end
