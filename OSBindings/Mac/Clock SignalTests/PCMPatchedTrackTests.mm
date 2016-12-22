@@ -73,6 +73,12 @@
 	return result;
 }
 
+- (void)patchTrack:(std::shared_ptr<Storage::Disk::Track>)track withSegment:(Storage::Disk::PCMSegment)segment atTime:(Storage::Time)time
+{
+	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(track.get());
+	patchable->add_segment(time, segment);
+}
+
 #pragma mark - Repeating Asserts
 
 - (void)assertOneThirtyTwosForTrack:(std::shared_ptr<Storage::Disk::Track>)track
@@ -105,15 +111,7 @@
 - (void)testSingleSplice
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	// add a single one, at 1/32 length at 3/128. So that should shift the location of the second flux transition
-	Storage::Disk::PCMSegment one_segment;
-	one_segment.data = {0xff};
-	one_segment.number_of_bits = 1;
-	one_segment.length_of_a_bit.length = 1;
-	one_segment.length_of_a_bit.clock_rate = 32;
-	patchable->add_segment(Storage::Time(3, 128), one_segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 32), 1, {0xff}) atTime:Storage::Time(3, 128)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -128,14 +126,7 @@
 - (void)testLeftReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment zero_segment;
-	zero_segment.data = {0x00};
-	zero_segment.number_of_bits = 8;
-	zero_segment.length_of_a_bit.length = 1;
-	zero_segment.length_of_a_bit.clock_rate = 16;
-	patchable->add_segment(Storage::Time(0), zero_segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(0)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -148,14 +139,7 @@
 - (void)testRightReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment zero_segment;
-	zero_segment.data = {0x00};
-	zero_segment.number_of_bits = 8;
-	zero_segment.length_of_a_bit.length = 1;
-	zero_segment.length_of_a_bit.clock_rate = 16;
-	patchable->add_segment(Storage::Time(1, 2), zero_segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 2)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -181,14 +165,7 @@
 - (void)testMultiTrimBothSideReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 8;
-	segment.length_of_a_bit.length = 1;
-	segment.length_of_a_bit.clock_rate = 16;
-	patchable->add_segment(Storage::Time(1, 8), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -201,14 +178,7 @@
 - (void)testMultiTrimRightReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 1;
-	segment.length_of_a_bit.length = 3;
-	segment.length_of_a_bit.clock_rate = 8;
-	patchable->add_segment(Storage::Time(1, 8), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -221,14 +191,7 @@
 - (void)testMultiTrimLeftReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 1;
-	segment.length_of_a_bit.length = 3;
-	segment.length_of_a_bit.clock_rate = 8;
-	patchable->add_segment(Storage::Time(1, 4), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 4)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -243,14 +206,7 @@
 - (void)testTwoSegmentOverlap
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 8;
-	segment.length_of_a_bit.length = 1;
-	segment.length_of_a_bit.clock_rate = 32;
-	patchable->add_segment(Storage::Time(1, 8), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 32), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -263,14 +219,7 @@
 - (void)testTwoSegmentRightReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 1;
-	segment.length_of_a_bit.length = 3;
-	segment.length_of_a_bit.clock_rate = 8;
-	patchable->add_segment(Storage::Time(1, 8), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -283,14 +232,7 @@
 - (void)testTwoSegmentLeftReplace
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 1;
-	segment.length_of_a_bit.length = 3;
-	segment.length_of_a_bit.clock_rate = 8;
-	patchable->add_segment(Storage::Time(0), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(0)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];
@@ -305,14 +247,7 @@
 - (void)testWrappingSegment
 {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
-	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
-
-	Storage::Disk::PCMSegment segment;
-	segment.data = {0x00};
-	segment.number_of_bits = 1;
-	segment.length_of_a_bit.length = 5;
-	segment.length_of_a_bit.clock_rate = 2;
-	patchable->add_segment(Storage::Time(0), segment);
+	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(5, 2), 1, {0x00}) atTime:Storage::Time(0)];
 
 	std::vector<Storage::Disk::Track::Event> events = [self eventsFromTrack:patchableTrack];
 	Storage::Time total_length = [self timeForEvents:events];

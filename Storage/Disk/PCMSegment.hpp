@@ -27,6 +27,10 @@ struct PCMSegment {
 	Time length_of_a_bit;
 	unsigned int number_of_bits;
 	std::vector<uint8_t> data;
+
+	PCMSegment(Time length_of_a_bit, unsigned int number_of_bits, std::vector<uint8_t> data)
+		: length_of_a_bit(length_of_a_bit), number_of_bits(number_of_bits), data(data) {}
+	PCMSegment() {}
 };
 
 /*!
