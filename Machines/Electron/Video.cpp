@@ -46,6 +46,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
+	setup_base_address();
 
 	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
@@ -302,13 +303,7 @@ void VideoOutput::set_register(int address, uint8_t value)
 			if(new_screen_mode != screen_mode_)
 			{
 				screen_mode_ = new_screen_mode;
-				switch(screen_mode_)
-				{
-					case 0: case 1: case 2: screen_mode_base_address_ = 0x3000; break;
-					case 3: screen_mode_base_address_ = 0x4000; break;
-					case 4: case 5: screen_mode_base_address_ = 0x5800; break;
-					case 6: screen_mode_base_address_ = 0x6000; break;
-				}
+				setup_base_address();
 			}
 		}
 		break;
@@ -369,6 +364,17 @@ void VideoOutput::set_register(int address, uint8_t value)
 #undef pack
 		}
 		break;
+	}
+}
+
+void VideoOutput::setup_base_address()
+{
+	switch(screen_mode_)
+	{
+		case 0: case 1: case 2: screen_mode_base_address_ = 0x3000; break;
+		case 3: screen_mode_base_address_ = 0x4000; break;
+		case 4: case 5: screen_mode_base_address_ = 0x5800; break;
+		case 6: screen_mode_base_address_ = 0x6000; break;
 	}
 }
 

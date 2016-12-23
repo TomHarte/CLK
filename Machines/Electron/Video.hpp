@@ -77,6 +77,7 @@ class VideoOutput {
 		inline void start_pixel_line();
 		inline void end_pixel_line();
 		inline void output_pixels(unsigned int number_of_cycles);
+		inline void setup_base_address();
 
 		int output_position_, unused_cycles_;
 
