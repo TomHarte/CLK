@@ -13,17 +13,20 @@ using namespace Storage::Disk;
 Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
 	clock_rate_(clock_rate * clock_rate_multiplier),
 	clock_rate_multiplier_(clock_rate_multiplier),
+	rotational_multiplier_(60u, revolutions_per_minute),
+
+	cycles_since_index_hole_(0),
+	cycles_since_event_(0),
+	time_into_track_of_last_event_(0),
+	motor_is_on_(false),
+
 	is_reading_(true),
 	track_is_dirty_(false),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)
 {
-	rotational_multiplier_.length = 60;
-	rotational_multiplier_.clock_rate = revolutions_per_minute;
-	rotational_multiplier_.simplify();
-
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
-	Time one;
+	Time one(1);
 	set_expected_bit_length(one);
 }
 
@@ -99,7 +102,7 @@ void Controller::process_next_event()
 			time_into_track_of_last_event_ += current_event_.length;
 		break;
 		case Track::Event::IndexHole:
-			printf("%d [/%d = %d]\n", cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
+			printf("%p %d [/%d = %d]\n", this, cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
 			cycles_since_index_hole_ = 0;
 			time_into_track_of_last_event_.set_zero();
 			process_index_hole();
