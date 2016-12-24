@@ -26,6 +26,7 @@ struct Time {
 	Time(unsigned int unsigned_int_value) : length(unsigned_int_value), clock_rate(1) {}
 	Time(int int_value) : Time((unsigned int)int_value) {}
 	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
+	Time(int length, int clock_rate) : Time((unsigned int)length, (unsigned int)clock_rate) {}
 	Time(uint64_t length, uint64_t clock_rate)
 	{
 		install_result(length, clock_rate);
