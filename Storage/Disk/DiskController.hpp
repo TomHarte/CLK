@@ -11,6 +11,7 @@
 
 #include "Drive.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
+#include "PCMSegment.hpp"
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
@@ -107,14 +108,20 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;
 		std::shared_ptr<Track> track_;
-		unsigned int cycles_since_index_hole_;
+		unsigned int cycles_since_index_hole_, cycles_since_event_;
 
 		inline void get_next_event();
 		Track::Event current_event_;
-		Time time_into_track_;
+		Time time_into_track_of_last_event_;
 		bool motor_is_on_;
 
+		bool is_reading_;
+		bool track_is_dirty_;
+		PCMSegment write_segment_;
+		Time write_start_time_;
+
 		void setup_track();
+		Time get_time_into_track();
 };
 
 }

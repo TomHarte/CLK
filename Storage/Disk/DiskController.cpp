@@ -13,6 +13,8 @@ using namespace Storage::Disk;
 Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
 	clock_rate_(clock_rate * clock_rate_multiplier),
 	clock_rate_multiplier_(clock_rate_multiplier),
+	is_reading_(true),
+	track_is_dirty_(false),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)
 {
@@ -28,18 +30,20 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 void Controller::setup_track()
 {
 	track_ = drive_->get_track();
+	track_is_dirty_ = false;
 
 	Time offset;
-	if(track_ && time_into_track_.length > 0)
+	Time track_time_now = get_time_into_track();
+	if(track_ && track_time_now > Time(0))
 	{
-		Time time_found = track_->seek_to(time_into_track_).simplify();
-		offset = (time_into_track_ - time_found).simplify();
-		time_into_track_ = time_found;
+		Time time_found = track_->seek_to(track_time_now);
+		offset = track_time_now - time_found;
+		time_into_track_of_last_event_ = time_found;
 	}
 	else
 	{
-		offset = time_into_track_;
-		time_into_track_.set_zero();
+		offset = track_time_now;
+		time_into_track_of_last_event_.set_zero();
 	}
 
 	reset_timer_to_offset(offset * rotational_multiplier_);
@@ -56,7 +60,10 @@ void Controller::run_for_cycles(int number_of_cycles)
 		{
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
+			cycles_since_event_ += (unsigned int)cycles_to_run_for;
+
 			number_of_cycles -= cycles_to_run_for;
 			pll_->run_for_cycles(cycles_to_run_for);
 			TimedEventLoop::run_for_cycles(cycles_to_run_for);
@@ -84,19 +91,49 @@ void Controller::get_next_event()
 
 void Controller::process_next_event()
 {
+	cycles_since_event_ = 0;
 	switch(current_event_.type)
 	{
 		case Track::Event::FluxTransition:
 			pll_->add_pulse();
-			time_into_track_ += current_event_.length;
+			time_into_track_of_last_event_ += current_event_.length;
 		break;
 		case Track::Event::IndexHole:
+			printf("%d [/%d = %d]\n", cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
 			cycles_since_index_hole_ = 0;
-			time_into_track_.set_zero();
+			time_into_track_of_last_event_.set_zero();
 			process_index_hole();
 		break;
 	}
 	get_next_event();
+}
+
+Storage::Time Controller::get_time_into_track()
+{
+	// this is proportion of a second
+	Time result(cycles_since_index_hole_, 8000000 * clock_rate_multiplier_);
+	result /= rotational_multiplier_;
+	result.simplify();
+	return result;
+}
+
+#pragma mark - Writing
+
+void Controller::begin_writing()
+{
+	write_segment_.length_of_a_bit = bit_length_ * rotational_multiplier_;
+	write_segment_.data.clear();
+	write_segment_.number_of_bits = 0;
+
+//	write_start_time_;
+}
+
+void Controller::write_bit(bool value)
+{
+}
+
+void Controller::end_writing()
+{
 }
 
 #pragma mark - PLL control and delegate
