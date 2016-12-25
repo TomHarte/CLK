@@ -189,6 +189,11 @@ struct Time {
 		clock_rate = 1;
 	}
 
+	static Time max()
+	{
+		return Time(std::numeric_limits<unsigned int>::max());
+	}
+
 	private:
 		inline void install_result(uint64_t long_length, uint64_t long_clock_rate)
 		{
@@ -207,14 +212,25 @@ struct Time {
 				long_clock_rate /= common_divisor;
 
 				// Okay, in desperation accept a loss of accuracy.
-				while(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max())
+				while(
+					(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max()) &&
+					(long_clock_rate > 1))
 				{
 					long_length >>= 1;
 					long_clock_rate >>= 1;
 				}
 			}
-			length = (unsigned int)long_length;
-			clock_rate = (unsigned int)long_clock_rate;
+
+			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max())
+			{
+				length = (unsigned int)long_length;
+				clock_rate = (unsigned int)long_clock_rate;
+			}
+			else
+			{
+				length = std::numeric_limits<unsigned int>::max();
+				clock_rate = 1u;
+			}
 		}
 
 		inline void install_float(float value)

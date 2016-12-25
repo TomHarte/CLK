@@ -34,4 +34,11 @@
 	XCTAssert(time == Storage::Time(0), @"Numbers too small to be represented should be 0");
 }
 
+- (void)testTooBigFloat
+{
+	float original = powf(2.0f, 48.0f);
+	Storage::Time time(original);
+	XCTAssert(time == Storage::Time::max(), @"Numbers too big to be represented should saturate");
+}
+
 @end
