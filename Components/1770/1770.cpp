@@ -498,7 +498,7 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_TIME(30);
 
 	test_type2_write_protection:
-		if(command_&0x20) // TODO:: && is_write_protected
+		if(command_&0x20 && get_drive_is_read_only())
 		{
 			update_status([] (Status &status) {
 				status.write_protect = true;

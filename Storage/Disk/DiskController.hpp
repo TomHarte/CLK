@@ -99,6 +99,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		bool get_is_track_zero();
 		void step(int direction);
 		virtual bool get_drive_is_ready();
+		bool get_drive_is_read_only();
 
 	private:
 		Time bit_length_;

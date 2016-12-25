@@ -181,6 +181,12 @@ bool Controller::get_drive_is_ready()
 	return drive_->has_disk();
 }
 
+bool Controller::get_drive_is_read_only()
+{
+	if(!drive_) return false;
+	return drive_->get_is_read_only();
+}
+
 void Controller::step(int direction)
 {
 	if(drive_) drive_->step(direction);

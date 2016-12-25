@@ -40,6 +40,11 @@ unsigned int SSD::get_head_count()
 	return head_count_;
 }
 
+bool SSD::get_is_read_only()
+{
+	return false;
+}
+
 std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
