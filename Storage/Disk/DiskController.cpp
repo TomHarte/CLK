@@ -53,17 +53,25 @@ void Controller::run_for_cycles(int number_of_cycles)
 	if(drive_ && drive_->has_disk() && motor_is_on_)
 	{
 		if(!track_) setup_track();
-		number_of_cycles *= clock_rate_multiplier_;
-		while(number_of_cycles)
+
+		if(is_reading_)
 		{
-			int cycles_until_next_event = (int)get_cycles_until_next_event();
-			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+			number_of_cycles *= clock_rate_multiplier_;
+			while(number_of_cycles)
+			{
+				int cycles_until_next_event = (int)get_cycles_until_next_event();
+				int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 
-			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
+				cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
-			number_of_cycles -= cycles_to_run_for;
-			pll_->run_for_cycles(cycles_to_run_for);
-			TimedEventLoop::run_for_cycles(cycles_to_run_for);
+				number_of_cycles -= cycles_to_run_for;
+				pll_->run_for_cycles(cycles_to_run_for);
+				TimedEventLoop::run_for_cycles(cycles_to_run_for);
+			}
+		}
+		else
+		{
+			// TODO
 		}
 	}
 }
@@ -81,8 +89,8 @@ void Controller::get_next_event(const Time &duration_already_passed)
 		current_event_.type = Track::Event::IndexHole;
 	}
 
-	// divide interval, which is in terms of a rotation of the disk, by rotation speed, and
-	// convert it into revolutions per second
+	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
+	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	set_next_event_time_interval((current_event_.length - duration_already_passed) * rotational_multiplier_);
 }
 
@@ -115,19 +123,27 @@ Storage::Time Controller::get_time_into_track()
 
 void Controller::begin_writing()
 {
+	is_reading_ = false;
+
 	write_segment_.length_of_a_bit = bit_length_ * rotational_multiplier_;
 	write_segment_.data.clear();
 	write_segment_.number_of_bits = 0;
 
-//	write_start_time_;
+	write_start_time_ = get_time_into_track();
 }
 
 void Controller::write_bit(bool value)
 {
+	bool needs_new_byte = !(write_segment_.number_of_bits&7);
+	if(needs_new_byte) write_segment_.data.push_back(0);
+	if(value) write_segment_.data[write_segment_.number_of_bits >> 3] |= 0x80 >> (write_segment_.number_of_bits & 7);
+	write_segment_.number_of_bits++;
 }
 
 void Controller::end_writing()
 {
+	is_reading_ = true;
+	// TODO
 }
 
 #pragma mark - PLL control and delegate
