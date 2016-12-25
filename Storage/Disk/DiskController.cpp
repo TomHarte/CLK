@@ -17,7 +17,6 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 
 	cycles_since_index_hole_(0),
 	cycles_since_event_(0),
-	time_into_track_of_last_event_(0),
 	motor_is_on_(false),
 
 	is_reading_(true),
@@ -41,12 +40,10 @@ void Controller::setup_track()
 	{
 		Time time_found = track_->seek_to(track_time_now);
 		offset = track_time_now - time_found;
-		time_into_track_of_last_event_ = time_found;
 	}
 	else
 	{
 		offset = track_time_now;
-		time_into_track_of_last_event_.set_zero();
 	}
 
 	get_next_event(offset);
@@ -98,12 +95,10 @@ void Controller::process_next_event()
 	{
 		case Track::Event::FluxTransition:
 			pll_->add_pulse();
-			time_into_track_of_last_event_ += current_event_.length;
 		break;
 		case Track::Event::IndexHole:
 			printf("%p %d [/%d = %d]\n", this, cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
 			cycles_since_index_hole_ = 0;
-			time_into_track_of_last_event_.set_zero();
 			process_index_hole();
 		break;
 	}

@@ -112,7 +112,6 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 
 		inline void get_next_event(const Time &duration_already_passed);
 		Track::Event current_event_;
-		Time time_into_track_of_last_event_;
 		bool motor_is_on_;
 
 		bool is_reading_;
