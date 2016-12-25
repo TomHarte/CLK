@@ -86,10 +86,10 @@ void Controller::run_for_cycles(int number_of_cycles)
 				if(cycles_until_bits_written_ > zero)
 				{
 					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
-					if(cycles_until_bits_written_ < cycles_to_run_for_time)
+					if(cycles_until_bits_written_ <= cycles_to_run_for_time)
 					{
 						process_write_completed();
-						if(cycles_until_bits_written_ < cycles_to_run_for_time)
+						if(cycles_until_bits_written_ <= cycles_to_run_for_time)
 							cycles_until_bits_written_.set_zero();
 						else
 							cycles_until_bits_written_ -= cycles_to_run_for_time;
@@ -189,12 +189,12 @@ void Controller::set_expected_bit_length(Time bit_length)
 	bit_length_ = bit_length;
 	bit_length_.simplify();
 
-	cycles_per_bit_ = Storage::Time(8000000) * (bit_length * rotational_multiplier_) * Storage::Time(clock_rate_multiplier_);
+	cycles_per_bit_ = Storage::Time(clock_rate_) * bit_length;
 	cycles_per_bit_.simplify();
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
-	int clocks_per_bit = (int)((bit_length.length * clock_rate_) / bit_length.clock_rate);
+	int clocks_per_bit = (int)cycles_per_bit_.get_unsigned_int();
 	pll_.reset(new DigitalPhaseLockedLoop(clocks_per_bit, clocks_per_bit / 5, 3));
 	pll_->set_delegate(this);
 }
