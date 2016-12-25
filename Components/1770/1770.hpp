@@ -110,9 +110,10 @@ class WD1770: public Storage::Disk::Controller {
 			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
 			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
 			HeadLoad		= (1 << 3),	// Indicates the head has been loaded (1973 only).
+			DataWritten		= (1 << 4),	// Indicates that all queued bits have been written
 
-			Timer			= (1 << 4),	// Indicates that the delay_time_-powered timer has timed out.
-			IndexHoleTarget	= (1 << 5)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
+			Timer			= (1 << 5),	// Indicates that the delay_time_-powered timer has timed out.
+			IndexHoleTarget	= (1 << 6)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		};
 		void posit_event(Event type);
 		int interesting_event_mask_;
@@ -131,6 +132,7 @@ class WD1770: public Storage::Disk::Controller {
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
+		virtual void process_write_completed();
 };
 
 }

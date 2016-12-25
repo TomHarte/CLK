@@ -277,6 +277,12 @@ void WD1770::process_index_hole()
 	}
 }
 
+void WD1770::process_write_completed()
+{
+	posit_event(Event::DataWritten);
+}
+
+
 //     +------+----------+-------------------------+
 //     !	    !	       !	   BITS 	 !
 //     ! TYPE ! COMMAND  !  7  6	5  4  3  2  1  0 !
@@ -620,7 +626,46 @@ void WD1770::posit_event(Event new_event_type)
 			for(int b = 0; b < 16; b++)
 				write_bit(!(b&1));
 		}
+//		printf("%d\n", counter);
+		WAIT_FOR_EVENT(Event::DataWritten);
+		distance_into_section_ = 0;
+
+	type2_write_loop:
+		// TODO: real data
+		for(int b = 0; b < 16; b++)
+			write_bit(!(b&1));
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_EVENT(Event::DataWritten);
+		distance_into_section_++;
+		if(distance_into_section_ == 128 << header_[3])
+		{
+			goto type2_write_crc;
+		}
+
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+
+	type2_write_crc:
+		// TODO: write CRC and FF
+		for(int b = 0; b < 48; b++)
+			write_bit(!(b&1));
+		WAIT_FOR_EVENT(Event::DataWritten);
 		end_writing();
+
+		if(command_ & 0x10)
+		{
+			sector_++;
+			goto test_type2_write_protection;
+		}
+		printf("Wrote sector %d\n", sector_);
+		goto wait_for_command;
 
 	begin_type_3:
 		update_status([] (Status &status) {

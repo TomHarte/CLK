@@ -89,30 +89,70 @@ struct Time {
 
 	inline Time operator + (const Time &other) const
 	{
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length;
+		uint64_t result_clock_rate;
+		if(clock_rate == other.clock_rate)
+		{
+			result_length = (uint64_t)length + (uint64_t)other.length;
+			result_clock_rate = clock_rate;
+		}
+		else
+		{
+			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
+			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		}
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time &operator += (const Time &other)
 	{
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length;
+		uint64_t result_clock_rate;
+		if(clock_rate == other.clock_rate)
+		{
+			result_length = (uint64_t)length + (uint64_t)other.length;
+			result_clock_rate = (uint64_t)clock_rate;
+		}
+		else
+		{
+			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
+			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		}
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
 	inline Time operator - (const Time &other) const
 	{
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length;
+		uint64_t result_clock_rate;
+		if(clock_rate == other.clock_rate)
+		{
+			result_length = (uint64_t)length - (uint64_t)other.length;
+			result_clock_rate = clock_rate;
+		}
+		else
+		{
+			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
+			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		}
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time operator -= (const Time &other)
 	{
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length;
+		uint64_t result_clock_rate;
+		if(clock_rate == other.clock_rate)
+		{
+			result_length = (uint64_t)length - (uint64_t)other.length;
+			result_clock_rate = (uint64_t)clock_rate;
+		}
+		else
+		{
+			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
+			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		}
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}

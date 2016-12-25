@@ -67,7 +67,12 @@ void Controller::run_for_cycles(int number_of_cycles)
 		{
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
-			if(!is_reading_ && cycles_until_bits_written_ > zero) cycles_to_run_for = std::min(cycles_to_run_for, (int)cycles_until_bits_written_.get_unsigned_int());
+			if(!is_reading_ && cycles_until_bits_written_ > zero)
+			{
+				int write_cycles_target = (int)cycles_until_bits_written_.get_unsigned_int();
+				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
+				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
+			}
 
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
@@ -78,17 +83,20 @@ void Controller::run_for_cycles(int number_of_cycles)
 			}
 			else
 			{
-				if(cycles_until_bits_written_ > Storage::Time(0))
+				if(cycles_until_bits_written_ > zero)
 				{
-					Storage::Time number_of_cycles_time(number_of_cycles);
-					if(cycles_until_bits_written_ < number_of_cycles_time)
+					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
+					if(cycles_until_bits_written_ < cycles_to_run_for_time)
 					{
-						cycles_until_bits_written_.set_zero();
 						process_write_completed();
+						if(cycles_until_bits_written_ < cycles_to_run_for_time)
+							cycles_until_bits_written_.set_zero();
+						else
+							cycles_until_bits_written_ -= cycles_to_run_for_time;
 					}
 					else
 					{
-						cycles_until_bits_written_ -= number_of_cycles_time;
+						cycles_until_bits_written_ -= cycles_to_run_for_time;
 					}
 				}
 			}
