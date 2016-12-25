@@ -7,6 +7,7 @@
 //
 
 #include "DiskController.hpp"
+#include "../../NumberTheory/Factors.hpp"
 
 using namespace Storage::Disk;
 
@@ -55,6 +56,8 @@ void Controller::setup_track()
 
 void Controller::run_for_cycles(int number_of_cycles)
 {
+	Time zero(0);
+
 	if(drive_ && drive_->has_disk() && motor_is_on_)
 	{
 		if(!track_) setup_track();
@@ -64,11 +67,31 @@ void Controller::run_for_cycles(int number_of_cycles)
 		{
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+			if(!is_reading_ && cycles_until_bits_written_ > zero) cycles_to_run_for = std::min(cycles_to_run_for, (int)cycles_until_bits_written_.get_unsigned_int());
 
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
-			if(is_reading_) pll_->run_for_cycles(cycles_to_run_for);
+			if(is_reading_)
+			{
+				pll_->run_for_cycles(cycles_to_run_for);
+			}
+			else
+			{
+				if(cycles_until_bits_written_ > Storage::Time(0))
+				{
+					Storage::Time number_of_cycles_time(number_of_cycles);
+					if(cycles_until_bits_written_ < number_of_cycles_time)
+					{
+						cycles_until_bits_written_.set_zero();
+						process_write_completed();
+					}
+					else
+					{
+						cycles_until_bits_written_ -= number_of_cycles_time;
+					}
+				}
+			}
 			TimedEventLoop::run_for_cycles(cycles_to_run_for);
 		}
 	}
@@ -136,6 +159,8 @@ void Controller::write_bit(bool value)
 	if(needs_new_byte) write_segment_.data.push_back(0);
 	if(value) write_segment_.data[write_segment_.number_of_bits >> 3] |= 0x80 >> (write_segment_.number_of_bits & 7);
 	write_segment_.number_of_bits++;
+
+	cycles_until_bits_written_ += cycles_per_bit_;
 }
 
 void Controller::end_writing()
@@ -154,6 +179,8 @@ void Controller::end_writing()
 void Controller::set_expected_bit_length(Time bit_length)
 {
 	bit_length_ = bit_length;
+
+	cycles_per_bit_ = Storage::Time(8000000) * (bit_length * rotational_multiplier_);
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
@@ -212,4 +239,8 @@ void Controller::set_drive(std::shared_ptr<Drive> drive)
 void Controller::invalidate_track()
 {
 	track_ = nullptr;
+}
+
+void Controller::process_write_completed()
+{
 }

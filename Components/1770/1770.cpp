@@ -11,6 +11,8 @@
 
 using namespace WD;
 
+unsigned int counter = 0;
+
 WD1770::Status::Status() :
 	type(Status::One),
 	write_protect(false),
@@ -74,7 +76,12 @@ void WD1770::set_register(int address, uint8_t value)
 		break;
 		case 1:		track_ = value;		break;
 		case 2:		sector_ = value;	break;
-		case 3:		data_ = value;		break;
+		case 3:
+			data_ = value;
+			update_status([] (Status &status) {
+				status.data_request = false;
+			});
+		break;
 	}
 }
 
@@ -136,6 +143,7 @@ uint8_t WD1770::get_register(int address)
 
 void WD1770::run_for_cycles(unsigned int number_of_cycles)
 {
+	counter += number_of_cycles;
 	Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
 
 	if(delay_time_)
@@ -288,6 +296,7 @@ void WD1770::process_index_hole()
 
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = mask; return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; if(delay_time_) return; case __LINE__:
+#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; interesting_event_mask_ = Event::Token; distance_into_section_ = 0; return; case __LINE__: if(latest_token_.type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = Event::Token; return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }
 
@@ -586,7 +595,32 @@ void WD1770::posit_event(Event new_event_type)
 
 
 	type2_write_data:
-		printf("!!!TODO: data portion of sector!!!\n");
+		WAIT_FOR_BYTES(2);
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_BYTES(9);
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+		WAIT_FOR_BYTES(1);
+		if(is_double_density_)
+		{
+			WAIT_FOR_BYTES(11);
+		}
+
+		begin_writing();
+		for(int c = 0; c < (is_double_density_ ? 12 : 6); c++)
+		{
+			// zero is encoded the same way in both FM and MFM
+			for(int b = 0; b < 16; b++)
+				write_bit(!(b&1));
+		}
+		end_writing();
 
 	begin_type_3:
 		update_status([] (Status &status) {

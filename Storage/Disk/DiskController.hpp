@@ -86,9 +86,15 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole) = 0;
 
 		/*!
-			Should be implemented by subcalsses; communicates that the index hole has been reached.
+			Should be implemented by subclasses; communicates that the index hole has been reached.
 		*/
 		virtual void process_index_hole() = 0;
+
+		/*!
+			Should be implemented by subclasses if they implement writing; communicates that
+			all bits supplied to write_bit have now been written.
+		*/
+		virtual void process_write_completed();
 
 		// for TimedEventLoop
 		virtual void process_next_event();
@@ -121,6 +127,9 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		std::shared_ptr<PCMPatchedTrack> patched_track_;
 		PCMSegment write_segment_;
 		Time write_start_time_;
+
+		Time cycles_until_bits_written_;
+		Time cycles_per_bit_;
 
 		void setup_track();
 		Time get_time_into_track();
