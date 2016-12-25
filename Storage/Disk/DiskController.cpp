@@ -16,7 +16,6 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 	rotational_multiplier_(60u, revolutions_per_minute),
 
 	cycles_since_index_hole_(0),
-	cycles_since_event_(0),
 	motor_is_on_(false),
 
 	is_reading_(true),
@@ -61,7 +60,6 @@ void Controller::run_for_cycles(int number_of_cycles)
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
-			cycles_since_event_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
 			pll_->run_for_cycles(cycles_to_run_for);
@@ -90,7 +88,6 @@ void Controller::get_next_event(const Time &duration_already_passed)
 
 void Controller::process_next_event()
 {
-	cycles_since_event_ = 0;
 	switch(current_event_.type)
 	{
 		case Track::Event::FluxTransition:

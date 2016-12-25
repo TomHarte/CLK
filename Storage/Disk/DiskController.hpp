@@ -108,7 +108,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;
 		std::shared_ptr<Track> track_;
-		unsigned int cycles_since_index_hole_, cycles_since_event_;
+		unsigned int cycles_since_index_hole_;
 
 		inline void get_next_event(const Time &duration_already_passed);
 		Track::Event current_event_;
