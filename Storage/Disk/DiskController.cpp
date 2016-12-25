@@ -30,6 +30,11 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 
 void Controller::setup_track()
 {
+	if(patched_track_)
+	{
+		drive_->set_track(patched_track_);
+	}
+
 	track_ = drive_->get_track();
 	track_is_dirty_ = false;
 
@@ -143,7 +148,12 @@ void Controller::write_bit(bool value)
 void Controller::end_writing()
 {
 	is_reading_ = true;
-	// TODO
+
+	if(!patched_track_)
+	{
+		patched_track_.reset(new PCMPatchedTrack(track_));
+	}
+	patched_track_->add_segment(write_start_time_, write_segment_);
 }
 
 #pragma mark - PLL control and delegate
