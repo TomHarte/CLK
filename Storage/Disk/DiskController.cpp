@@ -179,8 +179,10 @@ void Controller::end_writing()
 void Controller::set_expected_bit_length(Time bit_length)
 {
 	bit_length_ = bit_length;
+	bit_length_.simplify();
 
 	cycles_per_bit_ = Storage::Time(8000000) * (bit_length * rotational_multiplier_);
+	cycles_per_bit_.simplify();
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
