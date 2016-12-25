@@ -59,24 +59,17 @@ void Controller::run_for_cycles(int number_of_cycles)
 	{
 		if(!track_) setup_track();
 
-		if(is_reading_)
+		number_of_cycles *= clock_rate_multiplier_;
+		while(number_of_cycles)
 		{
-			number_of_cycles *= clock_rate_multiplier_;
-			while(number_of_cycles)
-			{
-				int cycles_until_next_event = (int)get_cycles_until_next_event();
-				int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+			int cycles_until_next_event = (int)get_cycles_until_next_event();
+			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 
-				cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
+			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
-				number_of_cycles -= cycles_to_run_for;
-				pll_->run_for_cycles(cycles_to_run_for);
-				TimedEventLoop::run_for_cycles(cycles_to_run_for);
-			}
-		}
-		else
-		{
-			// TODO
+			number_of_cycles -= cycles_to_run_for;
+			pll_->run_for_cycles(cycles_to_run_for);
+			TimedEventLoop::run_for_cycles(cycles_to_run_for);
 		}
 	}
 }
