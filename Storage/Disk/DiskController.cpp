@@ -68,7 +68,7 @@ void Controller::run_for_cycles(int number_of_cycles)
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
-			pll_->run_for_cycles(cycles_to_run_for);
+			if(is_reading_) pll_->run_for_cycles(cycles_to_run_for);
 			TimedEventLoop::run_for_cycles(cycles_to_run_for);
 		}
 	}
@@ -97,7 +97,7 @@ void Controller::process_next_event()
 	switch(current_event_.type)
 	{
 		case Track::Event::FluxTransition:
-			pll_->add_pulse();
+			if(is_reading_) pll_->add_pulse();
 		break;
 		case Track::Event::IndexHole:
 			printf("%p %d [/%d = %d]\n", this, cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);

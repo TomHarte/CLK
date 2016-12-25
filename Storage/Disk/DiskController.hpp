@@ -62,9 +62,10 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		bool get_motor_on();
 
 		/*!
-			Begins write mode, initiating a PCM sampled region of data. During write mode, no events will
-			be reported. Bits should be written via @c write_bit. They will be written with the length set
-			via @c set_expected_bit_length.
+			Begins write mode, initiating a PCM sampled region of data. Bits should be written via
+			@c write_bit. They will be written with the length set via @c set_expected_bit_length.
+			It is acceptable to supply a backlog of bits. Flux transition events will not be reported
+			while writing.
 		*/
 		void begin_writing();
 
@@ -74,8 +75,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		void write_bit(bool value);
 
 		/*!
-			Ends write mode, switching back to read mode. The drive will return to posting events based
-			on the recorded track.
+			Ends write mode, switching back to read mode. The drive will stop overwriting events.
 		*/
 		void end_writing();
 
