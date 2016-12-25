@@ -39,8 +39,19 @@ void Drive::set_head(unsigned int head)
 	head_ = head;
 }
 
+bool Drive::get_is_read_only()
+{
+	if(disk_) return disk_->get_is_read_only();
+	return false;
+}
+
 std::shared_ptr<Track> Drive::get_track()
 {
 	if(disk_) return disk_->get_track_at_position(head_, (unsigned int)head_position_);
 	return nullptr;
+}
+
+void Drive::set_track(const std::shared_ptr<Track> &track)
+{
+	if(disk_) disk_->set_track_at_position(head_, (unsigned int)head_position_, track);
 }

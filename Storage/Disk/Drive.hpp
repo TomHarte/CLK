@@ -44,7 +44,10 @@ class Drive {
 		*/
 		void set_head(unsigned int head);
 
+		bool get_is_read_only();
+
 		std::shared_ptr<Track> get_track();
+		void set_track(const std::shared_ptr<Track> &track);
 
 	private:
 		std::shared_ptr<Disk> disk_;
