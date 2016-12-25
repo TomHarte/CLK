@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <map>
+#include <set>
 #include "../Storage.hpp"
 
 namespace Storage {
@@ -48,7 +49,7 @@ class Track {
 
 			@returns the time jumped to.
 		*/
-		virtual Time seek_to(Time time_since_index_hole) = 0;
+		virtual Time seek_to(const Time &time_since_index_hole) = 0;
 };
 
 /*!
@@ -85,6 +86,18 @@ class Disk {
 		*/
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
+		/*!
+			Replaces the Track at position @c position underneath @c head with @c track. Ignored if this disk is read-only.
+			Subclasses that are not read-only should use the protected methods @c get_is_modified and, optionally,
+			@c get_modified_track_at_position to query for changes when closing.
+		*/
+		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
+
+		/*!
+			@returns whether the disk image is read only. Defaults to @c true if not overridden.
+		*/
+		virtual bool get_is_read_only() { return true; }
+
 	protected:
 		/*!
 			Subclasses should implement this to return the @c Track at @c position underneath @c head. Returned tracks
@@ -93,8 +106,20 @@ class Disk {
 		*/
 		virtual std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position) = 0;
 
+		/*!
+			@returns @c true if any calls to set_track_at_position occurred; @c false otherwise.
+		*/
+		bool get_is_modified();
+
+		/*!
+			@returns the @c Track at @c position underneath @c head if a modification was written there.
+		*/
+		std::shared_ptr<Track> get_modified_track_at_position(unsigned int head, unsigned int position);
+
 	private:
 		std::map<int, std::shared_ptr<Track>> cached_tracks_;
+		std::set<int> modified_tracks_;
+		int get_id_for_track_at_position(unsigned int head, unsigned int position);
 };
 
 }

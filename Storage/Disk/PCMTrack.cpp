@@ -11,111 +11,105 @@
 
 using namespace Storage::Disk;
 
-PCMTrack::PCMTrack(std::vector<PCMSegment> segments)
-{
-	segments_ = std::move(segments);
-	fix_length();
-}
+PCMTrack::PCMTrack() : segment_pointer_(0)
+{}
 
-PCMTrack::PCMTrack(PCMSegment segment)
+PCMTrack::PCMTrack(const std::vector<PCMSegment> &segments) : PCMTrack()
 {
-	segment.length_of_a_bit.length = 1;
-	segment.length_of_a_bit.clock_rate = 1;
-	segments_.push_back(std::move(segment));
-	fix_length();
-}
-
-PCMTrack::Event PCMTrack::get_next_event()
-{
-	// find the next 1 in the input stream, keeping count of length as we go, and assuming it's going
-	// to be a flux transition
-	next_event_.type = Track::Event::FluxTransition;
-	next_event_.length.length = 0;
-	while(segment_pointer_ < segments_.size())
+	// sum total length of all segments
+	Time total_length;
+	for(auto segment : segments)
 	{
-		unsigned int clock_multiplier = track_clock_rate_ / segments_[segment_pointer_].length_of_a_bit.clock_rate;
-		unsigned int bit_length = clock_multiplier * segments_[segment_pointer_].length_of_a_bit.length;
+		total_length += segment.length_of_a_bit * segment.number_of_bits;
+	}
+	total_length.simplify();
 
-		const uint8_t *segment_data = &segments_[segment_pointer_].data[0];
-		while(bit_pointer_ < segments_[segment_pointer_].number_of_bits)
+	// each segment is then some proportion of the total; for them all to sum to 1 they'll
+	// need to be adjusted to be
+	for(auto segment : segments)
+	{
+		Time original_length_of_segment = segment.length_of_a_bit * segment.number_of_bits;
+		Time proportion_of_whole = original_length_of_segment / total_length;
+		proportion_of_whole.simplify();
+		PCMSegment length_adjusted_segment = segment;
+		length_adjusted_segment.length_of_a_bit = proportion_of_whole / segment.number_of_bits;
+		length_adjusted_segment.length_of_a_bit.simplify();
+		segment_event_sources_.emplace_back(length_adjusted_segment);
+	}
+}
+
+PCMTrack::PCMTrack(const PCMSegment &segment) : PCMTrack()
+{
+	// a single segment necessarily fills the track
+	PCMSegment length_adjusted_segment = segment;
+	length_adjusted_segment.length_of_a_bit.length = 1;
+	length_adjusted_segment.length_of_a_bit.clock_rate = segment.number_of_bits;
+	segment_event_sources_.emplace_back(length_adjusted_segment);
+}
+
+Track::Event PCMTrack::get_next_event()
+{
+	// ask the current segment for a new event
+	Track::Event event = segment_event_sources_[segment_pointer_].get_next_event();
+
+	// if it was a flux transition, that's code for end-of-segment, so dig deeper
+	if(event.type == Track::Event::IndexHole)
+	{
+		// multiple segments may be crossed, so start summing lengths in case the net
+		// effect is an index hole
+		Time total_length = event.length;
+
+		// continue until somewhere no returning an index hole
+		while(event.type == Track::Event::IndexHole)
 		{
-			// for timing simplicity, bits are modelled as happening at the end of their window
-			// TODO: should I account for the converse bit ordering? Or can I assume MSB first?
-			int bit = segment_data[bit_pointer_ >> 3] & (0x80 >> (bit_pointer_&7));
-			bit_pointer_++;
-			next_event_.length.length += bit_length;
+			// advance to the [start of] the next segment
+			segment_pointer_ = (segment_pointer_ + 1) % segment_event_sources_.size();
+			segment_event_sources_[segment_pointer_].reset();
 
-			if(bit) return next_event_;
+			// if this is all the way back to the start, that's a genuine index hole,
+			// so set the summed length and return
+			if(!segment_pointer_)
+			{
+				return event;
+			}
+
+			// otherwise get the next event (if it's not another index hole, the loop will end momentarily),
+			// summing in any prior accumulated time
+			event = segment_event_sources_[segment_pointer_].get_next_event();
+			total_length += event.length;
+			event.length = total_length;
 		}
-		bit_pointer_ = 0;
-		segment_pointer_++;
 	}
 
-	// check whether we actually reached the index hole
-	if(segment_pointer_ == segments_.size())
-	{
-		segment_pointer_ = 0;
-		next_event_.type = Track::Event::IndexHole;
-	}
-
-	return next_event_;
+	return event;
 }
 
-Storage::Time PCMTrack::seek_to(Time time_since_index_hole)
+Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole)
 {
+	// initial condition: no time yet accumulated, the whole thing requested yet to navigate
+	Storage::Time accumulated_time;
+	Storage::Time time_left_to_seek = time_since_index_hole;
+
+	// search from the first segment
 	segment_pointer_ = 0;
-
-	// pick a common clock rate for counting time on this track and multiply up the time being sought appropriately
-	Time time_so_far;
-	time_so_far.clock_rate = NumberTheory::least_common_multiple(next_event_.length.clock_rate, time_since_index_hole.clock_rate);
-	time_since_index_hole.length *= time_so_far.clock_rate / time_since_index_hole.clock_rate;
-	time_since_index_hole.clock_rate = time_so_far.clock_rate;
-
-	while(segment_pointer_ < segments_.size())
+	do
 	{
-		// determine how long this segment is in terms of the master clock
-		unsigned int clock_multiplier = time_so_far.clock_rate / next_event_.length.clock_rate;
-		unsigned int bit_length = ((clock_multiplier / track_clock_rate_) / segments_[segment_pointer_].length_of_a_bit.clock_rate) * segments_[segment_pointer_].length_of_a_bit.length;
-		unsigned int time_in_this_segment = bit_length * segments_[segment_pointer_].number_of_bits;
-
-		// if this segment goes on longer than the time being sought, end here
-		unsigned int time_remaining = time_since_index_hole.length - time_so_far.length;
-		if(time_in_this_segment >= time_remaining)
+		// if this segment extends beyond the amount of time left to seek, trust it to complete
+		// the seek
+		Storage::Time segment_time = segment_event_sources_[segment_pointer_].get_length();
+		if(segment_time > time_left_to_seek)
 		{
-			// get the amount of time actually to move into this segment
-			unsigned int time_found = time_remaining - (time_remaining % bit_length);
-
-			// resolve that into the stateful bit count
-			bit_pointer_ = 1 + (time_remaining / bit_length);
-
-			// update and return the time sought to
-			time_so_far.length += time_found;
-			return time_so_far;
+			return accumulated_time + segment_event_sources_[segment_pointer_].seek_to(time_left_to_seek);
 		}
 
-		// otherwise, accumulate time and keep moving
-		time_so_far.length += time_in_this_segment;
-		segment_pointer_++;
+		// otherwise swallow this segment, updating the time left to seek and time so far accumulated
+		time_left_to_seek -= segment_time;
+		accumulated_time += segment_time;
+		segment_pointer_ = (segment_pointer_ + 1) % segment_event_sources_.size();
 	}
-	return time_since_index_hole;
-}
+	while(segment_pointer_);
 
-void PCMTrack::fix_length()
-{
-	// find the least common multiple of all segment clock rates
-	track_clock_rate_ = segments_[0].length_of_a_bit.clock_rate;
-	for(size_t c = 1; c < segments_.size(); c++)
-	{
-		track_clock_rate_ = NumberTheory::least_common_multiple(track_clock_rate_, segments_[c].length_of_a_bit.clock_rate);
-	}
-
-	// thereby determine the total length, storing it to next_event as the track-total divisor
-	next_event_.length.clock_rate = 0;
-	for(size_t c = 0; c < segments_.size(); c++)
-	{
-		unsigned int multiplier = track_clock_rate_ / segments_[c].length_of_a_bit.clock_rate;
-		next_event_.length.clock_rate += segments_[c].length_of_a_bit.length * segments_[c].number_of_bits * multiplier;
-	}
-
-	segment_pointer_ = bit_pointer_ = 0;
+	// if all segments have now been swallowed, the closest we can get is the very end of
+	// the list of segments
+	return accumulated_time;
 }

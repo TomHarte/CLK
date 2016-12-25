@@ -11,6 +11,8 @@
 
 #include "Drive.hpp"
 #include "DigitalPhaseLockedLoop.hpp"
+#include "PCMSegment.hpp"
+#include "PCMPatchedTrack.hpp"
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
@@ -60,6 +62,24 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		bool get_motor_on();
 
 		/*!
+			Begins write mode, initiating a PCM sampled region of data. Bits should be written via
+			@c write_bit. They will be written with the length set via @c set_expected_bit_length.
+			It is acceptable to supply a backlog of bits. Flux transition events will not be reported
+			while writing.
+		*/
+		void begin_writing();
+
+		/*!
+			Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
+		*/
+		void write_bit(bool value);
+
+		/*!
+			Ends write mode, switching back to read mode. The drive will stop overwriting events.
+		*/
+		void end_writing();
+
+		/*!
 			Should be implemented by subclasses; communicates each bit that the PLL recognises, also specifying
 			the amount of time since the index hole was last seen.
 		*/
@@ -91,12 +111,18 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		std::shared_ptr<Track> track_;
 		unsigned int cycles_since_index_hole_;
 
-		inline void get_next_event();
+		inline void get_next_event(const Time &duration_already_passed);
 		Track::Event current_event_;
-		Time time_into_track_;
 		bool motor_is_on_;
 
+		bool is_reading_;
+		bool track_is_dirty_;
+		std::shared_ptr<PCMPatchedTrack> patched_track_;
+		PCMSegment write_segment_;
+		Time write_start_time_;
+
 		void setup_track();
+		Time get_time_into_track();
 };
 
 }

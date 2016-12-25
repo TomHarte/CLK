@@ -35,11 +35,6 @@ void TimedEventLoop::reset_timer()
 	cycles_until_event_ = 0;
 }
 
-void TimedEventLoop::reset_timer_to_offset(Time offset)
-{
-	// TODO: apply
-}
-
 void TimedEventLoop::jump_to_next_event()
 {
 	reset_timer();

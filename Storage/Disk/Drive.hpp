@@ -35,16 +35,30 @@ class Drive {
 		bool get_is_track_zero();
 
 		/*!
-			Steps the disk head the specified number of tracks. Positive numbers step inwards, negative numbers
-			step outwards.
+			Steps the disk head the specified number of tracks. Positive numbers step inwards (i.e. away from track 0),
+			negative numbers step outwards (i.e. towards track 0).
 		*/
 		void step(int direction);
 
 		/*!
+			Sets the current read head.
 		*/
 		void set_head(unsigned int head);
 
+		/*!
+			@returns @c true if the inserted disk is read-only; @c false otherwise.
+		*/
+		bool get_is_read_only();
+
+		/*!
+			@returns the track underneath the current head at the location now stepped to.
+		*/
 		std::shared_ptr<Track> get_track();
+
+		/*!
+			Attempts to set @c track as the track underneath the current head at the location now stepped to.
+		*/
+		void set_track(const std::shared_ptr<Track> &track);
 
 	private:
 		std::shared_ptr<Disk> disk_;
