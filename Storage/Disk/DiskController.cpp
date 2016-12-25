@@ -49,8 +49,7 @@ void Controller::setup_track()
 		time_into_track_of_last_event_.set_zero();
 	}
 
-	reset_timer_to_offset(offset * rotational_multiplier_);
-	get_next_event();
+	get_next_event(offset);
 }
 
 void Controller::run_for_cycles(int number_of_cycles)
@@ -76,7 +75,7 @@ void Controller::run_for_cycles(int number_of_cycles)
 
 #pragma mark - Track timed event loop
 
-void Controller::get_next_event()
+void Controller::get_next_event(const Time &duration_already_passed)
 {
 	if(track_)
 		current_event_ = track_->get_next_event();
@@ -89,7 +88,7 @@ void Controller::get_next_event()
 
 	// divide interval, which is in terms of a rotation of the disk, by rotation speed, and
 	// convert it into revolutions per second
-	set_next_event_time_interval(current_event_.length * rotational_multiplier_);
+	set_next_event_time_interval((current_event_.length - duration_already_passed) * rotational_multiplier_);
 }
 
 void Controller::process_next_event()
@@ -108,7 +107,7 @@ void Controller::process_next_event()
 			process_index_hole();
 		break;
 	}
-	get_next_event();
+	get_next_event(Time(0));
 }
 
 Storage::Time Controller::get_time_into_track()
