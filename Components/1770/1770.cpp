@@ -626,7 +626,6 @@ void WD1770::posit_event(Event new_event_type)
 			for(int b = 0; b < 16; b++)
 				write_bit(!(b&1));
 		}
-//		printf("%d\n", counter);
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
 
@@ -637,7 +636,9 @@ void WD1770::posit_event(Event new_event_type)
 		update_status([] (Status &status) {
 			status.data_request = true;
 		});
+		printf("- %d\n", counter);
 		WAIT_FOR_EVENT(Event::DataWritten);
+		printf("+ %d\n", counter);
 		distance_into_section_++;
 		if(distance_into_section_ == 128 << header_[3])
 		{
@@ -651,6 +652,8 @@ void WD1770::posit_event(Event new_event_type)
 			});
 			goto wait_for_command;
 		}
+
+		goto type2_write_loop;
 
 	type2_write_crc:
 		// TODO: write CRC and FF
