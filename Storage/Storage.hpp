@@ -223,8 +223,27 @@ struct Time {
 			float mantissa = frexpf(value, &exponent);
 			float loaded_mantissa = ldexpf(mantissa, 24);
 
-			uint64_t result_length = (uint64_t)loaded_mantissa;
-			uint64_t result_clock_rate = 1 << (exponent + 24);
+			uint64_t result_length;
+			uint64_t result_clock_rate;
+			if(exponent < 0)
+			{
+				int right_shift = -exponent;
+				result_length = (uint64_t)loaded_mantissa >> right_shift;
+				result_clock_rate = 1;
+			}
+			else
+			{
+				if(exponent <= 24)
+				{
+					result_length = (uint64_t)loaded_mantissa;
+					result_clock_rate = 1 << (24 - exponent);
+				}
+				else
+				{
+					result_length = std::numeric_limits<uint64_t>::max();
+					result_clock_rate = 1;
+				}
+			}
 			install_result(result_length, result_clock_rate);
 		}
 };
