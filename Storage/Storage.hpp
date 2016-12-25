@@ -224,7 +224,7 @@ struct Time {
 			float loaded_mantissa = ldexpf(mantissa, 24);
 
 			uint64_t result_length = (uint64_t)loaded_mantissa;
-			uint64_t result_clock_rate = 1 << (exponent - 24);
+			uint64_t result_clock_rate = 1 << (exponent + 24);
 			install_result(result_length, result_clock_rate);
 		}
 };

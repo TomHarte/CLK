@@ -17,6 +17,7 @@
 		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
+		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
 		4B1E85751D170228001EF87D /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85731D170228001EF87D /* Typer.cpp */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
@@ -440,6 +441,7 @@
 		4B14145A1B58879D00E04248 /* CPU6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502AllRAM.hpp; sourceTree = "<group>"; };
 		4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WolfgangLorenzTests.swift; sourceTree = "<group>"; };
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
+		4B1D08051E0F7A1100763741 /* TimeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TimeTests.mm; sourceTree = "<group>"; };
 		4B1E85731D170228001EF87D /* Typer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Typer.cpp; sourceTree = "<group>"; };
 		4B1E85741D170228001EF87D /* Typer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Typer.hpp; sourceTree = "<group>"; };
 		4B1E857B1D174DEC001EF87D /* 6532.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6532.hpp; sourceTree = "<group>"; };
@@ -1692,6 +1694,7 @@
 				4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
+				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -2468,6 +2471,7 @@
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
 				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
+				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
 				4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
