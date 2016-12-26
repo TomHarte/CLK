@@ -196,15 +196,16 @@ Track::Event PCMPatchedTrack::get_next_event()
 
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 {
-	// start at the beginning and continue while segments start after the time sought
+	// start at the beginning and continue while segments end before reaching the time sought
 	active_period_ = periods_.begin();
-	while(active_period_->start_time > time_since_index_hole) active_period_++;
+	while(active_period_->end_time < time_since_index_hole) active_period_++;
 
 	// allow whatever storage represents the period found to perform its seek
 	if(active_period_->event_source)
-		return active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
+		current_time_ = active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
 	else
-		return underlying_track_->seek_to(time_since_index_hole);
+		current_time_ = underlying_track_->seek_to(time_since_index_hole);
+	return current_time_;
 }
 
 void PCMPatchedTrack::Period::push_start_to_time(const Storage::Time &new_start_time)
