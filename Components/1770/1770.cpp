@@ -629,11 +629,11 @@ void WD1770::posit_event(Event new_event_type)
 		if(is_double_density_)
 		{
 			write_raw_short(Storage::Encodings::MFM::MFMAddressMark);
-			write_byte(command_&1 ? Storage::Encodings::MFM::MFMDataAddressByte : Storage::Encodings::MFM::MFMDeletedDataAddressByte);
+			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDataAddressByte : Storage::Encodings::MFM::MFMDeletedDataAddressByte);
 		}
 		else
 		{
-			write_raw_short(command_&1 ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
 		}
 
 		WAIT_FOR_EVENT(Event::DataWritten);
