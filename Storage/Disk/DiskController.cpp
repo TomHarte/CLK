@@ -34,14 +34,10 @@ void Controller::setup_track()
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
-	if(track_ && track_time_now > Time(0))
+	if(track_)
 	{
 		Time time_found = track_->seek_to(track_time_now);
 		offset = track_time_now - time_found;
-	}
-	else
-	{
-		offset = track_time_now;
 	}
 
 	get_next_event(offset);
@@ -170,6 +166,8 @@ void Controller::end_writing()
 
 	if(!patched_track_)
 	{
+		// TODO: is the track already actually a patched track?
+		// see dynamic_pointer_cast
 		patched_track_.reset(new PCMPatchedTrack(track_));
 	}
 	patched_track_->add_segment(write_start_time_, write_segment_);
