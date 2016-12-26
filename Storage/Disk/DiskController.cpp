@@ -166,11 +166,15 @@ void Controller::end_writing()
 
 	if(!patched_track_)
 	{
-		// TODO: is the track already actually a patched track?
-		// see dynamic_pointer_cast
-		patched_track_.reset(new PCMPatchedTrack(track_));
+		// Avoid creating a new patched track if this one is already patched
+		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
+		if(!patched_track_)
+		{
+			patched_track_.reset(new PCMPatchedTrack(track_));
+		}
 	}
 	patched_track_->add_segment(write_start_time_, write_segment_);
+	invalidate_track();	// TEMPORARY: to force a seek
 }
 
 #pragma mark - PLL control and delegate

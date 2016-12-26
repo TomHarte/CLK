@@ -43,8 +43,7 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 
 	// the vector may have been resized, potentially invalidating active_period_ even if
 	// the thing it pointed to is still the same thing. So work it out afresh.
-	active_period_ = periods_.begin();
-	while(active_period_->start_time > current_time_) active_period_++;
+	insertion_error_ = current_time_ - seek_to(current_time_);
 }
 
 void PCMPatchedTrack::insert_period(const Period &period)
@@ -155,7 +154,8 @@ Track::Event PCMPatchedTrack::get_next_event()
 		else event = underlying_track_->get_next_event();
 
 		// see what time that gets us to. If it's still within the current period, return the found event
-		Time event_time = current_time_ + event.length - period_error;
+		Time event_time = current_time_ + event.length - period_error - insertion_error_;
+		insertion_error_.set_zero();
 		if(event_time < active_period_->end_time)
 		{
 			current_time_ = event_time;

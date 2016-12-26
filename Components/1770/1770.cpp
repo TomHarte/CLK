@@ -535,7 +535,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
-			printf("Considering %d/%d\n", header_[0], header_[2]);
+			printf("Considering %d/%d at %0.4f\n", header_[0], header_[2], get_time_into_track().get_float());
 			is_reading_data_ = false;
 			if(header_[0] == track_ && header_[2] == sector_ &&
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
@@ -563,6 +563,7 @@ void WD1770::posit_event(Event new_event_type)
 			});
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
+			printf("\n");
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -570,7 +571,7 @@ void WD1770::posit_event(Event new_event_type)
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		data_ = latest_token_.byte_value;
+		data_ = latest_token_.byte_value; printf("%02x", data_);
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
@@ -579,6 +580,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 128 << header_[3])
 		{
 			distance_into_section_ = 0;
+			printf("\n");
 			goto type2_check_crc;
 		}
 		goto type2_read_byte;
@@ -640,9 +642,10 @@ void WD1770::posit_event(Event new_event_type)
 
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
+		printf("\n");
 
 	type2_write_loop:
-		write_byte(data_);
+		write_byte(data_); printf("%02x", data_);
 		update_status([] (Status &status) {
 			status.data_request = true;
 		});
@@ -650,6 +653,7 @@ void WD1770::posit_event(Event new_event_type)
 		distance_into_section_++;
 		if(distance_into_section_ == 128 << header_[3])
 		{
+			printf("\n");
 			goto type2_write_crc;
 		}
 

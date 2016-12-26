@@ -52,7 +52,7 @@ class PCMPatchedTrack: public Track {
 		};
 		std::vector<Period> periods_;
 		std::vector<Period>::iterator active_period_;
-		Time current_time_;
+		Time current_time_, insertion_error_;
 
 		void insert_period(const Period &period);
 };
