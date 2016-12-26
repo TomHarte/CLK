@@ -535,10 +535,12 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
+			printf("Considering %d/%d\n", header_[0], header_[2]);
 			is_reading_data_ = false;
 			if(header_[0] == track_ && header_[2] == sector_ &&
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
+				printf("Found %d/%d\n", header_[0], header_[2]);
 				// TODO: test CRC
 				goto type2_read_or_write_data;
 			}

@@ -235,8 +235,11 @@ bool Controller::get_motor_on()
 
 void Controller::set_drive(std::shared_ptr<Drive> drive)
 {
-	invalidate_track();
-	drive_ = drive;
+	if(drive_ != drive)
+	{
+		invalidate_track();
+		drive_ = drive;
+	}
 }
 
 void Controller::invalidate_track()
