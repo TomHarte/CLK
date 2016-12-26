@@ -10,6 +10,7 @@
 #define _770_hpp
 
 #include "../../Storage/Disk/DiskController.hpp"
+#include "../../NumberTheory/CRC.hpp"
 
 namespace WD {
 
@@ -128,6 +129,9 @@ class WD1770: public Storage::Disk::Controller {
 
 		// ID buffer
 		uint8_t header_[6];
+
+		// CRC generator
+		NumberTheory::CRC16 crc_generator_;
 
 		// 1793 head-loading logic
 		bool head_is_loaded_;

@@ -29,6 +29,7 @@ WD1770::Status::Status() :
 
 WD1770::WD1770(Personality p) :
 	Storage::Disk::Controller(8000000, 16, 300),
+	crc_generator_(0x1021, 0xffff),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
 	delay_time_(0),
@@ -563,6 +564,7 @@ void WD1770::posit_event(Event new_event_type)
 			});
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
+			crc_generator_.reset();
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -571,6 +573,7 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
 		data_ = latest_token_.byte_value;
+		crc_generator_.add(data_);
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
@@ -590,7 +593,12 @@ void WD1770::posit_event(Event new_event_type)
 		distance_into_section_++;
 		if(distance_into_section_ == 2)
 		{
-			// TODO: check CRC
+			uint16_t crc = crc_generator_.get_value();
+			if((crc >> 8) != header_[0] || (crc&0xff) != header_[1])
+			{
+				printf("CRC error: %04x v %02x%02x\n", crc, header_[0], header_[1]);
+			}
+
 			if(command_ & 0x10)
 			{
 				sector_++;
@@ -640,6 +648,7 @@ void WD1770::posit_event(Event new_event_type)
 
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
+		crc_generator_.reset();
 
 	type2_write_loop:
 		/*
@@ -650,6 +659,7 @@ void WD1770::posit_event(Event new_event_type)
 			natural expectations and the way that emulated machines responded, I believe that to be a
 			documentation error.
 		*/
+		crc_generator_.add(data_);
 		write_byte(data_);
 		distance_into_section_++;
 		if(distance_into_section_ < 128 << header_[3])
@@ -675,9 +685,11 @@ void WD1770::posit_event(Event new_event_type)
 		goto type2_write_loop;
 
 	type2_write_crc:
-		// TODO: write CRC
-		write_byte(0);
-		write_byte(0);
+		{
+			uint16_t crc = crc_generator_.get_value();
+			write_byte(crc >> 8);
+			write_byte((crc & 0xff));
+		}
 		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
 		end_writing();
