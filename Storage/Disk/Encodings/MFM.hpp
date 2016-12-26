@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <vector>
 #include "../Disk.hpp"
+#include "../DiskController.hpp"
+#include "../../../NumberTheory/CRC.hpp"
 
 namespace Storage {
 namespace Encodings {
@@ -55,6 +57,34 @@ class Encoder {
 
 std::unique_ptr<Encoder> GetMFMEncoder(std::vector<uint8_t> &target);
 std::unique_ptr<Encoder> GetFMEncoder(std::vector<uint8_t> &target);
+
+class Parser: public Storage::Disk::Controller {
+	public:
+		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk);
+
+		/*!
+			Attempts to read the sector located at @c track and @c sector.
+
+			@returns a sector if one was found; @c nullptr otherwise.
+		*/
+		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t track, uint8_t sector);
+
+	private:
+		std::shared_ptr<Storage::Disk::Drive> drive;
+		unsigned int shift_register_;
+		int index_count_;
+		uint8_t track_;
+		int bit_count_;
+		NumberTheory::CRC16 crc_generator_;
+		bool is_mfm_;
+
+		void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		void process_index_hole();
+		uint8_t get_next_byte();
+		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
+		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
+};
+
 
 }
 }

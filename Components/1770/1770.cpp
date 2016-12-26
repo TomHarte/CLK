@@ -632,9 +632,7 @@ void WD1770::posit_event(Event new_event_type)
 		update_status([] (Status &status) {
 			status.data_request = true;
 		});
-		printf("- %d\n", counter);
 		WAIT_FOR_EVENT(Event::DataWritten);
-		printf("+ %d\n", counter);
 		distance_into_section_++;
 		if(distance_into_section_ == 128 << header_[3])
 		{

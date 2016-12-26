@@ -211,3 +211,152 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 {
 	return std::unique_ptr<Encoder>(new FMEncoder(target));
 }
+
+#pragma mark - Parser
+
+Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
+	Storage::Disk::Controller(4000000, 1, 300),
+	crc_generator_(0x1021, 0xffff),
+	shift_register_(0), track_(0), is_mfm_(is_mfm)
+{
+	Storage::Time bit_length;
+	bit_length.length = 1;
+	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
+	set_expected_bit_length(bit_length);
+
+	drive.reset(new Storage::Disk::Drive);
+	drive->set_disk(disk);
+	set_drive(drive);
+	set_motor_on(true);
+}
+
+std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t track, uint8_t sector)
+{
+	int difference = (int)track - (int)track_;
+	track_ = track;
+
+	if(difference)
+	{
+		int direction = difference < 0 ? -1 : 1;
+		difference *= direction;
+
+		for(int c = 0; c < difference; c++) step(direction);
+	}
+
+	return get_sector(sector);
+}
+
+void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole)
+{
+	shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0xffff;
+	bit_count_++;
+}
+
+void Parser::process_index_hole()
+{
+	index_count_++;
+}
+
+uint8_t Parser::get_next_byte()
+{
+	bit_count_ = 0;
+	while(bit_count_ < 16) run_for_cycles(1);
+	uint8_t byte = (uint8_t)(
+		((shift_register_&0x0001) >> 0) |
+		((shift_register_&0x0004) >> 1) |
+		((shift_register_&0x0010) >> 2) |
+		((shift_register_&0x0040) >> 3) |
+		((shift_register_&0x0100) >> 4) |
+		((shift_register_&0x0400) >> 5) |
+		((shift_register_&0x1000) >> 6) |
+		((shift_register_&0x4000) >> 7));
+	crc_generator_.add(byte);
+	return byte;
+}
+
+std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
+{
+	std::shared_ptr<Storage::Encodings::MFM::Sector> sector(new Storage::Encodings::MFM::Sector);
+	index_count_ = 0;
+
+	while(index_count_ < 2)
+	{
+		// look for an ID address mark
+		while(1)
+		{
+			run_for_cycles(1);
+			if(is_mfm_)
+			{
+				if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+				{
+					uint8_t mark = get_next_byte();
+					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) break;
+				}
+			}
+			else
+			{
+				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) break;
+			}
+			if(index_count_ >= 2) return nullptr;
+		}
+
+		crc_generator_.reset();
+		sector->track = get_next_byte();
+		sector->side = get_next_byte();
+		sector->sector = get_next_byte();
+		uint8_t size = get_next_byte();
+		uint16_t header_crc = crc_generator_.get_value();
+		if((header_crc >> 8) != get_next_byte()) continue;
+		if((header_crc & 0xff) != get_next_byte()) continue;
+
+		// look for data mark
+		while(1)
+		{
+			run_for_cycles(1);
+			if(is_mfm_)
+			{
+				if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+				{
+					uint8_t mark = get_next_byte();
+					if(mark == Storage::Encodings::MFM::MFMDataAddressByte) break;
+					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) return nullptr;
+				}
+			}
+			else
+			{
+				if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark) break;
+				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
+			}
+			if(index_count_ >= 2) return nullptr;
+		}
+
+		size_t data_size = (size_t)(128 << size);
+		sector->data.reserve(data_size);
+		crc_generator_.reset();
+		for(size_t c = 0; c < data_size; c++)
+		{
+			sector->data.push_back(get_next_byte());
+		}
+		uint16_t data_crc = crc_generator_.get_value();
+		if((data_crc >> 8) != get_next_byte()) continue;
+		if((data_crc & 0xff) != get_next_byte()) continue;
+
+		return sector;
+	}
+
+	return nullptr;
+}
+
+std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t sector)
+{
+	std::shared_ptr<Storage::Encodings::MFM::Sector> first_sector = get_next_sector();
+	if(!first_sector) return first_sector;
+	if(first_sector->sector == sector) return first_sector;
+
+	while(1)
+	{
+		std::shared_ptr<Storage::Encodings::MFM::Sector> next_sector = get_next_sector();
+		if(next_sector->sector == first_sector->sector) return nullptr;
+		if(next_sector->sector == sector) return next_sector;
+	}
+}
