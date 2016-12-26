@@ -110,7 +110,6 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		void step(int direction);
 		virtual bool get_drive_is_ready();
 		bool get_drive_is_read_only();
-		Time get_time_into_track();
 
 	private:
 		Time bit_length_;
@@ -136,6 +135,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		Time cycles_per_bit_;
 
 		void setup_track();
+		Time get_time_into_track();
 };
 
 }

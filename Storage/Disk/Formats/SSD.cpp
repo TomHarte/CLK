@@ -30,6 +30,29 @@ SSD::SSD(const char *file_name) :
 	else if(track_count_ < 80) track_count_ = 80;
 }
 
+SSD::~SSD()
+{
+	if(get_is_modified())
+	{
+		for(unsigned int head = 0; head < head_count_; head++)
+		{
+			for(unsigned int track = 0; track < track_count_; track++)
+			{
+				std::shared_ptr<Storage::Disk::Track> modified_track = get_modified_track_at_position(head, track);
+				if(modified_track)
+				{
+					Storage::Encodings::MFM::Parser parser(false, modified_track);
+					for(unsigned int c = 0; c < 10; c++)
+					{
+						std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)track, (uint8_t)c);
+						printf("Sector %d: %p\n", c, sector.get());
+					}
+				}
+			}
+		}
+	}
+}
+
 unsigned int SSD::get_head_position_count()
 {
 	return track_count_;

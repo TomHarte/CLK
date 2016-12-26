@@ -61,6 +61,7 @@ std::unique_ptr<Encoder> GetFMEncoder(std::vector<uint8_t> &target);
 class Parser: public Storage::Disk::Controller {
 	public:
 		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk);
+		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track);
 
 		/*!
 			Attempts to read the sector located at @c track and @c sector.
@@ -70,6 +71,8 @@ class Parser: public Storage::Disk::Controller {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t track, uint8_t sector);
 
 	private:
+		Parser(bool is_mfm);
+
 		std::shared_ptr<Storage::Disk::Drive> drive;
 		unsigned int shift_register_;
 		int index_count_;

@@ -214,7 +214,7 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 
 #pragma mark - Parser
 
-Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
+Parser::Parser(bool is_mfm) :
 	Storage::Disk::Controller(4000000, 1, 300),
 	crc_generator_(0x1021, 0xffff),
 	shift_register_(0), track_(0), is_mfm_(is_mfm)
@@ -225,9 +225,20 @@ Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 	set_expected_bit_length(bit_length);
 
 	drive.reset(new Storage::Disk::Drive);
-	drive->set_disk(disk);
 	set_drive(drive);
 	set_motor_on(true);
+}
+
+Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
+	Parser(is_mfm)
+{
+	drive->set_disk(disk);
+}
+
+Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
+	Parser(is_mfm)
+{
+	drive->set_disk_with_track(track);
 }
 
 std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t track, uint8_t sector)

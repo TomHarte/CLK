@@ -27,6 +27,7 @@ class SSD: public Disk, public Storage::FileHolder {
 			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
 		*/
 		SSD(const char *file_name);
+		~SSD();
 
 		enum {
 			ErrorNotSSD,

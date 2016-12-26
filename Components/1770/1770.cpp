@@ -535,7 +535,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
-			printf("Considering %d/%d at %0.4f\n", header_[0], header_[2], get_time_into_track().get_float());
+			printf("Considering %d/%d\n", header_[0], header_[2]);
 			is_reading_data_ = false;
 			if(header_[0] == track_ && header_[2] == sector_ &&
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
