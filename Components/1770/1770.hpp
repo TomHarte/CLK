@@ -120,6 +120,11 @@ class WD1770: public Storage::Disk::Controller {
 		int resume_point_;
 		int delay_time_;
 
+		// Output
+		int last_bit_;
+		void write_bit(int bit);
+		void write_byte(uint8_t byte);
+
 		// ID buffer
 		uint8_t header_[6];
 

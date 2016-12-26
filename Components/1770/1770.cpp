@@ -622,17 +622,13 @@ void WD1770::posit_event(Event new_event_type)
 		begin_writing();
 		for(int c = 0; c < (is_double_density_ ? 12 : 6); c++)
 		{
-			// zero is encoded the same way in both FM and MFM
-			for(int b = 0; b < 16; b++)
-				write_bit(!(b&1));
+			write_byte(0);
 		}
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
 
 	type2_write_loop:
-		// TODO: real data
-		for(int b = 0; b < 16; b++)
-			write_bit(!(b&1));
+		write_byte(data_);
 		update_status([] (Status &status) {
 			status.data_request = true;
 		});
@@ -656,9 +652,10 @@ void WD1770::posit_event(Event new_event_type)
 		goto type2_write_loop;
 
 	type2_write_crc:
-		// TODO: write CRC and FF
-		for(int b = 0; b < 48; b++)
-			write_bit(!(b&1));
+		// TODO: write CRC
+		write_byte(0);
+		write_byte(0);
+		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
 		end_writing();
 
@@ -700,4 +697,24 @@ void WD1770::set_head_loaded(bool head_loaded)
 {
 	head_is_loaded_ = head_loaded;
 	if(head_loaded) posit_event(Event::HeadLoad);
+}
+
+void WD1770::write_bit(int bit)
+{
+	if(is_double_density_)
+	{
+		Controller::write_bit(!bit && !last_bit_);
+		Controller::write_bit(!!bit);
+		last_bit_ = bit;
+	}
+	else
+	{
+		Controller::write_bit(true);
+		Controller::write_bit(!!bit);
+	}
+}
+
+void WD1770::write_byte(uint8_t byte)
+{
+	for(int c = 0; c < 8; c++) write_bit((byte << c)&0x80);
 }
