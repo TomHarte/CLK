@@ -563,7 +563,6 @@ void WD1770::posit_event(Event new_event_type)
 			});
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
-			printf("\n");
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -571,7 +570,7 @@ void WD1770::posit_event(Event new_event_type)
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		data_ = latest_token_.byte_value; printf("%02x", data_);
+		data_ = latest_token_.byte_value;
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
@@ -580,7 +579,6 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 128 << header_[3])
 		{
 			distance_into_section_ = 0;
-			printf("\n");
 			goto type2_check_crc;
 		}
 		goto type2_read_byte;
@@ -633,7 +631,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(is_double_density_)
 		{
 			write_raw_short(Storage::Encodings::MFM::MFMAddressMark);
-			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDataAddressByte : Storage::Encodings::MFM::MFMDeletedDataAddressByte);
+			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
 		}
 		else
 		{
@@ -642,20 +640,25 @@ void WD1770::posit_event(Event new_event_type)
 
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
-		printf("\n");
 
 	type2_write_loop:
-		write_byte(data_); printf("%02x", data_);
-		update_status([] (Status &status) {
-			status.data_request = true;
-		});
-		WAIT_FOR_EVENT(Event::DataWritten);
+		/*
+			This deviates from the data sheet slightly since that would prima facie request one more byte
+			of data than is actually written — the last time around the loop it has transferred from the
+			data register to the data shift register, set data request, written the byte, checked that data
+			request has been satified, then finally considers whether all bytes are done. Based on both
+			natural expectations and the way that emulated machines responded, I believe that to be a
+			documentation error.
+		*/
+		write_byte(data_);
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header_[3])
+		if(distance_into_section_ < 128 << header_[3])
 		{
-			printf("\n");
-			goto type2_write_crc;
+			update_status([] (Status &status) {
+				status.data_request = true;
+			});
 		}
+		WAIT_FOR_EVENT(Event::DataWritten);
 
 		if(status_.data_request)
 		{
@@ -665,6 +668,10 @@ void WD1770::posit_event(Event new_event_type)
 			goto wait_for_command;
 		}
 
+		if(distance_into_section_ == 128 << header_[3])
+		{
+			goto type2_write_crc;
+		}
 		goto type2_write_loop;
 
 	type2_write_crc:
