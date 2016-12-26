@@ -124,6 +124,7 @@ class WD1770: public Storage::Disk::Controller {
 		int last_bit_;
 		void write_bit(int bit);
 		void write_byte(uint8_t byte);
+		void write_raw_short(uint16_t value);
 
 		// ID buffer
 		uint8_t header_[6];
