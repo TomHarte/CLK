@@ -49,6 +49,10 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 			Sets the current drive.
 		*/
 		void set_drive(std::shared_ptr<Drive> drive);
+
+		/*!
+			Announces that the track the drive sees is about to change for a reason unknownt to the controller.
+		*/
 		void invalidate_track();
 
 		/*!

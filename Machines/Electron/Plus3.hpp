@@ -23,6 +23,7 @@ class Plus3 : public WD::WD1770 {
 	private:
 		std::shared_ptr<Storage::Disk::Drive> drives_[2];
 		int selected_drive_;
+		uint8_t last_control_;
 };
 
 }

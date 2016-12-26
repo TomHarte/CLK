@@ -24,18 +24,28 @@ void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 
 void Plus3::set_control_register(uint8_t control)
 {
-	// TODO:
 	//	bit 0 => enable or disable drive 1
 	//	bit 1 => enable or disable drive 2
 	//	bit 2 => side select
 	//	bit 3 => single density select
-	switch(control&3)
+
+	uint8_t changes = control ^ last_control_;
+	last_control_ = control;
+
+	if(changes&3)
 	{
-		case 0:		selected_drive_ = -1;	set_drive(nullptr);		break;
-		default:	selected_drive_ = 0;	set_drive(drives_[0]);	break;
-		case 2:		selected_drive_ = 1;	set_drive(drives_[1]);	break;
+		switch(control&3)
+		{
+			case 0:		selected_drive_ = -1;	set_drive(nullptr);		break;
+			default:	selected_drive_ = 0;	set_drive(drives_[0]);	break;
+			case 2:		selected_drive_ = 1;	set_drive(drives_[1]);	break;
+		}
 	}
-	if(drives_[0]) drives_[0]->set_head((control & 0x04) ? 1 : 0);
-	if(drives_[1]) drives_[1]->set_head((control & 0x04) ? 1 : 0);
-	set_is_double_density(!(control & 0x08));
+	if(changes & 0x04)
+	{
+		invalidate_track();
+		if(drives_[0]) drives_[0]->set_head((control & 0x04) ? 1 : 0);
+		if(drives_[1]) drives_[1]->set_head((control & 0x04) ? 1 : 0);
+	}
+	if(changes & 0x08) set_is_double_density(!(control & 0x08));
 }
