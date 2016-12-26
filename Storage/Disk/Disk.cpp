@@ -17,7 +17,7 @@ int Disk::get_id_for_track_at_position(unsigned int head, unsigned int position)
 
 void Disk::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track)
 {
-	if(!get_is_read_only()) return;
+	if(get_is_read_only()) return;
 
 	int address = get_id_for_track_at_position(head, position);
 	cached_tracks_[address] = track;

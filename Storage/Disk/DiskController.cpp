@@ -20,7 +20,6 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 	motor_is_on_(false),
 
 	is_reading_(true),
-	track_is_dirty_(false),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)
 {
@@ -31,13 +30,7 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 
 void Controller::setup_track()
 {
-	if(patched_track_)
-	{
-		drive_->set_track(patched_track_);
-	}
-
 	track_ = drive_->get_track();
-	track_is_dirty_ = false;
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
@@ -154,7 +147,7 @@ void Controller::begin_writing()
 {
 	is_reading_ = false;
 
-	write_segment_.length_of_a_bit = bit_length_ * rotational_multiplier_;
+	write_segment_.length_of_a_bit = bit_length_ / rotational_multiplier_;
 	write_segment_.data.clear();
 	write_segment_.number_of_bits = 0;
 
@@ -226,8 +219,8 @@ bool Controller::get_drive_is_read_only()
 
 void Controller::step(int direction)
 {
-	if(drive_) drive_->step(direction);
 	invalidate_track();
+	if(drive_) drive_->step(direction);
 }
 
 void Controller::set_motor_on(bool motor_on)
@@ -242,13 +235,18 @@ bool Controller::get_motor_on()
 
 void Controller::set_drive(std::shared_ptr<Drive> drive)
 {
-	drive_ = drive;
 	invalidate_track();
+	drive_ = drive;
 }
 
 void Controller::invalidate_track()
 {
 	track_ = nullptr;
+	if(patched_track_)
+	{
+		drive_->set_track(patched_track_);
+		patched_track_ = nullptr;
+	}
 }
 
 void Controller::process_write_completed()

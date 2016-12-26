@@ -123,7 +123,6 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		bool motor_is_on_;
 
 		bool is_reading_;
-		bool track_is_dirty_;
 		std::shared_ptr<PCMPatchedTrack> patched_track_;
 		PCMSegment write_segment_;
 		Time write_start_time_;
