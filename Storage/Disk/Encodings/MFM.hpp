@@ -48,10 +48,10 @@ class Encoder {
 		virtual void add_ID_address_mark() = 0;
 		virtual void add_data_address_mark() = 0;
 		virtual void add_deleted_data_address_mark() = 0;
+		virtual void output_short(uint16_t value);
 		void add_crc();
 
 	protected:
-		virtual void output_short(uint16_t value);
 		NumberTheory::CRC16 crc_generator_;
 
 	private:
