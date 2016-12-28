@@ -10,7 +10,10 @@
 
 using namespace Electron;
 
-Plus3::Plus3() : WD1770(P1770) {}
+Plus3::Plus3() : WD1770(P1770), last_control_(0)
+{
+	set_control_register(last_control_, 0xff);
+}
 
 void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 {
@@ -31,7 +34,11 @@ void Plus3::set_control_register(uint8_t control)
 
 	uint8_t changes = control ^ last_control_;
 	last_control_ = control;
+	set_control_register(control, changes);
+}
 
+void Plus3::set_control_register(uint8_t control, uint8_t changes)
+{
 	if(changes&3)
 	{
 		switch(control&3)
