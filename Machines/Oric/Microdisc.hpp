@@ -47,6 +47,7 @@ class Microdisc: public WD::WD1770 {
 		int paging_flags_;
 		int head_load_request_counter_;
 		Delegate *delegate_;
+		uint8_t last_control_;
 };
 
 }

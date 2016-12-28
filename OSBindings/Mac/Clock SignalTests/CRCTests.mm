@@ -22,7 +22,8 @@
 - (uint16_t)crcOfData:(uint8_t *)data length:(size_t)length generator:(NumberTheory::CRC16 &)generator
 {
 	generator.reset();
-	for(size_t c = 0; c < length; c++) generator.add(data[c]);
+	for(size_t c = 0; c < length; c++)
+		generator.add(data[c]);
 	return generator.get_value();
 }
 

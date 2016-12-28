@@ -24,12 +24,13 @@ const uint16_t FMIDAddressMark			= 0xf57e;	// data 0xfe, with clock 0xc7 => 1111
 const uint16_t FMDataAddressMark		= 0xf56f;	// data 0xfb, with clock 0xc7 => 1111 1011 with clock 1100 0111 => 1111 0101 0110 1111
 const uint16_t FMDeletedDataAddressMark	= 0xf56a;	// data 0xf8, with clock 0xc7 => 1111 1000 with clock 1100 0111 => 1111 0101 0110 1010
 
-const uint16_t MFMIndexAddressMark		= 0x5224;
-const uint16_t MFMAddressMark			= 0x4489;
+const uint16_t MFMIndexSync				= 0x5224;
+const uint16_t MFMSync					= 0x4489;
 const uint8_t MFMIndexAddressByte		= 0xfc;
 const uint8_t MFMIDAddressByte			= 0xfe;
 const uint8_t MFMDataAddressByte		= 0xfb;
 const uint8_t MFMDeletedDataAddressByte	= 0xf8;
+const uint16_t MFMPostSyncCRCValue		= 0xcdb4;
 
 struct Sector {
 	uint8_t track, side, sector;
@@ -47,9 +48,11 @@ class Encoder {
 		virtual void add_ID_address_mark() = 0;
 		virtual void add_data_address_mark() = 0;
 		virtual void add_deleted_data_address_mark() = 0;
+		void add_crc();
 
 	protected:
-		void output_short(uint16_t value);
+		virtual void output_short(uint16_t value);
+		NumberTheory::CRC16 crc_generator_;
 
 	private:
 		std::vector<uint8_t> &target_;

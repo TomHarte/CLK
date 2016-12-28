@@ -193,13 +193,14 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
 			switch(shift_register_ & 0xffff)
 			{
-				case Storage::Encodings::MFM::MFMIndexAddressMark:
+				case Storage::Encodings::MFM::MFMIndexSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
 				return;
-				case Storage::Encodings::MFM::MFMAddressMark:
+				case Storage::Encodings::MFM::MFMSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
+					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 				return;
 				default:
 				break;
@@ -250,6 +251,7 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			}
 		}
 
+		crc_generator_.add(latest_token_.byte_value);
 		posit_event(Event::Token);
 		return;
 	}
@@ -542,7 +544,17 @@ void WD1770::posit_event(Event new_event_type)
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
 				printf("Found %d/%d\n", header_[0], header_[2]);
-				// TODO: test CRC
+				if(crc_generator_.get_value())
+				{
+					update_status([] (Status &status) {
+						status.crc_error = true;
+					});
+					goto type2_get_header;
+				}
+
+				update_status([] (Status &status) {
+					status.crc_error = false;
+				});
 				goto type2_read_or_write_data;
 			}
 			distance_into_section_ = 0;
@@ -564,7 +576,6 @@ void WD1770::posit_event(Event new_event_type)
 			});
 			distance_into_section_ = 0;
 			is_reading_data_ = true;
-			crc_generator_.reset();
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -573,7 +584,6 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_EVENT(Event::Token);
 		if(latest_token_.type != Token::Byte) goto type2_read_byte;
 		data_ = latest_token_.byte_value;
-		crc_generator_.add(data_);
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
@@ -593,10 +603,12 @@ void WD1770::posit_event(Event new_event_type)
 		distance_into_section_++;
 		if(distance_into_section_ == 2)
 		{
-			uint16_t crc = crc_generator_.get_value();
-			if((crc >> 8) != header_[0] || (crc&0xff) != header_[1])
+			if(crc_generator_.get_value())
 			{
-				printf("CRC error: %04x v %02x%02x\n", crc, header_[0], header_[1]);
+				update_status([this] (Status &status) {
+					status.crc_error = true;
+				});
+				goto wait_for_command;
 			}
 
 			if(command_ & 0x10)
@@ -638,17 +650,18 @@ void WD1770::posit_event(Event new_event_type)
 
 		if(is_double_density_)
 		{
-			write_raw_short(Storage::Encodings::MFM::MFMAddressMark);
+			crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
 		}
 		else
 		{
+			crc_generator_.reset();
+			crc_generator_.add((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
 			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
 		}
 
 		WAIT_FOR_EVENT(Event::DataWritten);
 		distance_into_section_ = 0;
-		crc_generator_.reset();
 
 	type2_write_loop:
 		/*
@@ -752,6 +765,7 @@ void WD1770::write_bit(int bit)
 void WD1770::write_byte(uint8_t byte)
 {
 	for(int c = 0; c < 8; c++) write_bit((byte << c)&0x80);
+	crc_generator_.add(byte);
 }
 
 void WD1770::write_raw_short(uint16_t value)

@@ -29,6 +29,7 @@ class CRC16 {
 			}
 		}
 		inline uint16_t get_value() const {	return value_; }
+		inline void set_value(uint16_t value) { value_ = value; }
 
 	private:
 		uint16_t reset_value_, polynomial_;

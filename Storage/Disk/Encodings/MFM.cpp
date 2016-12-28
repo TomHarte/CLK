@@ -18,6 +18,7 @@ class MFMEncoder: public Encoder {
 		MFMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
 
 		void add_byte(uint8_t input) {
+			crc_generator_.add(input);
 			uint16_t spread_value =
 				(uint16_t)(
 					((input & 0x01) << 0) |
@@ -29,33 +30,42 @@ class MFMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7)
 				);
-			uint16_t or_bits = (uint16_t)((spread_value << 1) | (spread_value >> 1) | (output_ << 15));
-			output_ = spread_value | ((~or_bits) & 0xaaaa);
-			output_short(output_);
+			uint16_t or_bits = (uint16_t)((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
+			uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
+			output_short(output);
 		}
 
 		void add_index_address_mark() {
-			output_short(output_ = MFMIndexAddressMark);
+			for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
 			add_byte(MFMIndexAddressByte);
 		}
 
 		void add_ID_address_mark() {
-			output_short(output_ = MFMAddressMark);
+			output_sync();
 			add_byte(MFMIDAddressByte);
 		}
 
 		void add_data_address_mark() {
-			output_short(output_ = MFMAddressMark);
+			output_sync();
 			add_byte(MFMDataAddressByte);
 		}
 
 		void add_deleted_data_address_mark() {
-			output_short(output_ = MFMAddressMark);
+			output_sync();
 			add_byte(MFMDeletedDataAddressByte);
 		}
 
 	private:
-		uint16_t output_;
+		uint16_t last_output_;
+		void output_short(uint16_t value) {
+			last_output_ = value;
+			Encoder::output_short(value);
+		}
+
+		void output_sync() {
+			for(int c = 0; c < 3; c++) output_short(MFMSync);
+			crc_generator_.set_value(MFMPostSyncCRCValue);
+		}
 };
 
 class FMEncoder: public Encoder {
@@ -64,6 +74,7 @@ class FMEncoder: public Encoder {
 		FMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
 
 		void add_byte(uint8_t input) {
+			crc_generator_.add(input);
 			output_short(
 				(uint16_t)(
 					((input & 0x01) << 0) |
@@ -109,7 +120,6 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	Storage::Disk::PCMSegment segment;
 	segment.data.reserve(expected_track_bytes);
 	T shifter(segment.data);
-	NumberTheory::CRC16 crc_generator(0x1021, 0xffff);
 
 	// output the index mark
 	shifter.add_index_address_mark();
@@ -130,16 +140,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_byte(sector.sector);
 		uint8_t size = logarithmic_size_for_size(sector.data.size());
 		shifter.add_byte(size);
-
-		// header CRC
-		crc_generator.reset();
-		crc_generator.add(sector.track);
-		crc_generator.add(sector.side);
-		crc_generator.add(sector.sector);
-		crc_generator.add(size);
-		uint16_t crc_value = crc_generator.get_value();
-		shifter.add_byte(crc_value >> 8);
-		shifter.add_byte(crc_value & 0xff);
+		shifter.add_crc();
 
 		// gap
 		for(int c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
@@ -147,17 +148,11 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 		// data
 		shifter.add_data_address_mark();
-		crc_generator.reset();
 		for(size_t c = 0; c < sector.data.size(); c++)
 		{
 			shifter.add_byte(sector.data[c]);
-			crc_generator.add(sector.data[c]);
 		}
-
-		// data CRC
-		crc_value = crc_generator.get_value();
-		shifter.add_byte(crc_value >> 8);
-		shifter.add_byte(crc_value & 0xff);
+		shifter.add_crc();
 
 		// gap
 		for(int c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
@@ -171,6 +166,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 }
 
 Encoder::Encoder(std::vector<uint8_t> &target) :
+	crc_generator_(0x1021, 0xffff),
 	target_(target)
 {}
 
@@ -178,6 +174,11 @@ void Encoder::output_short(uint16_t value)
 {
 	target_.push_back(value >> 8);
 	target_.push_back(value & 0xff);
+}
+
+void Encoder::add_crc()
+{
+	output_short(crc_generator_.get_value());
 }
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
@@ -298,7 +299,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			run_for_cycles(1);
 			if(is_mfm_)
 			{
-				if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
 				{
 					uint8_t mark = get_next_byte();
 					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) break;
@@ -326,7 +327,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			run_for_cycles(1);
 			if(is_mfm_)
 			{
-				if(shift_register_ == Storage::Encodings::MFM::MFMAddressMark)
+				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
 				{
 					uint8_t mark = get_next_byte();
 					if(mark == Storage::Encodings::MFM::MFMDataAddressByte) break;
