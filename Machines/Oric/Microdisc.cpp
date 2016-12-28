@@ -23,8 +23,11 @@ Microdisc::Microdisc() :
 	delegate_(nullptr),
 	paging_flags_(BASICDisable),
 	head_load_request_counter_(-1),
-	WD1770(P1793)
-{}
+	WD1770(P1793),
+	last_control_(0)
+{
+	set_control_register(last_control_, 0xff);
+}
 
 void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 {
@@ -38,18 +41,13 @@ void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive)
 
 void Microdisc::set_control_register(uint8_t control)
 {
-//	printf("control: %d%d%d%d%d%d%d%d\n",
-//		(control >> 7)&1,
-//		(control >> 6)&1,
-//		(control >> 5)&1,
-//		(control >> 4)&1,
-//		(control >> 3)&1,
-//		(control >> 2)&1,
-//		(control >> 1)&1,
-//		(control >> 0)&1);
 	uint8_t changes = last_control_ ^ control;
 	last_control_ = control;
+	set_control_register(control, changes);
+}
 
+void Microdisc::set_control_register(uint8_t control, uint8_t changes)
+{
 	// b2: data separator clock rate select (1 = double)	[TODO]
 
 	// b65: drive select
