@@ -651,6 +651,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(is_double_density_)
 		{
 			crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+			for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
 			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
 		}
 		else
