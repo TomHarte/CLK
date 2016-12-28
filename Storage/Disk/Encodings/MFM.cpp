@@ -89,10 +89,33 @@ class FMEncoder: public Encoder {
 				));
 		}
 
-		void add_index_address_mark()			{	output_short(FMIndexAddressMark);		}
-		void add_ID_address_mark()				{	output_short(FMIDAddressMark);			}
-		void add_data_address_mark()			{	output_short(FMDataAddressMark);		}
-		void add_deleted_data_address_mark()	{	output_short(FMDeletedDataAddressMark);	}
+		void add_index_address_mark()
+		{
+			crc_generator_.reset();
+			crc_generator_.add(MFMIndexAddressByte);
+			output_short(FMIndexAddressMark);
+		}
+
+		void add_ID_address_mark()
+		{
+			crc_generator_.reset();
+			crc_generator_.add(MFMIDAddressByte);
+			output_short(FMIDAddressMark);
+		}
+
+		void add_data_address_mark()
+		{
+			crc_generator_.reset();
+			crc_generator_.add(MFMDataAddressByte);
+			output_short(FMDataAddressMark);
+		}
+
+		void add_deleted_data_address_mark()
+		{
+			crc_generator_.reset();
+			crc_generator_.add(MFMDeletedDataAddressByte);
+			output_short(FMDeletedDataAddressMark);
+		}
 };
 
 static uint8_t logarithmic_size_for_size(size_t size)
