@@ -319,7 +319,8 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 	while(index_count_ < 2)
 	{
 		// look for an ID address mark
-		while(1)
+		bool id_found = false;
+		while(!id_found)
 		{
 			run_for_cycles(1);
 			if(is_mfm_)
@@ -330,6 +331,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 					if(mark == Storage::Encodings::MFM::MFMIDAddressByte)
 					{
 						crc_generator_.set_value(MFMPostSyncCRCValue);
+						id_found = true;
 						break;
 					}
 				}
@@ -339,7 +341,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark)
 				{
 					crc_generator_.reset();
-					break;
+					id_found = true;
 				}
 			}
 			if(index_count_ >= 2) return nullptr;
@@ -355,7 +357,8 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 		if((header_crc & 0xff) != get_next_byte()) continue;
 
 		// look for data mark
-		while(1)
+		bool data_found = false;
+		while(!data_found)
 		{
 			run_for_cycles(1);
 			if(is_mfm_)
@@ -366,6 +369,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 					if(mark == Storage::Encodings::MFM::MFMDataAddressByte)
 					{
 						crc_generator_.set_value(MFMPostSyncCRCValue);
+						data_found = true;
 						break;
 					}
 					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) return nullptr;
@@ -376,7 +380,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 				if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark)
 				{
 					crc_generator_.reset();
-					break;
+					data_found = true;
 				}
 				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
 			}

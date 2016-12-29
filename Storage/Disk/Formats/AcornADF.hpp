@@ -35,6 +35,7 @@ class AcornADF: public Disk, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
+		bool get_is_read_only();
 	private:
 		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 };
