@@ -201,7 +201,9 @@ void Encoder::output_short(uint16_t value)
 
 void Encoder::add_crc()
 {
-	output_short(crc_generator_.get_value());
+	uint16_t crc_value = crc_generator_.get_value();
+	add_byte(crc_value >> 8);
+	add_byte(crc_value & 0xff);
 }
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
@@ -325,17 +327,25 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
 				{
 					uint8_t mark = get_next_byte();
-					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) break;
+					if(mark == Storage::Encodings::MFM::MFMIDAddressByte)
+					{
+						crc_generator_.set_value(MFMPostSyncCRCValue);
+						break;
+					}
 				}
 			}
 			else
 			{
-				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) break;
+				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark)
+				{
+					crc_generator_.reset();
+					break;
+				}
 			}
 			if(index_count_ >= 2) return nullptr;
 		}
 
-		crc_generator_.reset();
+		crc_generator_.add(MFMIDAddressByte);
 		sector->track = get_next_byte();
 		sector->side = get_next_byte();
 		sector->sector = get_next_byte();
@@ -353,21 +363,29 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
 				{
 					uint8_t mark = get_next_byte();
-					if(mark == Storage::Encodings::MFM::MFMDataAddressByte) break;
+					if(mark == Storage::Encodings::MFM::MFMDataAddressByte)
+					{
+						crc_generator_.set_value(MFMPostSyncCRCValue);
+						break;
+					}
 					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) return nullptr;
 				}
 			}
 			else
 			{
-				if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark) break;
+				if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark)
+				{
+					crc_generator_.reset();
+					break;
+				}
 				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
 			}
 			if(index_count_ >= 2) return nullptr;
 		}
+		crc_generator_.add(MFMDataAddressByte);
 
 		size_t data_size = (size_t)(128 << size);
 		sector->data.reserve(data_size);
-		crc_generator_.reset();
 		for(size_t c = 0; c < data_size; c++)
 		{
 			sector->data.push_back(get_next_byte());
