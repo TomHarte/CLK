@@ -95,7 +95,11 @@ class WD1770: public Storage::Disk::Controller {
 		void update_status(std::function<void(Status &)> updater);
 
 		// Tokeniser
-		bool is_reading_data_;
+		enum DataMode {
+			Scanning,
+			Reading,
+			Writing
+		} data_mode_;
 		bool is_double_density_;
 		int shift_register_;
 		struct Token {

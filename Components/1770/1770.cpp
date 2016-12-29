@@ -35,7 +35,7 @@ WD1770::WD1770(Personality p) :
 	delay_time_(0),
 	index_hole_count_target_(-1),
 	is_awaiting_marker_value_(false),
-	is_reading_data_(false),
+	data_mode_(DataMode::Scanning),
 	delegate_(nullptr),
 	personality_(p),
 	head_is_loaded_(false)
@@ -163,11 +163,13 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 
 void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
+	if(data_mode_ == DataMode::Writing) return;
+
 	shift_register_ = (shift_register_ << 1) | value;
 	bits_since_token_++;
 
 	Token::Type token_type = Token::Byte;
-	if(!is_reading_data_)
+	if(data_mode_ == DataMode::Scanning)
 	{
 		if(!is_double_density_)
 		{
@@ -312,7 +314,7 @@ void WD1770::process_write_completed()
 #define READ_ID()	\
 		if(new_event_type == Event::Token)	\
 		{	\
-			if(!distance_into_section_ && latest_token_.type == Token::ID) {is_reading_data_ = true; distance_into_section_++; }	\
+			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }	\
 			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)	\
 			{	\
 				header_[distance_into_section_ - 1] = latest_token_.byte_value;	\
@@ -343,7 +345,7 @@ void WD1770::posit_event(Event new_event_type)
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
 		printf("Idle...\n");
-		is_reading_data_ = false;
+		data_mode_ = DataMode::Scanning;
 		index_hole_count_ = 0;
 
 		update_status([] (Status &status) {
@@ -463,7 +465,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
-			is_reading_data_ = false;
+			data_mode_ = DataMode::Scanning;
 			// TODO: CRC check
 			if(header_[0] == track_)
 			{
@@ -539,7 +541,7 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 7)
 		{
 			printf("Considering %d/%d\n", header_[0], header_[2]);
-			is_reading_data_ = false;
+			data_mode_ = DataMode::Scanning;
 			if(header_[0] == track_ && header_[2] == sector_ &&
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
@@ -575,7 +577,7 @@ void WD1770::posit_event(Event new_event_type)
 				status.record_type = (latest_token_.type == Token::DeletedData);
 			});
 			distance_into_section_ = 0;
-			is_reading_data_ = true;
+			data_mode_ = DataMode::Reading;
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -641,6 +643,7 @@ void WD1770::posit_event(Event new_event_type)
 			WAIT_FOR_BYTES(11);
 		}
 
+		data_mode_ = DataMode::Writing;
 		begin_writing();
 		for(int c = 0; c < (is_double_density_ ? 12 : 6); c++)
 		{
