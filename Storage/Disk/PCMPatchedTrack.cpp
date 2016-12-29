@@ -155,13 +155,17 @@ Track::Event PCMPatchedTrack::get_next_event()
 
 		// see what time that gets us to. If it's still within the current period, return the found event
 		Time event_time = current_time_ + event.length - period_error - insertion_error_;
-		insertion_error_.set_zero();
 		if(event_time < active_period_->end_time)
 		{
 			current_time_ = event_time;
-			event.length += extra_time - period_error;
+			// TODO: this is spelt out in three steps because times don't necessarily do the sensible
+			// thing when 'negative' if intermediate result get simplified in the meantime. So fix Time.
+			event.length += extra_time;
+			event.length -= period_error;
+			event.length -= insertion_error_;
 			return event;
 		}
+		insertion_error_.set_zero();
 
 		// otherwise move time back to the end of the outgoing period, accumulating the error into
 		// extra_time, and advance the extra period
