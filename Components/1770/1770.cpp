@@ -556,6 +556,7 @@ void WD1770::posit_event(Event new_event_type)
 				printf("Found %d/%d\n", header_[0], header_[2]);
 				if(crc_generator_.get_value())
 				{
+					printf("CRC error; back to searching\n");
 					update_status([] (Status &status) {
 						status.crc_error = true;
 					});
@@ -615,6 +616,7 @@ void WD1770::posit_event(Event new_event_type)
 		{
 			if(crc_generator_.get_value())
 			{
+				printf("CRC error; terminating\n");
 				update_status([this] (Status &status) {
 					status.crc_error = true;
 				});
@@ -684,17 +686,17 @@ void WD1770::posit_event(Event new_event_type)
 			natural expectations and the way that emulated machines responded, I believe that to be a
 			documentation error.
 		*/
-		crc_generator_.add(data_);
 		write_byte(data_);
 		distance_into_section_++;
-		if(distance_into_section_ < 128 << header_[3])
+		if(distance_into_section_ == 128 << header_[3])
 		{
-			update_status([] (Status &status) {
-				status.data_request = true;
-			});
+			goto type2_write_crc;
 		}
-		WAIT_FOR_EVENT(Event::DataWritten);
 
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_EVENT(Event::DataWritten);
 		if(status_.data_request)
 		{
 			update_status([] (Status &status) {
@@ -703,17 +705,13 @@ void WD1770::posit_event(Event new_event_type)
 			goto wait_for_command;
 		}
 
-		if(distance_into_section_ == 128 << header_[3])
-		{
-			goto type2_write_crc;
-		}
 		goto type2_write_loop;
 
 	type2_write_crc:
 		{
 			uint16_t crc = crc_generator_.get_value();
 			write_byte(crc >> 8);
-			write_byte((crc & 0xff));
+			write_byte(crc & 0xff);
 		}
 		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
