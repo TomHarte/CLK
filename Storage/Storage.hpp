@@ -246,6 +246,12 @@ struct Time {
 		inline void install_result(uint64_t long_length, uint64_t long_clock_rate)
 		{
 			// TODO: switch to appropriate values if the result is too large or small to fit, even with trimmed accuracy.
+			if(!long_length)
+			{
+				length = 0;
+				clock_rate = 1;
+				return;
+			}
 
 			while(!(long_length&1) && !(long_clock_rate&1))
 			{
