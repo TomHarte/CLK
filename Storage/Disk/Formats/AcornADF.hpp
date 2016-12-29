@@ -27,6 +27,7 @@ class AcornADF: public Disk, public Storage::FileHolder {
 			@throws ErrorNotAcornADF if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
 		AcornADF(const char *file_name);
+		~AcornADF();
 
 		enum {
 			ErrorNotAcornADF,
