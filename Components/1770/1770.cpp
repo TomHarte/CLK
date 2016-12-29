@@ -11,8 +11,6 @@
 
 using namespace WD;
 
-unsigned int counter = 0;
-
 WD1770::Status::Status() :
 	type(Status::One),
 	write_protect(false),
@@ -144,7 +142,6 @@ uint8_t WD1770::get_register(int address)
 
 void WD1770::run_for_cycles(unsigned int number_of_cycles)
 {
-	counter += number_of_cycles;
 	Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
 
 	if(delay_time_)
