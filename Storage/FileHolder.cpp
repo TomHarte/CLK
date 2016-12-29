@@ -20,7 +20,13 @@ FileHolder::~FileHolder()
 FileHolder::FileHolder(const char *file_name) : file_(nullptr)
 {
 	stat(file_name, &file_stats_);
-	file_ = fopen(file_name, "rb");
+	is_read_only_ = false;
+	file_ = fopen(file_name, "rb+");
+	if(!file_)
+	{
+		is_read_only_ = true;
+		file_ = fopen(file_name, "rb");
+	}
 	if(!file_) throw ErrorCantOpen;
 }
 

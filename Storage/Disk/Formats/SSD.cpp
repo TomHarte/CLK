@@ -65,7 +65,7 @@ unsigned int SSD::get_head_count()
 
 bool SSD::get_is_read_only()
 {
-	return false;
+	return is_read_only_;
 }
 
 std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position)
@@ -85,9 +85,12 @@ std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, un
 		new_sector.sector = (uint8_t)sector;
 
 		new_sector.data.resize(256);
-		fread(&new_sector.data[0], 1, 256, file_);
-//		if(feof(file_))
-//		new_sector.data[0];
+		fread(new_sector.data.data(), 1, 256, file_);
+
+		// zero out if this wasn't present in the disk image; it's still appropriate to put a sector
+		// on disk because one will have been placed during formatting, but there's no reason to leak
+		// information from outside the emulated machine's world
+		if(feof(file_)) memset(new_sector.data.data(), 0, 256);
 
 		sectors.push_back(std::move(new_sector));
 	}

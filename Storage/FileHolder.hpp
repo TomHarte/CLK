@@ -67,6 +67,7 @@ class FileHolder {
 
 		FILE *file_;
 		struct stat file_stats_;
+		bool is_read_only_;
 };
 
 }
