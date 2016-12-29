@@ -89,6 +89,8 @@ struct Time {
 
 	inline Time operator + (const Time &other) const
 	{
+		if(!other.length) return *this;
+
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate)
@@ -106,6 +108,8 @@ struct Time {
 
 	inline Time &operator += (const Time &other)
 	{
+		if(!other.length) return *this;
+
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate)
@@ -124,6 +128,8 @@ struct Time {
 
 	inline Time operator - (const Time &other) const
 	{
+		if(!other.length) return *this;
+
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate)
@@ -141,6 +147,8 @@ struct Time {
 
 	inline Time operator -= (const Time &other)
 	{
+		if(!other.length) return *this;
+
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate)
