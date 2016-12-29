@@ -177,15 +177,23 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			{
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_type = Token::Index;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMIndexAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMIDAddressMark:
 					token_type = Token::ID;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMIDAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDataAddressMark:
 					token_type = Token::Data;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMDataAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
 					token_type = Token::DeletedData;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMDeletedDataAddressByte);
 				break;
 				default:
 				break;
