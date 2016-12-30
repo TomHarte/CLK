@@ -23,8 +23,9 @@ void Disk::set_track_at_position(unsigned int head, unsigned int position, const
 	cached_tracks_[address] = track;
 
 	if(!update_queue_) update_queue_.reset(new Concurrency::AsyncTaskQueue);
-	update_queue_->enqueue([this, head, position, track] {
-		store_updated_track_at_position(head, position, track, file_access_mutex_);
+	std::shared_ptr<Track> track_copy(track->clone());
+	update_queue_->enqueue([this, head, position, track_copy] {
+		store_updated_track_at_position(head, position, track_copy, file_access_mutex_);
 	});
 }
 
