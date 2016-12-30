@@ -9,10 +9,13 @@
 #ifndef Disk_hpp
 #define Disk_hpp
 
-#include <memory>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <set>
+
 #include "../Storage.hpp"
+#include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -107,20 +110,15 @@ class Disk {
 		*/
 		virtual std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position) = 0;
 
-		/*!
-			@returns @c true if any calls to set_track_at_position occurred; @c false otherwise.
-		*/
-		bool get_is_modified();
 
-		/*!
-			@returns the @c Track at @c position underneath @c head if a modification was written there.
-		*/
-		std::shared_ptr<Track> get_modified_track_at_position(unsigned int head, unsigned int position);
+		virtual void store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex);
+		void flush_updates();
 
 	private:
 		std::map<int, std::shared_ptr<Track>> cached_tracks_;
-		std::set<int> modified_tracks_;
 		int get_id_for_track_at_position(unsigned int head, unsigned int position);
+		std::mutex file_access_mutex_;
+		std::unique_ptr<Concurrency::AsyncTaskQueue> update_queue_;
 };
 
 }

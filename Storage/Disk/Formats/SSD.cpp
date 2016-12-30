@@ -32,26 +32,9 @@ SSD::SSD(const char *file_name) :
 
 SSD::~SSD()
 {
-	if(get_is_modified())
-	{
-		for(unsigned int head = 0; head < head_count_; head++)
-		{
-			for(unsigned int track = 0; track < track_count_; track++)
-			{
-				std::shared_ptr<Storage::Disk::Track> modified_track = get_modified_track_at_position(head, track);
-				if(modified_track)
-				{
-					Storage::Encodings::MFM::Parser parser(false, modified_track);
-					for(unsigned int c = 0; c < 10; c++)
-					{
-						std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)track, (uint8_t)c);
-						printf("Sector %d: %p\n", c, sector.get());
-					}
-				}
-			}
-		}
-	}
+	flush_updates();
 }
+
 
 unsigned int SSD::get_head_position_count()
 {
@@ -68,13 +51,17 @@ bool SSD::get_is_read_only()
 	return is_read_only_;
 }
 
+long SSD::get_file_offset_for_position(unsigned int head, unsigned int position)
+{
+	return (position * head_count_ + head) * 256 * 10;
+}
+
 std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
 
 	if(head >= head_count_) return track;
-	long file_offset = (position * head_count_ + head) * 256 * 10;
-	fseek(file_, file_offset, SEEK_SET);
+	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 	for(int sector = 0; sector < 10; sector++)
@@ -98,4 +85,26 @@ std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, un
 	if(sectors.size()) return Storage::Encodings::MFM::GetFMTrackWithSectors(sectors);
 
 	return track;
+}
+
+void SSD::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
+{
+	std::vector<uint8_t> parsed_track;
+	Storage::Encodings::MFM::Parser parser(false, track);
+	for(unsigned int c = 0; c < 10; c++)
+	{
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
+		if(sector)
+		{
+			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
+		}
+		else
+		{
+			parsed_track.resize(parsed_track.size() + 256);
+		}
+	}
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
+	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
+	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }
