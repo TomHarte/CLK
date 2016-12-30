@@ -42,7 +42,13 @@ class PCMSegmentEventSource {
 			Constructs a @c PCMSegmentEventSource that will derive events from @c segment.
 			The event source is initially @c reset.
 		*/
-		PCMSegmentEventSource(const PCMSegment &segment);
+		PCMSegmentEventSource(const PCMSegment &);
+
+		/*!
+			Copy constructor; produces a segment event source with the same underlying segment
+			but a unique pointer into it.
+		*/
+		PCMSegmentEventSource(const PCMSegmentEventSource &);
 
 		/*!
 			@returns the next event that will occur in this event stream.
@@ -69,7 +75,7 @@ class PCMSegmentEventSource {
 		Time get_length();
 
 	private:
-		PCMSegment segment_;
+		std::shared_ptr<PCMSegment> segment_;
 		size_t bit_pointer_;
 		Track::Event next_event_;
 };
