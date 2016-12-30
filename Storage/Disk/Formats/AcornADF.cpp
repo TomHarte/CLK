@@ -40,25 +40,6 @@ AcornADF::AcornADF(const char *file_name) :
 AcornADF::~AcornADF()
 {
 	flush_updates();
-//	if(get_is_modified())
-//	{
-//		for(unsigned int head = 0; head < get_head_count(); head++)
-//		{
-//			for(unsigned int track = 0; track < get_head_position_count(); track++)
-//			{
-//				std::shared_ptr<Storage::Disk::Track> modified_track = get_modified_track_at_position(head, track);
-//				if(modified_track)
-//				{
-//					Storage::Encodings::MFM::Parser parser(true, modified_track);
-//					for(unsigned int c = 0; c < sectors_per_track; c++)
-//					{
-//						std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)track, (uint8_t)c);
-//						printf("Sector %d: %p\n", c, sector.get());
-//					}
-//				}
-//			}
-//		}
-//	}
 }
 
 unsigned int AcornADF::get_head_position_count()
@@ -76,12 +57,17 @@ bool AcornADF::get_is_read_only()
 	return is_read_only_;
 }
 
+long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int position)
+{
+	return (position * 1 + head) * bytes_per_sector * sectors_per_track;
+}
+
 std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
 
 	if(head >= 2) return track;
-	long file_offset = (position * 1 + head) * bytes_per_sector * sectors_per_track;
+	long file_offset = get_file_offset_for_position(head, position);
 	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
@@ -103,4 +89,28 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
 
 	return track;
+}
+
+void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
+{
+	std::vector<uint8_t> parsed_track;
+	Storage::Encodings::MFM::Parser parser(true, track);
+	for(unsigned int c = 0; c < sectors_per_track; c++)
+	{
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
+		if(sector)
+		{
+			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
+		}
+		else
+		{
+			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
+			// it can no longer be stored as an SSD? If so, warn them by what route?
+			parsed_track.resize(parsed_track.size() + bytes_per_sector);
+		}
+	}
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
+	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
+	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }

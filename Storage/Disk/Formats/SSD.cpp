@@ -99,6 +99,8 @@ void SSD::store_updated_track_at_position(unsigned int head, unsigned int positi
 		}
 		else
 		{
+			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
+			// it can no longer be stored as an SSD? If so, warn them by what route?
 			parsed_track.resize(parsed_track.size() + 256);
 		}
 	}
