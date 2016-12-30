@@ -35,7 +35,6 @@ SSD::~SSD()
 	flush_updates();
 }
 
-
 unsigned int SSD::get_head_position_count()
 {
 	return track_count_;
