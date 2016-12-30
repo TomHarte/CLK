@@ -55,6 +55,7 @@ class PCMPatchedTrack: public Track {
 
 			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, std::shared_ptr<PCMSegmentEventSource> event_source) :
 				start_time(start_time), end_time(end_time), segment_start_time(segment_start_time), event_source(event_source) {}
+			Period(const Period &);
 		};
 		std::vector<Period> periods_;
 		std::vector<Period>::iterator active_period_;

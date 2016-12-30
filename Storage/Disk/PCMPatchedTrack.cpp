@@ -224,6 +224,12 @@ Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 	return current_time_;
 }
 
+PCMPatchedTrack::Period::Period(const Period &original) :
+	start_time(original.start_time), end_time(original.end_time), segment_start_time(original.segment_start_time)
+{
+	if(original.event_source) event_source.reset(new PCMSegmentEventSource(*original.event_source));
+}
+
 void PCMPatchedTrack::Period::push_start_to_time(const Storage::Time &new_start_time)
 {
 	segment_start_time += new_start_time - start_time;
