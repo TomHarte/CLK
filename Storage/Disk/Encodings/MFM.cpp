@@ -407,6 +407,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t sector)
 {
 	std::shared_ptr<Storage::Encodings::MFM::Sector> first_sector;
+	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
 	if(!first_sector) return first_sector;
 	if(first_sector->sector == sector) return first_sector;
