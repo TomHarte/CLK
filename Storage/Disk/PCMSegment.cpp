@@ -11,10 +11,8 @@
 using namespace Storage::Disk;
 
 PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegment &segment) :
-	segment_(new PCMSegment)
+	segment_(new PCMSegment(segment))
 {
-	*segment_ = segment;
-
 	// add an extra bit of storage at the bottom if one is going to be needed;
 	// events returned are going to be in integral multiples of the length of a bit
 	// other than the very first and very last which will include a half bit length
@@ -35,6 +33,9 @@ PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegmentEventSource &origin
 {
 	// share underlying data with the original
 	segment_ = original.segment_;
+
+	// load up the clock rate and set initial conditions
+	next_event_.length.clock_rate = segment_->length_of_a_bit.clock_rate;
 	reset();
 }
 
