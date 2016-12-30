@@ -106,6 +106,8 @@ void SSD::store_updated_track_at_position(unsigned int head, unsigned int positi
 	}
 
 	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
-	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
+	long file_offset = get_file_offset_for_position(head, position);
+	ensure_file_is_at_least_length(file_offset);
+	fseek(file_, file_offset, SEEK_SET);
 	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }
