@@ -52,6 +52,11 @@ PCMTrack::PCMTrack(const PCMTrack &original) : PCMTrack()
 	segment_event_sources_ = original.segment_event_sources_;
 }
 
+Track *PCMTrack::clone()
+{
+	return new PCMTrack(*this);
+}
+
 Track::Event PCMTrack::get_next_event()
 {
 	// ask the current segment for a new event

@@ -20,6 +20,18 @@ PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
 	underlying_track_->seek_to(zero);
 }
 
+PCMPatchedTrack::PCMPatchedTrack(const PCMPatchedTrack &original)
+{
+	underlying_track_.reset(original.underlying_track_->clone());
+	periods_ = original.periods_;
+	active_period_ = periods_.begin();
+}
+
+Track *PCMPatchedTrack::clone()
+{
+	return new PCMPatchedTrack(*this);
+}
+
 void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment)
 {
 	std::shared_ptr<PCMSegmentEventSource> event_source(new PCMSegmentEventSource(segment));

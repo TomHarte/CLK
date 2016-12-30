@@ -27,6 +27,11 @@ class PCMPatchedTrack: public Track {
 		PCMPatchedTrack(std::shared_ptr<Track> underlying_track);
 
 		/*!
+			Copy constructor, for Track.
+		*/
+		PCMPatchedTrack(const PCMPatchedTrack &);
+
+		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
 			with the contents of @c segment.
 		*/
@@ -35,6 +40,7 @@ class PCMPatchedTrack: public Track {
 		// To satisfy Storage::Disk::Track
 		Event get_next_event();
 		Time seek_to(const Time &time_since_index_hole);
+		Track *clone();
 
 	private:
 		std::shared_ptr<Track> underlying_track_;

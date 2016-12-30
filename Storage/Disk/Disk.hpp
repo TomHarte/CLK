@@ -53,6 +53,11 @@ class Track {
 			@returns the time jumped to.
 		*/
 		virtual Time seek_to(const Time &time_since_index_hole) = 0;
+
+		/*!
+			The virtual copy constructor pattern; returns a copy of the Track.
+		*/
+		virtual Track *clone() = 0;
 };
 
 /*!

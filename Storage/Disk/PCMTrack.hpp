@@ -44,6 +44,7 @@ class PCMTrack: public Track {
 		// as per @c Track
 		Event get_next_event();
 		Time seek_to(const Time &time_since_index_hole);
+		Track *clone();
 
 	private:
 		// storage for the segments that describe this track
