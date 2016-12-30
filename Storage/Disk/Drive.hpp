@@ -20,9 +20,14 @@ class Drive {
 		Drive();
 
 		/*!
-			Inserts @c disk into the drive.
+			Replaces whatever is in the drive with @c disk.
 		*/
-		void set_disk(std::shared_ptr<Disk> disk);
+		void set_disk(const std::shared_ptr<Disk> &disk);
+
+		/*!
+			Replaces whatever is in the drive with a disk that contains endless copies of @c track.
+		*/
+		void set_disk_with_track(const std::shared_ptr<Track> &track);
 
 		/*!
 			@returns @c true if a disk is currently inserted; @c false otherwise.
@@ -61,6 +66,7 @@ class Drive {
 		void set_track(const std::shared_ptr<Track> &track);
 
 	private:
+		std::shared_ptr<Track> track_;
 		std::shared_ptr<Disk> disk_;
 		int head_position_;
 		unsigned int head_;

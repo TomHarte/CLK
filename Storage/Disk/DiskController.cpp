@@ -7,6 +7,7 @@
 //
 
 #include "DiskController.hpp"
+#include "../../NumberTheory/Factors.hpp"
 
 using namespace Storage::Disk;
 
@@ -19,7 +20,6 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 	motor_is_on_(false),
 
 	is_reading_(true),
-	track_is_dirty_(false),
 
 	TimedEventLoop(clock_rate * clock_rate_multiplier)
 {
@@ -30,24 +30,14 @@ Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multipli
 
 void Controller::setup_track()
 {
-	if(patched_track_)
-	{
-		drive_->set_track(patched_track_);
-	}
-
 	track_ = drive_->get_track();
-	track_is_dirty_ = false;
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
-	if(track_ && track_time_now > Time(0))
+	if(track_)
 	{
 		Time time_found = track_->seek_to(track_time_now);
 		offset = track_time_now - time_found;
-	}
-	else
-	{
-		offset = track_time_now;
 	}
 
 	get_next_event(offset);
@@ -55,6 +45,8 @@ void Controller::setup_track()
 
 void Controller::run_for_cycles(int number_of_cycles)
 {
+	Time zero(0);
+
 	if(drive_ && drive_->has_disk() && motor_is_on_)
 	{
 		if(!track_) setup_track();
@@ -64,11 +56,39 @@ void Controller::run_for_cycles(int number_of_cycles)
 		{
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+			if(!is_reading_ && cycles_until_bits_written_ > zero)
+			{
+				int write_cycles_target = (int)cycles_until_bits_written_.get_unsigned_int();
+				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
+				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
+			}
 
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
-			if(is_reading_) pll_->run_for_cycles(cycles_to_run_for);
+			if(is_reading_)
+			{
+				pll_->run_for_cycles(cycles_to_run_for);
+			}
+			else
+			{
+				if(cycles_until_bits_written_ > zero)
+				{
+					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
+					if(cycles_until_bits_written_ <= cycles_to_run_for_time)
+					{
+						process_write_completed();
+						if(cycles_until_bits_written_ <= cycles_to_run_for_time)
+							cycles_until_bits_written_.set_zero();
+						else
+							cycles_until_bits_written_ -= cycles_to_run_for_time;
+					}
+					else
+					{
+						cycles_until_bits_written_ -= cycles_to_run_for_time;
+					}
+				}
+			}
 			TimedEventLoop::run_for_cycles(cycles_to_run_for);
 		}
 	}
@@ -123,7 +143,7 @@ void Controller::begin_writing()
 {
 	is_reading_ = false;
 
-	write_segment_.length_of_a_bit = bit_length_ * rotational_multiplier_;
+	write_segment_.length_of_a_bit = bit_length_ / rotational_multiplier_;
 	write_segment_.data.clear();
 	write_segment_.number_of_bits = 0;
 
@@ -136,6 +156,8 @@ void Controller::write_bit(bool value)
 	if(needs_new_byte) write_segment_.data.push_back(0);
 	if(value) write_segment_.data[write_segment_.number_of_bits >> 3] |= 0x80 >> (write_segment_.number_of_bits & 7);
 	write_segment_.number_of_bits++;
+
+	cycles_until_bits_written_ += cycles_per_bit_;
 }
 
 void Controller::end_writing()
@@ -144,9 +166,15 @@ void Controller::end_writing()
 
 	if(!patched_track_)
 	{
-		patched_track_.reset(new PCMPatchedTrack(track_));
+		// Avoid creating a new patched track if this one is already patched
+		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
+		if(!patched_track_)
+		{
+			patched_track_.reset(new PCMPatchedTrack(track_));
+		}
 	}
 	patched_track_->add_segment(write_start_time_, write_segment_);
+	invalidate_track();	// TEMPORARY: to force a seek
 }
 
 #pragma mark - PLL control and delegate
@@ -154,10 +182,14 @@ void Controller::end_writing()
 void Controller::set_expected_bit_length(Time bit_length)
 {
 	bit_length_ = bit_length;
+	bit_length_.simplify();
+
+	cycles_per_bit_ = Storage::Time(clock_rate_) * bit_length;
+	cycles_per_bit_.simplify();
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
-	int clocks_per_bit = (int)((bit_length.length * clock_rate_) / bit_length.clock_rate);
+	int clocks_per_bit = (int)cycles_per_bit_.get_unsigned_int();
 	pll_.reset(new DigitalPhaseLockedLoop(clocks_per_bit, clocks_per_bit / 5, 3));
 	pll_->set_delegate(this);
 }
@@ -181,10 +213,16 @@ bool Controller::get_drive_is_ready()
 	return drive_->has_disk();
 }
 
+bool Controller::get_drive_is_read_only()
+{
+	if(!drive_) return false;
+	return drive_->get_is_read_only();
+}
+
 void Controller::step(int direction)
 {
-	if(drive_) drive_->step(direction);
 	invalidate_track();
+	if(drive_) drive_->step(direction);
 }
 
 void Controller::set_motor_on(bool motor_on)
@@ -199,11 +237,23 @@ bool Controller::get_motor_on()
 
 void Controller::set_drive(std::shared_ptr<Drive> drive)
 {
-	drive_ = drive;
-	invalidate_track();
+	if(drive_ != drive)
+	{
+		invalidate_track();
+		drive_ = drive;
+	}
 }
 
 void Controller::invalidate_track()
 {
 	track_ = nullptr;
+	if(patched_track_)
+	{
+		drive_->set_track(patched_track_);
+		patched_track_ = nullptr;
+	}
+}
+
+void Controller::process_write_completed()
+{
 }

@@ -28,17 +28,23 @@ class PCMTrack: public Track {
 		/*!
 			Creates a @c PCMTrack consisting of multiple segments of data, permitting multiple clock rates.
 		*/
-		PCMTrack(const std::vector<PCMSegment> &segments);
+		PCMTrack(const std::vector<PCMSegment> &);
 
 		/*!
 			Creates a @c PCMTrack consisting of a single continuous run of data, implying a constant clock rate.
 			The segment's @c length_of_a_bit will be ignored and therefore need not be filled in.
 		*/
-		PCMTrack(const PCMSegment &segment);
+		PCMTrack(const PCMSegment &);
+
+		/*!
+			Copy constructor; required for Tracks in order to support modifiable disks.
+		*/
+		PCMTrack(const PCMTrack &);
 
 		// as per @c Track
 		Event get_next_event();
 		Time seek_to(const Time &time_since_index_hole);
+		Track *clone();
 
 	private:
 		// storage for the segments that describe this track

@@ -28,10 +28,11 @@ class CRC16 {
 				value_ = (uint16_t)(value_ << 1) ^ exclusive_or;
 			}
 		}
-		inline uint16_t get_value() {	return value_; }
+		inline uint16_t get_value() const {	return value_; }
+		inline void set_value(uint16_t value) { value_ = value; }
 
 	private:
-		uint16_t reset_value_, polynomial_;
+		const uint16_t reset_value_, polynomial_;
 		uint16_t value_;
 };
 

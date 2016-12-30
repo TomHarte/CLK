@@ -20,7 +20,13 @@ FileHolder::~FileHolder()
 FileHolder::FileHolder(const char *file_name) : file_(nullptr)
 {
 	stat(file_name, &file_stats_);
-	file_ = fopen(file_name, "rb");
+	is_read_only_ = false;
+	file_ = fopen(file_name, "rb+");
+	if(!file_)
+	{
+		is_read_only_ = true;
+		file_ = fopen(file_name, "rb");
+	}
 	if(!file_) throw ErrorCantOpen;
 }
 
@@ -78,4 +84,17 @@ uint16_t FileHolder::fgetc16be()
 	result |= (uint16_t)fgetc(file_);
 
 	return result;
+}
+
+void FileHolder::ensure_file_is_at_least_length(long length)
+{
+	fseek(file_, 0, SEEK_END);
+	long bytes_to_write = length - ftell(file_);
+	if(bytes_to_write > 0)
+	{
+		uint8_t *empty = new uint8_t[bytes_to_write];
+		memset(empty, 0, bytes_to_write);
+		fwrite(empty, sizeof(uint8_t), (size_t)bytes_to_write, file_);
+		delete[] empty;
+	}
 }

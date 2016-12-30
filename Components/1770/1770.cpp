@@ -27,12 +27,13 @@ WD1770::Status::Status() :
 
 WD1770::WD1770(Personality p) :
 	Storage::Disk::Controller(8000000, 16, 300),
+	crc_generator_(0x1021, 0xffff),
 	interesting_event_mask_(Event::Command),
 	resume_point_(0),
 	delay_time_(0),
 	index_hole_count_target_(-1),
 	is_awaiting_marker_value_(false),
-	is_reading_data_(false),
+	data_mode_(DataMode::Scanning),
 	delegate_(nullptr),
 	personality_(p),
 	head_is_loaded_(false)
@@ -74,7 +75,12 @@ void WD1770::set_register(int address, uint8_t value)
 		break;
 		case 1:		track_ = value;		break;
 		case 2:		sector_ = value;	break;
-		case 3:		data_ = value;		break;
+		case 3:
+			data_ = value;
+			update_status([] (Status &status) {
+				status.data_request = false;
+			});
+		break;
 	}
 }
 
@@ -154,11 +160,13 @@ void WD1770::run_for_cycles(unsigned int number_of_cycles)
 
 void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 {
+	if(data_mode_ == DataMode::Writing) return;
+
 	shift_register_ = (shift_register_ << 1) | value;
 	bits_since_token_++;
 
 	Token::Type token_type = Token::Byte;
-	if(!is_reading_data_)
+	if(data_mode_ == DataMode::Scanning)
 	{
 		if(!is_double_density_)
 		{
@@ -166,15 +174,23 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			{
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_type = Token::Index;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMIndexAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMIDAddressMark:
 					token_type = Token::ID;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMIDAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDataAddressMark:
 					token_type = Token::Data;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMDataAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
 					token_type = Token::DeletedData;
+					crc_generator_.reset();
+					crc_generator_.add(Storage::Encodings::MFM::MFMDeletedDataAddressByte);
 				break;
 				default:
 				break;
@@ -184,13 +200,14 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 		{
 			switch(shift_register_ & 0xffff)
 			{
-				case Storage::Encodings::MFM::MFMIndexAddressMark:
+				case Storage::Encodings::MFM::MFMIndexSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
 				return;
-				case Storage::Encodings::MFM::MFMAddressMark:
+				case Storage::Encodings::MFM::MFMSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
+					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 				return;
 				default:
 				break;
@@ -241,6 +258,7 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			}
 		}
 
+		crc_generator_.add(latest_token_.byte_value);
 		posit_event(Event::Token);
 		return;
 	}
@@ -269,6 +287,12 @@ void WD1770::process_index_hole()
 	}
 }
 
+void WD1770::process_write_completed()
+{
+	posit_event(Event::DataWritten);
+}
+
+
 //     +------+----------+-------------------------+
 //     !	    !	       !	   BITS 	 !
 //     ! TYPE ! COMMAND  !  7  6	5  4  3  2  1  0 !
@@ -288,13 +312,14 @@ void WD1770::process_index_hole()
 
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = mask; return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; if(delay_time_) return; case __LINE__:
+#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; interesting_event_mask_ = Event::Token; distance_into_section_ = 0; return; case __LINE__: if(latest_token_.type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = Event::Token; return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }
 
 #define READ_ID()	\
 		if(new_event_type == Event::Token)	\
 		{	\
-			if(!distance_into_section_ && latest_token_.type == Token::ID) {is_reading_data_ = true; distance_into_section_++; }	\
+			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }	\
 			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)	\
 			{	\
 				header_[distance_into_section_ - 1] = latest_token_.byte_value;	\
@@ -325,7 +350,7 @@ void WD1770::posit_event(Event new_event_type)
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
 		printf("Idle...\n");
-		is_reading_data_ = false;
+		data_mode_ = DataMode::Scanning;
 		index_hole_count_ = 0;
 
 		update_status([] (Status &status) {
@@ -445,7 +470,7 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
-			is_reading_data_ = false;
+			data_mode_ = DataMode::Scanning;
 			// TODO: CRC check
 			if(header_[0] == track_)
 			{
@@ -498,7 +523,7 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_TIME(30);
 
 	test_type2_write_protection:
-		if(command_&0x20) // TODO:: && is_write_protected
+		if(command_&0x20 && get_drive_is_read_only())
 		{
 			update_status([] (Status &status) {
 				status.write_protect = true;
@@ -520,11 +545,24 @@ void WD1770::posit_event(Event new_event_type)
 		}
 		if(distance_into_section_ == 7)
 		{
-			is_reading_data_ = false;
+			printf("Considering %d/%d\n", header_[0], header_[2]);
+			data_mode_ = DataMode::Scanning;
 			if(header_[0] == track_ && header_[2] == sector_ &&
 				(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1]))
 			{
-				// TODO: test CRC
+				printf("Found %d/%d\n", header_[0], header_[2]);
+				if(crc_generator_.get_value())
+				{
+					printf("CRC error; back to searching\n");
+					update_status([] (Status &status) {
+						status.crc_error = true;
+					});
+					goto type2_get_header;
+				}
+
+				update_status([] (Status &status) {
+					status.crc_error = false;
+				});
 				goto type2_read_or_write_data;
 			}
 			distance_into_section_ = 0;
@@ -545,7 +583,7 @@ void WD1770::posit_event(Event new_event_type)
 				status.record_type = (latest_token_.type == Token::DeletedData);
 			});
 			distance_into_section_ = 0;
-			is_reading_data_ = true;
+			data_mode_ = DataMode::Reading;
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
@@ -573,7 +611,15 @@ void WD1770::posit_event(Event new_event_type)
 		distance_into_section_++;
 		if(distance_into_section_ == 2)
 		{
-			// TODO: check CRC
+			if(crc_generator_.get_value())
+			{
+				printf("CRC error; terminating\n");
+				update_status([this] (Status &status) {
+					status.crc_error = true;
+				});
+				goto wait_for_command;
+			}
+
 			if(command_ & 0x10)
 			{
 				sector_++;
@@ -586,7 +632,95 @@ void WD1770::posit_event(Event new_event_type)
 
 
 	type2_write_data:
-		printf("!!!TODO: data portion of sector!!!\n");
+		WAIT_FOR_BYTES(2);
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_BYTES(9);
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+		WAIT_FOR_BYTES(1);
+		if(is_double_density_)
+		{
+			WAIT_FOR_BYTES(11);
+		}
+
+		data_mode_ = DataMode::Writing;
+		begin_writing();
+		for(int c = 0; c < (is_double_density_ ? 12 : 6); c++)
+		{
+			write_byte(0);
+		}
+		WAIT_FOR_EVENT(Event::DataWritten);
+
+		if(is_double_density_)
+		{
+			crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+			for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
+			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
+		}
+		else
+		{
+			crc_generator_.reset();
+			crc_generator_.add((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
+			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+		}
+
+		WAIT_FOR_EVENT(Event::DataWritten);
+		distance_into_section_ = 0;
+
+	type2_write_loop:
+		/*
+			This deviates from the data sheet slightly since that would prima facie request one more byte
+			of data than is actually written — the last time around the loop it has transferred from the
+			data register to the data shift register, set data request, written the byte, checked that data
+			request has been satified, then finally considers whether all bytes are done. Based on both
+			natural expectations and the way that emulated machines responded, I believe that to be a
+			documentation error.
+		*/
+		write_byte(data_);
+		distance_into_section_++;
+		if(distance_into_section_ == 128 << header_[3])
+		{
+			goto type2_write_crc;
+		}
+
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_EVENT(Event::DataWritten);
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+
+		goto type2_write_loop;
+
+	type2_write_crc:
+		{
+			uint16_t crc = crc_generator_.get_value();
+			write_byte(crc >> 8);
+			write_byte(crc & 0xff);
+		}
+		write_byte(0xff);
+		WAIT_FOR_EVENT(Event::DataWritten);
+		end_writing();
+
+		if(command_ & 0x10)
+		{
+			sector_++;
+			goto test_type2_write_protection;
+		}
+		printf("Wrote sector %d\n", sector_);
+		goto wait_for_command;
 
 	begin_type_3:
 		update_status([] (Status &status) {
@@ -618,4 +752,33 @@ void WD1770::set_head_loaded(bool head_loaded)
 {
 	head_is_loaded_ = head_loaded;
 	if(head_loaded) posit_event(Event::HeadLoad);
+}
+
+void WD1770::write_bit(int bit)
+{
+	if(is_double_density_)
+	{
+		Controller::write_bit(!bit && !last_bit_);
+		Controller::write_bit(!!bit);
+		last_bit_ = bit;
+	}
+	else
+	{
+		Controller::write_bit(true);
+		Controller::write_bit(!!bit);
+	}
+}
+
+void WD1770::write_byte(uint8_t byte)
+{
+	for(int c = 0; c < 8; c++) write_bit((byte << c)&0x80);
+	crc_generator_.add(byte);
+}
+
+void WD1770::write_raw_short(uint16_t value)
+{
+	for(int c = 0; c < 16; c++)
+	{
+		Controller::write_bit(!!((value << c)&0x8000));
+	}
 }

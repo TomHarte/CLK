@@ -37,6 +37,11 @@ AcornADF::AcornADF(const char *file_name) :
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 }
 
+AcornADF::~AcornADF()
+{
+	flush_updates();
+}
+
 unsigned int AcornADF::get_head_position_count()
 {
 	return 80;
@@ -47,12 +52,22 @@ unsigned int AcornADF::get_head_count()
 	return 1;
 }
 
+bool AcornADF::get_is_read_only()
+{
+	return is_read_only_;
+}
+
+long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int position)
+{
+	return (position * 1 + head) * bytes_per_sector * sectors_per_track;
+}
+
 std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position)
 {
 	std::shared_ptr<Track> track;
 
 	if(head >= 2) return track;
-	long file_offset = (position * 1 + head) * bytes_per_sector * sectors_per_track;
+	long file_offset = get_file_offset_for_position(head, position);
 	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
@@ -74,4 +89,30 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
 
 	return track;
+}
+
+void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
+{
+	std::vector<uint8_t> parsed_track;
+	Storage::Encodings::MFM::Parser parser(true, track);
+	for(unsigned int c = 0; c < sectors_per_track; c++)
+	{
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
+		if(sector)
+		{
+			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
+		}
+		else
+		{
+			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
+			// it can no longer be stored as an SSD? If so, warn them by what route?
+			parsed_track.resize(parsed_track.size() + bytes_per_sector);
+		}
+	}
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
+	long file_offset = get_file_offset_for_position(head, position);
+	ensure_file_is_at_least_length(file_offset);
+	fseek(file_, file_offset, SEEK_SET);
+	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }

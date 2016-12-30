@@ -20,6 +20,18 @@ PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
 	underlying_track_->seek_to(zero);
 }
 
+PCMPatchedTrack::PCMPatchedTrack(const PCMPatchedTrack &original)
+{
+	underlying_track_.reset(original.underlying_track_->clone());
+	periods_ = original.periods_;
+	active_period_ = periods_.begin();
+}
+
+Track *PCMPatchedTrack::clone()
+{
+	return new PCMPatchedTrack(*this);
+}
+
 void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment)
 {
 	std::shared_ptr<PCMSegmentEventSource> event_source(new PCMSegmentEventSource(segment));
@@ -43,8 +55,7 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 
 	// the vector may have been resized, potentially invalidating active_period_ even if
 	// the thing it pointed to is still the same thing. So work it out afresh.
-	active_period_ = periods_.begin();
-	while(active_period_->start_time > current_time_) active_period_++;
+	insertion_error_ = current_time_ - seek_to(current_time_);
 }
 
 void PCMPatchedTrack::insert_period(const Period &period)
@@ -155,13 +166,18 @@ Track::Event PCMPatchedTrack::get_next_event()
 		else event = underlying_track_->get_next_event();
 
 		// see what time that gets us to. If it's still within the current period, return the found event
-		Time event_time = current_time_ + event.length - period_error;
+		Time event_time = current_time_ + event.length - period_error - insertion_error_;
 		if(event_time < active_period_->end_time)
 		{
 			current_time_ = event_time;
-			event.length += extra_time - period_error;
+			// TODO: this is spelt out in three steps because times don't necessarily do the sensible
+			// thing when 'negative' if intermediate result get simplified in the meantime. So fix Time.
+			event.length += extra_time;
+			event.length -= period_error;
+			event.length -= insertion_error_;
 			return event;
 		}
+		insertion_error_.set_zero();
 
 		// otherwise move time back to the end of the outgoing period, accumulating the error into
 		// extra_time, and advance the extra period
@@ -196,15 +212,22 @@ Track::Event PCMPatchedTrack::get_next_event()
 
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole)
 {
-	// start at the beginning and continue while segments start after the time sought
+	// start at the beginning and continue while segments end before reaching the time sought
 	active_period_ = periods_.begin();
-	while(active_period_->start_time > time_since_index_hole) active_period_++;
+	while(active_period_->end_time < time_since_index_hole) active_period_++;
 
 	// allow whatever storage represents the period found to perform its seek
 	if(active_period_->event_source)
-		return active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
+		current_time_ = active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
 	else
-		return underlying_track_->seek_to(time_since_index_hole);
+		current_time_ = underlying_track_->seek_to(time_since_index_hole);
+	return current_time_;
+}
+
+PCMPatchedTrack::Period::Period(const Period &original) :
+	start_time(original.start_time), end_time(original.end_time), segment_start_time(original.segment_start_time)
+{
+	if(original.event_source) event_source.reset(new PCMSegmentEventSource(*original.event_source));
 }
 
 void PCMPatchedTrack::Period::push_start_to_time(const Storage::Time &new_start_time)

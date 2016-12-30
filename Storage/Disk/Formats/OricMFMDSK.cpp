@@ -57,6 +57,7 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 	size_t track_offset = 0;
 	uint8_t last_header[6];
 	std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
+	bool did_sync = false;
 	while(track_offset < 6250)
 	{
 		uint8_t next_byte = (uint8_t)fgetc(file_);
@@ -65,32 +66,46 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 		switch(next_byte)
 		{
 			default:
-				encoder->add_byte(next_byte);
-			break;
-
-			case 0xfe:	// an ID synchronisation
 			{
-				encoder->add_ID_address_mark();
-
-				for(int byte = 0; byte < 6; byte++)
+				encoder->add_byte(next_byte);
+				if(did_sync)
 				{
-					last_header[byte] = (uint8_t)fgetc(file_);
-					encoder->add_byte(last_header[byte]);
-					track_offset++;
-					if(track_offset == 6250) break;
+					switch(next_byte)
+					{
+						default: break;
+
+						case 0xfe:
+							for(int byte = 0; byte < 6; byte++)
+							{
+								last_header[byte] = (uint8_t)fgetc(file_);
+								encoder->add_byte(last_header[byte]);
+								track_offset++;
+								if(track_offset == 6250) break;
+							}
+						break;
+
+						case 0xfb:
+							for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++)
+							{
+								encoder->add_byte((uint8_t)fgetc(file_));
+								track_offset++;
+								if(track_offset == 6250) break;
+							}
+						break;
+					}
 				}
+
+				did_sync = false;
 			}
 			break;
 
-			case 0xfb:	// a data synchronisation
-				encoder->add_data_address_mark();
+			case 0xa1:	// a synchronisation mark that implies a sector or header coming
+				encoder->output_short(Storage::Encodings::MFM::MFMSync);
+				did_sync = true;
+			break;
 
-				for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++)
-				{
-					encoder->add_byte((uint8_t)fgetc(file_));
-					track_offset++;
-					if(track_offset == 6250) break;
-				}
+			case 0xc2:	// an 'ordinary' synchronisation mark
+				encoder->output_short(Storage::Encodings::MFM::MFMIndexSync);
 			break;
 		}
 	}

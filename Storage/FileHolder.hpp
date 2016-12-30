@@ -65,8 +65,15 @@ class FileHolder {
 		*/
 		uint16_t fgetc16be();
 
+		/*!
+			Ensures the file is at least @c length bytes long, appending 0s until it is
+			if necessary.
+		*/
+		void ensure_file_is_at_least_length(long length);
+
 		FILE *file_;
 		struct stat file_stats_;
+		bool is_read_only_;
 };
 
 }

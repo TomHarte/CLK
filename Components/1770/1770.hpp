@@ -10,6 +10,7 @@
 #define _770_hpp
 
 #include "../../Storage/Disk/DiskController.hpp"
+#include "../../NumberTheory/CRC.hpp"
 
 namespace WD {
 
@@ -94,7 +95,11 @@ class WD1770: public Storage::Disk::Controller {
 		void update_status(std::function<void(Status &)> updater);
 
 		// Tokeniser
-		bool is_reading_data_;
+		enum DataMode {
+			Scanning,
+			Reading,
+			Writing
+		} data_mode_;
 		bool is_double_density_;
 		int shift_register_;
 		struct Token {
@@ -110,17 +115,27 @@ class WD1770: public Storage::Disk::Controller {
 			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
 			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
 			HeadLoad		= (1 << 3),	// Indicates the head has been loaded (1973 only).
+			DataWritten		= (1 << 4),	// Indicates that all queued bits have been written
 
-			Timer			= (1 << 4),	// Indicates that the delay_time_-powered timer has timed out.
-			IndexHoleTarget	= (1 << 5)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
+			Timer			= (1 << 5),	// Indicates that the delay_time_-powered timer has timed out.
+			IndexHoleTarget	= (1 << 6)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		};
 		void posit_event(Event type);
 		int interesting_event_mask_;
 		int resume_point_;
 		int delay_time_;
 
+		// Output
+		int last_bit_;
+		void write_bit(int bit);
+		void write_byte(uint8_t byte);
+		void write_raw_short(uint16_t value);
+
 		// ID buffer
 		uint8_t header_[6];
+
+		// CRC generator
+		NumberTheory::CRC16 crc_generator_;
 
 		// 1793 head-loading logic
 		bool head_is_loaded_;
@@ -131,6 +146,7 @@ class WD1770: public Storage::Disk::Controller {
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
 		virtual void process_index_hole();
+		virtual void process_write_completed();
 };
 
 }

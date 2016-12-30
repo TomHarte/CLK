@@ -14,14 +14,21 @@ using namespace Storage::Disk;
 Drive::Drive()
 	: head_position_(0), head_(0) {}
 
-void Drive::set_disk(std::shared_ptr<Disk> disk)
+void Drive::set_disk(const std::shared_ptr<Disk> &disk)
 {
 	disk_ = disk;
+	track_ = nullptr;
+}
+
+void Drive::set_disk_with_track(const std::shared_ptr<Track> &track)
+{
+	disk_ = nullptr;
+	track_ = track;
 }
 
 bool Drive::has_disk()
 {
-	return (bool)disk_;
+	return (bool)disk_ || (bool)track_;
 }
 
 bool Drive::get_is_track_zero()
@@ -42,12 +49,14 @@ void Drive::set_head(unsigned int head)
 bool Drive::get_is_read_only()
 {
 	if(disk_) return disk_->get_is_read_only();
+	if(track_) return true;
 	return false;
 }
 
 std::shared_ptr<Track> Drive::get_track()
 {
 	if(disk_) return disk_->get_track_at_position(head_, (unsigned int)head_position_);
+	if(track_) return track_;
 	return nullptr;
 }
 

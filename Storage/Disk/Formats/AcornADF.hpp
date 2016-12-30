@@ -27,6 +27,7 @@ class AcornADF: public Disk, public Storage::FileHolder {
 			@throws ErrorNotAcornADF if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
 		AcornADF(const char *file_name);
+		~AcornADF();
 
 		enum {
 			ErrorNotAcornADF,
@@ -35,8 +36,12 @@ class AcornADF: public Disk, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
+		bool get_is_read_only();
+
 	private:
+		void store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex);
 		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
+		long get_file_offset_for_position(unsigned int head, unsigned int position);
 };
 
 }

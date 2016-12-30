@@ -27,6 +27,11 @@ class PCMPatchedTrack: public Track {
 		PCMPatchedTrack(std::shared_ptr<Track> underlying_track);
 
 		/*!
+			Copy constructor, for Track.
+		*/
+		PCMPatchedTrack(const PCMPatchedTrack &);
+
+		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
 			with the contents of @c segment.
 		*/
@@ -35,6 +40,7 @@ class PCMPatchedTrack: public Track {
 		// To satisfy Storage::Disk::Track
 		Event get_next_event();
 		Time seek_to(const Time &time_since_index_hole);
+		Track *clone();
 
 	private:
 		std::shared_ptr<Track> underlying_track_;
@@ -49,10 +55,11 @@ class PCMPatchedTrack: public Track {
 
 			Period(const Time &start_time, const Time &end_time, const Time &segment_start_time, std::shared_ptr<PCMSegmentEventSource> event_source) :
 				start_time(start_time), end_time(end_time), segment_start_time(segment_start_time), event_source(event_source) {}
+			Period(const Period &);
 		};
 		std::vector<Period> periods_;
 		std::vector<Period>::iterator active_period_;
-		Time current_time_;
+		Time current_time_, insertion_error_;
 
 		void insert_period(const Period &period);
 };
