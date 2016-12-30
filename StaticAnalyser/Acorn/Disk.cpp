@@ -28,6 +28,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 	uint8_t final_file_offset = details->data[5];
 	if(final_file_offset&7) return nullptr;
+	if(final_file_offset < 8) return nullptr;
 
 	char disk_name[13];
 	snprintf(disk_name, 13, "%.8s%.4s", &names->data[0], &details->data[0]);
