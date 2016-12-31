@@ -76,11 +76,14 @@ class Parser: public Storage::Disk::Controller {
 		/*!
 			Attempts to read the track at @c track, starting from the index hole.
 
-			All PLL-recognised bits are returned, filling their respective bytes from MSB to LSB.
+			Decodes data bits only; clocks are omitted. Synchronisation values begin a new
+			byte. If a synchronisation value begins partway through a byte then
+			synchronisation-contributing bits will appear both in the preceding byte and
+			in the next.
 			
-			@returns a vector of data found. Also sets @c number_of_bits to the bit count.
+			@returns a vector of data found.
 		*/
-		std::vector<uint8_t> get_track(uint8_t track, size_t &number_of_bits);
+		std::vector<uint8_t> get_track(uint8_t track);
 
 	private:
 		Parser(bool is_mfm);
@@ -100,7 +103,7 @@ class Parser: public Storage::Disk::Controller {
 
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
-		std::vector<uint8_t> get_track(size_t &number_of_bits);
+		std::vector<uint8_t> get_track();
 };
 
 

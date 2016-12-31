@@ -126,7 +126,8 @@ static uint8_t logarithmic_size_for_size(size_t size)
 		case 256:	return 1;
 		case 512:	return 2;
 		case 1024:	return 3;
-		case 2048:	return 4;
+		case 2048:	return 4;		std::vector<uint8_t> get_track(uint8_t track);
+
 		case 4196:	return 5;
 	}
 }
@@ -287,10 +288,10 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t trac
 	return get_sector(sector);
 }
 
-std::vector<uint8_t> Parser::get_track(uint8_t track, size_t &number_of_bits)
+std::vector<uint8_t> Parser::get_track(uint8_t track)
 {
 	seek_to_track(track);
-	return get_track(number_of_bits);
+	return get_track();
 }
 
 void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole)
@@ -321,16 +322,17 @@ uint8_t Parser::get_next_byte()
 	return byte;
 }
 
-std::vector<uint8_t> Parser::get_track(size_t &number_of_bits)
+std::vector<uint8_t> Parser::get_track()
 {
 	std::vector<uint8_t> result;
-	number_of_bits = 0;
+	size_t number_of_bits = 0;
+	bool is_clock = false;
 
 	// align to the first index hole
 	index_count_ = 0;
 	while(!index_count_) run_for_cycles(1);
 
-	// capture every bit until the next index hole
+	// capture every other bit until the next index hole
 	index_count_ = 0;
 	while(1)
 	{
@@ -341,11 +343,35 @@ std::vector<uint8_t> Parser::get_track(size_t &number_of_bits)
 		// if that was the index hole then finish
 		if(index_count_) break;
 
-		// otherwise, add another bit to the collection
-		int bit = number_of_bits & 7;
-		if(!bit) result.push_back(0);
-		result[number_of_bits >> 3] |= (shift_register_&1) << (7 - bit);
-		number_of_bits++;
+		// otherwise, add another bit to the collection if it wasn't a clock
+		if(!is_clock)
+		{
+			int bit = number_of_bits & 7;
+			if(!bit) result.push_back(0);
+			result[number_of_bits >> 3] |= (shift_register_&1) << (7 - bit);
+			number_of_bits++;
+		}
+		is_clock ^= true;
+
+		// if a synchronisation is detected then align
+		uint16_t low_shift_register = (shift_register_&0xffff);
+		bool is_sync = false;
+		if(is_mfm_)
+		{
+			is_sync = (low_shift_register == MFMIndexSync) || (low_shift_register == MFMSync);
+		}
+		else
+		{
+			is_sync =
+				(low_shift_register == FMIndexAddressMark) ||
+				(low_shift_register == FMIDAddressMark) ||
+				(low_shift_register == FMDataAddressMark) ||
+				(low_shift_register == FMDeletedDataAddressMark);
+		}
+		if(is_sync)
+		{
+			if(number_of_bits) number_of_bits += 7 - (number_of_bits&7);
+		}
 	}
 
 	return result;
