@@ -782,7 +782,7 @@ void WD1770::posit_event(Event new_event_type)
 			status.lost_data = false;
 		});
 		set_motor_on(true);
-		if(!(command_ & 0x08)) goto write_track_test_delay;
+		if(!(command_ & 0x08) || !has_motor_on_line()) goto write_track_test_delay;
 
 		index_hole_count_ = 0;
 	write_track_test_index_hole_count:
