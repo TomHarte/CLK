@@ -267,7 +267,7 @@ Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) 
 	drive->set_disk_with_track(track);
 }
 
-std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t track, uint8_t sector)
+void Parser::seek_to_track(uint8_t track)
 {
 	int difference = (int)track - (int)track_;
 	track_ = track;
@@ -279,8 +279,18 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t trac
 
 		for(int c = 0; c < difference; c++) step(direction);
 	}
+}
 
+std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t track, uint8_t sector)
+{
+	seek_to_track(track);
 	return get_sector(sector);
+}
+
+std::vector<uint8_t> Parser::get_track(uint8_t track, size_t &number_of_bits)
+{
+	seek_to_track(track);
+	return get_track(number_of_bits);
 }
 
 void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole)
@@ -310,6 +320,37 @@ uint8_t Parser::get_next_byte()
 	crc_generator_.add(byte);
 	return byte;
 }
+
+std::vector<uint8_t> Parser::get_track(size_t &number_of_bits)
+{
+	std::vector<uint8_t> result;
+	number_of_bits = 0;
+
+	// align to the first index hole
+	index_count_ = 0;
+	while(!index_count_) run_for_cycles(1);
+
+	// capture every bit until the next index hole
+	index_count_ = 0;
+	while(1)
+	{
+		// wait until either another bit or the index hole arrives
+		bit_count_ = 0;
+		while(!bit_count_ && !index_count_) TimedEventLoop::run_for_cycles(1);
+
+		// if that was the index hole then finish
+		if(index_count_) break;
+
+		// otherwise, add another bit to the collection
+		int bit = number_of_bits & 7;
+		if(!bit) result.push_back(0);
+		result[number_of_bits >> 3] |= (shift_register_&1) << (7 - bit);
+		number_of_bits++;
+	}
+
+	return result;
+}
+
 
 std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 {
