@@ -37,22 +37,22 @@ class MFMEncoder: public Encoder {
 
 		void add_index_address_mark() {
 			for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
-			add_byte(MFMIndexAddressByte);
+			add_byte(IndexAddressByte);
 		}
 
 		void add_ID_address_mark() {
 			output_sync();
-			add_byte(MFMIDAddressByte);
+			add_byte(IDAddressByte);
 		}
 
 		void add_data_address_mark() {
 			output_sync();
-			add_byte(MFMDataAddressByte);
+			add_byte(DataAddressByte);
 		}
 
 		void add_deleted_data_address_mark() {
 			output_sync();
-			add_byte(MFMDeletedDataAddressByte);
+			add_byte(DeletedDataAddressByte);
 		}
 
 	private:
@@ -92,28 +92,28 @@ class FMEncoder: public Encoder {
 		void add_index_address_mark()
 		{
 			crc_generator_.reset();
-			crc_generator_.add(MFMIndexAddressByte);
+			crc_generator_.add(IndexAddressByte);
 			output_short(FMIndexAddressMark);
 		}
 
 		void add_ID_address_mark()
 		{
 			crc_generator_.reset();
-			crc_generator_.add(MFMIDAddressByte);
+			crc_generator_.add(IDAddressByte);
 			output_short(FMIDAddressMark);
 		}
 
 		void add_data_address_mark()
 		{
 			crc_generator_.reset();
-			crc_generator_.add(MFMDataAddressByte);
+			crc_generator_.add(DataAddressByte);
 			output_short(FMDataAddressMark);
 		}
 
 		void add_deleted_data_address_mark()
 		{
 			crc_generator_.reset();
-			crc_generator_.add(MFMDeletedDataAddressByte);
+			crc_generator_.add(DeletedDataAddressByte);
 			output_short(FMDeletedDataAddressMark);
 		}
 };
@@ -282,7 +282,7 @@ void Parser::seek_to_track(uint8_t track)
 	}
 }
 
-std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t track, uint8_t sector)
+std::shared_ptr<Sector> Parser::get_sector(uint8_t track, uint8_t sector)
 {
 	seek_to_track(track);
 	return get_sector(sector);
@@ -408,9 +408,9 @@ std::vector<uint8_t> Parser::get_track()
 			{
 				switch(byte_value)
 				{
-					case MFMIDAddressByte:			found_id = true;	break;
-					case MFMDataAddressByte:
-					case MFMDeletedDataAddressByte:	found_data = true;	break;
+					case IDAddressByte:				found_id = true;	break;
+					case DataAddressByte:
+					case DeletedDataAddressByte:	found_data = true;	break;
 				}
 			}
 		}
@@ -431,9 +431,9 @@ std::vector<uint8_t> Parser::get_track()
 }
 
 
-std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
+std::shared_ptr<Sector> Parser::get_next_sector()
 {
-	std::shared_ptr<Storage::Encodings::MFM::Sector> sector(new Storage::Encodings::MFM::Sector);
+	std::shared_ptr<Sector> sector(new Sector);
 	index_count_ = 0;
 
 	while(index_count_ < 2)
@@ -445,10 +445,10 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			run_for_cycles(1);
 			if(is_mfm_)
 			{
-				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
+				while(shift_register_ == MFMSync)
 				{
 					uint8_t mark = get_next_byte();
-					if(mark == Storage::Encodings::MFM::MFMIDAddressByte)
+					if(mark == IDAddressByte)
 					{
 						crc_generator_.set_value(MFMPostSyncCRCValue);
 						id_found = true;
@@ -458,7 +458,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			}
 			else
 			{
-				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark)
+				if(shift_register_ == FMIDAddressMark)
 				{
 					crc_generator_.reset();
 					id_found = true;
@@ -467,7 +467,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			if(index_count_ >= 2) return nullptr;
 		}
 
-		crc_generator_.add(MFMIDAddressByte);
+		crc_generator_.add(IDAddressByte);
 		sector->track = get_next_byte();
 		sector->side = get_next_byte();
 		sector->sector = get_next_byte();
@@ -483,30 +483,30 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 			run_for_cycles(1);
 			if(is_mfm_)
 			{
-				while(shift_register_ == Storage::Encodings::MFM::MFMSync)
+				while(shift_register_ == MFMSync)
 				{
 					uint8_t mark = get_next_byte();
-					if(mark == Storage::Encodings::MFM::MFMDataAddressByte)
+					if(mark == DataAddressByte)
 					{
 						crc_generator_.set_value(MFMPostSyncCRCValue);
 						data_found = true;
 						break;
 					}
-					if(mark == Storage::Encodings::MFM::MFMIDAddressByte) return nullptr;
+					if(mark == IDAddressByte) return nullptr;
 				}
 			}
 			else
 			{
-				if(shift_register_ == Storage::Encodings::MFM::FMDataAddressMark)
+				if(shift_register_ == FMDataAddressMark)
 				{
 					crc_generator_.reset();
 					data_found = true;
 				}
-				if(shift_register_ == Storage::Encodings::MFM::FMIDAddressMark) return nullptr;
+				if(shift_register_ == FMIDAddressMark) return nullptr;
 			}
 			if(index_count_ >= 2) return nullptr;
 		}
-		crc_generator_.add(MFMDataAddressByte);
+		crc_generator_.add(DataAddressByte);
 
 		size_t data_size = (size_t)(128 << size);
 		sector->data.reserve(data_size);
@@ -524,9 +524,9 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_next_sector()
 	return nullptr;
 }
 
-std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t sector)
+std::shared_ptr<Sector> Parser::get_sector(uint8_t sector)
 {
-	std::shared_ptr<Storage::Encodings::MFM::Sector> first_sector;
+	std::shared_ptr<Sector> first_sector;
 	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
 	if(!first_sector) return first_sector;
@@ -534,7 +534,7 @@ std::shared_ptr<Storage::Encodings::MFM::Sector> Parser::get_sector(uint8_t sect
 
 	while(1)
 	{
-		std::shared_ptr<Storage::Encodings::MFM::Sector> next_sector = get_next_sector();
+		std::shared_ptr<Sector> next_sector = get_next_sector();
 		if(!next_sector) continue;
 		if(next_sector->sector == first_sector->sector) return nullptr;
 		if(next_sector->sector == sector) return next_sector;

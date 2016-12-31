@@ -175,22 +175,22 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_type = Token::Index;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::MFMIndexAddressByte);
+					crc_generator_.add(Storage::Encodings::MFM::IndexAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMIDAddressMark:
 					token_type = Token::ID;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::MFMIDAddressByte);
+					crc_generator_.add(Storage::Encodings::MFM::IDAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDataAddressMark:
 					token_type = Token::Data;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::MFMDataAddressByte);
+					crc_generator_.add(Storage::Encodings::MFM::DataAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
 					token_type = Token::DeletedData;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::MFMDeletedDataAddressByte);
+					crc_generator_.add(Storage::Encodings::MFM::DeletedDataAddressByte);
 				break;
 				default:
 				break;
@@ -242,16 +242,16 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 			is_awaiting_marker_value_ = false;
 			switch(latest_token_.byte_value)
 			{
-				case Storage::Encodings::MFM::MFMIndexAddressByte:
+				case Storage::Encodings::MFM::IndexAddressByte:
 					latest_token_.type = Token::Index;
 				break;
-				case Storage::Encodings::MFM::MFMIDAddressByte:
+				case Storage::Encodings::MFM::IDAddressByte:
 					latest_token_.type = Token::ID;
 				break;
-				case Storage::Encodings::MFM::MFMDataAddressByte:
+				case Storage::Encodings::MFM::DataAddressByte:
 					latest_token_.type = Token::Data;
 				break;
-				case Storage::Encodings::MFM::MFMDeletedDataAddressByte:
+				case Storage::Encodings::MFM::DeletedDataAddressByte:
 					latest_token_.type = Token::DeletedData;
 				break;
 				default: break;
@@ -662,12 +662,12 @@ void WD1770::posit_event(Event new_event_type)
 		{
 			crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 			for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
-			write_byte((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
+			write_byte((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
 		}
 		else
 		{
 			crc_generator_.reset();
-			crc_generator_.add((command_&0x01) ? Storage::Encodings::MFM::MFMDeletedDataAddressByte : Storage::Encodings::MFM::MFMDataAddressByte);
+			crc_generator_.add((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
 			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
 		}
 
