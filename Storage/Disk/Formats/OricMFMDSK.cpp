@@ -133,4 +133,11 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 
 void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
 {
+	Storage::Encodings::MFM::Parser parser(true, track);
+	std::vector<uint8_t> parsed_track = parser.get_track((uint8_t)position);
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
+
+	long file_offset = get_file_offset_for_position(head, position);
+	fseek(file_, file_offset, SEEK_SET);
+	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }
