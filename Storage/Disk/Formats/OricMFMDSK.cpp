@@ -135,9 +135,9 @@ void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int
 {
 	Storage::Encodings::MFM::Parser parser(true, track);
 	std::vector<uint8_t> parsed_track = parser.get_track(0);
-	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
-
 	long file_offset = get_file_offset_for_position(head, position);
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
 	fseek(file_, file_offset, SEEK_SET);
 	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
 }
