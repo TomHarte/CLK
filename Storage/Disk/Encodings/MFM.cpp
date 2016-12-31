@@ -378,9 +378,13 @@ std::vector<uint8_t> Parser::get_track()
 		}
 		if(is_sync)
 		{
-			if(number_of_bits&7) number_of_bits += 8 - (number_of_bits&7);
-			result.push_back(get_byte_for_shift_value((uint16_t)shift_register_));
-			number_of_bits += 8;
+			if(number_of_bits&7)
+			{
+				number_of_bits += 8 - (number_of_bits&7);
+				if(!result.empty()) printf("[%02x]", result.back());
+				result.push_back(get_byte_for_shift_value((uint16_t)shift_register_));
+				number_of_bits += 8;
+			}
 			is_clock = true;
 		}
 	}
