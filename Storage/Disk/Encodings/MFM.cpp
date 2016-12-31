@@ -329,8 +329,10 @@ uint8_t Parser::get_next_byte()
 std::vector<uint8_t> Parser::get_track()
 {
 	std::vector<uint8_t> result;
-	size_t number_of_bits = 0;
-	bool is_clock = false;
+	int distance_until_permissible_sync = 0;
+	uint8_t last_id[6];
+	int last_id_pointer = 0;
+	bool next_is_type = false;
 
 	// align to the next index hole
 	index_count_ = 0;
@@ -342,50 +344,86 @@ std::vector<uint8_t> Parser::get_track()
 	{
 		// wait until either another bit or the index hole arrives
 		bit_count_ = 0;
-		while(!bit_count_ && !index_count_) run_for_cycles(1);
+		bool found_sync = false;
+		while(!index_count_ && !found_sync && bit_count_ < 16)
+		{
+			int previous_bit_count = bit_count_;
+			run_for_cycles(1);
+
+			if(!distance_until_permissible_sync && bit_count_ != previous_bit_count)
+			{
+				uint16_t low_shift_register = (shift_register_&0xffff);
+				if(is_mfm_)
+				{
+					found_sync = (low_shift_register == MFMIndexSync) || (low_shift_register == MFMSync);
+				}
+				else
+				{
+					found_sync =
+						(low_shift_register == FMIndexAddressMark) ||
+						(low_shift_register == FMIDAddressMark) ||
+						(low_shift_register == FMDataAddressMark) ||
+						(low_shift_register == FMDeletedDataAddressMark);
+				}
+			}
+		}
 
 		// if that was the index hole then finish
-		if(index_count_) break;
-
-		// otherwise, add another bit to the collection if it wasn't a clock
-		if(!is_clock)
+		if(index_count_)
 		{
-			int bit = number_of_bits & 7;
-			if(!bit)
-			{
-				if(!result.empty()) printf("[%02x]", result.back());
-				result.push_back(0);
-			}
-			result[number_of_bits >> 3] |= (shift_register_&1) << (7 - bit);
-			number_of_bits++;
+			if(bit_count_) result.push_back(get_byte_for_shift_value((uint16_t)(shift_register_ << (16 - bit_count_))));
+			break;
 		}
-		is_clock ^= true;
 
-		// if a synchronisation is detected then align
-		uint16_t low_shift_register = (shift_register_&0xffff);
-		bool is_sync = false;
-		if(is_mfm_)
+		// store whatever the current byte is
+		uint8_t byte_value = get_byte_for_shift_value((uint16_t)shift_register_);
+		result.push_back(byte_value);
+		if(last_id_pointer < 6) last_id[last_id_pointer++] = byte_value;
+
+		// if no syncs are permissible here, decrement the waiting period and perform no further contemplation
+		bool found_id = false, found_data = false;
+		if(distance_until_permissible_sync)
 		{
-			is_sync = (low_shift_register == MFMIndexSync) || (low_shift_register == MFMSync);
+			distance_until_permissible_sync--;
 		}
 		else
 		{
-			is_sync =
-				(low_shift_register == FMIndexAddressMark) ||
-				(low_shift_register == FMIDAddressMark) ||
-				(low_shift_register == FMDataAddressMark) ||
-				(low_shift_register == FMDeletedDataAddressMark);
-		}
-		if(is_sync)
-		{
-			if(number_of_bits&7)
+			if(found_sync)
 			{
-				number_of_bits += 8 - (number_of_bits&7);
-				if(!result.empty()) printf("[%02x]", result.back());
-				result.push_back(get_byte_for_shift_value((uint16_t)shift_register_));
-				number_of_bits += 8;
+				if(is_mfm_)
+				{
+					next_is_type = true;
+				}
+				else
+				{
+					switch(shift_register_&0xffff)
+					{
+						case FMIDAddressMark:			found_id = true;	break;
+						case FMDataAddressMark:
+						case FMDeletedDataAddressMark:	found_data = true;	break;
+					}
+				}
 			}
-			is_clock = true;
+			else if(next_is_type)
+			{
+				switch(byte_value)
+				{
+					case MFMIDAddressByte:			found_id = true;	break;
+					case MFMDataAddressByte:
+					case MFMDeletedDataAddressByte:	found_data = true;	break;
+				}
+			}
+		}
+
+		if(found_id)
+		{
+			distance_until_permissible_sync = 6;
+			last_id_pointer = 0;
+		}
+
+		if(found_data)
+		{
+			distance_until_permissible_sync = 128 << last_id[3];
 		}
 	}
 
