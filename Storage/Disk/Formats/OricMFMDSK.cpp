@@ -26,6 +26,11 @@ OricMFMDSK::OricMFMDSK(const char *file_name) :
 		throw ErrorNotOricMFMDSK;
 }
 
+OricMFMDSK::~OricMFMDSK()
+{
+	flush_updates();
+}
+
 unsigned int OricMFMDSK::get_head_position_count()
 {
 	return track_count_;
@@ -36,7 +41,12 @@ unsigned int OricMFMDSK::get_head_count()
 	return head_count_;
 }
 
-std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int head, unsigned int position)
+bool OricMFMDSK::get_is_read_only()
+{
+	return is_read_only_;
+}
+
+long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int position)
 {
 	long seek_offset = 0;
 	switch(geometry_type_)
@@ -48,7 +58,12 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 			seek_offset = (position * track_count_ * head_count_) + head;
 		break;
 	}
-	fseek(file_, (seek_offset * 6400) + 256, SEEK_SET);
+	return (seek_offset * 6400) + 256;
+}
+
+std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int head, unsigned int position)
+{
+	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
 	PCMSegment segment;
 
@@ -114,4 +129,8 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 
 	std::shared_ptr<PCMTrack> track(new PCMTrack(segment));
 	return track;
+}
+
+void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
+{
 }
