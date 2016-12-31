@@ -101,6 +101,8 @@ class Parser: public Storage::Disk::Controller {
 		void process_index_hole();
 		uint8_t get_next_byte();
 
+		uint8_t get_byte_for_shift_value(uint16_t value);
+
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
 		std::vector<uint8_t> get_track();

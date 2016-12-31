@@ -305,19 +305,23 @@ void Parser::process_index_hole()
 	index_count_++;
 }
 
+uint8_t Parser::get_byte_for_shift_value(uint16_t value)
+{
+	return (uint8_t)(
+		((value&0x0001) >> 0) |
+		((value&0x0004) >> 1) |
+		((value&0x0010) >> 2) |
+		((value&0x0040) >> 3) |
+		((value&0x0100) >> 4) |
+		((value&0x0400) >> 5) |
+		((value&0x1000) >> 6) |
+		((value&0x4000) >> 7));}
+
 uint8_t Parser::get_next_byte()
 {
 	bit_count_ = 0;
 	while(bit_count_ < 16) run_for_cycles(1);
-	uint8_t byte = (uint8_t)(
-		((shift_register_&0x0001) >> 0) |
-		((shift_register_&0x0004) >> 1) |
-		((shift_register_&0x0010) >> 2) |
-		((shift_register_&0x0040) >> 3) |
-		((shift_register_&0x0100) >> 4) |
-		((shift_register_&0x0400) >> 5) |
-		((shift_register_&0x1000) >> 6) |
-		((shift_register_&0x4000) >> 7));
+	uint8_t byte = get_byte_for_shift_value((uint16_t)shift_register_);
 	crc_generator_.add(byte);
 	return byte;
 }
@@ -328,7 +332,7 @@ std::vector<uint8_t> Parser::get_track()
 	size_t number_of_bits = 0;
 	bool is_clock = false;
 
-	// align to the first index hole
+	// align to the next index hole
 	index_count_ = 0;
 	while(!index_count_) run_for_cycles(1);
 
@@ -338,7 +342,7 @@ std::vector<uint8_t> Parser::get_track()
 	{
 		// wait until either another bit or the index hole arrives
 		bit_count_ = 0;
-		while(!bit_count_ && !index_count_) TimedEventLoop::run_for_cycles(1);
+		while(!bit_count_ && !index_count_) run_for_cycles(1);
 
 		// if that was the index hole then finish
 		if(index_count_) break;
@@ -347,7 +351,11 @@ std::vector<uint8_t> Parser::get_track()
 		if(!is_clock)
 		{
 			int bit = number_of_bits & 7;
-			if(!bit) result.push_back(0);
+			if(!bit)
+			{
+				if(!result.empty()) printf("[%02x]", result.back());
+				result.push_back(0);
+			}
 			result[number_of_bits >> 3] |= (shift_register_&1) << (7 - bit);
 			number_of_bits++;
 		}
@@ -370,7 +378,10 @@ std::vector<uint8_t> Parser::get_track()
 		}
 		if(is_sync)
 		{
-			if(number_of_bits) number_of_bits += 7 - (number_of_bits&7);
+			if(number_of_bits&7) number_of_bits += 8 - (number_of_bits&7);
+			result.push_back(get_byte_for_shift_value((uint16_t)shift_register_));
+			number_of_bits += 8;
+			is_clock = true;
 		}
 	}
 
