@@ -139,5 +139,6 @@ void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int
 
 	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
 	fseek(file_, file_offset, SEEK_SET);
-	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
+	size_t track_size = std::min((size_t)6400, parsed_track.size());
+	fwrite(parsed_track.data(), 1, track_size, file_);
 }
