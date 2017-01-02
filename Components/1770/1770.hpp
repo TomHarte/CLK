@@ -104,7 +104,7 @@ class WD1770: public Storage::Disk::Controller {
 		int shift_register_;
 		struct Token {
 			enum Type {
-				Index, ID, Data, DeletedData, Byte
+				Index, ID, Data, DeletedData, Sync, Byte
 			} type;
 			uint8_t byte_value;
 		} latest_token_;

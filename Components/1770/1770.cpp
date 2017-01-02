@@ -165,9 +165,9 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	shift_register_ = (shift_register_ << 1) | value;
 	bits_since_token_++;
 
-	Token::Type token_type = Token::Byte;
 	if(data_mode_ == DataMode::Scanning)
 	{
+		Token::Type token_type = Token::Byte;
 		if(!is_double_density_)
 		{
 			switch(shift_register_ & 0xffff)
@@ -175,22 +175,22 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_type = Token::Index;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::IndexAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IndexAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMIDAddressMark:
 					token_type = Token::ID;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::IDAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IDAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDataAddressMark:
 					token_type = Token::Data;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::DataAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DataAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
 					token_type = Token::DeletedData;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::DeletedDataAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DeletedDataAddressByte);
 				break;
 				default:
 				break;
@@ -203,12 +203,18 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 				case Storage::Encodings::MFM::MFMIndexSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
-				return;
+
+					token_type = Token::Sync;
+					latest_token_.byte_value = Storage::Encodings::MFM::MFMIndexSyncByteValue;
+				break;
 				case Storage::Encodings::MFM::MFMSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
 					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-				return;
+
+					token_type = Token::Sync;
+					latest_token_.byte_value = Storage::Encodings::MFM::MFMSyncByteValue;
+				break;
 				default:
 				break;
 			}
@@ -763,6 +769,26 @@ void WD1770::posit_event(Event new_event_type)
 		update_status([] (Status &status) {
 			status.type = Status::Three;
 		});
+		if(!has_motor_on_line() && !has_head_load_line()) goto type3_test_delay;
+
+		if(has_motor_on_line()) goto begin_type3_spin_up;
+		goto begin_type3_load_head;
+
+	begin_type3_load_head:
+		set_head_load_request(true);
+		if(head_is_loaded_) goto type3_test_delay;
+		WAIT_FOR_EVENT(Event::HeadLoad);
+		goto type3_test_delay;
+
+	begin_type3_spin_up:
+		if((command_&0x08) || get_motor_on()) goto type3_test_delay;
+		SPIN_UP();
+
+	type3_test_delay:
+		if(!(command_&0x04)) goto test_type3_type;
+		WAIT_FOR_TIME(30);
+
+	test_type3_type:
 		switch(command_ >> 4)
 		{
 			case 0xa:	goto begin_read_address;
@@ -774,24 +800,33 @@ void WD1770::posit_event(Event new_event_type)
 		printf("!!!TODO: read address!!!\n");
 
 	begin_read_track:
-		printf("!!!TODO: read track!!!\n");
+		WAIT_FOR_EVENT(Event::IndexHole);
+		index_hole_count_ = 0;
+
+	read_track_read_byte:
+		WAIT_FOR_EVENT(Event::Token | Event::IndexHole);
+		if(index_hole_count_)
+		{
+			goto wait_for_command;
+		}
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+		data_ = latest_token_.byte_value;
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		goto read_track_read_byte;
 
 	begin_write_track:
 		update_status([] (Status &status) {
 			status.data_request = false;
 			status.lost_data = false;
 		});
-		set_motor_on(true);
-		if(!(command_ & 0x08) || !has_motor_on_line()) goto write_track_test_delay;
-
-		index_hole_count_ = 0;
-	write_track_test_index_hole_count:
-		WAIT_FOR_EVENT(Event::IndexHoleTarget);
-		if(index_hole_count_target_ < 6) goto write_track_test_index_hole_count;
-
-	write_track_test_delay:
-		if(!(command_&0x04)) goto write_track_test_write_protect;
-		WAIT_FOR_TIME(30);
 
 	write_track_test_write_protect:
 		if(get_drive_is_read_only())
