@@ -789,12 +789,9 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_TIME(30);
 
 	test_type3_type:
-		switch(command_ >> 4)
-		{
-			case 0xa:	goto begin_read_address;
-			case 0xc:	goto begin_read_track;
-			case 0xf:	goto begin_write_track;
-		}
+		if(!(command_&0x20)) goto begin_read_address;
+		if(!(command_&0x10)) goto begin_read_track;
+		goto begin_write_track;
 
 	begin_read_address:
 		index_hole_count_ = 0;
