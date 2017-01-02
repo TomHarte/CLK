@@ -165,9 +165,9 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 	shift_register_ = (shift_register_ << 1) | value;
 	bits_since_token_++;
 
-	Token::Type token_type = Token::Byte;
 	if(data_mode_ == DataMode::Scanning)
 	{
+		Token::Type token_type = Token::Byte;
 		if(!is_double_density_)
 		{
 			switch(shift_register_ & 0xffff)
@@ -175,22 +175,22 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_type = Token::Index;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::IndexAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IndexAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMIDAddressMark:
 					token_type = Token::ID;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::IDAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IDAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDataAddressMark:
 					token_type = Token::Data;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::DataAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DataAddressByte);
 				break;
 				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
 					token_type = Token::DeletedData;
 					crc_generator_.reset();
-					crc_generator_.add(Storage::Encodings::MFM::DeletedDataAddressByte);
+					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DeletedDataAddressByte);
 				break;
 				default:
 				break;
@@ -203,12 +203,18 @@ void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole)
 				case Storage::Encodings::MFM::MFMIndexSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
-				return;
+
+					token_type = Token::Sync;
+					latest_token_.byte_value = Storage::Encodings::MFM::MFMIndexSyncByteValue;
+				break;
 				case Storage::Encodings::MFM::MFMSync:
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
 					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-				return;
+
+					token_type = Token::Sync;
+					latest_token_.byte_value = Storage::Encodings::MFM::MFMSyncByteValue;
+				break;
 				default:
 				break;
 			}
@@ -292,24 +298,6 @@ void WD1770::process_write_completed()
 	posit_event(Event::DataWritten);
 }
 
-
-//     +------+----------+-------------------------+
-//     !	    !	       !	   BITS 	 !
-//     ! TYPE ! COMMAND  !  7  6	5  4  3  2  1  0 !
-//     +------+----------+-------------------------+
-//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
-//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
-//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
-//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
-//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
-//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
-//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
-//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
-//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
-//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
-//     !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
-//     +------+----------+-------------------------+
-
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = mask; return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; if(delay_time_) return; case __LINE__:
 #define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; interesting_event_mask_ = Event::Token; distance_into_section_ = 0; return; case __LINE__: if(latest_token_.type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = Event::Token; return; }
@@ -338,6 +326,22 @@ void WD1770::process_write_completed()
 		WAIT_FOR_EVENT(Event::IndexHoleTarget);	\
 		status_.spin_up = true;
 
+//     +--------+----------+-------------------------+
+//     !	    !	       !          BITS           !
+//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+//     +--------+----------+-------------------------+
+//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+//     !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
+//     +--------+----------+-------------------------+
 
 void WD1770::posit_event(Event new_event_type)
 {
@@ -375,6 +379,17 @@ void WD1770::posit_event(Event new_event_type)
 	/*
 		Type 1 entry point.
 	*/
+//     +--------+----------+-------------------------+
+//     !	    !	       !          BITS           !
+//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+//     +--------+----------+-------------------------+
+//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+//     +--------+----------+-------------------------+
+
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
 		update_status([] (Status &status) {
@@ -471,7 +486,14 @@ void WD1770::posit_event(Event new_event_type)
 		if(distance_into_section_ == 7)
 		{
 			data_mode_ = DataMode::Scanning;
-			// TODO: CRC check
+			if(crc_generator_.get_value())
+			{
+				update_status([] (Status &status) {
+					status.crc_error = true;
+				});
+				goto verify_read_data;
+			}
+
 			if(header_[0] == track_)
 			{
 				printf("Reached track %d\n", track_);
@@ -489,6 +511,14 @@ void WD1770::posit_event(Event new_event_type)
 	/*
 		Type 2 entry point.
 	*/
+//     +--------+----------+-------------------------+
+//     !	    !	       !          BITS           !
+//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+//     +--------+----------+-------------------------+
+//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+//     +--------+----------+-------------------------+
+
 	begin_type_2:
 		update_status([] (Status &status) {
 			status.type = Status::Two;
@@ -696,6 +726,7 @@ void WD1770::posit_event(Event new_event_type)
 		WAIT_FOR_EVENT(Event::DataWritten);
 		if(status_.data_request)
 		{
+			end_writing();
 			update_status([] (Status &status) {
 				status.lost_data = true;
 			});
@@ -722,12 +753,228 @@ void WD1770::posit_event(Event new_event_type)
 		printf("Wrote sector %d\n", sector_);
 		goto wait_for_command;
 
+
+	/*
+		Type 3 entry point.
+	*/
+//     +--------+----------+-------------------------+
+//     !	    !	       !          BITS           !
+//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+//     +--------+----------+-------------------------+
+//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+//     +--------+----------+-------------------------+
 	begin_type_3:
 		update_status([] (Status &status) {
 			status.type = Status::Three;
+			status.crc_error = false;
+			status.lost_data = false;
+			status.record_not_found = false;
 		});
-		printf("!!!TODO: type 3 commands!!!\n");
+		if(!has_motor_on_line() && !has_head_load_line()) goto type3_test_delay;
 
+		if(has_motor_on_line()) goto begin_type3_spin_up;
+		goto begin_type3_load_head;
+
+	begin_type3_load_head:
+		set_head_load_request(true);
+		if(head_is_loaded_) goto type3_test_delay;
+		WAIT_FOR_EVENT(Event::HeadLoad);
+		goto type3_test_delay;
+
+	begin_type3_spin_up:
+		if((command_&0x08) || get_motor_on()) goto type3_test_delay;
+		SPIN_UP();
+
+	type3_test_delay:
+		if(!(command_&0x04)) goto test_type3_type;
+		WAIT_FOR_TIME(30);
+
+	test_type3_type:
+		if(!(command_&0x20)) goto begin_read_address;
+		if(!(command_&0x10)) goto begin_read_track;
+		goto begin_write_track;
+
+	begin_read_address:
+		index_hole_count_ = 0;
+		distance_into_section_ = 0;
+
+	read_address_get_header:
+		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		if(new_event_type == Event::Token)
+		{
+			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }
+			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)
+			{
+				if(status_.data_request)
+				{
+					update_status([] (Status &status) {
+						status.lost_data = true;
+					});
+					goto wait_for_command;
+				}
+				header_[distance_into_section_ - 1] = data_ = latest_token_.byte_value;
+				track_ = header_[0];
+				update_status([] (Status &status) {
+					status.data_request = true;
+				});
+				distance_into_section_++;
+
+				if(distance_into_section_ == 7)
+				{
+					if(crc_generator_.get_value())
+					{
+						update_status([] (Status &status) {
+							status.crc_error = true;
+						});
+					}
+					goto wait_for_command;
+				}
+			}
+		}
+
+		if(index_hole_count_ == 6)
+		{
+			update_status([] (Status &status) {
+				status.record_not_found = true;
+			});
+			goto wait_for_command;
+		}
+		goto read_address_get_header;
+
+	begin_read_track:
+		WAIT_FOR_EVENT(Event::IndexHole);
+		index_hole_count_ = 0;
+
+	read_track_read_byte:
+		WAIT_FOR_EVENT(Event::Token | Event::IndexHole);
+		if(index_hole_count_)
+		{
+			goto wait_for_command;
+		}
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+		data_ = latest_token_.byte_value;
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		goto read_track_read_byte;
+
+	begin_write_track:
+		update_status([] (Status &status) {
+			status.data_request = false;
+			status.lost_data = false;
+		});
+
+	write_track_test_write_protect:
+		if(get_drive_is_read_only())
+		{
+			update_status([] (Status &status) {
+				status.write_protect = true;
+			});
+			goto wait_for_command;
+		}
+
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_BYTES(3);
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			goto wait_for_command;
+		}
+
+		WAIT_FOR_EVENT(Event::IndexHoleTarget);
+		begin_writing();
+		index_hole_count_ = 0;
+
+	write_track_write_loop:
+		if(is_double_density_)
+		{
+			switch(data_)
+			{
+				case 0xf5:
+					write_raw_short(Storage::Encodings::MFM::MFMSync);
+					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+				break;
+				case 0xf6:
+					write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
+				break;
+				case 0xff: {
+					uint16_t crc = crc_generator_.get_value();
+					write_byte(crc >> 8);
+					write_byte(crc & 0xff);
+				} break;
+				default:
+					write_byte(data_);
+				break;
+			}
+		}
+		else
+		{
+			switch(data_)
+			{
+				case 0xf8: case 0xf9: case 0xfa: case 0xfb:
+				case 0xfd: case 0xfe:
+					// clock is 0xc7 = 1010 0000 0010 1010 = 0xa022
+					write_raw_short(
+						(uint16_t)(
+							0xa022 |
+							((data_ & 0x80) << 7) |
+							((data_ & 0x40) << 6) |
+							((data_ & 0x20) << 5) |
+							((data_ & 0x10) << 4) |
+							((data_ & 0x08) << 3) |
+							((data_ & 0x04) << 2) |
+							((data_ & 0x02) << 1) |
+							(data_ & 0x01)
+						)
+					);
+					crc_generator_.reset();
+					crc_generator_.add(data_);
+				break;
+				case 0xfc:
+					write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
+				break;
+				case 0xf7: {
+					uint16_t crc = crc_generator_.get_value();
+					write_byte(crc >> 8);
+					write_byte(crc & 0xff);
+				} break;
+				default:
+					write_byte(data_);
+				break;
+			}
+		}
+
+		update_status([] (Status &status) {
+			status.data_request = true;
+		});
+		WAIT_FOR_EVENT(Event::DataWritten);
+		if(status_.data_request)
+		{
+			update_status([] (Status &status) {
+				status.lost_data = true;
+			});
+			end_writing();
+			goto wait_for_command;
+		}
+		if(index_hole_count_)
+		{
+			end_writing();
+			goto wait_for_command;
+		}
+
+		goto write_track_write_loop;
 
 	END_SECTION()
 }

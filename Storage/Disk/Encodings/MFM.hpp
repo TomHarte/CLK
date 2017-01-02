@@ -33,6 +33,9 @@ const uint16_t MFMIndexSync				= 0x5224;	// data 0xc2, with a missing clock at 0
 const uint16_t MFMSync					= 0x4489;	// data 0xa1, with a missing clock at 0x0020 => 0100 0100 1010 1001 without 0010 0000
 const uint16_t MFMPostSyncCRCValue		= 0xcdb4;	// the value the CRC generator should have after encountering three 0xa1s
 
+const uint8_t MFMIndexSyncByteValue		= 0xc2;
+const uint8_t MFMSyncByteValue			= 0xa1;
+
 struct Sector {
 	uint8_t track, side, sector;
 	std::vector<uint8_t> data;
