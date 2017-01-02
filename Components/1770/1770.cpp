@@ -797,7 +797,45 @@ void WD1770::posit_event(Event new_event_type)
 		}
 
 	begin_read_address:
-		printf("!!!TODO: read address!!!\n");
+		index_hole_count_ = 0;
+		distance_into_section_ = 0;
+
+	read_address_get_header:
+		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		if(new_event_type == Event::Token)
+		{
+			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }
+			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte)
+			{
+				if(status_.data_request)
+				{
+					update_status([] (Status &status) {
+						status.lost_data = true;
+					});
+					goto wait_for_command;
+				}
+				header_[distance_into_section_ - 1] = data_ = latest_token_.byte_value;
+				track_ = header_[0];
+				update_status([] (Status &status) {
+					status.data_request = true;
+				});
+				distance_into_section_++;
+
+				if(distance_into_section_ == 7)
+				{
+					goto wait_for_command;
+				}
+			}
+		}
+
+		if(index_hole_count_ == 6)
+		{
+			update_status([] (Status &status) {
+				status.record_not_found = true;
+			});
+			goto wait_for_command;
+		}
+		goto read_address_get_header;
 
 	begin_read_track:
 		WAIT_FOR_EVENT(Event::IndexHole);
