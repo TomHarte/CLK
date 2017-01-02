@@ -768,6 +768,9 @@ void WD1770::posit_event(Event new_event_type)
 	begin_type_3:
 		update_status([] (Status &status) {
 			status.type = Status::Three;
+			status.crc_error = false;
+			status.lost_data = false;
+			status.record_not_found = false;
 		});
 		if(!has_motor_on_line() && !has_head_load_line()) goto type3_test_delay;
 
@@ -820,6 +823,12 @@ void WD1770::posit_event(Event new_event_type)
 
 				if(distance_into_section_ == 7)
 				{
+					if(crc_generator_.get_value())
+					{
+						update_status([] (Status &status) {
+							status.crc_error = true;
+						});
+					}
 					goto wait_for_command;
 				}
 			}
