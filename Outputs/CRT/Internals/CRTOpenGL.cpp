@@ -398,7 +398,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	if(composite_chrominance_filter_shader_program_)
 	{
 		composite_chrominance_filter_shader_program_->set_width_scalers(output_width, output_width);
-		composite_chrominance_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, colour_subcarrier_frequency * 0.5f);
+		composite_chrominance_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, colour_subcarrier_frequency);
 	}
 	if(rgb_filter_shader_program_)
 	{
