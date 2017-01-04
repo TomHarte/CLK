@@ -53,19 +53,28 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 		"void main(void)"
 		"{"
+			// odd vertices are on the left, even on the right
 			"float extent = float(gl_VertexID & 1);"
 
+			// inputPosition.x is either inputStart.x or ends.x, depending on whether it is on the left or the right;
+			// outputPosition.x is either outputStart.x or ends.y;
+			// .ys are inputStart.y and outputStart.y respectively
 			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent), inputStart.y);"
 			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent), outputStart.y);"
+
+			// extension is the amount to extend both the input and output by to add a full colour cycle at each end
 			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (extent - 0.5);"
 
+			// extended[Input/Output]Position are [input/output]Position with the necessary applied extension
 			"vec2 extendedInputPosition = %s + extensionVector;"
 			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
 
+			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
 			"vec2 textureSize = vec2(textureSize(texID, 0));"
 			"iInputPositionVarying = extendedInputPosition;"
 			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
 
+			// setup input positions spaced as per the supplied offsets; these are for filtering where required
 			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
 			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
 			"inputPositionsVarying[2] = mappedInputPosition - (vec2(offsets[2], 0.0) / textureSize);"
@@ -79,9 +88,12 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
+			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
+			// setup phaseAndAmplitudeVarying.x as colour burst amplitude
 			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTimeAndAmplitude.y) + (phaseTimeAndAmplitude.x / 256.0)) * 2.0 * 3.141592654;"
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
 
+			// determine output position by scaling the output position according to the texture size
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(1.0)/outputTextureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
