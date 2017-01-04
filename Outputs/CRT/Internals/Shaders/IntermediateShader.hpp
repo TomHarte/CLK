@@ -88,6 +88,12 @@ public:
 	*/
 	void set_colour_conversion_matrices(float *fromRGB, float *toRGB);
 
+	/*!
+		Sets the proportions of the input and output areas that should be considered the whole width — 1.0 means use all available
+		space, 0.5 means use half, etc.
+	*/
+	void set_width_scalers(float input_scaler, float output_scaler);
+
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);
 };

@@ -38,6 +38,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
 		"uniform %s texID;"
+		"uniform float inputScaler;"
 
 		"out float lateralVarying;"
 		"out vec2 srcCoordinatesVarying;"
@@ -54,7 +55,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 			"vec2 vSrcCoordinates = vec2(x, vertical.y);"
 			"ivec2 textureSize = textureSize(texID, 0);"
 			"iSrcCoordinatesVarying = vSrcCoordinates;"
-			"srcCoordinatesVarying = vec2(vSrcCoordinates.x / textureSize.x, (vSrcCoordinates.y + 0.5) / textureSize.y);"
+			"srcCoordinatesVarying = vec2(inputScaler * vSrcCoordinates.x / textureSize.x, (vSrcCoordinates.y + 0.5) / textureSize.y);"
 
 			"vec2 vPosition = vec2(x, vertical.x);"
 			"vec2 floatingPosition = (vPosition / positionConversion) + lateral * scanNormal;"
@@ -116,4 +117,9 @@ void OutputShader::set_timing(unsigned int height_of_display, unsigned int cycle
 
 	set_uniform("scanNormal", scan_normal[0], scan_normal[1]);
 	set_uniform("positionConversion", (GLfloat)horizontal_scan_period, (GLfloat)vertical_scan_period / (GLfloat)vertical_period_divider);
+}
+
+void OutputShader::set_input_width_scaler(float input_scaler)
+{
+	set_uniform("inputScaler", input_scaler);
 }

@@ -58,6 +58,12 @@ public:
 		to occur upon the next `bind`.
 	*/
 	void set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
+
+	/*!
+		Sets the proportion of the input area that should be considered the whole width — 1.0 means use all available
+		space, 0.5 means use half, etc.
+	*/
+	void set_input_width_scaler(float input_scaler);
 };
 
 }
