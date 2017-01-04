@@ -34,7 +34,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer);
 	free(blank_buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0);
 

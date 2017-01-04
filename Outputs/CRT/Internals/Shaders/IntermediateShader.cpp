@@ -193,6 +193,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 		"void main(void)"
 		"{"
+			// grab 11 samples
 			"vec4 samples[3] = vec4[]("
 				"vec4("
 					"texture(texID, inputPositionsVarying[0]).r,"
@@ -214,6 +215,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 				")"
 			");"
 
+			// apply the low-pass filter to separate luma
 			"float luminance = "
 				"dot(vec3("
 					"dot(samples[0], weights[0]),"
@@ -221,9 +223,12 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 					"dot(samples[2], weights[2])"
 				"), vec3(1.0));"
 
+			// define chroma to be whatever was here, minus luma
 			"float chrominance = 0.5 * (samples[1].y - luminance) / phaseAndAmplitudeVarying.y;"
 			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
 
+			// split choma colours here, as the most direct place, writing out
+			// RGB = (luma, chroma.x, chroma.y)
 			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}",false, false);
@@ -302,35 +307,35 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_luma_filter_shader(
 
 		"void main(void)"
 		"{"
-//			"vec3 samples[] = vec3[]("
-//				"texture(texID, inputPositionsVarying[0]).rgb,"
-//				"texture(texID, inputPositionsVarying[1]).rgb,"
-//				"texture(texID, inputPositionsVarying[2]).rgb,"
-//				"texture(texID, inputPositionsVarying[3]).rgb,"
-//				"texture(texID, inputPositionsVarying[4]).rgb,"
-//				"texture(texID, inputPositionsVarying[5]).rgb,"
-//				"texture(texID, inputPositionsVarying[6]).rgb,"
-//				"texture(texID, inputPositionsVarying[7]).rgb,"
-//				"texture(texID, inputPositionsVarying[8]).rgb,"
-//				"texture(texID, inputPositionsVarying[9]).rgb,"
-//				"texture(texID, inputPositionsVarying[10]).rgb"
-//			");"
-//
-//			"vec4 luminance[] = vec4[]("
-//				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
-//				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
-//				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
-//			");"
+			"vec3 samples[] = vec3[]("
+				"texture(texID, inputPositionsVarying[0]).rgb,"
+				"texture(texID, inputPositionsVarying[1]).rgb,"
+				"texture(texID, inputPositionsVarying[2]).rgb,"
+				"texture(texID, inputPositionsVarying[3]).rgb,"
+				"texture(texID, inputPositionsVarying[4]).rgb,"
+				"texture(texID, inputPositionsVarying[5]).rgb,"
+				"texture(texID, inputPositionsVarying[6]).rgb,"
+				"texture(texID, inputPositionsVarying[7]).rgb,"
+				"texture(texID, inputPositionsVarying[8]).rgb,"
+				"texture(texID, inputPositionsVarying[9]).rgb,"
+				"texture(texID, inputPositionsVarying[10]).rgb"
+			");"
 
-//			"fragColour = vec3("
-//				"dot(vec3("
-//					"dot(luminance[0], weights[0]),"
-//					"dot(luminance[1], weights[1]),"
-//					"dot(luminance[2], weights[2])"
-//				"), vec3(1.0)),"
-//				"samples[5].gb"
-//			");"
-			"fragColour = texture(texID, inputPositionsVarying[5]).rgb;"//lumaChromaToRGB * lumaChromaColourInRange;"
+			"vec4 luminance[] = vec4[]("
+				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
+				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
+				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
+			");"
+
+			"fragColour = vec3("
+				"dot(vec3("
+					"dot(luminance[0], weights[0]),"
+					"dot(luminance[1], weights[1]),"
+					"dot(luminance[2], weights[2])"
+				"), vec3(1.0)),"
+				"samples[5].gb"
+			");"
+//			"fragColour = texture(texID, inputPositionsVarying[5]).rgb;"//lumaChromaToRGB * lumaChromaColourInRange;"
 		"}", false, false);
 }
 
@@ -418,44 +423,53 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	// Perform a linear search for the highest number of taps we can use with 11 samples.
 	GLfloat weights[12];
 	GLfloat offsets[5];
-	unsigned int taps = 21;
+	unsigned int taps = 11;
+//	unsigned int taps = 21;
 	while(1)
 	{
 		float coefficients[21];
 		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 		luminance_filter.get_coefficients(coefficients);
 
-		int sample = 0;
-		int c = 0;
+//		int sample = 0;
+//		int c = 0;
 		memset(weights, 0, sizeof(float)*12);
 		memset(offsets, 0, sizeof(float)*5);
 
 		int halfSize = (taps >> 1);
-		while(c < halfSize && sample < 5)
+		for(int c = 0; c < taps; c++)
 		{
-			offsets[sample] = (float)(halfSize - c);
-			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
-			{
-				weights[sample] = coefficients[c] + coefficients[c+1];
-				offsets[sample] -= (coefficients[c+1] / weights[sample]);
-				c += 2;
-			}
-			else
-			{
-				weights[sample] = coefficients[c];
-				c++;
-			}
-			sample ++;
+			if(c < 5) offsets[c] = (halfSize - c);
+			weights[c] = coefficients[c];
 		}
-		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
-		{
-			weights[sample] = coefficients[c];
-			for(int c = 0; c < sample; c++)
-			{
-				weights[sample+c+1] = weights[sample-c-1];
-			}
-			break;
-		}
+		break;
+
+//		int halfSize = (taps >> 1);
+//		while(c < halfSize && sample < 5)
+//		{
+//			offsets[sample] = (float)(halfSize - c);
+//			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
+//			{
+//				weights[sample] = coefficients[c] + coefficients[c+1];
+//				offsets[sample] -= (coefficients[c+1] / weights[sample]);
+//				c += 2;
+//			}
+//			else
+//			{
+//				weights[sample] = coefficients[c];
+//				c++;
+//			}
+//			sample ++;
+//		}
+//		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
+//		{
+//			weights[sample] = coefficients[c];
+//			for(int c = 0; c < sample; c++)
+//			{
+//				weights[sample+c+1] = weights[sample-c-1];
+//			}
+//			break;
+//		}
 		taps -= 2;
 	}
 
