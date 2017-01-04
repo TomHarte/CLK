@@ -36,7 +36,7 @@ const GLsizei InputBufferBuilderWidth = 2048;
 const GLsizei InputBufferBuilderHeight = 512;
 
 // This is the size of the intermediate buffers used during composite to RGB conversion
-const GLsizei IntermediateBufferWidth = 4096;
+const GLsizei IntermediateBufferWidth = 2048;
 const GLsizei IntermediateBufferHeight = 512;
 
 // Some internal buffer sizes

@@ -383,26 +383,27 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 
 	float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
 	float output_width = ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
+	float sample_cycles_per_line = cycles_per_line_ / output_width;
 
 	if(composite_separation_filter_program_)
 	{
 		composite_separation_filter_program_->set_width_scalers(output_width, output_width);
-		composite_separation_filter_program_->set_separation_frequency(cycles_per_line_, colour_subcarrier_frequency);
+		composite_separation_filter_program_->set_separation_frequency(sample_cycles_per_line, colour_subcarrier_frequency);
 	}
 	if(composite_y_filter_shader_program_)
 	{
 		composite_y_filter_shader_program_->set_width_scalers(output_width, output_width);
-		composite_y_filter_shader_program_->set_filter_coefficients(cycles_per_line_, colour_subcarrier_frequency * 0.25f);
+		composite_y_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, colour_subcarrier_frequency * 0.25f);
 	}
 	if(composite_chrominance_filter_shader_program_)
 	{
 		composite_chrominance_filter_shader_program_->set_width_scalers(output_width, output_width);
-		composite_chrominance_filter_shader_program_->set_filter_coefficients(cycles_per_line_, colour_subcarrier_frequency * 0.5f);
+		composite_chrominance_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, colour_subcarrier_frequency * 0.5f);
 	}
 	if(rgb_filter_shader_program_)
 	{
 		rgb_filter_shader_program_->set_width_scalers(output_width, output_width);
-		rgb_filter_shader_program_->set_filter_coefficients(cycles_per_line_, (float)input_frequency_ * 0.5f);
+		rgb_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, (float)input_frequency_ * 0.5f);
 	}
 	if(output_shader_program_)
 	{
