@@ -31,7 +31,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
 	phase_denominator_ = cycles_per_line * colour_cycle_denominator;
 	phase_numerator_ = 0;
-	colour_cycle_numerator_ = colour_cycle_numerator * time_multiplier_;
+	colour_cycle_numerator_ = colour_cycle_numerator;
 	phase_alternates_ = should_alternate;
 	is_alernate_line_ &= phase_alternates_;
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
