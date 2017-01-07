@@ -132,9 +132,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	RenderStage composite_render_stages[] =
 	{
 		{&composite_texture_,	composite_input_shader_program_.get(),				{0.0, 0.0, 0.0}},
-		{&separated_texture_,	composite_separation_filter_program_.get(),			{0.0, 0.5, 0.5}},
-		{&filtered_y_texture_,	composite_y_filter_shader_program_.get(),			{0.0, 0.5, 0.5}},
-		{&filtered_texture_,	composite_chrominance_filter_shader_program_.get(),	{0.0, 0.0, 0.0}},
+//		{&separated_texture_,	composite_separation_filter_program_.get(),			{0.0, 0.5, 0.5}},
+//		{&filtered_y_texture_,	composite_y_filter_shader_program_.get(),			{0.0, 0.5, 0.5}},
+//		{&filtered_texture_,	composite_chrominance_filter_shader_program_.get(),	{0.0, 0.0, 0.0}},
 		{nullptr}
 	};
 
@@ -295,7 +295,7 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 void OpenGLOutputBuilder::prepare_output_shader()
 {
 	output_shader_program_ = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
-	output_shader_program_->set_source_texture_unit(filtered_texture_unit);
+	output_shader_program_->set_source_texture_unit(composite_texture_unit);//filtered_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
@@ -367,6 +367,10 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
+	const float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
+	const float output_width = ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
+	const float sample_cycles_per_line = cycles_per_line_ / output_width;
+
 	OpenGL::IntermediateShader *intermediate_shaders[] = {
 		composite_input_shader_program_.get(),
 		composite_separation_filter_program_.get(),
@@ -374,16 +378,12 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 		composite_chrominance_filter_shader_program_.get()
 	};
 	bool extends = false;
-	float phaseCyclesPerTick = (float)colour_cycle_numerator_ / (float)(colour_cycle_denominator_ * cycles_per_line_);
+	float phase_cycles_per_tick = 0.25f;
 	for(int c = 0; c < 3; c++)
 	{
-		if(intermediate_shaders[c]) intermediate_shaders[c]->set_phase_cycles_per_sample(phaseCyclesPerTick, extends);
+		if(intermediate_shaders[c]) intermediate_shaders[c]->set_phase_cycles_per_sample(phase_cycles_per_tick, extends);
 		extends = true;
 	}
-
-	float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
-	float output_width = ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
-	float sample_cycles_per_line = cycles_per_line_ / output_width;
 
 	if(composite_separation_filter_program_)
 	{

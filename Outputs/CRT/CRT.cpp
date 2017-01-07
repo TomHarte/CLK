@@ -29,7 +29,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
 
 	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
-	phase_denominator_ = cycles_per_line * colour_cycle_denominator;
+	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
 	phase_numerator_ = 0;
 	colour_cycle_numerator_ = colour_cycle_numerator;
 	phase_alternates_ = should_alternate;
