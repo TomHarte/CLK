@@ -69,7 +69,7 @@ void StaticAnalyser::Acorn::AddTargets(
 	target.probability = 1.0; // TODO: a proper estimation
 	target.acorn.has_dfs = false;
 	target.acorn.has_adfs = false;
-	target.acorn.should_hold_shift = false;
+	target.acorn.should_shift_restart = false;
 
 	// strip out inappropriate cartridges
 	target.cartridges = AcornCartridgesFrom(cartridges);
@@ -126,20 +126,11 @@ void StaticAnalyser::Acorn::AddTargets(
 			target.acorn.has_dfs = !!dfs_catalogue;
 			target.acorn.has_adfs = !!adfs_catalogue;
 
-			std::string adfs_command;
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
-			switch(bootOption)
-			{
-				case Catalogue::BootOption::None:		adfs_command = "*CAT\n";		break;
-				case Catalogue::BootOption::LoadBOOT:	adfs_command = "*LOAD !BOOT\n";	break;
-				case Catalogue::BootOption::RunBOOT:	adfs_command = "*RUN !BOOT\n";	break;
-				case Catalogue::BootOption::ExecBOOT:	adfs_command = "*EXEC !BOOT\n";	break;
-			}
-
-//			if(target.acorn.has_dfs && bootOption != Catalogue::BootOption::None)
-//				target.acorn.should_hold_shift = true;
-//			else
-				target.loadingCommand = (target.acorn.has_dfs ? "" : "*MOUNT\n") + adfs_command;
+			if(bootOption != Catalogue::BootOption::None)
+				target.acorn.should_shift_restart = true;
+			else
+				target.loadingCommand = "*CAT\n";
 		}
 	}
 

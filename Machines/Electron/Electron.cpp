@@ -61,6 +61,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker()
 void Machine::clear_all_keys()
 {
 	memset(key_states_, 0, sizeof(key_states_));
+	if(is_holding_shift_) set_key_state(KeyShift, true);
 }
 
 void Machine::set_key_state(uint16_t key, bool isPressed)
@@ -116,10 +117,9 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
-	if(target.acorn.should_hold_shift)
+	if(target.acorn.should_shift_restart)
 	{
-		set_key_state(KeyShift, true);
-		is_holding_shift_ = true;
+		shift_restart_counter_ = 1000000;
 	}
 }
 
@@ -398,6 +398,17 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	if(typer_) typer_->update((int)cycles);
 	if(plus3_) plus3_->run_for_cycles(4*cycles);
+	if(shift_restart_counter_)
+	{
+		shift_restart_counter_ -= cycles;
+		if(shift_restart_counter_ <= 0)
+		{
+			shift_restart_counter_ = 0;
+			set_power_on(true);
+			set_key_state(KeyShift, true);
+			is_holding_shift_ = true;
+		}
+	}
 
 	return cycles;
 }
