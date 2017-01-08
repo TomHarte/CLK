@@ -93,7 +93,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
 			// setup phaseAndAmplitudeVarying.x as colour burst amplitude
-			"phaseAndAmplitudeVarying.x = (((extendedOutputPosition.x - phaseTimeAndAmplitude.y) / 4.0) + (phaseTimeAndAmplitude.x / 256.0)) * 2.0 * 3.141592654;"
+			"phaseAndAmplitudeVarying.x = (((extendedOutputPosition.x - phaseTimeAndAmplitude.y) / 4.0) + (phaseTimeAndAmplitude.x / 255.0)) * 2.0 * 3.141592654;"
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
 
 			// determine output position by scaling the output position according to the texture size
