@@ -425,27 +425,16 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	const float output_width = ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
 	const float sample_cycles_per_line = cycles_per_line_ / output_width;
 
-	OpenGL::IntermediateShader *intermediate_shaders[] = {
-		composite_input_shader_program_.get(),
-		composite_separation_filter_program_.get(),
-		composite_chrominance_filter_shader_program_.get()
-	};
-	bool extends = false;
-	float phase_cycles_per_tick = 0.25f;
-	for(int c = 0; c < 3; c++)
-	{
-		if(intermediate_shaders[c]) intermediate_shaders[c]->set_phase_cycles_per_sample(phase_cycles_per_tick, extends);
-		extends = true;
-	}
-
 	if(composite_separation_filter_program_)
 	{
 		composite_separation_filter_program_->set_width_scalers(output_width, output_width);
 		composite_separation_filter_program_->set_separation_frequency(sample_cycles_per_line, colour_subcarrier_frequency);
+		composite_separation_filter_program_->set_phase_cycles_per_sample(0.25f, 6.0f);
 	}
 	if(composite_chrominance_filter_shader_program_)
 	{
 		composite_chrominance_filter_shader_program_->set_width_scalers(output_width, output_width);
+		composite_chrominance_filter_shader_program_->set_phase_cycles_per_sample(0.25f, 5.0f);
 	}
 	if(rgb_filter_shader_program_)
 	{
@@ -460,6 +449,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	if(composite_input_shader_program_)
 	{
 		composite_input_shader_program_->set_width_scalers(1.0f, output_width);
+		composite_input_shader_program_->set_phase_cycles_per_sample(0.25f, 0.0f);
 	}
 	if(rgb_input_shader_program_)
 	{

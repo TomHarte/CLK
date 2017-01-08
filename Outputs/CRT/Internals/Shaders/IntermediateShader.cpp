@@ -461,10 +461,10 @@ void IntermediateShader::set_separation_frequency(float sampling_rate, float col
 	set_filter_coefficients(sampling_rate, colour_burst_frequency);
 }
 
-void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)
+void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, float extension)
 {
 	set_uniform("phaseCyclesPerTick", (GLfloat)phase_cycles_per_sample);
-	set_uniform("extension", extend_runs_to_full_cycle ? ceilf(1.0f / phase_cycles_per_sample) : 0.0f);
+	set_uniform("extension", extension);
 }
 
 void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *toRGB)
