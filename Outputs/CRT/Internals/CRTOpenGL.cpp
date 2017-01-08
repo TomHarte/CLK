@@ -6,8 +6,10 @@
 //
 
 #include "CRT.hpp"
-#include <stdlib.h>
-#include <math.h>
+
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
 
 #include "CRTOpenGL.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
@@ -21,6 +23,8 @@ namespace {
 	static const GLenum filtered_texture_unit			= GL_TEXTURE2;
 	static const GLenum source_data_texture_unit		= GL_TEXTURE3;
 	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE4;
+
+	static const GLenum work_texture_unit				= GL_TEXTURE0;
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
@@ -32,10 +36,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	last_output_height_(0),
 	fence_(nullptr),
 	texture_builder(bytes_per_pixel, source_data_texture_unit),
-	array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize),
-	composite_texture_(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit),
-	separated_texture_(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit),
-	filtered_texture_(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit)
+	array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize)
 {
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
@@ -45,6 +46,32 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array_);
+
+	bool supports_texture_barrier = false;
+#ifdef GL_NV_texture_barrier
+	GLint number_of_extensions;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &number_of_extensions);
+
+	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++)
+	{
+		const char *extension_name = (const char *)glGetStringi(GL_EXTENSIONS, c);
+		if(!strcmp(extension_name, "GL_NV_texture_barrier"))
+		{
+			supports_texture_barrier = true;
+		}
+	}
+#endif
+
+	if(supports_texture_barrier)
+	{
+		work_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight*2, work_texture_unit));
+	}
+	else
+	{
+		composite_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
+		separated_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit));
+		filtered_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
+	}
 }
 
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
@@ -121,26 +148,25 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	output_mutex_.unlock();
 
 	struct RenderStage {
-		OpenGL::TextureTarget *const target;
 		OpenGL::Shader *const shader;
+		OpenGL::TextureTarget *const target;
 		float clear_colour[3];
 	};
 
 	// for composite video, go through four steps to get to something that can be painted to the output
 	RenderStage composite_render_stages[] =
 	{
-		{&composite_texture_,	composite_input_shader_program_.get(),				{0.0, 0.0, 0.0}},
-		{&separated_texture_,	composite_separation_filter_program_.get(),			{0.0, 0.5, 0.5}},
-//		{&filtered_y_texture_,	composite_y_filter_shader_program_.get(),			{0.0, 0.5, 0.5}},
-		{&filtered_texture_,	composite_chrominance_filter_shader_program_.get(),	{0.0, 0.0, 0.0}},
+		{composite_input_shader_program_.get(),					composite_texture_.get(),		{0.0, 0.0, 0.0}},
+		{composite_separation_filter_program_.get(),			separated_texture_.get(),		{0.0, 0.5, 0.5}},
+		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
 		{nullptr}
 	};
 
 	// for RGB video, there's only two steps
 	RenderStage rgb_render_stages[] =
 	{
-		{&composite_texture_,	rgb_input_shader_program_.get(),	{0.0, 0.0, 0.0}},
-		{&filtered_texture_,	rgb_filter_shader_program_.get(),	{0.0, 0.0, 0.0}},
+		{rgb_input_shader_program_.get(),	composite_texture_.get(),	{0.0, 0.0, 0.0}},
+		{rgb_filter_shader_program_.get(),	filtered_texture_.get(),	{0.0, 0.0, 0.0}},
 		{nullptr}
 	};
 
@@ -152,24 +178,39 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glBindVertexArray(source_vertex_array_);
 		glDisable(GL_BLEND);
 
-		while(active_pipeline->target)
+#ifdef GL_NV_texture_barrier
+		if(work_texture_)
+		{
+			work_texture_->bind_framebuffer();
+			glClear(GL_COLOR_BUFFER_BIT);
+		}
+#endif
+
+		while(active_pipeline->shader)
 		{
 			// switch to the framebuffer and shader associated with this stage
 			active_pipeline->shader->bind();
-			active_pipeline->target->bind_framebuffer();
 
-			// if this is the final stage before painting to the CRT, clear the framebuffer before drawing in order to blank out
-			// those portions for which no input was provided
-			if(!active_pipeline[1].target)
+			if(!work_texture_)
 			{
-				glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
+				active_pipeline->target->bind_framebuffer();
+
+				// if this is the final stage before painting to the CRT, clear the framebuffer before drawing in order to blank out
+				// those portions for which no input was provided
+				if(!active_pipeline[1].shader)
+				{
+					glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
+					glClear(GL_COLOR_BUFFER_BIT);
+				}
 			}
 
 			// draw
 			glDrawArraysInstanced(GL_LINES, 0, 2, (GLsizei)array_submission.input_size / SourceVertexSize);
 
 			active_pipeline++;
+#ifdef GL_NV_texture_barrier
+			glTextureBarrierNV();
+#endif
 		}
 
 		// prepare to transfer to framebuffer
@@ -191,6 +232,10 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		// draw
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)array_submission.output_size / OutputVertexSize);
 	}
+
+#ifdef GL_NV_texture_barrier
+	glTextureBarrierNV();
+#endif
 
 	// copy framebuffer to the intended place
 	glDisable(GL_BLEND);
@@ -247,18 +292,17 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders()
 	composite_input_shader_program_ = OpenGL::IntermediateShader::make_source_conversion_shader(composite_shader_, rgb_shader_);
 	composite_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 	composite_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+	composite_input_shader_program_->set_vertical_offsets(0.0f, 0.0f);
 
 	composite_separation_filter_program_ = OpenGL::IntermediateShader::make_chroma_luma_separation_shader();
-	composite_separation_filter_program_->set_source_texture_unit(composite_texture_unit);
+	composite_separation_filter_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : composite_texture_unit);
 	composite_separation_filter_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
-
-//	composite_y_filter_shader_program_ = OpenGL::IntermediateShader::make_luma_filter_shader();
-//	composite_y_filter_shader_program_->set_source_texture_unit(separated_texture_unit);
-//	composite_y_filter_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+	composite_separation_filter_program_->set_vertical_offsets(0.0f, work_texture_ ? 0.5f : 0.0f);
 
 	composite_chrominance_filter_shader_program_ = OpenGL::IntermediateShader::make_chroma_filter_shader();
-	composite_chrominance_filter_shader_program_->set_source_texture_unit(separated_texture_unit);
+	composite_chrominance_filter_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : separated_texture_unit);
 	composite_chrominance_filter_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+	composite_chrominance_filter_shader_program_->set_vertical_offsets(work_texture_ ? 0.5f : 0.0f, 0.0f);
 }
 
 void OpenGLOutputBuilder::prepare_rgb_input_shaders()
@@ -292,7 +336,7 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 void OpenGLOutputBuilder::prepare_output_shader()
 {
 	output_shader_program_ = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
-	output_shader_program_->set_source_texture_unit(filtered_texture_unit);
+	output_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : filtered_texture_unit);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()

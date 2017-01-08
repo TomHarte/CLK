@@ -46,6 +46,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 		"uniform %s texID;"
 		"uniform float offsets[5];"
 		"uniform vec2 widthScalers;"
+		"uniform float inputVerticalOffset;"
+		"uniform float outputVerticalOffset;"
 
 		"out vec2 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
@@ -60,8 +62,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			// inputPosition.x is either inputStart.x or ends.x, depending on whether it is on the left or the right;
 			// outputPosition.x is either outputStart.x or ends.y;
 			// .ys are inputStart.y and outputStart.y respectively
-			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent)*widthScalers[0], inputStart.y);"
-			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent)*widthScalers[1], outputStart.y);"
+			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent)*widthScalers[0], inputStart.y + inputVerticalOffset);"
+			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent)*widthScalers[1], outputStart.y + outputVerticalOffset);"
 
 			// extension is the amount to extend both the input and output by to add a full colour cycle at each end
 			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (extent - 0.5);"
@@ -76,17 +78,17 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
 
 			// setup input positions spaced as per the supplied offsets; these are for filtering where required
-			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
-			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
-			"inputPositionsVarying[2] = mappedInputPosition - (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[3] = mappedInputPosition - (vec2(offsets[3], 0.0) / textureSize);"
-			"inputPositionsVarying[4] = mappedInputPosition - (vec2(offsets[4], 0.0) / textureSize);"
+			"inputPositionsVarying[0] = mappedInputPosition - (vec2(5.0, 0.0) / textureSize);"
+			"inputPositionsVarying[1] = mappedInputPosition - (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[2] = mappedInputPosition - (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[3] = mappedInputPosition - (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[4] = mappedInputPosition - (vec2(1.0, 0.0) / textureSize);"
 			"inputPositionsVarying[5] = mappedInputPosition;"
-			"inputPositionsVarying[6] = mappedInputPosition + (vec2(offsets[4], 0.0) / textureSize);"
-			"inputPositionsVarying[7] = mappedInputPosition + (vec2(offsets[3], 0.0) / textureSize);"
-			"inputPositionsVarying[8] = mappedInputPosition + (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[9] = mappedInputPosition + (vec2(offsets[1], 0.0) / textureSize);"
-			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
+			"inputPositionsVarying[6] = mappedInputPosition + (vec2(1.0, 0.0) / textureSize);"
+			"inputPositionsVarying[7] = mappedInputPosition + (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[8] = mappedInputPosition + (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[9] = mappedInputPosition + (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[10] = mappedInputPosition + (vec2(5.0, 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
 			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
@@ -473,4 +475,10 @@ void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *t
 void IntermediateShader::set_width_scalers(float input_scaler, float output_scaler)
 {
 	set_uniform("widthScalers", input_scaler, output_scaler);
+}
+
+void IntermediateShader::set_vertical_offsets(float input, float output)
+{
+	set_uniform("inputVerticalOffset", input);
+	set_uniform("outputVerticalOffset", output);
 }

@@ -89,6 +89,11 @@ public:
 	*/
 	void set_width_scalers(float input_scaler, float output_scaler);
 
+	/*!
+		Sets source and target vertical offsets.
+	*/
+	void set_vertical_offsets(float input, float output);
+
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);
 };
