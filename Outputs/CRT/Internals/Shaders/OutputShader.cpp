@@ -39,6 +39,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"uniform vec2 scanNormal;"
 		"uniform %s texID;"
 		"uniform float inputScaler;"
+		"uniform int textureHeightDivisor;"
 
 		"out float lateralVarying;"
 		"out vec2 srcCoordinatesVarying;"
@@ -53,9 +54,10 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 			"lateralVarying = lateral - 0.5;"
 
 			"vec2 vSrcCoordinates = vec2(x, vertical.y);"
-			"ivec2 textureSize = textureSize(texID, 0);"
+			"ivec2 textureSize = textureSize(texID, 0) * ivec2(1, textureHeightDivisor);"
 			"iSrcCoordinatesVarying = vSrcCoordinates;"
 			"srcCoordinatesVarying = vec2(inputScaler * vSrcCoordinates.x / textureSize.x, (vSrcCoordinates.y + 0.5) / textureSize.y);"
+			"srcCoordinatesVarying.x = srcCoordinatesVarying.x - mod(srcCoordinatesVarying.x, 1.0 / textureSize.x);"
 
 			"vec2 vPosition = vec2(x, vertical.x);"
 			"vec2 floatingPosition = (vPosition / positionConversion) + lateral * scanNormal;"
@@ -122,4 +124,9 @@ void OutputShader::set_timing(unsigned int height_of_display, unsigned int cycle
 void OutputShader::set_input_width_scaler(float input_scaler)
 {
 	set_uniform("inputScaler", input_scaler);
+}
+
+void OutputShader::set_origin_is_double_height(bool is_double_height)
+{
+	set_uniform("textureHeightDivisor", is_double_height ? 2 : 1);
 }

@@ -48,6 +48,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 		"uniform vec2 widthScalers;"
 		"uniform float inputVerticalOffset;"
 		"uniform float outputVerticalOffset;"
+		"uniform float textureHeightDivisor;"
 
 		"out vec2 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
@@ -477,8 +478,9 @@ void IntermediateShader::set_width_scalers(float input_scaler, float output_scal
 	set_uniform("widthScalers", input_scaler, output_scaler);
 }
 
-void IntermediateShader::set_vertical_offsets(float input, float output)
+void IntermediateShader::set_is_double_height(bool is_double_height, float input_offset, float output_offset)
 {
-	set_uniform("inputVerticalOffset", input);
-	set_uniform("outputVerticalOffset", output);
+	set_uniform("textureHeightDivisor", is_double_height ? 2.0f : 1.0f);
+	set_uniform("inputVerticalOffset", input_offset);
+	set_uniform("outputVerticalOffset", output_offset);
 }

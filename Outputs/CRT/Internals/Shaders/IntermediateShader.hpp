@@ -92,7 +92,7 @@ public:
 	/*!
 		Sets source and target vertical offsets.
 	*/
-	void set_vertical_offsets(float input, float output);
+	void set_is_double_height(bool is_double_height, float input_offset = 0.0f, float output_offset = 0.0f);
 
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);

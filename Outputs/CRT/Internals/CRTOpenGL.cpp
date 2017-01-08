@@ -18,13 +18,14 @@
 using namespace Outputs::CRT;
 
 namespace {
-	static const GLenum composite_texture_unit			= GL_TEXTURE0;
-	static const GLenum separated_texture_unit			= GL_TEXTURE1;
-	static const GLenum filtered_texture_unit			= GL_TEXTURE2;
-	static const GLenum source_data_texture_unit		= GL_TEXTURE3;
-	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE4;
+	static const GLenum source_data_texture_unit		= GL_TEXTURE0;
+	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE1;
 
-	static const GLenum work_texture_unit				= GL_TEXTURE0;
+	static const GLenum composite_texture_unit			= GL_TEXTURE2;
+	static const GLenum separated_texture_unit			= GL_TEXTURE3;
+	static const GLenum filtered_texture_unit			= GL_TEXTURE4;
+
+	static const GLenum work_texture_unit				= GL_TEXTURE2;
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
@@ -62,11 +63,11 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	}
 #endif
 
-	if(supports_texture_barrier)
-	{
-		work_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight*2, work_texture_unit));
-	}
-	else
+//	if(supports_texture_barrier)
+//	{
+//		work_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight*2, work_texture_unit));
+//	}
+//	else
 	{
 		composite_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
 		separated_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit));
@@ -292,17 +293,27 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders()
 	composite_input_shader_program_ = OpenGL::IntermediateShader::make_source_conversion_shader(composite_shader_, rgb_shader_);
 	composite_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 	composite_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
-	composite_input_shader_program_->set_vertical_offsets(0.0f, 0.0f);
 
 	composite_separation_filter_program_ = OpenGL::IntermediateShader::make_chroma_luma_separation_shader();
 	composite_separation_filter_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : composite_texture_unit);
 	composite_separation_filter_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
-	composite_separation_filter_program_->set_vertical_offsets(0.0f, work_texture_ ? 0.5f : 0.0f);
 
 	composite_chrominance_filter_shader_program_ = OpenGL::IntermediateShader::make_chroma_filter_shader();
 	composite_chrominance_filter_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : separated_texture_unit);
 	composite_chrominance_filter_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
-	composite_chrominance_filter_shader_program_->set_vertical_offsets(work_texture_ ? 0.5f : 0.0f, 0.0f);
+
+	if(work_texture_)
+	{
+		composite_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
+		composite_separation_filter_program_->set_is_double_height(true, 0.0f, 0.5f);
+		composite_chrominance_filter_shader_program_->set_is_double_height(true, 0.5f, 0.0f);
+	}
+	else
+	{
+		composite_input_shader_program_->set_is_double_height(false);
+		composite_separation_filter_program_->set_is_double_height(false);
+		composite_chrominance_filter_shader_program_->set_is_double_height(false);
+	}
 }
 
 void OpenGLOutputBuilder::prepare_rgb_input_shaders()
@@ -337,6 +348,7 @@ void OpenGLOutputBuilder::prepare_output_shader()
 {
 	output_shader_program_ = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
 	output_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : filtered_texture_unit);
+	output_shader_program_->set_origin_is_double_height(!!work_texture_);
 }
 
 void OpenGLOutputBuilder::prepare_output_vertex_array()
