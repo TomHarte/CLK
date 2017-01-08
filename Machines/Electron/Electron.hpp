@@ -144,6 +144,7 @@ class Machine:
 		// Disk
 		std::unique_ptr<Plus3> plus3_;
 		bool is_holding_shift_;
+		int shift_restart_counter_;
 
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
