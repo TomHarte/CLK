@@ -76,7 +76,7 @@ public:
 		geometry should be extended so that a complete colour cycle is included at both the beginning and end,
 		to occur upon the next `bind`.
 	*/
-	void set_phase_cycles_per_sample(float phase_cycles_per_sample, float extension);
+	void set_extension(float extension);
 
 	/*!
 		Queues setting the matrices that convert between RGB and chrominance/luminance to occur on the next `bind`.

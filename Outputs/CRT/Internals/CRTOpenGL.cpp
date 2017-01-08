@@ -429,12 +429,12 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	{
 		composite_separation_filter_program_->set_width_scalers(output_width, output_width);
 		composite_separation_filter_program_->set_separation_frequency(sample_cycles_per_line, colour_subcarrier_frequency);
-		composite_separation_filter_program_->set_phase_cycles_per_sample(0.25f, 6.0f);
+		composite_separation_filter_program_->set_extension(6.0f);
 	}
 	if(composite_chrominance_filter_shader_program_)
 	{
 		composite_chrominance_filter_shader_program_->set_width_scalers(output_width, output_width);
-		composite_chrominance_filter_shader_program_->set_phase_cycles_per_sample(0.25f, 5.0f);
+		composite_chrominance_filter_shader_program_->set_extension(5.0f);
 	}
 	if(rgb_filter_shader_program_)
 	{
@@ -449,7 +449,7 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	if(composite_input_shader_program_)
 	{
 		composite_input_shader_program_->set_width_scalers(1.0f, output_width);
-		composite_input_shader_program_->set_phase_cycles_per_sample(0.25f, 0.0f);
+		composite_input_shader_program_->set_extension(0.0f);
 	}
 	if(rgb_input_shader_program_)
 	{
