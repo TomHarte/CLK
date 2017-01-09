@@ -198,11 +198,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 				// if this is the final stage before painting to the CRT, clear the framebuffer before drawing in order to blank out
 				// those portions for which no input was provided
-				if(!active_pipeline[1].shader)
-				{
+//				if(!active_pipeline[1].shader)
+//				{
 					glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
 					glClear(GL_COLOR_BUFFER_BIT);
-				}
+//				}
 			}
 
 			// draw
@@ -272,18 +272,16 @@ void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_reso
 
 void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
 {
-	output_mutex_.lock();
+	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	composite_shader_ = strdup(shader);
 	reset_all_OpenGL_state();
-	output_mutex_.unlock();
 }
 
 void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
 {
-	output_mutex_.lock();
+	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	rgb_shader_ = strdup(shader);
 	reset_all_OpenGL_state();
-	output_mutex_.unlock();
 }
 
 #pragma mark - Program compilation
