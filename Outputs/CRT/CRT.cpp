@@ -242,7 +242,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 				frames_since_last_delegate_call_++;
 				if(frames_since_last_delegate_call_ == 20)
 				{
+					output_lock.unlock();
 					delegate_->crt_did_end_batch_of_frames(this, frames_since_last_delegate_call_, vertical_flywheel_->get_and_reset_number_of_surprises());
+					output_lock.lock();
 					frames_since_last_delegate_call_ = 0;
 				}
 			}
