@@ -147,7 +147,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		{
 			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-			source_phase() = colour_burst_phase_;
+			source_phase() = 31 + colour_burst_phase_ & ~63;	// phase is rounded to the nearest 1/4 of a cycle
 			source_amplitude() = colour_burst_amplitude_;
 			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
 		}

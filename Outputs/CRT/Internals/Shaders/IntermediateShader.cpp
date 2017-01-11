@@ -75,7 +75,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
 			"vec2 textureSize = vec2(textureSize(texID, 0));"
 			"iInputPositionVarying = extendedInputPosition;"
-			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
+			"vec2 mappedInputPosition = (extendedInputPosition) / textureSize;"	//  + vec2(0.0, 0.5)
 
 			// setup input positions spaced as per the supplied offsets; these are for filtering where required
 			"inputPositionsVarying[0] = mappedInputPosition - (vec2(5.0, 0.0) / textureSize);"
@@ -93,7 +93,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
 			// setup phaseAndAmplitudeVarying.x as colour burst amplitude
-			"phaseAndAmplitudeVarying.x = (((extendedOutputPosition.x - phaseTimeAndAmplitude.y) / 4.0) + (phaseTimeAndAmplitude.x / 255.0)) * 2.0 * 3.141592654;"
+			"phaseAndAmplitudeVarying.x = (extendedOutputPosition.x - phaseTimeAndAmplitude.y*widthScalers[1]) / 4.0 + phaseTimeAndAmplitude.x / 255.0;"
+			"phaseAndAmplitudeVarying.x *= 2.0 * 3.141592654;"
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
 
 			// determine output position by scaling the output position according to the texture size
@@ -187,7 +188,6 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 		"in vec2 phaseAndAmplitudeVarying;"
 		"in vec2 inputPositionsVarying[11];"
-		"uniform vec4 weights[3];"
 
 		"out vec3 fragColour;"
 
@@ -195,54 +195,16 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 		"void main(void)"
 		"{"
-			// grab 11 samples
-			"vec3 samples[] = vec3[]("
-				"vec3("
-					"texture(texID, inputPositionsVarying[0]).r,"
-					"texture(texID, inputPositionsVarying[2]).r,"
-					"texture(texID, inputPositionsVarying[3]).r"
-				"),"
-				"vec3("
-					"texture(texID, inputPositionsVarying[4]).r,"
-					"texture(texID, inputPositionsVarying[5]).r,"
-					"texture(texID, inputPositionsVarying[6]).r"
-				"),"
-				"vec3("
-					"texture(texID, inputPositionsVarying[7]).r,"
-					"texture(texID, inputPositionsVarying[8]).r,"
-					"texture(texID, inputPositionsVarying[10]).r"
-				")"
+			"vec4 samples = vec4("
+				"texture(texID, inputPositionsVarying[3]).r,"
+				"texture(texID, inputPositionsVarying[4]).r,"
+				"texture(texID, inputPositionsVarying[5]).r,"
+				"texture(texID, inputPositionsVarying[6]).r"
 			");"
-
-			"vec3 fixedWeights[] = vec3[]("
-				"vec3("
-					"-0.000918,"
-					"0.027278,"
-					"0.103969"
-				"),"
-				"vec3("
-					"0.202962,"
-					"0.250000,"
-					"0.202962"
-				"),"
-				"vec3("
-					"0.103969,"
-					"0.027278,"
-					"-0.000918"
-				")"
-			");"
-
-			// apply the low-pass filter to separate luma
-			"float luminance = "
-				"dot(vec3("
-					"dot(samples[0], fixedWeights[0]),"
-					"dot(samples[1], fixedWeights[1]),"
-					"dot(samples[2], fixedWeights[2])"
-				"), vec3(1.0));"
-
+			"float luminance = dot(samples, vec4(0.25));"
 
 			// define chroma to be whatever was here, minus luma
-			"float chrominance = 0.5 * (samples[1].y - luminance) / phaseAndAmplitudeVarying.y;"
+			"float chrominance = 0.5 * (samples.z - luminance) / phaseAndAmplitudeVarying.y;"
 			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
 
 			// split choma colours here, as the most direct place, writing out
@@ -268,48 +230,18 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 		"void main(void)"
 		"{"
 			"vec3 samples[] = vec3[]("
-				"texture(texID, inputPositionsVarying[0]).rgb,"
-				"texture(texID, inputPositionsVarying[2]).rgb,"
+				"texture(texID, inputPositionsVarying[3]).rgb,"
 				"texture(texID, inputPositionsVarying[4]).rgb,"
 				"texture(texID, inputPositionsVarying[5]).rgb,"
-				"texture(texID, inputPositionsVarying[6]).rgb,"
-				"texture(texID, inputPositionsVarying[8]).rgb,"
-				"texture(texID, inputPositionsVarying[10]).rgb"
+				"texture(texID, inputPositionsVarying[6]).rgb"
 			");"
 
-			"vec4 fixedWeights[2] = vec4[]("
-				"vec4("
-					"0.001298,"
-					"-0.038576,"
-					"0.287031,"
-					"0.500000"
-				"),"
-				"vec4("
-					"0.287031,"
-					"-0.038576,"
-					"0.001298,"
-					"0.0"
-				")"
-			");"
+			"vec4 chromaChannel1 = vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g);"
+			"vec4 chromaChannel2 = vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b);"
 
-			"vec4 chromaChannel1[] = vec4[]("
-				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
-				"vec4(samples[4].g, samples[5].g, samples[6].g, 0.0)"
-			");"
-			"vec4 chromaChannel2[] = vec4[]("
-				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
-				"vec4(samples[4].b, samples[5].b, samples[6].b, 0.0)"
-			");"
-
-			"vec3 lumaChromaColour = vec3(samples[3].r,"
-				"dot(vec2("
-					"dot(chromaChannel1[0], fixedWeights[0]),"
-					"dot(chromaChannel1[1], fixedWeights[1])"
-				"), vec2(1.0)),"
-				"dot(vec2("
-					"dot(chromaChannel2[0], fixedWeights[0]),"
-					"dot(chromaChannel2[1], fixedWeights[1])"
-				"), vec2(1.0))"
+			"vec3 lumaChromaColour = vec3(samples[2].r,"
+				"dot(chromaChannel1, vec4(0.25)),"
+				"dot(chromaChannel2, vec4(0.25))"
 			");"
 
 			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"

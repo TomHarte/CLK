@@ -30,7 +30,7 @@ class TextureTarget {
 			@param height The height of target to create.
 			@param texture_unit A texture unit on which to bind the texture.
 		*/
-		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit);
+		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter);
 		~TextureTarget();
 
 		/*!

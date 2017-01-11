@@ -69,9 +69,9 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 //	}
 //	else
 	{
-		composite_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit));
-		separated_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit));
-		filtered_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit));
+		composite_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit, GL_NEAREST));
+		separated_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit, GL_NEAREST));
+		filtered_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit, GL_LINEAR));
 	}
 }
 
@@ -117,7 +117,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// make sure there's a target to draw to
 	if(!framebuffer_ || framebuffer_->get_height() != output_height || framebuffer_->get_width() != output_width)
 	{
-		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit));
+		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit, GL_LINEAR));
 		if(framebuffer_)
 		{
 			new_framebuffer->bind_framebuffer();
@@ -346,6 +346,7 @@ void OpenGLOutputBuilder::prepare_output_shader()
 {
 	output_shader_program_ = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
 	output_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : filtered_texture_unit);
+//	output_shader_program_->set_source_texture_unit(composite_texture_unit);
 	output_shader_program_->set_origin_is_double_height(!!work_texture_);
 }
 
