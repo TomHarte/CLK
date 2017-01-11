@@ -60,7 +60,6 @@ class CRT {
 		void output_scan(const Scan *scan);
 
 		uint8_t colour_burst_phase_, colour_burst_amplitude_;
-		uint16_t colour_burst_time_;
 		bool is_writing_composite_run_;
 
 		unsigned int phase_denominator_, phase_numerator_, colour_cycle_numerator_;

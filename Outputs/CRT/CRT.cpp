@@ -112,7 +112,6 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_output_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 2])
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
-#define source_phase_time()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
 void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type)
 {
@@ -147,9 +146,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		{
 			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
-			source_phase() = 31 + colour_burst_phase_ & ~63;	// phase is rounded to the nearest 1/4 of a cycle
+			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
-			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -288,9 +286,11 @@ void CRT::output_scan(const Scan *const scan)
 	{
 		if(horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6)
 		{
-			colour_burst_time_ = (uint16_t)horizontal_flywheel_->get_current_time();
-			colour_burst_phase_ = scan->phase;
+			unsigned int position_phase = (horizontal_flywheel_->get_current_time() * colour_cycle_numerator_ * 256) / phase_denominator_;
+			colour_burst_phase_ = (position_phase + scan->phase) & 255;
 			colour_burst_amplitude_ = scan->amplitude;
+
+			colour_burst_phase_ &= ~63;
 		}
 	}
 
@@ -346,7 +346,7 @@ void CRT::output_default_colour_burst(unsigned int number_of_cycles)
 	Scan scan {
 		.type = Scan::Type::ColourBurst,
 		.number_of_cycles = number_of_cycles,
-		.phase = (uint8_t)((phase_numerator_ * 255) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
+		.phase = (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
 		.amplitude = 32
 	};
 	output_scan(&scan);
