@@ -206,7 +206,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			}
 
 			// draw
-			glDrawArraysInstanced(GL_LINES, 0, 2, (GLsizei)array_submission.input_size / SourceVertexSize);
+			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)array_submission.input_size / SourceVertexSize);
 
 			active_pipeline++;
 #ifdef GL_NV_texture_barrier

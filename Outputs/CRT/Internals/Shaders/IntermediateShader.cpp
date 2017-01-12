@@ -58,12 +58,16 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 		"{"
 			// odd vertices are on the left, even on the right
 			"float extent = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
 			// inputPosition.x is either inputStart.x or ends.x, depending on whether it is on the left or the right;
 			// outputPosition.x is either outputStart.x or ends.y;
 			// .ys are inputStart.y and outputStart.y respectively
 			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent)*widthScalers[0], inputStart.y + inputVerticalOffset);"
 			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent)*widthScalers[1], outputStart.y + outputVerticalOffset);"
+
+			"inputPosition.y += longitudinal;"
+			"outputPosition.y += longitudinal;"
 
 			// extension is the amount to extend both the input and output by to add a full colour cycle at each end
 			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (extent - 0.5);"
@@ -75,7 +79,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
 			"vec2 textureSize = vec2(textureSize(texID, 0));"
 			"iInputPositionVarying = extendedInputPosition;"
-			"vec2 mappedInputPosition = (extendedInputPosition) / textureSize;"	//  + vec2(0.0, 0.5)
+			"vec2 mappedInputPosition = extendedInputPosition / textureSize;"	//  + vec2(0.0, 0.5)
 
 			// setup input positions spaced as per the supplied offsets; these are for filtering where required
 			"inputPositionsVarying[0] = mappedInputPosition - (vec2(5.0, 0.0) / textureSize);"
