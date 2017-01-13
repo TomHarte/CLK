@@ -24,17 +24,13 @@ The full process of loading a title — even if you've never used the emulated m
 
 ## Signal Processing
 
-Consider an ordinary, unmodified Commodore Vic-20. Its only video output is composite. Therefore the emulated machine's only video output is composite. In order to display the video output, your GPU then decodes composite video. Therefore all composite video artefacts are present and exactly correct, not because of a posthoc filter combining all the subjective effects that this author associates with composite video but because the real signal is really being processed.
+Consider an ordinary, unmodified Commodore Vic-20. Its only video output is composite. Therefore the emulated machine's only video output is composite. In order to display the video output, your GPU then decodes composite video. Therefore all composite video artefacts are present and exactly correct, not because of a post hoc filter combining all the subjective effects that this author associates with composite video but because the real signal is really being processed.
 
 Similar effort is put into audio generation. If the real machine normally generates audio at 192Khz then the emulator generates a 192Khz source signal and filters it down to whatever the host machine can output.
 
 If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k rendering of a composite display and, assuming the emulated machine produces source audio at or above 96Khz, 96,000 individual distinct audio samples a second. Interlaced video also works and looks much as it always did on those machines that produce it.
 
-Classic emulation:
-![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)
-
-Composite CRT emulation:
-![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)
+![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)
 
 ## Low Latency
 
