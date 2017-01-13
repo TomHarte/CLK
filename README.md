@@ -30,6 +30,12 @@ Similar effort is put into audio generation. If the real machine normally genera
 
 If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k rendering of a composite display and, assuming the emulated machine produces source audio at or above 96Khz, 96,000 individual distinct audio samples a second. Interlaced video also works and looks much as it always did on those machines that produce it.
 
+Classic emulation:
+![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)
+
+Composite CRT emulation:
+![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)
+
 ## Low Latency
 
 The display produced is an emulated CRT, with phosphor decay. Therefore if you have a 140Hz monitor it can produce 140 distinct frames per second. Latency is dictated by the output hardware, not the emulated machine.
