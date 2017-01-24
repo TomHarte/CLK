@@ -32,6 +32,8 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 
 ![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png) ![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)
 
+![Repton, interlaced](READMEImages/ReptonInterlaced.gif)
+
 ## Low Latency
 
 The display produced is an emulated CRT, with phosphor decay. Therefore if you have a 140Hz monitor it can produce 140 distinct frames per second. Latency is dictated by the output hardware, not the emulated machine.
