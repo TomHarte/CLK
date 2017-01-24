@@ -32,6 +32,10 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 
 ### Samples
 
+| 1:1 Pixel Copying | Composite Decoded |
+|---|---|
+|![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)|![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)|
+
 ![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png) → ![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)
 
 ![Repton 3 in game, with a classic 1:1 pixel emulation](READMEImages/NaiveRepton3.png) → ![Repton 3 in game, decoded from an interlaced composite feed](READMEImages/CompositeRepton3.png)
