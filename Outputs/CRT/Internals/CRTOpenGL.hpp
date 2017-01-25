@@ -94,6 +94,8 @@ class OpenGLOutputBuilder {
 		void reset_all_OpenGL_state();
 
 		GLsync fence_;
+		float get_composite_output_width() const;
+		void set_output_shader_width();
 
 	public:
 		// These two are protected by output_mutex_.

@@ -371,6 +371,7 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 		composite_src_output_y_ = 0;
 		last_output_width_ = 0;
 		last_output_height_ = 0;
+		set_output_shader_width();
 	}
 }
 
@@ -418,10 +419,29 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 }
 
+float OpenGLOutputBuilder::get_composite_output_width() const
+{
+	return ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
+}
+
+void OpenGLOutputBuilder::set_output_shader_width()
+{
+	if(output_shader_program_)
+	{
+		float width = 1.0f;
+		switch(output_device_)
+		{
+			case Television:	width = get_composite_output_width();	break;
+			case Monitor:		width = 1.0f;							break;
+		}
+		output_shader_program_->set_input_width_scaler(width);
+	}
+}
+
 void OpenGLOutputBuilder::set_timing_uniforms()
 {
 	const float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
-	const float output_width = ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
+	const float output_width = get_composite_output_width();
 	const float sample_cycles_per_line = cycles_per_line_ / output_width;
 
 	if(composite_separation_filter_program_)
@@ -437,12 +457,12 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	}
 	if(rgb_filter_shader_program_)
 	{
-		rgb_filter_shader_program_->set_width_scalers(output_width, output_width);
+		rgb_filter_shader_program_->set_width_scalers(1.0f, 1.0f);
 		rgb_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, (float)input_frequency_ * 0.5f);
 	}
 	if(output_shader_program_)
 	{
-		output_shader_program_->set_input_width_scaler(output_width);
+		set_output_shader_width();
 		output_shader_program_->set_timing(height_of_display_, cycles_per_line_, horizontal_scan_period_, vertical_scan_period_, vertical_period_divider_);
 	}
 	if(composite_input_shader_program_)
@@ -452,6 +472,6 @@ void OpenGLOutputBuilder::set_timing_uniforms()
 	}
 	if(rgb_input_shader_program_)
 	{
-		rgb_input_shader_program_->set_width_scalers(1.0f, output_width);
+		rgb_input_shader_program_->set_width_scalers(1.0f, 1.0f);
 	}
 }
