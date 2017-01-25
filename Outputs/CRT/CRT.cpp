@@ -290,7 +290,7 @@ void CRT::output_scan(const Scan *const scan)
 			colour_burst_phase_ = (position_phase + scan->phase) & 255;
 			colour_burst_amplitude_ = scan->amplitude;
 
-			colour_burst_phase_ &= ~63;
+			colour_burst_phase_ = (colour_burst_phase_ & ~63) + 32;
 		}
 	}
 
