@@ -96,6 +96,7 @@ class OpenGLOutputBuilder {
 		GLsync fence_;
 		float get_composite_output_width() const;
 		void set_output_shader_width();
+		bool get_is_television_output();
 
 	public:
 		// These two are protected by output_mutex_.

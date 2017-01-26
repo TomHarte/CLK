@@ -83,6 +83,11 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder()
 	free(rgb_shader_);
 }
 
+bool OpenGLOutputBuilder::get_is_television_output()
+{
+	return output_device_ == Television || !rgb_input_shader_program_;
+}
+
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 {
 	// lock down any other draw_frames
@@ -171,7 +176,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{nullptr}
 	};
 
-	RenderStage *active_pipeline = (output_device_ == Television || !rgb_input_shader_program_) ? composite_render_stages : rgb_render_stages;
+	RenderStage *active_pipeline = get_is_television_output() ? composite_render_stages : rgb_render_stages;
 
 	if(array_submission.input_size || array_submission.output_size)
 	{
@@ -428,12 +433,7 @@ void OpenGLOutputBuilder::set_output_shader_width()
 {
 	if(output_shader_program_)
 	{
-		float width = 1.0f;
-		switch(output_device_)
-		{
-			case Television:	width = get_composite_output_width();	break;
-			case Monitor:		width = 1.0f;							break;
-		}
+		const float width = get_is_television_output() ? get_composite_output_width() : 1.0f;
 		output_shader_program_->set_input_width_scaler(width);
 	}
 }
