@@ -66,13 +66,19 @@ class OpenGLOutputBuilder {
 		GLsizei composite_src_output_y_;
 
 		std::unique_ptr<OpenGL::OutputShader> output_shader_program_;
-		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program_, composite_separation_filter_program_, composite_y_filter_shader_program_, composite_chrominance_filter_shader_program_;
-		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program_, rgb_filter_shader_program_;
 
-		OpenGL::TextureTarget composite_texture_;	// receives raw composite levels
-		OpenGL::TextureTarget separated_texture_;	// receives unfiltered Y in the R channel plus unfiltered but demodulated chrominance in G and B
-		OpenGL::TextureTarget filtered_y_texture_;	// receives filtered Y in the R channel plus unfiltered chrominance in G and B
-		OpenGL::TextureTarget filtered_texture_;	// receives filtered YIQ or YUV
+		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program_;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_separation_filter_program_;
+		std::unique_ptr<OpenGL::IntermediateShader> composite_chrominance_filter_shader_program_;
+
+		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program_;
+		std::unique_ptr<OpenGL::IntermediateShader> rgb_filter_shader_program_;
+
+		std::unique_ptr<OpenGL::TextureTarget> composite_texture_;	// receives raw composite levels
+		std::unique_ptr<OpenGL::TextureTarget> separated_texture_;	// receives filtered Y in the R channel plus unfiltered but demodulated chrominance in G and B
+		std::unique_ptr<OpenGL::TextureTarget> filtered_texture_;	// receives filtered YIQ or YUV
+
+		std::unique_ptr<OpenGL::TextureTarget> work_texture_;		// used for all intermediate rendering if texture fences are supported
 
 		std::unique_ptr<OpenGL::TextureTarget> framebuffer_;		// the current pixel output
 
@@ -88,6 +94,9 @@ class OpenGLOutputBuilder {
 		void reset_all_OpenGL_state();
 
 		GLsync fence_;
+		float get_composite_output_width() const;
+		void set_output_shader_width();
+		bool get_is_television_output();
 
 	public:
 		// These two are protected by output_mutex_.

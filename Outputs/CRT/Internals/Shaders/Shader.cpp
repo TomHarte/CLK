@@ -156,7 +156,8 @@ void Shader::set_uniform(const std::string &name, GLint value1, GLint value2)
 void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2)
 {
 	enqueue_function([name, value1, value2, this] {
-		glUniform2f(location(), value1, value2);
+		GLint location = location();
+		glUniform2f(location, value1, value2);
 	});
 }
 

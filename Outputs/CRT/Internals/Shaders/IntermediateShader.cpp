@@ -40,11 +40,14 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 		"in vec2 ends;"
 		"in vec3 phaseTimeAndAmplitude;"
 
-		"uniform float phaseCyclesPerTick;"
 		"uniform ivec2 outputTextureSize;"
 		"uniform float extension;"
 		"uniform %s texID;"
 		"uniform float offsets[5];"
+		"uniform vec2 widthScalers;"
+		"uniform float inputVerticalOffset;"
+		"uniform float outputVerticalOffset;"
+		"uniform float textureHeightDivisor;"
 
 		"out vec2 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
@@ -53,35 +56,51 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 
 		"void main(void)"
 		"{"
+			// odd vertices are on the left, even on the right
 			"float extent = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
-			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent), inputStart.y);"
-			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent), outputStart.y);"
+			// inputPosition.x is either inputStart.x or ends.x, depending on whether it is on the left or the right;
+			// outputPosition.x is either outputStart.x or ends.y;
+			// .ys are inputStart.y and outputStart.y respectively
+			"vec2 inputPosition = vec2(mix(inputStart.x, ends.x, extent)*widthScalers[0], inputStart.y + inputVerticalOffset);"
+			"vec2 outputPosition = vec2(mix(outputStart.x, ends.y, extent)*widthScalers[1], outputStart.y + outputVerticalOffset);"
+
+			"inputPosition.y += longitudinal;"
+			"outputPosition.y += longitudinal;"
+
+			// extension is the amount to extend both the input and output by to add a full colour cycle at each end
 			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (extent - 0.5);"
 
+			// extended[Input/Output]Position are [input/output]Position with the necessary applied extension
 			"vec2 extendedInputPosition = %s + extensionVector;"
 			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
 
+			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
 			"vec2 textureSize = vec2(textureSize(texID, 0));"
 			"iInputPositionVarying = extendedInputPosition;"
-			"vec2 mappedInputPosition = (extendedInputPosition + vec2(0.0, 0.5)) / textureSize;"
+			"vec2 mappedInputPosition = extendedInputPosition / textureSize;"	//  + vec2(0.0, 0.5)
 
-			"inputPositionsVarying[0] = mappedInputPosition - (vec2(offsets[0], 0.0) / textureSize);"
-			"inputPositionsVarying[1] = mappedInputPosition - (vec2(offsets[1], 0.0) / textureSize);"
-			"inputPositionsVarying[2] = mappedInputPosition - (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[3] = mappedInputPosition - (vec2(offsets[3], 0.0) / textureSize);"
-			"inputPositionsVarying[4] = mappedInputPosition - (vec2(offsets[4], 0.0) / textureSize);"
+			// setup input positions spaced as per the supplied offsets; these are for filtering where required
+			"inputPositionsVarying[0] = mappedInputPosition - (vec2(5.0, 0.0) / textureSize);"
+			"inputPositionsVarying[1] = mappedInputPosition - (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[2] = mappedInputPosition - (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[3] = mappedInputPosition - (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[4] = mappedInputPosition - (vec2(1.0, 0.0) / textureSize);"
 			"inputPositionsVarying[5] = mappedInputPosition;"
-			"inputPositionsVarying[6] = mappedInputPosition + (vec2(offsets[4], 0.0) / textureSize);"
-			"inputPositionsVarying[7] = mappedInputPosition + (vec2(offsets[3], 0.0) / textureSize);"
-			"inputPositionsVarying[8] = mappedInputPosition + (vec2(offsets[2], 0.0) / textureSize);"
-			"inputPositionsVarying[9] = mappedInputPosition + (vec2(offsets[1], 0.0) / textureSize);"
-			"inputPositionsVarying[10] = mappedInputPosition + (vec2(offsets[0], 0.0) / textureSize);"
+			"inputPositionsVarying[6] = mappedInputPosition + (vec2(1.0, 0.0) / textureSize);"
+			"inputPositionsVarying[7] = mappedInputPosition + (vec2(2.0, 0.0) / textureSize);"
+			"inputPositionsVarying[8] = mappedInputPosition + (vec2(3.0, 0.0) / textureSize);"
+			"inputPositionsVarying[9] = mappedInputPosition + (vec2(4.0, 0.0) / textureSize);"
+			"inputPositionsVarying[10] = mappedInputPosition + (vec2(5.0, 0.0) / textureSize);"
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
-			"phaseAndAmplitudeVarying.x = (phaseCyclesPerTick * (extendedOutputPosition.x - phaseTimeAndAmplitude.y) + (phaseTimeAndAmplitude.x / 256.0)) * 2.0 * 3.141592654;"
+			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
+			// setup phaseAndAmplitudeVarying.x as colour burst amplitude
+			"phaseAndAmplitudeVarying.x = (extendedOutputPosition.x + (phaseTimeAndAmplitude.x / 64.0)) * 0.5 * 3.141592654;"
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
 
+			// determine output position by scaling the output position according to the texture size
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(1.0)/outputTextureSize;"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
@@ -172,7 +191,6 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 		"in vec2 phaseAndAmplitudeVarying;"
 		"in vec2 inputPositionsVarying[11];"
-		"uniform vec4 weights[3];"
 
 		"out vec3 fragColour;"
 
@@ -180,37 +198,20 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 		"void main(void)"
 		"{"
-			"vec4 samples[3] = vec4[]("
-				"vec4("
-					"texture(texID, inputPositionsVarying[0]).r,"
-					"texture(texID, inputPositionsVarying[1]).r,"
-					"texture(texID, inputPositionsVarying[2]).r,"
-					"texture(texID, inputPositionsVarying[3]).r"
-				"),"
-				"vec4("
-					"texture(texID, inputPositionsVarying[4]).r,"
-					"texture(texID, inputPositionsVarying[5]).r,"
-					"texture(texID, inputPositionsVarying[6]).r,"
-					"texture(texID, inputPositionsVarying[7]).r"
-				"),"
-				"vec4("
-					"texture(texID, inputPositionsVarying[8]).r,"
-					"texture(texID, inputPositionsVarying[9]).r,"
-					"texture(texID, inputPositionsVarying[10]).r,"
-					"0.0"
-				")"
+			"vec4 samples = vec4("
+				"texture(texID, inputPositionsVarying[3]).r,"
+				"texture(texID, inputPositionsVarying[4]).r,"
+				"texture(texID, inputPositionsVarying[5]).r,"
+				"texture(texID, inputPositionsVarying[6]).r"
 			");"
+			"float luminance = dot(samples, vec4(0.25));"
 
-			"float luminance = "
-				"dot(vec3("
-					"dot(samples[0], weights[0]),"
-					"dot(samples[1], weights[1]),"
-					"dot(samples[2], weights[2])"
-				"), vec3(1.0));"
-
-			"float chrominance = 0.5 * (samples[1].y - luminance) / phaseAndAmplitudeVarying.y;"
+			// define chroma to be whatever was here, minus luma
+			"float chrominance = 0.5 * (samples.z - luminance) / phaseAndAmplitudeVarying.y;"
 			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
 
+			// split choma colours here, as the most direct place, writing out
+			// RGB = (luma, chroma.x, chroma.y)
 			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}",false, false);
@@ -232,91 +233,22 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 		"void main(void)"
 		"{"
 			"vec3 samples[] = vec3[]("
-				"texture(texID, inputPositionsVarying[0]).rgb,"
-				"texture(texID, inputPositionsVarying[1]).rgb,"
-				"texture(texID, inputPositionsVarying[2]).rgb,"
 				"texture(texID, inputPositionsVarying[3]).rgb,"
 				"texture(texID, inputPositionsVarying[4]).rgb,"
 				"texture(texID, inputPositionsVarying[5]).rgb,"
-				"texture(texID, inputPositionsVarying[6]).rgb,"
-				"texture(texID, inputPositionsVarying[7]).rgb,"
-				"texture(texID, inputPositionsVarying[8]).rgb,"
-				"texture(texID, inputPositionsVarying[9]).rgb,"
-				"texture(texID, inputPositionsVarying[10]).rgb"
+				"texture(texID, inputPositionsVarying[6]).rgb"
 			");"
 
-			"vec4 chromaChannel1[] = vec4[]("
-				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
-				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
-				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
-			");"
-			"vec4 chromaChannel2[] = vec4[]("
-				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
-				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
-				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
-			");"
+			"vec4 chromaChannel1 = vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g);"
+			"vec4 chromaChannel2 = vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b);"
 
-			"vec3 lumaChromaColour = vec3(samples[5].r,"
-				"dot(vec3("
-					"dot(chromaChannel1[0], weights[0]),"
-					"dot(chromaChannel1[1], weights[1]),"
-					"dot(chromaChannel1[2], weights[2])"
-				"), vec3(1.0)),"
-				"dot(vec3("
-					"dot(chromaChannel2[0], weights[0]),"
-					"dot(chromaChannel2[1], weights[1]),"
-					"dot(chromaChannel2[2], weights[2])"
-				"), vec3(1.0))"
+			"vec3 lumaChromaColour = vec3(samples[2].r,"
+				"dot(chromaChannel1, vec4(0.25)),"
+				"dot(chromaChannel2, vec4(0.25))"
 			");"
 
 			"vec3 lumaChromaColourInRange = (lumaChromaColour - vec3(0.0, 0.5, 0.5)) * vec3(1.0, 2.0, 2.0);"
 			"fragColour = lumaChromaToRGB * lumaChromaColourInRange;"
-		"}", false, false);
-}
-
-std::unique_ptr<IntermediateShader> IntermediateShader::make_luma_filter_shader()
-{
-	return make_shader(
-		"#version 150\n"
-
-		"in vec2 inputPositionsVarying[11];"
-		"uniform vec4 weights[3];"
-
-		"out vec3 fragColour;"
-
-		"uniform sampler2D texID;"
-		"uniform mat3 lumaChromaToRGB;"
-
-		"void main(void)"
-		"{"
-			"vec3 samples[] = vec3[]("
-				"texture(texID, inputPositionsVarying[0]).rgb,"
-				"texture(texID, inputPositionsVarying[1]).rgb,"
-				"texture(texID, inputPositionsVarying[2]).rgb,"
-				"texture(texID, inputPositionsVarying[3]).rgb,"
-				"texture(texID, inputPositionsVarying[4]).rgb,"
-				"texture(texID, inputPositionsVarying[5]).rgb,"
-				"texture(texID, inputPositionsVarying[6]).rgb,"
-				"texture(texID, inputPositionsVarying[7]).rgb,"
-				"texture(texID, inputPositionsVarying[8]).rgb,"
-				"texture(texID, inputPositionsVarying[9]).rgb,"
-				"texture(texID, inputPositionsVarying[10]).rgb"
-			");"
-
-			"vec4 luminance[] = vec4[]("
-				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
-				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
-				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
-			");"
-
-			"fragColour = vec3("
-				"dot(vec3("
-					"dot(luminance[0], weights[0]),"
-					"dot(luminance[1], weights[1]),"
-					"dot(luminance[2], weights[2])"
-				"), vec3(1.0)),"
-				"samples[5].gb"
-			");"
 		"}", false, false);
 }
 
@@ -404,44 +336,53 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	// Perform a linear search for the highest number of taps we can use with 11 samples.
 	GLfloat weights[12];
 	GLfloat offsets[5];
-	unsigned int taps = 21;
+	unsigned int taps = 11;
+//	unsigned int taps = 21;
 	while(1)
 	{
 		float coefficients[21];
 		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 		luminance_filter.get_coefficients(coefficients);
 
-		int sample = 0;
-		int c = 0;
+//		int sample = 0;
+//		int c = 0;
 		memset(weights, 0, sizeof(float)*12);
 		memset(offsets, 0, sizeof(float)*5);
 
 		int halfSize = (taps >> 1);
-		while(c < halfSize && sample < 5)
+		for(int c = 0; c < taps; c++)
 		{
-			offsets[sample] = (float)(halfSize - c);
-			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
-			{
-				weights[sample] = coefficients[c] + coefficients[c+1];
-				offsets[sample] -= (coefficients[c+1] / weights[sample]);
-				c += 2;
-			}
-			else
-			{
-				weights[sample] = coefficients[c];
-				c++;
-			}
-			sample ++;
+			if(c < 5) offsets[c] = (halfSize - c);
+			weights[c] = coefficients[c];
 		}
-		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
-		{
-			weights[sample] = coefficients[c];
-			for(int c = 0; c < sample; c++)
-			{
-				weights[sample+c+1] = weights[sample-c-1];
-			}
-			break;
-		}
+		break;
+
+//		int halfSize = (taps >> 1);
+//		while(c < halfSize && sample < 5)
+//		{
+//			offsets[sample] = (float)(halfSize - c);
+//			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
+//			{
+//				weights[sample] = coefficients[c] + coefficients[c+1];
+//				offsets[sample] -= (coefficients[c+1] / weights[sample]);
+//				c += 2;
+//			}
+//			else
+//			{
+//				weights[sample] = coefficients[c];
+//				c++;
+//			}
+//			sample ++;
+//		}
+//		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
+//		{
+//			weights[sample] = coefficients[c];
+//			for(int c = 0; c < sample; c++)
+//			{
+//				weights[sample+c+1] = weights[sample-c-1];
+//			}
+//			break;
+//		}
 		taps -= 2;
 	}
 
@@ -454,14 +395,25 @@ void IntermediateShader::set_separation_frequency(float sampling_rate, float col
 	set_filter_coefficients(sampling_rate, colour_burst_frequency);
 }
 
-void IntermediateShader::set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle)
+void IntermediateShader::set_extension(float extension)
 {
-	set_uniform("phaseCyclesPerTick", (GLfloat)phase_cycles_per_sample);
-	set_uniform("extension", extend_runs_to_full_cycle ? ceilf(1.0f / phase_cycles_per_sample) : 0.0f);
+	set_uniform("extension", extension);
 }
 
 void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *toRGB)
 {
 	set_uniform_matrix("lumaChromaToRGB", 3, false, toRGB);
 	set_uniform_matrix("rgbToLumaChroma", 3, false, fromRGB);
+}
+
+void IntermediateShader::set_width_scalers(float input_scaler, float output_scaler)
+{
+	set_uniform("widthScalers", input_scaler, output_scaler);
+}
+
+void IntermediateShader::set_is_double_height(bool is_double_height, float input_offset, float output_offset)
+{
+	set_uniform("textureHeightDivisor", is_double_height ? 2.0f : 1.0f);
+	set_uniform("inputVerticalOffset", input_offset);
+	set_uniform("outputVerticalOffset", output_offset);
 }

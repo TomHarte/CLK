@@ -29,9 +29,9 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
 
 	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
-	phase_denominator_ = cycles_per_line * colour_cycle_denominator;
+	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
 	phase_numerator_ = 0;
-	colour_cycle_numerator_ = colour_cycle_numerator * time_multiplier_;
+	colour_cycle_numerator_ = colour_cycle_numerator;
 	phase_alternates_ = should_alternate;
 	is_alernate_line_ &= phase_alternates_;
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
@@ -112,7 +112,6 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_output_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 2])
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
-#define source_phase_time()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
 void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type)
 {
@@ -149,7 +148,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
-			source_phase_time() = (uint8_t)colour_burst_time_; // assumption: burst was within the first 1/16 of the line
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -242,7 +240,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 				frames_since_last_delegate_call_++;
 				if(frames_since_last_delegate_call_ == 20)
 				{
+					output_lock.unlock();
 					delegate_->crt_did_end_batch_of_frames(this, frames_since_last_delegate_call_, vertical_flywheel_->get_and_reset_number_of_surprises());
+					output_lock.lock();
 					frames_since_last_delegate_call_ = 0;
 				}
 			}
@@ -286,9 +286,11 @@ void CRT::output_scan(const Scan *const scan)
 	{
 		if(horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6)
 		{
-			colour_burst_time_ = (uint16_t)horizontal_flywheel_->get_current_time();
-			colour_burst_phase_ = scan->phase;
+			unsigned int position_phase = (horizontal_flywheel_->get_current_time() * colour_cycle_numerator_ * 256) / phase_denominator_;
+			colour_burst_phase_ = (position_phase + scan->phase) & 255;
 			colour_burst_amplitude_ = scan->amplitude;
+
+			colour_burst_phase_ = (colour_burst_phase_ & ~63) + 32;
 		}
 	}
 
@@ -344,7 +346,7 @@ void CRT::output_default_colour_burst(unsigned int number_of_cycles)
 	Scan scan {
 		.type = Scan::Type::ColourBurst,
 		.number_of_cycles = number_of_cycles,
-		.phase = (uint8_t)((phase_numerator_ * 255) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
+		.phase = (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
 		.amplitude = 32
 	};
 	output_scan(&scan);

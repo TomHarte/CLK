@@ -45,11 +45,6 @@ public:
 	static std::unique_ptr<IntermediateShader> make_chroma_filter_shader();
 
 	/*!
-		Constructs and returns an intermediate shader that will filter R while passing through G and B unchanged.
-	*/
-	static std::unique_ptr<IntermediateShader> make_luma_filter_shader();
-
-	/*!
 		Constructs and returns an intermediate shader that will filter R, G and B.
 	*/
 	static std::unique_ptr<IntermediateShader> make_rgb_filter_shader();
@@ -81,12 +76,23 @@ public:
 		geometry should be extended so that a complete colour cycle is included at both the beginning and end,
 		to occur upon the next `bind`.
 	*/
-	void set_phase_cycles_per_sample(float phase_cycles_per_sample, bool extend_runs_to_full_cycle);
+	void set_extension(float extension);
 
 	/*!
 		Queues setting the matrices that convert between RGB and chrominance/luminance to occur on the next `bind`.
 	*/
 	void set_colour_conversion_matrices(float *fromRGB, float *toRGB);
+
+	/*!
+		Sets the proportions of the input and output areas that should be considered the whole width — 1.0 means use all available
+		space, 0.5 means use half, etc.
+	*/
+	void set_width_scalers(float input_scaler, float output_scaler);
+
+	/*!
+		Sets source and target vertical offsets.
+	*/
+	void set_is_double_height(bool is_double_height, float input_offset = 0.0f, float output_offset = 0.0f);
 
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);

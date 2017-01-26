@@ -71,7 +71,7 @@ void Machine::setup_output(float aspect_ratio)
 			"uint y = c & 14u;"
 			"uint iPhase = (c >> 4);"
 
-			"float phaseOffset = 6.283185308 * float(iPhase - 1u) / 13.0;"
+			"float phaseOffset = 6.283185308 * float(iPhase) / 13.0  + 5.074880441076923;"
 			"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 		"}");
 	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
@@ -777,5 +777,6 @@ void Machine::update_audio()
 void Machine::synchronise()
 {
 	update_audio();
+	speaker_->flush();
 }
 
