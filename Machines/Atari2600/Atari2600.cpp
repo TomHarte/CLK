@@ -777,5 +777,6 @@ void Machine::update_audio()
 void Machine::synchronise()
 {
 	update_audio();
+	speaker_->flush();
 }
 
