@@ -30,24 +30,10 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>uef</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>Electron/BBC Tape Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSItemContentTypes</key>
-			<array/>
-			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
-			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
 				<string>rom</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>chip</string>
 			<key>CFBundleTypeName</key>
 			<string>ROM Image</string>
 			<key>CFBundleTypeRole</key>
@@ -65,6 +51,8 @@
 				<string>uef</string>
 				<string>uef.gz</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC UEF Image</string>
 			<key>CFBundleTypeRole</key>
@@ -79,6 +67,8 @@
 			<array>
 				<string>prg</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy525</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore Program</string>
 			<key>CFBundleTypeRole</key>
@@ -93,6 +83,8 @@
 			<array>
 				<string>tap</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
 			<key>CFBundleTypeName</key>
 			<string>Tape Image</string>
 			<key>CFBundleTypeRole</key>
@@ -107,6 +99,8 @@
 			<array>
 				<string>g64</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy525</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore Disk</string>
 			<key>CFBundleTypeRole</key>
@@ -121,6 +115,8 @@
 			<array>
 				<string>d64</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy525</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore 1540/1 Disk</string>
 			<key>CFBundleTypeRole</key>
@@ -139,6 +135,8 @@
 				<string>adl</string>
 				<string>adm</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy35</string>
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Disk Image</string>
 			<key>CFBundleTypeRole</key>
@@ -151,6 +149,8 @@
 			<array>
 				<string>dsk</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy35</string>
 			<key>CFBundleTypeName</key>
 			<string>Disk Image</string>
 			<key>CFBundleTypeRole</key>
