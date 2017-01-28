@@ -13,7 +13,7 @@
 				<string>bin</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string></string>
+			<string>cartridge</string>
 			<key>CFBundleTypeName</key>
 			<string>Atari 2600 Cartridge</string>
 			<key>CFBundleTypeOSTypes</key>
