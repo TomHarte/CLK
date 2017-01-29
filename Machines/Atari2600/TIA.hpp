@@ -10,17 +10,22 @@
 #define TIA_hpp
 
 #include <cstdint>
+#include "../CRTMachine.hpp"
 
 namespace Atari2600 {
 
 class TIA {
 	public:
+		TIA();
+		~TIA();
+
 		void run_for_cycles(int number_of_cycles);
 
 		void set_vsync(bool vsync);
 		void set_vblank(bool vblank);
-		void reset_horizontal_counter();
-		int get_cycles_until_horizontal_blank();
+		void reset_horizontal_counter(); 						// Reset is delayed by four cycles.
+
+		int get_cycles_until_horizontal_blank(unsigned int from_offset);
 
 		void set_background_colour(uint8_t colour);
 
@@ -51,6 +56,11 @@ class TIA {
 
 		uint8_t get_collision_flags(int offset);
 		void clear_collision_flags();
+
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
+
+	private:
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
 };
 
 }
