@@ -69,6 +69,7 @@ class TextureBuilder {
 		size_t number_of_write_areas_;
 		bool is_full_;
 		bool did_submit_;
+		bool has_write_area_;
 		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);
 
 		// Usually: the start position for the current batch of write areas.

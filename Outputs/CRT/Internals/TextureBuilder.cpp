@@ -43,6 +43,7 @@ TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
 	write_areas_start_y_(0),
 	is_full_(false),
 	did_submit_(false),
+	has_write_area_(false),
 	number_of_write_areas_(0)
 {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
@@ -105,6 +106,7 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length)
 	else
 		write_areas_.push_back(next_write_area);
 	number_of_write_areas_++;
+	has_write_area_ = true;
 
 	return pointer_to_location(next_write_area.x, next_write_area.y);
 }
@@ -116,8 +118,9 @@ bool TextureBuilder::is_full()
 
 void TextureBuilder::reduce_previous_allocation_to(size_t actual_length)
 {
-	if(is_full_) return;
+	if(is_full_ || !has_write_area_) return;
 
+	has_write_area_ = false;
 	WriteArea &write_area = write_areas_[number_of_write_areas_-1];
 	write_area.length = (uint16_t)actual_length;
 
