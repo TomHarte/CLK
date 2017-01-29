@@ -42,7 +42,7 @@ struct CRTDelegate: public Outputs::CRT::Delegate {
 			if(numberOfUnexpectedSyncs >= numberOfFrames >> 1)
 			{
 				[self.view performWithGLContext:^{
-					_atari2600.switch_region();
+//					_atari2600.switch_region();
 				}];
 			}
 		}

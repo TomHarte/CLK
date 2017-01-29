@@ -30,6 +30,10 @@ TIA::TIA()
 	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
 }
 
+TIA::~TIA()
+{
+}
+
 /*void Machine::switch_region()
 {
 	// the PAL function
@@ -56,3 +60,118 @@ TIA::TIA()
 						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
 						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
 						// in five cycles from now
+
+
+void TIA::run_for_cycles(int number_of_cycles)
+{
+}
+
+void TIA::set_vsync(bool vsync)
+{
+}
+
+void TIA::set_vblank(bool vblank)
+{
+}
+
+void TIA::reset_horizontal_counter()
+{
+}
+
+int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
+{
+	return 10;
+}
+
+void TIA::set_background_colour(uint8_t colour)
+{
+}
+
+void TIA::set_playfield(uint16_t offset, uint8_t value)
+{
+}
+
+void TIA::set_playfield_control_and_ball_size(uint8_t value)
+{
+}
+
+void TIA::set_playfield_ball_colour(uint8_t colour)
+{
+}
+
+void TIA::set_player_number_and_size(int player, uint8_t value)
+{
+}
+
+void TIA::set_player_graphic(int player, uint8_t value)
+{
+}
+
+void TIA::set_player_reflected(int player, bool reflected)
+{
+}
+
+void TIA::set_player_delay(int player, bool delay)
+{
+}
+
+void TIA::set_player_position(int player)
+{
+}
+
+void TIA::set_player_motion(int player, uint8_t motion)
+{
+}
+
+void TIA::set_player_missile_colour(int player, uint8_t colour)
+{
+}
+
+void TIA::set_missile_enable(int missile, bool enabled)
+{
+}
+
+void TIA::set_missile_position(int missile)
+{
+}
+
+void TIA::set_missile_position_to_player(int missile)
+{
+}
+
+void TIA::set_missile_motion(int missile, uint8_t motion)
+{
+}
+
+void TIA::set_ball_enable(bool enabled)
+{
+}
+
+void TIA::set_ball_delay(bool delay)
+{
+}
+
+void TIA::set_ball_position()
+{
+}
+
+void TIA::set_ball_motion(uint8_t motion)
+{
+}
+
+void TIA::move()
+{
+}
+
+void TIA::clear_motion()
+{
+}
+
+uint8_t TIA::get_collision_flags(int offset)
+{
+	return 0xff;
+}
+
+void TIA::clear_collision_flags()
+{
+}
