@@ -130,7 +130,7 @@ void ArrayBuilder::Buffer::flush()
 {
 	if(submitted_data)
 	{
-		memcpy(data.data(), &data[submitted_data], allocated_data - submitted_data);
+		memmove(data.data(), &data[submitted_data], allocated_data - submitted_data);
 		allocated_data -= submitted_data;
 		flushed_data -= submitted_data;
 		submitted_data = 0;
