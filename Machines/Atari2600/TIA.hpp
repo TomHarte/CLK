@@ -68,6 +68,8 @@ class TIA {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		int horizontal_counter_;
+		int output_cursor_;
+		uint8_t *pixel_target_;
 
 		void output_for_cycles(int number_of_cycles);
 		void output_line();

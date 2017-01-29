@@ -14,7 +14,9 @@ namespace {
 }
 
 TIA::TIA() :
-	horizontal_counter_(0)
+	horizontal_counter_(0),
+	output_cursor_(0),
+	pixel_target_(nullptr)
 {
 	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
@@ -76,7 +78,6 @@ void TIA::run_for_cycles(int number_of_cycles)
 	{
 		int cycles = std::min(number_of_cycles, cycles_per_line - horizontal_counter_);
 		output_for_cycles(cycles);
-		horizontal_counter_ = (horizontal_counter_ + cycles) % cycles_per_line;
 		number_of_cycles -= cycles;
 	}
 
@@ -91,7 +92,6 @@ void TIA::run_for_cycles(int number_of_cycles)
 	if(number_of_cycles)
 	{
 		output_for_cycles(number_of_cycles);
-		horizontal_counter_ = (horizontal_counter_ + number_of_cycles) % cycles_per_line;
 	}
 }
 
@@ -205,10 +205,77 @@ void TIA::clear_collision_flags()
 {
 }
 
+//				case 0: case 1: case 2: case 3:					state = OutputState::Blank;									break;
+//				case 4: case 5: case 6: case 7:					state = OutputState::Sync;									break;
+//				case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;							break;
+//				case 12: case 13: case 14:
+//				case 15: case 16:								state = OutputState::Blank;									break;
+//
+//				case 17: case 18:								state = vbextend ? OutputState::Blank : OutputState::Pixel;	break;
+//				default:										state = OutputState::Pixel;									break;
+
 void TIA::output_for_cycles(int number_of_cycles)
 {
+	/*
+		Line timing is oriented around 0 being the start of the right-hand side vertical blank;
+		a wsync synchronises the CPU to horizontal_counter_ = 0. All timing below is in terms of the
+		NTSC colour clock.
+
+		Therefore, each line is composed of:
+		
+			16 cycles:	blank					; -> 16
+			16 cycles:	sync					; -> 32
+			16 cycles:	colour burst			; -> 48
+			20 cycles:	blank					; -> 68
+			8 cycles:	blank or pixels, depending on whether the blank extend bit is set
+			152 cycles:	pixels
+	*/
+	horizontal_counter_ += number_of_cycles;
+	if(!output_cursor_ && horizontal_counter_ >= 16)
+	{
+		crt_->output_blank(32);
+		output_cursor_ = 16;
+	}
+	if(output_cursor_ == 16 && horizontal_counter_ >= 32)
+	{
+		crt_->output_sync(32);
+		output_cursor_ = 32;
+	}
+	if(output_cursor_ == 32 && horizontal_counter_ >= 48)
+	{
+		crt_->output_default_colour_burst(32);
+		output_cursor_ = 48;
+	}
+	if(output_cursor_ == 48 && horizontal_counter_ >= 68)
+	{
+		crt_->output_default_colour_burst(40);
+		output_cursor_ = 68;
+	}
+	if(horizontal_counter_ > 68)
+	{
+		if(output_cursor_ == 68)
+		{
+			pixel_target_ = crt_->allocate_write_area(160);
+		}
+		if(pixel_target_)
+		{
+			while(output_cursor_ < horizontal_counter_)
+			{
+				pixel_target_[output_cursor_ - 68] = (output_cursor_&1) ? 0xff : 0x00;
+				output_cursor_++;
+			}
+		} else output_cursor_ = horizontal_counter_;
+		if(horizontal_counter_ == cycles_per_line)
+		{
+			crt_->output_data(320, 2);
+			pixel_target_ = nullptr;
+		}
+	}
+	horizontal_counter_ %= cycles_per_line;
 }
 
 void TIA::output_line()
 {
+	// TODO: optimise special case
+	output_for_cycles(cycles_per_line);
 }
