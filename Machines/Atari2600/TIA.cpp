@@ -18,7 +18,6 @@ namespace {
 TIA::TIA() :
 	horizontal_counter_(0)
 {
-/*
 	crt_.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, false, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
 
@@ -33,7 +32,7 @@ TIA::TIA() :
 			"float phaseOffset = 6.283185308 * float(iPhase) / 13.0  + 5.074880441076923;"
 			"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 		"}");
-	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
+/*	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
 }
 
 TIA::~TIA()
@@ -80,7 +79,7 @@ void TIA::run_for_cycles(int number_of_cycles)
 	}
 
 	// output full lines for as long as possible
-	while(number_of_cycles > cycles_per_line)
+	while(number_of_cycles >= cycles_per_line)
 	{
 		output_line();
 		number_of_cycles -= cycles_per_line;
