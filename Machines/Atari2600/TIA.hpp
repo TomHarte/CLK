@@ -61,6 +61,10 @@ class TIA {
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+
+		int horizontal_counter_;
+		void output_for_cycles(int number_of_cycles);
+		void output_line();
 };
 
 }

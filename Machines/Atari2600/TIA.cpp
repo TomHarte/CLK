@@ -9,8 +9,14 @@
 #include "TIA.hpp"
 
 using namespace Atari2600;
+namespace {
+	const int cycles_per_line = 228;
+	const double NTSC_clock_rate = 1194720;
+	const double PAL_clock_rate = 1182298;
+}
 
-TIA::TIA()
+TIA::TIA() :
+	horizontal_counter_(0)
 {
 /*
 	crt_.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, false, 1));
@@ -64,6 +70,28 @@ TIA::~TIA()
 
 void TIA::run_for_cycles(int number_of_cycles)
 {
+	// if part way through a line, definitely perform a partial, at most up to the end of the line
+	if(horizontal_counter_)
+	{
+		int cycles = std::min(number_of_cycles, cycles_per_line - horizontal_counter_);
+		output_for_cycles(cycles);
+		horizontal_counter_ = (horizontal_counter_ + cycles) % cycles_per_line;
+		number_of_cycles -= cycles;
+	}
+
+	// output full lines for as long as possible
+	while(number_of_cycles > cycles_per_line)
+	{
+		output_line();
+		number_of_cycles -= cycles_per_line;
+	}
+
+	// partly start a new line if necessary
+	if(number_of_cycles)
+	{
+		output_for_cycles(number_of_cycles);
+		horizontal_counter_ = (horizontal_counter_ + number_of_cycles) % cycles_per_line;
+	}
 }
 
 void TIA::set_vsync(bool vsync)
@@ -80,7 +108,7 @@ void TIA::reset_horizontal_counter()
 
 int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
 {
-	return 10;
+	return cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line;
 }
 
 void TIA::set_background_colour(uint8_t colour)
@@ -173,5 +201,13 @@ uint8_t TIA::get_collision_flags(int offset)
 }
 
 void TIA::clear_collision_flags()
+{
+}
+
+void TIA::output_for_cycles(int number_of_cycles)
+{
+}
+
+void TIA::output_line()
 {
 }
