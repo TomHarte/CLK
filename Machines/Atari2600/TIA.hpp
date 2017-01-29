@@ -19,7 +19,12 @@ class TIA {
 		TIA();
 		~TIA();
 
+		enum class OutputMode {
+			NTSC, PAL
+		};
+
 		void run_for_cycles(int number_of_cycles);
+		void set_output_mode(OutputMode output_mode);
 
 		void set_vsync(bool vsync);
 		void set_vblank(bool vblank);
@@ -63,6 +68,7 @@ class TIA {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		int horizontal_counter_;
+
 		void output_for_cycles(int number_of_cycles);
 		void output_line();
 };

@@ -11,16 +11,18 @@
 using namespace Atari2600;
 namespace {
 	const int cycles_per_line = 228;
-	const double NTSC_clock_rate = 1194720;
-	const double PAL_clock_rate = 1182298;
 }
 
 TIA::TIA() :
 	horizontal_counter_(0)
 {
-	crt_.reset(new Outputs::CRT::CRT(228, 1, 263, Outputs::CRT::ColourSpace::YIQ, 228, 1, false, 1));
+	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
+	set_output_mode(OutputMode::NTSC);
+}
 
+void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
+{
 	// this is the NTSC phase offset function; see below for PAL
 	crt_->set_composite_sampling_function(
 		"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"

@@ -12,7 +12,6 @@
 
 using namespace Atari2600;
 namespace {
-	static const unsigned int horizontalTimerPeriod = 228;
 	static const double NTSC_clock_rate = 1194720;
 	static const double PAL_clock_rate = 1182298;
 }
@@ -31,6 +30,7 @@ void Machine::setup_output(float aspect_ratio)
 {
 	tia_.reset(new TIA);
 	speaker_.reset(new Speaker);
+	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
 }
 
 void Machine::close_output()
@@ -56,6 +56,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	// skips to the end of the line.
 	if(operation == CPU6502::BusOperation::Ready) {
 		cycles_run_for = (unsigned int)tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
+		set_ready_line(false);
 	}
 
 	cycles_since_speaker_update_ += cycles_run_for;
