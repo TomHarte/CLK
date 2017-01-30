@@ -71,9 +71,9 @@ class TIA {
 
 		int output_cursor_;
 		int output_mode_;
-		int requested_output_mode_;
 
 		uint8_t *pixel_target_;
+		int pixel_target_origin_;
 
 		void output_for_cycles(int number_of_cycles);
 		void output_line();

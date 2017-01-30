@@ -20,7 +20,6 @@ TIA::TIA() :
 	horizontal_counter_(0),
 	output_cursor_(0),
 	pixel_target_(nullptr),
-	requested_output_mode_(0),
 	output_mode_(0)
 {
 	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
@@ -102,12 +101,12 @@ void TIA::run_for_cycles(int number_of_cycles)
 
 void TIA::set_sync(bool sync)
 {
-	requested_output_mode_ = (requested_output_mode_ & ~sync_flag) | (sync ? sync_flag : 0);
+	output_mode_ = (output_mode_ & ~sync_flag) | (sync ? sync_flag : 0);
 }
 
 void TIA::set_blank(bool blank)
 {
-	requested_output_mode_ = (requested_output_mode_ & ~blank_flag) | (blank ? blank_flag : 0);
+	output_mode_ = (output_mode_ & ~blank_flag) | (blank ? blank_flag : 0);
 }
 
 void TIA::reset_horizontal_counter()
@@ -237,37 +236,58 @@ void TIA::output_for_cycles(int number_of_cycles)
 			8 cycles:	blank or pixels, depending on whether the blank extend bit is set
 			152 cycles:	pixels
 	*/
-//	if(output_mode_ != requested_output_mode_)
-//	{
-//		// flush the old output
-//	}
 	horizontal_counter_ += number_of_cycles;
 
-	if(!output_cursor_ && horizontal_counter_ >= 16)
-	{
-		crt_->output_blank(32);
-		output_cursor_ = 16;
+#define Period(function, target)	\
+	if(output_cursor_ < target) \
+	{ \
+		if(horizontal_counter_ <= target) \
+		{ \
+			crt_->function((unsigned int)((horizontal_counter_ - output_cursor_) * 2)); \
+			output_cursor_ = horizontal_counter_; \
+			return; \
+		} \
+		else \
+		{ \
+			crt_->function((unsigned int)((target - output_cursor_) * 2)); \
+			output_cursor_ = target; \
+		} \
 	}
-	if(output_cursor_ == 16 && horizontal_counter_ >= 32)
+
+	switch(output_mode_)
 	{
-		crt_->output_sync(32);
-		output_cursor_ = 32;
+		default:
+			Period(output_blank, 16)
+			Period(output_sync, 32)
+			Period(output_default_colour_burst, 48)
+			Period(output_blank, 68)
+		break;
+		case sync_flag:
+		case sync_flag | blank_flag:
+			Period(output_sync, 16)
+			Period(output_blank, 32)
+			Period(output_default_colour_burst, 48)
+			Period(output_sync, 228)
+		break;
 	}
-	if(output_cursor_ == 32 && horizontal_counter_ >= 48)
+
+	if(output_mode_ & blank_flag)
 	{
-		crt_->output_default_colour_burst(32);
-		output_cursor_ = 48;
-	}
-	if(output_cursor_ == 48 && horizontal_counter_ >= 68)
-	{
-		crt_->output_blank(40);
-		output_cursor_ = 68;
-	}
-	if(horizontal_counter_ > 68)
-	{
-		if(output_cursor_ == 68)
+		if(pixel_target_)
 		{
-			pixel_target_ = crt_->allocate_write_area(160);
+			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
+			pixel_target_ = nullptr;
+		}
+		int duration = std::min(228, horizontal_counter_) - output_cursor_;
+		crt_->output_blank((unsigned int)(duration * 2));
+		output_cursor_ += duration;
+	}
+	else
+	{
+		if(!pixel_target_)
+		{
+			pixel_target_ = crt_->allocate_write_area((unsigned int)(228 - output_cursor_));
+			pixel_target_origin_ = output_cursor_;
 		}
 		if(pixel_target_)
 		{
@@ -279,17 +299,17 @@ void TIA::output_for_cycles(int number_of_cycles)
 		} else output_cursor_ = horizontal_counter_;
 		if(horizontal_counter_ == cycles_per_line)
 		{
-			crt_->output_data(320, 2);
+			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
 			pixel_target_ = nullptr;
 		}
 	}
+
 	horizontal_counter_ %= cycles_per_line;
 	output_cursor_ %= cycles_per_line;
 }
 
 void TIA::output_line()
 {
-	output_mode_ = requested_output_mode_;
 	switch(output_mode_)
 	{
 		default:
