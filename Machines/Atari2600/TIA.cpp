@@ -120,6 +120,7 @@ int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
 
 void TIA::set_background_colour(uint8_t colour)
 {
+	background_colour_ = colour;
 }
 
 void TIA::set_playfield(uint16_t offset, uint8_t value)
@@ -132,6 +133,7 @@ void TIA::set_playfield_control_and_ball_size(uint8_t value)
 
 void TIA::set_playfield_ball_colour(uint8_t colour)
 {
+	playfield_ball_colour_ = colour;
 }
 
 void TIA::set_player_number_and_size(int player, uint8_t value)
@@ -293,7 +295,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 		{
 			while(output_cursor_ < horizontal_counter_)
 			{
-				pixel_target_[output_cursor_ - 68] = (output_cursor_&1) ? 0xff : 0x00;
+				pixel_target_[output_cursor_ - 68] = (output_cursor_&1) ? playfield_ball_colour_ : background_colour_;
 				output_cursor_++;
 			}
 		} else output_cursor_ = horizontal_counter_;

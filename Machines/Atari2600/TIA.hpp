@@ -75,6 +75,9 @@ class TIA {
 		uint8_t *pixel_target_;
 		int pixel_target_origin_;
 
+		uint8_t playfield_ball_colour_;
+		uint8_t background_colour_;
+
 		void output_for_cycles(int number_of_cycles);
 		void output_line();
 };
