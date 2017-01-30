@@ -130,8 +130,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			} else {
 				const uint16_t decodedAddress = address & 0x3f;
 				switch(decodedAddress) {
-					case 0x00:	update_video(); tia_->set_vsync(!!(*value & 0x02));		break;
-					case 0x01:	update_video();	tia_->set_vblank(!!(*value & 0x02));	break;
+					case 0x00:	update_video(); tia_->set_sync(!!(*value & 0x02));	break;
+					case 0x01:	update_video();	tia_->set_blank(!!(*value & 0x02));	break;
 
 					case 0x02:
 						set_ready_line(true);

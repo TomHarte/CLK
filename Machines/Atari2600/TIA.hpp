@@ -26,8 +26,8 @@ class TIA {
 		void run_for_cycles(int number_of_cycles);
 		void set_output_mode(OutputMode output_mode);
 
-		void set_vsync(bool vsync);
-		void set_vblank(bool vblank);
+		void set_sync(bool sync);
+		void set_blank(bool blank);
 		void reset_horizontal_counter(); 						// Reset is delayed by four cycles.
 
 		int get_cycles_until_horizontal_blank(unsigned int from_offset);
@@ -68,7 +68,11 @@ class TIA {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		int horizontal_counter_;
+
 		int output_cursor_;
+		int output_mode_;
+		int requested_output_mode_;
+
 		uint8_t *pixel_target_;
 
 		void output_for_cycles(int number_of_cycles);

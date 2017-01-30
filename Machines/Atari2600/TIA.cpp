@@ -11,12 +11,17 @@
 using namespace Atari2600;
 namespace {
 	const int cycles_per_line = 228;
+
+	const int sync_flag	= 0x1;
+	const int blank_flag = 0x2;
 }
 
 TIA::TIA() :
 	horizontal_counter_(0),
 	output_cursor_(0),
-	pixel_target_(nullptr)
+	pixel_target_(nullptr),
+	requested_output_mode_(0),
+	output_mode_(0)
 {
 	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
@@ -95,12 +100,14 @@ void TIA::run_for_cycles(int number_of_cycles)
 	}
 }
 
-void TIA::set_vsync(bool vsync)
+void TIA::set_sync(bool sync)
 {
+	requested_output_mode_ = (requested_output_mode_ & ~sync_flag) | (sync ? sync_flag : 0);
 }
 
-void TIA::set_vblank(bool vblank)
+void TIA::set_blank(bool blank)
 {
+	requested_output_mode_ = (requested_output_mode_ & ~blank_flag) | (blank ? blank_flag : 0);
 }
 
 void TIA::reset_horizontal_counter()
@@ -230,7 +237,12 @@ void TIA::output_for_cycles(int number_of_cycles)
 			8 cycles:	blank or pixels, depending on whether the blank extend bit is set
 			152 cycles:	pixels
 	*/
+//	if(output_mode_ != requested_output_mode_)
+//	{
+//		// flush the old output
+//	}
 	horizontal_counter_ += number_of_cycles;
+
 	if(!output_cursor_ && horizontal_counter_ >= 16)
 	{
 		crt_->output_blank(32);
@@ -248,7 +260,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 	}
 	if(output_cursor_ == 48 && horizontal_counter_ >= 68)
 	{
-		crt_->output_default_colour_burst(40);
+		crt_->output_blank(40);
 		output_cursor_ = 68;
 	}
 	if(horizontal_counter_ > 68)
@@ -272,10 +284,29 @@ void TIA::output_for_cycles(int number_of_cycles)
 		}
 	}
 	horizontal_counter_ %= cycles_per_line;
+	output_cursor_ %= cycles_per_line;
 }
 
 void TIA::output_line()
 {
-	// TODO: optimise special case
-	output_for_cycles(cycles_per_line);
+	output_mode_ = requested_output_mode_;
+	switch(output_mode_)
+	{
+		default:
+			// TODO: optimise special case
+			output_for_cycles(cycles_per_line);
+		break;
+		case sync_flag:
+		case sync_flag | blank_flag:
+			crt_->output_sync(32);
+			crt_->output_blank(32);
+			crt_->output_sync(392);
+		break;
+		case blank_flag:
+			crt_->output_blank(32);
+			crt_->output_sync(32);
+			crt_->output_default_colour_burst(32);
+			crt_->output_blank(360);
+		break;
+	}
 }
