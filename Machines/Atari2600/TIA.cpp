@@ -14,17 +14,29 @@ namespace {
 
 	const int sync_flag	= 0x1;
 	const int blank_flag = 0x2;
+
+	uint8_t reverse_table[256];
 }
 
 TIA::TIA() :
 	horizontal_counter_(0),
 	output_cursor_(0),
 	pixel_target_(nullptr),
-	output_mode_(0)
+	output_mode_(0),
+	background_{0, 0},
+	background_half_mask_(0)
 {
 	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
 	set_output_mode(OutputMode::NTSC);
+
+	for(int c = 0; c < 256; c++)
+	{
+		reverse_table[c] = (uint8_t)(
+			((c & 0x01) << 7) | ((c & 0x02) << 5) | ((c & 0x04) << 3) | ((c & 0x08) << 1) |
+			((c & 0x10) >> 1) | ((c & 0x20) >> 3) | ((c & 0x40) >> 5) | ((c & 0x80) >> 7)
+		);
+	}
 }
 
 void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
@@ -125,10 +137,26 @@ void TIA::set_background_colour(uint8_t colour)
 
 void TIA::set_playfield(uint16_t offset, uint8_t value)
 {
+	switch(offset)
+	{
+		case 0:
+			background_[1] = (background_[1] & 0x0ffff) | ((uint32_t)reverse_table[value & 0xf0] << 16);
+			background_[0] = (background_[0] & 0xffff0) | (uint32_t)(value >> 4);
+		break;
+		case 1:
+			background_[1] = (background_[1] & 0xf00ff) | ((uint32_t)value << 8);
+			background_[0] = (background_[0] & 0xff00f) | ((uint32_t)reverse_table[value] << 4);
+		break;
+		case 2:
+			background_[1] = (background_[1] & 0xfff00) | reverse_table[value];
+			background_[0] = (background_[0] & 0x00fff) | ((uint32_t)value << 12);
+		break;
+	}
 }
 
 void TIA::set_playfield_control_and_ball_size(uint8_t value)
 {
+	background_half_mask_ = value & 1;
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour)
@@ -295,7 +323,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 		{
 			while(output_cursor_ < horizontal_counter_)
 			{
-				pixel_target_[output_cursor_ - 68] = (output_cursor_&1) ? playfield_ball_colour_ : background_colour_;
+				int offset = (output_cursor_ - 68) >> 2;
+				pixel_target_[output_cursor_ - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
 				output_cursor_++;
 			}
 		} else output_cursor_ = horizontal_counter_;

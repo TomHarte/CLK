@@ -77,6 +77,8 @@ class TIA {
 
 		uint8_t playfield_ball_colour_;
 		uint8_t background_colour_;
+		uint32_t background_[2];
+		int background_half_mask_;
 
 		void output_for_cycles(int number_of_cycles);
 		void output_line();
