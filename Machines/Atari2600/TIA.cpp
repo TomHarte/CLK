@@ -20,7 +20,6 @@ namespace {
 
 TIA::TIA() :
 	horizontal_counter_(0),
-	output_cursor_(0),
 	pixel_target_(nullptr),
 	output_mode_(0),
 	background_{0, 0},
@@ -166,30 +165,57 @@ void TIA::set_playfield_ball_colour(uint8_t colour)
 
 void TIA::set_player_number_and_size(int player, uint8_t value)
 {
+	switch(value & 7)
+	{
+		case 0: case 1: case 2: case 3: case 4:
+			player_[player].size = 0;
+			player_[player].copy_flags = value & 7;
+		break;
+		case 5:
+			player_[player].size = 1;
+			player_[player].copy_flags = 0;
+		break;
+		case 6:
+			player_[player].size = 0;
+			player_[player].copy_flags = 7;
+		break;
+		case 7:
+			player_[player].size = 2;
+			player_[player].copy_flags = 0;
+		break;
+	}
+
+	missile_[player].size = (value >> 4)&3;
 }
 
 void TIA::set_player_graphic(int player, uint8_t value)
 {
+	player_[player].graphic = value;
 }
 
 void TIA::set_player_reflected(int player, bool reflected)
 {
+	player_[player].reverse_mask = reflected ? 7 : 0;
 }
 
 void TIA::set_player_delay(int player, bool delay)
 {
+	// TODO
 }
 
 void TIA::set_player_position(int player)
 {
+	// TODO
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
 {
+	player_[player].motion = motion >> 4;
 }
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
 {
+	player_[player].colour = colour;
 }
 
 void TIA::set_missile_enable(int missile, bool enabled)
@@ -234,7 +260,7 @@ void TIA::clear_motion()
 
 uint8_t TIA::get_collision_flags(int offset)
 {
-	return 0xff;
+	return 0x00;
 }
 
 void TIA::clear_collision_flags()
@@ -266,21 +292,22 @@ void TIA::output_for_cycles(int number_of_cycles)
 			8 cycles:	blank or pixels, depending on whether the blank extend bit is set
 			152 cycles:	pixels
 	*/
+	int output_cursor = horizontal_counter_;
 	horizontal_counter_ += number_of_cycles;
 
 #define Period(function, target)	\
-	if(output_cursor_ < target) \
+	if(output_cursor < target) \
 	{ \
 		if(horizontal_counter_ <= target) \
 		{ \
-			crt_->function((unsigned int)((horizontal_counter_ - output_cursor_) * 2)); \
-			output_cursor_ = horizontal_counter_; \
+			crt_->function((unsigned int)((horizontal_counter_ - output_cursor) * 2)); \
+			output_cursor = horizontal_counter_; \
 			return; \
 		} \
 		else \
 		{ \
-			crt_->function((unsigned int)((target - output_cursor_) * 2)); \
-			output_cursor_ = target; \
+			crt_->function((unsigned int)((target - output_cursor) * 2)); \
+			output_cursor = target; \
 		} \
 	}
 
@@ -308,26 +335,26 @@ void TIA::output_for_cycles(int number_of_cycles)
 			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
 			pixel_target_ = nullptr;
 		}
-		int duration = std::min(228, horizontal_counter_) - output_cursor_;
+		int duration = std::min(228, horizontal_counter_) - output_cursor;
 		crt_->output_blank((unsigned int)(duration * 2));
-		output_cursor_ += duration;
+		output_cursor += duration;
 	}
 	else
 	{
 		if(!pixel_target_)
 		{
-			pixel_target_ = crt_->allocate_write_area((unsigned int)(228 - output_cursor_));
-			pixel_target_origin_ = output_cursor_;
+			pixel_target_ = crt_->allocate_write_area((unsigned int)(228 - output_cursor));
+			pixel_target_origin_ = output_cursor;
 		}
 		if(pixel_target_)
 		{
-			while(output_cursor_ < horizontal_counter_)
+			while(output_cursor < horizontal_counter_)
 			{
-				int offset = (output_cursor_ - 68) >> 2;
-				pixel_target_[output_cursor_ - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
-				output_cursor_++;
+				int offset = (output_cursor - 68) >> 2;
+				pixel_target_[output_cursor - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
+				output_cursor++;
 			}
-		} else output_cursor_ = horizontal_counter_;
+		} else output_cursor = horizontal_counter_;
 		if(horizontal_counter_ == cycles_per_line)
 		{
 			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
@@ -336,7 +363,6 @@ void TIA::output_for_cycles(int number_of_cycles)
 	}
 
 	horizontal_counter_ %= cycles_per_line;
-	output_cursor_ %= cycles_per_line;
 }
 
 void TIA::output_line()

@@ -67,21 +67,40 @@ class TIA {
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
+		// drawing methods
+		void output_for_cycles(int number_of_cycles);
+		void output_line();
+
+		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
 
-		int output_cursor_;
+		// contains flags to indicate whether sync or blank are currently active
 		int output_mode_;
 
+		// keeps track of the target pixel buffer for this line and when it was acquired
 		uint8_t *pixel_target_;
 		int pixel_target_origin_;
 
+		// playfield state
 		uint8_t playfield_ball_colour_;
 		uint8_t background_colour_;
 		uint32_t background_[2];
 		int background_half_mask_;
 
-		void output_for_cycles(int number_of_cycles);
-		void output_line();
+		// player state
+		struct Player {
+			int size;			// 0 = normal, 1 = double, 2 = quad
+			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
+			uint8_t graphic;	// the player graphic
+			uint8_t colour;		// the player colour
+			int reverse_mask;	// 7 for a reflected player, 0 for normal
+			uint8_t motion;		// low four bits used
+		} player_[2];
+
+		// missile state
+		struct Missile {
+			int size;		// 0 = 1 pixel, 1 = 2 pixels, etc
+		} missile_[2];
 };
 
 }
