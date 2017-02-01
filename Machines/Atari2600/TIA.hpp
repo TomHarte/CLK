@@ -68,8 +68,12 @@ class TIA {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		// drawing methods
-		void output_for_cycles(int number_of_cycles);
-		void output_line();
+		inline void output_for_cycles(int number_of_cycles);
+		inline void output_line();
+
+		inline void draw_background(uint8_t *target, int start, int length);
+		inline void draw_playfield(uint8_t *target, int start, int length);
+		inline void draw_background_and_playfield(uint8_t *target, int start, int length);
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
@@ -84,8 +88,14 @@ class TIA {
 		// playfield state
 		uint8_t playfield_ball_colour_;
 		uint8_t background_colour_;
-		uint32_t background_[2];
 		int background_half_mask_;
+		uint32_t background_[2];	// contains two 20-bit bitfields representing the background state;
+									// at index 0 is the left-hand side of the playfield with bit 0 being
+									// the first bit to display, bit 1 the second, etc. Index 1 contains
+									// a mirror image of index 0. If the playfield is being displayed in
+									// mirroring mode, background_[0] will be output on the left and
+									// background_[1] on the right; otherwise background_[0] will be
+									// output twice.
 
 		// player state
 		struct Player {
@@ -95,6 +105,8 @@ class TIA {
 			uint8_t colour;		// the player colour
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
 			uint8_t motion;		// low four bits used
+			uint8_t position;	// in the range [0, 160) to indicate offset from the left margin, i.e. phase difference
+								// between the player counter and the background pixel counter.
 		} player_[2];
 
 		// missile state

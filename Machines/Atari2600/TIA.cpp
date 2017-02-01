@@ -205,7 +205,7 @@ void TIA::set_player_delay(int player, bool delay)
 
 void TIA::set_player_position(int player)
 {
-	// TODO
+	player_[player].position = ((horizontal_counter_ - 68) + 6)%160;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
@@ -267,15 +267,6 @@ void TIA::clear_collision_flags()
 {
 }
 
-//				case 0: case 1: case 2: case 3:					state = OutputState::Blank;									break;
-//				case 4: case 5: case 6: case 7:					state = OutputState::Sync;									break;
-//				case 8: case 9: case 10: case 11:				state = OutputState::ColourBurst;							break;
-//				case 12: case 13: case 14:
-//				case 15: case 16:								state = OutputState::Blank;									break;
-//
-//				case 17: case 18:								state = vbextend ? OutputState::Blank : OutputState::Pixel;	break;
-//				default:										state = OutputState::Pixel;									break;
-
 void TIA::output_for_cycles(int number_of_cycles)
 {
 	/*
@@ -284,7 +275,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 		NTSC colour clock.
 
 		Therefore, each line is composed of:
-		
+
 			16 cycles:	blank					; -> 16
 			16 cycles:	sync					; -> 32
 			16 cycles:	colour burst			; -> 48
@@ -301,7 +292,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 		if(horizontal_counter_ <= target) \
 		{ \
 			crt_->function((unsigned int)((horizontal_counter_ - output_cursor) * 2)); \
-			output_cursor = horizontal_counter_; \
+			horizontal_counter_ %= cycles_per_line; \
 			return; \
 		} \
 		else \
@@ -337,7 +328,6 @@ void TIA::output_for_cycles(int number_of_cycles)
 		}
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
 		crt_->output_blank((unsigned int)(duration * 2));
-		output_cursor += duration;
 	}
 	else
 	{
