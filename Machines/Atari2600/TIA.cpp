@@ -126,7 +126,7 @@ void TIA::reset_horizontal_counter()
 
 int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
 {
-	return cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line;
+	return 4 + (cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line);
 }
 
 void TIA::set_background_colour(uint8_t colour)
@@ -156,6 +156,8 @@ void TIA::set_playfield(uint16_t offset, uint8_t value)
 void TIA::set_playfield_control_and_ball_size(uint8_t value)
 {
 	background_half_mask_ = value & 1;
+	playfield_is_above_players_ = !!(value & 4);
+	playfield_is_in_score_mode_ = !playfield_is_above_players_ && (value & 2);
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour)
@@ -338,12 +340,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 		}
 		if(pixel_target_)
 		{
-			while(output_cursor < horizontal_counter_)
-			{
-				int offset = (output_cursor - 68) >> 2;
-				pixel_target_[output_cursor - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
-				output_cursor++;
-			}
+			draw_background(pixel_target_, output_cursor, horizontal_counter_);
+			output_cursor = horizontal_counter_;
 		} else output_cursor = horizontal_counter_;
 		if(horizontal_counter_ == cycles_per_line)
 		{
@@ -376,4 +374,22 @@ void TIA::output_line()
 			crt_->output_blank(360);
 		break;
 	}
+}
+
+#pragma mark - Background and playfield
+
+void TIA::draw_background(uint8_t *target, int start, int length) const
+{
+	if(!target) return;
+	int position = start;
+	while(length--)
+	{
+		int offset = (position - 68) >> 2;
+		target[position - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
+		position++;
+	}
+}
+
+void TIA::draw_playfield(uint8_t *target, int start, int length) const
+{
 }

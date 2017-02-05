@@ -23,6 +23,10 @@ class TIA {
 			NTSC, PAL
 		};
 
+		/*!
+			Advances the TIA by @c number_of_cycles cycles. Any queued setters take effect in the
+			first cycle performed.
+		*/
 		void run_for_cycles(int number_of_cycles);
 		void set_output_mode(OutputMode output_mode);
 
@@ -71,9 +75,8 @@ class TIA {
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
-		inline void draw_background(uint8_t *target, int start, int length);
-		inline void draw_playfield(uint8_t *target, int start, int length);
-		inline void draw_background_and_playfield(uint8_t *target, int start, int length);
+		inline void draw_background(uint8_t *target, int start, int length) const;
+		inline void draw_playfield(uint8_t *target, int start, int length) const;
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
@@ -81,14 +84,25 @@ class TIA {
 		// contains flags to indicate whether sync or blank are currently active
 		int output_mode_;
 
-		// keeps track of the target pixel buffer for this line and when it was acquired
+		// keeps track of the target pixel buffer for this line and when it was acquired, and a corresponding collision buffer
 		uint8_t *pixel_target_;
 		int pixel_target_origin_;
+		uint8_t collision_buffer_[160];
+		enum class CollisionType : uint8_t {
+			Playfield,
+			Sprite1,
+			Sprite2,
+			Missile1,
+			Missile2,
+			Ball
+		};
 
 		// playfield state
 		uint8_t playfield_ball_colour_;
 		uint8_t background_colour_;
 		int background_half_mask_;
+		bool playfield_is_in_score_mode_;
+		bool playfield_is_above_players_;
 		uint32_t background_[2];	// contains two 20-bit bitfields representing the background state;
 									// at index 0 is the left-hand side of the playfield with bit 0 being
 									// the first bit to display, bit 1 the second, etc. Index 1 contains
@@ -96,6 +110,7 @@ class TIA {
 									// mirroring mode, background_[0] will be output on the left and
 									// background_[1] on the right; otherwise background_[0] will be
 									// output twice.
+		int latched_playfield_value_;
 
 		// player state
 		struct Player {
