@@ -11,6 +11,7 @@
 using namespace Atari2600;
 namespace {
 	const int cycles_per_line = 228;
+	const int first_pixel_cycle = 68;
 
 	const int sync_flag	= 0x1;
 	const int blank_flag = 0x2;
@@ -20,7 +21,7 @@ namespace {
 
 TIA::TIA() :
 	horizontal_counter_(0),
-	pixel_target_(nullptr),
+	pixels_start_location_(0),
 	output_mode_(0),
 	background_{0, 0},
 	background_half_mask_(0)
@@ -35,6 +36,65 @@ TIA::TIA() :
 			((c & 0x01) << 7) | ((c & 0x02) << 5) | ((c & 0x04) << 3) | ((c & 0x08) << 1) |
 			((c & 0x10) >> 1) | ((c & 0x20) >> 3) | ((c & 0x40) >> 5) | ((c & 0x80) >> 7)
 		);
+	}
+
+	for(int c = 0; c < 64; c++)
+	{
+		collision_flags_by_buffer_vaules_[c] = 0;	// TODO
+	}
+
+	for(int c = 0; c < 64; c++)
+	{
+		bool has_playfield = c & (int)(CollisionType::Playfield);
+		bool has_ball = c & (int)(CollisionType::Ball);
+		bool has_player0 = c & (int)(CollisionType::Player0);
+		bool has_player1 = c & (int)(CollisionType::Player1);
+		bool has_missile0 = c & (int)(CollisionType::Missile0);
+		bool has_missile1 = c & (int)(CollisionType::Missile1);
+
+		colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
+		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
+		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
+		colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::Background;
+
+		if(has_playfield || has_ball)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] = (uint8_t)ColourIndex::PlayfieldBall;
+		}
+		if(has_ball)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = (uint8_t)ColourIndex::PlayfieldBall;
+		}
+
+		if(has_player1 || has_missile1)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayerMissile1;
+		}
+		if(has_playfield)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = (uint8_t)ColourIndex::PlayerMissile1;
+		}
+
+		if(has_player0 || has_missile0)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayerMissile0;
+		}
+		if(has_playfield)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] = (uint8_t)ColourIndex::PlayerMissile0;
+		}
+
+		if(has_playfield || has_ball)
+		{
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayfieldBall;
+		}
 	}
 }
 
@@ -131,7 +191,7 @@ int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
 
 void TIA::set_background_colour(uint8_t colour)
 {
-	background_colour_ = colour;
+	colour_palette_[(int)ColourIndex::Background] = colour;
 }
 
 void TIA::set_playfield(uint16_t offset, uint8_t value)
@@ -156,13 +216,24 @@ void TIA::set_playfield(uint16_t offset, uint8_t value)
 void TIA::set_playfield_control_and_ball_size(uint8_t value)
 {
 	background_half_mask_ = value & 1;
-	playfield_is_above_players_ = !!(value & 4);
-	playfield_is_in_score_mode_ = !playfield_is_above_players_ && (value & 2);
+	switch(value & 6)
+	{
+		case 0:
+			playfield_priority_ = PlayfieldPriority::Standard;
+		break;
+		case 2:
+			playfield_priority_ = PlayfieldPriority::Score;
+		break;
+		case 4:
+		case 6:
+			playfield_priority_ = PlayfieldPriority::OnTop;
+		break;
+	}
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour)
 {
-	playfield_ball_colour_ = colour;
+	colour_palette_[(int)ColourIndex::PlayfieldBall] = colour;
 }
 
 void TIA::set_player_number_and_size(int player, uint8_t value)
@@ -207,7 +278,7 @@ void TIA::set_player_delay(int player, bool delay)
 
 void TIA::set_player_position(int player)
 {
-	player_[player].position = ((horizontal_counter_ - 68) + 6)%160;
+	player_[player].position = ((horizontal_counter_ - first_pixel_cycle) + 6)%160;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
@@ -217,7 +288,7 @@ void TIA::set_player_motion(int player, uint8_t motion)
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
 {
-	player_[player].colour = colour;
+	colour_palette_[(int)ColourIndex::PlayerMissile0 + player] = colour;
 }
 
 void TIA::set_missile_enable(int missile, bool enabled)
@@ -262,11 +333,12 @@ void TIA::clear_motion()
 
 uint8_t TIA::get_collision_flags(int offset)
 {
-	return 0x00;
+	return (uint8_t)((collision_flags_ >> (offset << 1)) << 6) & 0xc0;
 }
 
 void TIA::clear_collision_flags()
 {
+	collision_flags_ = 0;
 }
 
 void TIA::output_for_cycles(int number_of_cycles)
@@ -323,34 +395,74 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	if(output_mode_ & blank_flag)
 	{
-		if(pixel_target_)
-		{
-			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
-			pixel_target_ = nullptr;
-		}
+		if(pixels_start_location_) output_pixels(pixels_start_location_, output_cursor);
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
 		crt_->output_blank((unsigned int)(duration * 2));
 	}
 	else
 	{
-		if(!pixel_target_)
+		if(!pixels_start_location_) pixels_start_location_ = output_cursor;
+
+		// accumulate an OR'dversion of the output into the collision buffer
+		draw_playfield(output_cursor, horizontal_counter_);
+
+		// accumulate collision flags
+		while(output_cursor < horizontal_counter_)
 		{
-			pixel_target_ = crt_->allocate_write_area((unsigned int)(228 - output_cursor));
-			pixel_target_origin_ = output_cursor;
+			uint8_t buffer_value = collision_buffer_[output_cursor - first_pixel_cycle];
+			collision_flags_ |= collision_flags_by_buffer_vaules_[buffer_value];
+			output_cursor++;
 		}
-		if(pixel_target_)
-		{
-			draw_background(pixel_target_, output_cursor, horizontal_counter_);
-			output_cursor = horizontal_counter_;
-		} else output_cursor = horizontal_counter_;
+
 		if(horizontal_counter_ == cycles_per_line)
 		{
-			crt_->output_data((unsigned int)((horizontal_counter_ - pixel_target_origin_) * 2), 2);
-			pixel_target_ = nullptr;
+			output_pixels(pixels_start_location_, cycles_per_line);
 		}
 	}
 
 	horizontal_counter_ %= cycles_per_line;
+}
+
+void TIA::output_pixels(int start, int end)
+{
+	// seek a buffer and convert to pixels
+	uint8_t *pixel_target = crt_->allocate_write_area((unsigned int)(end - start));
+
+	if(pixel_target)
+	{
+		if(playfield_priority_ == PlayfieldPriority::Score)
+		{
+			while(start < end && start < first_pixel_cycle + 80)
+			{
+				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][buffer_value]];
+				start++;
+				pixel_target++;
+			}
+			while(start < end)
+			{
+				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][buffer_value]];
+				start++;
+				pixel_target++;
+			}
+		}
+		else
+		{
+			int table_index = (int)((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
+			while(start < end)
+			{
+				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]];
+				start++;
+				pixel_target++;
+			}
+		}
+	}
+
+	crt_->output_data((unsigned int)((end - start) * 2), 2);
+
+	pixels_start_location_ = 0;
 }
 
 void TIA::output_line()
@@ -378,18 +490,13 @@ void TIA::output_line()
 
 #pragma mark - Background and playfield
 
-void TIA::draw_background(uint8_t *target, int start, int length) const
+void TIA::draw_playfield(int start, int end)
 {
-	if(!target) return;
 	int position = start;
-	while(length--)
+	while(position < end)
 	{
-		int offset = (position - 68) >> 2;
-		target[position - pixel_target_origin_] = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) ? playfield_ball_colour_ : background_colour_;
+		int offset = (position - first_pixel_cycle) >> 2;
+		collision_buffer_[position - first_pixel_cycle] = (background_[(offset/20)&background_half_mask_] >> (offset%20))&1;
 		position++;
 	}
-}
-
-void TIA::draw_playfield(uint8_t *target, int start, int length) const
-{
 }

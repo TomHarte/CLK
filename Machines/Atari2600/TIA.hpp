@@ -75,8 +75,10 @@ class TIA {
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
-		inline void draw_background(uint8_t *target, int start, int length) const;
-		inline void draw_playfield(uint8_t *target, int start, int length) const;
+		inline void draw_playfield(int start, int end);
+
+		int pixels_start_location_;
+		inline void output_pixels(int start, int end);
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
@@ -85,24 +87,43 @@ class TIA {
 		int output_mode_;
 
 		// keeps track of the target pixel buffer for this line and when it was acquired, and a corresponding collision buffer
-		uint8_t *pixel_target_;
-		int pixel_target_origin_;
 		uint8_t collision_buffer_[160];
 		enum class CollisionType : uint8_t {
-			Playfield,
-			Sprite1,
-			Sprite2,
-			Missile1,
-			Missile2,
-			Ball
+			Playfield	= (1 << 0),
+			Ball		= (1 << 1),
+			Player0		= (1 << 2),
+			Player1		= (1 << 3),
+			Missile0	= (1 << 4),
+			Missile1	= (1 << 5)
 		};
 
+		int collision_flags_;
+		int collision_flags_by_buffer_vaules_[64];
+
+		// colour mapping tables
+		enum class ColourMode {
+			Standard = 0,
+			ScoreLeft,
+			ScoreRight,
+			OnTop
+		};
+		uint8_t colour_mask_by_mode_collision_flags_[4][64];	// maps from [ColourMode][CollisionMark] to colour_pallete_ entry
+
+		enum class ColourIndex {
+			Background = 0,
+			PlayfieldBall,
+			PlayerMissile1,
+			PlayerMissile0
+		};
+		uint8_t colour_palette_[4];
+
 		// playfield state
-		uint8_t playfield_ball_colour_;
-		uint8_t background_colour_;
 		int background_half_mask_;
-		bool playfield_is_in_score_mode_;
-		bool playfield_is_above_players_;
+		enum class PlayfieldPriority {
+			Standard,
+			Score,
+			OnTop
+		} playfield_priority_;
 		uint32_t background_[2];	// contains two 20-bit bitfields representing the background state;
 									// at index 0 is the left-hand side of the playfield with bit 0 being
 									// the first bit to display, bit 1 the second, etc. Index 1 contains
@@ -117,7 +138,6 @@ class TIA {
 			int size;			// 0 = normal, 1 = double, 2 = quad
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
 			uint8_t graphic;	// the player graphic
-			uint8_t colour;		// the player colour
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
 			uint8_t motion;		// low four bits used
 			uint8_t position;	// in the range [0, 160) to indicate offset from the left margin, i.e. phase difference
