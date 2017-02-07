@@ -23,6 +23,7 @@ TIA::TIA() :
 	horizontal_counter_(0),
 	pixels_start_location_(0),
 	output_mode_(0),
+	pixel_target_(nullptr),
 	background_{0, 0},
 	background_half_mask_(0)
 {
@@ -406,16 +407,29 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	if(output_mode_ & blank_flag)
 	{
-		if(pixels_start_location_) output_pixels(pixels_start_location_, output_cursor);
+		if(pixel_target_)
+		{
+			output_pixels(pixels_start_location_, output_cursor);
+			crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
+			pixel_target_ = nullptr;
+			pixels_start_location_ = 0;
+		}
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
 		crt_->output_blank((unsigned int)(duration * 2));
 	}
 	else
 	{
-		if(!pixels_start_location_) pixels_start_location_ = output_cursor;
+		if(!pixels_start_location_)
+		{
+			pixels_start_location_ = output_cursor;
+			pixel_target_ = crt_->allocate_write_area(160);
+		}
 
 		// accumulate an OR'dversion of the output into the collision buffer
 		draw_playfield(output_cursor, horizontal_counter_);
+
+		// convert that into pixels
+		if(pixel_target_) output_pixels(output_cursor, horizontal_counter_);
 
 		// accumulate collision flags
 		while(output_cursor < horizontal_counter_)
@@ -426,7 +440,9 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 		if(horizontal_counter_ == cycles_per_line)
 		{
-			output_pixels(pixels_start_location_, cycles_per_line);
+			crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
+			pixel_target_ = nullptr;
+			pixels_start_location_ = 0;
 		}
 	}
 
@@ -435,45 +451,36 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 void TIA::output_pixels(int start, int end)
 {
-	// seek a buffer and convert to pixels
-	const unsigned int length = (unsigned int)(end - start);
-	uint8_t *pixel_target = crt_->allocate_write_area(length);
+	int target_position = start - pixels_start_location_;
 
-	if(pixel_target)
+	if(playfield_priority_ == PlayfieldPriority::Score)
 	{
-		if(playfield_priority_ == PlayfieldPriority::Score)
+		while(start < end && start < first_pixel_cycle + 80)
 		{
-			while(start < end && start < first_pixel_cycle + 80)
-			{
-				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][buffer_value]];
-				start++;
-				pixel_target++;
-			}
-			while(start < end)
-			{
-				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][buffer_value]];
-				start++;
-				pixel_target++;
-			}
+			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][buffer_value]];
+			start++;
+			target_position++;
 		}
-		else
+		while(start < end)
 		{
-			int table_index = (int)((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
-			while(start < end)
-			{
-				uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-				*pixel_target = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]];
-				start++;
-				pixel_target++;
-			}
+			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][buffer_value]];
+			start++;
+			target_position++;
 		}
 	}
-
-	crt_->output_data(length * 2, 2);
-
-	pixels_start_location_ = 0;
+	else
+	{
+		int table_index = (int)((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
+		while(start < end)
+		{
+			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]];
+			start++;
+			target_position++;
+		}
+	}
 }
 
 void TIA::output_line()

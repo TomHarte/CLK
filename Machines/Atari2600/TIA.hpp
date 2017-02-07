@@ -78,6 +78,7 @@ class TIA {
 		inline void draw_playfield(int start, int end);
 
 		int pixels_start_location_;
+		uint8_t *pixel_target_;
 		inline void output_pixels(int start, int end);
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
