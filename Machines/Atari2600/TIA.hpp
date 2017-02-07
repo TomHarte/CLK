@@ -113,8 +113,8 @@ class TIA {
 		enum class ColourIndex {
 			Background = 0,
 			PlayfieldBall,
-			PlayerMissile1,
-			PlayerMissile0
+			PlayerMissile0,
+			PlayerMissile1
 		};
 		uint8_t colour_palette_[4];
 
