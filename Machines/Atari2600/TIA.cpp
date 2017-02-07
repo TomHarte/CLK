@@ -41,17 +41,31 @@ TIA::TIA() :
 
 	for(int c = 0; c < 64; c++)
 	{
-		collision_flags_by_buffer_vaules_[c] = 0;	// TODO
-	}
-
-	for(int c = 0; c < 64; c++)
-	{
 		bool has_playfield = c & (int)(CollisionType::Playfield);
 		bool has_ball = c & (int)(CollisionType::Ball);
 		bool has_player0 = c & (int)(CollisionType::Player0);
 		bool has_player1 = c & (int)(CollisionType::Player1);
 		bool has_missile0 = c & (int)(CollisionType::Missile0);
 		bool has_missile1 = c & (int)(CollisionType::Missile1);
+
+		uint8_t collision_registers[8];
+		collision_registers[0] = ((has_missile0 && has_player1) ? 0x80 : 0x00)		|	((has_missile0 && has_player0) ? 0x40 : 0x00);
+		collision_registers[1] = ((has_missile1 && has_player0) ? 0x80 : 0x00)		|	((has_missile1 && has_player1) ? 0x40 : 0x00);
+		collision_registers[2] = ((has_playfield && has_player0) ? 0x80 : 0x00)		|	((has_ball && has_player0) ? 0x40 : 0x00);
+		collision_registers[3] = ((has_playfield && has_player1) ? 0x80 : 0x00)		|	((has_ball && has_player1) ? 0x40 : 0x00);
+		collision_registers[4] = ((has_playfield && has_missile0) ? 0x80 : 0x00)	|	((has_ball && has_missile0) ? 0x40 : 0x00);
+		collision_registers[5] = ((has_playfield && has_missile1) ? 0x80 : 0x00)	|	((has_ball && has_missile1) ? 0x40 : 0x00);
+		collision_registers[6] = ((has_playfield && has_ball) ? 0x80 : 0x00);
+		collision_registers[7] = ((has_player0 && has_player1) ? 0x80 : 0x00)		|	((has_missile0 && has_missile1) ? 0x40 : 0x00);
+		collision_flags_by_buffer_vaules_[c] =
+			(collision_registers[0] >> 6) |
+			(collision_registers[1] >> 4) |
+			(collision_registers[2] >> 2) |
+			(collision_registers[3] >> 0) |
+			(collision_registers[4] << 2) |
+			(collision_registers[5] << 4) |
+			(collision_registers[6] << 6) |
+			(collision_registers[7] << 8);
 
 		// all priority modes show the background if nothing else is present
 		colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
