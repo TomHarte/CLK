@@ -386,6 +386,11 @@ void TIA::output_for_cycles(int number_of_cycles)
 	int output_cursor = horizontal_counter_;
 	horizontal_counter_ += number_of_cycles;
 
+	if(!output_cursor)
+	{
+		memset(collision_buffer_, 0, sizeof(collision_buffer_));
+	}
+
 #define Period(function, target)	\
 	if(output_cursor < target) \
 	{ \
@@ -418,6 +423,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 			Period(output_sync, 228)
 		break;
 	}
+
+#undef Period
 
 	if(output_mode_ & blank_flag)
 	{
@@ -528,7 +535,7 @@ void TIA::draw_playfield(int start, int end)
 	while(position < end)
 	{
 		int offset = (position - first_pixel_cycle) >> 2;
-		collision_buffer_[position - first_pixel_cycle] = (background_[(offset/20)&background_half_mask_] >> (offset%20))&1;
+		collision_buffer_[position - first_pixel_cycle] |= (background_[(offset/20)&background_half_mask_] >> (offset%20))&1;
 		position++;
 	}
 }
