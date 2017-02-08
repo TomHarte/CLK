@@ -212,7 +212,7 @@ void TIA::reset_horizontal_counter()
 
 int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset)
 {
-	return 4 + (cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line);
+	return (cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line) % cycles_per_line;
 }
 
 void TIA::set_background_colour(uint8_t colour)

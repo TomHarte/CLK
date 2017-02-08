@@ -34,6 +34,10 @@ class TIA {
 		void set_blank(bool blank);
 		void reset_horizontal_counter(); 						// Reset is delayed by four cycles.
 
+		/*!
+			@returns the number of cycles between (current TIA time) + from_offset to the current or
+			next horizontal blanking period. Returns numbers in the range [0, 227].
+		*/
 		int get_cycles_until_horizontal_blank(unsigned int from_offset);
 
 		void set_background_colour(uint8_t colour);

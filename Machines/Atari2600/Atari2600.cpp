@@ -54,13 +54,14 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
 	// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 	// skips to the end of the line.
-	if(operation == CPU6502::BusOperation::Ready) {
+	if(operation == CPU6502::BusOperation::Ready)
 		cycles_run_for = (unsigned int)tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
-		set_ready_line(false);
-	}
 
 	cycles_since_speaker_update_ += cycles_run_for;
 	cycles_since_video_update_ += cycles_run_for;
+
+	if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_))
+		set_ready_line(false);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -134,8 +135,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x01:	update_video();	tia_->set_blank(!!(*value & 0x02));	break;
 
 					case 0x02:
-						set_ready_line(true);
-						// TODO: if(horizontal_timer_)
+						if(tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_))
+							set_ready_line(true);
 					break;
 					case 0x03:	update_video();	tia_->reset_horizontal_counter();		break;
 						// TODO: audio will now be out of synchronisation — fix
