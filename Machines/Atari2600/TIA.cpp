@@ -391,6 +391,11 @@ void TIA::output_for_cycles(int number_of_cycles)
 		memset(collision_buffer_, 0, sizeof(collision_buffer_));
 	}
 
+	// accumulate an OR'dversion of the output into the collision buffer
+	draw_playfield(output_cursor, horizontal_counter_);
+
+	// convert to television signals
+
 #define Period(function, target)	\
 	if(output_cursor < target) \
 	{ \
@@ -445,9 +450,6 @@ void TIA::output_for_cycles(int number_of_cycles)
 			pixels_start_location_ = output_cursor;
 			pixel_target_ = crt_->allocate_write_area(160);
 		}
-
-		// accumulate an OR'dversion of the output into the collision buffer
-		draw_playfield(output_cursor, horizontal_counter_);
 
 		// convert that into pixels
 		if(pixel_target_) output_pixels(output_cursor, horizontal_counter_);
@@ -527,15 +529,28 @@ void TIA::output_line()
 	}
 }
 
-#pragma mark - Background and playfield
+#pragma mark - Playfield output
 
 void TIA::draw_playfield(int start, int end)
 {
-	int position = start;
-	while(position < end)
+	// don't do anything if this window ends too early
+	if(end < first_pixel_cycle - 4) return;
+
+	// look at what needs to be output four cycles into the future, to model playfield output latency
+	start += 4;
+	end += 4;
+
+	// clip to drawable bounds
+	start = std::max(start, first_pixel_cycle);
+	end = std::min(end, 228);
+
+	// proceed along four-pixel boundaries, plotting four pixels at a time
+	int aligned_position = (start + 3)&~3;
+	while(aligned_position < end)
 	{
-		int offset = (position - first_pixel_cycle) >> 2;
-		collision_buffer_[position - first_pixel_cycle] |= (background_[(offset/20)&background_half_mask_] >> (offset%20))&1;
-		position++;
+		int offset = (aligned_position - first_pixel_cycle) >> 2;
+		uint32_t value = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) * 0x01010101;
+		*(uint32_t *)&collision_buffer_[aligned_position - first_pixel_cycle] |= value;
+		aligned_position += 4;
 	}
 }
