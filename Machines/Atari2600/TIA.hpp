@@ -153,6 +153,9 @@ class TIA {
 		struct Missile {
 			int size;		// 0 = 1 pixel, 1 = 2 pixels, etc
 		} missile_[2];
+
+		// movement
+		bool horizontal_blank_extend_;
 };
 
 }

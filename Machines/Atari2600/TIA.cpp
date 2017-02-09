@@ -351,6 +351,7 @@ void TIA::set_ball_motion(uint8_t motion)
 
 void TIA::move()
 {
+	horizontal_blank_extend_ = true;
 }
 
 void TIA::clear_motion()
@@ -389,9 +390,10 @@ void TIA::output_for_cycles(int number_of_cycles)
 	if(!output_cursor)
 	{
 		memset(collision_buffer_, 0, sizeof(collision_buffer_));
+		horizontal_blank_extend_ = false;
 	}
 
-	// accumulate an OR'dversion of the output into the collision buffer
+	// accumulate an OR'd version of the output into the collision buffer
 	draw_playfield(output_cursor, horizontal_counter_);
 
 	// convert to television signals
@@ -476,6 +478,16 @@ void TIA::output_pixels(int start, int end)
 {
 	int target_position = start - pixels_start_location_;
 
+	if(start < first_pixel_cycle+8 && horizontal_blank_extend_)
+	{
+		while(start < end && start < first_pixel_cycle+8)
+		{
+			pixel_target_[target_position] = 0;
+			start++;
+			target_position++;
+		}
+	}
+
 	if(playfield_priority_ == PlayfieldPriority::Score)
 	{
 		while(start < end && start < first_pixel_cycle + 80)
@@ -519,12 +531,14 @@ void TIA::output_line()
 			crt_->output_sync(32);
 			crt_->output_blank(32);
 			crt_->output_sync(392);
+			horizontal_blank_extend_ = false;
 		break;
 		case blank_flag:
 			crt_->output_blank(32);
 			crt_->output_sync(32);
 			crt_->output_default_colour_burst(32);
 			crt_->output_blank(360);
+			horizontal_blank_extend_ = false;
 		break;
 	}
 }
