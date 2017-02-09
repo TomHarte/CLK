@@ -92,7 +92,7 @@ class TIA {
 		int output_mode_;
 
 		// keeps track of the target pixel buffer for this line and when it was acquired, and a corresponding collision buffer
-		uint8_t collision_buffer_[160];
+		alignas(alignof(uint32_t)) uint8_t collision_buffer_[160];
 		enum class CollisionType : uint8_t {
 			Playfield	= (1 << 0),
 			Ball		= (1 << 1),
