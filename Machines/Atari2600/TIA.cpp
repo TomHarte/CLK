@@ -304,12 +304,12 @@ void TIA::set_player_delay(int player, bool delay)
 
 void TIA::set_player_position(int player)
 {
-	player_[player].position = 0;
+	position_[(int)MotionIndex::Player0 + player] = 0;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
 {
-	player_[player].motion = motion >> 4;
+	motion_[(int)MotionIndex::Player0 + player] = motion >> 4;
 }
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
@@ -352,10 +352,12 @@ void TIA::set_ball_motion(uint8_t motion)
 void TIA::move()
 {
 	horizontal_blank_extend_ = true;
+	is_moving_[0] = is_moving_[1] = is_moving_[2] = is_moving_[3] = is_moving_[4] = true;
 }
 
 void TIA::clear_motion()
 {
+	motion_[0] = motion_[1] = motion_[2] = motion_[3] = motion_[4] = 0;
 }
 
 uint8_t TIA::get_collision_flags(int offset)
@@ -395,8 +397,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	// accumulate an OR'd version of the output into the collision buffer
 	draw_playfield(output_cursor, horizontal_counter_);
-	draw_player(player_[0], CollisionType::Player0, output_cursor, horizontal_counter_);
-	draw_player(player_[1], CollisionType::Player1, output_cursor, horizontal_counter_);
+	draw_player(player_[0], CollisionType::Player0, (int)MotionIndex::Player0, output_cursor, horizontal_counter_);
+	draw_player(player_[1], CollisionType::Player1, (int)MotionIndex::Player1, output_cursor, horizontal_counter_);
 
 	// convert to television signals
 
@@ -573,27 +575,40 @@ void TIA::draw_playfield(int start, int end)
 
 #pragma mark - Player output
 
-void TIA::draw_player(Player &player, CollisionType identity, int start, int end)
+void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
 	// don't do anything if this window ends too early
-	if(end < first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0)) return;
+	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
+	if(end < first_pixel) return;
+	if(start < first_pixel) start = first_pixel;
 
 	int length = end - start;
+	uint8_t &position = position_[position_identity];
+
+	// quick hack!
+	if(is_moving_[position_identity])
+	{
+		int motion = motion_[position_identity];
+		position += 8;
+		position += motion;
+		if(motion&8) position -= 16;
+		is_moving_[position_identity] = false;
+		position = (position + 160)%160;
+	}
 
 	// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
-	if(player.position + length >= 160)
+	if(player.graphic && position + length >= 160)
 	{
-		int trigger_position = 160 - player.position;
+		int trigger_position = 160 - position;
 
 		int terminus = std::min(160, trigger_position+8);
 		while(trigger_position < terminus)
 		{
-			collision_buffer_[trigger_position] |= (uint8_t)identity;
+			collision_buffer_[trigger_position] |= (uint8_t)collision_identity;
 			trigger_position++;
 		}
 	}
 
 	// update position counter
-	player.position = (player.position + end - start) % 160;
-
+	position = (position + end - start) % 160;
 }

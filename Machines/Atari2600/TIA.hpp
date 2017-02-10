@@ -134,9 +134,6 @@ class TIA {
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
 			uint8_t graphic;	// the player graphic
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
-			uint8_t motion;		// low four bits used
-			uint8_t position;	// in the range [0, 160) to indicate offset from the left margin, i.e. phase difference
-								// between the player counter and the background pixel counter.
 		} player_[2];
 
 		// missile state
@@ -146,13 +143,25 @@ class TIA {
 
 		// movement
 		bool horizontal_blank_extend_;
+		uint8_t motion_[5];
+		uint8_t position_[5];
+		bool is_moving_[5];
+		enum class MotionIndex : uint8_t {
+			Ball,
+			Player0,
+			Player1,
+			Missile0,
+			Missile1
+		};
 
 		// drawing methods and state
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
 		inline void draw_playfield(int start, int end);
-		inline void draw_player(Player &player, CollisionType identity, int start, int end);
+		inline void draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
+
+		inline void update_motion(int start, int end);
 
 		int pixels_start_location_;
 		uint8_t *pixel_target_;
