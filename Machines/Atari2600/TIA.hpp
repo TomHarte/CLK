@@ -75,16 +75,6 @@ class TIA {
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
-		// drawing methods
-		inline void output_for_cycles(int number_of_cycles);
-		inline void output_line();
-
-		inline void draw_playfield(int start, int end);
-
-		int pixels_start_location_;
-		uint8_t *pixel_target_;
-		inline void output_pixels(int start, int end);
-
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
 
@@ -156,6 +146,17 @@ class TIA {
 
 		// movement
 		bool horizontal_blank_extend_;
+
+		// drawing methods and state
+		inline void output_for_cycles(int number_of_cycles);
+		inline void output_line();
+
+		inline void draw_playfield(int start, int end);
+		inline void draw_player(Player &player, CollisionType identity, int start, int end);
+
+		int pixels_start_location_;
+		uint8_t *pixel_target_;
+		inline void output_pixels(int start, int end);
 };
 
 }

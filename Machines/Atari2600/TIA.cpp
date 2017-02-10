@@ -304,7 +304,7 @@ void TIA::set_player_delay(int player, bool delay)
 
 void TIA::set_player_position(int player)
 {
-	player_[player].position = ((horizontal_counter_ - first_pixel_cycle) + 6)%160;
+	player_[player].position = 0;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
@@ -395,6 +395,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	// accumulate an OR'd version of the output into the collision buffer
 	draw_playfield(output_cursor, horizontal_counter_);
+	draw_player(player_[0], CollisionType::Player0, output_cursor, horizontal_counter_);
+	draw_player(player_[1], CollisionType::Player1, output_cursor, horizontal_counter_);
 
 	// convert to television signals
 
@@ -567,4 +569,31 @@ void TIA::draw_playfield(int start, int end)
 		*(uint32_t *)&collision_buffer_[aligned_position - first_pixel_cycle] |= value;
 		aligned_position += 4;
 	}
+}
+
+#pragma mark - Player output
+
+void TIA::draw_player(Player &player, CollisionType identity, int start, int end)
+{
+	// don't do anything if this window ends too early
+	if(end < first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0)) return;
+
+	int length = end - start;
+
+	// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
+	if(player.position + length >= 160)
+	{
+		int trigger_position = 160 - player.position;
+
+		int terminus = std::min(160, trigger_position+8);
+		while(trigger_position < terminus)
+		{
+			collision_buffer_[trigger_position] |= (uint8_t)identity;
+			trigger_position++;
+		}
+	}
+
+	// update position counter
+	player.position = (player.position + end - start) % 160;
+
 }
