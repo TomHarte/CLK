@@ -41,7 +41,7 @@ void ArrayBuilder::flush(const std::function<void(uint8_t *input, size_t input_s
 {
 	if(!is_full_)
 	{
-		size_t input_size, output_size;
+		size_t input_size = 0, output_size = 0;
 		uint8_t *input = input_.get_unflushed(input_size);
 		uint8_t *output = output_.get_unflushed(output_size);
 		function(input, input_size, output, output_size);
