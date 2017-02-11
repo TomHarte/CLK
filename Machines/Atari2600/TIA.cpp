@@ -588,10 +588,8 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// quick hack!
 	if(is_moving_[position_identity])
 	{
-		int motion = motion_[position_identity];
-		position += 8;
+		int motion = motion_[position_identity] ^ 8;
 		position += motion;
-		if(motion&8) position -= 16;
 		is_moving_[position_identity] = false;
 		position = (position + 160)%160;
 	}
@@ -599,7 +597,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
 	if(player.graphic && position + length >= 160)
 	{
-		int trigger_position = 160 - position;
+		int trigger_position = 160 - position + 6 + start - first_pixel_cycle;
 
 		int terminus = std::min(160, trigger_position+8);
 		while(trigger_position < terminus)
