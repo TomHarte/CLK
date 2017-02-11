@@ -31,24 +31,14 @@ class MachineDocument:
 		return NSSize(width: 4.0, height: 3.0)
 	}
 
-	@IBOutlet weak var openGLView: CSOpenGLView! {
-		didSet {
-			openGLView.delegate = self
-			openGLView.responderDelegate = self
-		}
-	}
-
+	@IBOutlet weak var openGLView: CSOpenGLView!
 	@IBOutlet var optionsPanel: MachinePanel!
 	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
 
 	fileprivate var audioQueue: CSAudioQueue! = nil
-	fileprivate lazy var bestEffortUpdater: CSBestEffortUpdater = {
-		let updater = CSBestEffortUpdater()
-		updater.delegate = self
-		return updater
-	}()
+	fileprivate var bestEffortUpdater: CSBestEffortUpdater!
 
 	override var windowNibName: String? {
 		return "MachineDocument"
@@ -64,8 +54,16 @@ class MachineDocument:
 			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
-		setupClockRate()
 		self.machine.delegate = self
+		self.bestEffortUpdater = CSBestEffortUpdater()
+		self.bestEffortUpdater.delegate = self
+
+		// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
+		// hence the full setup of the best-effort updater prior to setting self as a delegate
+		self.openGLView.delegate = self
+		self.openGLView.responderDelegate = self
+
+		setupClockRate()
 		self.optionsPanel?.establishStoredOptions()
 
 		// bring OpenGL view-holding window on top of the options panel

@@ -53,7 +53,7 @@
 */
 @interface CSOpenGLView : NSOpenGLView
 
-@property (nonatomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
+@property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
 @property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
 
 /*!
