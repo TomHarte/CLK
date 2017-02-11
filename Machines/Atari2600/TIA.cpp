@@ -583,8 +583,8 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
 
-	uint8_t &position = position_[position_identity];
-	uint8_t &motion = motion_[position_identity];
+	int &position = position_[position_identity];
+	int &motion = motion_[position_identity];
 	bool &is_moving = is_moving_[position_identity];
 //	while(start < end)
 //	{
