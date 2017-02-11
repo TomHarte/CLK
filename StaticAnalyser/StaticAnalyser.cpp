@@ -84,45 +84,49 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		TryInsert(list, class, platforms)	\
 	}
 
-	Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
-	Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
-	Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
-	Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
-	Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
-	Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK
-	Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
-
-	// PRG
-	if(!strcmp(lowercase_extension, "prg"))
+	if(lowercase_extension)
 	{
-		// try instantiating as a ROM; failing that accept as a tape
-		try {
-			Insert(cartridges, Cartridge::PRG, TargetPlatform::Commodore)
-		}
-		catch(...)
-		{
-			try {
-				Insert(tapes, Tape::PRG, TargetPlatform::Commodore)
-			} catch(...) {}
-		}
-	}
+		Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
+		Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
+		Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
+		Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
+		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
+		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK
+		Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
 
-	Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
-	Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
-	Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
-	Format("tap", tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
-	Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
+		// PRG
+		if(!strcmp(lowercase_extension, "prg"))
+		{
+			// try instantiating as a ROM; failing that accept as a tape
+			try {
+				Insert(cartridges, Cartridge::PRG, TargetPlatform::Commodore)
+			}
+			catch(...)
+			{
+				try {
+					Insert(tapes, Tape::PRG, TargetPlatform::Commodore)
+				} catch(...) {}
+			}
+		}
+
+		Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
+		Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
+		Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
+		Format("tap", tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
+		Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
 
 #undef Format
 #undef Insert
+#undef TryInsert
 
-	// Hand off to platform-specific determination of whether these things are actually compatible and,
-	// if so, how to load them. (TODO)
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
+		// Hand off to platform-specific determination of whether these things are actually compatible and,
+		// if so, how to load them. (TODO)
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
 
-	free(lowercase_extension);
+		free(lowercase_extension);
+	}
 	return targets;
 }
