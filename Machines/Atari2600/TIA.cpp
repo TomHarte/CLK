@@ -353,6 +353,7 @@ void TIA::move()
 {
 	horizontal_blank_extend_ = true;
 	is_moving_[0] = is_moving_[1] = is_moving_[2] = is_moving_[3] = is_moving_[4] = true;
+	horizontal_move_start_time_ = horizontal_counter_;
 }
 
 void TIA::clear_motion()
@@ -582,30 +583,34 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
 
-	int length = end - start;
 	uint8_t &position = position_[position_identity];
+	uint8_t &motion = motion_[position_identity];
+	bool &is_moving = is_moving_[position_identity];
+//	while(start < end)
+//	{
+		int length = end - start;
 
-	// quick hack!
-	if(is_moving_[position_identity])
-	{
-		int motion = motion_[position_identity] ^ 8;
-		position += motion;
-		is_moving_[position_identity] = false;
-		position = (position + 160)%160;
-	}
-
-	// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
-	if(player.graphic && position + length >= 160)
-	{
-		int trigger_position = 160 - position + 6 + start - first_pixel_cycle;
-
-		int terminus = std::min(160, trigger_position+8);
-		while(trigger_position < terminus)
+		// quick hack!
+		if(is_moving)
 		{
-			collision_buffer_[trigger_position] |= (uint8_t)collision_identity;
-			trigger_position++;
+			position += (motion ^ 8);
+			is_moving_[position_identity] = false;
+			position = (position + 160)%160;
 		}
-	}
+
+		// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
+		if(player.graphic && position + length >= 160)
+		{
+			int trigger_position = 160 - position + 5 + start - first_pixel_cycle;
+
+			int terminus = std::min(160, trigger_position+8);
+			while(trigger_position < terminus)
+			{
+				collision_buffer_[trigger_position] |= (uint8_t)collision_identity;
+				trigger_position++;
+			}
+		}
+//	}
 
 	// update position counter
 	position = (position + end - start) % 160;

@@ -143,6 +143,7 @@ class TIA {
 
 		// movement
 		bool horizontal_blank_extend_;
+		int horizontal_move_start_time_;
 		uint8_t motion_[5];
 		uint8_t position_[5];
 		bool is_moving_[5];
