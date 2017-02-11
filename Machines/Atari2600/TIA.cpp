@@ -595,7 +595,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 		{
 			position += (motion ^ 8);
 			is_moving_[position_identity] = false;
-			position = (position + 160)%160;
+			position %= 160;
 		}
 
 		// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
