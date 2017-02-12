@@ -631,7 +631,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				next_event_time = movement_time + 4;
 			}
 
-			// is the next event a graphics draw?
+			// is the next event a graphics trigger?
 			int next_copy = 160;
 			if(player.graphic)
 			{
@@ -650,8 +650,31 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				if(next_copy_time < next_event_time) next_event_time = next_copy_time;
 			}
 
+			// maybe a deferred draw?
+			if(player.output_delay > 0)
+			{
+				if(start + player.output_delay < next_event_time) next_event_time = start + player.output_delay;
+			}
+
+			// the decision is to progress by length
+			const int length = next_event_time - start;
+
+			if(player.pixel_position < 32)
+			{
+				int adder = 4 >> player.size;
+//				player.pixel_position &= ~(adder - 1);
+				int output_cursor = 0;
+				while(player.pixel_position < 32 && output_cursor < length)
+				{
+					int shift = (player.pixel_position >> 2) ^ player.reverse_mask;
+					collision_buffer_[start + output_cursor - first_pixel_cycle] |= ((player.graphic >> shift)&1) * (uint8_t)collision_identity;
+					output_cursor++;
+					player.pixel_position += adder;
+				}
+			}
+
 			// the next interesting event is after next_event_time cycles, so progress
-			position = (position + next_event_time - start) % 160;
+			position = (position + length) % 160;
 			start = next_event_time;
 
 			// if the event is a motion tick, apply
@@ -661,16 +684,17 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				movement_time += 4;
 			}
 
-			// if it's a draw trigger, draw (TODO: use the actual graphic)
+			// if an output delay is being counted down, continue doing so
+			if(player.output_delay > 0)
+			{
+				player.output_delay -= length;
+				if(!player.output_delay) player.pixel_position = 0;
+			}
+
+			// if it's a draw trigger, trigger a draw
 			if(position == (next_copy % 160))
 			{
-				int cursor = start + 5 - first_pixel_cycle;
-				int terminus = std::min(160, cursor+8);
-				while(cursor < terminus)
-				{
-					collision_buffer_[cursor] |= (uint8_t)collision_identity;
-					cursor++;
-				}
+				player.output_delay = 5;
 			}
 		}
 	}
