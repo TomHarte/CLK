@@ -25,7 +25,13 @@ TIA::TIA() :
 	output_mode_(0),
 	pixel_target_(nullptr),
 	background_{0, 0},
-	background_half_mask_(0)
+	background_half_mask_(0),
+	position_{0, 0, 0, 0, 0},
+	motion_{0, 0, 0, 0, 0},
+	is_moving_{false, false, false, false, false},
+	horizontal_blank_extend_(false),
+	horizontal_move_start_time_(0),
+	collision_flags_(0)
 {
 	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 	crt_->set_output_device(Outputs::CRT::Television);
@@ -122,6 +128,8 @@ TIA::TIA() :
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayfieldBall;
 		}
 	}
+
+	collision_buffer_.resize(160);
 }
 
 void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
@@ -289,6 +297,7 @@ void TIA::set_player_number_and_size(int player, uint8_t value)
 
 void TIA::set_player_graphic(int player, uint8_t value)
 {
+	player_[player].graphic[1] = value;
 	player_[player].graphic[player_[player].graphic_delay ? 1 : 0] = value;
 	player_[player^1].graphic[0] = player_[player^1].graphic[1];
 }
@@ -393,7 +402,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	if(!output_cursor)
 	{
-		memset(collision_buffer_, 0, sizeof(collision_buffer_));
+		memset(collision_buffer_.data(), 0, 160);	// sizeof(collision_buffer_)
 		horizontal_blank_extend_ = false;
 	}
 
