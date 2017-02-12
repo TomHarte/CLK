@@ -154,6 +154,8 @@ class TIA {
 			Missile0,
 			Missile1
 		};
+		inline int perform_border_motion(int identity, int start, int end, int &movement_time);
+		inline void perform_motion_step(int identity, int movement_time);
 
 		// drawing methods and state
 		inline void output_for_cycles(int number_of_cycles);

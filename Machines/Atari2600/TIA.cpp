@@ -574,47 +574,59 @@ void TIA::draw_playfield(int start, int end)
 	}
 }
 
+#pragma mark - Motion
+
+void TIA::perform_motion_step(int identity, int movement_time)
+{
+	int movement_step = (movement_time - horizontal_move_start_time_) >> 2;
+	if(movement_step == (motion_[identity] ^ 8))
+		is_moving_[identity] = false;
+	else
+		position_[identity] ++;
+}
+
+int TIA::perform_border_motion(int identity, int start, int end, int &movement_time)
+{
+	movement_time = (start + 3) & ~3;
+	if(!is_moving_[identity]) return 0;
+
+	int steps_taken = 0;
+	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
+	// round up to the next H@1 cycle
+	while(is_moving_[identity] && movement_time < end && movement_time < first_pixel)
+	{
+		perform_motion_step(identity, movement_time);
+		movement_time += 4;
+	}
+	position_[identity] %= 160;
+
+	return steps_taken;
+}
+
 #pragma mark - Player output
 
 void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
 	int &position = position_[position_identity];
-	int &motion = motion_[position_identity];
-	bool &is_moving = is_moving_[position_identity];
 
 	// movement works across the entire screen, so do work that falls outside of the pixel area
-	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
-	int movement_time = (start + 3) & ~3;
-	if(is_moving)
-	{
-		// round up to the next H@1 cycle
-		while(movement_time < end && movement_time < first_pixel)
-		{
-			int movement = (movement_time - horizontal_move_start_time_) >> 2;
-			if(movement == (motion ^ 8))
-			{
-				is_moving = false;
-				break;
-			}
-			position ++;
-			movement_time += 4;
-		}
-		position %= 160;
-	}
+	int movement_time;
+	perform_border_motion(position_identity, start, end, movement_time);
 
 	// don't continue to do any drawing if this window ends too early
+	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	if(is_moving || player.graphic)
+	if(is_moving_[position_identity] || player.graphic)
 	{
 		while(start < end)
 		{
 			int next_event_time = end;
 
 			// is the next event a movement tick?
-			if(is_moving && movement_time + 4 < next_event_time)
+			if(is_moving_[position_identity] && movement_time + 4 < next_event_time)
 			{
 				next_event_time = movement_time + 4;
 			}
@@ -643,18 +655,10 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 			start = next_event_time;
 
 			// if the event is a motion tick, apply
-			if(is_moving && start == movement_time + 4)
+			if(is_moving_[position_identity] && start == movement_time + 4)
 			{
-				int movement_step = (movement_time - horizontal_move_start_time_) >> 2;
-				if(movement_step == (motion ^ 8))
-				{
-					is_moving = false;
-				}
-				else
-				{
-					position ++;
-					movement_time += 4;
-				}
+				perform_motion_step(position_identity, movement_time);
+				movement_time += 4;
 			}
 
 			// if it's a draw trigger, draw (TODO: use the actual graphic)
