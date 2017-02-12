@@ -578,25 +578,45 @@ void TIA::draw_playfield(int start, int end)
 
 void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
-	// don't do anything if this window ends too early
-	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
-	if(end < first_pixel) return;
-	if(start < first_pixel) start = first_pixel;
-
 	int &position = position_[position_identity];
 	int &motion = motion_[position_identity];
 	bool &is_moving = is_moving_[position_identity];
+
+	// movement is applied prior to the drawing area (as well as within)
+	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
+	if(is_moving)
+	{
+		// round up to the next H@1 cycle
+		int movement_time = (start + 3) & ~3;
+		while(movement_time < end && movement_time < first_pixel)
+		{
+			int movement = (movement_time - horizontal_move_start_time_) >> 2;
+			if(movement == (motion ^ 8))
+			{
+				is_moving = false;
+				break;
+			}
+			position ++;
+			movement_time += 4;
+		}
+		position %= 160;
+	}
+
+	// don't do any drawing if this window ends too early
+	if(end < first_pixel) return;
+	if(start < first_pixel) start = first_pixel;
+
 //	while(start < end)
 //	{
 		int length = end - start;
 
 		// quick hack!
-		if(is_moving)
-		{
-			position += (motion ^ 8);
-			is_moving_[position_identity] = false;
-			position %= 160;
-		}
+//		if(is_moving)
+//		{
+//			position += (motion ^ 8);
+//			is_moving_[position_identity] = false;
+//			position %= 160;
+//		}
 
 		// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
 		if(player.graphic && position + length >= 160)
