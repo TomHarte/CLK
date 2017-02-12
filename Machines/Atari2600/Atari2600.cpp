@@ -131,8 +131,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			} else {
 				const uint16_t decodedAddress = address & 0x3f;
 				switch(decodedAddress) {
-					case 0x00:	update_video(); tia_->set_sync(!!(*value & 0x02));	break;
-					case 0x01:	update_video();	tia_->set_blank(!!(*value & 0x02));	break;
+					case 0x00:	update_video(); tia_->set_sync(*value & 0x02);	break;
+					case 0x01:	update_video();	tia_->set_blank(*value & 0x02);	break;
 
 					case 0x02:
 						if(tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_))
@@ -161,16 +161,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1b:
 					case 0x1c:	update_video(); tia_->set_player_graphic(decodedAddress - 0x1b, *value);			break;
 					case 0x1d:
-					case 0x1e:	update_video(); tia_->set_missile_enable(decodedAddress - 0x1d, !!((*value)&2));	break;
-					case 0x1f:	update_video(); tia_->set_ball_enable(!!((*value)&2));								break;
+					case 0x1e:	update_video(); tia_->set_missile_enable(decodedAddress - 0x1d, (*value)&2);		break;
+					case 0x1f:	update_video(); tia_->set_ball_enable((*value)&2);									break;
 					case 0x20:
 					case 0x21:	update_video(); tia_->set_player_motion(decodedAddress - 0x20, *value);				break;
 					case 0x22:
 					case 0x23:	update_video(); tia_->set_missile_motion(decodedAddress - 0x22, *value);			break;
 					case 0x24:	update_video(); tia_->set_ball_motion(*value);										break;
 					case 0x25:
-					case 0x26:	tia_->set_player_delay(decodedAddress - 0x25, !!((*value)&1));						break;
-					case 0x27:	tia_->set_ball_delay(!!((*value)&1));												break;
+					case 0x26:	tia_->set_player_delay(decodedAddress - 0x25, (*value)&1);							break;
+					case 0x27:	tia_->set_ball_delay((*value)&1);													break;
 					case 0x28:
 					case 0x29:	update_video(); tia_->set_missile_position_to_player(decodedAddress - 0x28);		break;
 					case 0x2a:	update_video(); tia_->move();														break;
