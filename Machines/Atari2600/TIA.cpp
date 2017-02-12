@@ -289,7 +289,8 @@ void TIA::set_player_number_and_size(int player, uint8_t value)
 
 void TIA::set_player_graphic(int player, uint8_t value)
 {
-	player_[player].graphic = value;
+	player_[player].graphic[player_[player].graphic_delay ? 1 : 0] = value;
+	player_[player^1].graphic[0] = player_[player^1].graphic[1];
 }
 
 void TIA::set_player_reflected(int player, bool reflected)
@@ -299,7 +300,7 @@ void TIA::set_player_reflected(int player, bool reflected)
 
 void TIA::set_player_delay(int player, bool delay)
 {
-	// TODO
+	player_[player].graphic_delay = delay;
 }
 
 void TIA::set_player_position(int player)
@@ -611,7 +612,19 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	int movement_time;
-	perform_border_motion(position_identity, start, end, movement_time);
+	int adder = 4 >> player.size;
+	int added = perform_border_motion(position_identity, start, end, movement_time);
+	if(player.output_delay > 0)
+	{
+		int delay_distance = std::min(player.output_delay, added);
+		player.output_delay -= delay_distance;
+		added -= delay_distance;
+		if(!player.output_delay) player.pixel_position = 0;
+	}
+	if(player.pixel_position < 32)
+	{
+		player.pixel_position += added * adder;
+	}
 
 	// don't continue to do any drawing if this window ends too early
 	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
@@ -619,7 +632,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	if(start < first_pixel) start = first_pixel;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	if(is_moving_[position_identity] || player.graphic)
+	if(is_moving_[position_identity] || player.graphic[0])
 	{
 		while(start < end)
 		{
@@ -633,15 +646,19 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 
 			// is the next event a graphics trigger?
 			int next_copy = 160;
-			if(player.graphic)
+			if(player.graphic[0])
 			{
 				if(position < 16 && player.copy_flags&1)
 				{
 					next_copy = 16;
-				} else if(position < 32 && player.copy_flags&2)
+				}
+				else
+				if(position < 32 && player.copy_flags&2)
 				{
 					next_copy = 32;
-				} else if(position < 64 && player.copy_flags&4)
+				}
+				else
+				if(position < 64 && player.copy_flags&4)
 				{
 					next_copy = 64;
 				}
@@ -661,13 +678,12 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 
 			if(player.pixel_position < 32)
 			{
-				int adder = 4 >> player.size;
-//				player.pixel_position &= ~(adder - 1);
+				player.pixel_position &= ~(adder - 1);
 				int output_cursor = 0;
 				while(player.pixel_position < 32 && output_cursor < length)
 				{
 					int shift = (player.pixel_position >> 2) ^ player.reverse_mask;
-					collision_buffer_[start + output_cursor - first_pixel_cycle] |= ((player.graphic >> shift)&1) * (uint8_t)collision_identity;
+					collision_buffer_[start + output_cursor - first_pixel_cycle] |= ((player.graphic[0] >> shift)&1) * (uint8_t)collision_identity;
 					output_cursor++;
 					player.pixel_position += adder;
 				}

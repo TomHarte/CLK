@@ -132,11 +132,12 @@ class TIA {
 		struct Player {
 			int size;			// 0 = normal, 1 = double, 2 = quad
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
-			uint8_t graphic;	// the player graphic
+			uint8_t graphic[2];	// the player graphic
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
 
 			int pixel_position;
 			int output_delay;
+			bool graphic_delay;
 		} player_[2];
 
 		// missile state
