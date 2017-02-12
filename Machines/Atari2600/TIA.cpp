@@ -276,7 +276,7 @@ void TIA::set_player_number_and_size(int player, uint8_t value)
 		break;
 		case 6:
 			player_[player].size = 0;
-			player_[player].copy_flags = 7;
+			player_[player].copy_flags = 6;
 		break;
 		case 7:
 			player_[player].size = 2;
@@ -582,12 +582,12 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	int &motion = motion_[position_identity];
 	bool &is_moving = is_moving_[position_identity];
 
-	// movement is applied prior to the drawing area (as well as within)
+	// movement works across the entire screen, so do work that falls outside of the pixel area
 	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
+	int movement_time = (start + 3) & ~3;
 	if(is_moving)
 	{
 		// round up to the next H@1 cycle
-		int movement_time = (start + 3) & ~3;
 		while(movement_time < end && movement_time < first_pixel)
 		{
 			int movement = (movement_time - horizontal_move_start_time_) >> 2;
@@ -602,36 +602,77 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 		position %= 160;
 	}
 
-	// don't do any drawing if this window ends too early
+	// don't continue to do any drawing if this window ends too early
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
 
-//	while(start < end)
-//	{
-		int length = end - start;
-
-		// quick hack!
-//		if(is_moving)
-//		{
-//			position += (motion ^ 8);
-//			is_moving_[position_identity] = false;
-//			position %= 160;
-//		}
-
-		// check for initial trigger; player.position is guaranteed to be less than 160 so this is easy
-		if(player.graphic && position + length >= 160)
+	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
+	if(is_moving || player.graphic)
+	{
+		while(start < end)
 		{
-			int trigger_position = 160 - position + 5 + start - first_pixel_cycle;
+			int next_event_time = end;
 
-			int terminus = std::min(160, trigger_position+8);
-			while(trigger_position < terminus)
+			// is the next event a movement tick?
+			if(is_moving && movement_time + 4 < next_event_time)
 			{
-				collision_buffer_[trigger_position] |= (uint8_t)collision_identity;
-				trigger_position++;
+				next_event_time = movement_time + 4;
+			}
+
+			// is the next event a graphics draw?
+			int next_copy = 160;
+			if(player.graphic)
+			{
+				if(position < 16 && player.copy_flags&1)
+				{
+					next_copy = 16;
+				} else if(position < 32 && player.copy_flags&2)
+				{
+					next_copy = 32;
+				} else if(position < 64 && player.copy_flags&4)
+				{
+					next_copy = 64;
+				}
+
+				int time_until_copy = next_copy - position;
+				if(start+time_until_copy < next_event_time) next_event_time = start+time_until_copy;
+			}
+
+			// the next interesting event is after next_event_time cycles, so progress
+			position = (position + next_event_time) % 160;
+			start = next_event_time;
+
+			// if the event is a motion tick, apply
+			if(is_moving && start == movement_time + 4)
+			{
+				int movement_step = (movement_time - horizontal_move_start_time_) >> 2;
+				if(movement_step == (motion ^ 8))
+				{
+					is_moving = false;
+				}
+				else
+				{
+					position ++;
+					movement_time += 4;
+				}
+			}
+
+			// if it's a draw trigger, draw (TODO: use the actual graphic)
+			if(position == (next_copy % 160))
+			{
+				int cursor = start + 5 - first_pixel_cycle;
+				int terminus = std::min(160, cursor+8);
+				while(cursor < terminus)
+				{
+					collision_buffer_[cursor] |= (uint8_t)collision_identity;
+					cursor++;
+				}
 			}
 		}
-//	}
-
-	// update position counter
-	position = (position + end - start) % 160;
+	}
+	else
+	{
+		// just advance the timer all in one jump
+		position = (position + start - end) % 160;
+	}
 }
