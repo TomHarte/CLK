@@ -634,12 +634,12 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 					next_copy = 64;
 				}
 
-				int time_until_copy = next_copy - position;
-				if(start+time_until_copy < next_event_time) next_event_time = start+time_until_copy;
+				int next_copy_time = start + next_copy - position;
+				if(next_copy_time < next_event_time) next_event_time = next_copy_time;
 			}
 
 			// the next interesting event is after next_event_time cycles, so progress
-			position = (position + next_event_time) % 160;
+			position = (position + next_event_time - start) % 160;
 			start = next_event_time;
 
 			// if the event is a motion tick, apply
@@ -673,6 +673,6 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	else
 	{
 		// just advance the timer all in one jump
-		position = (position + start - end) % 160;
+		position = (position + end - start) % 160;
 	}
 }
