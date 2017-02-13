@@ -132,6 +132,11 @@ TIA::TIA() :
 	collision_buffer_.resize(160);
 }
 
+TIA::TIA(std::function<void(uint8_t *output_buffer)> line_end_function) : TIA()
+{
+	line_end_function_ = line_end_function;
+}
+
 void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
 {
 	// this is the NTSC phase offset function; see below for PAL
@@ -402,6 +407,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	if(!output_cursor)
 	{
+		if(line_end_function_) line_end_function_(collision_buffer_.data());
 		memset(collision_buffer_.data(), 0, 160);	// sizeof(collision_buffer_)
 		horizontal_blank_extend_ = false;
 	}
@@ -660,14 +666,10 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				if(position < 16 && player.copy_flags&1)
 				{
 					next_copy = 16;
-				}
-				else
-				if(position < 32 && player.copy_flags&2)
+				} else if(position < 32 && player.copy_flags&2)
 				{
 					next_copy = 32;
-				}
-				else
-				if(position < 64 && player.copy_flags&4)
+				} else if(position < 64 && player.copy_flags&4)
 				{
 					next_copy = 64;
 				}

@@ -19,6 +19,11 @@ class TIA {
 		TIA();
 		~TIA();
 
+		// The supplied hook is for unit testing only; if instantiated with a line_end_function then it will
+		// be called with the latest collision buffer upon the conclusion of each line. What's a collision
+		// buffer? It's an implementation detail. If you're not writing a unit test, leave it alone.
+		TIA(std::function<void(uint8_t *output_buffer)> line_end_function);
+
 		enum class OutputMode {
 			NTSC, PAL
 		};
@@ -74,6 +79,7 @@ class TIA {
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::function<void(uint8_t *output_buffer)> line_end_function_;
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_;
@@ -138,6 +144,8 @@ class TIA {
 			int pixel_position;
 			int output_delay;
 			bool graphic_delay;
+
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), output_delay(0), graphic_delay(false) {}
 		} player_[2];
 
 		// missile state
