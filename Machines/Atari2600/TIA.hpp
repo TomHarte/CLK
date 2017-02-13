@@ -23,6 +23,7 @@ class TIA {
 		// be called with the latest collision buffer upon the conclusion of each line. What's a collision
 		// buffer? It's an implementation detail. If you're not writing a unit test, leave it alone.
 		TIA(std::function<void(uint8_t *output_buffer)> line_end_function);
+		TIA(bool create_crt);
 
 		enum class OutputMode {
 			NTSC, PAL

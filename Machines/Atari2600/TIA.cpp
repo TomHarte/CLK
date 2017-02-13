@@ -19,7 +19,7 @@ namespace {
 	uint8_t reverse_table[256];
 }
 
-TIA::TIA() :
+TIA::TIA(bool create_crt) :
 	horizontal_counter_(0),
 	pixels_start_location_(0),
 	output_mode_(0),
@@ -33,9 +33,12 @@ TIA::TIA() :
 	horizontal_move_start_time_(0),
 	collision_flags_(0)
 {
-	crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
-	crt_->set_output_device(Outputs::CRT::Television);
-	set_output_mode(OutputMode::NTSC);
+	if(create_crt)
+	{
+		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
+		crt_->set_output_device(Outputs::CRT::Television);
+		set_output_mode(OutputMode::NTSC);
+	}
 
 	for(int c = 0; c < 256; c++)
 	{
@@ -132,7 +135,9 @@ TIA::TIA() :
 	collision_buffer_.resize(160);
 }
 
-TIA::TIA(std::function<void(uint8_t *output_buffer)> line_end_function) : TIA()
+TIA::TIA() : TIA(true) {}
+
+TIA::TIA(std::function<void(uint8_t *output_buffer)> line_end_function) : TIA(false)
 {
 	line_end_function_ = line_end_function;
 }
@@ -424,13 +429,13 @@ void TIA::output_for_cycles(int number_of_cycles)
 	{ \
 		if(horizontal_counter_ <= target) \
 		{ \
-			crt_->function((unsigned int)((horizontal_counter_ - output_cursor) * 2)); \
+			if(crt_) crt_->function((unsigned int)((horizontal_counter_ - output_cursor) * 2)); \
 			horizontal_counter_ %= cycles_per_line; \
 			return; \
 		} \
 		else \
 		{ \
-			crt_->function((unsigned int)((target - output_cursor) * 2)); \
+			if(crt_) crt_->function((unsigned int)((target - output_cursor) * 2)); \
 			output_cursor = target; \
 		} \
 	}
@@ -459,16 +464,16 @@ void TIA::output_for_cycles(int number_of_cycles)
 		if(pixel_target_)
 		{
 			output_pixels(pixels_start_location_, output_cursor);
-			crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
+			if(crt_) crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
-		crt_->output_blank((unsigned int)(duration * 2));
+		if(crt_) crt_->output_blank((unsigned int)(duration * 2));
 	}
 	else
 	{
-		if(!pixels_start_location_)
+		if(!pixels_start_location_ && crt_)
 		{
 			pixels_start_location_ = output_cursor;
 			pixel_target_ = crt_->allocate_write_area(160);
@@ -484,7 +489,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 			output_cursor++;
 		}
 
-		if(horizontal_counter_ == cycles_per_line)
+		if(horizontal_counter_ == cycles_per_line && crt_)
 		{
 			crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
 			pixel_target_ = nullptr;
@@ -549,16 +554,22 @@ void TIA::output_line()
 		break;
 		case sync_flag:
 		case sync_flag | blank_flag:
-			crt_->output_sync(32);
-			crt_->output_blank(32);
-			crt_->output_sync(392);
+			if(crt_)
+			{
+				crt_->output_sync(32);
+				crt_->output_blank(32);
+				crt_->output_sync(392);
+			}
 			horizontal_blank_extend_ = false;
 		break;
 		case blank_flag:
-			crt_->output_blank(32);
-			crt_->output_sync(32);
-			crt_->output_default_colour_burst(32);
-			crt_->output_blank(360);
+			if(crt_)
+			{
+				crt_->output_blank(32);
+				crt_->output_sync(32);
+				crt_->output_default_colour_burst(32);
+				crt_->output_blank(360);
+			}
 			horizontal_blank_extend_ = false;
 		break;
 	}

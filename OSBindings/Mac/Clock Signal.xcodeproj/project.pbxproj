@@ -30,6 +30,7 @@
 		4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
 		4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539C1D117D36003C6002 /* CSElectron.mm */; };
 		4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539E1D117D36003C6002 /* CSVic20.mm */; };
+		4B2AF8691E513FC20027EE29 /* TIATests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2AF8681E513FC20027EE29 /* TIATests.mm */; };
 		4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */; };
 		4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */; };
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
@@ -474,6 +475,7 @@
 		4B2A539C1D117D36003C6002 /* CSElectron.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSElectron.mm; sourceTree = "<group>"; };
 		4B2A539D1D117D36003C6002 /* CSVic20.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSVic20.h; sourceTree = "<group>"; };
 		4B2A539E1D117D36003C6002 /* CSVic20.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSVic20.mm; sourceTree = "<group>"; };
+		4B2AF8681E513FC20027EE29 /* TIATests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TIATests.mm; sourceTree = "<group>"; };
 		4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapePRG.cpp; sourceTree = "<group>"; };
 		4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TapePRG.hpp; sourceTree = "<group>"; };
 		4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Oric/Video.cpp; sourceTree = "<group>"; };
@@ -1724,6 +1726,7 @@
 				4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
+				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
@@ -2494,6 +2497,7 @@
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B50730A1DDFCFDF00C48FBD /* ArrayBuilderTests.mm in Sources */,
+				4B2AF8691E513FC20027EE29 /* TIATests.mm in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine.mm in Sources */,
 				4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */,
