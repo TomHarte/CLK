@@ -418,7 +418,9 @@ void TIA::output_for_cycles(int number_of_cycles)
 	}
 
 	// accumulate an OR'd version of the output into the collision buffer
-	draw_playfield(output_cursor, horizontal_counter_);
+	int latent_start = output_cursor + 4;
+	int latent_end = horizontal_counter_ + 4;
+	draw_playfield(latent_start, latent_end);
 	draw_player(player_[0], CollisionType::Player0, (int)MotionIndex::Player0, output_cursor, horizontal_counter_);
 	draw_player(player_[1], CollisionType::Player1, (int)MotionIndex::Player1, output_cursor, horizontal_counter_);
 
@@ -580,11 +582,7 @@ void TIA::output_line()
 void TIA::draw_playfield(int start, int end)
 {
 	// don't do anything if this window ends too early
-	if(end < first_pixel_cycle - 4) return;
-
-	// look at what needs to be output four cycles into the future, to model playfield output latency
-	start += 4;
-	end += 4;
+	if(end < first_pixel_cycle) return;
 
 	// clip to drawable bounds
 	start = std::max(start, first_pixel_cycle);
@@ -618,7 +616,7 @@ int TIA::perform_border_motion(int identity, int start, int end, int &movement_t
 	if(!is_moving_[identity]) return 0;
 
 	int steps_taken = 0;
-	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
+	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0) - 4;
 	// round up to the next H@1 cycle
 	while(is_moving_[identity] && movement_time < end && movement_time < first_pixel)
 	{
@@ -632,30 +630,10 @@ int TIA::perform_border_motion(int identity, int start, int end, int &movement_t
 
 #pragma mark - Player output
 
-void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
+void TIA::draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end, int &movement_time)
 {
 	int &position = position_[position_identity];
-
-	// movement works across the entire screen, so do work that falls outside of the pixel area
-	int movement_time;
 	int adder = 4 >> player.size;
-	int added = perform_border_motion(position_identity, start, end, movement_time);
-	if(player.output_delay > 0)
-	{
-		int delay_distance = std::min(player.output_delay, added);
-		player.output_delay -= delay_distance;
-		added -= delay_distance;
-		if(!player.output_delay) player.pixel_position = 0;
-	}
-	if(player.pixel_position < 32)
-	{
-		player.pixel_position += added * adder;
-	}
-
-	// don't continue to do any drawing if this window ends too early
-	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0);
-	if(end < first_pixel) return;
-	if(start < first_pixel) start = first_pixel;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
 	if(is_moving_[position_identity] || player.graphic[0])
@@ -689,23 +667,17 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				if(next_copy_time < next_event_time) next_event_time = next_copy_time;
 			}
 
-			// maybe a deferred draw?
-			if(player.output_delay > 0)
-			{
-				if(start + player.output_delay < next_event_time) next_event_time = start + player.output_delay;
-			}
-
 			// the decision is to progress by length
 			const int length = next_event_time - start;
 
-			if(player.pixel_position < 32)
+			if(player.pixel_position < 36)
 			{
 				player.pixel_position &= ~(adder - 1);
 				int output_cursor = 0;
-				while(player.pixel_position < 32 && output_cursor < length)
+				while(player.pixel_position < 36 && output_cursor < length)
 				{
 					int shift = (player.pixel_position >> 2) ^ player.reverse_mask;
-					collision_buffer_[start + output_cursor - first_pixel_cycle] |= ((player.graphic[0] >> shift)&1) * (uint8_t)collision_identity;
+					collision_buffer_[start + output_cursor] |= ((player.graphic[0] >> shift)&1) * (uint8_t)collision_identity;
 					output_cursor++;
 					player.pixel_position += adder;
 				}
@@ -722,17 +694,10 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 				movement_time += 4;
 			}
 
-			// if an output delay is being counted down, continue doing so
-			if(player.output_delay > 0)
-			{
-				player.output_delay -= length;
-				if(!player.output_delay) player.pixel_position = 0;
-			}
-
 			// if it's a draw trigger, trigger a draw
 			if(position == (next_copy % 160))
 			{
-				player.output_delay = 5;
+				player.pixel_position = 0;
 			}
 		}
 	}
@@ -740,5 +705,33 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	{
 		// just advance the timer all in one jump
 		position = (position + end - start) % 160;
+	}
+}
+
+void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
+{
+	int movement_time;
+	int adder = 4 >> player.size;
+
+	// movement works across the entire screen, so do work that falls outside of the pixel area
+	player.pixel_position += adder * perform_border_motion(position_identity, start, end, movement_time);;
+
+	// don't continue to do any drawing if this window ends too early
+	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
+	if(end < first_pixel) return;
+	if(start < first_pixel) start = first_pixel;
+
+	// perform the visible part of the line, if any
+	if(start < 224)
+	{
+		movement_time -= first_pixel_cycle - 4;
+		draw_player_visible(player, collision_identity, position_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160), movement_time);
+	}
+
+	// move further if required
+	if(is_moving_[position_identity] && end >= 224 && movement_time < end)
+	{
+		perform_motion_step(position_identity, movement_time);
+		player.pixel_position += adder;
 	}
 }

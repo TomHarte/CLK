@@ -143,10 +143,9 @@ class TIA {
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
 
 			int pixel_position;
-			int output_delay;
 			bool graphic_delay;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), output_delay(0), graphic_delay(false) {}
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_delay(false) {}
 		} player_[2];
 
 		// missile state
@@ -176,6 +175,7 @@ class TIA {
 
 		inline void draw_playfield(int start, int end);
 		inline void draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
+		inline void draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end, int &movement_time);
 
 		inline void update_motion(int start, int end);
 
