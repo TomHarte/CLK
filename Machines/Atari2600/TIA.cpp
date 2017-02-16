@@ -720,6 +720,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
+	if(start >= end) return;
 
 	// perform the visible part of the line, if any
 	if(start < 224)
