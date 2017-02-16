@@ -726,6 +726,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	{
 		movement_time -= first_pixel_cycle - 4;
 		draw_player_visible(player, collision_identity, position_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160), movement_time);
+		movement_time += first_pixel_cycle - 4;
 	}
 
 	// move further if required
