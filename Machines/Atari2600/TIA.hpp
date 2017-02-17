@@ -145,7 +145,7 @@ class TIA {
 			int pixel_position;
 			bool graphic_delay;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_delay(false) {}
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(36), graphic_delay(false) {}
 		} player_[2];
 
 		// missile state
@@ -155,8 +155,9 @@ class TIA {
 
 		// movement
 		bool horizontal_blank_extend_;
-		int horizontal_move_start_time_;
 		int motion_[5];
+		int motion_step_[5];
+		int motion_time_[5];
 		int position_[5];
 		bool is_moving_[5];
 		enum class MotionIndex : uint8_t {
@@ -166,8 +167,8 @@ class TIA {
 			Missile0,
 			Missile1
 		};
-		inline int perform_border_motion(int identity, int start, int end, int &movement_time);
-		inline void perform_motion_step(int identity, int movement_time);
+		inline int perform_border_motion(int identity, int start, int end);
+		inline void perform_motion_step(int identity);
 
 		// drawing methods and state
 		inline void output_for_cycles(int number_of_cycles);
@@ -175,7 +176,7 @@ class TIA {
 
 		inline void draw_playfield(int start, int end);
 		inline void draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
-		inline void draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end, int &movement_time);
+		inline void draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
 
 		inline void update_motion(int start, int end);
 

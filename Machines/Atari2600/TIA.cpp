@@ -30,7 +30,6 @@ TIA::TIA(bool create_crt) :
 	motion_{0, 0, 0, 0, 0},
 	is_moving_{false, false, false, false, false},
 	horizontal_blank_extend_(false),
-	horizontal_move_start_time_(0),
 	collision_flags_(0)
 {
 	if(create_crt)
@@ -329,7 +328,7 @@ void TIA::set_player_position(int player)
 
 void TIA::set_player_motion(int player, uint8_t motion)
 {
-	motion_[(int)MotionIndex::Player0 + player] = motion >> 4;
+	motion_[(int)MotionIndex::Player0 + player] = (motion >> 4)&0xf;
 }
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
@@ -373,7 +372,8 @@ void TIA::move()
 {
 	horizontal_blank_extend_ = true;
 	is_moving_[0] = is_moving_[1] = is_moving_[2] = is_moving_[3] = is_moving_[4] = true;
-	horizontal_move_start_time_ = horizontal_counter_;
+	motion_step_[0] = motion_step_[1] = motion_step_[2] = motion_step_[3] = motion_step_[4] = 15;
+	motion_time_[0] = motion_time_[1] = motion_time_[2] = motion_time_[3] = motion_time_[4] = (horizontal_counter_ + 3) & ~3;
 }
 
 void TIA::clear_motion()
@@ -415,6 +415,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 		if(line_end_function_) line_end_function_(collision_buffer_.data());
 		memset(collision_buffer_.data(), 0, 160);	// sizeof(collision_buffer_)
 		horizontal_blank_extend_ = false;
+		for(int c = 0; c < 5; c++) motion_time_[c] %= 228;
 	}
 
 	// accumulate an OR'd version of the output into the collision buffer
@@ -601,27 +602,27 @@ void TIA::draw_playfield(int start, int end)
 
 #pragma mark - Motion
 
-void TIA::perform_motion_step(int identity, int movement_time)
+void TIA::perform_motion_step(int identity)
 {
-	int movement_step = (movement_time - horizontal_move_start_time_) >> 2;
-	if(movement_step == (motion_[identity] ^ 8))
+	if((motion_step_[identity] ^ (motion_[identity] ^ 8)) == 0xf)
 		is_moving_[identity] = false;
 	else
+	{
 		position_[identity] ++;
+		motion_step_[identity] --;
+		motion_time_[identity] += 4;
+	}
 }
 
-int TIA::perform_border_motion(int identity, int start, int end, int &movement_time)
+int TIA::perform_border_motion(int identity, int start, int end)
 {
-	movement_time = (start + 3) & ~3;
 	if(!is_moving_[identity]) return 0;
 
 	int steps_taken = 0;
-	int first_pixel = first_pixel_cycle + (horizontal_blank_extend_ ? 8 : 0) - 4;
-	// round up to the next H@1 cycle
-	while(is_moving_[identity] && movement_time < end && movement_time < first_pixel)
+	while(is_moving_[identity] && motion_time_[identity] < end)
 	{
-		perform_motion_step(identity, movement_time);
-		movement_time += 4;
+		perform_motion_step(identity);
+		steps_taken++;
 	}
 	position_[identity] %= 160;
 
@@ -630,7 +631,7 @@ int TIA::perform_border_motion(int identity, int start, int end, int &movement_t
 
 #pragma mark - Player output
 
-void TIA::draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end, int &movement_time)
+void TIA::draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
 	int &position = position_[position_identity];
 	int adder = 4 >> player.size;
@@ -638,14 +639,15 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
 	if(is_moving_[position_identity] || player.graphic[0])
 	{
+		int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
 		while(start < end)
 		{
 			int next_event_time = end;
 
 			// is the next event a movement tick?
-			if(is_moving_[position_identity] && movement_time + 4 < next_event_time)
+			if(is_moving_[position_identity] && next_motion_time < next_event_time)
 			{
-				next_event_time = movement_time + 4;
+				next_event_time = next_motion_time;
 			}
 
 			// is the next event a graphics trigger?
@@ -688,10 +690,10 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 			start = next_event_time;
 
 			// if the event is a motion tick, apply
-			if(is_moving_[position_identity] && start == movement_time + 4)
+			if(is_moving_[position_identity] && start == next_motion_time)
 			{
-				perform_motion_step(position_identity, movement_time);
-				movement_time += 4;
+				perform_motion_step(position_identity);
+				next_motion_time += 4;
 			}
 
 			// if it's a draw trigger, trigger a draw
@@ -710,14 +712,16 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 
 void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
-	int movement_time;
 	int adder = 4 >> player.size;
+	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
 
 	// movement works across the entire screen, so do work that falls outside of the pixel area
-	player.pixel_position += adder * perform_border_motion(position_identity, start, end, movement_time);;
+	if(start < first_pixel)
+	{
+		player.pixel_position = std::min(36, player.pixel_position + adder * perform_border_motion(position_identity, start, std::max(end, first_pixel)));
+	}
 
 	// don't continue to do any drawing if this window ends too early
-	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
 	if(end < first_pixel) return;
 	if(start < first_pixel) start = first_pixel;
 	if(start >= end) return;
@@ -725,15 +729,13 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// perform the visible part of the line, if any
 	if(start < 224)
 	{
-		movement_time -= first_pixel_cycle - 4;
-		draw_player_visible(player, collision_identity, position_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160), movement_time);
-		movement_time += first_pixel_cycle - 4;
+		draw_player_visible(player, collision_identity, position_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
 	}
 
 	// move further if required
-	if(is_moving_[position_identity] && end >= 224 && movement_time < end)
+	if(is_moving_[position_identity] && end >= 224 && motion_time_[position_identity] < end)
 	{
-		perform_motion_step(position_identity, movement_time);
-		player.pixel_position += adder;
+		perform_motion_step(position_identity);
+		player.pixel_position = std::min(36, player.pixel_position + adder);
 	}
 }
