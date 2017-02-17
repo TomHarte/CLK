@@ -307,7 +307,6 @@ void TIA::set_player_number_and_size(int player, uint8_t value)
 void TIA::set_player_graphic(int player, uint8_t value)
 {
 	player_[player].graphic[1] = value;
-	player_[player].graphic[player_[player].graphic_delay ? 1 : 0] = value;
 	player_[player^1].graphic[0] = player_[player^1].graphic[1];
 }
 
@@ -318,7 +317,7 @@ void TIA::set_player_reflected(int player, bool reflected)
 
 void TIA::set_player_delay(int player, bool delay)
 {
-	player_[player].graphic_delay = delay;
+	player_[player].graphic_index = delay ? 0 : 1;
 }
 
 void TIA::set_player_position(int player)
@@ -637,7 +636,7 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 	int adder = 4 >> player.size;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	if(is_moving_[position_identity] || player.graphic[0])
+	if(is_moving_[position_identity] || player.graphic[player.graphic_index])
 	{
 		int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
 		while(start < end)
@@ -652,7 +651,7 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 
 			// is the next event a graphics trigger?
 			int next_copy = 160;
-			if(player.graphic[0])
+			if(player.graphic[player.graphic_index])
 			{
 				if(position < 16 && player.copy_flags&1)
 				{
@@ -672,14 +671,14 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 			// the decision is to progress by length
 			const int length = next_event_time - start;
 
-			if(player.pixel_position < 36)
+			if(player.pixel_position < 32)
 			{
 				player.pixel_position &= ~(adder - 1);
 				int output_cursor = 0;
-				while(player.pixel_position < 36 && output_cursor < length)
+				while(player.pixel_position < 32 && output_cursor < length)
 				{
 					int shift = (player.pixel_position >> 2) ^ player.reverse_mask;
-					collision_buffer_[start + output_cursor] |= ((player.graphic[0] >> shift)&1) * (uint8_t)collision_identity;
+					collision_buffer_[start + output_cursor] |= ((player.graphic[player.graphic_index] >> shift)&1) * (uint8_t)collision_identity;
 					output_cursor++;
 					player.pixel_position += adder;
 				}
@@ -718,7 +717,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel)
 	{
-		player.pixel_position = std::min(36, player.pixel_position + adder * perform_border_motion(position_identity, start, std::max(end, first_pixel)));
+		player.pixel_position = std::min(32, player.pixel_position + adder * perform_border_motion(position_identity, start, std::max(end, first_pixel)));
 	}
 
 	// don't continue to do any drawing if this window ends too early
@@ -736,6 +735,6 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	if(is_moving_[position_identity] && end >= 224 && motion_time_[position_identity] < end)
 	{
 		perform_motion_step(position_identity);
-		player.pixel_position = std::min(36, player.pixel_position + adder);
+		player.pixel_position = std::min(32, player.pixel_position + adder);
 	}
 }

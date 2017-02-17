@@ -139,13 +139,13 @@ class TIA {
 		struct Player {
 			int size;			// 0 = normal, 1 = double, 2 = quad
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
-			uint8_t graphic[2];	// the player graphic
+			uint8_t graphic[2];	// the player graphic; 1 = new, 0 = current
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
+			int graphic_index;
 
 			int pixel_position;
-			bool graphic_delay;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(36), graphic_delay(false) {}
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
 		} player_[2];
 
 		// missile state
