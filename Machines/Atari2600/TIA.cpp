@@ -272,6 +272,8 @@ void TIA::set_playfield_control_and_ball_size(uint8_t value)
 			playfield_priority_ = PlayfieldPriority::OnTop;
 		break;
 	}
+
+	ball_.size = 1 << ((value >> 4)&3);
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour)
@@ -308,6 +310,7 @@ void TIA::set_player_graphic(int player, uint8_t value)
 {
 	player_[player].graphic[1] = value;
 	player_[player^1].graphic[0] = player_[player^1].graphic[1];
+	if(player) ball_.enabled[0] = ball_.enabled[1];
 }
 
 void TIA::set_player_reflected(int player, bool reflected)
@@ -358,18 +361,25 @@ void TIA::set_missile_motion(int missile, uint8_t motion)
 
 void TIA::set_ball_enable(bool enabled)
 {
+	ball_.enabled[1] = enabled;
 }
 
 void TIA::set_ball_delay(bool delay)
 {
+	ball_.enabled_index = delay ? 0 : 1;
 }
 
 void TIA::set_ball_position()
 {
+	position_[(int)MotionIndex::Ball] = 0;
+
+	// setting the ball position also triggers a draw
+	ball_.pixel_position = ball_.size;
 }
 
 void TIA::set_ball_motion(uint8_t motion)
 {
+	motion_[(int)MotionIndex::Ball] = (motion >> 4) & 0xf;
 }
 
 void TIA::move()
@@ -763,8 +773,93 @@ void TIA::draw_missile_visible(Missile &missile, CollisionType collision_identit
 
 void TIA::draw_ball(int start, int end)
 {
+	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
+
+	// movement works across the entire screen, so do work that falls outside of the pixel area
+	if(start < first_pixel)
+	{
+		ball_.pixel_position = std::max(0, ball_.pixel_position - perform_border_motion((int)MotionIndex::Ball, start, std::max(end, first_pixel)));
+	}
+
+	// don't continue to do any drawing if this window ends too early
+	if(end < first_pixel) return;
+	if(start < first_pixel) start = first_pixel;
+	if(start >= end) return;
+
+	// perform the visible part of the line, if any
+	if(start < 224)
+	{
+		draw_ball_visible(start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
+	}
+
+	// move further if required
+	if(is_moving_[(int)MotionIndex::Ball] && end >= 224 && motion_time_[(int)MotionIndex::Ball] < end)
+	{
+		perform_motion_step((int)MotionIndex::Ball);
+		ball_.pixel_position = std::max(0, ball_.pixel_position - 1);
+	}
 }
 
 void TIA::draw_ball_visible(int start, int end)
 {
+	int &position = position_[(int)MotionIndex::Ball];
+
+	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
+	int next_motion_time = motion_time_[(int)MotionIndex::Ball] - first_pixel_cycle + 4;
+	while(start < end)
+	{
+		int next_event_time = end;
+
+		// is the next event a movement tick?
+		if(is_moving_[(int)MotionIndex::Ball] && next_motion_time < next_event_time)
+		{
+			next_event_time = next_motion_time;
+		}
+
+		// is the next event a graphics trigger?
+		if(ball_.enabled[ball_.enabled_index])
+		{
+			int time_until_copy = 160 - position;
+			int next_copy_time = start + time_until_copy;
+			if(next_copy_time < next_event_time) next_event_time = next_copy_time;
+		}
+
+		// the decision is to progress by length
+		const int length = next_event_time - start;
+
+		if(ball_.pixel_position)
+		{
+			int output_cursor = 0;
+			if(ball_.enabled[ball_.enabled_index])
+			{
+				while(ball_.pixel_position && output_cursor < length)
+				{
+					collision_buffer_[start + output_cursor] |= (uint8_t)CollisionType::Ball;
+					output_cursor++;
+					ball_.pixel_position--;
+				}
+			}
+			else
+			{
+				ball_.pixel_position = std::max(0, ball_.pixel_position - length);
+			}
+		}
+
+		// the next interesting event is after next_event_time cycles, so progress
+		position = (position + length) % 160;
+		start = next_event_time;
+
+		// if the event is a motion tick, apply
+		if(is_moving_[(int)MotionIndex::Ball] && start == next_motion_time)
+		{
+			perform_motion_step((int)MotionIndex::Ball);
+			next_motion_time += 4;
+		}
+
+		// if it's a draw trigger, trigger a draw
+		if(!position)
+		{
+			ball_.pixel_position = ball_.size;
+		}
+	}
 }

@@ -153,6 +153,17 @@ class TIA {
 			int size;		// 0 = 1 pixel, 1 = 2 pixels, etc
 		} missile_[2];
 
+		// ball state
+		struct Ball {
+			bool enabled[2];
+			int enabled_index;
+			int size;
+
+			int pixel_position;
+
+			Ball() : pixel_position(0), size(1), enabled_index(0) {}
+		} ball_;
+
 		// movement
 		bool horizontal_blank_extend_;
 		int motion_[5];
