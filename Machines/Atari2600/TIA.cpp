@@ -322,7 +322,12 @@ void TIA::set_player_delay(int player, bool delay)
 
 void TIA::set_player_position(int player)
 {
-	position_[(int)MotionIndex::Player0 + player] = 0;
+	// players have an extra clock of delay before output and don't display upon reset;
+	// both aims are achieved by setting to -1 because: (i) it causes the clock to be
+	// one behind its real hardware value, creating the extra delay; and (ii) the player
+	// code is written to start a draw upon wraparound from 159 to 0, so -1 is the
+	// correct option rather than 159.
+	position_[(int)MotionIndex::Player0 + player] = -1;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
@@ -423,6 +428,9 @@ void TIA::output_for_cycles(int number_of_cycles)
 	draw_playfield(latent_start, latent_end);
 	draw_player(player_[0], CollisionType::Player0, (int)MotionIndex::Player0, output_cursor, horizontal_counter_);
 	draw_player(player_[1], CollisionType::Player1, (int)MotionIndex::Player1, output_cursor, horizontal_counter_);
+	draw_missile(missile_[0], CollisionType::Missile0, (int)MotionIndex::Missile0, output_cursor, horizontal_counter_);
+	draw_missile(missile_[1], CollisionType::Missile1, (int)MotionIndex::Missile1, output_cursor, horizontal_counter_);
+	draw_ball(output_cursor, horizontal_counter_);
 
 	// convert to television signals
 
@@ -649,11 +657,6 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 				next_event_time = next_motion_time;
 			}
 
-			if(player.pixel_delay && start + player.pixel_delay < next_event_time)
-			{
-				next_event_time = start + player.pixel_delay;
-			}
-
 			// is the next event a graphics trigger?
 			int next_copy = 160;
 			if(player.graphic[player.graphic_index])
@@ -700,17 +703,10 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 				next_motion_time += 4;
 			}
 
-			// possibly it's a pixel delay
-			if(player.pixel_delay)
-			{
-				player.pixel_delay -= length;
-				if(!player.pixel_delay) player.pixel_position = 0;
-			}
-
 			// if it's a draw trigger, trigger a draw
 			if(position == (next_copy % 160))
 			{
-				player.pixel_delay = 1;
+				player.pixel_position = 0;
 			}
 		}
 //	}
@@ -751,4 +747,24 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 		perform_motion_step(position_identity);
 		player.pixel_position = std::min(32, player.pixel_position + adder);
 	}
+}
+
+#pragma mark - Missile output
+
+void TIA::draw_missile(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end)
+{
+}
+
+void TIA::draw_missile_visible(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end)
+{
+}
+
+#pragma mark - Ball output
+
+void TIA::draw_ball(int start, int end)
+{
+}
+
+void TIA::draw_ball_visible(int start, int end)
+{
 }

@@ -144,9 +144,8 @@ class TIA {
 			int graphic_index;
 
 			int pixel_position;
-			int pixel_delay;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), pixel_delay(0) {}
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
 		} player_[2];
 
 		// missile state
@@ -176,8 +175,15 @@ class TIA {
 		inline void output_line();
 
 		inline void draw_playfield(int start, int end);
+
 		inline void draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
 		inline void draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
+
+		inline void draw_missile(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end);
+		inline void draw_missile_visible(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end);
+
+		inline void draw_ball(int start, int end);
+		inline void draw_ball_visible(int start, int end);
 
 		inline void update_motion(int start, int end);
 
