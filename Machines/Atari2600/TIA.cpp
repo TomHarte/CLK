@@ -636,8 +636,8 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 	int adder = 4 >> player.size;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	if(is_moving_[position_identity] || player.graphic[player.graphic_index])
-	{
+//	if(is_moving_[position_identity] || player.graphic[player.graphic_index])
+//	{
 		int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
 		while(start < end)
 		{
@@ -713,12 +713,14 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 				player.pixel_delay = 1;
 			}
 		}
-	}
-	else
-	{
-		// just advance the timer all in one jump
-		position = (position + end - start) % 160;
-	}
+//	}
+//	else
+//	{
+//		// just advance the timer all in one jump
+//		const int length = end - start;
+//		position = (position + length) % 160;
+//		player.pixel_position = std::min(32, player.pixel_position + adder * length);
+//	}
 }
 
 void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
