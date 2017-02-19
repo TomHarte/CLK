@@ -144,8 +144,9 @@ class TIA {
 			int graphic_index;
 
 			int pixel_position;
+			int pixel_delay;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
+			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), pixel_delay(0) {}
 		} player_[2];
 
 		// missile state

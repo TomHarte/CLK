@@ -649,6 +649,11 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 				next_event_time = next_motion_time;
 			}
 
+			if(player.pixel_delay && start + player.pixel_delay < next_event_time)
+			{
+				next_event_time = start + player.pixel_delay;
+			}
+
 			// is the next event a graphics trigger?
 			int next_copy = 160;
 			if(player.graphic[player.graphic_index])
@@ -695,10 +700,17 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 				next_motion_time += 4;
 			}
 
+			// possibly it's a pixel delay
+			if(player.pixel_delay)
+			{
+				player.pixel_delay -= length;
+				if(!player.pixel_delay) player.pixel_position = 0;
+			}
+
 			// if it's a draw trigger, trigger a draw
 			if(position == (next_copy % 160))
 			{
-				player.pixel_position = 0;
+				player.pixel_delay = 1;
 			}
 		}
 	}
