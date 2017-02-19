@@ -654,44 +654,41 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 	int adder = 4 >> player.size;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-//	if(is_moving_[position_identity] || player.graphic[player.graphic_index])
-//	{
-		int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
-		while(start < end)
+	int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
+	while(start < end)
+	{
+		int next_event_time = end;
+
+		// is the next event a movement tick?
+		if(is_moving_[position_identity] && next_motion_time < next_event_time)
 		{
-			int next_event_time = end;
+			next_event_time = next_motion_time;
+		}
 
-			// is the next event a movement tick?
-			if(is_moving_[position_identity] && next_motion_time < next_event_time)
-			{
-				next_event_time = next_motion_time;
-			}
+		// is the next event a graphics trigger?
+		int next_copy = 160;
+		if(position < 16 && player.copy_flags&1)
+		{
+			next_copy = 16;
+		} else if(position < 32 && player.copy_flags&2)
+		{
+			next_copy = 32;
+		} else if(position < 64 && player.copy_flags&4)
+		{
+			next_copy = 64;
+		}
 
-			// is the next event a graphics trigger?
-			int next_copy = 160;
+		int next_copy_time = start + next_copy - position;
+		if(next_copy_time < next_event_time) next_event_time = next_copy_time;
+
+		// the decision is to progress by length
+		const int length = next_event_time - start;
+
+		if(player.pixel_position < 32)
+		{
+			player.pixel_position &= ~(adder - 1);
 			if(player.graphic[player.graphic_index])
 			{
-				if(position < 16 && player.copy_flags&1)
-				{
-					next_copy = 16;
-				} else if(position < 32 && player.copy_flags&2)
-				{
-					next_copy = 32;
-				} else if(position < 64 && player.copy_flags&4)
-				{
-					next_copy = 64;
-				}
-
-				int next_copy_time = start + next_copy - position;
-				if(next_copy_time < next_event_time) next_event_time = next_copy_time;
-			}
-
-			// the decision is to progress by length
-			const int length = next_event_time - start;
-
-			if(player.pixel_position < 32)
-			{
-				player.pixel_position &= ~(adder - 1);
 				int output_cursor = 0;
 				while(player.pixel_position < 32 && output_cursor < length)
 				{
@@ -701,32 +698,29 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 					player.pixel_position += adder;
 				}
 			}
-
-			// the next interesting event is after next_event_time cycles, so progress
-			position = (position + length) % 160;
-			start = next_event_time;
-
-			// if the event is a motion tick, apply
-			if(is_moving_[position_identity] && start == next_motion_time)
+			else
 			{
-				perform_motion_step(position_identity);
-				next_motion_time += 4;
-			}
-
-			// if it's a draw trigger, trigger a draw
-			if(position == (next_copy % 160))
-			{
-				player.pixel_position = 0;
+				player.pixel_position = std::max(32, player.pixel_position + length * adder);
 			}
 		}
-//	}
-//	else
-//	{
-//		// just advance the timer all in one jump
-//		const int length = end - start;
-//		position = (position + length) % 160;
-//		player.pixel_position = std::min(32, player.pixel_position + adder * length);
-//	}
+
+		// the next interesting event is after next_event_time cycles, so progress
+		position = (position + length) % 160;
+		start = next_event_time;
+
+		// if the event is a motion tick, apply
+		if(is_moving_[position_identity] && start == next_motion_time)
+		{
+			perform_motion_step(position_identity);
+			next_motion_time += 4;
+		}
+
+		// if it's a draw trigger, trigger a draw
+		if(start == next_copy_time)
+		{
+			player.pixel_position = 0;
+		}
+	}
 }
 
 void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
