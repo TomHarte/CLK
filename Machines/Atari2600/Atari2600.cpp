@@ -21,7 +21,9 @@ Machine::Machine() :
 	rom_pages_{nullptr, nullptr, nullptr, nullptr},
 	tia_input_value_{0xff, 0xff},
 	cycles_since_speaker_update_(0),
-	cycles_since_video_update_(0)
+	cycles_since_video_update_(0),
+	frame_record_pointer_(0),
+	is_ntsc_(true)
 {
 	set_clock_rate(NTSC_clock_rate);
 }
@@ -31,6 +33,7 @@ void Machine::setup_output(float aspect_ratio)
 	tia_.reset(new TIA);
 	speaker_.reset(new Speaker);
 	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
+	tia_->get_crt()->set_delegate(this);
 }
 
 void Machine::close_output()
@@ -287,4 +290,46 @@ void Machine::synchronise()
 	update_audio();
 	update_video();
 	speaker_->flush();
+}
+
+#pragma mark - CRT delegate
+
+void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs)
+{
+	frame_records_[frame_record_pointer_].number_of_frames = number_of_frames;
+	frame_records_[frame_record_pointer_].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
+	const size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
+	frame_record_pointer_ = (frame_record_pointer_ + 1) % number_of_frame_records;
+
+	unsigned int total_number_of_frames = 0;
+	unsigned int total_number_of_unexpected_vertical_syncs = 0;
+	for(size_t c = 0; c < number_of_frame_records; c++)
+	{
+		if(!frame_records_[c].number_of_frames) return;
+		total_number_of_frames += frame_records_[c].number_of_frames;
+		total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
+	}
+
+	if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1)
+	{
+		for(size_t c = 0; c < number_of_frame_records; c++)
+		{
+			frame_records_[c].number_of_frames = 0;
+			frame_records_[c].number_of_unexpected_vertical_syncs = 0;
+		}
+		is_ntsc_ ^= true;
+
+		if(is_ntsc_)
+		{
+			set_clock_rate(NTSC_clock_rate);
+			tia_->set_output_mode(TIA::OutputMode::NTSC);
+		}
+		else
+		{
+			set_clock_rate(PAL_clock_rate);
+			tia_->set_output_mode(TIA::OutputMode::PAL);
+		}
+
+		speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
+	}
 }

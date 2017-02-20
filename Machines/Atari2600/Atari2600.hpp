@@ -28,7 +28,8 @@ const unsigned int number_of_recorded_counters = 7;
 class Machine:
 	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public Outputs::CRT::Delegate {
 
 	public:
 		Machine();
@@ -51,6 +52,9 @@ class Machine:
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
 		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
+		// to satisfy Outputs::CRT::Delegate
+		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);
+
 	private:
 		uint8_t *rom_, *rom_pages_[4];
 		size_t rom_size_;
@@ -72,6 +76,17 @@ class Machine:
 		// video backlog accumulation counter
 		unsigned int cycles_since_video_update_;
 		void update_video();
+
+		// output frame rate tracker
+		struct FrameRecord
+		{
+			unsigned int number_of_frames;
+			unsigned int number_of_unexpected_vertical_syncs;
+
+			FrameRecord() : number_of_frames(0), number_of_unexpected_vertical_syncs(0) {}
+		} frame_records_[4];
+		unsigned int frame_record_pointer_;
+		bool is_ntsc_;
 };
 
 }
