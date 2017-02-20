@@ -243,7 +243,7 @@ class CRT {
 			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
 			carrier phase and amplitude.
 		*/
-		inline void set_composite_sampling_function(const char *shader)
+		inline void set_composite_sampling_function(const std::string &shader)
 		{
 			openGL_output_builder_.set_composite_sampling_function(shader);
 		}
@@ -261,7 +261,7 @@ class CRT {
 			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
 			* `vec2 icoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
 		*/
-		inline void set_rgb_sampling_function(const char *shader)
+		inline void set_rgb_sampling_function(const std::string &shader)
 		{
 			openGL_output_builder_.set_rgb_sampling_function(shader);
 		}

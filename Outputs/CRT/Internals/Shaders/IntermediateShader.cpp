@@ -26,7 +26,7 @@ namespace {
 	};
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition)
+std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition)
 {
 	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
 	const char *input_variable = input_is_inputPosition ? "inputPosition" : "outputPosition";
@@ -111,12 +111,13 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const char *
 	return shader;
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const char *composite_shader, const char *rgb_shader)
+std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader)
 {
-	char *composite_sample = (char *)composite_shader;
-	if(!composite_sample)
+	char *derived_composite_sample = nullptr;
+	const char *composite_sample = composite_shader.c_str();
+	if(!composite_shader.size())
 	{
-		asprintf(&composite_sample,
+		asprintf(&derived_composite_sample,
 			"%s\n"
 			"uniform mat3 rgbToLumaChroma;"
 			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
@@ -126,7 +127,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
 				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
 			"}",
-			rgb_shader);
+			rgb_shader.c_str());
+		composite_sample = derived_composite_sample;
 	}
 
 	char *fragment_shader;
@@ -148,7 +150,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 			"fragColour = vec4(composite_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x, phaseAndAmplitudeVarying.y));"
 		"}"
 	, composite_sample);
-	if(!composite_shader) free(composite_sample);
+	free(derived_composite_sample);
 
 	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader, true, true);
 	free(fragment_shader);
@@ -156,7 +158,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 	return shader;
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const char *rgb_shader)
+std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const std::string &rgb_shader)
 {
 	char *fragment_shader;
 	asprintf(&fragment_shader,
@@ -176,7 +178,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 		"{"
 			"fragColour = rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
 		"}"
-	, rgb_shader);
+	, rgb_shader.c_str());
 
 	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader, true, true);
 	free(fragment_shader);

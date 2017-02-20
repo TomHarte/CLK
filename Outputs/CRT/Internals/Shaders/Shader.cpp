@@ -8,22 +8,23 @@
 
 #include "Shader.hpp"
 
-#include <stdlib.h>
 #include <stdio.h>
 
 using namespace OpenGL;
 
-namespace {
+namespace
+{
 	Shader *bound_shader = nullptr;
 }
 
-GLuint Shader::compile_shader(const char *source, GLenum type)
+GLuint Shader::compile_shader(const std::string &source, GLenum type)
 {
 	GLuint shader = glCreateShader(type);
-	glShaderSource(shader, 1, &source, NULL);
+	const char *c_str = source.c_str();
+	glShaderSource(shader, 1, &c_str, NULL);
 	glCompileShader(shader);
 
-#if defined(DEBUG)
+#ifdef DEBUG
 	GLint isCompiled = 0;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
 	if(isCompiled == GL_FALSE)
@@ -31,10 +32,10 @@ GLuint Shader::compile_shader(const char *source, GLenum type)
 		GLint logLength;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = (GLchar *)malloc((size_t)logLength);
+			GLchar *log = new GLchar[logLength];
 			glGetShaderInfoLog(shader, logLength, &logLength, log);
 			printf("Compile log:\n%s\n", log);
-			free(log);
+			delete[] log;
 		}
 
 		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
@@ -44,7 +45,7 @@ GLuint Shader::compile_shader(const char *source, GLenum type)
 	return shader;
 }
 
-Shader::Shader(const char *vertex_shader, const char *fragment_shader, const AttributeBinding *attribute_bindings)
+Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const AttributeBinding *attribute_bindings)
 {
 	shader_program_ = glCreateProgram();
 	GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
@@ -64,7 +65,7 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 
 	glLinkProgram(shader_program_);
 
-#if defined(DEBUG)
+#ifdef DEBUG
 	GLint didLink = 0;
 	glGetProgramiv(shader_program_, GL_LINK_STATUS, &didLink);
 	if(didLink == GL_FALSE)
@@ -72,10 +73,10 @@ Shader::Shader(const char *vertex_shader, const char *fragment_shader, const Att
 		GLint logLength;
 		glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = (GLchar *)malloc((size_t)logLength);
+			GLchar *log = new GLchar[logLength];
 			glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
 			printf("Link log:\n%s\n", log);
-			free(log);
+			delete[] log;
 		}
 		throw ProgramLinkageError;
 	}

@@ -8,7 +8,6 @@
 #include "CRT.hpp"
 
 #include <cstdlib>
-#include <cstring>
 #include <cmath>
 
 #include "CRTOpenGL.hpp"
@@ -17,7 +16,8 @@
 
 using namespace Outputs::CRT;
 
-namespace {
+namespace
+{
 	static const GLenum source_data_texture_unit		= GL_TEXTURE0;
 	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE1;
 
@@ -31,8 +31,6 @@ namespace {
 OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	visible_area_(Rect(0, 0, 1, 1)),
 	composite_src_output_y_(0),
-	composite_shader_(nullptr),
-	rgb_shader_(nullptr),
 	last_output_width_(0),
 	last_output_height_(0),
 	fence_(nullptr),
@@ -78,9 +76,6 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 OpenGLOutputBuilder::~OpenGLOutputBuilder()
 {
 	glDeleteVertexArrays(1, &output_vertex_array_);
-
-	free(composite_shader_);
-	free(rgb_shader_);
 }
 
 bool OpenGLOutputBuilder::get_is_television_output()
@@ -275,17 +270,17 @@ void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_reso
 	output_mutex_.unlock();
 }
 
-void OpenGLOutputBuilder::set_composite_sampling_function(const char *shader)
+void OpenGLOutputBuilder::set_composite_sampling_function(const std::string &shader)
 {
 	std::lock_guard<std::mutex> lock_guard(output_mutex_);
-	composite_shader_ = strdup(shader);
+	composite_shader_ = shader;
 	reset_all_OpenGL_state();
 }
 
-void OpenGLOutputBuilder::set_rgb_sampling_function(const char *shader)
+void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader)
 {
 	std::lock_guard<std::mutex> lock_guard(output_mutex_);
-	rgb_shader_ = strdup(shader);
+	rgb_shader_ = shader;
 	reset_all_OpenGL_state();
 }
 
@@ -321,7 +316,7 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders()
 
 void OpenGLOutputBuilder::prepare_rgb_input_shaders()
 {
-	if(rgb_shader_)
+	if(rgb_shader_.size())
 	{
 		rgb_input_shader_program_ = OpenGL::IntermediateShader::make_rgb_source_shader(rgb_shader_);
 		rgb_input_shader_program_->set_source_texture_unit(source_data_texture_unit);

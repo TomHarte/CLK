@@ -25,13 +25,13 @@ public:
 		converting them to single-channel composite values using @c composite_shader if supplied
 		or @c rgb_shader and a reference composite conversion if @c composite_shader is @c nullptr.
 	*/
-	static std::unique_ptr<IntermediateShader> make_source_conversion_shader(const char *composite_shader, const char *rgb_shader);
+	static std::unique_ptr<IntermediateShader> make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader);
 
 	/*!
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,
 		converting them to RGB values using @c rgb_shader.
 	*/
-	static std::unique_ptr<IntermediateShader> make_rgb_source_shader(const char *rgb_shader);
+	static std::unique_ptr<IntermediateShader> make_rgb_source_shader(const std::string &rgb_shader);
 
 	/*!
 		Constructs and returns an intermediate shader that will read composite samples from the R channel,
@@ -95,7 +95,7 @@ public:
 	void set_is_double_height(bool is_double_height, float input_offset = 0.0f, float output_offset = 0.0f);
 
 private:
-	static std::unique_ptr<IntermediateShader> make_shader(const char *fragment_shader, bool use_usampler, bool input_is_inputPosition);
+	static std::unique_ptr<IntermediateShader> make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition);
 };
 
 }
