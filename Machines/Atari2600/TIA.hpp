@@ -166,11 +166,27 @@ class TIA {
 
 		// movement
 		bool horizontal_blank_extend_;
-		int motion_[5];
-		int motion_step_[5];
-		int motion_time_[5];
-		int position_[5];
-		bool is_moving_[5];
+		struct Object {
+			// the two programmer-set values
+			int position;
+			int motion;
+
+			// motion_step_ is the current motion counter value; motion_time_ is the next time it will fire
+			int motion_step;
+			int motion_time;
+
+			// indicates whether this object is currently undergoing motion
+			bool is_moving;
+
+			// receives a list of drawing events; 20 is a deliberately over-specified quantity
+			struct DrawingEvent {
+				int time;
+				int copy;
+			} drawing_events[20];
+			int draw_event_read_pointer, draw_event_write_pointer;
+
+			Object() : draw_event_read_pointer(0), draw_event_write_pointer(0), is_moving(false) {};
+		} object_[5];
 		enum class MotionIndex : uint8_t {
 			Ball,
 			Player0,

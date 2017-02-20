@@ -26,9 +26,6 @@ TIA::TIA(bool create_crt) :
 	pixel_target_(nullptr),
 	background_{0, 0},
 	background_half_mask_(0),
-	position_{0, 0, 0, 0, 0},
-	motion_{0, 0, 0, 0, 0},
-	is_moving_{false, false, false, false, false},
 	horizontal_blank_extend_(false),
 	collision_flags_(0)
 {
@@ -330,12 +327,12 @@ void TIA::set_player_position(int player)
 	// one behind its real hardware value, creating the extra delay; and (ii) the player
 	// code is written to start a draw upon wraparound from 159 to 0, so -1 is the
 	// correct option rather than 159.
-	position_[(int)MotionIndex::Player0 + player] = -1;
+	object_[(int)MotionIndex::Player0 + player].position = -1;
 }
 
 void TIA::set_player_motion(int player, uint8_t motion)
 {
-	motion_[(int)MotionIndex::Player0 + player] = (motion >> 4)&0xf;
+	object_[(int)MotionIndex::Player0 + player].motion = (motion >> 4)&0xf;
 }
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
@@ -371,7 +368,7 @@ void TIA::set_ball_delay(bool delay)
 
 void TIA::set_ball_position()
 {
-	position_[(int)MotionIndex::Ball] = 0;
+	object_[(int)MotionIndex::Ball].position = 0;
 
 	// setting the ball position also triggers a draw
 	ball_.pixel_position = ball_.size;
@@ -379,20 +376,20 @@ void TIA::set_ball_position()
 
 void TIA::set_ball_motion(uint8_t motion)
 {
-	motion_[(int)MotionIndex::Ball] = (motion >> 4) & 0xf;
+	object_[(int)MotionIndex::Ball].motion = (motion >> 4) & 0xf;
 }
 
 void TIA::move()
 {
 	horizontal_blank_extend_ = true;
-	is_moving_[0] = is_moving_[1] = is_moving_[2] = is_moving_[3] = is_moving_[4] = true;
-	motion_step_[0] = motion_step_[1] = motion_step_[2] = motion_step_[3] = motion_step_[4] = 15;
-	motion_time_[0] = motion_time_[1] = motion_time_[2] = motion_time_[3] = motion_time_[4] = (horizontal_counter_ + 3) & ~3;
+	object_[0].is_moving = object_[1].is_moving = object_[2].is_moving = object_[3].is_moving = object_[4].is_moving = true;
+	object_[0].motion_step = object_[1].motion_step = object_[2].motion_step = object_[3].motion_step = object_[4].motion_step = 15;
+	object_[0].motion_time = object_[1].motion_time = object_[2].motion_time = object_[3].motion_time = object_[4].motion_time = (horizontal_counter_ + 3) & ~3;
 }
 
 void TIA::clear_motion()
 {
-	motion_[0] = motion_[1] = motion_[2] = motion_[3] = motion_[4] = 0;
+	object_[0].motion = object_[1].motion = object_[2].motion = object_[3].motion = object_[4].motion = 0;
 }
 
 uint8_t TIA::get_collision_flags(int offset)
@@ -429,7 +426,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 		if(line_end_function_) line_end_function_(collision_buffer_.data());
 		memset(collision_buffer_.data(), 0, 160);	// sizeof(collision_buffer_)
 		horizontal_blank_extend_ = false;
-		for(int c = 0; c < 5; c++) motion_time_[c] %= 228;
+		for(int c = 0; c < 5; c++) object_[c].motion_time %= 228;
 	}
 
 	// accumulate an OR'd version of the output into the collision buffer
@@ -621,27 +618,29 @@ void TIA::draw_playfield(int start, int end)
 
 void TIA::perform_motion_step(int identity)
 {
-	if((motion_step_[identity] ^ (motion_[identity] ^ 8)) == 0xf)
-		is_moving_[identity] = false;
+	Object &object = object_[identity];
+	if((object.motion_step ^ (object.motion ^ 8)) == 0xf)
+		object.is_moving = false;
 	else
 	{
-		position_[identity] ++;
-		motion_step_[identity] --;
-		motion_time_[identity] += 4;
+		object.position ++;
+		object.motion_step --;
+		object.motion_time += 4;
 	}
 }
 
 int TIA::perform_border_motion(int identity, int start, int end)
 {
-	if(!is_moving_[identity]) return 0;
+	Object &object = object_[identity];
+	if(!object.is_moving) return 0;
 
 	int steps_taken = 0;
-	while(is_moving_[identity] && motion_time_[identity] < end)
+	while(object.is_moving && object.motion_time < end)
 	{
 		perform_motion_step(identity);
 		steps_taken++;
 	}
-	position_[identity] %= 160;
+	object.position %= 160;
 
 	return steps_taken;
 }
@@ -650,35 +649,35 @@ int TIA::perform_border_motion(int identity, int start, int end)
 
 void TIA::draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
 {
-	int &position = position_[position_identity];
+	Object &object = object_[position_identity];
 	int adder = 4 >> player.size;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	int next_motion_time = motion_time_[position_identity] - first_pixel_cycle + 4;
+	int next_motion_time = object.motion_time - first_pixel_cycle + 4;
 	while(start < end)
 	{
 		int next_event_time = end;
 
 		// is the next event a movement tick?
-		if(is_moving_[position_identity] && next_motion_time < next_event_time)
+		if(object.is_moving && next_motion_time < next_event_time)
 		{
 			next_event_time = next_motion_time;
 		}
 
 		// is the next event a graphics trigger?
 		int next_copy = 160;
-		if(position < 16 && player.copy_flags&1)
+		if(object.position < 16 && player.copy_flags&1)
 		{
 			next_copy = 16;
-		} else if(position < 32 && player.copy_flags&2)
+		} else if(object.position < 32 && player.copy_flags&2)
 		{
 			next_copy = 32;
-		} else if(position < 64 && player.copy_flags&4)
+		} else if(object.position < 64 && player.copy_flags&4)
 		{
 			next_copy = 64;
 		}
 
-		int next_copy_time = start + next_copy - position;
+		int next_copy_time = start + next_copy - object.position;
 		if(next_copy_time < next_event_time) next_event_time = next_copy_time;
 
 		// the decision is to progress by length
@@ -705,11 +704,11 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 		}
 
 		// the next interesting event is after next_event_time cycles, so progress
-		position = (position + length) % 160;
+		object.position = (object.position + length) % 160;
 		start = next_event_time;
 
 		// if the event is a motion tick, apply
-		if(is_moving_[position_identity] && start == next_motion_time)
+		if(object.is_moving && start == next_motion_time)
 		{
 			perform_motion_step(position_identity);
 			next_motion_time += 4;
@@ -746,7 +745,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	}
 
 	// move further if required
-	if(is_moving_[position_identity] && end >= 224 && motion_time_[position_identity] < end)
+	if(object_[position_identity].is_moving && end >= 224 && object_[position_identity].motion_time < end)
 	{
 		perform_motion_step(position_identity);
 		player.pixel_position = std::min(32, player.pixel_position + adder);
@@ -787,7 +786,7 @@ void TIA::draw_ball(int start, int end)
 	}
 
 	// move further if required
-	if(is_moving_[(int)MotionIndex::Ball] && end >= 224 && motion_time_[(int)MotionIndex::Ball] < end)
+	if(object_[(int)MotionIndex::Ball].is_moving && end >= 224 && object_[(int)MotionIndex::Ball].motion_time < end)
 	{
 		perform_motion_step((int)MotionIndex::Ball);
 		ball_.pixel_position = std::max(0, ball_.pixel_position - 1);
@@ -796,16 +795,16 @@ void TIA::draw_ball(int start, int end)
 
 void TIA::draw_ball_visible(int start, int end)
 {
-	int &position = position_[(int)MotionIndex::Ball];
+	Object &object = object_[(int)MotionIndex::Ball];
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
-	int next_motion_time = motion_time_[(int)MotionIndex::Ball] - first_pixel_cycle + 4;
+	int next_motion_time = object.motion_time - first_pixel_cycle + 4;
 	while(start < end)
 	{
 		int next_event_time = end;
 
 		// is the next event a movement tick?
-		if(is_moving_[(int)MotionIndex::Ball] && next_motion_time < next_event_time)
+		if(object.is_moving && next_motion_time < next_event_time)
 		{
 			next_event_time = next_motion_time;
 		}
@@ -813,7 +812,7 @@ void TIA::draw_ball_visible(int start, int end)
 		// is the next event a graphics trigger?
 		if(ball_.enabled[ball_.enabled_index])
 		{
-			int time_until_copy = 160 - position;
+			int time_until_copy = 160 - object.position;
 			int next_copy_time = start + time_until_copy;
 			if(next_copy_time < next_event_time) next_event_time = next_copy_time;
 		}
@@ -840,18 +839,18 @@ void TIA::draw_ball_visible(int start, int end)
 		}
 
 		// the next interesting event is after next_event_time cycles, so progress
-		position = (position + length) % 160;
+		object.position = (object.position + length) % 160;
 		start = next_event_time;
 
 		// if the event is a motion tick, apply
-		if(is_moving_[(int)MotionIndex::Ball] && start == next_motion_time)
+		if(object.is_moving && start == next_motion_time)
 		{
 			perform_motion_step((int)MotionIndex::Ball);
 			next_motion_time += 4;
 		}
 
 		// if it's a draw trigger, trigger a draw
-		if(!position)
+		if(!object.position)
 		{
 			ball_.pixel_position = ball_.size;
 		}
