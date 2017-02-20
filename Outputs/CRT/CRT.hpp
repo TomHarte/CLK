@@ -233,7 +233,9 @@ class CRT {
 		*/
 		inline void set_openGL_context_will_change(bool should_delete_resources)
 		{
-			openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
+			enqueue_openGL_function([should_delete_resources, this] {
+				openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
+			});
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
@@ -245,7 +247,9 @@ class CRT {
 		*/
 		inline void set_composite_sampling_function(const std::string &shader)
 		{
-			openGL_output_builder_.set_composite_sampling_function(shader);
+			enqueue_openGL_function([shader, this] {
+				openGL_output_builder_.set_composite_sampling_function(shader);
+			});
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
@@ -263,17 +267,23 @@ class CRT {
 		*/
 		inline void set_rgb_sampling_function(const std::string &shader)
 		{
-			openGL_output_builder_.set_rgb_sampling_function(shader);
+			enqueue_openGL_function([shader, this] {
+				openGL_output_builder_.set_rgb_sampling_function(shader);
+			});
 		}
 
 		inline void set_output_device(OutputDevice output_device)
 		{
-			openGL_output_builder_.set_output_device(output_device);
+			enqueue_openGL_function([output_device, this] {
+				openGL_output_builder_.set_output_device(output_device);
+			});
 		}
 
 		inline void set_visible_area(Rect visible_area)
 		{
-			openGL_output_builder_.set_visible_area(visible_area);
+			enqueue_openGL_function([visible_area, this] {
+				openGL_output_builder_.set_visible_area(visible_area);
+			});
 		}
 
 		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
