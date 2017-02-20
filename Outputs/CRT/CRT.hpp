@@ -81,9 +81,18 @@ class CRT {
 			uint16_t x1, y;
 		} output_run_;
 
-		// The delegate
+		// the delegate
 		Delegate *delegate_;
 		unsigned int frames_since_last_delegate_call_;
+
+		// queued tasks for the OpenGL queue; performed before the next draw
+		std::mutex function_mutex_;
+		std::vector<std::function<void(void)>> enqueued_openGL_functions_;
+		inline void enqueue_openGL_function(const std::function<void(void)> &function)
+		{
+			std::lock_guard<std::mutex> function_guard(function_mutex_);
+			enqueued_openGL_functions_.push_back(function);
+		}
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -204,6 +213,14 @@ class CRT {
 		*/
 		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 		{
+			{
+				std::lock_guard<std::mutex> function_guard(function_mutex_);
+				for(std::function<void(void)> function : enqueued_openGL_functions_)
+				{
+					function();
+				}
+				enqueued_openGL_functions_.clear();
+			}
 			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
 		}
 
