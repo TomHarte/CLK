@@ -194,8 +194,10 @@ class TIA {
 			Missile0,
 			Missile1
 		};
-		inline int perform_border_motion(int identity, int start, int end);
-		inline void perform_motion_step(int identity);
+
+		// motion
+		inline int perform_border_motion(Object &object, int start, int end);
+		inline void perform_motion_step(Object &object);
 
 		// drawing methods and state
 		inline void output_for_cycles(int number_of_cycles);
@@ -203,16 +205,14 @@ class TIA {
 
 		inline void draw_playfield(int start, int end);
 
-		inline void draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
-		inline void draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end);
+		inline void draw_player(Player &player, Object &object, CollisionType collision_identity, int start, int end);
+		inline void draw_player_visible(Player &player, Object &object, CollisionType collision_identity, int start, int end);
 
-		inline void draw_missile(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end);
-		inline void draw_missile_visible(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end);
+		inline void draw_missile(Missile &missile, Object &object, CollisionType collision_identity, int start, int end);
+		inline void draw_missile_visible(Missile &missile, Object &object, CollisionType collision_identity, int start, int end);
 
-		inline void draw_ball(int start, int end);
-		inline void draw_ball_visible(int start, int end);
-
-		inline void update_motion(int start, int end);
+		inline void draw_ball(Object &object, int start, int end);
+		inline void draw_ball_visible(Object &object, int start, int end);
 
 		int pixels_start_location_;
 		uint8_t *pixel_target_;

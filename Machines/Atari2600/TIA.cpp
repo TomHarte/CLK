@@ -433,11 +433,11 @@ void TIA::output_for_cycles(int number_of_cycles)
 	int latent_start = output_cursor + 4;
 	int latent_end = horizontal_counter_ + 4;
 	draw_playfield(latent_start, latent_end);
-	draw_player(player_[0], CollisionType::Player0, (int)MotionIndex::Player0, output_cursor, horizontal_counter_);
-	draw_player(player_[1], CollisionType::Player1, (int)MotionIndex::Player1, output_cursor, horizontal_counter_);
-	draw_missile(missile_[0], CollisionType::Missile0, (int)MotionIndex::Missile0, output_cursor, horizontal_counter_);
-	draw_missile(missile_[1], CollisionType::Missile1, (int)MotionIndex::Missile1, output_cursor, horizontal_counter_);
-	draw_ball(output_cursor, horizontal_counter_);
+	draw_player(player_[0], object_[(int)MotionIndex::Player0], CollisionType::Player0, output_cursor, horizontal_counter_);
+	draw_player(player_[1], object_[(int)MotionIndex::Player1], CollisionType::Player1, output_cursor, horizontal_counter_);
+	draw_missile(missile_[0], object_[(int)MotionIndex::Missile0], CollisionType::Missile0, output_cursor, horizontal_counter_);
+	draw_missile(missile_[1], object_[(int)MotionIndex::Missile1], CollisionType::Missile1, output_cursor, horizontal_counter_);
+	draw_ball(object_[(int)MotionIndex::Ball], output_cursor, horizontal_counter_);
 
 	// convert to television signals
 
@@ -616,9 +616,8 @@ void TIA::draw_playfield(int start, int end)
 
 #pragma mark - Motion
 
-void TIA::perform_motion_step(int identity)
+void TIA::perform_motion_step(Object &object)
 {
-	Object &object = object_[identity];
 	if((object.motion_step ^ (object.motion ^ 8)) == 0xf)
 		object.is_moving = false;
 	else
@@ -629,15 +628,14 @@ void TIA::perform_motion_step(int identity)
 	}
 }
 
-int TIA::perform_border_motion(int identity, int start, int end)
+int TIA::perform_border_motion(Object &object, int start, int end)
 {
-	Object &object = object_[identity];
 	if(!object.is_moving) return 0;
 
 	int steps_taken = 0;
 	while(object.is_moving && object.motion_time < end)
 	{
-		perform_motion_step(identity);
+		perform_motion_step(object);
 		steps_taken++;
 	}
 	object.position %= 160;
@@ -647,9 +645,8 @@ int TIA::perform_border_motion(int identity, int start, int end)
 
 #pragma mark - Player output
 
-void TIA::draw_player_visible(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
+void TIA::draw_player_visible(Player &player, Object &object, CollisionType collision_identity, int start, int end)
 {
-	Object &object = object_[position_identity];
 	int adder = 4 >> player.size;
 
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
@@ -710,7 +707,7 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 		// if the event is a motion tick, apply
 		if(object.is_moving && start == next_motion_time)
 		{
-			perform_motion_step(position_identity);
+			perform_motion_step(object);
 			next_motion_time += 4;
 		}
 
@@ -722,7 +719,7 @@ void TIA::draw_player_visible(Player &player, CollisionType collision_identity, 
 	}
 }
 
-void TIA::draw_player(Player &player, CollisionType collision_identity, const int position_identity, int start, int end)
+void TIA::draw_player(Player &player, Object &object, CollisionType collision_identity, int start, int end)
 {
 	int adder = 4 >> player.size;
 	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
@@ -730,7 +727,7 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel)
 	{
-		player.pixel_position = std::min(32, player.pixel_position + adder * perform_border_motion(position_identity, start, std::max(end, first_pixel)));
+		player.pixel_position = std::min(32, player.pixel_position + adder * perform_border_motion(object, start, std::max(end, first_pixel)));
 	}
 
 	// don't continue to do any drawing if this window ends too early
@@ -741,37 +738,37 @@ void TIA::draw_player(Player &player, CollisionType collision_identity, const in
 	// perform the visible part of the line, if any
 	if(start < 224)
 	{
-		draw_player_visible(player, collision_identity, position_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
+		draw_player_visible(player, object, collision_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
 	}
 
 	// move further if required
-	if(object_[position_identity].is_moving && end >= 224 && object_[position_identity].motion_time < end)
+	if(object.is_moving && end >= 224 && object.motion_time < end)
 	{
-		perform_motion_step(position_identity);
+		perform_motion_step(object);
 		player.pixel_position = std::min(32, player.pixel_position + adder);
 	}
 }
 
 #pragma mark - Missile output
 
-void TIA::draw_missile(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end)
+void TIA::draw_missile(Missile &missile, Object &object, CollisionType collision_identity, int start, int end)
 {
 }
 
-void TIA::draw_missile_visible(Missile &missile, CollisionType collision_identity, const int position_identity, int start, int end)
+void TIA::draw_missile_visible(Missile &missile, Object &object, CollisionType collision_identity, int start, int end)
 {
 }
 
 #pragma mark - Ball output
 
-void TIA::draw_ball(int start, int end)
+void TIA::draw_ball(Object &object, int start, int end)
 {
 	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
 
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel)
 	{
-		ball_.pixel_position = std::max(0, ball_.pixel_position - perform_border_motion((int)MotionIndex::Ball, start, std::max(end, first_pixel)));
+		ball_.pixel_position = std::max(0, ball_.pixel_position - perform_border_motion(object, start, std::max(end, first_pixel)));
 	}
 
 	// don't continue to do any drawing if this window ends too early
@@ -782,21 +779,19 @@ void TIA::draw_ball(int start, int end)
 	// perform the visible part of the line, if any
 	if(start < 224)
 	{
-		draw_ball_visible(start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
+		draw_ball_visible(object, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
 	}
 
 	// move further if required
 	if(object_[(int)MotionIndex::Ball].is_moving && end >= 224 && object_[(int)MotionIndex::Ball].motion_time < end)
 	{
-		perform_motion_step((int)MotionIndex::Ball);
+		perform_motion_step(object);
 		ball_.pixel_position = std::max(0, ball_.pixel_position - 1);
 	}
 }
 
-void TIA::draw_ball_visible(int start, int end)
+void TIA::draw_ball_visible(Object &object, int start, int end)
 {
-	Object &object = object_[(int)MotionIndex::Ball];
-
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
 	int next_motion_time = object.motion_time - first_pixel_cycle + 4;
 	while(start < end)
@@ -845,7 +840,7 @@ void TIA::draw_ball_visible(int start, int end)
 		// if the event is a motion tick, apply
 		if(object.is_moving && start == next_motion_time)
 		{
-			perform_motion_step((int)MotionIndex::Ball);
+			perform_motion_step(object);
 			next_motion_time += 4;
 		}
 
