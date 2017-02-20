@@ -67,7 +67,7 @@ struct Disassembly {
 	std::set<uint16_t> external_stores, external_loads, external_modifies;
 };
 
-Disassembly Disassemble(const std::vector<uint8_t> &memory, uint16_t start_address, std::vector<uint16_t> entry_points);
+Disassembly Disassemble(const std::vector<uint8_t> &memory, uint16_t start_address, std::vector<uint16_t> entry_points, uint16_t address_mask = 0xffff);
 
 }
 }

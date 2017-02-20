@@ -8,6 +8,8 @@
 
 #include "StaticAnalyser.hpp"
 
+#include "../Disassembler/Disassembler6502.hpp"
+
 using namespace StaticAnalyser::Atari;
 
 void StaticAnalyser::Atari::AddTargets(
@@ -24,5 +26,31 @@ void StaticAnalyser::Atari::AddTargets(
 	target.disks = disks;
 	target.tapes = tapes;
 	target.cartridges = cartridges;
+	target.atari.paging_model = Atari2600PagingModel::None;
+
+	// try to figure out the paging scheme
+/*	if(!cartridges.empty())
+	{
+		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridges.front()->get_segments();
+		if(segments.size() == 1)
+		{
+			uint16_t entry_address, break_address;
+			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
+			if(segment.data.size() < 4096)
+			{
+				entry_address = (uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8));
+				break_address = (uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8));
+			}
+			else
+			{
+				entry_address = (uint16_t)(segment.data[0xffc] | (segment.data[0xffd] << 8));
+				break_address = (uint16_t)(segment.data[0xffe] | (segment.data[0xfff] << 8));
+			}
+			StaticAnalyser::MOS6502::Disassembly disassembly =
+				StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
+			printf("%p", &disassembly);
+		}
+	}*/
+
 	destination.push_back(target);
 }
