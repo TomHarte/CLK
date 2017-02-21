@@ -135,8 +135,24 @@ class TIA {
 									// background_[1] on the right; otherwise background_[0] will be
 									// output twice.
 
+		// objects
+		struct Object {
+			// the two programmer-set values
+			int position;
+			int motion;
+
+			// motion_step_ is the current motion counter value; motion_time_ is the next time it will fire
+			int motion_step;
+			int motion_time;
+
+			// indicates whether this object is currently undergoing motion
+			bool is_moving;
+
+			Object() : is_moving(false) {};
+		};
+
 		// player state
-		struct Player {
+		struct Player: public Object {
 			int adder;
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
 			uint8_t graphic[2];	// the player graphic; 1 = new, 0 = current
@@ -179,7 +195,7 @@ class TIA {
 		} player_[2];
 
 		// missile state
-		struct Missile {
+		struct Missile: public Object {
 			bool enabled;
 			int size;
 			int copy_flags;
@@ -217,7 +233,7 @@ class TIA {
 		} missile_[2];
 
 		// ball state
-		struct Ball {
+		struct Ball: public Object {
 			bool enabled[2];
 			int enabled_index;
 			int size;
@@ -257,45 +273,22 @@ class TIA {
 			Ball() : pixel_position(0), size(1), enabled_index(0) {}
 		} ball_;
 
-		// movement
-		bool horizontal_blank_extend_;
-		struct Object {
-			// the two programmer-set values
-			int position;
-			int motion;
-
-			// motion_step_ is the current motion counter value; motion_time_ is the next time it will fire
-			int motion_step;
-			int motion_time;
-
-			// indicates whether this object is currently undergoing motion
-			bool is_moving;
-
-			Object() : is_moving(false) {};
-		} object_[5];
-		enum class MotionIndex : uint8_t {
-			Ball,
-			Player0,
-			Player1,
-			Missile0,
-			Missile1
-		};
-
 		// motion
+		bool horizontal_blank_extend_;
 		inline int perform_border_motion(Object &object, int start, int end);
 		inline void perform_motion_step(Object &object);
 
 		// drawing methods and state
-		template<class T> void draw_object(T &, Object &, const uint8_t collision_identity, int start, int end);
-		template<class T> void draw_object_visible(T &, Object &, const uint8_t collision_identity, int start, int end);
+		template<class T> void draw_object(T &, const uint8_t collision_identity, int start, int end);
+		template<class T> void draw_object_visible(T &, const uint8_t collision_identity, int start, int end);
 
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
 		inline void draw_playfield(int start, int end);
-		inline void draw_player(Player &player, Object &object, CollisionType collision_identity, int start, int end);
-		inline void draw_missile(Missile &missile, Object &object, CollisionType collision_identity, int start, int end);
-		inline void draw_ball(Object &object, int start, int end);
+		inline void draw_player(Player &player, CollisionType collision_identity, int start, int end);
+		inline void draw_missile(Missile &missile, CollisionType collision_identity, int start, int end);
+		inline void draw_ball(int start, int end);
 
 		int pixels_start_location_;
 		uint8_t *pixel_target_;
