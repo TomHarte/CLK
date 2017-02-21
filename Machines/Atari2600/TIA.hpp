@@ -137,7 +137,7 @@ class TIA {
 
 		// player state
 		struct Player {
-			int size;			// 0 = normal, 1 = double, 2 = quad
+			int adder;
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
 			uint8_t graphic[2];	// the player graphic; 1 = new, 0 = current
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
@@ -145,12 +145,75 @@ class TIA {
 
 			int pixel_position;
 
-			Player() : size(0), copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
+			inline void skip_pixels(int count)
+			{
+				pixel_position = std::min(32, pixel_position + count * adder);
+			}
+
+			inline void reset_pixels()
+			{
+				pixel_position = 0;
+			}
+
+			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			{
+				if(pixel_position == 32) return;
+				if(graphic[graphic_index])
+				{
+					int output_cursor = 0;
+					while(pixel_position < 32 && output_cursor < count)
+					{
+						int shift = (pixel_position >> 2) ^ reverse_mask;
+						target[output_cursor] |= ((graphic[graphic_index] >> shift)&1) * collision_identity;
+						output_cursor++;
+						pixel_position += adder;
+					}
+				}
+				else
+				{
+					skip_pixels(count);
+				}
+			}
+
+			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
 		} player_[2];
 
 		// missile state
 		struct Missile {
-			int size;		// 0 = 1 pixel, 1 = 2 pixels, etc
+			bool enabled;
+			int size;
+			int copy_flags;
+
+			int pixel_position;
+
+			inline void skip_pixels(int count)
+			{
+				pixel_position = std::max(0, pixel_position - count);
+			}
+
+			inline void reset_pixels()
+			{
+				pixel_position = size;
+			}
+
+			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			{
+				if(!pixel_position) return;
+				if(enabled)
+				{
+					int output_cursor = 0;
+					while(pixel_position && output_cursor < count)
+					{
+						target[output_cursor] |= collision_identity;
+						output_cursor++;
+						pixel_position--;
+					}
+				}
+				else
+				{
+					skip_pixels(count);
+				}
+			}
 		} missile_[2];
 
 		// ball state
@@ -158,8 +221,38 @@ class TIA {
 			bool enabled[2];
 			int enabled_index;
 			int size;
+			const int copy_flags = 0;
 
 			int pixel_position;
+
+			inline void skip_pixels(int count)
+			{
+				pixel_position = std::max(0, pixel_position - count);
+			}
+
+			inline void reset_pixels()
+			{
+				pixel_position = size;
+			}
+
+			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			{
+				if(!pixel_position) return;
+				if(enabled[enabled_index])
+				{
+					int output_cursor = 0;
+					while(pixel_position && output_cursor < count)
+					{
+						target[output_cursor] |= collision_identity;
+						output_cursor++;
+						pixel_position--;
+					}
+				}
+				else
+				{
+					skip_pixels(count);
+				}
+			}
 
 			Ball() : pixel_position(0), size(1), enabled_index(0) {}
 		} ball_;
@@ -193,22 +286,16 @@ class TIA {
 		inline void perform_motion_step(Object &object);
 
 		// drawing methods and state
-		template<class T> void draw_object(T &, Object &, int start, int end);
-		template<class T> void draw_object_visible(T &, Object &, int start, int end);
+		template<class T> void draw_object(T &, Object &, const uint8_t collision_identity, int start, int end);
+		template<class T> void draw_object_visible(T &, Object &, const uint8_t collision_identity, int start, int end);
 
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
 		inline void draw_playfield(int start, int end);
-
 		inline void draw_player(Player &player, Object &object, CollisionType collision_identity, int start, int end);
-		inline void draw_player_visible(Player &player, Object &object, CollisionType collision_identity, int start, int end);
-
 		inline void draw_missile(Missile &missile, Object &object, CollisionType collision_identity, int start, int end);
-		inline void draw_missile_visible(Missile &missile, Object &object, CollisionType collision_identity, int start, int end);
-
 		inline void draw_ball(Object &object, int start, int end);
-		inline void draw_ball_visible(Object &object, int start, int end);
 
 		int pixels_start_location_;
 		uint8_t *pixel_target_;
