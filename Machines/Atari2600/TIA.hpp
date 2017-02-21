@@ -178,14 +178,7 @@ class TIA {
 			// indicates whether this object is currently undergoing motion
 			bool is_moving;
 
-			// receives a list of drawing events; 20 is a deliberately over-specified quantity
-			struct DrawingEvent {
-				int time;
-				int copy;
-			} drawing_events[20];
-			int draw_event_read_pointer, draw_event_write_pointer;
-
-			Object() : draw_event_read_pointer(0), draw_event_write_pointer(0), is_moving(false) {};
+			Object() : is_moving(false) {};
 		} object_[5];
 		enum class MotionIndex : uint8_t {
 			Ball,
@@ -200,6 +193,9 @@ class TIA {
 		inline void perform_motion_step(Object &object);
 
 		// drawing methods and state
+		template<class T> void draw_object(T &, Object &, int start, int end);
+		template<class T> void draw_object_visible(T &, Object &, int start, int end);
+
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
