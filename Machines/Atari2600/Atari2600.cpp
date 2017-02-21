@@ -175,7 +175,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x26:	tia_->set_player_delay(decodedAddress - 0x25, (*value)&1);							break;
 					case 0x27:	tia_->set_ball_delay((*value)&1);													break;
 					case 0x28:
-					case 0x29:	update_video(); tia_->set_missile_position_to_player(decodedAddress - 0x28);		break;
+					case 0x29:	update_video(); tia_->set_missile_position_to_player(decodedAddress - 0x28, (*value)&2);		break;
 					case 0x2a:	update_video(); tia_->move();														break;
 					case 0x2b:	update_video(); tia_->clear_motion();												break;
 					case 0x2c:	update_video(); tia_->clear_collision_flags();										break;

@@ -62,7 +62,7 @@ class TIA {
 
 		void set_missile_enable(int missile, bool enabled);
 		void set_missile_position(int missile);
-		void set_missile_position_to_player(int missile);
+		void set_missile_position_to_player(int missile, bool lock);
 		void set_missile_motion(int missile, uint8_t motion);
 
 		void set_ball_enable(bool enabled);
@@ -194,13 +194,10 @@ class TIA {
 			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
 		} player_[2];
 
-		// missile state
-		struct Missile: public Object {
-			bool enabled;
-			int size;
-			int copy_flags;
-
+		// common actor for things that appear as a horizontal run of pixels
+		struct HorizontalRun: public Object {
 			int pixel_position;
+			int size;
 
 			inline void skip_pixels(int count)
 			{
@@ -211,58 +208,55 @@ class TIA {
 			{
 				pixel_position = size;
 			}
+
+			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			{
+				int output_cursor = 0;
+				while(pixel_position && output_cursor < count)
+				{
+					target[output_cursor] |= collision_identity;
+					output_cursor++;
+					pixel_position--;
+				}
+			}
+
+			HorizontalRun() : pixel_position(0), size(1) {}
+		};
+
+
+		// missile state
+		struct Missile: public HorizontalRun {
+			bool enabled;
+			int copy_flags;
 
 			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled)
 				{
-					int output_cursor = 0;
-					while(pixel_position && output_cursor < count)
-					{
-						target[output_cursor] |= collision_identity;
-						output_cursor++;
-						pixel_position--;
-					}
+					HorizontalRun::draw_pixels(target, count, collision_identity);
 				}
 				else
 				{
 					skip_pixels(count);
 				}
 			}
+
+			Missile() : enabled(false), copy_flags(0) {}
 		} missile_[2];
 
 		// ball state
-		struct Ball: public Object {
+		struct Ball: public HorizontalRun {
 			bool enabled[2];
 			int enabled_index;
-			int size;
 			const int copy_flags = 0;
-
-			int pixel_position;
-
-			inline void skip_pixels(int count)
-			{
-				pixel_position = std::max(0, pixel_position - count);
-			}
-
-			inline void reset_pixels()
-			{
-				pixel_position = size;
-			}
 
 			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled[enabled_index])
 				{
-					int output_cursor = 0;
-					while(pixel_position && output_cursor < count)
-					{
-						target[output_cursor] |= collision_identity;
-						output_cursor++;
-						pixel_position--;
-					}
+					HorizontalRun::draw_pixels(target, count, collision_identity);
 				}
 				else
 				{
@@ -270,7 +264,7 @@ class TIA {
 				}
 			}
 
-			Ball() : pixel_position(0), size(1), enabled_index(0) {}
+			Ball() : enabled_index(0), enabled{false, false} {}
 		} ball_;
 
 		// motion
