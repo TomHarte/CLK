@@ -355,16 +355,8 @@ void TIA::set_missile_position_to_player(int missile, bool lock)
 {
 	// TODO: implement this correctly; should be triggered by player counter hitting the appropriate point, and
 	// use additional storage position for enabled
-	if(lock)
-	{
-		missile_[missile].enabled = false;
-		missile_[missile].position = player_[missile].position + 5;
-//		printf("%d", missile);
-	}
-	else
-	{
-		missile_[missile].enabled = true;
-	}
+	if(missile_[missile].locked_to_player && !lock) missile_[missile].position = player_[missile].position + 1 + 16/player_[missile].adder;
+	missile_[missile].locked_to_player = lock;
 }
 
 void TIA::set_missile_motion(int missile, uint8_t motion)

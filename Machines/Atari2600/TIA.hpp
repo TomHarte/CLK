@@ -227,12 +227,13 @@ class TIA {
 		// missile state
 		struct Missile: public HorizontalRun {
 			bool enabled;
+			bool locked_to_player;
 			int copy_flags;
 
 			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
-				if(enabled)
+				if(enabled && !locked_to_player)
 				{
 					HorizontalRun::draw_pixels(target, count, collision_identity);
 				}
