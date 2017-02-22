@@ -104,7 +104,7 @@ static void audioOutputCallback(
 
 - (void)dealloc
 {
-	if(_audioQueue) AudioQueueDispose(_audioQueue, NO);
+	if(_audioQueue) AudioQueueDispose(_audioQueue, YES);
 }
 
 #pragma mark - Audio enqueuer
