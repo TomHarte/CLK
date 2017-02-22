@@ -270,8 +270,8 @@ class TIA {
 
 		// motion
 		bool horizontal_blank_extend_;
-		inline int perform_border_motion(Object &object, int start, int end);
-		inline void perform_motion_step(Object &object);
+		template<class T> void perform_border_motion(T &object, int start, int end);
+		template<class T> void perform_motion_step(T &object);
 
 		// drawing methods and state
 		template<class T> void draw_object(T &, const uint8_t collision_identity, int start, int end);

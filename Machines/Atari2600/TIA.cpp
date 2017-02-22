@@ -629,31 +629,27 @@ void TIA::draw_playfield(int start, int end)
 
 #pragma mark - Motion
 
-void TIA::perform_motion_step(Object &object)
+template<class T> void TIA::perform_motion_step(T &object)
 {
 	if((object.motion_step ^ (object.motion ^ 8)) == 0xf)
 		object.is_moving = false;
 	else
 	{
-		object.position ++;
+		if(object.position == 159) object.reset_pixels();
+		else if(object.position == 15 && object.copy_flags&1) object.reset_pixels();
+		else if(object.position == 31 && object.copy_flags&2) object.reset_pixels();
+		else if(object.position == 63 && object.copy_flags&4) object.reset_pixels();
+		else object.skip_pixels(1);
+		object.position = (object.position + 1) % 160;
 		object.motion_step --;
 		object.motion_time += 4;
 	}
 }
 
-int TIA::perform_border_motion(Object &object, int start, int end)
+template<class T> void TIA::perform_border_motion(T &object, int start, int end)
 {
-	if(!object.is_moving) return 0;
-
-	int steps_taken = 0;
 	while(object.is_moving && object.motion_time < end)
-	{
-		perform_motion_step(object);
-		steps_taken++;
-	}
-	object.position %= 160;
-
-	return steps_taken;
+		perform_motion_step<T>(object);
 }
 
 template<class T> void TIA::draw_object(T &object, const uint8_t collision_identity, int start, int end)
@@ -663,7 +659,7 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel)
 	{
-		object.skip_pixels(perform_border_motion(object, start, std::max(end, first_pixel)));
+		perform_border_motion<T>(object, start, std::max(end, first_pixel));
 	}
 
 	// don't continue to do any drawing if this window ends too early
@@ -680,8 +676,7 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 	// move further if required
 	if(object.is_moving && end >= 224 && object.motion_time < end)
 	{
-		perform_motion_step(object);
-		object.skip_pixels(1);
+		perform_motion_step<T>(object);
 	}
 }
 
@@ -733,9 +728,8 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 			perform_motion_step(object);
 			next_motion_time += 4;
 		}
-
 		// if it's a draw trigger, trigger a draw
-		if(start == next_copy_time)
+		else if(start == next_copy_time)
 		{
 			object.reset_pixels();
 		}
