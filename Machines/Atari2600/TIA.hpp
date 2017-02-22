@@ -158,7 +158,7 @@ class TIA {
 
 			int pixel_position;
 
-			inline void skip_pixels(int count)
+			inline void skip_pixels(const int count)
 			{
 				pixel_position = std::min(32, pixel_position + count * adder);
 			}
@@ -168,7 +168,7 @@ class TIA {
 				pixel_position = 0;
 			}
 
-			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(pixel_position == 32) return;
 				if(graphic[graphic_index])
@@ -196,7 +196,7 @@ class TIA {
 			int pixel_position;
 			int size;
 
-			inline void skip_pixels(int count)
+			inline void skip_pixels(const int count)
 			{
 				pixel_position = std::max(0, pixel_position - count);
 			}
@@ -206,7 +206,7 @@ class TIA {
 				pixel_position = size;
 			}
 
-			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				int output_cursor = 0;
 				while(pixel_position && output_cursor < count)
@@ -227,12 +227,12 @@ class TIA {
 			bool locked_to_player;
 			int copy_flags;
 
-			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled && !locked_to_player)
 				{
-					HorizontalRun::draw_pixels(target, count, collision_identity);
+					HorizontalRun::enqueue_pixels(target, count, collision_identity);
 				}
 				else
 				{
@@ -249,12 +249,12 @@ class TIA {
 			int enabled_index;
 			const int copy_flags = 0;
 
-			inline void draw_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled[enabled_index])
 				{
-					HorizontalRun::draw_pixels(target, count, collision_identity);
+					HorizontalRun::enqueue_pixels(target, count, collision_identity);
 				}
 				else
 				{

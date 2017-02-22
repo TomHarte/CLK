@@ -718,7 +718,11 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		// the decision is to progress by length
 		const int length = next_event_time - start;
 
-		object.draw_pixels(&collision_buffer_[start], length, collision_identity);
+		// TODO: the problem with this is that it uses the enabled/pixel state of each object four cycles early;
+		// an appropriate solution would probably be to capture the drawing request into a queue and honour them outside
+		// this loop, clipped to the real output parameters. Assuming all state consumed by draw_pixels is captured,
+		// and mutated now then also queueing resets and skips shouldn't be necessary.
+		object.enqueue_pixels(&collision_buffer_[start], length, collision_identity);
 
 		// the next interesting event is after next_event_time cycles, so progress
 		object.position = (object.position + length) % 160;
