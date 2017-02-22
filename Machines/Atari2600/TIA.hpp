@@ -188,7 +188,7 @@ class TIA {
 				}
 			}
 
-			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0) {}
+			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4) {}
 		} player_[2];
 
 		// common actor for things that appear as a horizontal run of pixels
