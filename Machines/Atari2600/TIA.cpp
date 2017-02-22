@@ -176,15 +176,6 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
 /*	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
 }
 
-TIA::~TIA()
-{
-}
-
-						// justification for +5: "we need to wait at least 71 [clocks] before the HMOVE operation is complete";
-						// which will take 16*4 + 2 = 66 cycles from the first compare, implying the first compare must be
-						// in five cycles from now
-
-
 void TIA::run_for_cycles(int number_of_cycles)
 {
 	// if part way through a line, definitely perform a partial, at most up to the end of the line
@@ -457,11 +448,11 @@ void TIA::output_for_cycles(int number_of_cycles)
 	int latent_start = output_cursor + 4;
 	int latent_end = horizontal_counter_ + 4;
 	draw_playfield(latent_start, latent_end);
-	draw_player(player_[0], CollisionType::Player0, output_cursor, horizontal_counter_);
-	draw_player(player_[1], CollisionType::Player1, output_cursor, horizontal_counter_);
-	draw_missile(missile_[0], CollisionType::Missile0, output_cursor, horizontal_counter_);
-	draw_missile(missile_[1], CollisionType::Missile1, output_cursor, horizontal_counter_);
-	draw_ball(output_cursor, horizontal_counter_);
+	draw_object<Player>(player_[0], (uint8_t)CollisionType::Player0, output_cursor, horizontal_counter_);
+	draw_object<Player>(player_[1], (uint8_t)CollisionType::Player1, output_cursor, horizontal_counter_);
+	draw_object<Missile>(missile_[0], (uint8_t)CollisionType::Missile0, output_cursor, horizontal_counter_);
+	draw_object<Missile>(missile_[1], (uint8_t)CollisionType::Missile1, output_cursor, horizontal_counter_);
+	draw_object<Ball>(ball_, (uint8_t)CollisionType::Ball, output_cursor, horizontal_counter_);
 
 	// convert to television signals
 
@@ -745,21 +736,4 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 			object.reset_pixels();
 		}
 	}
-}
-
-#pragma mark - Player output
-
-void TIA::draw_player(Player &player, CollisionType collision_identity, int start, int end)
-{
-	draw_object<Player>(player, (uint8_t)collision_identity, start, end);
-}
-
-void TIA::draw_missile(Missile &missile, CollisionType collision_identity, int start, int end)
-{
-	draw_object<Missile>(missile, (uint8_t)collision_identity, start, end);
-}
-
-void TIA::draw_ball(int start, int end)
-{
-	draw_object<Ball>(ball_, (uint8_t)CollisionType::Ball, start, end);
 }

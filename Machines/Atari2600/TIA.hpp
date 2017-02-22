@@ -17,13 +17,10 @@ namespace Atari2600 {
 class TIA {
 	public:
 		TIA();
-		~TIA();
-
 		// The supplied hook is for unit testing only; if instantiated with a line_end_function then it will
 		// be called with the latest collision buffer upon the conclusion of each line. What's a collision
 		// buffer? It's an implementation detail. If you're not writing a unit test, leave it alone.
 		TIA(std::function<void(uint8_t *output_buffer)> line_end_function);
-		TIA(bool create_crt);
 
 		enum class OutputMode {
 			NTSC, PAL
@@ -79,6 +76,7 @@ class TIA {
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
 
 	private:
+		TIA(bool create_crt);
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		std::function<void(uint8_t *output_buffer)> line_end_function_;
 
@@ -275,14 +273,10 @@ class TIA {
 		// drawing methods and state
 		template<class T> void draw_object(T &, const uint8_t collision_identity, int start, int end);
 		template<class T> void draw_object_visible(T &, const uint8_t collision_identity, int start, int end);
+		inline void draw_playfield(int start, int end);
 
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
-
-		inline void draw_playfield(int start, int end);
-		inline void draw_player(Player &player, CollisionType collision_identity, int start, int end);
-		inline void draw_missile(Missile &missile, CollisionType collision_identity, int start, int end);
-		inline void draw_ball(int start, int end);
 
 		int pixels_start_location_;
 		uint8_t *pixel_target_;
