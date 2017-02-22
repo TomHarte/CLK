@@ -128,8 +128,6 @@ TIA::TIA(bool create_crt) :
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayfieldBall;
 		}
 	}
-
-	collision_buffer_.resize(160);
 }
 
 TIA::TIA() : TIA(true) {}
@@ -237,6 +235,7 @@ void TIA::set_background_colour(uint8_t colour)
 
 void TIA::set_playfield(uint16_t offset, uint8_t value)
 {
+	assert(offset >= 0 && offset < 3);
 	switch(offset)
 	{
 		case 0:
@@ -443,8 +442,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 	if(!output_cursor)
 	{
-		if(line_end_function_) line_end_function_(collision_buffer_.data());
-		memset(collision_buffer_.data(), 0, 160);	// sizeof(collision_buffer_)
+		if(line_end_function_) line_end_function_(collision_buffer_);
+		memset(collision_buffer_, 0, sizeof(collision_buffer_));
 		horizontal_blank_extend_ = false;
 
 		ball_.motion_time %= 228;
