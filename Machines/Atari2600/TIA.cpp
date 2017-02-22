@@ -7,6 +7,7 @@
 //
 
 #include "TIA.hpp"
+#include <cassert>
 
 using namespace Atari2600;
 namespace {
@@ -280,6 +281,7 @@ void TIA::set_playfield_ball_colour(uint8_t colour)
 
 void TIA::set_player_number_and_size(int player, uint8_t value)
 {
+	assert(player >= 0 && player < 2);
 	int size = 0;
 	switch(value & 7)
 	{
@@ -306,6 +308,7 @@ void TIA::set_player_number_and_size(int player, uint8_t value)
 
 void TIA::set_player_graphic(int player, uint8_t value)
 {
+	assert(player >= 0 && player < 2);
 	player_[player].graphic[1] = value;
 	player_[player^1].graphic[0] = player_[player^1].graphic[1];
 	if(player) ball_.enabled[0] = ball_.enabled[1];
@@ -313,16 +316,19 @@ void TIA::set_player_graphic(int player, uint8_t value)
 
 void TIA::set_player_reflected(int player, bool reflected)
 {
+	assert(player >= 0 && player < 2);
 	player_[player].reverse_mask = reflected ? 7 : 0;
 }
 
 void TIA::set_player_delay(int player, bool delay)
 {
+	assert(player >= 0 && player < 2);
 	player_[player].graphic_index = delay ? 0 : 1;
 }
 
 void TIA::set_player_position(int player)
 {
+	assert(player >= 0 && player < 2);
 	// players have an extra clock of delay before output and don't display upon reset;
 	// both aims are achieved by setting to -1 because: (i) it causes the clock to be
 	// one behind its real hardware value, creating the extra delay; and (ii) the player
@@ -333,26 +339,31 @@ void TIA::set_player_position(int player)
 
 void TIA::set_player_motion(int player, uint8_t motion)
 {
+	assert(player >= 0 && player < 2);
 	player_[player].motion = (motion >> 4)&0xf;
 }
 
 void TIA::set_player_missile_colour(int player, uint8_t colour)
 {
+	assert(player >= 0 && player < 2);
 	colour_palette_[(int)ColourIndex::PlayerMissile0 + player] = colour;
 }
 
 void TIA::set_missile_enable(int missile, bool enabled)
 {
+	assert(missile >= 0 && missile < 2);
 	missile_[missile].enabled = enabled;
 }
 
 void TIA::set_missile_position(int missile)
 {
+	assert(missile >= 0 && missile < 2);
 	missile_[missile].position = 0;
 }
 
 void TIA::set_missile_position_to_player(int missile, bool lock)
 {
+	assert(missile >= 0 && missile < 2);
 	// TODO: implement this correctly; should be triggered by player counter hitting the appropriate point, and
 	// use additional storage position for enabled
 	if(missile_[missile].locked_to_player && !lock) missile_[missile].position = player_[missile].position + 1 + 16/player_[missile].adder;
@@ -361,6 +372,7 @@ void TIA::set_missile_position_to_player(int missile, bool lock)
 
 void TIA::set_missile_motion(int missile, uint8_t motion)
 {
+	assert(missile >= 0 && missile < 2);
 	missile_[missile].motion = (motion >> 4)&0xf;
 }
 

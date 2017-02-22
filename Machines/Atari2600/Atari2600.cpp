@@ -159,7 +159,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x10:
 					case 0x11:	update_video(); tia_->set_player_position(decodedAddress - 0x10);					break;
 					case 0x12:
-					case 0x13:	update_video(); tia_->set_missile_position(decodedAddress - 0x13);					break;
+					case 0x13:	update_video(); tia_->set_missile_position(decodedAddress - 0x12);					break;
 					case 0x14:	update_video();	tia_->set_ball_position();											break;
 					case 0x1b:
 					case 0x1c:	update_video(); tia_->set_player_graphic(decodedAddress - 0x1b, *value);			break;
