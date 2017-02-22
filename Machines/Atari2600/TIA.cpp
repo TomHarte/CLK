@@ -534,6 +534,7 @@ void TIA::output_for_cycles(int number_of_cycles)
 
 void TIA::output_pixels(int start, int end)
 {
+	start = std::min(start, pixels_start_location_);
 	int target_position = start - pixels_start_location_;
 
 	if(start < first_pixel_cycle+8 && horizontal_blank_extend_)
