@@ -12,6 +12,8 @@
 #define AudioQueueBufferMaxLength		8192
 #define NumberOfStoredAudioQueueBuffer	16
 
+static NSLock *CSAudioQueueDeallocLock;
+
 @implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
@@ -45,7 +47,11 @@ static void audioOutputCallback(
 	AudioQueueRef inAQ,
 	AudioQueueBufferRef inBuffer)
 {
-	[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+	if([CSAudioQueueDeallocLock tryLock])
+	{
+		[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+		[CSAudioQueueDeallocLock unlock];
+	}
 }
 
 #pragma mark - Standard object lifecycle
@@ -56,6 +62,11 @@ static void audioOutputCallback(
 
 	if(self)
 	{
+		if(!CSAudioQueueDeallocLock)
+		{
+			CSAudioQueueDeallocLock = [[NSLock alloc] init];
+		}
+
 		_samplingRate = samplingRate;
 
 		// determine preferred buffer sizes
@@ -104,7 +115,9 @@ static void audioOutputCallback(
 
 - (void)dealloc
 {
-	if(_audioQueue) AudioQueueDispose(_audioQueue, YES);
+	[CSAudioQueueDeallocLock lock];
+	if(_audioQueue) AudioQueueDispose(_audioQueue, true);
+	[CSAudioQueueDeallocLock unlock];
 }
 
 #pragma mark - Audio enqueuer
