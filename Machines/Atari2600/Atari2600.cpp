@@ -319,17 +319,19 @@ void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int n
 		}
 		is_ntsc_ ^= true;
 
+		double clock_rate;
 		if(is_ntsc_)
 		{
-			set_clock_rate(NTSC_clock_rate);
+			clock_rate = NTSC_clock_rate;
 			tia_->set_output_mode(TIA::OutputMode::NTSC);
 		}
 		else
 		{
-			set_clock_rate(PAL_clock_rate);
+			clock_rate = PAL_clock_rate;
 			tia_->set_output_mode(TIA::OutputMode::PAL);
 		}
 
-		speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
+		speaker_->set_input_rate((float)(clock_rate / 38.0));
+		set_clock_rate(clock_rate);
 	}
 }
