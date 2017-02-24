@@ -63,9 +63,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	cycles_since_speaker_update_ += cycles_run_for;
 	cycles_since_video_update_ += cycles_run_for;
 
-	if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_))
-		set_ready_line(false);
-
 	if(operation != CPU6502::BusOperation::Ready) {
 
 		// check for a paging access
@@ -134,14 +131,11 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			} else {
 				const uint16_t decodedAddress = address & 0x3f;
 				switch(decodedAddress) {
-					case 0x00:	update_video(); tia_->set_sync(*value & 0x02);	break;
-					case 0x01:	update_video();	tia_->set_blank(*value & 0x02);	break;
+					case 0x00:	update_video(); tia_->set_sync(*value & 0x02);		break;
+					case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
 
-					case 0x02:
-						if(tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_))
-							set_ready_line(true);
-					break;
-					case 0x03:	update_video();	tia_->reset_horizontal_counter();		break;
+					case 0x02:	set_ready_line(true);								break;
+					case 0x03:	update_video();	tia_->reset_horizontal_counter();	break;
 						// TODO: audio will now be out of synchronisation — fix
 
 					case 0x04:
@@ -204,6 +198,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
+	if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) set_ready_line(false);
 	mos6532_.run_for_cycles(cycles_run_for / 3);
 
 	return cycles_run_for / 3;
