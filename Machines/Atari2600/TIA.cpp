@@ -659,6 +659,8 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 {
 	int first_pixel = first_pixel_cycle - 4 + (horizontal_blank_extend_ ? 8 : 0);
 
+	object.dequeue_pixels(collision_buffer_, collision_identity, end - first_pixel_cycle);
+
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel)
 	{
@@ -673,7 +675,7 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 	// perform the visible part of the line, if any
 	if(start < 224)
 	{
-		draw_object_visible<T>(object, collision_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160));
+		draw_object_visible<T>(object, collision_identity, start - first_pixel_cycle + 4, std::min(end - first_pixel_cycle + 4, 160), end - first_pixel_cycle);
 	}
 
 	// move further if required
@@ -683,7 +685,7 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 	}
 }
 
-template<class T> void TIA::draw_object_visible(T &object, const uint8_t collision_identity, int start, int end)
+template<class T> void TIA::draw_object_visible(T &object, const uint8_t collision_identity, int start, int end, int time_now)
 {
 	// perform a miniature event loop on (i) triggering draws; (ii) drawing; and (iii) motion
 	int next_motion_time = object.motion_time - first_pixel_cycle + 4;
@@ -723,7 +725,22 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		// an appropriate solution would probably be to capture the drawing request into a queue and honour them outside
 		// this loop, clipped to the real output parameters. Assuming all state consumed by draw_pixels is captured,
 		// and mutated now then also queueing resets and skips shouldn't be necessary.
-		object.enqueue_pixels(&collision_buffer_[start], length, collision_identity);
+		if(next_event_time > time_now)
+		{
+			if(start < time_now)
+			{
+				object.output_pixels(&collision_buffer_[start], time_now - start, collision_identity);
+				object.enqueue_pixels(time_now, next_event_time);
+			}
+			else
+			{
+				object.enqueue_pixels(start, next_event_time);
+			}
+		}
+		else
+		{
+			object.output_pixels(&collision_buffer_[start], length, collision_identity);
+		}
 
 		// the next interesting event is after next_event_time cycles, so progress
 		object.position = (object.position + length) % 160;

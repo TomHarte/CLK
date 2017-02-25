@@ -133,7 +133,7 @@ class TIA {
 									// output twice.
 
 		// objects
-		struct Object {
+		template<class T> struct Object {
 			// the two programmer-set values
 			int position;
 			int motion;
@@ -146,10 +146,31 @@ class TIA {
 			bool is_moving;
 
 			Object() : is_moving(false) {};
+
+			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
+			{
+//				if(enqueued_start_ != enqueued_end_)
+//				{
+//					static_cast<T *>(this)->output_pixels(&target[enqueued_start_], enqueued_end_ - enqueued_start_, collision_identity);
+//					enqueued_end_ = enqueued_start_ = 0;
+//				}
+			}
+
+			void enqueue_pixels(const int start, const int end)
+			{
+//				enqueued_start_ = start;
+//				enqueued_end_ = end;
+				static_cast<T *>(this)->skip_pixels(end - start);
+			}
+
+			private:
+//				int enqueued_start_, enqueued_end_;
 		};
 
 		// player state
-		struct Player: public Object {
+		struct Player: public Object<Player> {
+			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4) {}
+
 			int adder;
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
 			uint8_t graphic[2];	// the player graphic; 1 = new, 0 = current
@@ -168,11 +189,43 @@ class TIA {
 				pixel_position = 0;
 			}
 
-			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
-				if(pixel_position == 32) return;
-				if(graphic[graphic_index])
+				output_pixels(target, count, collision_identity, pixel_position, adder, reverse_mask);
+				skip_pixels(count);
+			}
+
+			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
+			{
+				if(queue_.start != queue_.end)
 				{
+					output_pixels(&target[queue_.start], queue_.end - queue_.start, collision_identity, queue_.pixel_position, queue_.adder, queue_.reverse_mask);
+					queue_.start = queue_.end;
+				}
+			}
+
+			void enqueue_pixels(const int start, const int end)
+			{
+				queue_.start = start;
+				queue_.end = end;
+				queue_.pixel_position = pixel_position;
+				queue_.adder = adder;
+				queue_.reverse_mask = reverse_mask;
+				skip_pixels(end - start);
+			}
+
+			private:
+				struct QueuedPixels
+				{
+					int start, end;
+					int pixel_position;
+					int adder;
+					int reverse_mask;
+				} queue_;
+
+				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int pixel_position, int adder, int reverse_mask)
+				{
+					if(pixel_position == 32 || !graphic[graphic_index]) return;
 					int output_cursor = 0;
 					while(pixel_position < 32 && output_cursor < count)
 					{
@@ -182,17 +235,11 @@ class TIA {
 						pixel_position += adder;
 					}
 				}
-				else
-				{
-					skip_pixels(count);
-				}
-			}
 
-			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4) {}
 		} player_[2];
 
 		// common actor for things that appear as a horizontal run of pixels
-		struct HorizontalRun: public Object {
+		struct HorizontalRun: public Object<HorizontalRun> {
 			int pixel_position;
 			int size;
 
@@ -206,7 +253,7 @@ class TIA {
 				pixel_position = size;
 			}
 
-			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				int output_cursor = 0;
 				while(pixel_position && output_cursor < count)
@@ -227,12 +274,12 @@ class TIA {
 			bool locked_to_player;
 			int copy_flags;
 
-			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled && !locked_to_player)
 				{
-					HorizontalRun::enqueue_pixels(target, count, collision_identity);
+					HorizontalRun::output_pixels(target, count, collision_identity);
 				}
 				else
 				{
@@ -249,12 +296,12 @@ class TIA {
 			int enabled_index;
 			const int copy_flags = 0;
 
-			inline void enqueue_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
 			{
 				if(!pixel_position) return;
 				if(enabled[enabled_index])
 				{
-					HorizontalRun::enqueue_pixels(target, count, collision_identity);
+					HorizontalRun::output_pixels(target, count, collision_identity);
 				}
 				else
 				{
@@ -272,7 +319,7 @@ class TIA {
 
 		// drawing methods and state
 		template<class T> void draw_object(T &, const uint8_t collision_identity, int start, int end);
-		template<class T> void draw_object_visible(T &, const uint8_t collision_identity, int start, int end);
+		template<class T> void draw_object_visible(T &, const uint8_t collision_identity, int start, int end, int time_now);
 		inline void draw_playfield(int start, int end);
 
 		inline void output_for_cycles(int number_of_cycles);
