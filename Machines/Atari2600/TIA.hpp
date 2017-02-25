@@ -150,7 +150,7 @@ class TIA {
 
 		// player state
 		struct Player: public Object<Player> {
-			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4) {}
+			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4), queue_read_pointer_(0), queue_write_pointer_(0) {}
 
 			int adder;
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
@@ -179,20 +179,33 @@ class TIA {
 
 			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
 			{
-				if(queue_.start != queue_.end)
+				while(queue_read_pointer_ != queue_write_pointer_)
 				{
-					output_pixels(&target[queue_.start], queue_.end - queue_.start, collision_identity, queue_.pixel_position, queue_.adder, queue_.reverse_mask);
-					queue_.start = queue_.end;
+					uint8_t *const start_ptr = &target[queue_[queue_read_pointer_].start];
+					if(queue_[queue_read_pointer_].end > time_now)
+					{
+						const int length = time_now - queue_[queue_read_pointer_].start;
+						output_pixels(start_ptr, length, collision_identity, queue_[queue_read_pointer_].pixel_position, queue_[queue_read_pointer_].adder, queue_[queue_read_pointer_].reverse_mask);
+						queue_[queue_read_pointer_].pixel_position += length * queue_[queue_read_pointer_].adder;
+						queue_[queue_read_pointer_].start = time_now;
+						return;
+					}
+					else
+					{
+						output_pixels(start_ptr, queue_[queue_read_pointer_].end - queue_[queue_read_pointer_].start, collision_identity, queue_[queue_read_pointer_].pixel_position, queue_[queue_read_pointer_].adder, queue_[queue_read_pointer_].reverse_mask);
+					}
+					queue_read_pointer_ = (queue_read_pointer_ + 1)&3;
 				}
 			}
 
 			void enqueue_pixels(const int start, const int end)
 			{
-				queue_.start = start;
-				queue_.end = end;
-				queue_.pixel_position = pixel_position;
-				queue_.adder = adder;
-				queue_.reverse_mask = reverse_mask;
+				queue_[queue_write_pointer_].start = start;
+				queue_[queue_write_pointer_].end = end;
+				queue_[queue_write_pointer_].pixel_position = pixel_position;
+				queue_[queue_write_pointer_].adder = adder;
+				queue_[queue_write_pointer_].reverse_mask = reverse_mask;
+				queue_write_pointer_ = (queue_write_pointer_ + 1)&3;
 				skip_pixels(end - start);
 			}
 
@@ -203,7 +216,8 @@ class TIA {
 					int pixel_position;
 					int adder;
 					int reverse_mask;
-				} queue_;
+				} queue_[4];
+				int queue_read_pointer_, queue_write_pointer_;
 
 				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int pixel_position, int adder, int reverse_mask)
 				{
