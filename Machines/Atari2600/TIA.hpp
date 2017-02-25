@@ -146,25 +146,6 @@ class TIA {
 			bool is_moving;
 
 			Object() : is_moving(false) {};
-
-			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
-			{
-//				if(enqueued_start_ != enqueued_end_)
-//				{
-//					static_cast<T *>(this)->output_pixels(&target[enqueued_start_], enqueued_end_ - enqueued_start_, collision_identity);
-//					enqueued_end_ = enqueued_start_ = 0;
-//				}
-			}
-
-			void enqueue_pixels(const int start, const int end)
-			{
-//				enqueued_start_ = start;
-//				enqueued_end_ = end;
-				static_cast<T *>(this)->skip_pixels(end - start);
-			}
-
-			private:
-//				int enqueued_start_, enqueued_end_;
 		};
 
 		// player state
@@ -178,6 +159,7 @@ class TIA {
 			int graphic_index;
 
 			int pixel_position;
+			const bool enqueues = true;
 
 			inline void skip_pixels(const int count)
 			{
@@ -242,6 +224,7 @@ class TIA {
 		struct HorizontalRun: public Object<HorizontalRun> {
 			int pixel_position;
 			int size;
+			const bool enqueues = false;
 
 			inline void skip_pixels(const int count)
 			{
@@ -263,6 +246,9 @@ class TIA {
 					pixel_position--;
 				}
 			}
+
+			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now) {}
+			void enqueue_pixels(const int start, const int end) {}
 
 			HorizontalRun() : pixel_position(0), size(1) {}
 		};

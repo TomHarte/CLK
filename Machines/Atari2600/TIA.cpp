@@ -725,7 +725,7 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		// an appropriate solution would probably be to capture the drawing request into a queue and honour them outside
 		// this loop, clipped to the real output parameters. Assuming all state consumed by draw_pixels is captured,
 		// and mutated now then also queueing resets and skips shouldn't be necessary.
-		if(next_event_time > time_now)
+		if(object.enqueues && next_event_time > time_now)
 		{
 			if(start < time_now)
 			{
