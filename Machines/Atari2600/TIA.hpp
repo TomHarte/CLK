@@ -159,22 +159,29 @@ class TIA {
 			int graphic_index;
 
 			int pixel_position;
+			int latched_pixel4_time;
 			const bool enqueues = true;
 
-			inline void skip_pixels(const int count)
+			inline void skip_pixels(const int count, int from_horizontal_counter)
 			{
+				int old_pixel_position = pixel_position;
 				pixel_position = std::min(32, pixel_position + count * adder);
+				if(!copy_index_ && old_pixel_position < 16 && pixel_position >= 16)
+				{
+					latched_pixel4_time = from_horizontal_counter + (16 - old_pixel_position) / adder;
+				}
 			}
 
 			inline void reset_pixels(int copy)
 			{
 				pixel_position = 0;
+				copy_index_ = copy;
 			}
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
 			{
 				output_pixels(target, count, collision_identity, pixel_position, adder, reverse_mask);
-				skip_pixels(count);
+				skip_pixels(count, from_horizontal_counter);
 			}
 
 			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
@@ -198,7 +205,7 @@ class TIA {
 				}
 			}
 
-			void enqueue_pixels(const int start, const int end)
+			void enqueue_pixels(const int start, const int end, int from_horizontal_counter)
 			{
 				queue_[queue_write_pointer_].start = start;
 				queue_[queue_write_pointer_].end = end;
@@ -206,10 +213,11 @@ class TIA {
 				queue_[queue_write_pointer_].adder = adder;
 				queue_[queue_write_pointer_].reverse_mask = reverse_mask;
 				queue_write_pointer_ = (queue_write_pointer_ + 1)&3;
-				skip_pixels(end - start);
+				skip_pixels(end - start, from_horizontal_counter);
 			}
 
 			private:
+				int copy_index_;
 				struct QueuedPixels
 				{
 					int start, end;
@@ -240,7 +248,7 @@ class TIA {
 			int size;
 			const bool enqueues = false;
 
-			inline void skip_pixels(const int count)
+			inline void skip_pixels(const int count, int from_horizontal_counter)
 			{
 				pixel_position = std::max(0, pixel_position - count);
 			}
@@ -250,7 +258,7 @@ class TIA {
 				pixel_position = size;
 			}
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
 			{
 				int output_cursor = 0;
 				while(pixel_position && output_cursor < count)
@@ -262,7 +270,7 @@ class TIA {
 			}
 
 			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now) {}
-			void enqueue_pixels(const int start, const int end) {}
+			void enqueue_pixels(const int start, const int end, int from_horizontal_counter) {}
 
 			HorizontalRun() : pixel_position(0), size(1) {}
 		};
@@ -274,16 +282,16 @@ class TIA {
 			bool locked_to_player;
 			int copy_flags;
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
 			{
 				if(!pixel_position) return;
 				if(enabled && !locked_to_player)
 				{
-					HorizontalRun::output_pixels(target, count, collision_identity);
+					HorizontalRun::output_pixels(target, count, collision_identity, from_horizontal_counter);
 				}
 				else
 				{
-					skip_pixels(count);
+					skip_pixels(count, from_horizontal_counter);
 				}
 			}
 
@@ -296,16 +304,16 @@ class TIA {
 			int enabled_index;
 			const int copy_flags = 0;
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity)
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
 			{
 				if(!pixel_position) return;
 				if(enabled[enabled_index])
 				{
-					HorizontalRun::output_pixels(target, count, collision_identity);
+					HorizontalRun::output_pixels(target, count, collision_identity, from_horizontal_counter);
 				}
 				else
 				{
-					skip_pixels(count);
+					skip_pixels(count, from_horizontal_counter);
 				}
 			}
 
@@ -318,6 +326,7 @@ class TIA {
 		template<class T> void perform_motion_step(T &object);
 
 		// drawing methods and state
+		void draw_missile(Missile &, Player &, const uint8_t collision_identity, int start, int end);
 		template<class T> void draw_object(T &, const uint8_t collision_identity, int start, int end);
 		template<class T> void draw_object_visible(T &, const uint8_t collision_identity, int start, int end, int time_now);
 		inline void draw_playfield(int start, int end);

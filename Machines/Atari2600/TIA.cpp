@@ -354,10 +354,8 @@ void TIA::set_missile_position(int missile)
 void TIA::set_missile_position_to_player(int missile, bool lock)
 {
 	assert(missile >= 0 && missile < 2);
-	// TODO: implement this correctly; should be triggered by player counter hitting the appropriate point, and
-	// use additional storage position for enabled
-	if(missile_[missile].locked_to_player && !lock) missile_[missile].position = player_[missile].position + 1 + 16/player_[missile].adder;
 	missile_[missile].locked_to_player = lock;
+	player_[missile].latched_pixel4_time = -1;
 }
 
 void TIA::set_missile_motion(int missile, uint8_t motion)
@@ -450,8 +448,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 	draw_playfield(latent_start, latent_end);
 	draw_object<Player>(player_[0], (uint8_t)CollisionType::Player0, output_cursor, horizontal_counter_);
 	draw_object<Player>(player_[1], (uint8_t)CollisionType::Player1, output_cursor, horizontal_counter_);
-	draw_object<Missile>(missile_[0], (uint8_t)CollisionType::Missile0, output_cursor, horizontal_counter_);
-	draw_object<Missile>(missile_[1], (uint8_t)CollisionType::Missile1, output_cursor, horizontal_counter_);
+	draw_missile(missile_[0], player_[0], (uint8_t)CollisionType::Missile0, output_cursor, horizontal_counter_);
+	draw_missile(missile_[1], player_[1], (uint8_t)CollisionType::Missile1, output_cursor, horizontal_counter_);
 	draw_object<Ball>(ball_, (uint8_t)CollisionType::Ball, output_cursor, horizontal_counter_);
 
 	// convert to television signals
@@ -642,7 +640,7 @@ template<class T> void TIA::perform_motion_step(T &object)
 		else if(object.position == 15 && object.copy_flags&1) object.reset_pixels(1);
 		else if(object.position == 31 && object.copy_flags&2) object.reset_pixels(2);
 		else if(object.position == 63 && object.copy_flags&4) object.reset_pixels(3);
-		else object.skip_pixels(1);
+		else object.skip_pixels(1, object.motion_time);
 		object.position = (object.position + 1) % 160;
 		object.motion_step --;
 		object.motion_time += 4;
@@ -725,25 +723,23 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		// the decision is to progress by length
 		const int length = next_event_time - start;
 
-		// TODO: the problem with this is that it uses the enabled/pixel state of each object four cycles early;
-		// an appropriate solution would probably be to capture the drawing request into a queue and honour them outside
-		// this loop, clipped to the real output parameters. Assuming all state consumed by draw_pixels is captured,
-		// and mutated now then also queueing resets and skips shouldn't be necessary.
+		// enqueue a future intention to draw pixels if spitting them out now would violate accuracy;
+		// otherwise draw them now
 		if(object.enqueues && next_event_time > time_now)
 		{
 			if(start < time_now)
 			{
-				object.output_pixels(&collision_buffer_[start], time_now - start, collision_identity);
-				object.enqueue_pixels(time_now, next_event_time);
+				object.output_pixels(&collision_buffer_[start], time_now - start, collision_identity, start + first_pixel_cycle - 4);
+				object.enqueue_pixels(time_now, next_event_time, time_now + first_pixel_cycle - 4);
 			}
 			else
 			{
-				object.enqueue_pixels(start, next_event_time);
+				object.enqueue_pixels(start, next_event_time, start + first_pixel_cycle - 4);
 			}
 		}
 		else
 		{
-			object.output_pixels(&collision_buffer_[start], length, collision_identity);
+			object.output_pixels(&collision_buffer_[start], length, collision_identity, start + first_pixel_cycle - 4);
 		}
 
 		// the next interesting event is after next_event_time cycles, so progress
@@ -761,5 +757,22 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		{
 			object.reset_pixels(next_copy_id);
 		}
+	}
+}
+
+#pragma mark - Missile drawing
+
+void TIA::draw_missile(Missile &missile, Player &player, const uint8_t collision_identity, int start, int end)
+{
+	if(!missile.locked_to_player || player.latched_pixel4_time < 0)
+	{
+		draw_object<Missile>(missile, collision_identity, start, end);
+	}
+	else
+	{
+		draw_object<Missile>(missile, collision_identity, start, player.latched_pixel4_time);
+		missile.position = 0;
+		draw_object<Missile>(missile, collision_identity, player.latched_pixel4_time, end);
+		player.latched_pixel4_time = -1;
 	}
 }
