@@ -32,7 +32,8 @@ enum class Atari2600PagingModel {
 	Atari32k,
 	ActivisionStack,
 	ParkerBros,
-	Tigervision
+	Tigervision,
+	CBSRamPlus
 };
 
 /*!
@@ -57,6 +58,7 @@ struct Target {
 
 		struct {
 			Atari2600PagingModel paging_model;
+			bool uses_superchip;
 		} atari;
 
 		struct {
