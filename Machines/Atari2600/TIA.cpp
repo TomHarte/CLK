@@ -381,7 +381,7 @@ void TIA::set_ball_position()
 	ball_.position = 0;
 
 	// setting the ball position also triggers a draw
-	ball_.reset_pixels();
+	ball_.reset_pixels(0);
 }
 
 void TIA::set_ball_motion(uint8_t motion)
@@ -638,10 +638,10 @@ template<class T> void TIA::perform_motion_step(T &object)
 		object.is_moving = false;
 	else
 	{
-		if(object.position == 159) object.reset_pixels();
-		else if(object.position == 15 && object.copy_flags&1) object.reset_pixels();
-		else if(object.position == 31 && object.copy_flags&2) object.reset_pixels();
-		else if(object.position == 63 && object.copy_flags&4) object.reset_pixels();
+		if(object.position == 159) object.reset_pixels(0);
+		else if(object.position == 15 && object.copy_flags&1) object.reset_pixels(1);
+		else if(object.position == 31 && object.copy_flags&2) object.reset_pixels(2);
+		else if(object.position == 63 && object.copy_flags&4) object.reset_pixels(3);
 		else object.skip_pixels(1);
 		object.position = (object.position + 1) % 160;
 		object.motion_step --;
@@ -701,17 +701,21 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 
 		// is the next event a graphics trigger?
 		int next_copy = 160;
+		int next_copy_id = 0;
 		if(object.copy_flags)
 		{
 			if(object.position < 16 && object.copy_flags&1)
 			{
 				next_copy = 16;
+				next_copy_id = 1;
 			} else if(object.position < 32 && object.copy_flags&2)
 			{
 				next_copy = 32;
+				next_copy_id = 2;
 			} else if(object.position < 64 && object.copy_flags&4)
 			{
 				next_copy = 64;
+				next_copy_id = 3;
 			}
 		}
 
@@ -755,7 +759,7 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 		// if it's a draw trigger, trigger a draw
 		else if(start == next_copy_time)
 		{
-			object.reset_pixels();
+			object.reset_pixels(next_copy_id);
 		}
 	}
 }

@@ -166,7 +166,7 @@ class TIA {
 				pixel_position = std::min(32, pixel_position + count * adder);
 			}
 
-			inline void reset_pixels()
+			inline void reset_pixels(int copy)
 			{
 				pixel_position = 0;
 			}
@@ -245,7 +245,7 @@ class TIA {
 				pixel_position = std::max(0, pixel_position - count);
 			}
 
-			inline void reset_pixels()
+			inline void reset_pixels(int copy)
 			{
 				pixel_position = size;
 			}
