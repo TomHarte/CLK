@@ -41,7 +41,7 @@ public:
 		@param fragment_shader The fragment shader source code.
 		@param attribute_bindings Either @c nullptr or an array terminated by an entry with a @c nullptr-name of attribute bindings.
 	*/
-	Shader(const char *vertex_shader, const char *fragment_shader, const AttributeBinding *attribute_bindings);
+	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const AttributeBinding *attribute_bindings);
 	~Shader();
 
 	/*!
@@ -106,7 +106,7 @@ public:
 	void set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
 
 private:
-	GLuint compile_shader(const char *source, GLenum type);
+	GLuint compile_shader(const std::string &source, GLenum type);
 	GLuint shader_program_;
 
 	void flush_functions();

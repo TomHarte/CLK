@@ -25,6 +25,16 @@ enum class Vic20MemoryModel {
 	ThirtyTwoKB
 };
 
+enum class Atari2600PagingModel {
+	None,
+	Atari8k,
+	Atari16k,
+	Atari32k,
+	ActivisionStack,
+	ParkerBros,
+	Tigervision
+};
+
 /*!
 	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
@@ -40,20 +50,24 @@ struct Target {
 
 	union {
 		struct {
-			Vic20MemoryModel memory_model;
-			bool has_c1540;
-		} vic20;
-
-		struct {
 			bool has_adfs;
 			bool has_dfs;
 			bool should_shift_restart;
 		} acorn;
 
 		struct {
+			Atari2600PagingModel paging_model;
+		} atari;
+
+		struct {
 			bool use_atmos_rom;
 			bool has_microdisc;
 		} oric;
+
+		struct {
+			Vic20MemoryModel memory_model;
+			bool has_c1540;
+		} vic20;
 	};
 
 	std::string loadingCommand;

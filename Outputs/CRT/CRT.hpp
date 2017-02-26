@@ -81,9 +81,18 @@ class CRT {
 			uint16_t x1, y;
 		} output_run_;
 
-		// The delegate
+		// the delegate
 		Delegate *delegate_;
 		unsigned int frames_since_last_delegate_call_;
+
+		// queued tasks for the OpenGL queue; performed before the next draw
+		std::mutex function_mutex_;
+		std::vector<std::function<void(void)>> enqueued_openGL_functions_;
+		inline void enqueue_openGL_function(const std::function<void(void)> &function)
+		{
+			std::lock_guard<std::mutex> function_guard(function_mutex_);
+			enqueued_openGL_functions_.push_back(function);
+		}
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -204,6 +213,14 @@ class CRT {
 		*/
 		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
 		{
+			{
+				std::lock_guard<std::mutex> function_guard(function_mutex_);
+				for(std::function<void(void)> function : enqueued_openGL_functions_)
+				{
+					function();
+				}
+				enqueued_openGL_functions_.clear();
+			}
 			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
 		}
 
@@ -216,7 +233,9 @@ class CRT {
 		*/
 		inline void set_openGL_context_will_change(bool should_delete_resources)
 		{
-			openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
+			enqueue_openGL_function([should_delete_resources, this] {
+				openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
+			});
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
@@ -226,9 +245,11 @@ class CRT {
 			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
 			carrier phase and amplitude.
 		*/
-		inline void set_composite_sampling_function(const char *shader)
+		inline void set_composite_sampling_function(const std::string &shader)
 		{
-			openGL_output_builder_.set_composite_sampling_function(shader);
+			enqueue_openGL_function([shader, this] {
+				openGL_output_builder_.set_composite_sampling_function(shader);
+			});
 		}
 
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
@@ -244,19 +265,25 @@ class CRT {
 			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
 			* `vec2 icoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
 		*/
-		inline void set_rgb_sampling_function(const char *shader)
+		inline void set_rgb_sampling_function(const std::string &shader)
 		{
-			openGL_output_builder_.set_rgb_sampling_function(shader);
+			enqueue_openGL_function([shader, this] {
+				openGL_output_builder_.set_rgb_sampling_function(shader);
+			});
 		}
 
 		inline void set_output_device(OutputDevice output_device)
 		{
-			openGL_output_builder_.set_output_device(output_device);
+			enqueue_openGL_function([output_device, this] {
+				openGL_output_builder_.set_output_device(output_device);
+			});
 		}
 
 		inline void set_visible_area(Rect visible_area)
 		{
-			openGL_output_builder_.set_visible_area(visible_area);
+			enqueue_openGL_function([visible_area, this] {
+				openGL_output_builder_.set_visible_area(visible_area);
+			});
 		}
 
 		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);

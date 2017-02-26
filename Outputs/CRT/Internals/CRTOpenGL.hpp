@@ -47,8 +47,8 @@ class OpenGLOutputBuilder {
 		Rect visible_area_;
 
 		// Other things the caller may have provided.
-		char *composite_shader_;
-		char *rgb_shader_;
+		std::string composite_shader_;
+		std::string rgb_shader_;
 
 		// Methods used by the OpenGL code
 		void prepare_output_shader();
@@ -148,8 +148,8 @@ class OpenGLOutputBuilder {
 
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
-		void set_composite_sampling_function(const char *shader);
-		void set_rgb_sampling_function(const char *shader);
+		void set_composite_sampling_function(const std::string &shader);
+		void set_rgb_sampling_function(const std::string &shader);
 		void set_output_device(OutputDevice output_device);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 };

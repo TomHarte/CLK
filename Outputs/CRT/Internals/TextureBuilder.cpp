@@ -196,5 +196,6 @@ void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea>
 	}
 
 	did_submit_ = false;
+	has_write_area_ = false;
 	number_of_write_areas_ = 0;
 }

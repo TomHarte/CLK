@@ -12,11 +12,13 @@
 #define AudioQueueBufferMaxLength		8192
 #define NumberOfStoredAudioQueueBuffer	16
 
+static NSLock *CSAudioQueueDeallocLock;
+
 @implementation CSAudioQueue
 {
 	AudioQueueRef _audioQueue;
-
 	AudioQueueBufferRef _storedBuffers[NumberOfStoredAudioQueueBuffer];
+	NSLock *_storedBuffersLock;
 }
 
 #pragma mark - AudioQueue callbacks
@@ -25,18 +27,18 @@
 {
 	[self.delegate audioQueueIsRunningDry:self];
 
-	@synchronized(self)
+	[_storedBuffersLock lock];
+	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
 	{
-		for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
+		if(!_storedBuffers[c] || buffer->mAudioDataBytesCapacity > _storedBuffers[c]->mAudioDataBytesCapacity)
 		{
-			if(!_storedBuffers[c] || buffer->mAudioDataBytesCapacity > _storedBuffers[c]->mAudioDataBytesCapacity)
-			{
-				if(_storedBuffers[c]) AudioQueueFreeBuffer(_audioQueue, _storedBuffers[c]);
-				_storedBuffers[c] = buffer;
-				return;
-			}
+			if(_storedBuffers[c]) AudioQueueFreeBuffer(_audioQueue, _storedBuffers[c]);
+			_storedBuffers[c] = buffer;
+			[_storedBuffersLock unlock];
+			return;
 		}
 	}
+	[_storedBuffersLock unlock];
 	AudioQueueFreeBuffer(_audioQueue, buffer);
 }
 
@@ -45,7 +47,11 @@ static void audioOutputCallback(
 	AudioQueueRef inAQ,
 	AudioQueueBufferRef inBuffer)
 {
-	[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+	if([CSAudioQueueDeallocLock tryLock])
+	{
+		[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+		[CSAudioQueueDeallocLock unlock];
+	}
 }
 
 #pragma mark - Standard object lifecycle
@@ -56,6 +62,12 @@ static void audioOutputCallback(
 
 	if(self)
 	{
+		if(!CSAudioQueueDeallocLock)
+		{
+			CSAudioQueueDeallocLock = [[NSLock alloc] init];
+		}
+		_storedBuffersLock = [[NSLock alloc] init];
+
 		_samplingRate = samplingRate;
 
 		// determine preferred buffer sizes
@@ -104,7 +116,9 @@ static void audioOutputCallback(
 
 - (void)dealloc
 {
-	if(_audioQueue) AudioQueueDispose(_audioQueue, NO);
+	[CSAudioQueueDeallocLock lock];
+	if(_audioQueue) AudioQueueDispose(_audioQueue, true);
+	[CSAudioQueueDeallocLock unlock];
 }
 
 #pragma mark - Audio enqueuer
@@ -113,28 +127,28 @@ static void audioOutputCallback(
 {
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
 
-	@synchronized(self)
+	[_storedBuffersLock lock];
+	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
 	{
-		for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
+		if(_storedBuffers[c] && _storedBuffers[c]->mAudioDataBytesCapacity >= bufferBytes)
 		{
-			if(_storedBuffers[c] && _storedBuffers[c]->mAudioDataBytesCapacity >= bufferBytes)
-			{
-				memcpy(_storedBuffers[c]->mAudioData, buffer, bufferBytes);
-				_storedBuffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
+			memcpy(_storedBuffers[c]->mAudioData, buffer, bufferBytes);
+			_storedBuffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
 
-				AudioQueueEnqueueBuffer(_audioQueue, _storedBuffers[c], 0, NULL);
-				_storedBuffers[c] = NULL;
-				return;
-			}
+			AudioQueueEnqueueBuffer(_audioQueue, _storedBuffers[c], 0, NULL);
+			_storedBuffers[c] = NULL;
+			[_storedBuffersLock unlock];
+			return;
 		}
-
-		AudioQueueBufferRef newBuffer;
-		AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);
-		memcpy(newBuffer->mAudioData, buffer, bufferBytes);
-		newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
-
-		AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
 	}
+	[_storedBuffersLock unlock];
+
+	AudioQueueBufferRef newBuffer;
+	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);
+	memcpy(newBuffer->mAudioData, buffer, bufferBytes);
+	newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
+
+	AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
 }
 
 #pragma mark - Sampling Rate getters

@@ -115,7 +115,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 	}
 	else
 	{
-		unsigned int divider = 0;
+		unsigned int divider = 1;
 		switch(screen_mode_)
 		{
 			case 0: case 3: divider = 2; break;
