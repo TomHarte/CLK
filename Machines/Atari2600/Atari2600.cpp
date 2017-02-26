@@ -121,6 +121,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x0a:
 					case 0x0b:
 						// TODO: pot ports
+						returnValue &= 0;
 					break;
 
 					case 0x0c:
