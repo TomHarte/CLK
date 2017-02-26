@@ -87,8 +87,21 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 
 		// check for a ROM read
-		if((address&0x1000) && isReadOperation(operation)) {
-			returnValue &= rom_pages_[(address >> 10)&3][address&1023];
+		uint16_t masked_address = address & 0x1fff;
+		if(address&0x1000)
+		{
+			if(isReadOperation(operation) && (!uses_superchip_ || masked_address > 0x10ff)) {
+				returnValue &= rom_pages_[(address >> 10)&3][address&1023];
+			}
+
+			// check for a Super Chip RAM access
+			if(uses_superchip_ && masked_address < 0x1100) {
+				if(masked_address < 0x1080) {
+					superchip_ram_[masked_address & 0x7f] = *value;
+				} else {
+					returnValue &= superchip_ram_[masked_address & 0x7f];
+				}
+			}
 		}
 
 		// check for a RAM access
@@ -263,6 +276,8 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	rom_pages_[1] = &rom_[1024 & romMask];
 	rom_pages_[2] = &rom_[2048 & romMask];
 	rom_pages_[3] = &rom_[3072 & romMask];
+
+	uses_superchip_ = target.atari.uses_superchip;
 }
 
 #pragma mark - Audio and Video

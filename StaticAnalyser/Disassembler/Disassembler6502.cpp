@@ -189,7 +189,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			break;
 
 			case 0x87: case 0x97: case 0x83: case 0x8f:
-				instruction.operation = Instruction::SAX;
+				instruction.operation = Instruction::AXS;
 			break;
 			case 0xa7: case 0xb7: case 0xa3: case 0xb3: case 0xaf: case 0xbf:
 				instruction.operation = Instruction::LAX;
@@ -205,7 +205,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			IM_INSTRUCTION(0x6b, Instruction::ARR)
 			IM_INSTRUCTION(0x8b, Instruction::XAA)
 			IM_INSTRUCTION(0xab, Instruction::LAX)
-			IM_INSTRUCTION(0xcb, Instruction::AXS)
+			IM_INSTRUCTION(0xcb, Instruction::SAX)
 			IM_INSTRUCTION(0xeb, Instruction::SBC)
 			case 0x93: case 0x9f:
 				instruction.operation = Instruction::AHX;
@@ -259,16 +259,36 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 		// TODO: something wider-ranging than this
-		if((instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage) && (instruction.operand < start_address || instruction.operand >= start_address + memory.size()))
+		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage)
 		{
-			if(	instruction.operation == Instruction::STY ||
-				instruction.operation == Instruction::STX ||
-				instruction.operation == Instruction::STA)
-					disassembly.disassembly.external_stores.insert(instruction.operand);
-			if(	instruction.operation == Instruction::LDY ||
-				instruction.operation == Instruction::LDX ||
-				instruction.operation == Instruction::LDA)
-					disassembly.disassembly.external_loads.insert(instruction.operand);
+			bool is_external = (instruction.operand&address_mask) < start_address || (instruction.operand&address_mask) >= start_address + memory.size();
+
+			switch(instruction.operation)
+			{
+				default: break;
+
+				case Instruction::LDY: case Instruction::LDX: case Instruction::LDA:
+				case Instruction::LAX:
+				case Instruction::AND: case Instruction::EOR: case Instruction::ORA: case Instruction::BIT:
+				case Instruction::ADC: case Instruction::SBC:
+				case Instruction::LAS:
+				case Instruction::CMP: case Instruction::CPX: case Instruction::CPY:
+					(is_external ? disassembly.disassembly.external_loads : disassembly.disassembly.internal_loads).insert(instruction.operand);
+				break;
+
+				case Instruction::STY: case Instruction::STX: case Instruction::STA:
+				case Instruction::AXS: case Instruction::AHX: case Instruction::SHX: case Instruction::SHY:
+				case Instruction::TAS:
+					(is_external ? disassembly.disassembly.external_stores : disassembly.disassembly.internal_stores).insert(instruction.operand);
+				break;
+
+				case Instruction::SLO: case Instruction::RLA: case Instruction::SRE: case Instruction::RRA:
+				case Instruction::DCP: case Instruction::ISC:
+				case Instruction::INC: case Instruction::DEC:
+				case Instruction::ASL: case Instruction::ROL: case Instruction::LSR: case Instruction::ROR:
+					(is_external ? disassembly.disassembly.external_modifies : disassembly.disassembly.internal_modifies).insert(instruction.operand);
+				break;
+			}
 		}
 
 		// decide on overall flow control
