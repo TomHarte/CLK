@@ -56,8 +56,13 @@ class Machine:
 		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);
 
 	private:
+		// ROM information
 		uint8_t *rom_, *rom_pages_[4];
 		size_t rom_size_;
+
+		// cartridge RAM expansion store
+		uint8_t superchip_ram_[128];
+		bool uses_superchip_;
 
 		// the RIOT and TIA
 		PIA mos6532_;
