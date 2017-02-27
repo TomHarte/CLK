@@ -17,14 +17,30 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// if this is a 2kb cartridge then it's definitely either unpaged or a CommaVid
 	uint16_t entry_address, break_address;
 
-	entry_address = (uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8));
-	break_address = (uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8));
+	entry_address = ((uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8))) & 0x1fff;
+	break_address = ((uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8))) & 0x1fff;
 
 	// a CommaVid start address needs to be outside of its RAM
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
 
 	StaticAnalyser::MOS6502::Disassembly disassembly =
 		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1800, {entry_address, break_address}, 0x1fff);
+//	StaticAnalyser::MOS6502::Disassembly standard_disassembly =
+//		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
+
+	// if there are no subroutines in the top 2kb of memory then this isn't a CommaVid
+	bool has_subroutine_call = false;
+	for(uint16_t address : disassembly.internal_calls)
+	{
+		const uint16_t masked_address = address & 0x1fff;
+		if(masked_address >= 0x1800)
+		{
+			has_subroutine_call = true;
+			break;
+		}
+	}
+	if(!has_subroutine_call) return;
+
 	std::set<uint16_t> all_writes = disassembly.external_stores;
 	all_writes.insert(disassembly.external_modifies.begin(), disassembly.external_modifies.end());
 

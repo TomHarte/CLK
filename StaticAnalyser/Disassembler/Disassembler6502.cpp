@@ -18,6 +18,7 @@ struct PartialDisassembly {
 
 static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, uint16_t start_address, uint16_t entry_point, uint16_t address_mask)
 {
+	disassembly.disassembly.internal_calls.insert(start_address);
 	uint16_t address = entry_point & address_mask;
 	while(1)
 	{

@@ -64,6 +64,7 @@ struct Instruction {
 struct Disassembly {
 	std::map<uint16_t, Instruction> instructions_by_address;
 	std::set<uint16_t> outward_calls;
+	std::set<uint16_t> internal_calls;
 	std::set<uint16_t> external_stores, external_loads, external_modifies;
 	std::set<uint16_t> internal_stores, internal_loads, internal_modifies;
 };
