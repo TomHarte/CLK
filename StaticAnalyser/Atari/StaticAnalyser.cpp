@@ -12,6 +12,72 @@
 
 using namespace StaticAnalyser::Atari;
 
+static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
+{
+	// if this is a 2kb cartridge then it's definitely either unpaged or a CommaVid
+	uint16_t entry_address, break_address;
+
+	entry_address = (uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8));
+	break_address = (uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8));
+
+	// a CommaVid start address needs to be outside of its RAM
+	if(entry_address < 0x1800 || break_address < 0x1800) return;
+
+	StaticAnalyser::MOS6502::Disassembly disassembly =
+		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1800, {entry_address, break_address}, 0x1fff);
+	std::set<uint16_t> all_writes = disassembly.external_stores;
+	all_writes.insert(disassembly.external_modifies.begin(), disassembly.external_modifies.end());
+
+	// a CommaVid will use its RAM
+	if(all_writes.empty()) return;
+
+	bool has_appropriate_writes = false;
+	for(uint16_t address : all_writes)
+	{
+		const uint16_t masked_address = address & 0x1fff;
+		if(masked_address >= 0x1400 && masked_address < 0x1800)
+		{
+			has_appropriate_writes = true;
+			break;
+		}
+	}
+
+	// conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations
+	if(has_appropriate_writes) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
+}
+
+static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
+{
+	if(segment.data.size() == 2048)
+	{
+		DeterminePagingFor2kCartridge(target, segment);
+		return;
+	}
+
+	uint16_t entry_address, break_address;
+
+	entry_address = (uint16_t)(segment.data[0xffc] | (segment.data[0xffd] << 8));
+	break_address = (uint16_t)(segment.data[0xffe] | (segment.data[0xfff] << 8));
+
+	StaticAnalyser::MOS6502::Disassembly disassembly =
+		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
+
+	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
+	// hat that this is a CBS RAM+ cartridge
+	if(!disassembly.internal_stores.empty())
+	{
+		bool writes_above_128 = false;
+		for(uint16_t address : disassembly.internal_stores)
+		{
+			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
+		}
+		if(writes_above_128)
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+		else
+			target.atari.uses_superchip = true;
+	}
+}
+
 void StaticAnalyser::Atari::AddTargets(
 	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
 	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
@@ -33,37 +99,11 @@ void StaticAnalyser::Atari::AddTargets(
 	if(!cartridges.empty())
 	{
 		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridges.front()->get_segments();
+
 		if(segments.size() == 1)
 		{
-			uint16_t entry_address, break_address;
 			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
-			if(segment.data.size() < 4096)
-			{
-				entry_address = (uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8));
-				break_address = (uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8));
-			}
-			else
-			{
-				entry_address = (uint16_t)(segment.data[0xffc] | (segment.data[0xffd] << 8));
-				break_address = (uint16_t)(segment.data[0xffe] | (segment.data[0xfff] << 8));
-			}
-			StaticAnalyser::MOS6502::Disassembly disassembly =
-				StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
-
-			// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
-			// hat that this is a CBS RAM+ cartridge
-			if(!disassembly.internal_stores.empty())
-			{
-				bool writes_above_128 = false;
-				for(uint16_t address : disassembly.internal_stores)
-				{
-					writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
-				}
-				if(writes_above_128)
-					target.atari.paging_model = Atari2600PagingModel::CBSRamPlus;
-				else
-					target.atari.uses_superchip = true;
-			}
+			DeterminePagingForCartridge(target, segment);
 		}
 	}
 
