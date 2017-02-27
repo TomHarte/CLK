@@ -87,10 +87,7 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// itself so as to land in ROM even if mapped as a CommaVid and this code is on the fence as to whether it
 	// attempts to modify itself but it probably doesn't
 	if(has_appropriate_accesses || has_wide_area_store)
-	{
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
-		return;
-	}
 }
 
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
