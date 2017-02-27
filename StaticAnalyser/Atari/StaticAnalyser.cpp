@@ -38,17 +38,17 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 		StaticAnalyser::MOS6502::Disassemble(segment.data, full_range_mapper, {entry_address, break_address});
 
 	// if there are no subroutines in the top 2kb of memory then this isn't a CommaVid
-	bool has_subroutine_call = false;
+	bool has_appropriate_subroutine_calls = false;
+	bool has_inappropriate_subroutine_calls = false;
 	for(uint16_t address : high_location_disassembly.internal_calls)
 	{
 		const uint16_t masked_address = address & 0x1fff;
-		if(masked_address >= 0x1800)
-		{
-			has_subroutine_call = true;
-			break;
-		}
+		has_appropriate_subroutine_calls |= (masked_address >= 0x1800);
+		has_inappropriate_subroutine_calls |= (masked_address < 0x1800);
 	}
-	if(!has_subroutine_call) return;
+
+	// assumption here: a CommaVid will never branch into RAM. Possibly unsafe: if it won't then what's the RAM for?
+	if(!has_appropriate_subroutine_calls || has_inappropriate_subroutine_calls) return;
 
 	std::set<uint16_t> all_writes = high_location_disassembly.external_stores;
 	all_writes.insert(high_location_disassembly.external_modifies.begin(), high_location_disassembly.external_modifies.end());
@@ -68,7 +68,11 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	}
 
 	// conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations
-	if(has_appropriate_writes) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
+	if(has_appropriate_writes)
+	{
+		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
+		return;
+	}
 }
 
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
