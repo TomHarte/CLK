@@ -23,14 +23,23 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// a CommaVid start address needs to be outside of its RAM
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
 
-	StaticAnalyser::MOS6502::Disassembly disassembly =
-		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1800, {entry_address, break_address}, 0x1fff);
-//	StaticAnalyser::MOS6502::Disassembly standard_disassembly =
-//		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
+	std::function<size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
+		address &= 0x1fff;
+		return (size_t)(address - 0x1800);
+	};
+	std::function<size_t(uint16_t address)> full_range_mapper = [](uint16_t address) {
+		if(!(address & 0x1000)) return (size_t)-1;
+		return (size_t)(address & 0x7ff);
+	};
+
+	StaticAnalyser::MOS6502::Disassembly high_location_disassembly =
+		StaticAnalyser::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
+	StaticAnalyser::MOS6502::Disassembly full_range_disassembly =
+		StaticAnalyser::MOS6502::Disassemble(segment.data, full_range_mapper, {entry_address, break_address});
 
 	// if there are no subroutines in the top 2kb of memory then this isn't a CommaVid
 	bool has_subroutine_call = false;
-	for(uint16_t address : disassembly.internal_calls)
+	for(uint16_t address : high_location_disassembly.internal_calls)
 	{
 		const uint16_t masked_address = address & 0x1fff;
 		if(masked_address >= 0x1800)
@@ -41,8 +50,8 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	}
 	if(!has_subroutine_call) return;
 
-	std::set<uint16_t> all_writes = disassembly.external_stores;
-	all_writes.insert(disassembly.external_modifies.begin(), disassembly.external_modifies.end());
+	std::set<uint16_t> all_writes = high_location_disassembly.external_stores;
+	all_writes.insert(high_location_disassembly.external_modifies.begin(), high_location_disassembly.external_modifies.end());
 
 	// a CommaVid will use its RAM
 	if(all_writes.empty()) return;
@@ -75,8 +84,12 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	entry_address = (uint16_t)(segment.data[0xffc] | (segment.data[0xffd] << 8));
 	break_address = (uint16_t)(segment.data[0xffe] | (segment.data[0xfff] << 8));
 
+	std::function<size_t(uint16_t address)> address_mapper = [](uint16_t address) {
+		if(!(address & 0x1000)) return (size_t)-1;
+		return (size_t)(address & 0xfff);
+	};
 	StaticAnalyser::MOS6502::Disassembly disassembly =
-		StaticAnalyser::MOS6502::Disassemble(segment.data, 0x1000, {entry_address, break_address}, 0x1fff);
+		StaticAnalyser::MOS6502::Disassemble(segment.data, address_mapper, {entry_address, break_address});
 
 	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
 	// hat that this is a CBS RAM+ cartridge

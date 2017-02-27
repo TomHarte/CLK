@@ -99,7 +99,7 @@ void StaticAnalyser::Oric::AddTargets(
 				{
 					std::vector<uint16_t> entry_points = {file.starting_address};
 					StaticAnalyser::MOS6502::Disassembly disassembly =
-						StaticAnalyser::MOS6502::Disassemble(file.data, file.starting_address, entry_points);
+						StaticAnalyser::MOS6502::Disassemble(file.data, StaticAnalyser::MOS6502::OffsetMapper(file.starting_address), entry_points);
 
 					int basic10_score = Basic10Score(disassembly);
 					int basic11_score = Basic11Score(disassembly);
