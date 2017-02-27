@@ -34,8 +34,8 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 
 	StaticAnalyser::MOS6502::Disassembly high_location_disassembly =
 		StaticAnalyser::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
-	StaticAnalyser::MOS6502::Disassembly full_range_disassembly =
-		StaticAnalyser::MOS6502::Disassemble(segment.data, full_range_mapper, {entry_address, break_address});
+//	StaticAnalyser::MOS6502::Disassembly full_range_disassembly =
+//		StaticAnalyser::MOS6502::Disassemble(segment.data, full_range_mapper, {entry_address, break_address});
 
 	// if there are no subroutines in the top 2kb of memory then this isn't a CommaVid
 	bool has_appropriate_subroutine_calls = false;
@@ -56,19 +56,37 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// a CommaVid will use its RAM
 	if(all_writes.empty()) return;
 
-	bool has_appropriate_writes = false;
+	bool has_appropriate_accesses = false;
 	for(uint16_t address : all_writes)
 	{
 		const uint16_t masked_address = address & 0x1fff;
 		if(masked_address >= 0x1400 && masked_address < 0x1800)
 		{
-			has_appropriate_writes = true;
+			has_appropriate_accesses = true;
 			break;
 		}
 	}
 
-	// conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations
-	if(has_appropriate_writes)
+	// in desperation, accept any kind of store that looks likely to be intended for large amounts of memory
+	bool has_wide_area_store = false;
+	if(!has_appropriate_accesses)
+	{
+		for(std::map<uint16_t, StaticAnalyser::MOS6502::Instruction>::value_type &entry : high_location_disassembly.instructions_by_address)
+		{
+			if(entry.second.operation == StaticAnalyser::MOS6502::Instruction::STA)
+			{
+				has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::Indirect;
+				has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::IndexedIndirectX;
+				has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::IndirectIndexedY;
+			}
+		}
+	}
+
+	// conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations;
+	// caveat: false positives aren't likely to be problematic; a false positive is a 2KB ROM that always addresses
+	// itself so as to land in ROM even if mapped as a CommaVid and this code is on the fence as to whether it
+	// attempts to modify itself but it probably doesn't
+	if(has_appropriate_accesses || has_wide_area_store)
 	{
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
 		return;
