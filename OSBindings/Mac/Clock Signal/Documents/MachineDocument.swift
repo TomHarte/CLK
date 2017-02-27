@@ -56,7 +56,6 @@ class MachineDocument:
 
 		self.machine.delegate = self
 		self.bestEffortUpdater = CSBestEffortUpdater()
-		self.bestEffortUpdater.delegate = self
 
 		// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
 		// hence the full setup of the best-effort updater prior to setting self as a delegate
@@ -68,6 +67,9 @@ class MachineDocument:
 
 		// bring OpenGL view-holding window on top of the options panel
 		self.openGLView.window!.makeKeyAndOrderFront(self)
+
+		// start accepting best effort updates
+		self.bestEffortUpdater.delegate = self
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {
