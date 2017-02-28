@@ -10,10 +10,11 @@
 #define Disassembler6502_hpp
 
 #include <cstdint>
+#include <functional>
+#include <map>
 #include <memory>
 #include <set>
 #include <vector>
-#include <map>
 
 namespace StaticAnalyser {
 namespace MOS6502 {
@@ -64,11 +65,13 @@ struct Instruction {
 struct Disassembly {
 	std::map<uint16_t, Instruction> instructions_by_address;
 	std::set<uint16_t> outward_calls;
+	std::set<uint16_t> internal_calls;
 	std::set<uint16_t> external_stores, external_loads, external_modifies;
 	std::set<uint16_t> internal_stores, internal_loads, internal_modifies;
 };
 
-Disassembly Disassemble(const std::vector<uint8_t> &memory, uint16_t start_address, std::vector<uint16_t> entry_points, uint16_t address_mask = 0xffff);
+Disassembly Disassemble(const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points);
+std::function<size_t(uint16_t)> OffsetMapper(uint16_t start_address);
 
 }
 }

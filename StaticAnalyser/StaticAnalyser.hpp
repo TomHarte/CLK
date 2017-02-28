@@ -27,6 +27,7 @@ enum class Vic20MemoryModel {
 
 enum class Atari2600PagingModel {
 	None,
+	CommaVid,
 	Atari8k,
 	Atari16k,
 	Atari32k,

@@ -61,8 +61,9 @@ class Machine:
 		size_t rom_size_;
 
 		// cartridge RAM expansion store
-		uint8_t superchip_ram_[128];
-		bool uses_superchip_;
+		std::vector<uint8_t> ram_;
+		uint16_t ram_write_start_, ram_read_start_;
+		bool has_ram_;
 
 		// the RIOT and TIA
 		PIA mos6532_;
