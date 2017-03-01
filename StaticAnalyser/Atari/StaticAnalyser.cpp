@@ -112,7 +112,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 
 	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
 	// hat that this is a CBS RAM+ cartridge
-	if(!disassembly.internal_stores.empty())
+	if(disassembly.internal_stores.size() > 4)
 	{
 		bool writes_above_128 = false;
 		for(uint16_t address : disassembly.internal_stores)
