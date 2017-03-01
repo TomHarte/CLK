@@ -428,12 +428,12 @@ void TIA::output_for_cycles(int number_of_cycles)
 	*/
 	int output_cursor = horizontal_counter_;
 	horizontal_counter_ += number_of_cycles;
+	bool is_reset = output_cursor < 224 && horizontal_counter_ >= 224;
 
 	if(!output_cursor)
 	{
 		if(line_end_function_) line_end_function_(collision_buffer_);
 		memset(collision_buffer_, 0, sizeof(collision_buffer_));
-		horizontal_blank_extend_ = false;
 
 		ball_.motion_time %= 228;
 		player_[0].motion_time %= 228;
@@ -526,6 +526,8 @@ void TIA::output_for_cycles(int number_of_cycles)
 			pixels_start_location_ = 0;
 		}
 	}
+
+	if(is_reset) horizontal_blank_extend_ = false;
 
 	horizontal_counter_ %= cycles_per_line;
 }
