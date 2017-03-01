@@ -364,6 +364,7 @@ void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int n
 		}
 
 		speaker_->set_input_rate((float)(clock_rate / 38.0));
+		speaker_->set_high_frequency_cut_off((float)(clock_rate / (38.0 * 2.0)));
 		set_clock_rate(clock_rate);
 	}
 }
