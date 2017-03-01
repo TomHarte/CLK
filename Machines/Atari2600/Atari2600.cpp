@@ -274,11 +274,15 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 		offset += copy_length;
 	}
 
+	// On a real paged cartridge, any page may initially be visible. Various homebrew authors appear to have
+	// decided the last page will always be initially visible. So do that.
 	size_t romMask = rom_size_ - 1;
-	rom_pages_[0] = rom_;
-	rom_pages_[1] = &rom_[1024 & romMask];
-	rom_pages_[2] = &rom_[2048 & romMask];
-	rom_pages_[3] = &rom_[3072 & romMask];
+	uint8_t *rom_base = rom_;
+	if(rom_size_ > 4096) rom_base = &rom_[rom_size_ - 4096];
+	rom_pages_[0] = rom_base;
+	rom_pages_[1] = &rom_base[1024 & romMask];
+	rom_pages_[2] = &rom_base[2048 & romMask];
+	rom_pages_[3] = &rom_base[3072 & romMask];
 
 	switch(target.atari.paging_model)
 	{
