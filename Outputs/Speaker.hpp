@@ -190,7 +190,7 @@ template <class T> class Filter: public Speaker {
 				}
 
 				// if the output rate is less than the input rate, use the filter
-				if(input_cycles_per_second_ > output_cycles_per_second_)
+				if(input_cycles_per_second_ > output_cycles_per_second_ || (input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ >= 0.0))
 				{
 					while(cycles_remaining)
 					{
