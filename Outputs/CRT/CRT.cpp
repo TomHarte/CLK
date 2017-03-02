@@ -37,7 +37,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
 	// generate timing values implied by the given arbuments
-	sync_capacitor_charge_threshold_ = (int)(syncCapacityLineChargeThreshold * multiplied_cycles_per_line);
+	sync_capacitor_charge_threshold_ = ((int)(syncCapacityLineChargeThreshold * multiplied_cycles_per_line) * 3) / 4;
 
 	// create the two flywheels
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
@@ -159,6 +159,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			sync_capacitor_charge_level_ += next_run_length;
 		else
 			sync_capacitor_charge_level_ = std::max(sync_capacitor_charge_level_ - (int)next_run_length, 0);
+//		if(sync_capacitor_charge_level_) printf(":%c %d ", vsync_charging ? '+' : '-', sync_capacitor_charge_level_);
 
 		// react to the incoming event...
 		horizontal_flywheel_->apply_event(next_run_length, (next_run_length == time_until_horizontal_sync_event) ? next_horizontal_sync_event : Flywheel::SyncEvent::None);
