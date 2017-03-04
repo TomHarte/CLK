@@ -32,7 +32,7 @@ TIA::TIA(bool create_crt) :
 {
 	if(create_crt)
 	{
-		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 + 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
+		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 		crt_->set_output_device(Outputs::CRT::Television);
 		set_output_mode(OutputMode::NTSC);
 	}
@@ -150,7 +150,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
 				"uint y = c & 14u;"
 				"uint iPhase = (c >> 4);"
 
-				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0  + 5.074880441076923;"
+				"float phaseOffset = 6.283185308 * (float(iPhase) + 3.0) / 13.0  + 5.074880441076923;"
 				"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
 			"}");
 		display_type = Outputs::CRT::DisplayType::NTSC60;

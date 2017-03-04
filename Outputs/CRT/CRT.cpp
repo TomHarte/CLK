@@ -59,7 +59,7 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 		break;
 
 		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 545, 2, false);
+			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, false);	// i.e. 227.5
 		break;
 	}
 }
