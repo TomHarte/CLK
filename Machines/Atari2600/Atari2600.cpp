@@ -22,6 +22,7 @@ Machine::Machine() :
 	tia_input_value_{0xff, 0xff},
 	cycles_since_speaker_update_(0),
 	cycles_since_video_update_(0),
+	cycles_since_6532_update_(0),
 	frame_record_pointer_(0),
 	is_ntsc_(true)
 {
@@ -203,6 +204,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 		// check for a PIA access
 		if((address&0x1280) == 0x280) {
+			update_6532();
 			if(isReadOperation(operation)) {
 				returnValue &= mos6532_.get_register(address);
 			} else {
@@ -216,7 +218,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) set_ready_line(false);
-	mos6532_.run_for_cycles(cycles_run_for / 3);
+	cycles_since_6532_update_ += (cycles_run_for / 3);
 
 	return cycles_run_for / 3;
 }
@@ -319,6 +321,12 @@ void Machine::update_video()
 {
 	tia_->run_for_cycles((int)cycles_since_video_update_);
 	cycles_since_video_update_ = 0;
+}
+
+void Machine::update_6532()
+{
+	mos6532_.run_for_cycles(cycles_since_6532_update_);
+	cycles_since_6532_update_ = 0;
 }
 
 void Machine::synchronise()

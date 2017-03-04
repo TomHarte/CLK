@@ -77,11 +77,15 @@ class Machine:
 
 		// speaker backlog accumlation counter
 		unsigned int cycles_since_speaker_update_;
-		void update_audio();
+		inline void update_audio();
 
 		// video backlog accumulation counter
 		unsigned int cycles_since_video_update_;
-		void update_video();
+		inline void update_video();
+
+		// RIOT backlog accumulation counter
+		unsigned int cycles_since_6532_update_;
+		inline void update_6532();
 
 		// output frame rate tracker
 		struct FrameRecord
