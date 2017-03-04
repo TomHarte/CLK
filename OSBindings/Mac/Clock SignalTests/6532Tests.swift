@@ -21,14 +21,25 @@ class MOS6532Tests: XCTestCase {
 		with6532 {
 			// set a count of 128 at single-clock intervals
 			$0.setValue(128, forRegister:0x14)
+			XCTAssertEqual($0.value(forRegister: 4), 128)
 
-			// run for one clock and the count should now be 127
+			// run for one more clock and the count should now be 127
 			$0.run(forCycles: 1)
-			XCTAssert($0.value(forRegister: 4) == 127, "A single tick should decrease the counter once")
+			XCTAssertEqual($0.value(forRegister: 4), 127)
 
-			// run for a further 200 clock counts; timer should reach -73 = 183
-			$0.run(forCycles: 200)
-			XCTAssert($0.value(forRegister: 4) == 183, "Timer should underflow and keep counting")
+			// run for 127 clocks and the timer should be zero, but the timer flag will not yet be set
+			$0.run(forCycles: 127)
+			XCTAssertEqual($0.value(forRegister: 5) & 0x80, 0)
+			XCTAssertEqual($0.value(forRegister: 4), 0)
+
+			// after one more cycle the counter should be 255 and the timer flag will now be set
+			$0.run(forCycles: 1)
+			XCTAssertEqual($0.value(forRegister: 5) & 0x80, 0x80)
+			XCTAssertEqual($0.value(forRegister: 4), 255)
+
+			// run for a further 55 clock counts; timer should reach -200
+			$0.run(forCycles: 55)
+			XCTAssertEqual($0.value(forRegister: 4), 200)
 		}
 	}
 
@@ -37,26 +48,40 @@ class MOS6532Tests: XCTestCase {
 		with6532 {
 			// set a count of 28 at eight-clock intervals
 			$0.setValue(28, forRegister:0x15)
+			XCTAssertEqual($0.value(forRegister: 4), 28)
 
-			// run for seven clock and the count should still be 28
-			$0.run(forCycles: 7)
-			XCTAssert($0.value(forRegister: 4) == 28, "The timer should remain unchanged for seven clocks")
-
-			// run for a further clock and the count should now be 27
+			// one further cycle and the timer should hit 27
 			$0.run(forCycles: 1)
-			XCTAssert($0.value(forRegister: 4) == 27, "The timer should have decremented once after 8 cycles")
+			XCTAssertEqual($0.value(forRegister: 4), 27)
 
-			// run for a further 7 + 27*8 + 5 = 228 clock counts; timer should reach -5 = 0xfb
-			$0.run(forCycles: 228)
-			XCTAssert($0.value(forRegister: 4) == 0xfb, "Timer should underflow and start counting at single-clock pace")
+			// run for seven clock and the count should still be 27
+			$0.run(forCycles: 7)
+			XCTAssertEqual($0.value(forRegister: 4), 27)
+
+			// run for a further clock and the count should now be 26
+			$0.run(forCycles: 1)
+			XCTAssertEqual($0.value(forRegister: 4), 26)
+
+			// run for another 26 * 8 = 208 cycles and the count should hit zero without setting the timer flag, and
+			// stay there for seven more cycles
+			$0.run(forCycles: 208)
+			for _ in 0 ..< 8 {
+				XCTAssertEqual($0.value(forRegister: 5) & 0x80, 0)
+				XCTAssertEqual($0.value(forRegister: 4), 0)
+				$0.run(forCycles: 1)
+			}
+
+			// run six more, and the timer should reach 249, with the interrupt flag set
+			$0.run(forCycles: 6)
+			XCTAssertEqual($0.value(forRegister: 5) & 0x80, 0x80)
+			XCTAssertEqual($0.value(forRegister: 4), 249)
 
 			// timer should now resume dividing by eight
 			$0.run(forCycles: 7)
-			XCTAssert($0.value(forRegister: 4) == 0xfb, "Timer should remain unchanged for seven cycles")
+			XCTAssertEqual($0.value(forRegister: 4), 249)
 
-			// timer should now resume dividing by eight
 			$0.run(forCycles: 1)
-			XCTAssert($0.value(forRegister: 4) == 0xfa, "Timer should decrement after eighth cycle")
+			XCTAssertEqual($0.value(forRegister: 4), 248)
 		}
 	}
 
@@ -64,8 +89,6 @@ class MOS6532Tests: XCTestCase {
 		with6532 {
 			// set a count of 1 at single-clock intervals
 			$0.setValue(1, forRegister:0x1c)
-
-			// run for one clock and the count should now be zero
 			$0.run(forCycles: 1)
 
 			// interrupt shouldn't be signalled yet, bit should not be set
