@@ -63,6 +63,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	cycles_since_speaker_update_ += cycles_run_for;
 	cycles_since_video_update_ += cycles_run_for;
+	cycles_since_6532_update_ += (cycles_run_for / 3);
 
 	if(operation != CPU6502::BusOperation::Ready) {
 
@@ -218,7 +219,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 
 	if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) set_ready_line(false);
-	cycles_since_6532_update_ += (cycles_run_for / 3);
 
 	return cycles_run_for / 3;
 }

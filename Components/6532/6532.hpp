@@ -51,7 +51,7 @@ template <class T> class MOS6532 {
 					if(address & 0x10)
 					{
 						timer_.writtenShift = timer_.activeShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						timer_.value = ((unsigned int)value << timer_.activeShift) + 2;
+						timer_.value = ((unsigned int)value << timer_.activeShift) ;
 						timer_.interrupt_enabled = !!(address&0x08);
 						interrupt_status_ &= ~InterruptFlag::Timer;
 						evaluate_interrupts();
@@ -119,7 +119,7 @@ template <class T> class MOS6532 {
 				timer_.value -= number_of_cycles;
 			} else {
 				number_of_cycles -= timer_.value;
-				timer_.value = 0x100 - number_of_cycles;
+				timer_.value = (0x100 - number_of_cycles) & 0xff;
 				timer_.activeShift = 0;
 				interrupt_status_ |= InterruptFlag::Timer;
 				evaluate_interrupts();

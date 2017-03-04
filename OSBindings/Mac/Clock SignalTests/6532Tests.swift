@@ -21,10 +21,6 @@ class MOS6532Tests: XCTestCase {
 		with6532 {
 			// set a count of 128 at single-clock intervals
 			$0.setValue(128, forRegister:0x14)
-			$0.run(forCycles: 1)
-
-			// one cycle later the timer should still contain 128
-			$0.run(forCycles: 1)
 			XCTAssertEqual($0.value(forRegister: 4), 128)
 
 			// run for one more clock and the count should now be 127
@@ -52,10 +48,6 @@ class MOS6532Tests: XCTestCase {
 		with6532 {
 			// set a count of 28 at eight-clock intervals
 			$0.setValue(28, forRegister:0x15)
-			$0.run(forCycles: 1)
-
-			// one cycle later the timer should still contain 28
-			$0.run(forCycles: 1)
 			XCTAssertEqual($0.value(forRegister: 4), 28)
 
 			// one further cycle and the timer should hit 27
@@ -98,9 +90,6 @@ class MOS6532Tests: XCTestCase {
 			// set a count of 1 at single-clock intervals
 			$0.setValue(1, forRegister:0x1c)
 			$0.run(forCycles: 1)
-
-			// run for two clocks and the count should now be zero
-			$0.run(forCycles: 2)
 
 			// interrupt shouldn't be signalled yet, bit should not be set
 			XCTAssert(!$0.irqLine, "IRQ line should not be set")
