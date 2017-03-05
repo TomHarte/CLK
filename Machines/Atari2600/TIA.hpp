@@ -158,23 +158,24 @@ class TIA {
 			int reverse_mask;	// 7 for a reflected player, 0 for normal
 			int graphic_index;
 
-			int pixel_position;
+			int pixel_position, pixel_counter;
 			int latched_pixel4_time;
 			const bool enqueues = true;
 
 			inline void skip_pixels(const int count, int from_horizontal_counter)
 			{
-				int old_pixel_position = pixel_position;
+				int old_pixel_counter = pixel_counter;
 				pixel_position = std::min(32, pixel_position + count * adder);
-				if(!copy_index_ && old_pixel_position < 16 && pixel_position >= 16)
+				pixel_counter += count;
+				if(!copy_index_ && old_pixel_counter < 4 && pixel_counter >= 4)
 				{
-					latched_pixel4_time = from_horizontal_counter + (16 - old_pixel_position) / adder;
+					latched_pixel4_time = from_horizontal_counter + 4 - old_pixel_counter;
 				}
 			}
 
 			inline void reset_pixels(int copy)
 			{
-				pixel_position = 0;
+				pixel_position = pixel_counter = 0;
 				copy_index_ = copy;
 			}
 
