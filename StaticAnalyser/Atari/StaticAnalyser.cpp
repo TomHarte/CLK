@@ -107,15 +107,22 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		if(!(address & 0x1000)) return (size_t)-1;
 		return (size_t)(address & 0xfff);
 	};
-	StaticAnalyser::MOS6502::Disassembly disassembly =
-		StaticAnalyser::MOS6502::Disassemble(segment.data, address_mapper, {entry_address, break_address});
+
+	std::vector<StaticAnalyser::MOS6502::Disassembly> disassemblies;
+	std::set<uint16_t> internal_stores;
+	for(std::vector<uint8_t>::difference_type base = 0; base < segment.data.size(); base += 4096)
+	{
+		std::vector<uint8_t> sub_data(segment.data.begin() + base, segment.data.begin() + base + 2048);
+		disassemblies.push_back(StaticAnalyser::MOS6502::Disassemble(sub_data, address_mapper, {entry_address, break_address}));
+		internal_stores.insert(disassemblies.back().internal_stores.begin(), disassemblies.back().internal_stores.end());
+	}
 
 	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
 	// hat that this is a CBS RAM+ cartridge
-	if(disassembly.internal_stores.size() > 4)
+	if(internal_stores.size() > 4)
 	{
 		bool writes_above_128 = false;
-		for(uint16_t address : disassembly.internal_stores)
+		for(uint16_t address : internal_stores)
 		{
 			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
 		}
