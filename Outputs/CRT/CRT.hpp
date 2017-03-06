@@ -66,7 +66,7 @@ class CRT {
 		bool is_alernate_line_, phase_alternates_;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
-		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type);
+		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type);
 
 		// the inner entry point that determines whether and when the next sync event will occur within
 		// the current output window

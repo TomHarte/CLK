@@ -37,7 +37,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
 	// generate timing values implied by the given arbuments
-	sync_capacitor_charge_threshold_ = ((int)(syncCapacityLineChargeThreshold * multiplied_cycles_per_line) * 3) / 4;
+	sync_capacitor_charge_threshold_ = ((int)(syncCapacityLineChargeThreshold * cycles_per_line) * 3) / 4;
 
 	// create the two flywheels
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
@@ -113,7 +113,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
 
-void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const bool vsync_charging, const Scan::Type type)
+void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type)
 {
 	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 	number_of_cycles *= time_multiplier_;
@@ -153,13 +153,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		// decrement the number of cycles left to run for and increment the
 		// horizontal counter appropriately
 		number_of_cycles -= next_run_length;
-
-		// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
-		if(vsync_charging)
-			sync_capacitor_charge_level_ += next_run_length;
-		else
-			sync_capacitor_charge_level_ = std::max(sync_capacitor_charge_level_ - (int)next_run_length, 0);
-//		if(sync_capacitor_charge_level_) printf(":%c %d ", vsync_charging ? '+' : '-', sync_capacitor_charge_level_);
 
 		// react to the incoming event...
 		horizontal_flywheel_->apply_event(next_run_length, (next_run_length == time_until_horizontal_sync_event) ? next_horizontal_sync_event : Flywheel::SyncEvent::None);
@@ -299,7 +292,13 @@ void CRT::output_scan(const Scan *const scan)
 	// TODO: inspect raw data for potential colour burst if required
 
 	sync_period_ = is_receiving_sync_ ? (sync_period_ + scan->number_of_cycles) : 0;
-	advance_cycles(scan->number_of_cycles, hsync_requested, vsync_requested, this_is_sync, scan->type);
+	advance_cycles(scan->number_of_cycles, hsync_requested, vsync_requested, scan->type);
+
+	// either charge or deplete the vertical retrace capacitor (making sure it stops at 0)
+	if(this_is_sync)
+		sync_capacitor_charge_level_ += scan->number_of_cycles;
+	else
+		sync_capacitor_charge_level_ = std::max(sync_capacitor_charge_level_ - (int)scan->number_of_cycles, 0);
 }
 
 /*
