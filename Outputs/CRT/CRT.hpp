@@ -94,6 +94,11 @@ class CRT {
 			enqueued_openGL_functions_.push_back(function);
 		}
 
+		// sync counter, for determining vertical sync
+		unsigned int cycles_of_sync_;
+		unsigned int cycles_since_sync_;
+		unsigned int cycles_per_line_;
+
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 			The requested number of buffers, each with the requested number of bytes per pixel,
