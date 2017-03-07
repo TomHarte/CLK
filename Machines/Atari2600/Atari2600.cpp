@@ -340,43 +340,45 @@ void Machine::synchronise()
 
 void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs)
 {
-	frame_records_[frame_record_pointer_].number_of_frames = number_of_frames;
-	frame_records_[frame_record_pointer_].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 	const size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
-	frame_record_pointer_ = (frame_record_pointer_ + 1) % number_of_frame_records;
+	frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
+	frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
+	frame_record_pointer_ ++;
 
-	unsigned int total_number_of_frames = 0;
-	unsigned int total_number_of_unexpected_vertical_syncs = 0;
-	for(size_t c = 0; c < number_of_frame_records; c++)
+	if(frame_record_pointer_ >= 6)
 	{
-		if(!frame_records_[c].number_of_frames) return;
-		total_number_of_frames += frame_records_[c].number_of_frames;
-		total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
-	}
-
-	if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1)
-	{
+		unsigned int total_number_of_frames = 0;
+		unsigned int total_number_of_unexpected_vertical_syncs = 0;
 		for(size_t c = 0; c < number_of_frame_records; c++)
 		{
-			frame_records_[c].number_of_frames = 0;
-			frame_records_[c].number_of_unexpected_vertical_syncs = 0;
-		}
-		is_ntsc_ ^= true;
-
-		double clock_rate;
-		if(is_ntsc_)
-		{
-			clock_rate = NTSC_clock_rate;
-			tia_->set_output_mode(TIA::OutputMode::NTSC);
-		}
-		else
-		{
-			clock_rate = PAL_clock_rate;
-			tia_->set_output_mode(TIA::OutputMode::PAL);
+			total_number_of_frames += frame_records_[c].number_of_frames;
+			total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
 		}
 
-		speaker_->set_input_rate((float)(clock_rate / 38.0));
-		speaker_->set_high_frequency_cut_off((float)(clock_rate / (38.0 * 2.0)));
-		set_clock_rate(clock_rate);
+		if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1)
+		{
+			for(size_t c = 0; c < number_of_frame_records; c++)
+			{
+				frame_records_[c].number_of_frames = 0;
+				frame_records_[c].number_of_unexpected_vertical_syncs = 0;
+			}
+			is_ntsc_ ^= true;
+
+			double clock_rate;
+			if(is_ntsc_)
+			{
+				clock_rate = NTSC_clock_rate;
+				tia_->set_output_mode(TIA::OutputMode::NTSC);
+			}
+			else
+			{
+				clock_rate = PAL_clock_rate;
+				tia_->set_output_mode(TIA::OutputMode::PAL);
+			}
+
+			speaker_->set_input_rate((float)(clock_rate / 38.0));
+			speaker_->set_high_frequency_cut_off((float)(clock_rate / (38.0 * 2.0)));
+			set_clock_rate(clock_rate);
+		}
 	}
 }
