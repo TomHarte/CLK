@@ -90,6 +90,28 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
 }
 
+static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const std::vector<StaticAnalyser::MOS6502::Disassembly> &disassemblies)
+{
+	std::set<uint16_t> internal_accesses;
+	for(const StaticAnalyser::MOS6502::Disassembly &disassembly : disassemblies)
+	{
+		internal_accesses.insert(disassembly.internal_stores.begin(), disassembly.internal_stores.end());
+		internal_accesses.insert(disassembly.internal_modifies.begin(), disassembly.internal_modifies.end());
+		internal_accesses.insert(disassembly.internal_loads.begin(), disassembly.internal_loads.end());
+	}
+
+	bool looks_like_atari = false;
+	bool looks_like_parker_bros = false;
+	for(uint16_t address : internal_accesses)
+	{
+		looks_like_atari |= ((address & 0x1fff) >= 0x1ff8) && ((address & 0x1fff) < 0x1ffa);
+		looks_like_parker_bros |= ((address & 0x1fff) >= 0x1fe0) && ((address & 0x1fff) < 0x1fe8);
+	}
+
+	if(looks_like_parker_bros) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ParkerBros;
+	if(looks_like_atari) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari8k;
+}
+
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
 {
 	if(segment.data.size() == 2048)
@@ -100,8 +122,8 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 
 	uint16_t entry_address, break_address;
 
-	entry_address = (uint16_t)(segment.data[0xffc] | (segment.data[0xffd] << 8));
-	break_address = (uint16_t)(segment.data[0xffe] | (segment.data[0xfff] << 8));
+	entry_address = (uint16_t)(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
+	break_address = (uint16_t)(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
 
 	std::function<size_t(uint16_t address)> address_mapper = [](uint16_t address) {
 		if(!(address & 0x1000)) return (size_t)-1;
@@ -112,25 +134,43 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	std::set<uint16_t> internal_stores;
 	for(std::vector<uint8_t>::difference_type base = 0; base < segment.data.size(); base += 4096)
 	{
-		std::vector<uint8_t> sub_data(segment.data.begin() + base, segment.data.begin() + base + 2048);
+		std::vector<uint8_t> sub_data(segment.data.begin() + base, segment.data.begin() + base + 4096);
 		disassemblies.push_back(StaticAnalyser::MOS6502::Disassemble(sub_data, address_mapper, {entry_address, break_address}));
 		internal_stores.insert(disassemblies.back().internal_stores.begin(), disassemblies.back().internal_stores.end());
 	}
 
-	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
-	// hat that this is a CBS RAM+ cartridge
-	if(internal_stores.size() > 4)
+	if(segment.data.size() == 8192)
 	{
-		bool writes_above_128 = false;
-		for(uint16_t address : internal_stores)
-		{
-			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
-		}
-		if(writes_above_128)
-			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
-		else
-			target.atari.uses_superchip = true;
+		DeterminePagingFor8kCartridge(target, segment, disassemblies);
 	}
+
+	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
+	// hat that this is a CBS RAM+ cartridge. Atari ROM images always have the same value stored over RAM
+	// regions.
+	bool has_superchip = true;
+	bool is_ram_plus = true;
+	for(size_t address = 0; address < 256; address++)
+	{
+		if(segment.data[address] != segment.data[0])
+		{
+			if(address < 128) has_superchip = false;
+			is_ram_plus = false;
+		}
+	}
+	target.atari.uses_superchip = has_superchip;
+	if(is_ram_plus) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+//	if(internal_stores.size() > 4)
+//	{
+//		bool writes_above_128 = false;
+//		for(uint16_t address : internal_stores)
+//		{
+//			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
+//		}
+//		if(writes_above_128)
+//			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+//		else
+//			target.atari.uses_superchip = true;
+//	}
 }
 
 void StaticAnalyser::Atari::AddTargets(
