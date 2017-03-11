@@ -51,14 +51,15 @@ static void audioOutputCallback(
 {
 	// Pull the delegate call for audio queue running dry outside of the locked region, to allow non-deadlocking
 	// lifecycle -dealloc events to result from it.
-	CSAudioQueue *queue = (__bridge CSAudioQueue *)inUserData;
-	BOOL isRunningDry = NO;
 	if([CSAudioQueueDeallocLock tryLock])
 	{
+		CSAudioQueue *queue = (__bridge CSAudioQueue *)inUserData;
+		BOOL isRunningDry = NO;
 		isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+		id<CSAudioQueueDelegate> delegate = queue.delegate;
 		[CSAudioQueueDeallocLock unlock];
+		if(isRunningDry) [delegate audioQueueIsRunningDry:queue];
 	}
-	if(isRunningDry) [queue.delegate audioQueueIsRunningDry:queue];
 }
 
 #pragma mark - Standard object lifecycle
