@@ -211,6 +211,15 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x18:	update_audio(); speaker_->set_divider(decodedAddress - 0x17, *value);				break;
 					case 0x19:
 					case 0x1a:	update_audio(); speaker_->set_volume(decodedAddress - 0x19, *value);				break;
+
+					case 0x3f:
+						if(paging_model_ == StaticAnalyser::Atari2600PagingModel::Tigervision && (masked_address == 0x3f))
+						{
+							int selected_page = (*value) % (rom_size_ / 2048);
+							rom_pages_[0] = &rom_[selected_page * 2048];
+							rom_pages_[1] = rom_pages_[0] + 1024;
+						}
+					break;
 				}
 			}
 		}
