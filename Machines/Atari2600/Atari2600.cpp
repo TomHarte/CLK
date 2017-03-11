@@ -66,30 +66,42 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	cycles_since_6532_update_ += (cycles_run_for / 3);
 
 	if(operation != CPU6502::BusOperation::Ready) {
+		uint16_t masked_address = address & 0x1fff;
 
-		// check for a paging access
-		if(rom_size_ > 4096 && ((address & 0x1f00) == 0x1f00)) {
-			uint8_t *base_ptr = rom_pages_[0];
-			uint8_t first_paging_register = (uint8_t)(0xf8 - (rom_size_ >> 14)*2);
+		// check for potential paging
+		switch(paging_model_) {
+			default:
+				// check for an Atari paging access
+				if(rom_size_ > 4096 && ((address & 0x1f00) == 0x1f00)) {
+					uint8_t *base_ptr = rom_pages_[0];
+					uint8_t first_paging_register = (uint8_t)(0xf8 - (rom_size_ >> 14)*2);
 
-			const uint8_t paging_register = address&0xff;
-			if(paging_register >= first_paging_register) {
-				const uint16_t selected_page = paging_register - first_paging_register;
-				if(selected_page * 4096 < rom_size_) {
-					base_ptr = &rom_[selected_page * 4096];
+					const uint8_t paging_register = address&0xff;
+					if(paging_register >= first_paging_register) {
+						const uint16_t selected_page = paging_register - first_paging_register;
+						if(selected_page * 4096 < rom_size_) {
+							base_ptr = &rom_[selected_page * 4096];
+						}
+					}
+
+					if(base_ptr != rom_pages_[0]) {
+						rom_pages_[0] = base_ptr;
+						rom_pages_[1] = base_ptr + 1024;
+						rom_pages_[2] = base_ptr + 2048;
+						rom_pages_[3] = base_ptr + 3072;
+					}
 				}
-			}
-
-			if(base_ptr != rom_pages_[0]) {
-				rom_pages_[0] = base_ptr;
-				rom_pages_[1] = base_ptr + 1024;
-				rom_pages_[2] = base_ptr + 2048;
-				rom_pages_[3] = base_ptr + 3072;
-			}
+			break;
+			case StaticAnalyser::Atari2600PagingModel::ParkerBros:
+				if(masked_address >= 0x1fe0 && masked_address <= 0x1ff8) {
+					int slot = (masked_address - 0x1fe0) >> 3;
+					int target = masked_address & 7;
+					rom_pages_[slot] = &rom_[target * 1024];
+				}
+			break;
 		}
 
 		// check for a ROM read
-		uint16_t masked_address = address & 0x1fff;
 		if(address&0x1000)
 		{
 			// check for a RAM access
@@ -305,6 +317,8 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 			ram_read_start_ = 0x1000;
 		break;
 	}
+
+	paging_model_ = target.atari.paging_model;
 }
 
 #pragma mark - Audio and Video

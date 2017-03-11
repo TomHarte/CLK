@@ -108,7 +108,8 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 		looks_like_parker_bros |= ((address & 0x1fff) >= 0x1fe0) && ((address & 0x1fff) < 0x1fe8);
 	}
 
-	printf("%s %s\n", looks_like_atari ? "a" : "-", looks_like_parker_bros ? "p" : "-");
+	if(looks_like_parker_bros) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ParkerBros;
+	if(looks_like_atari) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari8k;
 }
 
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
