@@ -217,7 +217,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						{
 							int selected_page = (*value) % (rom_size_ / 2048);
 							rom_pages_[0] = &rom_[selected_page * 2048];
-							rom_pages_[1] = rom_pages_[0] + 2048;
+							rom_pages_[1] = rom_pages_[0] + 1024;
 						}
 					break;
 				}
