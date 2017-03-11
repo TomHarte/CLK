@@ -23,10 +23,11 @@ static NSLock *CSAudioQueueDeallocLock;
 
 #pragma mark - AudioQueue callbacks
 
-- (void)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
+/*!
+	@returns @c YES if the queue is running dry; @c NO otherwise.
+*/
+- (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
 {
-	[self.delegate audioQueueIsRunningDry:self];
-
 	[_storedBuffersLock lock];
 	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
 	{
@@ -35,11 +36,12 @@ static NSLock *CSAudioQueueDeallocLock;
 			if(_storedBuffers[c]) AudioQueueFreeBuffer(_audioQueue, _storedBuffers[c]);
 			_storedBuffers[c] = buffer;
 			[_storedBuffersLock unlock];
-			return;
+			return YES;
 		}
 	}
 	[_storedBuffersLock unlock];
 	AudioQueueFreeBuffer(_audioQueue, buffer);
+	return YES;
 }
 
 static void audioOutputCallback(
@@ -47,11 +49,16 @@ static void audioOutputCallback(
 	AudioQueueRef inAQ,
 	AudioQueueBufferRef inBuffer)
 {
+	// Pull the delegate call for audio queue running dry outside of the locked region, to allow non-deadlocking
+	// lifecycle -dealloc events to result from it.
+	CSAudioQueue *queue = (__bridge CSAudioQueue *)inUserData;
+	BOOL isRunningDry = NO;
 	if([CSAudioQueueDeallocLock tryLock])
 	{
-		[(__bridge CSAudioQueue *)inUserData audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+		isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
 		[CSAudioQueueDeallocLock unlock];
 	}
+	if(isRunningDry) [queue.delegate audioQueueIsRunningDry:queue];
 }
 
 #pragma mark - Standard object lifecycle
