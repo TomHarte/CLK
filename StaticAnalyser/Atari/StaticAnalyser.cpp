@@ -145,19 +145,32 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	}
 
 	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
-	// hat that this is a CBS RAM+ cartridge
-	if(internal_stores.size() > 4)
+	// hat that this is a CBS RAM+ cartridge. Atari ROM images always have the same value stored over RAM
+	// regions.
+	bool has_superchip = true;
+	bool is_ram_plus = true;
+	for(size_t address = 0; address < 256; address++)
 	{
-		bool writes_above_128 = false;
-		for(uint16_t address : internal_stores)
+		if(segment.data[address] != segment.data[0])
 		{
-			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
+			if(address < 128) has_superchip = false;
+			is_ram_plus = false;
 		}
-		if(writes_above_128)
-			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
-		else
-			target.atari.uses_superchip = true;
 	}
+	target.atari.uses_superchip = has_superchip;
+	if(is_ram_plus) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+//	if(internal_stores.size() > 4)
+//	{
+//		bool writes_above_128 = false;
+//		for(uint16_t address : internal_stores)
+//		{
+//			writes_above_128 |= ((address & 0x1fff) > 0x10ff) && ((address & 0x1fff) < 0x1200);
+//		}
+//		if(writes_above_128)
+//			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+//		else
+//			target.atari.uses_superchip = true;
+//	}
 }
 
 void StaticAnalyser::Atari::AddTargets(

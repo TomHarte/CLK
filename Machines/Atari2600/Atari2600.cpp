@@ -93,8 +93,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				}
 			break;
 			case StaticAnalyser::Atari2600PagingModel::ParkerBros:
-				if(masked_address >= 0x1fe0 && masked_address <= 0x1ff8) {
-					int slot = (masked_address - 0x1fe0) >> 3;
+				if(masked_address >= 0x1fe0 && masked_address < 0x1ff8) {
+					int slot = (masked_address >> 3) & 3;
 					int target = masked_address & 7;
 					rom_pages_[slot] = &rom_[target * 1024];
 				}
@@ -290,13 +290,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	// On a real paged cartridge, any page may initially be visible. Various homebrew authors appear to have
 	// decided the last page will always be initially visible. So do that.
-	size_t romMask = rom_size_ - 1;
+	size_t rom_mask = rom_size_ - 1;
 	uint8_t *rom_base = rom_;
 	if(rom_size_ > 4096) rom_base = &rom_[rom_size_ - 4096];
 	rom_pages_[0] = rom_base;
-	rom_pages_[1] = &rom_base[1024 & romMask];
-	rom_pages_[2] = &rom_base[2048 & romMask];
-	rom_pages_[3] = &rom_base[3072 & romMask];
+	rom_pages_[1] = &rom_base[1024 & rom_mask];
+	rom_pages_[2] = &rom_base[2048 & rom_mask];
+	rom_pages_[3] = &rom_base[3072 & rom_mask];
 
 	switch(target.atari.paging_model)
 	{
