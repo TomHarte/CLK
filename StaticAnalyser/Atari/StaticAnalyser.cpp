@@ -113,7 +113,11 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 		uint16_t masked_address = address & 0x1fff;
 		atari_access_count += masked_address >= 0x1ff8 && masked_address < 0x1ffa;
 		parker_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ff8;
-		tigervision_access_count += address == 0x3f;
+	}
+	for(uint16_t address: external_stores)
+	{
+		uint16_t masked_address = address & 0x1fff;
+		tigervision_access_count += masked_address == 0x3f;
 	}
 
 	if(parker_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ParkerBros;
