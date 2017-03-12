@@ -143,9 +143,19 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		external_stores.insert(disassemblies.back().external_stores.begin(), disassemblies.back().external_stores.end());
 	}
 
-	if(segment.data.size() == 8192)
+	switch(segment.data.size())
 	{
-		DeterminePagingFor8kCartridge(target, segment, disassemblies);
+		case 8192:
+			DeterminePagingFor8kCartridge(target, segment, disassemblies);
+		break;
+		case 16384:
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari16k;
+		break;
+		case 32768:
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari32k;
+		break;
+		default:
+		break;
 	}
 
 	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
@@ -166,7 +176,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	if(is_ram_plus) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
 
 	// check for a Tigervision or Tigervision-esque scheme
-	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None)
+	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None && segment.data.size() > 4096)
 	{
 		bool looks_like_tigervision = external_stores.find(0x3f) != external_stores.end();
 		if(looks_like_tigervision) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
