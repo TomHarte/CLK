@@ -45,6 +45,19 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"01d99bf307262825db58631e8002dd008a42cb1e", None, NO)		// Alien
 	Record(@"a1f660827ce291f19719a5672f2c5d277d903b03", Atari8k, NO)	// Alpha Beam with Ernie
 	Record(@"b89a5ac6593e83fbebee1fe7d4cec81a7032c544", None, NO)		// Amidar
+	Record(@"ac58ac94ceab78725a1182cc7b907376c011b0c8", None, NO)		// Angriff der Luftflotten
+	Record(@"7d132ab776ff755b86bf4f204165aa54e9e1f1cf", Atari8k, NO)	// Aquaventure
+	Record(@"9b6a54969240baf64928118741c3affee148d721", None, NO)		// Armor Ambush
+	Record(@"8c249e9eaa83fc6be16039f05ec304efdf987beb", Atari8k, NO)	// Artillery Duel
+	Record(@"0c03eba97df5178eec5d4d0aea4a6fe2f961c88f", None, NO)		// Assault
+	Record(@"1a094f92e46a8127d9c29889b5389865561c0a6f", Atari8k, NO)	// Asterix (NTSC)
+	Record(@"f14408429a911854ec76a191ad64231cc2ed7d11", Atari8k, NO)	// Asterix (PAL)
+	Record(@"8f4a00cb4ab6a6f809be0e055d97e8fe17f19e7d", None, NO)		// Asteroid Fire
+	Record(@"8423f99092b454aed89f89f5d7da658caf7af016", Atari8k, NO)	// Asteroids
+	Record(@"b850bd72d18906d9684e1c7251cb699588cbcf64", None, NO)		// Astroblast
+	Record(@"d1563c24208766cf8d28de7af995021a9f89d7e1", None, NO)		// Atari Video Cube
+	Record(@"f4e838de9159c149ac080ab85e4f830d5b299963", None, NO)		// Atlantis II
+	Record(@"c6b1dcdb2f024ab682316db45763bacc6949c33c", None, NO)		// Atlantis
 };
 #undef Record
 
@@ -79,7 +92,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		AtariROMRecord *romRecord = [self romRecordForSHA1:sha1];
 		if(!romRecord)
 		{
-//			NSLog(@"No record for %@ with SHA1 %@", testFile, sha1);
+			NSLog(@"No record for %@ with SHA1 %@", testFile, sha1);
 			continue;
 		}
 
