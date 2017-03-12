@@ -27,8 +27,16 @@
 }
 @end
 
+#define Record(sha, model, uses) sha : [AtariROMRecord recordWithPagingModel:StaticAnalyser::Atari2600PagingModel::model usesSuperchip:uses],
 static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
+	Record(@"58dbcbdffbe80be97746e94a0a75614e64458fdc", None, NO)		// 4kraVCS
+	Record(@"9967a76efb68017f793188f691159f04e6bb4447", None, NO)		// 'X'Mission
+	Record(@"21d983f2f52b84c22ecae84b0943678ae2c31c10", None, NO)		// 3d Tic-Tac-Toe
+	Record(@"d7c62df8300a68b21ce672cfaa4d0f2f4b3d0ce1", Atari32k, NO)	// Acid Drop
+	Record(@"924ca836aa08eeffc141d487ac6b9b761b2f8ed5", None, NO)		// Action Force
+	Record(@"e07e48d463d30321239a8acc00c490f27f1f7422", None, NO)		// Adventure
 };
+#undef Record
 
 @interface AtariStaticAnalyserTests : XCTestCase
 @end
@@ -57,12 +65,17 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		// get an analysis of the file
 		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([fullPath UTF8String]);
 
+		// grab the ROM record
 		AtariROMRecord *romRecord = [self romRecordForSHA1:sha1];
 		if(!romRecord)
 		{
 			NSLog(@"No record for %@ with SHA1 %@", testFile, sha1);
 			continue;
 		}
+
+		// assert equality
+		XCTAssert(targets.front().atari.paging_model == romRecord.pagingModel, @"%@", testFile);
+		XCTAssert(targets.front().atari.uses_superchip == romRecord.usesSuperchip, @"%@", testFile);
 	}
 }
 
