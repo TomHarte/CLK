@@ -163,11 +163,11 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	// regions.
 	bool has_superchip = true;
 	bool is_ram_plus = true;
-	for(size_t address = 0; address < 256; address++)
+	for(size_t address = 0; address < 512; address++)
 	{
 		if(segment.data[address] != segment.data[0])
 		{
-			if(address < 128) has_superchip = false;
+			if(address < 256) has_superchip = false;
 			is_ram_plus = false;
 			if(!has_superchip && !is_ram_plus) break;
 		}

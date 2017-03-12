@@ -105,7 +105,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"0b5914bc1526a9beaf54d7fd11408175cd8fcc72", Atari8k, NO)		// Centipede
 	Record(@"b2b1bd165b3c10cde5316ed0f9f05a509aac828d", None, NO)			// Challenge (Zellers)
 	Record(@"ac9b0c62ba0ca7a975d08fabbbc7c7448ecdf18d", None, NO)			// Challenge of… Nexar
-	Record(@"e81b5e49cfbb283edba2c8f21f31a8148d8645a1", Atari8k, NO)		// Challenge
+	Record(@"e81b5e49cfbb283edba2c8f21f31a8148d8645a1", None, NO)			// Challenge
 	Record(@"872b2f9aa7edbcbb2368de0db3696c90998ff016", None, NO)			// Chase the Chuckwagon
 	Record(@"39b5bb27a6c4cb6532bd9d4cc520415c59dac653", None, NO)			// Checkers
 	Record(@"0b1bb76769ae3f8b4936f0f95f4941d276791bde", None, NO)			// China Syndrome
@@ -114,7 +114,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"3f56d1a376702b64b3992b2d5652a3842c56ffad", None, NO)			// Coco Nuts
 	Record(@"137bd3d3f36e2549c6e1cc3a60f2a7574f767775", None, NO)			// Codebreaker
 	Record(@"53c324ae736afa92a83d619b04e4fe72182281a6", None, NO)			// Color Bar Generator
-	Record(@"66014de1f8e9f39483ee3f97ca0d97d026ffc3bb", None, NO)			// Combat Two
+	Record(@"66014de1f8e9f39483ee3f97ca0d97d026ffc3bb", Atari8k, NO)		// Combat Two
 	Record(@"ce7580059e8b41cb4a1e734c9b35ce3774bf777a", None, NO)			// Combat
 	Record(@"8dad05085657e95e567f47836502be515b42f66b", None, NO)			// Commando Raid
 	Record(@"68a7cb3ff847cd987a551f3dd9cda5f90ce0a3bf", Atari16k, NO)		// Commando
@@ -604,8 +604,8 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		}
 
 		// assert equality
-		XCTAssert(targets.front().atari.paging_model == romRecord.pagingModel, @"%@", testFile);
-		XCTAssert(targets.front().atari.uses_superchip == romRecord.usesSuperchip, @"%@", testFile);
+		XCTAssert(targets.front().atari.paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, targets.front().atari.paging_model);
+		XCTAssert(targets.front().atari.uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
 	}
 }
 
