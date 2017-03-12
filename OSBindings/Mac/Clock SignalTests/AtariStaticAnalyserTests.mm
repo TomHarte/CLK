@@ -598,10 +598,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 
 		// grab the ROM record
 		AtariROMRecord *romRecord = [self romRecordForSHA1:sha1];
-		if(!romRecord)
-		{
-			continue;
-		}
+		if(!romRecord) continue;
 
 		// assert equality
 		XCTAssert(targets.front().atari.paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, targets.front().atari.paging_model);

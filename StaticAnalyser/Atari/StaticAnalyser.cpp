@@ -148,6 +148,9 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		case 8192:
 			DeterminePagingFor8kCartridge(target, segment, disassemblies);
 		break;
+		case 12288:
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
+		break;
 		case 16384:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari16k;
 		break;
@@ -158,22 +161,21 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		break;
 	}
 
-	// check for any sort of on-cartridge RAM; that might imply a Super Chip or else immediately tip the
-	// hat that this is a CBS RAM+ cartridge. Atari ROM images always have the same value stored over RAM
+	// check for a Super Chip. Atari ROM images [almost] always have the same value stored over RAM
 	// regions.
-	bool has_superchip = true;
-	bool is_ram_plus = true;
-	for(size_t address = 0; address < 512; address++)
+	if(target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus)
 	{
-		if(segment.data[address] != segment.data[0])
+		bool has_superchip = true;
+		for(size_t address = 0; address < 256; address++)
 		{
-			if(address < 256) has_superchip = false;
-			is_ram_plus = false;
-			if(!has_superchip && !is_ram_plus) break;
+			if(segment.data[address] != segment.data[0])
+			{
+				has_superchip = false;
+				break;
+			}
 		}
+		target.atari.uses_superchip = has_superchip;
 	}
-	target.atari.uses_superchip = has_superchip;
-	if(is_ram_plus) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
 
 	// check for a Tigervision or Tigervision-esque scheme
 	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None && segment.data.size() > 4096)
