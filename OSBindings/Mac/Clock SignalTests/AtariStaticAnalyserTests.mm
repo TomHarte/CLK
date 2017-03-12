@@ -272,7 +272,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"fe208ad775cbf9523e7a99632b9f10f2c9c7aa87", None, NO)			// Lochjaw
 	Record(@"fc3d75d46d917457aa1701bf47844817d0ba96c3", None, NO)			// Lock 'n' Chase
 	Record(@"f92b0b83db3cd840d16ee2726011f5f0144103d5", None, NO)			// London Blitz
-	Record(@"ef02fdb94ac092247bfcd5f556e01a68c06a4832", Atari8k, NO)		// Lord of the Rings
+	Record(@"ef02fdb94ac092247bfcd5f556e01a68c06a4832", ParkerBros, NO)		// Lord of the Rings
 	Record(@"e8492fe9d62750df682358fe59a4d4272655eb96", None, NO)			// Lost Luggage
 	Record(@"dcd96913a1c840c8b57848986242eeb928bfd2ff", None, NO)			// M*A*S*H
 	Record(@"d6e2b7765a9d30f91c9b2b8d0adf61ec5dc2b30a", None, NO)			// M.A.D.
@@ -465,7 +465,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"de05d1ca8ad1e7a85df3faf25b1aa90b159afded", None, NO)			// Star Strike
 	Record(@"61a3ebbffa0bfb761295c66e189b62915f4818d9", Atari8k, NO)		// Star Trek — Strategic Operations Simulator
 	Record(@"ccc5b829c4aa71acb7976e741fdbf59c8ef9eb55", None, NO)			// Star Voyager
-	Record(@"c9d201935bbe6373793241ba9c03cc02f1df31c9", Atari8k, NO)		// Star Wars — Ewok Adventure
+	Record(@"c9d201935bbe6373793241ba9c03cc02f1df31c9", ParkerBros, NO)		// Star Wars — Ewok Adventure
 	Record(@"8823fe3d8e3aeadc6b61ca51914e3b15aa13801c", ParkerBros, NO)		// Star Wars — The Arcade Game
 	Record(@"ad5b2c9df558ab23ad2954fe49ed5b37a06009bf", None, NO)			// Star Wars — The Empire Strikes Back
 	Record(@"4f87be0ef16a1d0389226d1fbda9b4c16b06e13e", Atari8k, YES)		// Stargate
