@@ -92,6 +92,9 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 
 static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const std::vector<StaticAnalyser::MOS6502::Disassembly> &disassemblies)
 {
+	// make an assumption that this is the Atari paging model
+	target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari8k;
+
 	std::set<uint16_t> internal_accesses;
 	std::set<uint16_t> external_stores;
 	for(const StaticAnalyser::MOS6502::Disassembly &disassembly : disassemblies)
@@ -102,16 +105,19 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 		external_stores.insert(disassembly.external_stores.begin(), disassembly.external_stores.end());
 	}
 
-	bool looks_like_atari = false;
-	bool looks_like_parker_bros = false;
+	int atari_access_count = 0;
+	int parker_access_count = 0;
+	int tigervision_access_count = 0;
 	for(uint16_t address : internal_accesses)
 	{
-		looks_like_atari |= ((address & 0x1fff) >= 0x1ff8) && ((address & 0x1fff) < 0x1ffa);
-		looks_like_parker_bros |= ((address & 0x1fff) >= 0x1fe0) && ((address & 0x1fff) < 0x1fe8);
+		uint16_t masked_address = address & 0x1fff;
+		atari_access_count += masked_address >= 0x1ff8 && masked_address < 0x1ffa;
+		parker_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ff8;
+		tigervision_access_count += address == 0x3f;
 	}
 
-	if(looks_like_parker_bros) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ParkerBros;
-	if(looks_like_atari) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari8k;
+	if(parker_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ParkerBros;
+	else if(tigervision_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
 }
 
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
@@ -163,7 +169,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 
 	// check for a Super Chip. Atari ROM images [almost] always have the same value stored over RAM
 	// regions.
-	if(target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus)
+	if(target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus && target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork)
 	{
 		bool has_superchip = true;
 		for(size_t address = 0; address < 256; address++)
