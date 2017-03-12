@@ -134,7 +134,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"b1b3d8d6afe94b73a43c36668cc756c5b6fdc1c3", None, NO)			// Cross Force
 	Record(@"5da3d089ccda960ce244adb855975877c670e615", Atari16k, NO)		// Crossbow
 	Record(@"a57062f44e7ac793d4c39d1350521dc5bc2a665f", None, NO)			// Crypts of Chaos
-	Record(@"2e4ee5ee040b08be1fe568602d1859664e607efb", Atari8k, YES)		// Crystal Castles
+	Record(@"2e4ee5ee040b08be1fe568602d1859664e607efb", Atari16k, YES)		// Crystal Castles
 	Record(@"0dd72a3461b4167f2d68c93511ed4985d97e6adc", None, NO)			// Cubicolor
 	Record(@"4b3d02b59e17520b4d60236568d5cb50a4e6aeb3", None, NO)			// Custer's Revenge
 	Record(@"07e94a7d357e859dcff77180981713ce8119324e", None, NO)			// Dancing Plate
