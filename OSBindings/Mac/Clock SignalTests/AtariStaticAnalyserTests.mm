@@ -70,7 +70,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"47619edb352f7f955f811cbb03a00746c8e099b1", Atari8k, NO)	// Beamrider
 	Record(@"fad0c97331a525a4aeba67987552ba324629a7a0", None, NO)		// Beany Bopper
 	Record(@"e2c29d0a73a4575028b62dca745476a17f07c8f0", None, NO)		// Beat 'Em & Eat 'Em
-	Record(@"c3afd7909b72b49ca7d4485465b622d5e55f8913", None, NO)		// Berenstain Bears
+	Record(@"c3afd7909b72b49ca7d4485465b622d5e55f8913", Atari8k, NO)	// Berenstain Bears
 	Record(@"fcad0e5130de24f06b98fb86a7c3214841ca42e2", None, NO)		// Bermuda Triangle
 	Record(@"08bcbc8954473e8f0242b881315b0af4466998ae", None, NO)		// Berzerk
 	Record(@"5e4517db83c061926130ab65975e3b83d9401cc9", Atari8k, NO)	// Big Bird's Egg Catch
@@ -78,7 +78,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"f6a41507b8cf890ab7c59bb1424f0500534385ce", Atari8k, NO)	// Bionic Breakthrough
 	Record(@"edfd905a34870196f8acb2a9cd41f79f4326f88d", None, NO)		// Blackjack
 	Record(@"0fadef01ce28192880f745b23a5fbb64c5a96efe", Atari8k, NO)	// Blueprint
-	Record(@"ff25ed062dcc430448b358d2ac745787410e1169", None, NO)		// BMX Air Master
+	Record(@"ff25ed062dcc430448b358d2ac745787410e1169", Atari16k, NO)		// BMX Air Master
 	Record(@"50e26688fdd3eadcfa83240616267a8f60216c25", None, NO)		// Bobby is Going Home
 	Record(@"282cad17482f5f87805065d1a62e49e662d5b4bb", None, NO)		// Bogey Blaster
 	Record(@"d106bb41a38ed222dead608d839e8a3f0d0ecc18", None, NO)		// Boing!
@@ -87,7 +87,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"238915cafd26f69bc8a3b9aa7d880dde59f6f12d", None, NO)		// Brain Games
 	Record(@"8d473b87b70e26890268e6c417c0bb7f01e402eb", None, NO)		// Breakout
 	Record(@"2873eb6effd35003d13e2f8f997b76dbc85d0f64", None, NO)		// Bridge
-	Record(@"a65dea2d9790f3eb308c048a01566e35e8c24549", None, NO)		// Buck Rogers — Planet of Zoom
+	Record(@"a65dea2d9790f3eb308c048a01566e35e8c24549", Atari8k, NO)		// Buck Rogers — Planet of Zoom
 	Record(@"9c0e13af336a986c271fe828fafdca250afba647", Atari8k, NO)	// Bugs Bunny
 	Record(@"67387d0d3d48a44800c44860bf15339a81f41aa9", None, NO)		// Bugs
 	Record(@"1819ef408c1216c83dcfeceec28d13f6ea5ca477", None, NO)		// Bump 'n' Jump
@@ -120,7 +120,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"68a7cb3ff847cd987a551f3dd9cda5f90ce0a3bf", Atari16k, NO)	// Commando
 	Record(@"dbc0c0451dee44425810e04df8f1d26d1c2d3993", None, NO)		// Computer Chess
 	Record(@"5512a0ed4306edc007a78bb52dbcf492adf798ec", None, NO)		// Confrontation
-	Record(@"3a77db43b6583e8689435f0f14aa04b9e57bdded", None, NO)		// Congo Bongo
+	Record(@"3a77db43b6583e8689435f0f14aa04b9e57bdded", Atari8k, NO)		// Congo Bongo
 	Record(@"f4a62ba0ff59803c5f40d59eeed1e126fe37979b", Atari8k, NO)	// Cookie Monster Munch
 	Record(@"187983fd14d37498437d0ef8f3fbd05675feb6ae", None, NO)		// Cosmic Ark
 	Record(@"3717c97bbb0f547e4389db8fc954d1bad992444c", None, NO)		// Cosmic Commuter
@@ -140,9 +140,9 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"07e94a7d357e859dcff77180981713ce8119324e", None, NO)		// Dancing Plate
 	Record(@"0ae2fc87f87a5cc199c3b9a17444bf3c2f6a829b", None, NO)		// Dark Cavern
 	Record(@"fbb4814973fcb4e101521515e04daa6424c45f5c", Atari16k, YES)	// Dark Chambers
-	Record(@"c5af53c4b64c3db552d4717b8583d6fe8d3e7952", None, NO)		// Dark Mage
+	Record(@"c5af53c4b64c3db552d4717b8583d6fe8d3e7952", Atari8k, NO)		// Dark Mage
 	Record(@"68de291d5e9cbebfed72d2f9039e60581b6dbdc5", None, NO)		// Deadly Duck
-	Record(@"2ad9db4b5aec2da36ecc3178599b02619c3c462e", None, NO)		// Death Star Battle
+	Record(@"2ad9db4b5aec2da36ecc3178599b02619c3c462e", ParkerBros, NO)		// Death Star Battle
 	Record(@"5f710a1148740760b4ebcc42861a1f9c3384799e", None, NO)		// Death Trap
 	Record(@"717656f561823edaa69240471c3106963f5c307e", ActivisionStack, NO)		// Decathlon
 	Record(@"d7b506b84f28e1b917a2978753d5a40eb197537a", Atari8k, YES)	// Defender 2
@@ -170,13 +170,13 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"d16eba13ab1313f375e86b488181567f846f1dc4", Atari8k, NO)	// Dumbo's Flying Circus
 	Record(@"9e34f9ca51573c92918720f8a259b9449a0cd65e", Atari8k, NO)	// E.T. — The Extra-Terrestrial
 	Record(@"68cbfadf097ae2d1e838f315c7cc7b70bbf2ccc8", None, NO)		// Eggomania
-	Record(@"bab872ee41695cefe41d88e4932132eca6c4e69c", None, NO)		// Elevator Action
+	Record(@"bab872ee41695cefe41d88e4932132eca6c4e69c", Atari8k, NO)		// Elevator Action
 	Record(@"475fc2b23c0ee273388539a4eeafa34f8f8d3fd8", None, NO)		// Eli's Ladder
-	Record(@"3983e109fc0b38c0b559a09a001f3e5f2bb1dc2a", None, NO)		// Elk Attack
+	Record(@"3983e109fc0b38c0b559a09a001f3e5f2bb1dc2a", Atari8k, NO)		// Elk Attack
 	Record(@"205af4051ea39fb5a038a8545c78bff91df321b7", None, NO)		// Encounter at L-5
 	Record(@"82e9b2dd6d99f15381506a76ef958a1773a7ba21", None, NO)		// Enduro
 	Record(@"7905aee90a6dd64d9538e0b8e772f833ba9feb83", None, NO)		// Entombed
-	Record(@"27d925d482553deff23f0889b3051091977d6920", None, NO)		// Espial
+	Record(@"27d925d482553deff23f0889b3051091977d6920", Tigervision, NO)		// Espial
 	Record(@"c17801c0190ade27f438e2aa98dde81b3ae66267", None, NO)		// Exocet
 	Record(@"6297dd336a6343f98cd142d1d3d76ce84770a488", None, NO)		// Fantastic Voyage
 	Record(@"a5614c751f29118ddb3dec9794612b98a0f00b98", None, NO)		// Fast Eddie
@@ -194,7 +194,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"91cc7e5cd6c0d4a6f42ed66353b7ee7bb972fa3f", None, NO)		// Freeway
 	Record(@"de6fc1b51d41b34dcda92f579b2aa4df8eccf586", Atari8k, NO)	// Frog Pond
 	Record(@"f344d5a8dc895c5a2ae0288f3c6cb66650e49167", None, NO)		// Frogflys
-	Record(@"6b9e591cc53844795725fc66c564f0364d1fbe40", None, NO)		// Frogger II
+	Record(@"6b9e591cc53844795725fc66c564f0364d1fbe40", ParkerBros, NO)		// Frogger II
 	Record(@"e859b935a36494f3c4b4bf5547392600fb9c96f0", None, NO)		// Frogger
 	Record(@"cf32bfcd7f2c3b7d2a6ad2f298aea2dfad8242e7", Atari8k, NO)		// Front Line
 	Record(@"b9e60437e7691d5ef9002cfc7d15ae95f1c03a12", None, NO)		// Frostbite
@@ -203,13 +203,13 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"8e708e0067d3302327900fa322aeb8e2df2022d7", Atari8k, NO)	// Galaxian Enhanced Graphics
 	Record(@"b081b327ac32d951c36cb4b3ff812be95685d52f", Atari8k, NO)	// Galaxian
 	Record(@"8cf49d43bd62308df788cfacbfcd80e9226c7590", None, NO)		// Gangster Alley
-	Record(@"bc0d1edc251d8d4db3d5234ec83dee171642a547", None, NO)		// Garfield
+	Record(@"bc0d1edc251d8d4db3d5234ec83dee171642a547", Atari16k, NO)		// Garfield
 	Record(@"0da1f2de5a9b5a6604ccdb0f30b9da4e5f799b40", None, NO)		// Gas Hog
 	Record(@"73adae38d86d50360b1a247244df05892e33da46", None, NO)		// Gauntlet
 	Record(@"3b1fb93342c7f014a28dddf6f16895d11ac7d6f0", None, NO)		// General Re-Treat
-	Record(@"4b533776dcd9d538f9206ad1e28b30116d08df1e", None, NO)		// Ghost Manor
-	Record(@"1bcf03e1129015a46ad7028e0e74253653944e86", None, NO)		// Ghostbusters II (alternate)
-	Record(@"e032876305647a95b622e5c4971f7096ef72acdb", None, NO)		// Ghostbusters II
+	Record(@"4b533776dcd9d538f9206ad1e28b30116d08df1e", Atari8k, NO)		// Ghost Manor
+	Record(@"1bcf03e1129015a46ad7028e0e74253653944e86", Atari16k, NO)		// Ghostbusters II (alternate)
+	Record(@"e032876305647a95b622e5c4971f7096ef72acdb", Atari16k, NO)		// Ghostbusters II
 	Record(@"5ed0b2cb346d20720e3c526da331551aa16a23a4", Atari8k, NO)	// Ghostbusters
 	Record(@"b64ed2d5a2f8fdac4ff0ce56939ba72e343fec33", None, NO)		// Gigolo
 	Record(@"3a3d7206afee36786026d6287fe956c2ebc80ea7", None, NO)		// Glacier Patrol
@@ -226,7 +226,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"7d30ff565ad7b2a3143d049c5b39e4a6ac3f9cd5", None, NO)		// Guardian
 	Record(@"45f3f98735798e19427a9100a9000d97917b932f", None, NO)		// Gunfight (NTSC)
 	Record(@"7ac6356224cc718ee5731d1ce14aea6fb2335439", None, NO)		// Gunfight (PAL)
-	Record(@"4bd87ba8b3b6d7850e3ea41b4d494c3b12659f27", None, NO)		// Gyruss
+	Record(@"4bd87ba8b3b6d7850e3ea41b4d494c3b12659f27", ParkerBros, NO)		// Gyruss
 	Record(@"282f94817401e3725c622b73a0c05685ce761783", Atari8k, NO)	// H.E.R.O.
 	Record(@"4c72cec151f219866bf870fa7ac749a19ca501c9", None, NO)		// Halloween
 	Record(@"561bccf508e162bc70c42d85c170cf0d1d4691a3", None, NO)		// Hangman
@@ -242,7 +242,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"620ab88d63cdd3f8ce67deac00a22257c7205c8b", None, NO)		// Indy 500
 	Record(@"922cd171ef132bf6c5bed00ad01410ada4b20729", None, NO)		// Infiltrate
 	Record(@"19fc37f2a24e31a59a17f9cbf3cc03416a8bab9a", None, NO)		// Invaders
-	Record(@"2bbc124cead9aa49b364268735dad8cb1eb6594f", None, NO)		// James Bond 007
+	Record(@"2bbc124cead9aa49b364268735dad8cb1eb6594f", ParkerBros, NO)		// James Bond 007
 	Record(@"ea5c827052886908c0deaa0a03d6f8da8e4f298d", None, NO)		// Jammed Demo
 	Record(@"af4d6867a8bc4818fc6bb701a765a3c907feb628", None, NO)		// Jaw Breaker
 	Record(@"36b9edc7150311203f375c1be10d0510efde6476", None, NO)		// Jedi Arena
@@ -263,7 +263,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"759597d1d779cfdfd7aa30fd28a59acc58ca2533", None, NO)		// Knight on the Town
 	Record(@"2f550743e237f6dc8c75c389a01b02e9a396fdad", None, NO)		// Kool-Aid Man
 	Record(@"4bdf1cf73316bdb0002606facf11b6ddcb287207", Atari8k, NO)	// Krull
-	Record(@"1637b6b9cd1a918339ec054cf95b924e7ce4789a", None, NO)		// Kung Fu Superkicks
+	Record(@"1637b6b9cd1a918339ec054cf95b924e7ce4789a", Atari8k, NO)		// Kung Fu Superkicks
 	Record(@"3b93a34ba2a6b7db387ea588c48d939eee5d71a1", Atari8k, NO)	// Kung-Fu Master
 	Record(@"6d59dfea26b7a06545a817f03f62a59be8993587", None, NO)		// Lady in Wading
 	Record(@"ea8ecc2f6818e1c9479f55c0a3356edcf7a4d657", None, NO)		// Laser Blast
@@ -272,18 +272,18 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"fe208ad775cbf9523e7a99632b9f10f2c9c7aa87", None, NO)		// Lochjaw
 	Record(@"fc3d75d46d917457aa1701bf47844817d0ba96c3", None, NO)		// Lock 'n' Chase
 	Record(@"f92b0b83db3cd840d16ee2726011f5f0144103d5", None, NO)		// London Blitz
-	Record(@"ef02fdb94ac092247bfcd5f556e01a68c06a4832", None, NO)		// Lord of the Rings
+	Record(@"ef02fdb94ac092247bfcd5f556e01a68c06a4832", Atari8k, NO)		// Lord of the Rings
 	Record(@"e8492fe9d62750df682358fe59a4d4272655eb96", None, NO)		// Lost Luggage
 	Record(@"dcd96913a1c840c8b57848986242eeb928bfd2ff", None, NO)		// M*A*S*H
 	Record(@"d6e2b7765a9d30f91c9b2b8d0adf61ec5dc2b30a", None, NO)		// M.A.D.
-	Record(@"4c66b84ab0d25e46729bbcf23f985d59ca8520ad", None, NO)		// MagiCard
+	Record(@"4c66b84ab0d25e46729bbcf23f985d59ca8520ad", CommaVid, NO)		// MagiCard
 	Record(@"cdc7e65d965a7a00adda1e8bedfbe6200e349497", None, NO)		// Malagai
 	Record(@"ee8f9bf7cdb55f25f4d99e1a23f4c90106fadc39", None, NO)		// Mangia
 	Record(@"249a11bb4872a24f22dff1027ff256c1408140c2", None, NO)		// Marauder
 	Record(@"dd9e94ca96c75a212f1414aa511fd99ecdadaf44", None, NO)		// Marine Wars
 	Record(@"49425ff154b92ca048abb4ce5e8d485c24935035", Atari8k, NO)	// Mario Bros.
 	Record(@"fbe7a78764407743b43a91136903ede65306f4e7", None, NO)		// Master Builder
-	Record(@"6db8fa65755db86438ada3d90f4c39cc288dcf84", None, NO)		// Masters of the Universe
+	Record(@"6db8fa65755db86438ada3d90f4c39cc288dcf84", MNetwork, NO)		// Masters of the Universe
 	Record(@"18fac606400c08a0469aebd9b071ae3aec2a3cf2", None, NO)		// Math Gran Prix
 	Record(@"aba25089d87cd6fee8d206b880baa5d938aae255", None, NO)		// Maze Craze
 	Record(@"0ae118373c7bda97da2f8d9c113e1e09ea7e49e1", None, NO)		// Mega Force
@@ -291,26 +291,26 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"debb1572eadb20beb0e4cd2df8396def8eb02098", None, NO)		// Meltdown
 	Record(@"7fcf95459ea597a332bf5b6f56c8f891307b45b4", Atari16k, NO)	// Midnight Magic
 	Record(@"0616f0dde6d697816dda92ed9e5a4c3d77a39408", Atari16k, YES)	// Millipede
-	Record(@"5edbf8a24fcba9763983befe20e2311f61b986d4", None, NO)		// Miner 2049er Volume 2
-	Record(@"0e56b48e88f69d405eabf544e57663bd180b3b1e", None, NO)		// Miner 2049er
+	Record(@"5edbf8a24fcba9763983befe20e2311f61b986d4", Tigervision, NO)		// Miner 2049er Volume 2
+	Record(@"0e56b48e88f69d405eabf544e57663bd180b3b1e", Tigervision, NO)		// Miner 2049er
 	Record(@"34773998d7740e1e8c206b3b22a19e282ca132e1", None, NO)		// Mines of Minos
 	Record(@"be24b42e3744a81fb217c86c4ed5ce51bff28e65", None, NO)		// Miniature Golf
-	Record(@"f721d1f750e19b9e1788eed5e3872923ab46a91d", None, NO)		// Miss Piggy's Wedding
+	Record(@"f721d1f750e19b9e1788eed5e3872923ab46a91d", Atari8k, NO)		// Miss Piggy's Wedding
 	Record(@"faa06bb0643dbf556b13591c31917d277a83110b", None, NO)		// Missile Command
 	Record(@"224e7a310afdb91c6915743e72b7b53b38eb5754", None, NO)		// Missile Control
 	Record(@"999dc390a7a3f7be7c88022506c70bd4208b26d8", None, NO)		// Mission 3,000 AD
 	Record(@"93520821ce406a7aa6cc30472f76bca543805fd4", None, NO)		// Mission Survive
 	Record(@"0b74a90a22a7a16f9c2131fabd76b7742de0473e", None, NO)		// Mogul Maniac
 	Record(@"81a4d56820b1e00130e368a3532c409929aff5fb", None, NO)		// Monster Cise
-	Record(@"7dfeb1a8ec863c1e0f297113a1cc4185c215e81c", None, NO)		// Montezuma's Revenge
+	Record(@"7dfeb1a8ec863c1e0f297113a1cc4185c215e81c", ParkerBros, NO)		// Montezuma's Revenge
 	Record(@"dce778f397a325113f035722b7769492645d69eb", Atari8k, NO)	// Moon Patrol
 	Record(@"05ab04dc30eae31b98ebf6f43fec6793a53e0a23", Atari8k, NO)		// Moonsweeper
-	Record(@"c4d495d42ea5bd354af04e1f2b68cce0fb43175d", None, NO)		// Motocross Racer
+	Record(@"c4d495d42ea5bd354af04e1f2b68cce0fb43175d", Atari8k, NO)		// Motocross Racer
 	Record(@"ece97bda734faffcf847a8bcdfa474789c377d8d", Atari16k, NO)	// MotoRodeo
 	Record(@"ef4112e86d6a3e8f7b8e482d294a5917f162b38c", CBSRamPlus, NO)		// Mountain King
 	Record(@"cf6347dedcfec213c28dd92111ec6f41e74b6f64", None, NO)		// Mouse Trap
 	Record(@"e4c912199779bba25f1b9950007f14dca3d19c84", Atari8k, NO)		// Mr Do!
-	Record(@"330c2c67399e07c40f4101f9e18670fef070475e", None, NO)		// Mr. Do!'s Castle
+	Record(@"330c2c67399e07c40f4101f9e18670fef070475e", ParkerBros, NO)		// Mr. Do!'s Castle
 	Record(@"62b933cdd8844bb1816ce57889203954fe782603", Atari8k, NO)	// Ms. Pac-Man
 	Record(@"b2df23b1bf6df9d253ad0705592d3fce352a837b", Atari8k, NO)		// My Golf
 	Record(@"2b4a0535ca83b963906eb0a5d60ce0e21f07905d", None, NO)		// Name This Game
@@ -339,11 +339,11 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"461c2ea3e4d24f86ec02215c1f4743d250796c11", Atari8k, NO)	// Pengo (prototype)
 	Record(@"89b991a7a251f78f422bcdf9cf7d4475fdf33e97", Atari8k, NO)	// Pengo
 	Record(@"c5317035e73f60e959c123d89600c81b7c45701f", None, NO)		// Pepsi Invaders
-	Record(@"19c3ad034466c0433501a415a996ed7155d6063a", None, NO)		// Pete Rose Baseball
+	Record(@"19c3ad034466c0433501a415a996ed7155d6063a", Atari16k, NO)		// Pete Rose Baseball
 	Record(@"959aca4b44269b1e5ac58791fc3c7c461a6a4a17", None, NO)		// Phantom Tank
 	Record(@"b299df2792c5cca73118925dff85695b73a16228", None, NO)		// Philly Flasher
 	Record(@"010d51e3f522ba60f021d56819437d7c85897cdd", Atari8k, NO)	// Phoenix
-	Record(@"a5917537cf1093aa350903d85d9e271e8a11d2cf", None, NO)		// Pick 'n' Pile
+	Record(@"a5917537cf1093aa350903d85d9e271e8a11d2cf", Atari16k, NO)		// Pick 'n' Pile
 	Record(@"483fc907471c5c358fb3e624097861a2fc9c1e45", None, NO)		// Picnic
 	Record(@"57774193081acea010bd935a0449bc8f53157128", None, NO)		// Piece o' Cake
 	Record(@"d08b30ca2e5e351cac3bd3fb760b87a1a30aa300", Atari8k, NO)	// Pigs in Space
@@ -353,22 +353,22 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"dcca30e4ae58c85a070f0c6cfaa4d27be2970d61", None, NO)		// Planet of the Apes
 	Record(@"ccfcbf52815a441158977292b719f7c5ed80c515", None, NO)		// Planet Patrol
 	Record(@"103398dd35ebd39450c5cac760fa332aac3f9458", None, NO)		// Plaque Attack
-	Record(@"2410931a8a18b915993b6982fbabab0f437967a4", None, NO)		// Polaris
+	Record(@"2410931a8a18b915993b6982fbabab0f437967a4", Tigervision, NO)		// Polaris
 	Record(@"9d334da07352a9399cbbd9b41c6923232d0cdcd3", Atari8k, NO)	// Pole Position
 	Record(@"c0af0188028cd899c49ba18f52bd1678e573bff2", None, NO)		// Polo
 	Record(@"954d2980ea8f8d9a76921612c378889f24c35639", None, NO)		// Pompeii
 	Record(@"b7a002025c24ab2ec4a03f62212db7b96c0e5ffd", None, NO)		// Pooyan
-	Record(@"1772a22df3e9a1f3842387ac63eeddff7f04b01c", None, NO)		// Popeye
-	Record(@"70afc2cc870be546dc976fa0c6811f7e01ebc471", None, NO)		// Porky's
+	Record(@"1772a22df3e9a1f3842387ac63eeddff7f04b01c", ParkerBros, NO)		// Popeye
+	Record(@"70afc2cc870be546dc976fa0c6811f7e01ebc471", Atari8k, NO)		// Porky's
 	Record(@"8b001373be485060f88182e9a7afcf55b4d07a57", Atari8k, NO)	// Pressure Cooker
 	Record(@"1ea6bea907a6b5607c76f222730f812a99cd1015", Atari8k, NO)	// Private Eye
 	Record(@"feb6bd37e5d722bd080433587972b980afff5fa5", None, NO)		// Pumruckl I
-	Record(@"a61be3702437b5d16e19c0d2cd92393515d42f23", None, NO)		// Q-Bert's Qubes
+	Record(@"a61be3702437b5d16e19c0d2cd92393515d42f23", ParkerBros, NO)		// Q-Bert's Qubes
 	Record(@"f3ef9787b4287a32e4d9ac7b9c3358edc16315b2", None, NO)		// Q-Bert
 	Record(@"1e634a8733cbc50462d363562b80013343d2fac3", Atari8k, NO)	// Quadrun
 	Record(@"d83c740d2968343e6401828d62f58be6aea8e858", None, NO)		// Quest for Quintana Roo
 	Record(@"33a47f79610c4525802c9881f67ad1f3f8c1b55d", None, NO)		// Quick Step!
-	Record(@"7bf945ea667e683ec24a4ed779e88bbe55dc4b26", None, NO)		// Rabbit Transit
+	Record(@"7bf945ea667e683ec24a4ed779e88bbe55dc4b26", Atari8k, NO)		// Rabbit Transit
 	Record(@"4af6008152f1d38626d84016a7ef753406b48b46", None, NO)		// Racquetball
 	Record(@"33f016c941fab01e1e2d0d7ba7930e3bcd8feaa3", Atari16k, YES)	// Radar Lock
 	Record(@"5f1f2b5b407b0624b59409e02060a3a9e8eed8fc", None, NO)		// Radar
@@ -378,7 +378,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"7bb7df255829d5fbbee0d944915e50f89a5e7075", Atari16k, NO)	// Rampage!
 	Record(@"5adf9b530321472380ebceb2539de2ffbb0310bc", None, NO)		// Reactor
 	Record(@"ace97b89b8b6ab947434dbfd263951c6c0b349ac", Atari8k, NO)	// RealSports Baseball
-	Record(@"bc2e6bdaa950bc06be040899dfeb9ad0938f4e98", None, NO)		// RealSports Basketball
+	Record(@"bc2e6bdaa950bc06be040899dfeb9ad0938f4e98", Atari8k, NO)		// RealSports Basketball
 	Record(@"22dedbfce6cc9055a6c4caec013ca80200e51971", Atari16k, NO)	// RealSports Boxing
 	Record(@"200d04c1e7f41a5a3730287ed0c3f9293628f195", Atari8k, NO)	// RealSports Football
 	Record(@"e3d964d918b7f2c420776acd3370ec1ee62744ea", Atari8k, NO)	// RealSports Soccer
@@ -387,7 +387,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"94e94810bf6c72eee49157f9218c3c170b65c836", None, NO)		// Rescue Terra I
 	Record(@"f8a9dd46f9bad232f74d1ee2671ccb26ea1b3029", None, NO)		// Revenge of the Beefsteak Tomatoes
 	Record(@"acb2430b4e6c72ce13f321d9d3a38986dc4768ef", None, NO)		// Riddle of the Sphinx
-	Record(@"6715493dce54b22362741229078815b3360988ae", None, NO)		// River Patrol
+	Record(@"6715493dce54b22362741229078815b3360988ae", Tigervision, NO)		// River Patrol
 	Record(@"40329780402f8247f294fe884ffc56cc3da0c62d", None, NO)		// River Raid copy
 	Record(@"a08c3eae3368334c937a5e03329782e95f7b57c7", Atari16k, NO)	// River Raid II
 	Record(@"325a2374800b2cb78ab7ff9e4017759865109d7d", None, NO)		// River Raid
@@ -413,17 +413,17 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"6e6daa34878d3e331c630359c7125a4ffba1b22d", Atari16k, YES)	// Shooting Arcade
 	Record(@"08952192ea6bf0ef94373520a7e855f58bae6179", None, NO)		// Shuttle Orbiter
 	Record(@"242fc23def80da96da22c2c7238d48635489abb0", Atari8k, NO)	// Sinistar
-	Record(@"e9fa52f8e7f747cd9685ddb18bdeed2f66255324", None, NO)		// Sir Lancelot
-	Record(@"a26fe0b5a43fe8116ab0ae6656d6b11644d871ec", None, NO)		// Skate Boardin'
+	Record(@"e9fa52f8e7f747cd9685ddb18bdeed2f66255324", Atari8k, NO)		// Sir Lancelot
+	Record(@"a26fe0b5a43fe8116ab0ae6656d6b11644d871ec", Atari8k, NO)		// Skate Boardin'
 	Record(@"5ea6d2eb27c76e85f477ba6c799deb7c416ebbc3", None, NO)		// Skeet Shoot
 	Record(@"6581846f983b50cffb75d1c1b902238ba7dd4e92", None, NO)		// Skiing
 	Record(@"4dde18d4abc139562fdd7a9d2fd49a1f00a9e64a", None, NO)		// Sky Diver
 	Record(@"105f722dcf9a89b683c10ddd7f684c5966c8e1db", None, NO)		// Sky Jinks
-	Record(@"fc5f1e30db3b2469c9701dadfa95f3268fd1e4cb", None, NO)		// Sky Patrol
+	Record(@"fc5f1e30db3b2469c9701dadfa95f3268fd1e4cb", Atari8k, NO)		// Sky Patrol
 	Record(@"ef0a7ecfe8f3b5d1e67a736552a0cdc472803be9", None, NO)		// Sky Skipper
 	Record(@"7239d1c64f3dfc2a1613be325cce13803dd2baa5", None, NO)		// Slot Machine
 	Record(@"a2b13017d759346174e3d8dd53b6347222d3b85d", None, NO)		// Slot Racers
-	Record(@"530c7883fed4c5b9d78e35d48770b56e328999a3", None, NO)		// SMURFRES
+	Record(@"530c7883fed4c5b9d78e35d48770b56e328999a3", Atari8k, NO)		// Smurfs: Rescue in Gargamel's Castle
 	Record(@"c0ae3965fcfab0294f770af0af57d7d1adc17750", Atari8k, NO)		// Smurfs Save the Day
 	Record(@"e7bf450cf3a3f40de9d24d89968a4bc89b53cb18", None, NO)		// Snail Against Squirrel
 	Record(@"843e3c2fc71af2db3f2ae98eb350fde26334cfd1", None, NO)		// Sneak 'n Peak
@@ -449,11 +449,11 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"60af23a860b33e1a85081b8de779d2ddfe36b19a", None, NO)		// Spider Monster
 	Record(@"912c5f5571ac59a6782da412183cdd6277345816", None, NO)		// Spider-Man
 	Record(@"904118b0c1be484782ec2a60a24436059608b36d", None, NO)		// Spiderdroid
-	Record(@"205241a12778829981e9281d9c6fa137f11e1376", None, NO)		// Spike's Peak
+	Record(@"205241a12778829981e9281d9c6fa137f11e1376", Atari8k, NO)		// Spike's Peak
 	Record(@"165de0ebca628eb1e9f564390c9eedfe289c7a1d", None, NO)		// Spitfire Attack
-	Record(@"6da0aa8aa40cd9c78dc014deb9074529688d91d0", None, NO)		// Springer
+	Record(@"6da0aa8aa40cd9c78dc014deb9074529688d91d0", Tigervision, NO)		// Springer
 	Record(@"c0e29b86fc1cc41a1c8afa37572c3c5698ae70b2", Atari16k, YES)	// Sprint Master
-	Record(@"1d0acf064d06a026a04b6028285db78c834e9854", None, NO)		// Spy Hunter
+	Record(@"1d0acf064d06a026a04b6028285db78c834e9854", Atari8k, NO)		// Spy Hunter
 	Record(@"033148faebc97d4ed3a86c97fe0cdee21bd261f7", None, NO)		// Squeeze Box
 	Record(@"11a9dd44787f011ec540159248377cb27fb8f7bb", None, NO)		// Squoosh
 	Record(@"46aabde3074acded8890a2efa5586d6b8bd76b5d", None, NO)		// Sssnake
@@ -463,10 +463,10 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"e10cce1a438c82bd499e1eb31a3f07d7254198f5", Atari8k, NO)	// Star Raiders
 	Record(@"878e78ed46e29c44949d0904a2198826e412ed81", None, NO)		// Star Ship
 	Record(@"de05d1ca8ad1e7a85df3faf25b1aa90b159afded", None, NO)		// Star Strike
-	Record(@"61a3ebbffa0bfb761295c66e189b62915f4818d9", None, NO)		// Star Trek — Strategic Operations Simulator
+	Record(@"61a3ebbffa0bfb761295c66e189b62915f4818d9", Atari8k, NO)		// Star Trek — Strategic Operations Simulator
 	Record(@"ccc5b829c4aa71acb7976e741fdbf59c8ef9eb55", None, NO)		// Star Voyager
-	Record(@"c9d201935bbe6373793241ba9c03cc02f1df31c9", None, NO)		// Star Wars — Ewok Adventure
-	Record(@"8823fe3d8e3aeadc6b61ca51914e3b15aa13801c", None, NO)		// Star Wars — The Arcade Game
+	Record(@"c9d201935bbe6373793241ba9c03cc02f1df31c9", Atari8k, NO)		// Star Wars — Ewok Adventure
+	Record(@"8823fe3d8e3aeadc6b61ca51914e3b15aa13801c", ParkerBros, NO)		// Star Wars — The Arcade Game
 	Record(@"ad5b2c9df558ab23ad2954fe49ed5b37a06009bf", None, NO)		// Star Wars — The Empire Strikes Back
 	Record(@"4f87be0ef16a1d0389226d1fbda9b4c16b06e13e", Atari8k, YES)	// Stargate
 	Record(@"814876ed270114912363e4718a84123dee213b6f", None, NO)		// StarMaster
@@ -482,16 +482,16 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"3aec7ea8af72bbe105b9d2903a92f5ad2b37bddb", None, NO)		// Stunt Man
 	Record(@"ccd75f0141b917656ef2b86c068fba3238d18a0c", None, NO)		// Sub-Scan
 	Record(@"b22ba7cbde60a21ecbbe3953cc4a5c0bf007cc26", None, NO)		// Submarine Commander
-	Record(@"2abc6bbcab27985f19e42915530fd556b6b1ae23", None, NO)		// Subterrenea
+	Record(@"2abc6bbcab27985f19e42915530fd556b6b1ae23", Atari8k, NO)		// Subterrenea
 	Record(@"65f4a708e6af565f1f75d0fbdc8942cb149cf299", Atari16k, NO)		// Summer Games
 	Record(@"b066a60ea1df1db0a55271c7608b0e19e4d18a1e", Atari16k, NO)	// Super Baseball
 	Record(@"e380e243c671e954e86aa1a3a0bfeb36d5e0c3e2", None, NO)		// Super Breakout
 	Record(@"dfce4d6436f91d8d385f8b01f0d8e3488400407b", None, NO)		// Super Challenge Baseball
 	Record(@"5c1338ec76828cfa4a85b5bd8db1c00c8095c330", None, NO)		// Super Challenge Football
-	Record(@"bac0a0256509f8fd1feea93d74ba4c7d82c1edc6", None, NO)		// Super Cobra
+	Record(@"bac0a0256509f8fd1feea93d74ba4c7d82c1edc6", ParkerBros, NO)		// Super Cobra
 	Record(@"eaca6b474fd552ab4aaf75526618828165a91934", Atari16k, YES)	// Super Football
 	Record(@"b9dee027c8d7dd2a46be111ab0b8363c1becc081", None, NO)		// Superman
-	Record(@"cf84e21ada55730d689cfac7d26e2295317222bc", None, NO)		// Surf's Up
+	Record(@"cf84e21ada55730d689cfac7d26e2295317222bc", Atari8k, NO)		// Surf's Up
 	Record(@"e754c8985ca7f5780c23a856656099b710e89919", None, NO)		// Surfer's Paradise
 	Record(@"b7988373b81992d08056560d15d3e32d9d3888bc", None, NO)		// Surround
 	Record(@"6c993b4c70cfed390f1f436fdbaa1f81495be18e", None, NO)		// Survival Run
@@ -505,23 +505,23 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"ee8bc1710a67c33e9f95bb05cc3d8f841093fde2", None, NO)		// Tapeworm
 	Record(@"e986e1818e747beb9b33ce4dff1cdc6b55bdb620", None, NO)		// Tapper
 	Record(@"bae73700ba6532e9e6415b6471d115bdb7805464", None, NO)		// Task Force
-	Record(@"7aaf6be610ba6ea1205bdd5ed60838ccb8280d57", None, NO)		// Tax Avoiders
+	Record(@"7aaf6be610ba6ea1205bdd5ed60838ccb8280d57", Atari8k, NO)		// Tax Avoiders
 	Record(@"476f0c565f54accecafd72c63b0464f469ed20ea", Atari8k, NO)	// Taz
-	Record(@"7efc0ebe334dde84e25fa020ecde4fddcbea9e8f", None, NO)		// Telepathy
-	Record(@"bf4d570c1c738a4d6d00237e25c62e9c3225f98f", None, NO)		// Tempest
+	Record(@"7efc0ebe334dde84e25fa020ecde4fddcbea9e8f", Atari8k, NO)		// Telepathy
+	Record(@"bf4d570c1c738a4d6d00237e25c62e9c3225f98f", Atari8k, NO)		// Tempest
 	Record(@"3d30e7ed617168d852923def2000c9c0a8b728c6", None, NO)		// Tennis
-	Record(@"53413577afe7def1d390e3892c45822405513c07", None, NO)		// The A-Team
+	Record(@"53413577afe7def1d390e3892c45822405513c07", Atari8k, NO)		// The A-Team
 	Record(@"1f834923eac271bf04c18621ac2aada68d426917", None, NO)		// The Earth Dies Screaming
 	Record(@"5a641caa2ab3c7c0cd5deb027acbc58efccf8d6a", None, NO)		// The Music Machine
 	Record(@"717122a4184bc8db41e65ab7c369c40b21c048d9", None, NO)		// The Texas Chainsaw Massacre
 	Record(@"49bebad3e2eb210591be709a6ec7e4f0864265ab", None, NO)		// This Planet Sucks
 	Record(@"9a52fa88bd7455044f00548e9615452131d1c711", None, NO)		// Threshold
-	Record(@"09608cfaa7c6e9638f12a1cff9dd5036c9effa43", None, NO)		// Thrust
+	Record(@"09608cfaa7c6e9638f12a1cff9dd5036c9effa43", Atari16k, NO)		// Thrust
 	Record(@"3cc8bcc0ff5164303433f469aa4da2eb256d1ad0", None, NO)		// Thunderground
-	Record(@"53ee70d4b35ee3df3ffb95fa360bddb4f2f56ab2", None, NO)		// Thwocker
+	Record(@"53ee70d4b35ee3df3ffb95fa360bddb4f2f56ab2", Atari8k, NO)		// Thwocker
 	Record(@"387358514964d0b6b55f9431576a59b55869f7ab", Atari8k, NO)		// Time Pilot
-	Record(@"979d9b0b0f32b40c0a0568be65a0bc5ef36ca6d0", None, NO)		// Title Match Pro Wrestling
-	Record(@"fcd339065a012c9fe47efbec62969cbc32f3fbf0", None, NO)		// Tomarc the Barbarian
+	Record(@"979d9b0b0f32b40c0a0568be65a0bc5ef36ca6d0", Atari8k, NO)		// Title Match Pro Wrestling
+	Record(@"fcd339065a012c9fe47efbec62969cbc32f3fbf0", Atari8k, NO)		// Tomarc the Barbarian
 	Record(@"d82ac7237df54cc8688e3074b58433a7dd6b7d11", ParkerBros, NO)		// Tooth Protectors
 	Record(@"b344b3e042447afbb3e40292dc4ca063d5d1110d", None, NO)		// Towering Inferno
 	Record(@"005a6a53f5a856f0bdbca519af1ef236aaa1494d", Atari16k, NO)	// Track and Field
@@ -530,10 +530,10 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"0ec58a3a5a27d1b82a5f9aabab02f9a8387b6956", None, NO)		// TRON — Deadly Discs
 	Record(@"fc1a0b58765a7dcbd8e33562e1074ddd9e0ac624", CBSRamPlus, NO)		// Tunnel Runner
 	Record(@"1162fe46977f01b4d25efab813e0d05ec90aeadc", None, NO)		// Turmoil
-	Record(@"a4d6bac854a70d2c55946932f1511cc62db7d4aa", None, NO)		// Tutankham
+	Record(@"a4d6bac854a70d2c55946932f1511cc62db7d4aa", ParkerBros, NO)		// Tutankham
 	Record(@"bd0ca4884c85db2323f5a4be5266aabb99d84542", None, NO)		// TVNoise.bin
 	Record(@"286106fb973530bc3e2af13240f28c4bcb37e642", None, NO)		// Universal Chaos
-	Record(@"6bde671a50330af154ed15e73fdba3fa55f23d87", None, NO)		// Up 'n Down
+	Record(@"6bde671a50330af154ed15e73fdba3fa55f23d87", Atari8k, NO)		// Up 'n Down
 	Record(@"01475d037cb7a2a892be09d67083102fa9159216", Atari8k, NO)	// Vanguard
 	Record(@"dce98883e813d77e03a5de975d4c52bfb34e7f77", None, NO)		// Vault Assault
 	Record(@"17626ae7bfd10bcde14903040baee0923ecf41dd", None, NO)		// Venture II
@@ -541,7 +541,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"babae88a832b76d8c5af6ea63b8f10a0da5bb992", None, NO)		// Video Checkers
 	Record(@"043ef523e4fcb9fc2fc2fda21f15671bf8620fc3", None, NO)		// Video Chess
 	Record(@"1554b146d076b64776bf49136cea01f60eeba4c1", None, NO)		// Video Jogger
-	Record(@"3b18db73933747851eba9a0ffa3c12b9f602a95c", None, NO)		// Video Life
+	Record(@"3b18db73933747851eba9a0ffa3c12b9f602a95c", CommaVid, NO)		// Video Life
 	Record(@"1ffe89d79d55adabc0916b95cc37e18619ef7830", None, NO)		// Video Olympics
 	Record(@"2c16c1a6374c8e22275d152d93dd31ffba26271f", None, NO)		// Video Pinball
 	Record(@"dec2a3e9b366dce2b63dc1c13662d3f22420a22e", None, NO)		// Video Reflex
@@ -600,8 +600,6 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		AtariROMRecord *romRecord = [self romRecordForSHA1:sha1];
 		if(!romRecord)
 		{
-			printf("Record(@\"%s\", None, NO)		// %s\n", sha1.UTF8String, testFile.UTF8String);
-//			NSLog(@"No record for %@ with SHA1 %@", testFile, sha1);
 			continue;
 		}
 
