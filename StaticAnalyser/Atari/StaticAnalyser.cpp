@@ -159,6 +159,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		{
 			if(address < 128) has_superchip = false;
 			is_ram_plus = false;
+			if(!has_superchip && !is_ram_plus) break;
 		}
 	}
 	target.atari.uses_superchip = has_superchip;
