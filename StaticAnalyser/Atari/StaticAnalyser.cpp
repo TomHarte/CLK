@@ -34,8 +34,6 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 
 	StaticAnalyser::MOS6502::Disassembly high_location_disassembly =
 		StaticAnalyser::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
-//	StaticAnalyser::MOS6502::Disassembly full_range_disassembly =
-//		StaticAnalyser::MOS6502::Disassemble(segment.data, full_range_mapper, {entry_address, break_address});
 
 	// if there are no subroutines in the top 2kb of memory then this isn't a CommaVid
 	bool has_appropriate_subroutine_calls = false;
@@ -119,6 +117,28 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 	else if(tigervision_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
 }
 
+static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
+{
+	// make an assumption that this is the Atari paging model
+	target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari16k;
+
+	std::set<uint16_t> internal_accesses;
+	internal_accesses.insert(disassembly.internal_stores.begin(), disassembly.internal_stores.end());
+	internal_accesses.insert(disassembly.internal_modifies.begin(), disassembly.internal_modifies.end());
+	internal_accesses.insert(disassembly.internal_loads.begin(), disassembly.internal_loads.end());
+
+	int atari_access_count = 0;
+	int mnetwork_access_count = 0;
+	for(uint16_t address : internal_accesses)
+	{
+		uint16_t masked_address = address & 0x1fff;
+		atari_access_count += masked_address >= 0x1ff6 && masked_address < 0x1ffa;
+		mnetwork_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ffb;
+	}
+
+	if(mnetwork_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::MNetwork;
+}
+
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
 {
 	if(segment.data.size() == 2048)
@@ -149,7 +169,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
 		break;
 		case 16384:
-			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari16k;
+			DeterminePagingFor16kCartridge(target, segment, disassembly);
 		break;
 		case 32768:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari32k;
