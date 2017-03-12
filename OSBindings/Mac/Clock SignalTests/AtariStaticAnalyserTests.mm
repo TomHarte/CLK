@@ -90,9 +90,9 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"a65dea2d9790f3eb308c048a01566e35e8c24549", Atari8k, NO)		// Buck Rogers — Planet of Zoom
 	Record(@"9c0e13af336a986c271fe828fafdca250afba647", Atari8k, NO)		// Bugs Bunny
 	Record(@"67387d0d3d48a44800c44860bf15339a81f41aa9", None, NO)			// Bugs
-	Record(@"1819ef408c1216c83dcfeceec28d13f6ea5ca477", None, NO)			// Bump 'n' Jump
+	Record(@"1819ef408c1216c83dcfeceec28d13f6ea5ca477", MNetwork, NO)		// Bump 'n' Jump
 	Record(@"6c199782c79686dc0cbce6d5fe805f276a86a3f5", None, NO)			// Bumper Bash
-	Record(@"49e01b8048ae344cb65838f6b1c1de0e1f416f29", None, NO)			// BurgerTime
+	Record(@"49e01b8048ae344cb65838f6b1c1de0e1f416f29", MNetwork, NO)		// BurgerTime
 	Record(@"b233c37aa5164a54e2e7cc3dc621b331ddc6e55b", None, NO)			// Burning Desire
 	Record(@"3f1f17cf620f462355009f5302cddffa730fa2fa", None, NO)			// Cakewalk
 	Record(@"609c20365c3a71ce45cb277c66ec3ce6b2c50980", Atari16k, NO)		// California Games
@@ -301,7 +301,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"999dc390a7a3f7be7c88022506c70bd4208b26d8", None, NO)			// Mission 3,000 AD
 	Record(@"93520821ce406a7aa6cc30472f76bca543805fd4", None, NO)			// Mission Survive
 	Record(@"0b74a90a22a7a16f9c2131fabd76b7742de0473e", None, NO)			// Mogul Maniac
-	Record(@"81a4d56820b1e00130e368a3532c409929aff5fb", None, NO)			// Monster Cise
+	Record(@"81a4d56820b1e00130e368a3532c409929aff5fb", Atari8k, NO)		// Monstercise
 	Record(@"7dfeb1a8ec863c1e0f297113a1cc4185c215e81c", ParkerBros, NO)		// Montezuma's Revenge
 	Record(@"dce778f397a325113f035722b7769492645d69eb", Atari8k, NO)		// Moon Patrol
 	Record(@"05ab04dc30eae31b98ebf6f43fec6793a53e0a23", Atari8k, NO)		// Moonsweeper
@@ -366,7 +366,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"a61be3702437b5d16e19c0d2cd92393515d42f23", ParkerBros, NO)		// Q-Bert's Qubes
 	Record(@"f3ef9787b4287a32e4d9ac7b9c3358edc16315b2", None, NO)			// Q-Bert
 	Record(@"1e634a8733cbc50462d363562b80013343d2fac3", Atari8k, NO)		// Quadrun
-	Record(@"d83c740d2968343e6401828d62f58be6aea8e858", None, NO)			// Quest for Quintana Roo
+	Record(@"d83c740d2968343e6401828d62f58be6aea8e858", Atari8k, NO)		// Quest for Quintana Roo
 	Record(@"33a47f79610c4525802c9881f67ad1f3f8c1b55d", None, NO)			// Quick Step!
 	Record(@"7bf945ea667e683ec24a4ed779e88bbe55dc4b26", Atari8k, NO)		// Rabbit Transit
 	Record(@"4af6008152f1d38626d84016a7ef753406b48b46", None, NO)			// Racquetball
@@ -391,7 +391,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"40329780402f8247f294fe884ffc56cc3da0c62d", None, NO)			// River Raid copy
 	Record(@"a08c3eae3368334c937a5e03329782e95f7b57c7", Atari16k, NO)		// River Raid II
 	Record(@"325a2374800b2cb78ab7ff9e4017759865109d7d", None, NO)			// River Raid
-	Record(@"7f9c2321c9f22cf2cdbcf1b3f0e563a1c53f68ca", None, NO)			// Roa26 Hood
+	Record(@"7f9c2321c9f22cf2cdbcf1b3f0e563a1c53f68ca", Atari8k, NO)		// Robin Hood
 	Record(@"f45dfcd6db0dae5458e1c0ae8eeaa75b553cdfec", Atari16k, NO)		// Road Runner
 	Record(@"21a3ee57cb622f410ffd51986ab80acadb8d44b7", Atari8k, NO)		// Robot Tank
 	Record(@"0abf0a292d4a24df5a5ebe19a9729f3a8f883c8b", Atari8k, NO)		// Roc 'n Rope
@@ -503,7 +503,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"55e98fe14b07460734781a6aa2f4f1646830c0af", None, NO)			// Tac-Scan
 	Record(@"13a9d86cbde32a1478ef0c7ef412427b13bd6222", None, NO)			// Tanks But No Tanks
 	Record(@"ee8bc1710a67c33e9f95bb05cc3d8f841093fde2", None, NO)			// Tapeworm
-	Record(@"e986e1818e747beb9b33ce4dff1cdc6b55bdb620", None, NO)			// Tapper
+	Record(@"e986e1818e747beb9b33ce4dff1cdc6b55bdb620", Atari8k, NO)		// Tapper
 	Record(@"bae73700ba6532e9e6415b6471d115bdb7805464", None, NO)			// Task Force
 	Record(@"7aaf6be610ba6ea1205bdd5ed60838ccb8280d57", Atari8k, NO)		// Tax Avoiders
 	Record(@"476f0c565f54accecafd72c63b0464f469ed20ea", Atari8k, NO)		// Taz
@@ -579,7 +579,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	return romRecordsBySHA1[sha1];
 }
 
-- (void)testAtariROMS
+- (void)testROMsOfSize:(NSInteger)size
 {
 	NSString *basePath = [[[NSBundle bundleForClass:[self class]] resourcePath] stringByAppendingPathComponent:@"Atari ROMs"];
 	for(NSString *testFile in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:nil])
@@ -588,6 +588,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 
 		// get a SHA1 for the file
 		NSData *fileData = [NSData dataWithContentsOfFile:fullPath];
+		if(size > 0 && [fileData length] != (NSUInteger)size) continue;
 		uint8_t sha1Bytes[CC_SHA1_DIGEST_LENGTH];
 		CC_SHA1([fileData bytes], (CC_LONG)[fileData length], sha1Bytes);
 		NSMutableString *sha1 = [[NSMutableString alloc] init];
@@ -605,5 +606,13 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		XCTAssert(targets.front().atari.uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
 	}
 }
+
+- (void)testAtariROMs	{	[self testROMsOfSize:-1];		}
+- (void)test2kROMs		{	[self testROMsOfSize:2048];		}
+- (void)test4kROMs		{	[self testROMsOfSize:4096];		}
+- (void)test8kROMs		{	[self testROMsOfSize:8192];		}
+- (void)test12kROMs		{	[self testROMsOfSize:12288];	}
+- (void)test16kROMs		{	[self testROMsOfSize:16384];	}
+- (void)test32kROMs		{	[self testROMsOfSize:32768];	}
 
 @end
