@@ -90,20 +90,15 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
 }
 
-static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const std::vector<StaticAnalyser::MOS6502::Disassembly> &disassemblies)
+static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
 {
 	// make an assumption that this is the Atari paging model
 	target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari8k;
 
 	std::set<uint16_t> internal_accesses;
-	std::set<uint16_t> external_stores;
-	for(const StaticAnalyser::MOS6502::Disassembly &disassembly : disassemblies)
-	{
-		internal_accesses.insert(disassembly.internal_stores.begin(), disassembly.internal_stores.end());
-		internal_accesses.insert(disassembly.internal_modifies.begin(), disassembly.internal_modifies.end());
-		internal_accesses.insert(disassembly.internal_loads.begin(), disassembly.internal_loads.end());
-		external_stores.insert(disassembly.external_stores.begin(), disassembly.external_stores.end());
-	}
+	internal_accesses.insert(disassembly.internal_stores.begin(), disassembly.internal_stores.end());
+	internal_accesses.insert(disassembly.internal_modifies.begin(), disassembly.internal_modifies.end());
+	internal_accesses.insert(disassembly.internal_loads.begin(), disassembly.internal_loads.end());
 
 	int atari_access_count = 0;
 	int parker_access_count = 0;
@@ -114,7 +109,7 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 		atari_access_count += masked_address >= 0x1ff8 && masked_address < 0x1ffa;
 		parker_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ff8;
 	}
-	for(uint16_t address: external_stores)
+	for(uint16_t address: disassembly.external_stores)
 	{
 		uint16_t masked_address = address & 0x1fff;
 		tigervision_access_count += masked_address == 0x3f;
@@ -142,21 +137,13 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		return (size_t)(address & 0xfff);
 	};
 
-	std::vector<StaticAnalyser::MOS6502::Disassembly> disassemblies;
-	std::set<uint16_t> internal_stores;
-	std::set<uint16_t> external_stores;
-	for(std::vector<uint8_t>::difference_type base = 0; base < segment.data.size(); base += 4096)
-	{
-		std::vector<uint8_t> sub_data(segment.data.begin() + base, segment.data.begin() + base + 4096);
-		disassemblies.push_back(StaticAnalyser::MOS6502::Disassemble(sub_data, address_mapper, {entry_address, break_address}));
-		internal_stores.insert(disassemblies.back().internal_stores.begin(), disassemblies.back().internal_stores.end());
-		external_stores.insert(disassemblies.back().external_stores.begin(), disassemblies.back().external_stores.end());
-	}
+	std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
+	StaticAnalyser::MOS6502::Disassembly disassembly = StaticAnalyser::MOS6502::Disassemble(final_4k, address_mapper, {entry_address, break_address});
 
 	switch(segment.data.size())
 	{
 		case 8192:
-			DeterminePagingFor8kCartridge(target, segment, disassemblies);
+			DeterminePagingFor8kCartridge(target, segment, disassembly);
 		break;
 		case 12288:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
@@ -190,7 +177,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	// check for a Tigervision or Tigervision-esque scheme
 	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None && segment.data.size() > 4096)
 	{
-		bool looks_like_tigervision = external_stores.find(0x3f) != external_stores.end();
+		bool looks_like_tigervision = disassembly.external_stores.find(0x3f) != disassembly.external_stores.end();
 		if(looks_like_tigervision) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
 	}
 }
