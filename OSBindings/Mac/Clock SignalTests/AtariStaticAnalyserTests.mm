@@ -170,7 +170,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"d16eba13ab1313f375e86b488181567f846f1dc4", Atari8k, NO)		// Dumbo's Flying Circus
 	Record(@"9e34f9ca51573c92918720f8a259b9449a0cd65e", Atari8k, NO)		// E.T. — The Extra-Terrestrial
 	Record(@"68cbfadf097ae2d1e838f315c7cc7b70bbf2ccc8", None, NO)			// Eggomania
-	Record(@"bab872ee41695cefe41d88e4932132eca6c4e69c", Atari8k, NO)		// Elevator Action
+	Record(@"bab872ee41695cefe41d88e4932132eca6c4e69c", Atari8k, YES)		// Elevator Action
 	Record(@"475fc2b23c0ee273388539a4eeafa34f8f8d3fd8", None, NO)			// Eli's Ladder
 	Record(@"3983e109fc0b38c0b559a09a001f3e5f2bb1dc2a", Atari8k, NO)		// Elk Attack
 	Record(@"205af4051ea39fb5a038a8545c78bff91df321b7", None, NO)			// Encounter at L-5
