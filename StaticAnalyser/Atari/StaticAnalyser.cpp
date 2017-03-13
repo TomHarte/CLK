@@ -142,6 +142,9 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		case 8192:
 			DeterminePagingFor8kCartridge(target, segment, disassembly);
 		break;
+		case 10495:
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Pitfall2;
+		break;
 		case 12288:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
 		break;

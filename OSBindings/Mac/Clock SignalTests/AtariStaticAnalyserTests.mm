@@ -347,9 +347,9 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"483fc907471c5c358fb3e624097861a2fc9c1e45", None, NO)			// Picnic
 	Record(@"57774193081acea010bd935a0449bc8f53157128", None, NO)			// Piece o' Cake
 	Record(@"d08b30ca2e5e351cac3bd3fb760b87a1a30aa300", Atari8k, NO)		// Pigs in Space
-	Record(@"920cfbd517764ad3fa6a7425c031bd72dc7d927c", None, NO)			// Pitfall II
-	Record(@"d0ec08b88d032627701ad72337524d91b26c656b", None, NO)			// Pitfall! (1982) (Activision) (PAL) [!]
-	Record(@"8d525480445d48cc48460dc666ebad78c8fb7b73", None, NO)			// Pitfall!
+	Record(@"920cfbd517764ad3fa6a7425c031bd72dc7d927c", Pitfall2, NO)		// Pitfall II
+	Record(@"d0ec08b88d032627701ad72337524d91b26c656b", None, NO)			// Pitfall! (PAL)
+	Record(@"8d525480445d48cc48460dc666ebad78c8fb7b73", None, NO)			// Pitfall! (NTSC)
 	Record(@"dcca30e4ae58c85a070f0c6cfaa4d27be2970d61", None, NO)			// Planet of the Apes
 	Record(@"ccfcbf52815a441158977292b719f7c5ed80c515", None, NO)			// Planet Patrol
 	Record(@"103398dd35ebd39450c5cac760fa332aac3f9458", None, NO)			// Plaque Attack
