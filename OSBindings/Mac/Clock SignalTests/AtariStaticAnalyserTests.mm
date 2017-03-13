@@ -393,7 +393,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"325a2374800b2cb78ab7ff9e4017759865109d7d", None, NO)			// River Raid
 	Record(@"7f9c2321c9f22cf2cdbcf1b3f0e563a1c53f68ca", Atari8k, NO)		// Robin Hood
 	Record(@"f45dfcd6db0dae5458e1c0ae8eeaa75b553cdfec", Atari16k, NO)		// Road Runner
-	Record(@"21a3ee57cb622f410ffd51986ab80acadb8d44b7", Atari8k, NO)		// Robot Tank
+	Record(@"21a3ee57cb622f410ffd51986ab80acadb8d44b7", ActivisionStack, NO)// Robot Tank
 	Record(@"0abf0a292d4a24df5a5ebe19a9729f3a8f883c8b", Atari8k, NO)		// Roc 'n Rope
 	Record(@"fd243c480e769b20b7bf3e74bcd86e4ac99dab19", None, NO)			// Room of Doom
 	Record(@"85752ac6eb7045a9083425cd166609882a1c2c58", Atari8k, NO)		// Saboteur
@@ -518,7 +518,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"9a52fa88bd7455044f00548e9615452131d1c711", None, NO)			// Threshold
 	Record(@"09608cfaa7c6e9638f12a1cff9dd5036c9effa43", Atari16k, NO)		// Thrust
 	Record(@"3cc8bcc0ff5164303433f469aa4da2eb256d1ad0", None, NO)			// Thunderground
-	Record(@"53ee70d4b35ee3df3ffb95fa360bddb4f2f56ab2", Atari8k, NO)		// Thwocker
+	Record(@"53ee70d4b35ee3df3ffb95fa360bddb4f2f56ab2", ActivisionStack, NO)// Thwocker
 	Record(@"387358514964d0b6b55f9431576a59b55869f7ab", Atari8k, NO)		// Time Pilot
 	Record(@"979d9b0b0f32b40c0a0568be65a0bc5ef36ca6d0", Atari8k, NO)		// Title Match Pro Wrestling
 	Record(@"fcd339065a012c9fe47efbec62969cbc32f3fbf0", Atari8k, NO)		// Tomarc the Barbarian
@@ -574,11 +574,6 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 
 @implementation AtariStaticAnalyserTests
 
-- (AtariROMRecord *)romRecordForSHA1:(NSString *)sha1
-{
-	return romRecordsBySHA1[sha1];
-}
-
 - (void)testROMsOfSize:(NSInteger)size
 {
 	NSString *basePath = [[[NSBundle bundleForClass:[self class]] resourcePath] stringByAppendingPathComponent:@"Atari ROMs"];
@@ -598,7 +593,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([fullPath UTF8String]);
 
 		// grab the ROM record
-		AtariROMRecord *romRecord = [self romRecordForSHA1:sha1];
+		AtariROMRecord *romRecord = romRecordsBySHA1[sha1];
 		if(!romRecord) continue;
 
 		// assert equality
@@ -607,7 +602,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	}
 }
 
-- (void)testAtariROMs	{	[self testROMsOfSize:-1];		}
+- (void)testAtariROMs	{	[self testROMsOfSize:-1];		}	// This will duplicate all tests below, but also catch anything that isn't 2, 4, 8, 12, 16 or 32kb in size.
 - (void)test2kROMs		{	[self testROMsOfSize:2048];		}
 - (void)test4kROMs		{	[self testROMsOfSize:4096];		}
 - (void)test8kROMs		{	[self testROMsOfSize:8192];		}
