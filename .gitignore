@@ -20,6 +20,7 @@ DerivedData
 
 # Exclude system ROMs
 ROMImages/*
+OSBindings/Mac/Clock SignalTests/Atari\ ROMs
 
 # CocoaPods
 #
