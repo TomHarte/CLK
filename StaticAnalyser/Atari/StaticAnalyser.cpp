@@ -91,10 +91,12 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
 {
 	// Activision stack titles have their vectors at the top of the low 4k, not the top, and
-	// always list 0xf000 as both vectors; they do not repeat them
+	// always list 0xf000 as both vectors; they do not repeat them, and, inexplicably, they all
+	// issue an SEI as their first instruction (maybe some sort of relic of the development environment?)
 	if(
 		segment.data[4095] == 0xf0 && segment.data[4093] == 0xf0 && segment.data[4094] == 0x00 && segment.data[4092] == 0x00 &&
-		(segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 || segment.data[8190] != 0x00 || segment.data[8188] != 0x00)
+		(segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 || segment.data[8190] != 0x00 || segment.data[8188] != 0x00) &&
+		segment.data[0] == 0x78
 	)
 	{
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ActivisionStack;
