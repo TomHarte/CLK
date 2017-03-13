@@ -179,13 +179,15 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	}
 
 	// check for a Super Chip. Atari ROM images [almost] always have the same value stored over RAM
-	// regions.
-	if(target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus && target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork)
+	// regions; when they don't they at least seem to have the first 128 bytes be the same as the
+	// next 128 bytes. So check for that.
+	if(	target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus &&
+		target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork)
 	{
 		bool has_superchip = true;
-		for(size_t address = 0; address < 256; address++)
+		for(size_t address = 0; address < 128; address++)
 		{
-			if(segment.data[address] != segment.data[0])
+			if(segment.data[address] != segment.data[address+128])
 			{
 				has_superchip = false;
 				break;
