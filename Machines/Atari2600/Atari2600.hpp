@@ -59,6 +59,7 @@ class Machine:
 		// ROM information
 		uint8_t *rom_, *rom_pages_[4];
 		size_t rom_size_;
+		uint8_t mega_boy_page_;
 		StaticAnalyser::Atari2600PagingModel paging_model_;
 
 		// cartridge RAM expansion store
