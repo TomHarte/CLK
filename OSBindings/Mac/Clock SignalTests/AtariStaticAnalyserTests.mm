@@ -287,6 +287,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"18fac606400c08a0469aebd9b071ae3aec2a3cf2", None, NO)			// Math Gran Prix
 	Record(@"aba25089d87cd6fee8d206b880baa5d938aae255", None, NO)			// Maze Craze
 	Record(@"0ae118373c7bda97da2f8d9c113e1e09ea7e49e1", None, NO)			// Mega Force
+	Record(@"46977baf0e1ee6124b524258879c46f80d624fae", MegaBoy, NO)		// MegaBoy
 	Record(@"9c5748b38661dbadcbc9cd1ec6a6b0c550b0e3da", None, NO)			// MegaMania
 	Record(@"debb1572eadb20beb0e4cd2df8396def8eb02098", None, NO)			// Meltdown
 	Record(@"7fcf95459ea597a332bf5b6f56c8f891307b45b4", Atari16k, NO)		// Midnight Magic

@@ -36,7 +36,7 @@ enum class Atari2600PagingModel {
 	Tigervision,
 	CBSRamPlus,
 	MNetwork,
-	Megaboy,
+	MegaBoy,
 	Pitfall2
 };
 
