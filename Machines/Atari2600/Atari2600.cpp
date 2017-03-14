@@ -94,6 +94,20 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					rom_pages_[slot] = &rom_[target * 1024];
 				}
 			break;
+			case StaticAnalyser::Atari2600PagingModel::MegaBoy:
+				if(masked_address == 0x1fec && isReadOperation(operation))
+				{
+					*value = mega_boy_page_;
+				}
+				if(masked_address == 0x1ff0)
+				{
+					mega_boy_page_ = (mega_boy_page_ + 1) & 15;
+					rom_pages_[0] = &rom_[mega_boy_page_ * 4096];
+					rom_pages_[1] = rom_pages_[0] + 1024;
+					rom_pages_[2] = rom_pages_[0] + 2048;
+					rom_pages_[3] = rom_pages_[0] + 3072;
+				}
+			break;
 		}
 
 #undef AtariPager
@@ -279,9 +293,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	Storage::Cartridge::Cartridge::Segment segment = target.cartridges.front()->get_segments().front();
 	size_t length = segment.data.size();
 
-	rom_size_ = 1024;
-	while(rom_size_ < length && rom_size_ < 32768) rom_size_ <<= 1;
-
+	rom_size_ = length;
 	delete[] rom_;
 	rom_ = new uint8_t[rom_size_];
 
@@ -315,19 +327,20 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 				ram_read_start_ = 0x1080;
 			}
 		break;
-
 		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:
 			ram_.resize(256);
 			has_ram_ = true;
 			ram_write_start_ = 0x1000;
 			ram_read_start_ = 0x1100;
 		break;
-
 		case StaticAnalyser::Atari2600PagingModel::CommaVid:
 			ram_.resize(1024);
 			has_ram_ = true;
 			ram_write_start_ = 0x1400;
 			ram_read_start_ = 0x1000;
+		break;
+		case StaticAnalyser::Atari2600PagingModel::MegaBoy:
+			mega_boy_page_ = 15;
 		break;
 	}
 
