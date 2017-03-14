@@ -116,6 +116,14 @@ static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const
 	if(mnetwork_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::MNetwork;
 }
 
+static void DeterminePagingFor64kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
+{
+	// make an assumption that this is a Tigervision if there is a write to 3F
+	target.atari.paging_model =
+		(disassembly.external_stores.find(0x3f) != disassembly.external_stores.end()) ?
+			StaticAnalyser::Atari2600PagingModel::Tigervision : StaticAnalyser::Atari2600PagingModel::MegaBoy;
+}
+
 static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
 {
 	if(segment.data.size() == 2048)
@@ -142,6 +150,9 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		case 8192:
 			DeterminePagingFor8kCartridge(target, segment, disassembly);
 		break;
+		case 10495:
+			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Pitfall2;
+		break;
 		case 12288:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CBSRamPlus;
 		break;
@@ -150,6 +161,9 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 		break;
 		case 32768:
 			target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari32k;
+		break;
+		case 65536:
+			DeterminePagingFor64kCartridge(target, segment, disassembly);
 		break;
 		default:
 		break;
