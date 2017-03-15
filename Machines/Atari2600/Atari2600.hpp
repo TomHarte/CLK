@@ -57,15 +57,15 @@ class Machine:
 
 	private:
 		// ROM information
-		uint8_t *rom_, *rom_pages_[4];
+		uint8_t *rom_;
 		size_t rom_size_;
+
+		// Memory model
+		uint8_t *rom_pages_[4], *ram_write_targets_[32], *ram_read_targets_[32];
 		uint8_t mega_boy_page_;
 		StaticAnalyser::Atari2600PagingModel paging_model_;
-
-		// cartridge RAM expansion store
 		std::vector<uint8_t> ram_;
-		uint16_t ram_write_start_, ram_read_start_;
-		bool has_ram_;
+		uint8_t throwaway_ram_[128];
 
 		// the RIOT and TIA
 		PIA mos6532_;

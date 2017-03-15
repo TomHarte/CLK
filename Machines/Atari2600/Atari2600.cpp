@@ -24,33 +24,28 @@ Machine::Machine() :
 	cycles_since_video_update_(0),
 	cycles_since_6532_update_(0),
 	frame_record_pointer_(0),
-	is_ntsc_(true)
-{
+	is_ntsc_(true) {
 	set_clock_rate(NTSC_clock_rate);
 }
 
-void Machine::setup_output(float aspect_ratio)
-{
+void Machine::setup_output(float aspect_ratio) {
 	tia_.reset(new TIA);
 	speaker_.reset(new Speaker);
 	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
 	tia_->get_crt()->set_delegate(this);
 }
 
-void Machine::close_output()
-{
+void Machine::close_output() {
 	tia_ = nullptr;
 	speaker_ = nullptr;
 }
 
-Machine::~Machine()
-{
+Machine::~Machine() {
 	delete[] rom_;
 	close_output();
 }
 
-unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
-{
+unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	uint8_t returnValue = 0xff;
 	unsigned int cycles_run_for = 3;
 
@@ -95,12 +90,10 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 				}
 			break;
 			case StaticAnalyser::Atari2600PagingModel::MegaBoy:
-				if(masked_address == 0x1fec && isReadOperation(operation))
-				{
+				if(masked_address == 0x1fec && isReadOperation(operation)) {
 					*value = mega_boy_page_;
 				}
-				if(masked_address == 0x1ff0)
-				{
+				if(masked_address == 0x1ff0) {
 					mega_boy_page_ = (mega_boy_page_ + 1) & 15;
 					rom_pages_[0] = &rom_[mega_boy_page_ * 4096];
 					rom_pages_[1] = rom_pages_[0] + 1024;
@@ -108,31 +101,43 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					rom_pages_[3] = rom_pages_[0] + 3072;
 				}
 			break;
+			case StaticAnalyser::Atari2600PagingModel::MNetwork:
+				if(masked_address >= 0x1fe0 && masked_address < 0x1fe7) {
+					int target = (masked_address & 7) * 2048;
+					rom_pages_[0] = &rom_[target];
+					rom_pages_[1] = &rom_[target] + 1024;
+				} else if(masked_address == 0x1fe7) {
+					for(int c = 0; c < 8; c++) {
+						ram_write_targets_[c] = ram_.data() + 1024 + c * 128;
+						ram_read_targets_[c + 8] = ram_write_targets_[c];
+					}
+				} else if(masked_address >= 0x1fe8 && masked_address <= 0x1ffb) {
+					int offset = (masked_address - 0x1fe8) * 256;
+					ram_write_targets_[16] = ram_.data() + offset;
+					ram_write_targets_[17] = ram_write_targets_[16] + 128;
+					ram_read_targets_[18] = ram_write_targets_[16];
+					ram_read_targets_[19] = ram_write_targets_[17];
+				}
+			break;
 		}
 
 #undef AtariPager
 
 		// check for a ROM read
-		if(address&0x1000)
-		{
-			// check for a RAM access
-			bool was_ram_access = false;
-			if(has_ram_) {
-				if(masked_address >= ram_write_start_ && masked_address < ram_.size() + ram_write_start_) {
-					ram_[masked_address & ram_.size() - 1] = *value;
-					was_ram_access = true;
-				} else if(masked_address >= ram_read_start_ && masked_address < ram_.size() + ram_read_start_) {
-					returnValue &= ram_[masked_address & ram_.size() - 1];
-					was_ram_access = true;
-				}
-			}
+		if(address&0x1000) {
+			int ram_page = (masked_address & 0xfff) >> 7;
+			ram_write_targets_[ram_page][masked_address & 0x7f] = *value;
 
-			if(isReadOperation(operation) && !was_ram_access) {
-				returnValue &= rom_pages_[(address >> 10)&3][address&1023];
+			if(isReadOperation(operation)) {
+				if(ram_read_targets_[ram_page]) {
+					returnValue &= ram_read_targets_[ram_page][masked_address & 0x7f];
+				} else {
+					returnValue &= rom_pages_[(address >> 10)&3][address&1023];
+				}
 			}
 		}
 
-		// check for a RAM access
+		// check for a RIOT RAM access
 		if((address&0x1280) == 0x80) {
 			if(isReadOperation(operation)) {
 				returnValue &= mos6532_.get_ram(address);
@@ -224,8 +229,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					case 0x1a:	update_audio(); speaker_->set_volume(decodedAddress - 0x19, *value);				break;
 
 					case 0x3f:
-						if(paging_model_ == StaticAnalyser::Atari2600PagingModel::Tigervision && (masked_address == 0x3f))
-						{
+						if(paging_model_ == StaticAnalyser::Atari2600PagingModel::Tigervision && (masked_address == 0x3f)) {
 							int selected_page = (*value) % (rom_size_ / 2048);
 							rom_pages_[0] = &rom_[selected_page * 2048];
 							rom_pages_[1] = rom_pages_[0] + 1024;
@@ -255,8 +259,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return cycles_run_for / 3;
 }
 
-void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
-{
+void Machine::set_digital_input(Atari2600DigitalInput input, bool state) {
 	switch (input) {
 		case Atari2600DigitalInputJoy1Up:		mos6532_.update_port_input(0, 0x10, state);	break;
 		case Atari2600DigitalInputJoy1Down:		mos6532_.update_port_input(0, 0x20, state);	break;
@@ -276,8 +279,7 @@ void Machine::set_digital_input(Atari2600DigitalInput input, bool state)
 	}
 }
 
-void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
-{
+void Machine::set_switch_is_enabled(Atari2600Switch input, bool state) {
 	switch(input) {
 		case Atari2600SwitchReset:					mos6532_.update_port_input(1, 0x01, state);	break;
 		case Atari2600SwitchSelect:					mos6532_.update_port_input(1, 0x02, state);	break;
@@ -287,8 +289,7 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state)
 	}
 }
 
-void Machine::configure_as_target(const StaticAnalyser::Target &target)
-{
+void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	if(!target.cartridges.front()->get_segments().size()) return;
 	Storage::Cartridge::Cartridge::Segment segment = target.cartridges.front()->get_segments().front();
 	size_t length = segment.data.size();
@@ -299,8 +300,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 	size_t offset = 0;
 	const size_t copy_step = std::min(rom_size_, length);
-	while(offset < rom_size_)
-	{
+	while(offset < rom_size_) {
 		size_t copy_length = std::min(copy_step, rom_size_ - offset);
 		memcpy(&rom_[offset], &segment.data[0], copy_length);
 		offset += copy_length;
@@ -316,31 +316,47 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 	rom_pages_[2] = &rom_base[2048 & rom_mask];
 	rom_pages_[3] = &rom_base[3072 & rom_mask];
 
-	switch(target.atari.paging_model)
-	{
+	// By default, throw all stores away, and don't ever read from RAM
+	for(int c = 0; c < sizeof(ram_write_targets_) / sizeof(*ram_write_targets_); c++) {
+		ram_write_targets_[c] = throwaway_ram_;
+		ram_read_targets_[c] = nullptr;
+	}
+
+	switch(target.atari.paging_model) {
 		default:
-			if(target.atari.uses_superchip)
-			{
+			if(target.atari.uses_superchip) {
+				// allocate 128 bytes of RAM; allow writing from 0x1000, reading from 0x1080
 				ram_.resize(128);
-				has_ram_ = true;
-				ram_write_start_ = 0x1000;
-				ram_read_start_ = 0x1080;
+				ram_write_targets_[0] = ram_.data();
+				ram_read_targets_[1] = ram_write_targets_[0];
 			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:
+			// allocate 256 bytes of RAM; allow writing from 0x1000, reading from 0x1100
 			ram_.resize(256);
-			has_ram_ = true;
-			ram_write_start_ = 0x1000;
-			ram_read_start_ = 0x1100;
+			ram_write_targets_[0] = ram_.data();
+			ram_write_targets_[1] = ram_write_targets_[0] + 128;
+			ram_read_targets_[2] = ram_write_targets_[0];
+			ram_read_targets_[3] = ram_write_targets_[1];
 		break;
 		case StaticAnalyser::Atari2600PagingModel::CommaVid:
+			// allocate 1kb of RAM; allow reading from 0x1000, writing from 0x1400
 			ram_.resize(1024);
-			has_ram_ = true;
-			ram_write_start_ = 0x1400;
-			ram_read_start_ = 0x1000;
+			for(int c = 0; c < 8; c++) {
+				ram_read_targets_[c] = ram_.data() + 128 * c;
+				ram_write_targets_[c + 8] = ram_.data() + 128 * c;
+			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::MegaBoy:
 			mega_boy_page_ = 15;
+		break;
+		case StaticAnalyser::Atari2600PagingModel::MNetwork:
+			ram_.resize(2048);
+			// Put 256 bytes of RAM for writing at 0x1800 and reading at 0x1900
+			ram_write_targets_[16] = ram_.data();
+			ram_write_targets_[17] = ram_write_targets_[16] + 128;
+			ram_read_targets_[18] = ram_write_targets_[16];
+			ram_read_targets_[19] = ram_write_targets_[17];
 		break;
 	}
 
@@ -349,28 +365,24 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target)
 
 #pragma mark - Audio and Video
 
-void Machine::update_audio()
-{
+void Machine::update_audio() {
 	unsigned int audio_cycles = cycles_since_speaker_update_ / 114;
 
 	speaker_->run_for_cycles(audio_cycles);
 	cycles_since_speaker_update_ %= 114;
 }
 
-void Machine::update_video()
-{
+void Machine::update_video() {
 	tia_->run_for_cycles((int)cycles_since_video_update_);
 	cycles_since_video_update_ = 0;
 }
 
-void Machine::update_6532()
-{
+void Machine::update_6532() {
 	mos6532_.run_for_cycles(cycles_since_6532_update_);
 	cycles_since_6532_update_ = 0;
 }
 
-void Machine::synchronise()
-{
+void Machine::synchronise() {
 	update_audio();
 	update_video();
 	speaker_->flush();
@@ -378,40 +390,32 @@ void Machine::synchronise()
 
 #pragma mark - CRT delegate
 
-void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs)
-{
+void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) {
 	const size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
 	frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
 	frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 	frame_record_pointer_ ++;
 
-	if(frame_record_pointer_ >= 6)
-	{
+	if(frame_record_pointer_ >= 6) {
 		unsigned int total_number_of_frames = 0;
 		unsigned int total_number_of_unexpected_vertical_syncs = 0;
-		for(size_t c = 0; c < number_of_frame_records; c++)
-		{
+		for(size_t c = 0; c < number_of_frame_records; c++) {
 			total_number_of_frames += frame_records_[c].number_of_frames;
 			total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
 		}
 
-		if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1)
-		{
-			for(size_t c = 0; c < number_of_frame_records; c++)
-			{
+		if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
+			for(size_t c = 0; c < number_of_frame_records; c++) {
 				frame_records_[c].number_of_frames = 0;
 				frame_records_[c].number_of_unexpected_vertical_syncs = 0;
 			}
 			is_ntsc_ ^= true;
 
 			double clock_rate;
-			if(is_ntsc_)
-			{
+			if(is_ntsc_) {
 				clock_rate = NTSC_clock_rate;
 				tia_->set_output_mode(TIA::OutputMode::NTSC);
-			}
-			else
-			{
+			} else {
 				clock_rate = PAL_clock_rate;
 				tia_->set_output_mode(TIA::OutputMode::PAL);
 			}
