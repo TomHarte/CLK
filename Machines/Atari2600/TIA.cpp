@@ -171,7 +171,11 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode)
 			"}");
 		display_type = Outputs::CRT::DisplayType::PAL50;
 	}
-	crt_->set_new_display_type(cycles_per_line * 2 + 1, display_type);
+	// line number of cycles in a line of video is one less than twice the number of clock cycles per line; the Atari
+	// outputs 228 colour cycles of material per line when an NTSC line 227.5. Since all clock numbers will be doubled
+	// later, cycles_per_line * 2 - 1 is therefore the real length of an NTSC line, even though we're going to supply
+	// cycles_per_line * 2 cycles of information from one sync edge to the next
+	crt_->set_new_display_type(cycles_per_line * 2 - 1, display_type);
 
 /*	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
 }
