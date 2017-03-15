@@ -67,6 +67,9 @@ class Machine:
 		std::vector<uint8_t> ram_;
 		uint8_t throwaway_ram_[128];
 
+		// Activision stack records
+		uint8_t last_opcode_;
+
 		// the RIOT and TIA
 		PIA mos6532_;
 		std::unique_ptr<TIA> tia_;

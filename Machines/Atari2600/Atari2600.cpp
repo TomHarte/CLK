@@ -119,6 +119,22 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					ram_read_targets_[19] = ram_write_targets_[17];
 				}
 			break;
+			case StaticAnalyser::Atari2600PagingModel::ActivisionStack:
+				if(operation == CPU6502::BusOperation::ReadOpcode) {
+					// if the last operation was either a JSR or an RTS, pick a new page
+					// based on the address now being accesses
+					if(last_opcode_ == 0x20 || last_opcode_ == 0x60) {
+						if(address & 0x2000) {
+							rom_pages_[0] = rom_;
+						} else {
+							rom_pages_[0] = &rom_[4096];
+						}
+						rom_pages_[1] = rom_pages_[0] + 1024;
+						rom_pages_[2] = rom_pages_[0] + 2048;
+						rom_pages_[3] = rom_pages_[0] + 3072;
+					}
+				}
+			break;
 		}
 
 #undef AtariPager
@@ -250,6 +266,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 
 		if(isReadOperation(operation)) {
+			if(operation == CPU6502::BusOperation::ReadOpcode) last_opcode_ = returnValue;
 			*value = returnValue;
 		}
 	}
@@ -357,6 +374,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			ram_write_targets_[17] = ram_write_targets_[16] + 128;
 			ram_read_targets_[18] = ram_write_targets_[16];
 			ram_read_targets_[19] = ram_write_targets_[17];
+
+			rom_pages_[0] = rom_;
+			rom_pages_[1] = rom_pages_[0] + 1024;
+			rom_pages_[2] = rom_pages_[0] + 2048;
+			rom_pages_[3] = rom_pages_[0] + 3072;
 		break;
 	}
 
