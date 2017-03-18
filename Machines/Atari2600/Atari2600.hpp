@@ -16,6 +16,7 @@
 #include "PIA.hpp"
 #include "Speaker.hpp"
 #include "TIA.hpp"
+#include "Cartridge.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "Atari2600Inputs.h"
@@ -48,9 +49,9 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return tia_->get_crt(); }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
-		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return cartridge_->tia_->get_crt(); }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return cartridge_->speaker_; }
+		virtual void run_for_cycles(int number_of_cycles) { cartridge_->run_for_cycles(number_of_cycles); }
 
 		// to satisfy Outputs::CRT::Delegate
 		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);
@@ -70,27 +71,8 @@ class Machine:
 		// Activision stack records
 		uint8_t last_opcode_;
 
-		// the RIOT and TIA
-		PIA mos6532_;
-		std::unique_ptr<TIA> tia_;
-
-		// joystick state
-		uint8_t tia_input_value_[2];
-
-		// outputs
-		std::shared_ptr<Speaker> speaker_;
-
-		// speaker backlog accumlation counter
-		unsigned int cycles_since_speaker_update_;
-		inline void update_audio();
-
-		// video backlog accumulation counter
-		unsigned int cycles_since_video_update_;
-		inline void update_video();
-
-		// RIOT backlog accumulation counter
-		unsigned int cycles_since_6532_update_;
-		inline void update_6532();
+		// the cartridge
+		std::unique_ptr<CartridgeBase> cartridge_;
 
 		// output frame rate tracker
 		struct FrameRecord
