@@ -22,6 +22,7 @@ class Bus {
 			cycles_since_6532_update_(0) {}
 
 		virtual void run_for_cycles(int number_of_cycles) = 0;
+		virtual void set_reset_line(bool state) = 0;
 
 		// the RIOT, TIA and speaker
 		PIA mos6532_;
@@ -64,6 +65,7 @@ template<class T> class Cartridge:
 			rom_(rom) {}
 
 		void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
+		void set_reset_line(bool state) { CPU6502::Processor<Cartridge<T>>::set_reset_line(state); }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {

@@ -27,7 +27,6 @@ const unsigned int number_of_upcoming_events = 6;
 const unsigned int number_of_recorded_counters = 7;
 
 class Machine:
-	public CPU6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public Outputs::CRT::Delegate {
@@ -41,10 +40,7 @@ class Machine:
 
 		void set_digital_input(Atari2600DigitalInput input, bool state);
 		void set_switch_is_enabled(Atari2600Switch input, bool state);
-
-		// to satisfy CPU6502::Processor
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise();
+		void set_reset_line(bool state) { bus_->set_reset_line(state); }
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
