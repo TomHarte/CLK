@@ -10,11 +10,12 @@
 #include <algorithm>
 #include <stdio.h>
 
-#include "CartridgeUnpaged.hpp"
-#include "CartridgeCommaVid.hpp"
 #include "CartridgeAtari8k.hpp"
 #include "CartridgeAtari16k.hpp"
 #include "CartridgeAtari32k.hpp"
+#include "CartridgeActivisionStack.hpp"
+#include "CartridgeCommaVid.hpp"
+#include "CartridgeUnpaged.hpp"
 
 using namespace Atari2600;
 namespace {
@@ -103,6 +104,9 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			} else {
 				bus_.reset(new CartridgeAtari32k(target.cartridges.front()->get_segments().front().data));
 			}
+		break;
+		case StaticAnalyser::Atari2600PagingModel::ActivisionStack:
+			bus_.reset(new CartridgeActivisionStack(target.cartridges.front()->get_segments().front().data));
 		break;
 	}
 
