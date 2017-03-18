@@ -948,6 +948,7 @@
 		4BEAC0791E7DD86E00EE56B2 /* CartridgeAtari32k.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CartridgeAtari32k.hpp; sourceTree = "<group>"; };
 		4BEAC07A1E7DDFDA00EE56B2 /* CartridgeActivisionStack.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeActivisionStack.hpp; sourceTree = "<group>"; };
 		4BEAC07B1E7DE74200EE56B2 /* CartridgeParkerBros.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeParkerBros.hpp; sourceTree = "<group>"; };
+		4BEAC07C1E7DEA6B00EE56B2 /* CartridgeTigervision.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeTigervision.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -1126,6 +1127,7 @@
 				4BEA52671DF34909007E74F2 /* PIA.hpp */,
 				4BEA52651DF3472B007E74F2 /* Speaker.hpp */,
 				4BE7C9171E3D397100A5496D /* TIA.hpp */,
+				4BEAC07C1E7DEA6B00EE56B2 /* CartridgeTigervision.hpp */,
 			);
 			path = Atari2600;
 			sourceTree = "<group>";

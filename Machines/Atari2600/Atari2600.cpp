@@ -16,6 +16,7 @@
 #include "CartridgeActivisionStack.hpp"
 #include "CartridgeCommaVid.hpp"
 #include "CartridgeParkerBros.hpp"
+#include "CartridgeTigervision.hpp"
 #include "CartridgeUnpaged.hpp"
 
 using namespace Atari2600;
@@ -108,6 +109,9 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		break;
 		case StaticAnalyser::Atari2600PagingModel::ParkerBros:
 			bus_.reset(new CartridgeParkerBros(rom));
+		break;
+		case StaticAnalyser::Atari2600PagingModel::Tigervision:
+			bus_.reset(new CartridgeTigervision(rom));
 		break;
 	}
 
