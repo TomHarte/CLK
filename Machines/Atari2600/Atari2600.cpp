@@ -15,6 +15,7 @@
 #include "CartridgeAtari32k.hpp"
 #include "CartridgeActivisionStack.hpp"
 #include "CartridgeCommaVid.hpp"
+#include "CartridgeParkerBros.hpp"
 #include "CartridgeUnpaged.hpp"
 
 using namespace Atari2600;
@@ -77,18 +78,15 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
+	const std::vector<uint8_t> &rom = target.cartridges.front()->get_segments().front().data;
 	switch(target.atari.paging_model) {
-		case StaticAnalyser::Atari2600PagingModel::None:
-			bus_.reset(new CartridgeUnpaged(target.cartridges.front()->get_segments().front().data));
-		break;
-		case StaticAnalyser::Atari2600PagingModel::CommaVid:
-			bus_.reset(new CartridgeCommaVid(target.cartridges.front()->get_segments().front().data));
-		break;
+		case StaticAnalyser::Atari2600PagingModel::None:		bus_.reset(new CartridgeUnpaged(rom));	break;
+		case StaticAnalyser::Atari2600PagingModel::CommaVid:	bus_.reset(new CartridgeCommaVid(rom));	break;
 		case StaticAnalyser::Atari2600PagingModel::Atari8k:
 			if(target.atari.uses_superchip) {
-				bus_.reset(new CartridgeAtari8kSuperChip(target.cartridges.front()->get_segments().front().data));
+				bus_.reset(new CartridgeAtari8kSuperChip(rom));
 			} else {
-				bus_.reset(new CartridgeAtari8k(target.cartridges.front()->get_segments().front().data));
+				bus_.reset(new CartridgeAtari8k(rom));
 			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::Atari16k:
@@ -108,49 +106,12 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		case StaticAnalyser::Atari2600PagingModel::ActivisionStack:
 			bus_.reset(new CartridgeActivisionStack(target.cartridges.front()->get_segments().front().data));
 		break;
-	}
-
-/*	if(!target.cartridges.front()->get_segments().size()) return;
-	Storage::Cartridge::Cartridge::Segment segment = target.cartridges.front()->get_segments().front();
-	size_t length = segment.data.size();
-
-	rom_size_ = length;
-	delete[] rom_;
-	rom_ = new uint8_t[rom_size_];
-
-	size_t offset = 0;
-	const size_t copy_step = std::min(rom_size_, length);
-	while(offset < rom_size_) {
-		size_t copy_length = std::min(copy_step, rom_size_ - offset);
-		memcpy(&rom_[offset], &segment.data[0], copy_length);
-		offset += copy_length;
-	}
-
-	// On a real paged cartridge, any page may initially be visible. Various homebrew authors appear to have
-	// decided the last page will always be initially visible. So do that.
-	size_t rom_mask = rom_size_ - 1;
-	uint8_t *rom_base = rom_;
-	if(rom_size_ > 4096) rom_base = &rom_[rom_size_ - 4096];
-	rom_pages_[0] = rom_base;
-	rom_pages_[1] = &rom_base[1024 & rom_mask];
-	rom_pages_[2] = &rom_base[2048 & rom_mask];
-	rom_pages_[3] = &rom_base[3072 & rom_mask];
-
-	// By default, throw all stores away, and don't ever read from RAM
-	for(int c = 0; c < sizeof(ram_write_targets_) / sizeof(*ram_write_targets_); c++) {
-		ram_write_targets_[c] = throwaway_ram_;
-		ram_read_targets_[c] = nullptr;
-	}
-
-	switch(target.atari.paging_model) {
-		default:
-			if(target.atari.uses_superchip) {
-				// allocate 128 bytes of RAM; allow writing from 0x1000, reading from 0x1080
-				ram_.resize(128);
-				ram_write_targets_[0] = ram_.data();
-				ram_read_targets_[1] = ram_write_targets_[0];
-			}
+		case StaticAnalyser::Atari2600PagingModel::ParkerBros:
+			bus_.reset(new CartridgeParkerBros(rom));
 		break;
+	}
+
+/*	switch(target.atari.paging_model) {
 		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:
 			// allocate 256 bytes of RAM; allow writing from 0x1000, reading from 0x1100
 			ram_.resize(256);
@@ -158,14 +119,6 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			ram_write_targets_[1] = ram_write_targets_[0] + 128;
 			ram_read_targets_[2] = ram_write_targets_[0];
 			ram_read_targets_[3] = ram_write_targets_[1];
-		break;
-		case StaticAnalyser::Atari2600PagingModel::CommaVid:
-			// allocate 1kb of RAM; allow reading from 0x1000, writing from 0x1400
-			ram_.resize(1024);
-			for(int c = 0; c < 8; c++) {
-				ram_read_targets_[c] = ram_.data() + 128 * c;
-				ram_write_targets_[c + 8] = ram_.data() + 128 * c;
-			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::MegaBoy:
 			mega_boy_page_ = 15;
@@ -183,9 +136,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			rom_pages_[2] = rom_pages_[0] + 2048;
 			rom_pages_[3] = rom_pages_[0] + 3072;
 		break;
-	}
-
-	paging_model_ = target.atari.paging_model;*/
+	}*/
 }
 
 #pragma mark - CRT delegate
