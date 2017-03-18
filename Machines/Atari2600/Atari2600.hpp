@@ -49,9 +49,9 @@ class Machine:
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
 		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return cartridge_->tia_->get_crt(); }
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return cartridge_->speaker_; }
-		virtual void run_for_cycles(int number_of_cycles) { cartridge_->run_for_cycles(number_of_cycles); }
+		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return bus_->tia_->get_crt(); }
+		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return bus_->speaker_; }
+		virtual void run_for_cycles(int number_of_cycles) { bus_->run_for_cycles(number_of_cycles); }
 
 		// to satisfy Outputs::CRT::Delegate
 		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);
@@ -72,7 +72,7 @@ class Machine:
 		uint8_t last_opcode_;
 
 		// the cartridge
-		std::unique_ptr<CartridgeBase> cartridge_;
+		std::unique_ptr<Bus> bus_;
 
 		// output frame rate tracker
 		struct FrameRecord

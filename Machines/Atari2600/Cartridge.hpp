@@ -9,10 +9,18 @@
 #ifndef Atari2600_Cartridge_hpp
 #define Atari2600_Cartridge_hpp
 
+#include "../../Processors/6502/CPU6502.hpp"
+
 namespace Atari2600 {
 
-class CartridgeBase {
+class Bus {
 	public:
+		Bus() :
+			tia_input_value_{0xff, 0xff},
+			cycles_since_speaker_update_(0),
+			cycles_since_video_update_(0),
+			cycles_since_6532_update_(0) {}
+
 		virtual void run_for_cycles(int number_of_cycles) = 0;
 
 		// the RIOT, TIA and speaker
@@ -49,7 +57,7 @@ class CartridgeBase {
 
 template<class T> class Cartridge:
 	public CPU6502::Processor<Cartridge<T>>,
-	public CartridgeBase {
+	public Bus {
 
 	public:
 		void run_for_cycles(int number_of_cycles) {}
@@ -71,7 +79,7 @@ template<class T> class Cartridge:
 			cycles_since_6532_update_ += (cycles_run_for / 3);
 
 			if(operation != CPU6502::BusOperation::Ready) {
-				uint16_t masked_address = address & 0x1fff;
+//				uint16_t masked_address = address & 0x1fff;
 
 				// give the cartridge a chance to respond to the bus access
 				static_cast<T *>(this)->perform_bus_operation(operation, address, value);
@@ -120,7 +128,7 @@ template<class T> class Cartridge:
 							case 0x00:	update_video(); tia_->set_sync(*value & 0x02);		break;
 							case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
 
-							case 0x02:	set_ready_line(true);								break;
+							case 0x02:	CPU6502::Processor<Cartridge<T>>::set_ready_line(true);								break;
 							case 0x03:	update_video();	tia_->reset_horizontal_counter();	break;
 								// TODO: audio will now be out of synchronisation — fix
 
@@ -185,7 +193,7 @@ template<class T> class Cartridge:
 				}
 			}
 
-			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) set_ready_line(false);
+			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU6502::Processor<Cartridge<T>>::set_ready_line(false);
 
 			return cycles_run_for / 3;
 		}
