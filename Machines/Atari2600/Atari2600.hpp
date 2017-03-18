@@ -53,21 +53,7 @@ class Machine:
 		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);
 
 	private:
-		// ROM information
-		uint8_t *rom_;
-		size_t rom_size_;
-
-		// Memory model
-		uint8_t *rom_pages_[4], *ram_write_targets_[32], *ram_read_targets_[32];
-		uint8_t mega_boy_page_;
-		StaticAnalyser::Atari2600PagingModel paging_model_;
-		std::vector<uint8_t> ram_;
-		uint8_t throwaway_ram_[128];
-
-		// Activision stack records
-		uint8_t last_opcode_;
-
-		// the cartridge
+		// the bus
 		std::unique_ptr<Bus> bus_;
 
 		// output frame rate tracker

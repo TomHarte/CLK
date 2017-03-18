@@ -16,6 +16,7 @@
 #include "CartridgeActivisionStack.hpp"
 #include "CartridgeCBSRAMPlus.hpp"
 #include "CartridgeCommaVid.hpp"
+#include "CartridgeMegaBoy.hpp"
 #include "CartridgeParkerBros.hpp"
 #include "CartridgeTigervision.hpp"
 #include "CartridgeUnpaged.hpp"
@@ -27,8 +28,6 @@ namespace {
 }
 
 Machine::Machine() :
-	rom_(nullptr),
-	rom_pages_{nullptr, nullptr, nullptr, nullptr},
 	frame_record_pointer_(0),
 	is_ntsc_(true) {
 	set_clock_rate(NTSC_clock_rate);
@@ -88,6 +87,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		case StaticAnalyser::Atari2600PagingModel::ParkerBros:		bus_.reset(new CartridgeParkerBros(rom));		break;
 		case StaticAnalyser::Atari2600PagingModel::Tigervision:		bus_.reset(new CartridgeTigervision(rom));		break;
 		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new CartridgeCBSRAMPlus(rom));		break;
+		case StaticAnalyser::Atari2600PagingModel::MegaBoy:			bus_.reset(new CartridgeMegaBoy(rom));			break;
 		case StaticAnalyser::Atari2600PagingModel::Atari8k:
 			if(target.atari.uses_superchip) {
 				bus_.reset(new CartridgeAtari8kSuperChip(rom));
@@ -112,9 +112,6 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	}
 
 /*	switch(target.atari.paging_model) {
-		case StaticAnalyser::Atari2600PagingModel::MegaBoy:
-			mega_boy_page_ = 15;
-		break;
 		case StaticAnalyser::Atari2600PagingModel::MNetwork:
 			ram_.resize(2048);
 			// Put 256 bytes of RAM for writing at 0x1800 and reading at 0x1900

@@ -950,6 +950,7 @@
 		4BEAC07B1E7DE74200EE56B2 /* CartridgeParkerBros.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeParkerBros.hpp; sourceTree = "<group>"; };
 		4BEAC07C1E7DEA6B00EE56B2 /* CartridgeTigervision.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeTigervision.hpp; sourceTree = "<group>"; };
 		4BEAC07D1E7DF13E00EE56B2 /* CartridgeCBSRAMPlus.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeCBSRAMPlus.hpp; sourceTree = "<group>"; };
+		4BEAC07E1E7DF2D000EE56B2 /* CartridgeMegaBoy.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeMegaBoy.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -1124,6 +1125,7 @@
 				4BEAC0791E7DD86E00EE56B2 /* CartridgeAtari32k.hpp */,
 				4BEAC07D1E7DF13E00EE56B2 /* CartridgeCBSRAMPlus.hpp */,
 				4BA443E71E7DB54700C86749 /* CartridgeCommaVid.hpp */,
+				4BEAC07E1E7DF2D000EE56B2 /* CartridgeMegaBoy.hpp */,
 				4BEAC07B1E7DE74200EE56B2 /* CartridgeParkerBros.hpp */,
 				4BEAC07C1E7DEA6B00EE56B2 /* CartridgeTigervision.hpp */,
 				4BE0699A1E7C9C5A00DD379F /* CartridgeUnpaged.hpp */,
