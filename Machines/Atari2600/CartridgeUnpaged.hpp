@@ -16,16 +16,13 @@ namespace Atari2600 {
 class CartridgeUnpaged: public Cartridge<CartridgeUnpaged> {
 	public:
 		CartridgeUnpaged(const std::vector<uint8_t> &rom) :
-			rom_(rom) {}
+			Cartridge(rom) {}
 
 		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(isReadOperation(operation) && (address & 0x1000)) {
 				*value = rom_[address & (rom_.size() - 1)];
 			}
 		}
-
-	private:
-		std::vector<uint8_t> rom_;
 };
 
 }

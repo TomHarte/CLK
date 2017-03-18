@@ -582,6 +582,8 @@
 		4B9CCDA21DA27C3F0098B625 /* CSJoystickMachine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickMachine.h; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
 		4BA22B061D8817CE0008C640 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Commodore/Disk.hpp; sourceTree = "<group>"; };
+		4BA443E71E7DB54700C86749 /* CartridgeCommaVid.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeCommaVid.hpp; sourceTree = "<group>"; };
+		4BA443E81E7DB8F900C86749 /* CartridgeAtari8k.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CartridgeAtari8k.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA799931D8B656E0045123D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.cpp; sourceTree = "<group>"; };
@@ -1114,6 +1116,8 @@
 				4BE7C9171E3D397100A5496D /* TIA.hpp */,
 				4BE069991E7C942C00DD379F /* Cartridge.hpp */,
 				4BE0699A1E7C9C5A00DD379F /* CartridgeUnpaged.hpp */,
+				4BA443E71E7DB54700C86749 /* CartridgeCommaVid.hpp */,
+				4BA443E81E7DB8F900C86749 /* CartridgeAtari8k.hpp */,
 			);
 			path = Atari2600;
 			sourceTree = "<group>";

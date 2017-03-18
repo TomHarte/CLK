@@ -60,6 +60,9 @@ template<class T> class Cartridge:
 	public Bus {
 
 	public:
+		Cartridge(const std::vector<uint8_t> &rom) :
+			rom_(rom) {}
+
 		void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy CPU6502::Processor
@@ -201,6 +204,9 @@ template<class T> class Cartridge:
 			update_video();
 			speaker_->flush();
 		}
+
+	protected:
+		std::vector<uint8_t> rom_;
 };
 
 }

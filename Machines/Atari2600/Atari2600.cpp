@@ -11,7 +11,8 @@
 #include <stdio.h>
 
 #include "CartridgeUnpaged.hpp"
-#include "CartridgeCommaVid.h"
+#include "CartridgeCommaVid.hpp"
+#include "CartridgeAtari8k.hpp"
 
 using namespace Atari2600;
 namespace {
@@ -79,6 +80,13 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		break;
 		case StaticAnalyser::Atari2600PagingModel::CommaVid:
 			bus_.reset(new CartridgeCommaVid(target.cartridges.front()->get_segments().front().data));
+		break;
+		case StaticAnalyser::Atari2600PagingModel::Atari8k:
+			if(target.atari.uses_superchip) {
+				bus_.reset(new CartridgeAtari8kSuperChip(target.cartridges.front()->get_segments().front().data));
+			} else {
+				bus_.reset(new CartridgeAtari8k(target.cartridges.front()->get_segments().front().data));
+			}
 		break;
 	}
 

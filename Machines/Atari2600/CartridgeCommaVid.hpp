@@ -14,7 +14,7 @@ namespace Atari2600 {
 class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
 	public:
 		CartridgeCommaVid(const std::vector<uint8_t> &rom) :
-			rom_(rom) {}
+			Cartridge(rom) {}
 
 		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(!(address & 0x1000)) return;
@@ -34,7 +34,6 @@ class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
 		}
 
 	private:
-		std::vector<uint8_t> rom_;
 		uint8_t ram_[1024];
 };
 
