@@ -13,7 +13,7 @@
 
 namespace Atari2600 {
 
-class CartridgeAtari8k: public Cartridge<CartridgeUnpaged> {
+class CartridgeAtari8k: public Cartridge<CartridgeAtari8k> {
 	public:
 		CartridgeAtari8k(const std::vector<uint8_t> &rom) :
 			Cartridge(rom) {
@@ -36,7 +36,7 @@ class CartridgeAtari8k: public Cartridge<CartridgeUnpaged> {
 		uint8_t *rom_ptr_;
 };
 
-class CartridgeAtari8kSuperChip: public Cartridge<CartridgeUnpaged> {
+class CartridgeAtari8kSuperChip: public Cartridge<CartridgeAtari8kSuperChip> {
 	public:
 		CartridgeAtari8kSuperChip(const std::vector<uint8_t> &rom) :
 			Cartridge(rom) {

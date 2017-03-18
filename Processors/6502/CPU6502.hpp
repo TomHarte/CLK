@@ -548,6 +548,7 @@ template <class T> class Processor {
 			ready_is_active_(false),
 			scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
 			inverse_interrupt_flag_(0),
+			irq_request_history_(0),
 			s_(0),
 			next_bus_operation_(BusOperation::None),
 			interrupt_requests_(InterruptRequestFlags::PowerOn),
@@ -657,7 +658,7 @@ template <class T> class Processor {
 
 							case CycleFetchOperation: {
 								last_operation_pc_ = pc_;
-//								printf("%04x	x:%02x\n", pc_.full, x_);
+//								printf("%04x\n", pc_.full);
 								pc_.full++;
 								read_op(operation_, last_operation_pc_.full);
 
