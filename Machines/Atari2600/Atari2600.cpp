@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include "CartridgeUnpaged.hpp"
+#include "CartridgeCommaVid.h"
 
 using namespace Atari2600;
 namespace {
@@ -72,7 +73,15 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
-	bus_.reset(new CartridgeUnpaged(target.cartridges.front()->get_segments().front().data));
+	switch(target.atari.paging_model) {
+		case StaticAnalyser::Atari2600PagingModel::None:
+			bus_.reset(new CartridgeUnpaged(target.cartridges.front()->get_segments().front().data));
+		break;
+		case StaticAnalyser::Atari2600PagingModel::CommaVid:
+			bus_.reset(new CartridgeCommaVid(target.cartridges.front()->get_segments().front().data));
+		break;
+	}
+
 /*	if(!target.cartridges.front()->get_segments().size()) return;
 	Storage::Cartridge::Cartridge::Segment segment = target.cartridges.front()->get_segments().front();
 	size_t length = segment.data.size();

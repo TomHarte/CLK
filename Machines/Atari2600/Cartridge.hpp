@@ -60,7 +60,7 @@ template<class T> class Cartridge:
 	public Bus {
 
 	public:
-		void run_for_cycles(int number_of_cycles) {}
+		void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -79,8 +79,6 @@ template<class T> class Cartridge:
 			cycles_since_6532_update_ += (cycles_run_for / 3);
 
 			if(operation != CPU6502::BusOperation::Ready) {
-//				uint16_t masked_address = address & 0x1fff;
-
 				// give the cartridge a chance to respond to the bus access
 				static_cast<T *>(this)->perform_bus_operation(operation, address, value);
 

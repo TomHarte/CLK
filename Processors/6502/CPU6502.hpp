@@ -568,6 +568,7 @@ template <class T> class Processor {
 
 			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
 			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
+			If it is a read operation then @c value will be seeded with the value 0xff.
 
 			@param number_of_cycles The number of cycles to run the 6502 for.
 		*/
