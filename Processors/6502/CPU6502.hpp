@@ -548,6 +548,7 @@ template <class T> class Processor {
 			ready_is_active_(false),
 			scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
 			inverse_interrupt_flag_(0),
+			irq_request_history_(0),
 			s_(0),
 			next_bus_operation_(BusOperation::None),
 			interrupt_requests_(InterruptRequestFlags::PowerOn),
@@ -568,6 +569,7 @@ template <class T> class Processor {
 
 			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
 			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
+			If it is a read operation then @c value will be seeded with the value 0xff.
 
 			@param number_of_cycles The number of cycles to run the 6502 for.
 		*/
@@ -646,8 +648,8 @@ template <class T> class Processor {
 						scheduleProgramProgramCounter++;
 
 #define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val
-#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val
-#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target
+#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val;				val	= 0xff
+#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target;	throwaway_target = 0xff
 #define write_mem(val, addr)	nextBusOperation = BusOperation::Write;			busAddress = addr;		busValue = &val
 
 						switch(cycle) {
@@ -656,7 +658,7 @@ template <class T> class Processor {
 
 							case CycleFetchOperation: {
 								last_operation_pc_ = pc_;
-//								printf("%04x	x:%02x\n", pc_.full, x_);
+//								printf("%04x\n", pc_.full);
 								pc_.full++;
 								read_op(operation_, last_operation_pc_.full);
 
