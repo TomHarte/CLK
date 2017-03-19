@@ -16,7 +16,8 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		CartridgePitfall2(const std::vector<uint8_t> &rom) :
 			Cartridge(rom),
 			random_number_generator_(0),
-			featcher_address_{0, 0, 0, 0, 0, 0, 0, 0} {
+			featcher_address_{0, 0, 0, 0, 0, 0, 0, 0},
+			mask_{0, 0, 0, 0, 0, 0, 0, 0} {
 			rom_ptr_ = rom_.data();
 		}
 
@@ -51,9 +52,10 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 					*value = rom_[8192 + address_for_counter(address & 7)];
 				break;
 
-				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
-					*value = rom_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
-				break;
+				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017: {
+					uint8_t mask = mask_[address & 7];
+					*value = rom_[8192 + address_for_counter(address & 7)] & mask;
+				} break;
 
 #pragma mark - Writes
 
@@ -65,6 +67,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 				break;
 				case 0x1050: case 0x1051: case 0x1052: case 0x1053: case 0x1054: case 0x1055: case 0x1056: case 0x1057:
 					featcher_address_[address & 7] = (featcher_address_[address & 7] & 0xff00) | *value;
+					mask_[address & 7] = 0x00;
 				break;
 				case 0x1058: case 0x1059: case 0x105a: case 0x105b: case 0x105c: case 0x105d: case 0x105e: case 0x105f:
 					featcher_address_[address & 7] = (featcher_address_[address & 7] & 0x00ff) | (uint16_t)(*value << 8);
