@@ -47,14 +47,12 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 					*value = 0x00;
 				break;
 
-				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f: {
-					uint16_t fetch_address = (featcher_address_[address & 7] & 2047) ^ 2047;
-					featcher_address_[address & 7]--;
-					*value = rom_[8192 + fetch_address];
-				} break;
+				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
+					*value = rom_[8192 + address_for_counter(address & 7)];
+				break;
 
 				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
-					*value = 0xff;
+					*value = rom_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
 				break;
 
 #pragma mark - Writes
@@ -91,8 +89,16 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		}
 
 	private:
+		inline uint16_t address_for_counter(int counter) {
+			uint16_t fetch_address = (featcher_address_[counter] & 2047) ^ 2047;
+			featcher_address_[counter]--;
+			if((featcher_address_[counter] & 0xff) == top_[counter]) mask_[counter] = 0xff;
+			if((featcher_address_[counter] & 0xff) == bottom_[counter]) mask_[counter] = 0x00;
+			return fetch_address;
+		}
+
 		uint16_t featcher_address_[8];
-		uint8_t top_[8], bottom_[8];
+		uint8_t top_[8], bottom_[8], mask_[8];
 		uint8_t music_mode_[3];
 		uint8_t random_number_generator_;
 		uint8_t *rom_ptr_;
