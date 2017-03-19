@@ -52,10 +52,9 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 					*value = rom_[8192 + address_for_counter(address & 7)];
 				break;
 
-				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017: {
-					uint8_t mask = mask_[address & 7];
-					*value = rom_[8192 + address_for_counter(address & 7)] & mask;
-				} break;
+				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
+					*value = rom_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
+				break;
 
 #pragma mark - Writes
 
@@ -94,9 +93,9 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 	private:
 		inline uint16_t address_for_counter(int counter) {
 			uint16_t fetch_address = (featcher_address_[counter] & 2047) ^ 2047;
-			featcher_address_[counter]--;
 			if((featcher_address_[counter] & 0xff) == top_[counter]) mask_[counter] = 0xff;
 			if((featcher_address_[counter] & 0xff) == bottom_[counter]) mask_[counter] = 0x00;
+			featcher_address_[counter]--;
 			return fetch_address;
 		}
 
