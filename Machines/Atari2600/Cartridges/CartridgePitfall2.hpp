@@ -47,12 +47,14 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 					*value = 0x00;
 				break;
 
-				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
-					*value = 0x20;
-				break;
+				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f: {
+					uint16_t fetch_address = (featcher_address_[address & 7] & 2047) ^ 2047;
+					featcher_address_[address & 7]--;
+					*value = rom_[8192 + fetch_address];
+				} break;
 
 				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
-					*value = 0x40;
+					*value = 0xff;
 				break;
 
 #pragma mark - Writes
