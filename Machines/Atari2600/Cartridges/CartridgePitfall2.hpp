@@ -36,7 +36,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 					}
 					random_number_generator_ = (uint8_t)(
 						(random_number_generator_ << 1) |
-						~((	(random_number_generator_ >> 7) ^
+						(~(	(random_number_generator_ >> 7) ^
 							(random_number_generator_ >> 5) ^
 							(random_number_generator_ >> 4) ^
 							(random_number_generator_ >> 3)
