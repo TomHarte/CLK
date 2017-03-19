@@ -17,6 +17,7 @@
 #include "CartridgeCBSRAMPlus.hpp"
 #include "CartridgeCommaVid.hpp"
 #include "CartridgeMegaBoy.hpp"
+#include "CartridgeMNetwork.hpp"
 #include "CartridgeParkerBros.hpp"
 #include "CartridgeTigervision.hpp"
 #include "CartridgeUnpaged.hpp"
@@ -88,6 +89,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		case StaticAnalyser::Atari2600PagingModel::Tigervision:		bus_.reset(new CartridgeTigervision(rom));		break;
 		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new CartridgeCBSRAMPlus(rom));		break;
 		case StaticAnalyser::Atari2600PagingModel::MegaBoy:			bus_.reset(new CartridgeMegaBoy(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::MNetwork:		bus_.reset(new CartridgeMNetwork(rom));			break;
 		case StaticAnalyser::Atari2600PagingModel::Atari8k:
 			if(target.atari.uses_superchip) {
 				bus_.reset(new CartridgeAtari8kSuperChip(rom));
