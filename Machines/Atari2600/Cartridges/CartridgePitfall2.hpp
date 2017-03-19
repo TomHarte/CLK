@@ -45,15 +45,14 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 				// Music fetcher
 				case 0x1005: case 0x1006: case 0x1007:
 					*value = 0x00;
-					printf("m\n");
 				break;
 
 				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
-					printf("d\n");
+					*value = 0x20;
 				break;
 
 				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
-					printf("da\n");
+					*value = 0x40;
 				break;
 
 #pragma mark - Writes
