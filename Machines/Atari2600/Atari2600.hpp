@@ -13,10 +13,10 @@
 
 #include "../../Processors/6502/CPU6502.hpp"
 #include "../CRTMachine.hpp"
+#include "Bus.hpp"
 #include "PIA.hpp"
 #include "Speaker.hpp"
 #include "TIA.hpp"
-#include "Cartridge.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "Atari2600Inputs.h"

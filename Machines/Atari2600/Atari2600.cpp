@@ -10,17 +10,17 @@
 #include <algorithm>
 #include <stdio.h>
 
-#include "CartridgeAtari8k.hpp"
-#include "CartridgeAtari16k.hpp"
-#include "CartridgeAtari32k.hpp"
-#include "CartridgeActivisionStack.hpp"
-#include "CartridgeCBSRAMPlus.hpp"
-#include "CartridgeCommaVid.hpp"
-#include "CartridgeMegaBoy.hpp"
-#include "CartridgeMNetwork.hpp"
-#include "CartridgeParkerBros.hpp"
-#include "CartridgeTigervision.hpp"
-#include "CartridgeUnpaged.hpp"
+#include "Cartridges/CartridgeAtari8k.hpp"
+#include "Cartridges/CartridgeAtari16k.hpp"
+#include "Cartridges/CartridgeAtari32k.hpp"
+#include "Cartridges/CartridgeActivisionStack.hpp"
+#include "Cartridges/CartridgeCBSRAMPlus.hpp"
+#include "Cartridges/CartridgeCommaVid.hpp"
+#include "Cartridges/CartridgeMegaBoy.hpp"
+#include "Cartridges/CartridgeMNetwork.hpp"
+#include "Cartridges/CartridgeParkerBros.hpp"
+#include "Cartridges/CartridgeTigervision.hpp"
+#include "Cartridges/CartridgeUnpaged.hpp"
 
 using namespace Atari2600;
 namespace {
@@ -112,22 +112,6 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			}
 		break;
 	}
-
-/*	switch(target.atari.paging_model) {
-		case StaticAnalyser::Atari2600PagingModel::MNetwork:
-			ram_.resize(2048);
-			// Put 256 bytes of RAM for writing at 0x1800 and reading at 0x1900
-			ram_write_targets_[16] = ram_.data();
-			ram_write_targets_[17] = ram_write_targets_[16] + 128;
-			ram_read_targets_[18] = ram_write_targets_[16];
-			ram_read_targets_[19] = ram_write_targets_[17];
-
-			rom_pages_[0] = rom_;
-			rom_pages_[1] = rom_pages_[0] + 1024;
-			rom_pages_[2] = rom_pages_[0] + 2048;
-			rom_pages_[3] = rom_pages_[0] + 3072;
-		break;
-	}*/
 }
 
 #pragma mark - CRT delegate
