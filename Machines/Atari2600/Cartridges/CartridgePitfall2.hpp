@@ -17,11 +17,13 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 			Cartridge(rom),
 			random_number_generator_(0),
 			featcher_address_{0, 0, 0, 0, 0, 0, 0, 0},
-			mask_{0, 0, 0, 0, 0, 0, 0, 0} {
+			mask_{0, 0, 0, 0, 0, 0, 0, 0},
+			cycles_since_audio_update_(0) {
 			rom_ptr_ = rom_.data();
 		}
 
 		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+			cycles_since_audio_update_++;
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
@@ -43,9 +45,9 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 						) & 1));
 				break;
 
-				// Music fetcher
 				case 0x1005: case 0x1006: case 0x1007:
-					*value = 0x00;
+					*value = update_audio();
+					printf("%01x ", *value);
 				break;
 
 				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
@@ -99,11 +101,29 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 			return fetch_address;
 		}
 
+		inline uint8_t update_audio() {
+			unsigned int cycles_to_run_for = cycles_since_audio_update_ / 57;
+			cycles_since_audio_update_ %= 57;
+
+			int table_position = 0;
+			for(int c = 0; c < 3; c++) {
+				audio_channel_[c] = (audio_channel_[c] + cycles_to_run_for) % (top_[5 + c] ^ 0xff);
+				if((featcher_address_[5 + c] & 0x1000) && ((audio_channel_[c] ^ 0xff) > bottom_[5 + c])) {
+					table_position |= 0x4 >> c;
+				}
+			}
+
+			static uint8_t level_table[8] = { 0x0, 0x4, 0x5, 0x9, 0x6, 0xa, 0xb, 0xf };
+			return level_table[table_position];
+		}
+
 		uint16_t featcher_address_[8];
 		uint8_t top_[8], bottom_[8], mask_[8];
 		uint8_t music_mode_[3];
 		uint8_t random_number_generator_;
 		uint8_t *rom_ptr_;
+		uint8_t audio_channel_[3];
+		unsigned int cycles_since_audio_update_;
 };
 
 }
