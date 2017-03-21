@@ -131,7 +131,7 @@ template <class T> class MOS6532 {
 			port_{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}},
 			a7_interrupt_({.last_port_value = 0, .enabled = false}),
 			interrupt_line_(false),
-			timer_{.value = 16320, .activeShift = 6, .writtenShift = 6, .interrupt_enabled = false}
+			timer_{.value = (unsigned int)((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false}
 		{}
 
 		inline void set_port_did_change(int port)
