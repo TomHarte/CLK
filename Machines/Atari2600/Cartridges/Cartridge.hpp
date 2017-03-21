@@ -24,6 +24,7 @@ template<class T> class Cartridge:
 
 		void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
 		void set_reset_line(bool state) { CPU6502::Processor<Cartridge<T>>::set_reset_line(state); }
+		void advance_cycles(unsigned int cycles) {}
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -40,6 +41,7 @@ template<class T> class Cartridge:
 			cycles_since_speaker_update_ += cycles_run_for;
 			cycles_since_video_update_ += cycles_run_for;
 			cycles_since_6532_update_ += (cycles_run_for / 3);
+			static_cast<T *>(this)->advance_cycles(cycles_run_for / 3);
 
 			if(operation != CPU6502::BusOperation::Ready) {
 				// give the cartridge a chance to respond to the bus access

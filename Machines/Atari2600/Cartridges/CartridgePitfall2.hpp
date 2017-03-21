@@ -22,8 +22,11 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 			rom_ptr_ = rom_.data();
 		}
 
+		void advance_cycles(unsigned int cycles) {
+			cycles_since_audio_update_ += cycles;
+		}
+
 		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
-			cycles_since_audio_update_++;
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
