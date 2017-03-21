@@ -47,7 +47,6 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 
 				case 0x1005: case 0x1006: case 0x1007:
 					*value = update_audio();
-					printf("%01x ", *value);
 				break;
 
 				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
@@ -102,13 +101,14 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		}
 
 		inline uint8_t update_audio() {
-			unsigned int cycles_to_run_for = cycles_since_audio_update_ / 57;
-			cycles_since_audio_update_ %= 57;
+			const unsigned int clock_divisor = 57;
+			unsigned int cycles_to_run_for = cycles_since_audio_update_ / clock_divisor;
+			cycles_since_audio_update_ %= clock_divisor;
 
 			int table_position = 0;
 			for(int c = 0; c < 3; c++) {
-				audio_channel_[c] = (audio_channel_[c] + cycles_to_run_for) % (top_[5 + c] ^ 0xff);
-				if((featcher_address_[5 + c] & 0x1000) && ((audio_channel_[c] ^ 0xff) > bottom_[5 + c])) {
+				audio_channel_[c] = (audio_channel_[c] + cycles_to_run_for) % (1 + top_[5 + c]);
+				if((featcher_address_[5 + c] & 0x1000) && ((top_[5 + c] - audio_channel_[c]) > bottom_[5 + c])) {
 					table_position |= 0x4 >> c;
 				}
 			}
