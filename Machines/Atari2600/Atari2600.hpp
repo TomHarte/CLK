@@ -57,8 +57,7 @@ class Machine:
 		std::unique_ptr<Bus> bus_;
 
 		// output frame rate tracker
-		struct FrameRecord
-		{
+		struct FrameRecord {
 			unsigned int number_of_frames;
 			unsigned int number_of_unexpected_vertical_syncs;
 

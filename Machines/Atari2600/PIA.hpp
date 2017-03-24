@@ -15,13 +15,11 @@ namespace Atari2600 {
 
 class PIA: public MOS::MOS6532<PIA> {
 	public:
-		inline uint8_t get_port_input(int port)
-		{
+		inline uint8_t get_port_input(int port) {
 			return port_values_[port];
 		}
 
-		inline void update_port_input(int port, uint8_t mask, bool set)
-		{
+		inline void update_port_input(int port, uint8_t mask, bool set) {
 			if(set) port_values_[port] &= ~mask; else port_values_[port] |= mask;
 			set_port_did_change(port);
 		}
