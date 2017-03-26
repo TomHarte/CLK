@@ -586,7 +586,7 @@ template<class T> void TIA::draw_object(T &object, const uint8_t collision_ident
 
 	// movement works across the entire screen, so do work that falls outside of the pixel area
 	if(start < first_pixel) {
-		perform_border_motion<T>(object, start, std::max(end, first_pixel));
+		perform_border_motion<T>(object, start, std::min(end, first_pixel));
 	}
 
 	// don't continue to do any drawing if this window ends too early
