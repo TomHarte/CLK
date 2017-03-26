@@ -19,7 +19,7 @@ namespace ConfigurationTarget {
 */
 class Machine {
 	public:
-		virtual void configure_as_target(const StaticAnalyser::Target &target) =0;
+		virtual void configure_as_target(const StaticAnalyser::Target &target) = 0;
 };
 
 }

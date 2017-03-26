@@ -16,13 +16,10 @@ namespace NumberTheory {
 class CRC16 {
 	public:
 		CRC16(uint16_t polynomial, uint16_t reset_value) :
-			reset_value_(reset_value), value_(reset_value)
-		{
-			for(int c = 0; c < 256; c++)
-			{
+				reset_value_(reset_value), value_(reset_value) {
+			for(int c = 0; c < 256; c++) {
 				uint16_t shift_value = (uint16_t)(c << 8);
-				for(int b = 0; b < 8; b++)
-				{
+				for(int b = 0; b < 8; b++) {
 					uint16_t exclusive_or = (shift_value&0x8000) ? polynomial : 0x0000;
 					shift_value = (uint16_t)(shift_value << 1) ^ exclusive_or;
 				}

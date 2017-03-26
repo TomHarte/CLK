@@ -14,18 +14,15 @@ Speaker::Speaker() :
 	volume_(0),
 	control_registers_{0, 0, 0, 0},
 	shift_registers_{0, 0, 0, 0},
-	counters_{2, 1, 0, 0}	// create a slight phase offset for the three channels
-{}
+	counters_{2, 1, 0, 0} {}	// create a slight phase offset for the three channels
 
-void Speaker::set_volume(uint8_t volume)
-{
+void Speaker::set_volume(uint8_t volume) {
 	enqueue([=]() {
 		volume_ = volume;
 	});
 }
 
-void Speaker::set_control(int channel, uint8_t value)
-{
+void Speaker::set_control(int channel, uint8_t value) {
 	enqueue([=]() {
 		control_registers_[channel] = value;
 	});
@@ -108,10 +105,8 @@ static uint8_t noise_pattern[] = {
 // testing against 0x80. The effect should be the same: loading with 0x7f means an output update every cycle, loading with 0x7e
 // means every second cycle, etc.
 
-void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
-{
-	for(unsigned int c = 0; c < number_of_samples; c++)
-	{
+void Speaker::get_samples(unsigned int number_of_samples, int16_t *target) {
+	for(unsigned int c = 0; c < number_of_samples; c++) {
 		update(0, 2, shift);
 		update(1, 1, shift);
 		update(2, 0, shift);
@@ -128,10 +123,8 @@ void Speaker::get_samples(unsigned int number_of_samples, int16_t *target)
 	}
 }
 
-void Speaker::skip_samples(unsigned int number_of_samples)
-{
-	for(unsigned int c = 0; c < number_of_samples; c++)
-	{
+void Speaker::skip_samples(unsigned int number_of_samples) {
+	for(unsigned int c = 0; c < number_of_samples; c++) {
 		update(0, 2, shift);
 		update(1, 1, shift);
 		update(2, 0, shift);

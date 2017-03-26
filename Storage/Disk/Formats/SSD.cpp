@@ -14,8 +14,7 @@
 using namespace Storage::Disk;
 
 SSD::SSD(const char *file_name) :
-	Storage::FileHolder(file_name)
-{
+		Storage::FileHolder(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
 
@@ -30,41 +29,34 @@ SSD::SSD(const char *file_name) :
 	else if(track_count_ < 80) track_count_ = 80;
 }
 
-SSD::~SSD()
-{
+SSD::~SSD() {
 	flush_updates();
 }
 
-unsigned int SSD::get_head_position_count()
-{
+unsigned int SSD::get_head_position_count() {
 	return track_count_;
 }
 
-unsigned int SSD::get_head_count()
-{
+unsigned int SSD::get_head_count() {
 	return head_count_;
 }
 
-bool SSD::get_is_read_only()
-{
+bool SSD::get_is_read_only() {
 	return is_read_only_;
 }
 
-long SSD::get_file_offset_for_position(unsigned int head, unsigned int position)
-{
+long SSD::get_file_offset_for_position(unsigned int head, unsigned int position) {
 	return (position * head_count_ + head) * 256 * 10;
 }
 
-std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position)
-{
+std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position) {
 	std::shared_ptr<Track> track;
 
 	if(head >= head_count_) return track;
 	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
-	for(int sector = 0; sector < 10; sector++)
-	{
+	for(int sector = 0; sector < 10; sector++) {
 		Storage::Encodings::MFM::Sector new_sector;
 		new_sector.track = (uint8_t)position;
 		new_sector.side = 0;
@@ -86,19 +78,14 @@ std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, un
 	return track;
 }
 
-void SSD::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
-{
+void SSD::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex) {
 	std::vector<uint8_t> parsed_track;
 	Storage::Encodings::MFM::Parser parser(false, track);
-	for(unsigned int c = 0; c < 10; c++)
-	{
+	for(unsigned int c = 0; c < 10; c++) {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
-		if(sector)
-		{
+		if(sector) {
 			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
-		}
-		else
-		{
+		} else {
 			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
 			// it can no longer be stored as an SSD? If so, warn them by what route?
 			parsed_track.resize(parsed_track.size() + 256);

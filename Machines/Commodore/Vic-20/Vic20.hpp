@@ -129,8 +129,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 
 class Vic6560: public MOS::MOS6560<Vic6560> {
 	public:
-		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data)
-		{
+		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
 			*pixel_data = video_memory_map[address >> 10] ? video_memory_map[address >> 10][address & 0x3ff] : 0xff; // TODO
 			*colour_data = colour_memory[address & 0x03ff];
 		}

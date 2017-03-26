@@ -16,12 +16,10 @@ struct PartialDisassembly {
 	std::vector<uint16_t> remaining_entry_points;
 };
 
-static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, uint16_t entry_point)
-{
+static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
 	disassembly.disassembly.internal_calls.insert(entry_point);
 	uint16_t address = entry_point;
-	while(1)
-	{
+	while(1) {
 		size_t local_address = address_mapper(address);
 		if(local_address >= memory.size()) return;
 
@@ -33,8 +31,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		uint8_t operation = memory[local_address];
 
 		// decode addressing mode
-		switch(operation&0x1f)
-		{
+		switch(operation&0x1f) {
 			case 0x00:
 				if(operation >= 0x80) instruction.addressing_mode = Instruction::Immediate;
 				else if(operation == 0x20) instruction.addressing_mode = Instruction::Absolute;
@@ -94,8 +91,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 
 #define IM_INSTRUCTION(base, op)	\
 	case base:	instruction.operation = op; break;
-		switch(operation)
-		{
+		switch(operation) {
 			IM_INSTRUCTION(0x00, Instruction::BRK)
 			IM_INSTRUCTION(0x20, Instruction::JSR)
 			IM_INSTRUCTION(0x40, Instruction::RTI)
@@ -222,8 +218,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 #undef IM_INSTRUCTION
 
 		// get operand
-		switch(instruction.addressing_mode)
-		{
+		switch(instruction.addressing_mode) {
 			// zero-byte operands
 			case Instruction::Implied:
 				instruction.operand = 0;
@@ -233,8 +228,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			case Instruction::Immediate:
 			case Instruction::ZeroPage: case Instruction::ZeroPageX: case Instruction::ZeroPageY:
 			case Instruction::IndexedIndirectX: case Instruction::IndirectIndexedY:
-			case Instruction::Relative:
-			{
+			case Instruction::Relative: {
 				size_t operand_address = address_mapper(address);
 				if(operand_address >= memory.size()) return;
 				address++;
@@ -245,8 +239,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 
 			// two-byte operands
 			case Instruction::Absolute: case Instruction::AbsoluteX: case Instruction::AbsoluteY:
-			case Instruction::Indirect:
-			{
+			case Instruction::Indirect: {
 				size_t low_operand_address = address_mapper(address);
 				size_t high_operand_address = address_mapper(address + 1);
 				if(low_operand_address >= memory.size() || high_operand_address >= memory.size()) return;
@@ -261,13 +254,11 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 		// TODO: something wider-ranging than this
-		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage)
-		{
+		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage) {
 			size_t mapped_address = address_mapper(instruction.operand);
 			bool is_external = mapped_address >= memory.size();
 
-			switch(instruction.operation)
-			{
+			switch(instruction.operation) {
 				default: break;
 
 				case Instruction::LDY: case Instruction::LDX: case Instruction::LDA:
@@ -297,31 +288,26 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		// decide on overall flow control
 		if(instruction.operation == Instruction::RTS || instruction.operation == Instruction::RTI) return;
 		if(instruction.operation == Instruction::BRK) return;	// TODO: check whether IRQ vector is within memory range
-		if(instruction.operation == Instruction::JSR)
-		{
+		if(instruction.operation == Instruction::JSR) {
 			disassembly.remaining_entry_points.push_back(instruction.operand);
 		}
-		if(instruction.operation == Instruction::JMP)
-		{
+		if(instruction.operation == Instruction::JMP) {
 			if(instruction.addressing_mode == Instruction::Absolute)
 				disassembly.remaining_entry_points.push_back(instruction.operand);
 			return;
 		}
-		if(instruction.addressing_mode == Instruction::Relative)
-		{
+		if(instruction.addressing_mode == Instruction::Relative) {
 			uint16_t destination = (uint16_t)(address + (int8_t)instruction.operand);
 			disassembly.remaining_entry_points.push_back(destination);
 		}
 	}
 }
 
-Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points)
-{
+Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points) {
 	PartialDisassembly partialDisassembly;
 	partialDisassembly.remaining_entry_points = entry_points;
 
-	while(!partialDisassembly.remaining_entry_points.empty())
-	{
+	while(!partialDisassembly.remaining_entry_points.empty()) {
 		// pull the next entry point from the back of the vector
 		uint16_t next_entry_point = partialDisassembly.remaining_entry_points.back();
 		partialDisassembly.remaining_entry_points.pop_back();
@@ -340,8 +326,7 @@ Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &mem
 	return std::move(partialDisassembly.disassembly);
 }
 
-std::function<size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address)
-{
+std::function<size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
 	return [start_address](uint16_t argument) {
 		return (size_t)(argument - start_address);
 	};

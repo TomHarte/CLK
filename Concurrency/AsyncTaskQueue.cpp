@@ -19,26 +19,21 @@ AsyncTaskQueue::AsyncTaskQueue()
 	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
 #else
 	thread_.reset(new std::thread([this]() {
-		while(!should_destruct_)
-		{
+		while(!should_destruct_) {
 			std::function<void(void)> next_function;
 
 			// Take lock, check for a new task
 			std::unique_lock<std::mutex> lock(queue_mutex_);
-			if(!pending_tasks_.empty())
-			{
+			if(!pending_tasks_.empty()) {
 				next_function = pending_tasks_.front();
 				pending_tasks_.pop_front();
 			}
 
-			if(next_function)
-			{
+			if(next_function) {
 				// If there is a task, release lock and perform it
 				lock.unlock();
 				next_function();
-			}
-			else
-			{
+			} else {
 				// If there isn't a task, atomically block on the processing condition and release the lock
 				// until there's something pending (and then release it again via scope)
 				processing_condition_.wait(lock);
@@ -48,8 +43,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 #endif
 }
 
-AsyncTaskQueue::~AsyncTaskQueue()
-{
+AsyncTaskQueue::~AsyncTaskQueue() {
 #ifdef __APPLE__
 	dispatch_release(serial_dispatch_queue_);
 #else
@@ -60,8 +54,7 @@ AsyncTaskQueue::~AsyncTaskQueue()
 #endif
 }
 
-void AsyncTaskQueue::enqueue(std::function<void(void)> function)
-{
+void AsyncTaskQueue::enqueue(std::function<void(void)> function) {
 #ifdef __APPLE__
 	dispatch_async(serial_dispatch_queue_, ^{function();});
 #else
@@ -71,8 +64,7 @@ void AsyncTaskQueue::enqueue(std::function<void(void)> function)
 #endif
 }
 
-void AsyncTaskQueue::flush()
-{
+void AsyncTaskQueue::flush() {
 #ifdef __APPLE__
 	dispatch_sync(serial_dispatch_queue_, ^{});
 #else

@@ -78,8 +78,7 @@ namespace Serial {
 				Sets the current level of an output line on this serial port.
 			*/
 			void set_output(Line line, LineLevel level) {
-				if(line_levels_[line] != level)
-				{
+				if(line_levels_[line] != level) {
 					line_levels_[line] = level;
 					std::shared_ptr<Bus> bus = serial_bus_.lock();
 					if(bus) bus->set_line_output_did_change(line);

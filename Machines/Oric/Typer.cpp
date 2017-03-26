@@ -1,7 +1,6 @@
 #include "Oric.hpp"
 
-uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char character)
-{
+uint16_t *Oric::Machine::sequence_for_character(Utility::Typer *typer, char character) {
 #define KEYS(...)	{__VA_ARGS__, TerminateSequence}
 #define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, TerminateSequence}
 #define X			{NotMapped}

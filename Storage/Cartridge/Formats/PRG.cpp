@@ -14,8 +14,7 @@
 
 using namespace Storage::Cartridge;
 
-PRG::PRG(const char *file_name)
-{
+PRG::PRG(const char *file_name) {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
 

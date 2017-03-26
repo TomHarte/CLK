@@ -16,8 +16,7 @@
 using namespace OpenGL;
 
 namespace {
-	const OpenGL::Shader::AttributeBinding bindings[] =
-	{
+	const OpenGL::Shader::AttributeBinding bindings[] = {
 		{"inputPosition", 0},
 		{"outputPosition", 1},
 		{"phaseAndAmplitude", 2},
@@ -26,8 +25,7 @@ namespace {
 	};
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition)
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition) {
 	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
 	const char *input_variable = input_is_inputPosition ? "inputPosition" : "outputPosition";
 
@@ -111,12 +109,10 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 	return shader;
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader)
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader) {
 	char *derived_composite_sample = nullptr;
 	const char *composite_sample = composite_shader.c_str();
-	if(!composite_shader.size())
-	{
+	if(!composite_shader.size()) {
 		asprintf(&derived_composite_sample,
 			"%s\n"
 			"uniform mat3 rgbToLumaChroma;"
@@ -158,8 +154,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 	return shader;
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const std::string &rgb_shader)
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const std::string &rgb_shader) {
 	char *fragment_shader;
 	asprintf(&fragment_shader,
 		"#version 150\n"
@@ -186,8 +181,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 	return shader;
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separation_shader()
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separation_shader() {
 	return make_shader(
 		"#version 150\n"
 
@@ -219,8 +213,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 		"}",false, false);
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shader()
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shader() {
 	return make_shader(
 		"#version 150\n"
 
@@ -254,8 +247,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_filter_shade
 		"}", false, false);
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_filter_shader()
-{
+std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_filter_shader() {
 	return make_shader(
 		"#version 150\n"
 
@@ -318,18 +310,15 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_filter_shader()
 		"}", false, false);
 }
 
-void IntermediateShader::set_output_size(unsigned int output_width, unsigned int output_height)
-{
+void IntermediateShader::set_output_size(unsigned int output_width, unsigned int output_height) {
 	set_uniform("outputTextureSize", (GLint)output_width, (GLint)output_height);
 }
 
-void IntermediateShader::set_source_texture_unit(GLenum unit)
-{
+void IntermediateShader::set_source_texture_unit(GLenum unit) {
 	set_uniform("texID", (GLint)(unit - GL_TEXTURE0));
 }
 
-void IntermediateShader::set_filter_coefficients(float sampling_rate, float cutoff_frequency)
-{
+void IntermediateShader::set_filter_coefficients(float sampling_rate, float cutoff_frequency) {
 	// The process below: the source texture will have bilinear filtering enabled; so by
 	// sampling at non-integral offsets from the centre the shader can get a weighted sum
 	// of two source pixels, then scale that once, to do two taps per sample. However
@@ -340,8 +329,7 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	GLfloat offsets[5];
 	unsigned int taps = 11;
 //	unsigned int taps = 21;
-	while(1)
-	{
+	while(1) {
 		float coefficients[21];
 		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 		luminance_filter.get_coefficients(coefficients);
@@ -352,35 +340,28 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 		memset(offsets, 0, sizeof(float)*5);
 
 		int halfSize = (taps >> 1);
-		for(int c = 0; c < taps; c++)
-		{
+		for(int c = 0; c < taps; c++) {
 			if(c < 5) offsets[c] = (halfSize - c);
 			weights[c] = coefficients[c];
 		}
 		break;
 
 //		int halfSize = (taps >> 1);
-//		while(c < halfSize && sample < 5)
-//		{
+//		while(c < halfSize && sample < 5) {
 //			offsets[sample] = (float)(halfSize - c);
-//			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1))
-//			{
+//			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1)) {
 //				weights[sample] = coefficients[c] + coefficients[c+1];
 //				offsets[sample] -= (coefficients[c+1] / weights[sample]);
 //				c += 2;
-//			}
-//			else
-//			{
+//			} else {
 //				weights[sample] = coefficients[c];
 //				c++;
 //			}
 //			sample ++;
 //		}
-//		if(c == halfSize)	// i.e. we finished combining inputs before we ran out of space
-//		{
+//		if(c == halfSize) {	// i.e. we finished combining inputs before we ran out of space
 //			weights[sample] = coefficients[c];
-//			for(int c = 0; c < sample; c++)
-//			{
+//			for(int c = 0; c < sample; c++) {
 //				weights[sample+c+1] = weights[sample-c-1];
 //			}
 //			break;
@@ -392,29 +373,24 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	set_uniform("offsets", 1, 5, offsets);
 }
 
-void IntermediateShader::set_separation_frequency(float sampling_rate, float colour_burst_frequency)
-{
+void IntermediateShader::set_separation_frequency(float sampling_rate, float colour_burst_frequency) {
 	set_filter_coefficients(sampling_rate, colour_burst_frequency);
 }
 
-void IntermediateShader::set_extension(float extension)
-{
+void IntermediateShader::set_extension(float extension) {
 	set_uniform("extension", extension);
 }
 
-void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *toRGB)
-{
+void IntermediateShader::set_colour_conversion_matrices(float *fromRGB, float *toRGB) {
 	set_uniform_matrix("lumaChromaToRGB", 3, false, toRGB);
 	set_uniform_matrix("rgbToLumaChroma", 3, false, fromRGB);
 }
 
-void IntermediateShader::set_width_scalers(float input_scaler, float output_scaler)
-{
+void IntermediateShader::set_width_scalers(float input_scaler, float output_scaler) {
 	set_uniform("widthScalers", input_scaler, output_scaler);
 }
 
-void IntermediateShader::set_is_double_height(bool is_double_height, float input_offset, float output_offset)
-{
+void IntermediateShader::set_is_double_height(bool is_double_height, float input_offset, float output_offset) {
 	set_uniform("textureHeightDivisor", is_double_height ? 2.0f : 1.0f);
 	set_uniform("inputVerticalOffset", input_offset);
 	set_uniform("outputVerticalOffset", output_offset);

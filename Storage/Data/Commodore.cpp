@@ -8,12 +8,10 @@
 
 #include "Commodore.hpp"
 
-std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string, int length, bool shifted)
-{
+std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string, int length, bool shifted) {
 	std::wstring result;
 
-	wchar_t unshifted_characters[256] =
-	{
+	wchar_t unshifted_characters[256] = {
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',	
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\b',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',
 		L' ',	L'!',	L'"',	L'#',	L'$',	L'%',	L'&',	L'\'',	L'(',	L')',	L'*',	L'+',	L',',	L'-',	L'.',	L'/',
@@ -32,8 +30,7 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 		L'┌',	L'┴',	L'┬',	L'┤',	L'▎',	L'▍',	L'�',	L'�',	L'�',	L'▃',	L'�',	L'▖',	L'▝',	L'┘',	L'▘',	L'π',
 	};
 
-	wchar_t shifted_characters[256] =
-	{
+	wchar_t shifted_characters[256] = {
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',	
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\b',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',
 		L' ',	L'!',	L'"',	L'#',	L'$',	L'%',	L'&',	L'\'',	L'(',	L')',	L'*',	L'+',	L',',	L'-',	L'.',	L'/',
@@ -53,8 +50,7 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 	};
 
 	wchar_t *table = shifted ? shifted_characters : unshifted_characters;
-	for(int c = 0; c < length; c++)
-	{
+	for(int c = 0; c < length; c++) {
 		wchar_t next_character = table[string[c]];
 		if(next_character) result.push_back(next_character);
 	}

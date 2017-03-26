@@ -57,24 +57,21 @@ class FIRFilter {
 			@param src The source buffer to apply the filter to.
 			@returns The result of applying the filter.
 		*/
-		inline short apply(const short *src)
-		{
+		inline short apply(const short *src) {
 			#ifdef __APPLE__
 				short result;
 				vDSP_dotpr_s1_15(filter_coefficients_, 1, src, 1, &result, number_of_taps_);
 				return result;
 			#else
 				int outputValue = 0;
-				for(unsigned int c = 0; c < number_of_taps_; c++)
-				{
+				for(unsigned int c = 0; c < number_of_taps_; c++) {
 					outputValue += filter_coefficients_[c] * src[c];
 				}
 				return (short)(outputValue >> kCSKaiserBesselFilterFixedShift);
 			#endif
 		}
 
-		inline unsigned int get_number_of_taps()
-		{
+		inline unsigned int get_number_of_taps() {
 			return number_of_taps_;
 		}
 

@@ -13,8 +13,7 @@
 using namespace Storage::Disk;
 
 OricMFMDSK::OricMFMDSK(const char *file_name) :
-	Storage::FileHolder(file_name)
-{
+		Storage::FileHolder(file_name) {
 	if(!check_signature("MFM_DISK", 8))
 		throw ErrorNotOricMFMDSK;
 
@@ -26,31 +25,25 @@ OricMFMDSK::OricMFMDSK(const char *file_name) :
 		throw ErrorNotOricMFMDSK;
 }
 
-OricMFMDSK::~OricMFMDSK()
-{
+OricMFMDSK::~OricMFMDSK() {
 	flush_updates();
 }
 
-unsigned int OricMFMDSK::get_head_position_count()
-{
+unsigned int OricMFMDSK::get_head_position_count() {
 	return track_count_;
 }
 
-unsigned int OricMFMDSK::get_head_count()
-{
+unsigned int OricMFMDSK::get_head_count() {
 	return head_count_;
 }
 
-bool OricMFMDSK::get_is_read_only()
-{
+bool OricMFMDSK::get_is_read_only() {
 	return is_read_only_;
 }
 
-long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int position)
-{
+long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int position) {
 	long seek_offset = 0;
-	switch(geometry_type_)
-	{
+	switch(geometry_type_) {
 		case 1:
 			seek_offset = (head * track_count_) + position;
 		break;
@@ -61,8 +54,7 @@ long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int po
 	return (seek_offset * 6400) + 256;
 }
 
-std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int head, unsigned int position)
-{
+std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int head, unsigned int position) {
 	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
 	PCMSegment segment;
@@ -73,25 +65,19 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 	uint8_t last_header[6];
 	std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
 	bool did_sync = false;
-	while(track_offset < 6250)
-	{
+	while(track_offset < 6250) {
 		uint8_t next_byte = (uint8_t)fgetc(file_);
 		track_offset++;
 
-		switch(next_byte)
-		{
-			default:
-			{
+		switch(next_byte) {
+			default: {
 				encoder->add_byte(next_byte);
-				if(did_sync)
-				{
-					switch(next_byte)
-					{
+				if(did_sync) {
+					switch(next_byte) {
 						default: break;
 
 						case 0xfe:
-							for(int byte = 0; byte < 6; byte++)
-							{
+							for(int byte = 0; byte < 6; byte++) {
 								last_header[byte] = (uint8_t)fgetc(file_);
 								encoder->add_byte(last_header[byte]);
 								track_offset++;
@@ -100,8 +86,7 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 						break;
 
 						case 0xfb:
-							for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++)
-							{
+							for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++) {
 								encoder->add_byte((uint8_t)fgetc(file_));
 								track_offset++;
 								if(track_offset == 6250) break;
@@ -131,8 +116,7 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 	return track;
 }
 
-void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
-{
+void OricMFMDSK::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex) {
 	Storage::Encodings::MFM::Parser parser(true, track);
 	std::vector<uint8_t> parsed_track = parser.get_track(0);
 	long file_offset = get_file_offset_for_position(head, position);

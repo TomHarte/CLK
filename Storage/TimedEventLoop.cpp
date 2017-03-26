@@ -15,34 +15,28 @@ using namespace Storage;
 TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
-void TimedEventLoop::run_for_cycles(int number_of_cycles)
-{
+void TimedEventLoop::run_for_cycles(int number_of_cycles) {
 	cycles_until_event_ -= number_of_cycles;
-	while(cycles_until_event_ <= 0)
-	{
+	while(cycles_until_event_ <= 0) {
 		process_next_event();
 	}
 }
 
-unsigned int TimedEventLoop::get_cycles_until_next_event()
-{
+unsigned int TimedEventLoop::get_cycles_until_next_event() {
 	return (unsigned int)std::max(cycles_until_event_, 0);
 }
 
-void TimedEventLoop::reset_timer()
-{
+void TimedEventLoop::reset_timer() {
 	subcycles_until_event_.set_zero();
 	cycles_until_event_ = 0;
 }
 
-void TimedEventLoop::jump_to_next_event()
-{
+void TimedEventLoop::jump_to_next_event() {
 	reset_timer();
 	process_next_event();
 }
 
-void TimedEventLoop::set_next_event_time_interval(Time interval)
-{
+void TimedEventLoop::set_next_event_time_interval(Time interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event].
 	int64_t denominator = (int64_t)interval.clock_rate * (int64_t)subcycles_until_event_.clock_rate;
 	int64_t numerator =
@@ -61,8 +55,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval)
 	subcycles_until_event_.clock_rate = (unsigned int)denominator;
 }
 
-Time TimedEventLoop::get_time_into_next_event()
-{
+Time TimedEventLoop::get_time_into_next_event() {
 	// TODO: calculate, presumably as [length of interval] - ([cycles left] + [subcycles left]) 
 	Time zero;
 	return zero;

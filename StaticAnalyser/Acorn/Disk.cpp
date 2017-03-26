@@ -14,8 +14,7 @@
 
 using namespace StaticAnalyser::Acorn;
 
-std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk)
-{
+std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	Storage::Encodings::MFM::Parser parser(false, disk);
@@ -34,8 +33,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	snprintf(disk_name, 13, "%.8s%.4s", &names->data[0], &details->data[0]);
 	catalogue->name = disk_name;
 
-	switch((details->data[6] >> 4)&3)
-	{
+	switch((details->data[6] >> 4)&3) {
 		case 0: catalogue->bootOption = Catalogue::BootOption::None;		break;
 		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
 		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;
@@ -44,8 +42,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 	// DFS files are stored contiguously, and listed in descending order of distance from track 0.
 	// So iterating backwards implies the least amount of seeking.
-	for(size_t file_offset = final_file_offset - 8; file_offset > 0; file_offset -= 8)
-	{
+	for(size_t file_offset = final_file_offset - 8; file_offset > 0; file_offset -= 8) {
 		File new_file;
 		char name[10];
 		snprintf(name, 10, "%c.%.7s", names->data[file_offset + 7] & 0x7f, &names->data[file_offset]);
@@ -59,8 +56,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 		new_file.data.reserve((size_t)data_length);
 
 		if(start_sector < 2) continue;
-		while(data_length > 0)
-		{
+		while(data_length > 0) {
 			uint8_t sector = (uint8_t)(start_sector % 10);
 			uint8_t track = (uint8_t)(start_sector / 10);
 			start_sector++;
@@ -77,8 +73,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 	return catalogue;
 }
-std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk)
-{
+std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	Storage::Encodings::MFM::Parser parser(true, disk);
 
@@ -87,8 +82,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 
 	std::vector<uint8_t> root_directory;
 	root_directory.reserve(5 * 256);
-	for(uint8_t c = 2; c < 7; c++)
-	{
+	for(uint8_t c = 2; c < 7; c++) {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->data.begin(), sector->data.end());
@@ -99,8 +93,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 	if(root_directory[1] != 'H' || root_directory[2] != 'u' || root_directory[3] != 'g' || root_directory[4] != 'o') return nullptr;
 	if(root_directory[0x4FB] != 'H' || root_directory[0x4FC] != 'u' || root_directory[0x4FD] != 'g' || root_directory[0x4FE] != 'o') return nullptr;
 
-	switch(free_space_map_second_half->data[0xfd])
-	{
+	switch(free_space_map_second_half->data[0xfd]) {
 		default: catalogue->bootOption = Catalogue::BootOption::None;		break;
 		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
 		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;

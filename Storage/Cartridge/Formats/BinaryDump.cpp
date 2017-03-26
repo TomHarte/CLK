@@ -13,8 +13,7 @@
 
 using namespace Storage::Cartridge;
 
-BinaryDump::BinaryDump(const char *file_name)
-{
+BinaryDump::BinaryDump(const char *file_name) {
 	// the file should be exactly 16 kb
 	struct stat file_stats;
 	stat(file_name, &file_stats);

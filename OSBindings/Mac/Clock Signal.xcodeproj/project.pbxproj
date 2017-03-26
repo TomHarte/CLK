@@ -21,7 +21,6 @@
 		4B1E85751D170228001EF87D /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85731D170228001EF87D /* Typer.cpp */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
-		4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2409531C45AB05004DA684 /* Speaker.cpp */; };
 		4B2A332A1DB8544D002876E3 /* MemoryFuzzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */; };
 		4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2A332B1DB86821002876E3 /* OricOptions.xib */; };
 		4B2A332F1DB86869002876E3 /* OricOptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */; };
@@ -409,10 +408,8 @@
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
 		4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */; };
 		4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8295B1D8F048B001BAE39 /* MFM.cpp */; };
-		4BF829601D8F3C87001BAE39 /* CRC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8295E1D8F3C87001BAE39 /* CRC.cpp */; };
 		4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829611D8F536B001BAE39 /* SSD.cpp */; };
 		4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
-		4BF829691D8F7361001BAE39 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829671D8F7361001BAE39 /* File.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -457,7 +454,6 @@
 		4B1E857B1D174DEC001EF87D /* 6532.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6532.hpp; sourceTree = "<group>"; };
 		4B1E85801D176468001EF87D /* 6532Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6532Tests.swift; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
-		4B2409531C45AB05004DA684 /* Speaker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Speaker.cpp; path = ../../Outputs/Speaker.cpp; sourceTree = "<group>"; };
 		4B2409541C45AB05004DA684 /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Speaker.hpp; path = ../../Outputs/Speaker.hpp; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2A33281DB8544D002876E3 /* MemoryFuzzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryFuzzer.cpp; sourceTree = "<group>"; };
@@ -965,13 +961,11 @@
 		4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BF8295B1D8F048B001BAE39 /* MFM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MFM.cpp; path = Encodings/MFM.cpp; sourceTree = "<group>"; };
 		4BF8295C1D8F048B001BAE39 /* MFM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = MFM.hpp; path = Encodings/MFM.hpp; sourceTree = "<group>"; };
-		4BF8295E1D8F3C87001BAE39 /* CRC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CRC.cpp; path = ../../NumberTheory/CRC.cpp; sourceTree = "<group>"; };
 		4BF8295F1D8F3C87001BAE39 /* CRC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRC.hpp; path = ../../NumberTheory/CRC.hpp; sourceTree = "<group>"; };
 		4BF829611D8F536B001BAE39 /* SSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SSD.cpp; sourceTree = "<group>"; };
 		4BF829621D8F536B001BAE39 /* SSD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SSD.hpp; sourceTree = "<group>"; };
 		4BF829641D8F732B001BAE39 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Acorn/Disk.cpp; sourceTree = "<group>"; };
 		4BF829651D8F732B001BAE39 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Acorn/Disk.hpp; sourceTree = "<group>"; };
-		4BF829671D8F7361001BAE39 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = File.cpp; path = ../../StaticAnalyser/Acorn/File.cpp; sourceTree = "<group>"; };
 		4BF829681D8F7361001BAE39 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Acorn/File.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1153,7 +1147,6 @@
 			isa = PBXGroup;
 			children = (
 				4B0CCC411C62D0B3001CAC5F /* CRT */,
-				4B2409531C45AB05004DA684 /* Speaker.cpp */,
 				4B2409541C45AB05004DA684 /* Speaker.hpp */,
 			);
 			name = Outputs;
@@ -1669,7 +1662,6 @@
 			isa = PBXGroup;
 			children = (
 				4BB697C61D4B558F00248BDF /* Factors.hpp */,
-				4BF8295E1D8F3C87001BAE39 /* CRC.cpp */,
 				4BF8295F1D8F3C87001BAE39 /* CRC.hpp */,
 			);
 			name = NumberTheory;
@@ -1920,7 +1912,6 @@
 			children = (
 				4BF829641D8F732B001BAE39 /* Disk.cpp */,
 				4BF829651D8F732B001BAE39 /* Disk.hpp */,
-				4BF829671D8F7361001BAE39 /* File.cpp */,
 				4BF829681D8F7361001BAE39 /* File.hpp */,
 				4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */,
 				4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */,
@@ -2445,7 +2436,6 @@
 				4BC8A62D1DCE60E000DAC693 /* Typer.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */,
-				4BF829601D8F3C87001BAE39 /* CRC.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
@@ -2468,7 +2458,6 @@
 				4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */,
 				4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
-				4BF829691D8F7361001BAE39 /* File.cpp in Sources */,
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
 				4B3F1B461E0388D200DB26EE /* PCMPatchedTrack.cpp in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
@@ -2478,7 +2467,6 @@
 				4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */,
-				4B2409551C45AB05004DA684 /* Speaker.cpp in Sources */,
 				4BCF1FA81DADC5250039D2E7 /* CSOric.mm in Sources */,
 				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
 				4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */,

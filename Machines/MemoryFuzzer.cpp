@@ -10,18 +10,15 @@
 
 #include <cstdlib>
 
-void Memory::Fuzz(uint8_t *buffer, size_t size)
-{
+void Memory::Fuzz(uint8_t *buffer, size_t size) {
 	unsigned int divider = ((unsigned int)RAND_MAX + 1) / 256;
 	unsigned int shift = 1, value = 1;
-	while(value < divider)
-	{
+	while(value < divider) {
 		value <<= 1;
 		shift++;
 	}
 
-	for(size_t c = 0; c < size; c++)
-	{
-		buffer[c] = (uint8_t)(rand() >> shift);
+	for(size_t c = 0; c < size; c++) {
+		buffer[c] = (uint8_t)(std::rand() >> shift);
 	}
 }

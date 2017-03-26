@@ -15,33 +15,26 @@
 using namespace Storage::Disk;
 
 G64::G64(const char *file_name) :
-	Storage::FileHolder(file_name)
-{
+		Storage::FileHolder(file_name) {
 	// read and check the file signature
-	if(!check_signature("GCR-1541", 8))
-		throw ErrorNotG64;
+	if(!check_signature("GCR-1541", 8)) throw ErrorNotG64;
 
 	// check the version number
 	int version = fgetc(file_);
-	if(version != 0)
-	{
-		throw ErrorUnknownVersion;
-	}
+	if(version != 0) throw ErrorUnknownVersion;
 
 	// get the number of tracks and track size
 	number_of_tracks_ = (uint8_t)fgetc(file_);
 	maximum_track_size_ = fgetc16le();
 }
 
-unsigned int G64::get_head_position_count()
-{
+unsigned int G64::get_head_position_count() {
 	// give at least 84 tracks, to yield the normal geometry but,
 	// if there are more, shove them in
 	return number_of_tracks_ > 84 ? number_of_tracks_ : 84;
 }
 
-std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, unsigned int position)
-{
+std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, unsigned int position) {
 	std::shared_ptr<Track> resulting_track;
 
 	// if there's definitely no track here, return the empty track
@@ -78,8 +71,7 @@ std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, un
 	speed_zone_offset = fgetc32le();
 
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
-	if(speed_zone_offset > 3)
-	{
+	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
 		fseek(file_, (int)speed_zone_offset, SEEK_SET);
 
@@ -93,11 +85,9 @@ std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, un
 		std::vector<PCMSegment> segments;
 		unsigned int current_speed = speed_zone_contents[0] >> 6;
 		unsigned int start_byte_in_current_speed = 0;
-		for(unsigned int byte = 0; byte < track_length; byte ++)
-		{
+		for(unsigned int byte = 0; byte < track_length; byte ++) {
 			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 - (byte&3)*2);
-			if(byte_speed != current_speed || byte == (track_length-1))
-			{
+			if(byte_speed != current_speed || byte == (track_length-1)) {
 				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
 
 				PCMSegment segment;
@@ -113,9 +103,7 @@ std::shared_ptr<Track> G64::get_uncached_track_at_position(unsigned int head, un
 		}
 
 		resulting_track.reset(new PCMTrack(std::move(segments)));
-	}
-	else
-	{
+	} else {
 		PCMSegment segment;
 		segment.number_of_bits = track_length * 8;
 		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)speed_zone_offset);

@@ -45,13 +45,11 @@ class Typer {
 
 class TypeRecipient: public Typer::Delegate {
 	public:
-		void set_typer_for_string(const char *string)
-		{
+		void set_typer_for_string(const char *string) {
 			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
 		}
 
-		void typer_reset(Typer *typer)
-		{
+		void typer_reset(Typer *typer) {
 			clear_all_keys();
 			typer_.reset();
 		}

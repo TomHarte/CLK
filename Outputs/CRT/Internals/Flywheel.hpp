@@ -21,8 +21,7 @@ namespace CRT {
 
 	The @c Flywheel will attempt to converge with timing implied by synchronisation pulses.
 */
-struct Flywheel
-{
+struct Flywheel {
 	/*!
 		Constructs an instance of @c Flywheel.
 
@@ -61,26 +60,18 @@ struct Flywheel
 
 		@returns The next synchronisation event.
 	*/
-	inline SyncEvent get_next_event_in_period(bool sync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced)
-	{
+	inline SyncEvent get_next_event_in_period(bool sync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced) {
 		// do we recognise this hsync, thereby adjusting future time expectations?
-		if(sync_is_requested)
-		{
-			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_)
-			{
+		if(sync_is_requested) {
+			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				unsigned int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
 				expected_next_sync_ = (3*expected_next_sync_ + time_now) >> 2;
-			}
-			else
-			{
+			} else {
 				number_of_surprises_++;
 
-				if(counter_ < retrace_time_ + (expected_next_sync_ >> 1))
-				{
+				if(counter_ < retrace_time_ + (expected_next_sync_ >> 1)) {
 					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ + sync_error_window_) >> 2;
-				}
-				else
-				{
+				} else {
 					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ - sync_error_window_) >> 2;
 				}
 			}
@@ -90,15 +81,13 @@ struct Flywheel
 		unsigned int proposed_sync_time = cycles_to_run_for;
 
 		// will we end an ongoing retrace?
-		if(counter_ < retrace_time_ && counter_ + proposed_sync_time >= retrace_time_)
-		{
+		if(counter_ < retrace_time_ && counter_ + proposed_sync_time >= retrace_time_) {
 			proposed_sync_time = retrace_time_ - counter_;
 			proposed_event = SyncEvent::EndRetrace;
 		}
 
 		// will we start a retrace?
-		if(counter_ + proposed_sync_time >= expected_next_sync_)
-		{
+		if(counter_ + proposed_sync_time >= expected_next_sync_) {
 			proposed_sync_time = expected_next_sync_ - counter_;
 			proposed_event = SyncEvent::StartRetrace;
 		}
@@ -115,12 +104,10 @@ struct Flywheel
 
 		@param event The synchronisation event to apply after that period.
 	*/
-	inline void apply_event(unsigned int cycles_advanced, SyncEvent event)
-	{
+	inline void apply_event(unsigned int cycles_advanced, SyncEvent event) {
 		counter_ += cycles_advanced;
 
-		switch(event)
-		{
+		switch(event) {
 			default: return;
 			case StartRetrace:
 				counter_before_retrace_ = counter_ - retrace_time_;
@@ -135,10 +122,8 @@ struct Flywheel
 
 		@returns The current output position.
 	*/
-	inline unsigned int get_current_output_position()
-	{
-		if(counter_ < retrace_time_)
-		{
+	inline unsigned int get_current_output_position() {
+		if(counter_ < retrace_time_) {
 			unsigned int retrace_distance = (counter_ * standard_period_) / retrace_time_;
 			if(retrace_distance > counter_before_retrace_) return 0;
 			return counter_before_retrace_ - retrace_distance;
@@ -150,32 +135,28 @@ struct Flywheel
 	/*!
 		@returns the amount of time since retrace last began. Time then counts monotonically up from zero.
 	*/
-	inline unsigned int get_current_time()
-	{
+	inline unsigned int get_current_time() {
 		return counter_;
 	}
 
 	/*!
 		@returns whether the output is currently retracing.
 	*/
-	inline bool is_in_retrace()
-	{
+	inline bool is_in_retrace() {
 		return counter_ < retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of the scan period (excluding retrace).
 	*/
-	inline unsigned int get_scan_period()
-	{
+	inline unsigned int get_scan_period() {
 		return standard_period_ - retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of a complete scan and retrace cycle.
 	*/
-	inline unsigned int get_standard_period()
-	{
+	inline unsigned int get_standard_period() {
 		return standard_period_;
 	}
 
@@ -183,8 +164,7 @@ struct Flywheel
 		@returns the number of synchronisation events that have seemed surprising since the last time this method was called;
 		a low number indicates good synchronisation.
 	*/
-	inline unsigned int get_and_reset_number_of_surprises()
-	{
+	inline unsigned int get_and_reset_number_of_surprises() {
 		unsigned int result = number_of_surprises_;
 		number_of_surprises_ = 0;
 		return result;
@@ -193,8 +173,7 @@ struct Flywheel
 	/*!
 		@returns `true` if a sync is expected soon or the time at which it was expected was recent.
 	*/
-	inline bool is_near_expected_sync()
-	{
+	inline bool is_near_expected_sync() {
 		return abs((int)counter_ - (int)expected_next_sync_) < (int)standard_period_ / 50;
 	}
 
