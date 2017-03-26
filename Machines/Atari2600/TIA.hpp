@@ -145,12 +145,23 @@ class TIA {
 			// indicates whether this object is currently undergoing motion
 			bool is_moving;
 
-			Object() : is_moving(false) {};
+			Object() : position(0), motion(0), motion_step(0), motion_time(0), is_moving(false) {};
 		};
 
 		// player state
 		struct Player: public Object<Player> {
-			Player() : copy_flags(0), graphic{0, 0}, reverse_mask(false), pixel_position(32), graphic_index(0), adder(4), queue_read_pointer_(0), queue_write_pointer_(0) {}
+			Player() :
+				adder(4),
+				copy_flags(0),
+				graphic{0, 0},
+				reverse_mask(false),
+				graphic_index(0),
+				pixel_position(32),
+				pixel_counter(0),
+				latched_pixel4_time(-1),
+				copy_index_(0),
+				queue_read_pointer_(0),
+				queue_write_pointer_(0) {}
 
 			int adder;
 			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
@@ -214,6 +225,7 @@ class TIA {
 					int pixel_position;
 					int adder;
 					int reverse_mask;
+					QueuedPixels() : start(0), end(0), pixel_position(0), adder(0), reverse_mask(false) {}
 				} queue_[4];
 				int queue_read_pointer_, queue_write_pointer_;
 
@@ -294,7 +306,7 @@ class TIA {
 				}
 			}
 
-			Ball() : enabled_index(0), enabled{false, false} {}
+			Ball() : enabled{false, false}, enabled_index(0) {}
 		} ball_;
 
 		// motion
