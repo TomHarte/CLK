@@ -12,76 +12,61 @@
 using namespace Utility;
 
 Typer::Typer(const char *string, int delay, int frequency, Delegate *delegate) :
-	counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0)
-{
+		counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0) {
 	size_t string_size = strlen(string) + 3;
 	string_ = (char *)malloc(string_size);
 	snprintf(string_, strlen(string) + 3, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
-void Typer::update(int duration)
-{
-	if(string_)
-	{
-		if(counter_ < 0 && counter_ + duration >= 0)
-		{
-			if(!type_next_character())
-			{
+void Typer::update(int duration) {
+	if(string_) {
+		if(counter_ < 0 && counter_ + duration >= 0) {
+			if(!type_next_character()) {
 				delegate_->typer_reset(this);
 			}
 		}
 
 		counter_ += duration;
-		while(string_ && counter_ > frequency_)
-		{
+		while(string_ && counter_ > frequency_) {
 			counter_ -= frequency_;
-			if(!type_next_character())
-			{
+			if(!type_next_character()) {
 				delegate_->typer_reset(this);
 			}
 		}
 	}
 }
 
-bool Typer::type_next_character()
-{
+bool Typer::type_next_character() {
 	if(string_ == nullptr) return false;
 
-	if(delegate_->typer_set_next_character(this, string_[string_pointer_], phase_))
-	{
+	if(delegate_->typer_set_next_character(this, string_[string_pointer_], phase_)) {
 		phase_ = 0;
-		if(!string_[string_pointer_])
-		{
+		if(!string_[string_pointer_]) {
 			free(string_);
 			string_ = nullptr;
 			return false;
 		}
 
 		string_pointer_++;
-	}
-	else
-	{
+	} else {
 		phase_++;
 	}
 
 	return true;
 }
 
-Typer::~Typer()
-{
+Typer::~Typer() {
 	free(string_);
 }
 
 #pragma mark - Delegate
 
-bool Typer::Delegate::typer_set_next_character(Utility::Typer *typer, char character, int phase)
-{
+bool Typer::Delegate::typer_set_next_character(Utility::Typer *typer, char character, int phase) {
 	uint16_t *sequence = sequence_for_character(typer, character);
 	if(!sequence) return true;
 
 	if(!phase) clear_all_keys();
-	else
-	{
+	else {
 		set_key_state(sequence[phase - 1], true);
 		return sequence[phase] == Typer::Delegate::EndSequence;
 	}
@@ -89,7 +74,6 @@ bool Typer::Delegate::typer_set_next_character(Utility::Typer *typer, char chara
 	return false;
 }
 
-uint16_t *Typer::Delegate::sequence_for_character(Typer *typer, char character)
-{
+uint16_t *Typer::Delegate::sequence_for_character(Typer *typer, char character) {
 	return nullptr;
 }

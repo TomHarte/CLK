@@ -8,8 +8,7 @@
 
 #include "File.hpp"
 
-bool StaticAnalyser::Commodore::File::is_basic()
-{
+bool StaticAnalyser::Commodore::File::is_basic() {
 	// BASIC files are always relocatable (?)
 	if(type != File::RelocatableProgram) return false;
 
@@ -23,15 +22,13 @@ bool StaticAnalyser::Commodore::File::is_basic()
 	//		[4 bytes: this line number]
 	//		... null-terminated code ...
 	//	(with a next line address of 0000 indicating end of program)ß
-	while(1)
-	{
+	while(1) {
 		if(line_address - starting_address >= data.size() + 2) break;
 
 		uint16_t next_line_address = data[line_address - starting_address];
 		next_line_address |= data[line_address - starting_address + 1] << 8;
 
-		if(!next_line_address)
-		{
+		if(!next_line_address) {
 			return true;
 		}
 		if(next_line_address < line_address + 5) break;

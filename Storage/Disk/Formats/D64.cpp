@@ -16,8 +16,7 @@
 using namespace Storage::Disk;
 
 D64::D64(const char *file_name) :
-	Storage::FileHolder(file_name)
-{
+		Storage::FileHolder(file_name) {
 	// in D64, this is it for validation without imposing potential false-negative tests — check that
 	// the file size appears to be correct. Stone-age stuff.
 	if(file_stats_.st_size != 174848 && file_stats_.st_size != 196608)
@@ -28,21 +27,18 @@ D64::D64(const char *file_name) :
 	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
 	// being the most stable thing available
 	disk_id_ = 0;
-	while(*file_name)
-	{
+	while(*file_name) {
 		disk_id_ ^= file_name[0];
 		disk_id_ = (uint16_t)((disk_id_ << 2) ^ (disk_id_ >> 13));
 		file_name++;
 	}
 }
 
-unsigned int D64::get_head_position_count()
-{
+unsigned int D64::get_head_position_count() {
 	return number_of_tracks_*2;
 }
 
-std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, unsigned int position)
-{
+std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, unsigned int position) {
 	// every other track is missing, as is any head above 0
 	if(position&1 || head)
 		return std::shared_ptr<Track>();
@@ -54,8 +50,7 @@ std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, un
 	int zone_sizes[] = {17, 7, 6, 10};
 	int sectors_by_zone[] = {21, 19, 18, 17};
 	int zone = 0;
-	for(int current_zone = 0; current_zone < 4; current_zone++)
-	{
+	for(int current_zone = 0; current_zone < 4; current_zone++) {
 		int tracks_in_this_zone = std::min(tracks_to_traverse, zone_sizes[current_zone]);
 		offset_to_track += tracks_in_this_zone * sectors_by_zone[current_zone];
 		tracks_to_traverse -= tracks_in_this_zone;
@@ -95,8 +90,7 @@ std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, un
 
 	memset(data, 0, track_bytes);
 
-	for(int sector = 0; sector < sectors_by_zone[zone]; sector++)
-	{
+	for(int sector = 0; sector < sectors_by_zone[zone]; sector++) {
 		uint8_t *sector_data = &data[sector * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
@@ -139,8 +133,7 @@ std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, un
 		Encodings::CommodoreGCR::encode_block(&sector_data[24], start_of_data);
 		int source_data_offset = 3;
 		int target_data_offset = 29;
-		while((source_data_offset+4) < 256)
-		{
+		while((source_data_offset+4) < 256) {
 			Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], &source_data[source_data_offset]);
 			target_data_offset += 5;
 			source_data_offset += 4;

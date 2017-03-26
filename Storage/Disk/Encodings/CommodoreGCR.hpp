@@ -47,6 +47,7 @@ namespace CommodoreGCR {
 	*/
 	unsigned int decoding_from_dectet(unsigned int dectet);
 }
+
 }
 }
 

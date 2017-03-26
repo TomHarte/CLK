@@ -16,8 +16,7 @@
 
 using namespace Outputs::CRT;
 
-namespace
-{
+namespace {
 	static const GLenum source_data_texture_unit		= GL_TEXTURE0;
 	static const GLenum pixel_accumulation_texture_unit	= GL_TEXTURE1;
 
@@ -29,14 +28,13 @@ namespace
 }
 
 OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
-	visible_area_(Rect(0, 0, 1, 1)),
-	composite_src_output_y_(0),
-	last_output_width_(0),
-	last_output_height_(0),
-	fence_(nullptr),
-	texture_builder(bytes_per_pixel, source_data_texture_unit),
-	array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize)
-{
+		visible_area_(Rect(0, 0, 1, 1)),
+		composite_src_output_y_(0),
+		last_output_width_(0),
+		last_output_height_(0),
+		fence_(nullptr),
+		texture_builder(bytes_per_pixel, source_data_texture_unit),
+		array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize) {
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.6f, 0.6f, 0.6f, 1.0f);
 
@@ -51,46 +49,37 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	GLint number_of_extensions;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &number_of_extensions);
 
-	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++)
-	{
+	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++) {
 		const char *extension_name = (const char *)glGetStringi(GL_EXTENSIONS, c);
-		if(!strcmp(extension_name, "GL_NV_texture_barrier"))
-		{
+		if(!strcmp(extension_name, "GL_NV_texture_barrier")) {
 			supports_texture_barrier = true;
 		}
 	}
 #endif
 
-//	if(supports_texture_barrier)
-//	{
+//	if(supports_texture_barrier) {
 //		work_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight*2, work_texture_unit));
-//	}
-//	else
-	{
+//	} else {
 		composite_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, composite_texture_unit, GL_NEAREST));
 		separated_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, separated_texture_unit, GL_NEAREST));
 		filtered_texture_.reset(new OpenGL::TextureTarget(IntermediateBufferWidth, IntermediateBufferHeight, filtered_texture_unit, GL_LINEAR));
-	}
+//	}
 }
 
-OpenGLOutputBuilder::~OpenGLOutputBuilder()
-{
+OpenGLOutputBuilder::~OpenGLOutputBuilder() {
 	glDeleteVertexArrays(1, &output_vertex_array_);
 }
 
-bool OpenGLOutputBuilder::get_is_television_output()
-{
+bool OpenGLOutputBuilder::get_is_television_output() {
 	return output_device_ == Television || !rgb_input_shader_program_;
 }
 
-void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty)
-{
+void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty) {
 	// lock down any other draw_frames
 	draw_mutex_.lock();
 
 	// establish essentials
-	if(!output_shader_program_)
-	{
+	if(!output_shader_program_) {
 		prepare_composite_input_shaders();
 		prepare_rgb_input_shaders();
 		prepare_source_vertex_array();
@@ -102,11 +91,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		set_colour_space_uniforms();
 	}
 
-	if(fence_ != nullptr)
-	{
+	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
-		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, only_if_dirty ? 0 : GL_TIMEOUT_IGNORED) == GL_TIMEOUT_EXPIRED)
-		{
+		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, only_if_dirty ? 0 : GL_TIMEOUT_IGNORED) == GL_TIMEOUT_EXPIRED) {
 			draw_mutex_.unlock();
 			return;
 		}
@@ -115,11 +102,9 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// make sure there's a target to draw to
-	if(!framebuffer_ || framebuffer_->get_height() != output_height || framebuffer_->get_width() != output_width)
-	{
+	if(!framebuffer_ || framebuffer_->get_height() != output_height || framebuffer_->get_width() != output_width) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit, GL_LINEAR));
-		if(framebuffer_)
-		{
+		if(framebuffer_) {
 			new_framebuffer->bind_framebuffer();
 			glClear(GL_COLOR_BUFFER_BIT);
 
@@ -155,8 +140,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	};
 
 	// for composite video, go through four steps to get to something that can be painted to the output
-	RenderStage composite_render_stages[] =
-	{
+	RenderStage composite_render_stages[] = {
 		{composite_input_shader_program_.get(),					composite_texture_.get(),		{0.0, 0.0, 0.0}},
 		{composite_separation_filter_program_.get(),			separated_texture_.get(),		{0.0, 0.5, 0.5}},
 		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
@@ -164,8 +148,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	};
 
 	// for RGB video, there's only two steps
-	RenderStage rgb_render_stages[] =
-	{
+	RenderStage rgb_render_stages[] = {
 		{rgb_input_shader_program_.get(),	composite_texture_.get(),	{0.0, 0.0, 0.0}},
 		{rgb_filter_shader_program_.get(),	filtered_texture_.get(),	{0.0, 0.0, 0.0}},
 		{nullptr}
@@ -173,33 +156,28 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	RenderStage *active_pipeline = get_is_television_output() ? composite_render_stages : rgb_render_stages;
 
-	if(array_submission.input_size || array_submission.output_size)
-	{
+	if(array_submission.input_size || array_submission.output_size) {
 		// all drawing will be from the source vertex array and without blending
 		glBindVertexArray(source_vertex_array_);
 		glDisable(GL_BLEND);
 
 #ifdef GL_NV_texture_barrier
-		if(work_texture_)
-		{
+		if(work_texture_) {
 			work_texture_->bind_framebuffer();
 			glClear(GL_COLOR_BUFFER_BIT);
 		}
 #endif
 
-		while(active_pipeline->shader)
-		{
+		while(active_pipeline->shader) {
 			// switch to the framebuffer and shader associated with this stage
 			active_pipeline->shader->bind();
 
-			if(!work_texture_)
-			{
+			if(!work_texture_) {
 				active_pipeline->target->bind_framebuffer();
 
 				// if this is the final stage before painting to the CRT, clear the framebuffer before drawing in order to blank out
 				// those portions for which no input was provided
-//				if(!active_pipeline[1].shader)
-//				{
+//				if(!active_pipeline[1].shader) {
 					glClearColor(active_pipeline->clear_colour[0], active_pipeline->clear_colour[1], active_pipeline->clear_colour[2], 1.0f);
 					glClear(GL_COLOR_BUFFER_BIT);
 //				}
@@ -222,8 +200,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glEnable(GL_BLEND);
 
 		// update uniforms, then bind the target
-		if(last_output_width_ != output_width || last_output_height_ != output_height)
-		{
+		if(last_output_width_ != output_width || last_output_height_ != output_height) {
 			output_shader_program_->set_output_size(output_width, output_height, visible_area_);
 			last_output_width_ = output_width;
 			last_output_height_ = output_height;
@@ -251,8 +228,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	draw_mutex_.unlock();
 }
 
-void OpenGLOutputBuilder::reset_all_OpenGL_state()
-{
+void OpenGLOutputBuilder::reset_all_OpenGL_state() {
 	composite_input_shader_program_ = nullptr;
 	composite_separation_filter_program_ = nullptr;
 	composite_chrominance_filter_shader_program_ = nullptr;
@@ -263,22 +239,19 @@ void OpenGLOutputBuilder::reset_all_OpenGL_state()
 	last_output_width_ = last_output_height_ = 0;
 }
 
-void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources)
-{
+void OpenGLOutputBuilder::set_openGL_context_will_change(bool should_delete_resources) {
 	output_mutex_.lock();
 	reset_all_OpenGL_state();
 	output_mutex_.unlock();
 }
 
-void OpenGLOutputBuilder::set_composite_sampling_function(const std::string &shader)
-{
+void OpenGLOutputBuilder::set_composite_sampling_function(const std::string &shader) {
 	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	composite_shader_ = shader;
 	reset_all_OpenGL_state();
 }
 
-void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader)
-{
+void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader) {
 	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	rgb_shader_ = shader;
 	reset_all_OpenGL_state();
@@ -286,8 +259,7 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader)
 
 #pragma mark - Program compilation
 
-void OpenGLOutputBuilder::prepare_composite_input_shaders()
-{
+void OpenGLOutputBuilder::prepare_composite_input_shaders() {
 	composite_input_shader_program_ = OpenGL::IntermediateShader::make_source_conversion_shader(composite_shader_, rgb_shader_);
 	composite_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 	composite_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
@@ -300,24 +272,19 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders()
 	composite_chrominance_filter_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : separated_texture_unit);
 	composite_chrominance_filter_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
 
-	if(work_texture_)
-	{
+	if(work_texture_) {
 		composite_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
 		composite_separation_filter_program_->set_is_double_height(true, 0.0f, 0.5f);
 		composite_chrominance_filter_shader_program_->set_is_double_height(true, 0.5f, 0.0f);
-	}
-	else
-	{
+	} else {
 		composite_input_shader_program_->set_is_double_height(false);
 		composite_separation_filter_program_->set_is_double_height(false);
 		composite_chrominance_filter_shader_program_->set_is_double_height(false);
 	}
 }
 
-void OpenGLOutputBuilder::prepare_rgb_input_shaders()
-{
-	if(rgb_shader_.size())
-	{
+void OpenGLOutputBuilder::prepare_rgb_input_shaders() {
+	if(rgb_shader_.size()) {
 		rgb_input_shader_program_ = OpenGL::IntermediateShader::make_rgb_source_shader(rgb_shader_);
 		rgb_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 		rgb_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
@@ -328,10 +295,8 @@ void OpenGLOutputBuilder::prepare_rgb_input_shaders()
 	}
 }
 
-void OpenGLOutputBuilder::prepare_source_vertex_array()
-{
-	if(composite_input_shader_program_)
-	{
+void OpenGLOutputBuilder::prepare_source_vertex_array() {
+	if(composite_input_shader_program_) {
 		glBindVertexArray(source_vertex_array_);
 		array_builder.bind_input();
 
@@ -342,18 +307,15 @@ void OpenGLOutputBuilder::prepare_source_vertex_array()
 	}
 }
 
-void OpenGLOutputBuilder::prepare_output_shader()
-{
+void OpenGLOutputBuilder::prepare_output_shader() {
 	output_shader_program_ = OpenGL::OutputShader::make_shader("", "texture(texID, srcCoordinatesVarying).rgb", false);
 	output_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : filtered_texture_unit);
 //	output_shader_program_->set_source_texture_unit(composite_texture_unit);
 	output_shader_program_->set_origin_is_double_height(!!work_texture_);
 }
 
-void OpenGLOutputBuilder::prepare_output_vertex_array()
-{
-	if(output_shader_program_)
-	{
+void OpenGLOutputBuilder::prepare_output_vertex_array() {
+	if(output_shader_program_) {
 		glBindVertexArray(output_vertex_array_);
 		array_builder.bind_output();
 		output_shader_program_->enable_vertex_attribute_with_pointer("horizontal", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfHorizontal, 1);
@@ -363,10 +325,8 @@ void OpenGLOutputBuilder::prepare_output_vertex_array()
 
 #pragma mark - Public Configuration
 
-void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
-{
-	if(output_device_ != output_device)
-	{
+void OpenGLOutputBuilder::set_output_device(OutputDevice output_device) {
+	if(output_device_ != output_device) {
 		output_device_ = output_device;
 		composite_src_output_y_ = 0;
 		last_output_width_ = 0;
@@ -375,8 +335,7 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device)
 	}
 }
 
-void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider)
-{
+void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider) {
 	output_mutex_.lock();
 	input_frequency_ = input_frequency;
 	cycles_per_line_ = cycles_per_line;
@@ -391,8 +350,7 @@ void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int 
 
 #pragma mark - Internal Configuration
 
-void OpenGLOutputBuilder::set_colour_space_uniforms()
-{
+void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
 	GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
 
@@ -401,8 +359,7 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 
 	GLfloat *fromRGB, *toRGB;
 
-	switch(colour_space_)
-	{
+	switch(colour_space_) {
 		case ColourSpace::YIQ:
 			fromRGB = rgbToYIQ;
 			toRGB = yiqToRGB;
@@ -419,54 +376,44 @@ void OpenGLOutputBuilder::set_colour_space_uniforms()
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 }
 
-float OpenGLOutputBuilder::get_composite_output_width() const
-{
+float OpenGLOutputBuilder::get_composite_output_width() const {
 	return ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
 }
 
-void OpenGLOutputBuilder::set_output_shader_width()
-{
-	if(output_shader_program_)
-	{
+void OpenGLOutputBuilder::set_output_shader_width() {
+	if(output_shader_program_) {
 		const float width = get_is_television_output() ? get_composite_output_width() : 1.0f;
 		output_shader_program_->set_input_width_scaler(width);
 	}
 }
 
-void OpenGLOutputBuilder::set_timing_uniforms()
-{
+void OpenGLOutputBuilder::set_timing_uniforms() {
 	const float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
 	const float output_width = get_composite_output_width();
 	const float sample_cycles_per_line = cycles_per_line_ / output_width;
 
-	if(composite_separation_filter_program_)
-	{
+	if(composite_separation_filter_program_) {
 		composite_separation_filter_program_->set_width_scalers(output_width, output_width);
 		composite_separation_filter_program_->set_separation_frequency(sample_cycles_per_line, colour_subcarrier_frequency);
 		composite_separation_filter_program_->set_extension(6.0f);
 	}
-	if(composite_chrominance_filter_shader_program_)
-	{
+	if(composite_chrominance_filter_shader_program_) {
 		composite_chrominance_filter_shader_program_->set_width_scalers(output_width, output_width);
 		composite_chrominance_filter_shader_program_->set_extension(5.0f);
 	}
-	if(rgb_filter_shader_program_)
-	{
+	if(rgb_filter_shader_program_) {
 		rgb_filter_shader_program_->set_width_scalers(1.0f, 1.0f);
 		rgb_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, (float)input_frequency_ * 0.5f);
 	}
-	if(output_shader_program_)
-	{
+	if(output_shader_program_) {
 		set_output_shader_width();
 		output_shader_program_->set_timing(height_of_display_, cycles_per_line_, horizontal_scan_period_, vertical_scan_period_, vertical_period_divider_);
 	}
-	if(composite_input_shader_program_)
-	{
+	if(composite_input_shader_program_) {
 		composite_input_shader_program_->set_width_scalers(1.0f, output_width);
 		composite_input_shader_program_->set_extension(0.0f);
 	}
-	if(rgb_input_shader_program_)
-	{
+	if(rgb_input_shader_program_) {
 		rgb_input_shader_program_->set_width_scalers(1.0f, 1.0f);
 	}
 }

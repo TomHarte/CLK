@@ -12,8 +12,7 @@
 
 using namespace StaticAnalyser::Atari;
 
-static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
-{
+static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment) {
 	// if this is a 2kb cartridge then it's definitely either unpaged or a CommaVid
 	uint16_t entry_address, break_address;
 
@@ -33,10 +32,8 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// assume that any kind of store that looks likely to be intended for large amounts of memory implies
 	// large amounts of memory
 	bool has_wide_area_store = false;
-	for(std::map<uint16_t, StaticAnalyser::MOS6502::Instruction>::value_type &entry : high_location_disassembly.instructions_by_address)
-	{
-		if(entry.second.operation == StaticAnalyser::MOS6502::Instruction::STA)
-		{
+	for(std::map<uint16_t, StaticAnalyser::MOS6502::Instruction>::value_type &entry : high_location_disassembly.instructions_by_address) {
+		if(entry.second.operation == StaticAnalyser::MOS6502::Instruction::STA) {
 			has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::Indirect;
 			has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::IndexedIndirectX;
 			has_wide_area_store |= entry.second.addressing_mode == StaticAnalyser::MOS6502::Instruction::IndirectIndexedY;
@@ -52,8 +49,7 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	if(has_wide_area_store) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::CommaVid;
 }
 
-static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
-{
+static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly) {
 	// Activision stack titles have their vectors at the top of the low 4k, not the top, and
 	// always list 0xf000 as both vectors; they do not repeat them, and, inexplicably, they all
 	// issue an SEI as their first instruction (maybe some sort of relic of the development environment?)
@@ -61,8 +57,7 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 		segment.data[4095] == 0xf0 && segment.data[4093] == 0xf0 && segment.data[4094] == 0x00 && segment.data[4092] == 0x00 &&
 		(segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 || segment.data[8190] != 0x00 || segment.data[8188] != 0x00) &&
 		segment.data[0] == 0x78
-	)
-	{
+	) {
 		target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::ActivisionStack;
 		return;
 	}
@@ -78,14 +73,12 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 	int atari_access_count = 0;
 	int parker_access_count = 0;
 	int tigervision_access_count = 0;
-	for(uint16_t address : internal_accesses)
-	{
+	for(uint16_t address : internal_accesses) {
 		uint16_t masked_address = address & 0x1fff;
 		atari_access_count += masked_address >= 0x1ff8 && masked_address < 0x1ffa;
 		parker_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ff8;
 	}
-	for(uint16_t address: disassembly.external_stores)
-	{
+	for(uint16_t address: disassembly.external_stores) {
 		uint16_t masked_address = address & 0x1fff;
 		tigervision_access_count += masked_address == 0x3f;
 	}
@@ -94,8 +87,7 @@ static void DeterminePagingFor8kCartridge(StaticAnalyser::Target &target, const 
 	else if(tigervision_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
 }
 
-static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
-{
+static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly) {
 	// make an assumption that this is the Atari paging model
 	target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Atari16k;
 
@@ -106,8 +98,7 @@ static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const
 
 	int atari_access_count = 0;
 	int mnetwork_access_count = 0;
-	for(uint16_t address : internal_accesses)
-	{
+	for(uint16_t address : internal_accesses) {
 		uint16_t masked_address = address & 0x1fff;
 		atari_access_count += masked_address >= 0x1ff6 && masked_address < 0x1ffa;
 		mnetwork_access_count += masked_address >= 0x1fe0 && masked_address < 0x1ffb;
@@ -116,18 +107,15 @@ static void DeterminePagingFor16kCartridge(StaticAnalyser::Target &target, const
 	if(mnetwork_access_count > atari_access_count) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::MNetwork;
 }
 
-static void DeterminePagingFor64kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly)
-{
+static void DeterminePagingFor64kCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const StaticAnalyser::MOS6502::Disassembly &disassembly) {
 	// make an assumption that this is a Tigervision if there is a write to 3F
 	target.atari.paging_model =
 		(disassembly.external_stores.find(0x3f) != disassembly.external_stores.end()) ?
 			StaticAnalyser::Atari2600PagingModel::Tigervision : StaticAnalyser::Atari2600PagingModel::MegaBoy;
 }
 
-static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment)
-{
-	if(segment.data.size() == 2048)
-	{
+static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const Storage::Cartridge::Cartridge::Segment &segment) {
+	if(segment.data.size() == 2048) {
 		DeterminePagingFor2kCartridge(target, segment);
 		return;
 	}
@@ -145,8 +133,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
 	StaticAnalyser::MOS6502::Disassembly disassembly = StaticAnalyser::MOS6502::Disassemble(final_4k, address_mapper, {entry_address, break_address});
 
-	switch(segment.data.size())
-	{
+	switch(segment.data.size()) {
 		case 8192:
 			DeterminePagingFor8kCartridge(target, segment, disassembly);
 		break;
@@ -173,13 +160,10 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	// regions; when they don't they at least seem to have the first 128 bytes be the same as the
 	// next 128 bytes. So check for that.
 	if(	target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus &&
-		target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork)
-	{
+		target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork) {
 		bool has_superchip = true;
-		for(size_t address = 0; address < 128; address++)
-		{
-			if(segment.data[address] != segment.data[address+128])
-			{
+		for(size_t address = 0; address < 128; address++) {
+			if(segment.data[address] != segment.data[address+128]) {
 				has_superchip = false;
 				break;
 			}
@@ -188,19 +172,17 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	}
 
 	// check for a Tigervision or Tigervision-esque scheme
-	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None && segment.data.size() > 4096)
-	{
+	if(target.atari.paging_model == StaticAnalyser::Atari2600PagingModel::None && segment.data.size() > 4096) {
 		bool looks_like_tigervision = disassembly.external_stores.find(0x3f) != disassembly.external_stores.end();
 		if(looks_like_tigervision) target.atari.paging_model = StaticAnalyser::Atari2600PagingModel::Tigervision;
 	}
 }
 
 void StaticAnalyser::Atari::AddTargets(
-	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-	std::list<StaticAnalyser::Target> &destination)
-{
+		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
+		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
+		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
+		std::list<StaticAnalyser::Target> &destination) {
 	// TODO: sanity checking; is this image really for an Atari 2600?
 	Target target;
 	target.machine = Target::Atari2600;
@@ -212,12 +194,10 @@ void StaticAnalyser::Atari::AddTargets(
 	target.atari.uses_superchip = false;
 
 	// try to figure out the paging scheme
-	if(!cartridges.empty())
-	{
+	if(!cartridges.empty()) {
 		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridges.front()->get_segments();
 
-		if(segments.size() == 1)
-		{
+		if(segments.size() == 1) {
 			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 			DeterminePagingForCartridge(target, segment);
 		}

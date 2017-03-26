@@ -27,13 +27,11 @@ struct Time {
 	Time(int int_value) : Time((unsigned int)int_value) {}
 	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) { simplify(); }
 	Time(int length, int clock_rate) : Time((unsigned int)length, (unsigned int)clock_rate) {}
-	Time(uint64_t length, uint64_t clock_rate)
-	{
+	Time(uint64_t length, uint64_t clock_rate) {
 		install_result(length, clock_rate);
 		simplify();
 	}
-	Time(float value)
-	{
+	Time(float value) {
 		install_float(value);
 		simplify();
 	}
@@ -42,8 +40,7 @@ struct Time {
 		Reduces this @c Time to its simplest form — eliminates all common factors from @c length
 		and @c clock_rate.
 	*/
-	void simplify()
-	{
+	void simplify() {
 		unsigned int common_divisor = NumberTheory::greatest_common_divisor(length, clock_rate);
 		length /= common_divisor;
 		clock_rate /= common_divisor;
@@ -52,73 +49,58 @@ struct Time {
 	/*!
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
-	inline float get_float() const
-	{
+	inline float get_float() const {
 		return (float)length / (float)clock_rate;
 	}
 
-	inline unsigned int get_unsigned_int() const
-	{
+	inline unsigned int get_unsigned_int() const {
 		return length / clock_rate;
 	}
 
-	inline bool operator < (const Time &other) const
-	{
+	inline bool operator < (const Time &other) const {
 		return (uint64_t)other.clock_rate * (uint64_t)length < (uint64_t)clock_rate * (uint64_t)other.length;
 	}
 
-	inline bool operator <= (const Time &other) const
-	{
+	inline bool operator <= (const Time &other) const {
 		return (uint64_t)other.clock_rate * (uint64_t)length <= (uint64_t)clock_rate * (uint64_t)other.length;
 	}
 
-	inline bool operator > (const Time &other) const
-	{
+	inline bool operator > (const Time &other) const {
 		return (uint64_t)other.clock_rate * (uint64_t)length > (uint64_t)clock_rate * (uint64_t)other.length;
 	}
 
-	inline bool operator >= (const Time &other) const
-	{
+	inline bool operator >= (const Time &other) const {
 		return (uint64_t)other.clock_rate * (uint64_t)length >= (uint64_t)clock_rate * (uint64_t)other.length;
 	}
 
-	inline bool operator == (const Time &other) const
-	{
+	inline bool operator == (const Time &other) const {
 		return (uint64_t)other.clock_rate * (uint64_t)length == (uint64_t)clock_rate * (uint64_t)other.length;
 	}
 
-	inline Time operator + (const Time &other) const
-	{
+	inline Time operator + (const Time &other) const {
 		if(!other.length) return *this;
 
 		uint64_t result_length;
 		uint64_t result_clock_rate;
-		if(clock_rate == other.clock_rate)
-		{
+		if(clock_rate == other.clock_rate) {
 			result_length = (uint64_t)length + (uint64_t)other.length;
 			result_clock_rate = clock_rate;
-		}
-		else
-		{
+		} else {
 			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
 			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		}
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time &operator += (const Time &other)
-	{
+	inline Time &operator += (const Time &other) {
 		if(!other.length) return *this;
 
 		uint64_t result_length;
 		uint64_t result_clock_rate;
-		if(clock_rate == other.clock_rate)
-		{
+		if(clock_rate == other.clock_rate) {
 			result_length = (uint64_t)length + (uint64_t)other.length;
 			result_clock_rate = (uint64_t)clock_rate;
-		}
-		else
-		{
+		} else {
 			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
 			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		}
@@ -126,38 +108,30 @@ struct Time {
 		return *this;
 	}
 
-	inline Time operator - (const Time &other) const
-	{
+	inline Time operator - (const Time &other) const {
 		if(!other.length) return *this;
 
 		uint64_t result_length;
 		uint64_t result_clock_rate;
-		if(clock_rate == other.clock_rate)
-		{
+		if(clock_rate == other.clock_rate) {
 			result_length = (uint64_t)length - (uint64_t)other.length;
 			result_clock_rate = clock_rate;
-		}
-		else
-		{
+		} else {
 			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
 			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		}
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time operator -= (const Time &other)
-	{
+	inline Time operator -= (const Time &other) {
 		if(!other.length) return *this;
 
 		uint64_t result_length;
 		uint64_t result_clock_rate;
-		if(clock_rate == other.clock_rate)
-		{
+		if(clock_rate == other.clock_rate) {
 			result_length = (uint64_t)length - (uint64_t)other.length;
 			result_clock_rate = (uint64_t)clock_rate;
-		}
-		else
-		{
+		} else {
 			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
 			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		}
@@ -165,151 +139,125 @@ struct Time {
 		return *this;
 	}
 
-	inline Time operator * (const Time &other) const
-	{
+	inline Time operator * (const Time &other) const {
 		uint64_t result_length = (uint64_t)length * (uint64_t)other.length;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time &operator *= (const Time &other)
-	{
+	inline Time &operator *= (const Time &other) {
 		uint64_t result_length = (uint64_t)length * (uint64_t)other.length;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
-	inline Time operator * (unsigned int multiplier) const
-	{
+	inline Time operator * (unsigned int multiplier) const {
 		uint64_t result_length = (uint64_t)length * (uint64_t)multiplier;
 		uint64_t result_clock_rate = (uint64_t)clock_rate;
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time &operator *= (unsigned int multiplier)
-	{
+	inline Time &operator *= (unsigned int multiplier) {
 		uint64_t result_length = (uint64_t)length * (uint64_t)multiplier;
 		uint64_t result_clock_rate = (uint64_t)clock_rate;
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
-	inline Time operator / (const Time &other) const
-	{
+	inline Time operator / (const Time &other) const {
 		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.length;
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time &operator /= (const Time &other)
-	{
+	inline Time &operator /= (const Time &other) {
 		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.length;
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
-	inline Time operator / (unsigned int divisor) const
-	{
+	inline Time operator / (unsigned int divisor) const {
 		uint64_t result_length = (uint64_t)length;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)divisor;
 		return Time(result_length, result_clock_rate);
 	}
 
-	inline Time &operator /= (unsigned int divisor)
-	{
+	inline Time &operator /= (unsigned int divisor) {
 		uint64_t result_length = (uint64_t)length;
 		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)divisor;
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
-	inline void set_zero()
-	{
+	inline void set_zero() {
 		length = 0;
 		clock_rate = 1;
 	}
 
-	inline void set_one()
-	{
+	inline void set_one() {
 		length = 1;
 		clock_rate = 1;
 	}
 
-	static Time max()
-	{
+	static Time max() {
 		return Time(std::numeric_limits<unsigned int>::max());
 	}
 
 	private:
-		inline void install_result(uint64_t long_length, uint64_t long_clock_rate)
-		{
+		inline void install_result(uint64_t long_length, uint64_t long_clock_rate) {
 			// TODO: switch to appropriate values if the result is too large or small to fit, even with trimmed accuracy.
-			if(!long_length)
-			{
+			if(!long_length) {
 				length = 0;
 				clock_rate = 1;
 				return;
 			}
 
-			while(!(long_length&1) && !(long_clock_rate&1))
-			{
+			while(!(long_length&1) && !(long_clock_rate&1)) {
 				long_length >>= 1;
 				long_clock_rate >>= 1;
 			}
 
-			if(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max())
-			{
+			if(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max()) {
 				uint64_t common_divisor = NumberTheory::greatest_common_divisor(long_length, long_clock_rate);
 				long_length /= common_divisor;
 				long_clock_rate /= common_divisor;
 
 				// Okay, in desperation accept a loss of accuracy.
 				while(
-					(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max()) &&
-					(long_clock_rate > 1))
-				{
+						(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max()) &&
+						(long_clock_rate > 1)) {
 					long_length >>= 1;
 					long_clock_rate >>= 1;
 				}
 			}
 
-			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max())
-			{
+			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
 				length = (unsigned int)long_length;
 				clock_rate = (unsigned int)long_clock_rate;
-			}
-			else
-			{
+			} else {
 				length = std::numeric_limits<unsigned int>::max();
 				clock_rate = 1u;
 			}
 		}
 
-		inline void install_float(float value)
-		{
+		inline void install_float(float value) {
 			int exponent;
 			float mantissa = frexpf(value, &exponent);
 			float loaded_mantissa = ldexpf(mantissa, 24);
 
 			uint64_t result_length;
 			uint64_t result_clock_rate;
-			if(exponent < 0)
-			{
+			if(exponent < 0) {
 				int right_shift = -exponent;
 				result_length = (uint64_t)loaded_mantissa >> right_shift;
 				result_clock_rate = 1;
-			}
-			else
-			{
-				if(exponent <= 24)
-				{
+			} else {
+				if(exponent <= 24) {
 					result_length = (uint64_t)loaded_mantissa;
 					result_clock_rate = 1 << (24 - exponent);
-				}
-				else
-				{
+				} else {
 					result_length = std::numeric_limits<uint64_t>::max();
 					result_clock_rate = 1;
 				}
@@ -317,7 +265,6 @@ struct Time {
 			install_result(result_length, result_clock_rate);
 		}
 };
-
 
 }
 

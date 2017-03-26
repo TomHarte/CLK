@@ -89,58 +89,50 @@ class FMEncoder: public Encoder {
 				));
 		}
 
-		void add_index_address_mark()
-		{
+		void add_index_address_mark() {
 			crc_generator_.reset();
 			crc_generator_.add(IndexAddressByte);
 			output_short(FMIndexAddressMark);
 		}
 
-		void add_ID_address_mark()
-		{
+		void add_ID_address_mark() {
 			crc_generator_.reset();
 			crc_generator_.add(IDAddressByte);
 			output_short(FMIDAddressMark);
 		}
 
-		void add_data_address_mark()
-		{
+		void add_data_address_mark() {
 			crc_generator_.reset();
 			crc_generator_.add(DataAddressByte);
 			output_short(FMDataAddressMark);
 		}
 
-		void add_deleted_data_address_mark()
-		{
+		void add_deleted_data_address_mark() {
 			crc_generator_.reset();
 			crc_generator_.add(DeletedDataAddressByte);
 			output_short(FMDeletedDataAddressMark);
 		}
 };
 
-static uint8_t logarithmic_size_for_size(size_t size)
-{
-	switch(size)
-	{
+static uint8_t logarithmic_size_for_size(size_t size) {
+	switch(size) {
 		default:	return 0;
 		case 256:	return 1;
 		case 512:	return 2;
 		case 1024:	return 3;
-		case 2048:	return 4;		std::vector<uint8_t> get_track(uint8_t track);
-
+		case 2048:	return 4;
 		case 4196:	return 5;
 	}
 }
 
 template<class T> std::shared_ptr<Storage::Disk::Track>
-	GetTrackWithSectors(
-		const std::vector<Sector> &sectors,
-		size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
-		size_t pre_address_mark_bytes, size_t post_address_mark_bytes,
-		size_t pre_data_mark_bytes, size_t post_data_bytes,
-		size_t inter_sector_gap,
-		size_t expected_track_bytes)
-{
+		GetTrackWithSectors(
+			const std::vector<Sector> &sectors,
+			size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
+			size_t pre_address_mark_bytes, size_t post_address_mark_bytes,
+			size_t pre_data_mark_bytes, size_t post_data_bytes,
+			size_t inter_sector_gap,
+			size_t expected_track_bytes) {
 	Storage::Disk::PCMSegment segment;
 	segment.data.reserve(expected_track_bytes);
 	T shifter(segment.data);
@@ -152,8 +144,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	for(int c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
 
 	// add sectors
-	for(const Sector &sector : sectors)
-	{
+	for(const Sector &sector : sectors) {
 		// gap
 		for(int c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
@@ -191,24 +182,20 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 Encoder::Encoder(std::vector<uint8_t> &target) :
 	crc_generator_(0x1021, 0xffff),
-	target_(target)
-{}
+	target_(target) {}
 
-void Encoder::output_short(uint16_t value)
-{
+void Encoder::output_short(uint16_t value) {
 	target_.push_back(value >> 8);
 	target_.push_back(value & 0xff);
 }
 
-void Encoder::add_crc()
-{
+void Encoder::add_crc() {
 	uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
 	add_byte(crc_value & 0xff);
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors)
-{
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors) {
 	return GetTrackWithSectors<FMEncoder>(
 		sectors,
 		16, 0x00,
@@ -218,8 +205,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors)
-{
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors) {
 	return GetTrackWithSectors<MFMEncoder>(
 		sectors,
 		50, 0x4e,
@@ -229,23 +215,20 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint8_t> &target)
-{
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint8_t> &target) {
 	return std::unique_ptr<Encoder>(new MFMEncoder(target));
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8_t> &target)
-{
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8_t> &target) {
 	return std::unique_ptr<Encoder>(new FMEncoder(target));
 }
 
 #pragma mark - Parser
 
 Parser::Parser(bool is_mfm) :
-	Storage::Disk::Controller(4000000, 1, 300),
-	crc_generator_(0x1021, 0xffff),
-	shift_register_(0), track_(0), is_mfm_(is_mfm)
-{
+		Storage::Disk::Controller(4000000, 1, 300),
+		crc_generator_(0x1021, 0xffff),
+		shift_register_(0), track_(0), is_mfm_(is_mfm) {
 	Storage::Time bit_length;
 	bit_length.length = 1;
 	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
@@ -257,24 +240,20 @@ Parser::Parser(bool is_mfm) :
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
-	Parser(is_mfm)
-{
+		Parser(is_mfm) {
 	drive->set_disk(disk);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
-	Parser(is_mfm)
-{
+		Parser(is_mfm) {
 	drive->set_disk_with_track(track);
 }
 
-void Parser::seek_to_track(uint8_t track)
-{
+void Parser::seek_to_track(uint8_t track) {
 	int difference = (int)track - (int)track_;
 	track_ = track;
 
-	if(difference)
-	{
+	if(difference) {
 		int direction = difference < 0 ? -1 : 1;
 		difference *= direction;
 
@@ -282,31 +261,26 @@ void Parser::seek_to_track(uint8_t track)
 	}
 }
 
-std::shared_ptr<Sector> Parser::get_sector(uint8_t track, uint8_t sector)
-{
+std::shared_ptr<Sector> Parser::get_sector(uint8_t track, uint8_t sector) {
 	seek_to_track(track);
 	return get_sector(sector);
 }
 
-std::vector<uint8_t> Parser::get_track(uint8_t track)
-{
+std::vector<uint8_t> Parser::get_track(uint8_t track) {
 	seek_to_track(track);
 	return get_track();
 }
 
-void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole)
-{
+void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole) {
 	shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0xffff;
 	bit_count_++;
 }
 
-void Parser::process_index_hole()
-{
+void Parser::process_index_hole() {
 	index_count_++;
 }
 
-uint8_t Parser::get_byte_for_shift_value(uint16_t value)
-{
+uint8_t Parser::get_byte_for_shift_value(uint16_t value) {
 	return (uint8_t)(
 		((value&0x0001) >> 0) |
 		((value&0x0004) >> 1) |
@@ -315,10 +289,10 @@ uint8_t Parser::get_byte_for_shift_value(uint16_t value)
 		((value&0x0100) >> 4) |
 		((value&0x0400) >> 5) |
 		((value&0x1000) >> 6) |
-		((value&0x4000) >> 7));}
+		((value&0x4000) >> 7));
+}
 
-uint8_t Parser::get_next_byte()
-{
+uint8_t Parser::get_next_byte() {
 	bit_count_ = 0;
 	while(bit_count_ < 16) run_for_cycles(1);
 	uint8_t byte = get_byte_for_shift_value((uint16_t)shift_register_);
@@ -326,8 +300,7 @@ uint8_t Parser::get_next_byte()
 	return byte;
 }
 
-std::vector<uint8_t> Parser::get_track()
-{
+std::vector<uint8_t> Parser::get_track() {
 	std::vector<uint8_t> result;
 	int distance_until_permissible_sync = 0;
 	uint8_t last_id[6];
@@ -340,25 +313,19 @@ std::vector<uint8_t> Parser::get_track()
 
 	// capture every other bit until the next index hole
 	index_count_ = 0;
-	while(1)
-	{
+	while(1) {
 		// wait until either another bit or the index hole arrives
 		bit_count_ = 0;
 		bool found_sync = false;
-		while(!index_count_ && !found_sync && bit_count_ < 16)
-		{
+		while(!index_count_ && !found_sync && bit_count_ < 16) {
 			int previous_bit_count = bit_count_;
 			run_for_cycles(1);
 
-			if(!distance_until_permissible_sync && bit_count_ != previous_bit_count)
-			{
+			if(!distance_until_permissible_sync && bit_count_ != previous_bit_count) {
 				uint16_t low_shift_register = (shift_register_&0xffff);
-				if(is_mfm_)
-				{
+				if(is_mfm_) {
 					found_sync = (low_shift_register == MFMIndexSync) || (low_shift_register == MFMSync);
-				}
-				else
-				{
+				} else {
 					found_sync =
 						(low_shift_register == FMIndexAddressMark) ||
 						(low_shift_register == FMIDAddressMark) ||
@@ -369,8 +336,7 @@ std::vector<uint8_t> Parser::get_track()
 		}
 
 		// if that was the index hole then finish
-		if(index_count_)
-		{
+		if(index_count_) {
 			if(bit_count_) result.push_back(get_byte_for_shift_value((uint16_t)(shift_register_ << (16 - bit_count_))));
 			break;
 		}
@@ -382,32 +348,21 @@ std::vector<uint8_t> Parser::get_track()
 
 		// if no syncs are permissible here, decrement the waiting period and perform no further contemplation
 		bool found_id = false, found_data = false;
-		if(distance_until_permissible_sync)
-		{
+		if(distance_until_permissible_sync) {
 			distance_until_permissible_sync--;
-		}
-		else
-		{
-			if(found_sync)
-			{
-				if(is_mfm_)
-				{
+		} else {
+			if(found_sync) {
+				if(is_mfm_) {
 					next_is_type = true;
-				}
-				else
-				{
-					switch(shift_register_&0xffff)
-					{
+				} else {
+					switch(shift_register_&0xffff) {
 						case FMIDAddressMark:			found_id = true;	break;
 						case FMDataAddressMark:
 						case FMDeletedDataAddressMark:	found_data = true;	break;
 					}
 				}
-			}
-			else if(next_is_type)
-			{
-				switch(byte_value)
-				{
+			} else if(next_is_type) {
+				switch(byte_value) {
 					case IDAddressByte:				found_id = true;	break;
 					case DataAddressByte:
 					case DeletedDataAddressByte:	found_data = true;	break;
@@ -415,14 +370,12 @@ std::vector<uint8_t> Parser::get_track()
 			}
 		}
 
-		if(found_id)
-		{
+		if(found_id) {
 			distance_until_permissible_sync = 6;
 			last_id_pointer = 0;
 		}
 
-		if(found_data)
-		{
+		if(found_data) {
 			distance_until_permissible_sync = 128 << last_id[3];
 		}
 	}
@@ -436,30 +389,22 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 	std::shared_ptr<Sector> sector(new Sector);
 	index_count_ = 0;
 
-	while(index_count_ < 2)
-	{
+	while(index_count_ < 2) {
 		// look for an ID address mark
 		bool id_found = false;
-		while(!id_found)
-		{
+		while(!id_found) {
 			run_for_cycles(1);
-			if(is_mfm_)
-			{
-				while(shift_register_ == MFMSync)
-				{
+			if(is_mfm_) {
+				while(shift_register_ == MFMSync) {
 					uint8_t mark = get_next_byte();
-					if(mark == IDAddressByte)
-					{
+					if(mark == IDAddressByte) {
 						crc_generator_.set_value(MFMPostSyncCRCValue);
 						id_found = true;
 						break;
 					}
 				}
-			}
-			else
-			{
-				if(shift_register_ == FMIDAddressMark)
-				{
+			} else {
+				if(shift_register_ == FMIDAddressMark) {
 					crc_generator_.reset();
 					id_found = true;
 				}
@@ -478,27 +423,20 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 
 		// look for data mark
 		bool data_found = false;
-		while(!data_found)
-		{
+		while(!data_found) {
 			run_for_cycles(1);
-			if(is_mfm_)
-			{
-				while(shift_register_ == MFMSync)
-				{
+			if(is_mfm_) {
+				while(shift_register_ == MFMSync) {
 					uint8_t mark = get_next_byte();
-					if(mark == DataAddressByte)
-					{
+					if(mark == DataAddressByte) {
 						crc_generator_.set_value(MFMPostSyncCRCValue);
 						data_found = true;
 						break;
 					}
 					if(mark == IDAddressByte) return nullptr;
 				}
-			}
-			else
-			{
-				if(shift_register_ == FMDataAddressMark)
-				{
+			} else {
+				if(shift_register_ == FMDataAddressMark) {
 					crc_generator_.reset();
 					data_found = true;
 				}
@@ -510,8 +448,7 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 
 		size_t data_size = (size_t)(128 << size);
 		sector->data.reserve(data_size);
-		for(size_t c = 0; c < data_size; c++)
-		{
+		for(size_t c = 0; c < data_size; c++) {
 			sector->data.push_back(get_next_byte());
 		}
 		uint16_t data_crc = crc_generator_.get_value();
@@ -524,16 +461,14 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 	return nullptr;
 }
 
-std::shared_ptr<Sector> Parser::get_sector(uint8_t sector)
-{
+std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 	std::shared_ptr<Sector> first_sector;
 	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
 	if(!first_sector) return first_sector;
 	if(first_sector->sector == sector) return first_sector;
 
-	while(1)
-	{
+	while(1) {
 		std::shared_ptr<Sector> next_sector = get_next_sector();
 		if(!next_sector) continue;
 		if(next_sector->sector == first_sector->sector) return nullptr;

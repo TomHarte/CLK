@@ -8,8 +8,7 @@
 
 #include "CommodoreROM.hpp"
 
-bool Storage::Cartridge::Encodings::CommodoreROM::isROM(const std::vector<uint8_t> &contents)
-{
+bool Storage::Cartridge::Encodings::CommodoreROM::isROM(const std::vector<uint8_t> &contents) {
 	return
 		(
 			contents.size() == 0x400 ||

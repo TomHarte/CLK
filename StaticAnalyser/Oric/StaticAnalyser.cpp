@@ -13,8 +13,7 @@
 
 using namespace StaticAnalyser::Oric;
 
-static int Score(const StaticAnalyser::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations)
-{
+static int Score(const StaticAnalyser::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations) {
 	int score = 0;
 
 	for(auto address : disassembly.outward_calls)	score += (rom_functions.find(address) != rom_functions.end()) ? 1 : -1;
@@ -24,8 +23,7 @@ static int Score(const StaticAnalyser::MOS6502::Disassembly &disassembly, const 
 	return score;
 }
 
-static int Basic10Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
-{
+static int Basic10Score(const StaticAnalyser::MOS6502::Disassembly &disassembly) {
 	std::set<uint16_t> rom_functions = {
 		0x0228,	0x022b,
 		0xc3ca,	0xc3f8,	0xc448,	0xc47c,	0xc4b5,	0xc4e3,	0xc4e0,	0xc524,	0xc56f,	0xc5a2,	0xc5f8,	0xc60a,	0xc6a5,	0xc6de,	0xc719,	0xc738,
@@ -49,8 +47,7 @@ static int Basic10Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
-static int Basic11Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
-{
+static int Basic11Score(const StaticAnalyser::MOS6502::Disassembly &disassembly) {
 	std::set<uint16_t> rom_functions = {
 		0x0238,	0x023b,	0x023e,	0x0241,	0x0244,	0x0247,
 		0xc3c6,	0xc3f4,	0xc444,	0xc47c,	0xc4a8,	0xc4d3,	0xc4e0,	0xc524,	0xc55f,	0xc592,	0xc5e8,	0xc5fa,	0xc692,	0xc6b3,	0xc6ee,	0xc70d,
@@ -76,11 +73,10 @@ static int Basic11Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
 }
 
 void StaticAnalyser::Oric::AddTargets(
-	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-	std::list<StaticAnalyser::Target> &destination)
-{
+		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
+		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
+		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
+		std::list<StaticAnalyser::Target> &destination) {
 	Target target;
 	target.machine = Target::Oric;
 	target.probability = 1.0;
@@ -88,15 +84,11 @@ void StaticAnalyser::Oric::AddTargets(
 	int basic10_votes = 0;
 	int basic11_votes = 0;
 
-	for(auto tape : tapes)
-	{
+	for(auto tape : tapes) {
 		std::list<File> tape_files = GetFiles(tape);
-		if(tape_files.size())
-		{
-			for(auto file : tape_files)
-			{
-				if(file.data_type == File::MachineCode)
-				{
+		if(tape_files.size()) {
+			for(auto file : tape_files) {
+				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};
 					StaticAnalyser::MOS6502::Disassembly disassembly =
 						StaticAnalyser::MOS6502::Disassemble(file.data, StaticAnalyser::MOS6502::OffsetMapper(file.starting_address), entry_points);
@@ -113,13 +105,10 @@ void StaticAnalyser::Oric::AddTargets(
 	}
 
 	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
-	if(!disks.empty())
-	{
+	if(!disks.empty()) {
 		target.oric.has_microdisc = true;
 		target.disks = disks;
-	}
-	else
-	{
+	} else {
 		target.oric.has_microdisc = false;
 	}
 

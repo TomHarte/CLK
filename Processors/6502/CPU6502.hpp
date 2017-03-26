@@ -176,8 +176,7 @@ template <class T> class Processor {
 
 			@param program The program to schedule.
 		*/
-		inline void schedule_program(const MicroOp *program)
-		{
+		inline void schedule_program(const MicroOp *program) {
 			scheduled_programs_[schedule_programs_write_pointer_] = program;
 			schedule_programs_write_pointer_ = (schedule_programs_write_pointer_+1)&3;
 		}
@@ -189,8 +188,7 @@ template <class T> class Processor {
 
 			@returns The current value of the flags register.
 		*/
-		uint8_t get_flags()
-		{
+		uint8_t get_flags() {
 			return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
 		}
 
@@ -201,8 +199,7 @@ template <class T> class Processor {
 
 			@param flags The new value of the flags register.
 		*/
-		void set_flags(uint8_t flags)
-		{
+		void set_flags(uint8_t flags) {
 			carry_flag_				= flags		& Flag::Carry;
 			negative_result_		= flags		& Flag::Sign;
 			zero_result_			= (~flags)	& Flag::Zero;
@@ -216,8 +213,7 @@ template <class T> class Processor {
 
 			@param operation The operation code for which to schedule a program.
 		*/
-		inline void decode_operation(uint8_t operation)
-		{
+		inline void decode_operation(uint8_t operation) {
 #define Program(...)						{__VA_ARGS__, OperationMoveToNextProgram}
 
 #define Absolute							CycleLoadAddressAbsolute
@@ -539,23 +535,22 @@ template <class T> class Processor {
 
 	protected:
 		Processor() :
-			schedule_programs_read_pointer_(0),
-			schedule_programs_write_pointer_(0),
-			is_jammed_(false),
-			jam_handler_(nullptr),
-			cycles_left_to_run_(0),
-			ready_line_is_enabled_(false),
-			ready_is_active_(false),
-			scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
-			inverse_interrupt_flag_(0),
-			irq_request_history_(0),
-			s_(0),
-			next_bus_operation_(BusOperation::None),
-			interrupt_requests_(InterruptRequestFlags::PowerOn),
-			irq_line_(0),
-			nmi_line_is_enabled_(false),
-			set_overflow_line_is_enabled_(false)
-		{
+				schedule_programs_read_pointer_(0),
+				schedule_programs_write_pointer_(0),
+				is_jammed_(false),
+				jam_handler_(nullptr),
+				cycles_left_to_run_(0),
+				ready_line_is_enabled_(false),
+				ready_is_active_(false),
+				scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
+				inverse_interrupt_flag_(0),
+				irq_request_history_(0),
+				s_(0),
+				next_bus_operation_(BusOperation::None),
+				interrupt_requests_(InterruptRequestFlags::PowerOn),
+				irq_line_(0),
+				nmi_line_is_enabled_(false),
+				set_overflow_line_is_enabled_(false) {
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
 			carry_flag_ &= Flag::Carry;
@@ -573,16 +568,14 @@ template <class T> class Processor {
 
 			@param number_of_cycles The number of cycles to run the 6502 for.
 		*/
-		void run_for_cycles(int number_of_cycles)
-		{
+		void run_for_cycles(int number_of_cycles) {
 			static const MicroOp doBranch[] = {
 				CycleReadFromPC,
 				CycleAddSignedOperandToPC,
 				OperationMoveToNextProgram
 			};
 			static uint8_t throwaway_target;
-			static const MicroOp fetch_decode_execute[] =
-			{
+			static const MicroOp fetch_decode_execute[] = {
 				CycleFetchOperation,
 				CycleFetchOperand,
 				OperationDecodeOperation,
@@ -635,10 +628,8 @@ template <class T> class Processor {
 					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
-				if(!ready_is_active_)
-				{
-					if(nextBusOperation != BusOperation::None)
-					{
+				if(!ready_is_active_) {
+					if(nextBusOperation != BusOperation::None) {
 						bus_access();
 					}
 
@@ -691,8 +682,7 @@ template <class T> class Processor {
 								program = scheduled_programs_[scheduleProgramsReadPointer];
 							continue;
 
-#define push(v) \
-		{\
+#define push(v) {\
 			uint16_t targetAddress = s_ | 0x100; s_--;\
 			write_mem(v, targetAddress);\
 		}
@@ -702,8 +692,7 @@ template <class T> class Processor {
 							case CyclePushPCL:					push(pc_.bytes.low);											break;
 							case CyclePushOperand:				push(operand_);													break;
 							case CyclePushA:					push(a_);														break;
-							case CycleNoWritePush:
-							{
+							case CycleNoWritePush: {
 								uint16_t targetAddress = s_ | 0x100; s_--;
 								read_mem(operand_, targetAddress);
 							}
@@ -1146,8 +1135,7 @@ template <class T> class Processor {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r)
-		{
+		uint16_t get_value_of_register(Register r) {
 			switch (r) {
 				case Register::ProgramCounter:			return pc_.full;
 				case Register::LastOperationAddress:	return last_operation_pc_.full;
@@ -1169,8 +1157,7 @@ template <class T> class Processor {
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
-		void set_value_of_register(Register r, uint16_t value)
-		{
+		void set_value_of_register(Register r, uint16_t value) {
 			switch (r) {
 				case Register::ProgramCounter:	pc_.full = value;			break;
 				case Register::StackPointer:	s_ = (uint8_t)value;		break;
@@ -1187,8 +1174,7 @@ template <class T> class Processor {
 			Interrupts current execution flow to perform an RTS and, if the 6502 is currently jammed,
 			to unjam it.
 		*/
-		void return_from_subroutine()
-		{
+		void return_from_subroutine() {
 			s_++;
 			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
 			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
@@ -1204,8 +1190,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		inline void set_ready_line(bool active)
-		{
+		inline void set_ready_line(bool active) {
 			if(active) {
 				ready_line_is_enabled_ = true;
 			} else {
@@ -1219,8 +1204,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		inline void set_reset_line(bool active)
-		{
+		inline void set_reset_line(bool active) {
 			interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 		}
 
@@ -1229,8 +1213,7 @@ template <class T> class Processor {
 
 			@returns @c true if the line is logically active; @c false otherwise.
 		*/
-		inline bool get_is_resetting()
-		{
+		inline bool get_is_resetting() {
 			return !!(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
 		}
 
@@ -1238,8 +1221,7 @@ template <class T> class Processor {
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
 			reset at the first opportunity. Use @c set_power_on to disable that behaviour.
 		*/
-		inline void set_power_on(bool active)
-		{
+		inline void set_power_on(bool active) {
 			interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::PowerOn) | (active ? InterruptRequestFlags::PowerOn : 0);
 		}
 
@@ -1248,8 +1230,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		inline void set_irq_line(bool active)
-		{
+		inline void set_irq_line(bool active) {
 			irq_line_ = active ? Flag::Interrupt : 0;
 		}
 
@@ -1258,8 +1239,7 @@ template <class T> class Processor {
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
-		inline void set_overflow_line(bool active)
-		{
+		inline void set_overflow_line(bool active) {
 			// a leading edge will set the overflow flag
 			if(active && !set_overflow_line_is_enabled_)
 				overflow_flag_ = Flag::Overflow;
@@ -1271,8 +1251,7 @@ template <class T> class Processor {
 
 			@param active `true` if the line is logically active; `false` otherwise.
 		*/
-		inline void set_nmi_line(bool active)
-		{
+		inline void set_nmi_line(bool active) {
 			// NMI is edge triggered, not level
 			if(active && !nmi_line_is_enabled_)
 				interrupt_requests_ |= InterruptRequestFlags::NMI;
@@ -1285,8 +1264,7 @@ template <class T> class Processor {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		inline bool is_jammed()
-		{
+		inline bool is_jammed() {
 			return is_jammed_;
 		}
 
@@ -1295,8 +1273,7 @@ template <class T> class Processor {
 
 			@param handler The class instance that will be this 6502's jam handler from now on.
 		*/
-		inline void set_jam_handler(JamHandler *handler)
-		{
+		inline void set_jam_handler(JamHandler *handler) {
 			jam_handler_ = handler;
 		}
 };

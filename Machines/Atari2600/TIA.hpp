@@ -162,52 +162,42 @@ class TIA {
 			int latched_pixel4_time;
 			const bool enqueues = true;
 
-			inline void skip_pixels(const int count, int from_horizontal_counter)
-			{
+			inline void skip_pixels(const int count, int from_horizontal_counter) {
 				int old_pixel_counter = pixel_counter;
 				pixel_position = std::min(32, pixel_position + count * adder);
 				pixel_counter += count;
-				if(!copy_index_ && old_pixel_counter < 4 && pixel_counter >= 4)
-				{
+				if(!copy_index_ && old_pixel_counter < 4 && pixel_counter >= 4) {
 					latched_pixel4_time = from_horizontal_counter + 4 - old_pixel_counter;
 				}
 			}
 
-			inline void reset_pixels(int copy)
-			{
+			inline void reset_pixels(int copy) {
 				pixel_position = pixel_counter = 0;
 				copy_index_ = copy;
 			}
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
-			{
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
 				output_pixels(target, count, collision_identity, pixel_position, adder, reverse_mask);
 				skip_pixels(count, from_horizontal_counter);
 			}
 
-			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now)
-			{
-				while(queue_read_pointer_ != queue_write_pointer_)
-				{
+			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now) {
+				while(queue_read_pointer_ != queue_write_pointer_) {
 					uint8_t *const start_ptr = &target[queue_[queue_read_pointer_].start];
-					if(queue_[queue_read_pointer_].end > time_now)
-					{
+					if(queue_[queue_read_pointer_].end > time_now) {
 						const int length = time_now - queue_[queue_read_pointer_].start;
 						output_pixels(start_ptr, length, collision_identity, queue_[queue_read_pointer_].pixel_position, queue_[queue_read_pointer_].adder, queue_[queue_read_pointer_].reverse_mask);
 						queue_[queue_read_pointer_].pixel_position += length * queue_[queue_read_pointer_].adder;
 						queue_[queue_read_pointer_].start = time_now;
 						return;
-					}
-					else
-					{
+					} else {
 						output_pixels(start_ptr, queue_[queue_read_pointer_].end - queue_[queue_read_pointer_].start, collision_identity, queue_[queue_read_pointer_].pixel_position, queue_[queue_read_pointer_].adder, queue_[queue_read_pointer_].reverse_mask);
 					}
 					queue_read_pointer_ = (queue_read_pointer_ + 1)&3;
 				}
 			}
 
-			void enqueue_pixels(const int start, const int end, int from_horizontal_counter)
-			{
+			void enqueue_pixels(const int start, const int end, int from_horizontal_counter) {
 				queue_[queue_write_pointer_].start = start;
 				queue_[queue_write_pointer_].end = end;
 				queue_[queue_write_pointer_].pixel_position = pixel_position;
@@ -219,8 +209,7 @@ class TIA {
 
 			private:
 				int copy_index_;
-				struct QueuedPixels
-				{
+				struct QueuedPixels {
 					int start, end;
 					int pixel_position;
 					int adder;
@@ -228,12 +217,10 @@ class TIA {
 				} queue_[4];
 				int queue_read_pointer_, queue_write_pointer_;
 
-				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int pixel_position, int adder, int reverse_mask)
-				{
+				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int pixel_position, int adder, int reverse_mask) {
 					if(pixel_position == 32 || !graphic[graphic_index]) return;
 					int output_cursor = 0;
-					while(pixel_position < 32 && output_cursor < count)
-					{
+					while(pixel_position < 32 && output_cursor < count) {
 						int shift = (pixel_position >> 2) ^ reverse_mask;
 						target[output_cursor] |= ((graphic[graphic_index] >> shift)&1) * collision_identity;
 						output_cursor++;
@@ -249,18 +236,15 @@ class TIA {
 			int size;
 			const bool enqueues = false;
 
-			inline void skip_pixels(const int count, int from_horizontal_counter)
-			{
+			inline void skip_pixels(const int count, int from_horizontal_counter) {
 				pixel_position = std::max(0, pixel_position - count);
 			}
 
-			inline void reset_pixels(int copy)
-			{
+			inline void reset_pixels(int copy) {
 				pixel_position = size;
 			}
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
-			{
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
 				int output_cursor = 0;
 				while(pixel_position && output_cursor < count)
 				{
@@ -283,15 +267,11 @@ class TIA {
 			bool locked_to_player;
 			int copy_flags;
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
-			{
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
 				if(!pixel_position) return;
-				if(enabled && !locked_to_player)
-				{
+				if(enabled && !locked_to_player) {
 					HorizontalRun::output_pixels(target, count, collision_identity, from_horizontal_counter);
-				}
-				else
-				{
+				} else {
 					skip_pixels(count, from_horizontal_counter);
 				}
 			}
@@ -305,15 +285,11 @@ class TIA {
 			int enabled_index;
 			const int copy_flags = 0;
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter)
-			{
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
 				if(!pixel_position) return;
-				if(enabled[enabled_index])
-				{
+				if(enabled[enabled_index]) {
 					HorizontalRun::output_pixels(target, count, collision_identity, from_horizontal_counter);
-				}
-				else
-				{
+				} else {
 					skip_pixels(count, from_horizontal_counter);
 				}
 			}

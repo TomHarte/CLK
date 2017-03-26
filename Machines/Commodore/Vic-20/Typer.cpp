@@ -8,8 +8,7 @@
 
 #include "Vic20.hpp"
 
-uint16_t *Commodore::Vic20::Machine::sequence_for_character(Utility::Typer *typer, char character)
-{
+uint16_t *Commodore::Vic20::Machine::sequence_for_character(Utility::Typer *typer, char character) {
 #define KEYS(...)	{__VA_ARGS__, TerminateSequence}
 #define SHIFT(...)	{KeyLShift, __VA_ARGS__, TerminateSequence}
 #define X			{NotMapped}

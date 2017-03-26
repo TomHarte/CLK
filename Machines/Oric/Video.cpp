@@ -20,14 +20,13 @@ namespace {
 }
 
 VideoOutput::VideoOutput(uint8_t *memory) :
-	ram_(memory),
-	frame_counter_(0), counter_(0),
-	is_graphics_mode_(false),
-	character_set_base_address_(0xb400),
-	v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
-	counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
-	crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2))
-{
+		ram_(memory),
+		frame_counter_(0), counter_(0),
+		is_graphics_mode_(false),
+		character_set_base_address_(0xb400),
+		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
+		counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
+		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2)) {
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -48,16 +47,13 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
-void VideoOutput::set_output_device(Outputs::CRT::OutputDevice output_device)
-{
+void VideoOutput::set_output_device(Outputs::CRT::OutputDevice output_device) {
 	output_device_ = output_device;
 	crt_->set_output_device(output_device);
 }
 
-void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
-{
-	for(size_t c = 0; c < 8; c++)
-	{
+void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
+	for(size_t c = 0; c < 8; c++) {
 		size_t index = (c << 2);
 		uint16_t rom_value = (uint16_t)(((uint16_t)rom[index] << 8) | (uint16_t)rom[index+1]);
 		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
@@ -66,52 +62,42 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom)
 
 	// check for big endianness and byte swap if required
 	uint16_t test_value = 0x0001;
-	if(*(uint8_t *)&test_value != 0x01)
-	{
-		for(size_t c = 0; c < 8; c++)
-		{
+	if(*(uint8_t *)&test_value != 0x01) {
+		for(size_t c = 0; c < 8; c++) {
 			colour_forms_[c] = (uint16_t)((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
 		}
 	}
 }
 
-std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
-{
+std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
 	return crt_;
 }
 
-void VideoOutput::run_for_cycles(int number_of_cycles)
-{
+void VideoOutput::run_for_cycles(int number_of_cycles) {
 	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 
 #define clamp(action)	\
 	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;
 
-	while(number_of_cycles)
-	{
+	while(number_of_cycles) {
 		int h_counter = counter_ & 63;
 		int cycles_run_for = 0;
 
-		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_)
-		{
+		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_) {
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
 			clamp(crt_->output_sync((unsigned int)(v_sync_end_position_ - v_sync_start_position_) * 6));
-		}
-		else if(counter_ < 224*64 && h_counter < 40)
-		{
+		} else if(counter_ < 224*64 && h_counter < 40) {
 			// this is a pixel line
-			if(!h_counter)
-			{
+			if(!h_counter) {
 				ink_ = 0x7;
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
 				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
 
-				if(!counter_)
-				{
+				if(!counter_) {
 					frame_counter_++;
 
 					v_sync_start_position_ = next_frame_is_sixty_hertz_ ? PAL60VSyncStartPosition : PAL50VSyncStartPosition;
@@ -126,16 +112,12 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 			int character_base_address = 0xbb80 + (counter_ >> 9) * 40;
 			uint8_t blink_mask = (blink_text_ && (frame_counter_&32)) ? 0x00 : 0xff;
 
-			while(columns--)
-			{
+			while(columns--) {
 				uint8_t pixels, control_byte;
 
-				if(is_graphics_mode_ && counter_ < 200*64)
-				{
+				if(is_graphics_mode_ && counter_ < 200*64) {
 					control_byte = pixels = ram_[pixel_base_address + h_counter];
-				}
-				else
-				{
+				} else {
 					int address = character_base_address + h_counter;
 					control_byte = ram_[address];
 					int line = use_double_height_characters_ ? ((counter_ >> 7) & 7) : ((counter_ >> 6) & 7);
@@ -145,18 +127,13 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				uint8_t inverse_mask = (control_byte & 0x80) ? 0x7 : 0x0;
 				pixels &= blink_mask;
 
-				if(control_byte & 0x60)
-				{
-					if(pixel_target_)
-					{
+				if(control_byte & 0x60) {
+					if(pixel_target_) {
 						uint16_t colours[2];
-						if(output_device_ == Outputs::CRT::Monitor)
-						{
+						if(output_device_ == Outputs::CRT::Monitor) {
 							colours[0] = (uint8_t)(paper_ ^ inverse_mask);
 							colours[1] = (uint8_t)(ink_ ^ inverse_mask);
-						}
-						else
-						{
+						} else {
 							colours[0] = colour_forms_[paper_ ^ inverse_mask];
 							colours[1] = colour_forms_[ink_ ^ inverse_mask];
 						}
@@ -167,11 +144,8 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 						pixel_target_[4] = colours[(pixels >> 1)&1];
 						pixel_target_[5] = colours[(pixels >> 0)&1];
 					}
-				}
-				else
-				{
-					switch(control_byte & 0x1f)
-					{
+				} else {
+					switch(control_byte & 0x1f) {
 						case 0x00:		ink_ = 0x0;	break;
 						case 0x01:		ink_ = 0x4;	break;
 						case 0x02:		ink_ = 0x2;	break;
@@ -206,8 +180,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 						default: break;
 					}
-					if(pixel_target_)
-					{
+					if(pixel_target_) {
 						pixel_target_[0] = pixel_target_[1] =
 						pixel_target_[2] = pixel_target_[3] =
 						pixel_target_[4] = pixel_target_[5] =
@@ -218,34 +191,24 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 				h_counter++;
 			}
 
-			if(h_counter == 40)
-			{
+			if(h_counter == 40) {
 				crt_->output_data(40 * 6, 1);
 			}
-		}
-		else
-		{
+		} else {
 			// this is a blank line (or the equivalent part of a pixel line)
-			if(h_counter < 48)
-			{
+			if(h_counter < 48) {
 				cycles_run_for = 48 - h_counter;
 				clamp(
 					int period = (counter_ < 224*64) ? 8 : 48;
 					crt_->output_blank((unsigned int)period * 6);
 				);
-			}
-			else if(h_counter < 54)
-			{
+			} else if(h_counter < 54) {
 				cycles_run_for = 54 - h_counter;
 				clamp(crt_->output_sync(6 * 6));
-			}
-			else if(h_counter < 56)
-			{
+			} else if(h_counter < 56) {
 				cycles_run_for = 56 - h_counter;
 				clamp(crt_->output_default_colour_burst(2 * 6));
-			}
-			else
-			{
+			} else {
 				cycles_run_for = 64 - h_counter;
 				clamp(crt_->output_blank(8 * 6));
 			}
@@ -256,8 +219,7 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 	}
 }
 
-void VideoOutput::set_character_set_base_address()
-{
+void VideoOutput::set_character_set_base_address() {
 	if(is_graphics_mode_) character_set_base_address_ = use_alternative_character_set_ ? 0x9c00 : 0x9800;
 	else character_set_base_address_ = use_alternative_character_set_ ? 0xb800 : 0xb400;
 }

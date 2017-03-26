@@ -30,8 +30,7 @@ template <class T> class MOS6532 {
 		inline void set_ram(uint16_t address, uint8_t value)	{	ram_[address&0x7f] = value;		}
 		inline uint8_t get_ram(uint16_t address)				{	return ram_[address & 0x7f];	}
 
-		inline void set_register(int address, uint8_t value)
-		{
+		inline void set_register(int address, uint8_t value) {
 			const uint8_t decodedAddress = address & 0x07;
 			switch(decodedAddress) {
 				// Port output
@@ -48,16 +47,13 @@ template <class T> class MOS6532 {
 
 				// The timer and edge detect control
 				case 0x04: case 0x05: case 0x06: case 0x07:
-					if(address & 0x10)
-					{
+					if(address & 0x10) {
 						timer_.writtenShift = timer_.activeShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
 						timer_.value = ((unsigned int)value << timer_.activeShift) ;
 						timer_.interrupt_enabled = !!(address&0x08);
 						interrupt_status_ &= ~InterruptFlag::Timer;
 						evaluate_interrupts();
-					}
-					else
-					{
+					} else {
 						a7_interrupt_.enabled = !!(address&0x2);
 						a7_interrupt_.active_on_positive = !!(address & 0x01);
 					}
@@ -65,13 +61,11 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		inline uint8_t get_register(int address)
-		{
+		inline uint8_t get_register(int address) {
 			const uint8_t decodedAddress = address & 0x7;
 			switch(decodedAddress) {
 				// Port input
-				case 0x00: case 0x02:
-				{
+				case 0x00: case 0x02: {
 					const int port = decodedAddress / 2;
 					uint8_t input = static_cast<T *>(this)->get_port_input(port);
 					return (input & ~port_[port].output_mask) | (port_[port].output & port_[port].output_mask);
@@ -82,8 +76,7 @@ template <class T> class MOS6532 {
 				break;
 
 				// Timer and interrupt control
-				case 0x04: case 0x06:
-				{
+				case 0x04: case 0x06: {
 					uint8_t value = (uint8_t)(timer_.value >> timer_.activeShift);
 					timer_.interrupt_enabled = !!(address&0x08);
 					interrupt_status_ &= ~InterruptFlag::Timer;
@@ -99,8 +92,7 @@ template <class T> class MOS6532 {
 				}
 				break;
 
-				case 0x05: case 0x07:
-				{
+				case 0x05: case 0x07: {
 					uint8_t value = interrupt_status_;
 					interrupt_status_ &= ~InterruptFlag::PA7;
 					evaluate_interrupts();
@@ -112,8 +104,7 @@ template <class T> class MOS6532 {
 			return 0xff;
 		}
 
-		inline void run_for_cycles(unsigned int number_of_cycles)
-		{
+		inline void run_for_cycles(unsigned int number_of_cycles) {
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 			if(timer_.value >= number_of_cycles) {
 				timer_.value -= number_of_cycles;
@@ -131,23 +122,18 @@ template <class T> class MOS6532 {
 			port_{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}},
 			a7_interrupt_({.last_port_value = 0, .enabled = false}),
 			interrupt_line_(false),
-			timer_{.value = (unsigned int)((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false}
-		{}
+			timer_{.value = (unsigned int)((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false} {}
 
-		inline void set_port_did_change(int port)
-		{
-			if(!port)
-			{
+		inline void set_port_did_change(int port) {
+			if(!port) {
 				uint8_t new_port_a_value = (get_port_input(0) & ~port_[0].output_mask) | (port_[0].output & port_[0].output_mask);
 				uint8_t difference = new_port_a_value ^ a7_interrupt_.last_port_value;
 				a7_interrupt_.last_port_value = new_port_a_value;
-				if(difference&0x80)
-				{
+				if(difference&0x80) {
 					if(
 						((new_port_a_value&0x80) && a7_interrupt_.active_on_positive) ||
 						(!(new_port_a_value&0x80) && !a7_interrupt_.active_on_positive)
-					)
-					{
+					) {
 						interrupt_status_ |= InterruptFlag::PA7;
 						evaluate_interrupts();
 					}
@@ -155,8 +141,7 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		inline bool get_inerrupt_line()
-		{
+		inline bool get_inerrupt_line() {
 			return interrupt_line_;
 		}
 
@@ -191,8 +176,7 @@ template <class T> class MOS6532 {
 		void set_port_output(int port, uint8_t value, uint8_t output_mask)		{}
 		void set_irq_line(bool new_value)										{}
 
-		inline void evaluate_interrupts()
-		{
+		inline void evaluate_interrupts() {
 			interrupt_line_ =
 				((interrupt_status_&InterruptFlag::Timer) && timer_.interrupt_enabled) ||
 				((interrupt_status_&InterruptFlag::PA7) && a7_interrupt_.enabled);

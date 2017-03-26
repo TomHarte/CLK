@@ -16,12 +16,10 @@
 using namespace StaticAnalyser::Commodore;
 
 static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
-	Vic20CartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges)
-{
+		Vic20CartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
 
-	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : cartridges)
-	{
+	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : cartridges) {
 		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridge->get_segments();
 
 		// only one mapped item is allowed
@@ -39,11 +37,10 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 }
 
 void StaticAnalyser::Commodore::AddTargets(
-	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-	std::list<StaticAnalyser::Target> &destination)
-{
+		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
+		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
+		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
+		std::list<StaticAnalyser::Target> &destination) {
 	Target target;
 	target.machine = Target::Vic20;	// TODO: machine estimation
 	target.probability = 1.0; // TODO: a proper estimation
@@ -56,11 +53,9 @@ void StaticAnalyser::Commodore::AddTargets(
 	target.cartridges = Vic20CartridgesFrom(cartridges);
 
 	// check disks
-	for(auto &disk : disks)
-	{
+	for(auto &disk : disks) {
 		std::list<File> disk_files = GetFiles(disk);
-		if(disk_files.size())
-		{
+		if(disk_files.size()) {
 			is_disk = true;
 			files.splice(files.end(), disk_files);
 			target.disks = disks;
@@ -69,36 +64,29 @@ void StaticAnalyser::Commodore::AddTargets(
 	}
 
 	// check tapes
-	for(auto &tape : tapes)
-	{
+	for(auto &tape : tapes) {
 		std::list<File> tape_files = GetFiles(tape);
-		if(tape_files.size())
-		{
+		if(tape_files.size()) {
 			files.splice(files.end(), tape_files);
 			target.tapes = tapes;
 			if(!device) device = 1;
 		}
 	}
 
-	if(files.size())
-	{
+	if(files.size()) {
 		target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
-		if(files.front().is_basic())
-		{
+		if(files.front().is_basic()) {
 			char command[16];
 			snprintf(command, 16, "LOAD\"%s\",%d,0\nRUN\n", is_disk ? "*" : "", device);
 			target.loadingCommand = command;
-		}
-		else
-		{
+		} else {
 			char command[16];
 			snprintf(command, 16, "LOAD\"%s\",%d,1\nRUN\n", is_disk ? "*" : "", device);
 			target.loadingCommand = command;
 		}
 
 		// make a first guess based on loading address
-		switch(files.front().starting_address)
-		{
+		switch(files.front().starting_address) {
 			case 0x1001:
 			default: break;
 			case 0x1201:
@@ -110,8 +98,7 @@ void StaticAnalyser::Commodore::AddTargets(
 		}
 
 		// General approach: increase memory size conservatively such that the largest file found will fit.
-		for(File &file : files)
-		{
+		for(File &file : files) {
 			size_t file_size = file.data.size();
 //			bool is_basic = file.is_basic();
 

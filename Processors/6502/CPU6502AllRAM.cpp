@@ -12,13 +12,11 @@
 
 using namespace CPU6502;
 
-AllRAMProcessor::AllRAMProcessor() : _timestamp(0)
-{
+AllRAMProcessor::AllRAMProcessor() : _timestamp(0) {
 	set_power_on(false);
 }
 
-int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value)
-{
+int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	_timestamp++;
 
 	if(isReadOperation(operation)) {
@@ -30,13 +28,11 @@ int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint
 	return 1;
 }
 
-void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data)
-{
+void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data) {
 	size_t endAddress = std::min(startAddress + length, (size_t)65536);
 	memcpy(&_memory[startAddress], data, endAddress - startAddress);
 }
 
-uint32_t AllRAMProcessor::get_timestamp()
-{
+uint32_t AllRAMProcessor::get_timestamp() {
 	return _timestamp;
 }

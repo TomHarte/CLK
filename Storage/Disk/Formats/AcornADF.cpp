@@ -19,8 +19,7 @@ namespace {
 using namespace Storage::Disk;
 
 AcornADF::AcornADF(const char *file_name) :
-	Storage::FileHolder(file_name)
-{
+		Storage::FileHolder(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
 	if(file_stats_.st_size % bytes_per_sector) throw ErrorNotAcornADF;
@@ -37,33 +36,27 @@ AcornADF::AcornADF(const char *file_name) :
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 }
 
-AcornADF::~AcornADF()
-{
+AcornADF::~AcornADF() {
 	flush_updates();
 }
 
-unsigned int AcornADF::get_head_position_count()
-{
+unsigned int AcornADF::get_head_position_count() {
 	return 80;
 }
 
-unsigned int AcornADF::get_head_count()
-{
+unsigned int AcornADF::get_head_count() {
 	return 1;
 }
 
-bool AcornADF::get_is_read_only()
-{
+bool AcornADF::get_is_read_only() {
 	return is_read_only_;
 }
 
-long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int position)
-{
+long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int position) {
 	return (position * 1 + head) * bytes_per_sector * sectors_per_track;
 }
 
-std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position)
-{
+std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position) {
 	std::shared_ptr<Track> track;
 
 	if(head >= 2) return track;
@@ -71,8 +64,7 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
-	for(int sector = 0; sector < sectors_per_track; sector++)
-	{
+	for(int sector = 0; sector < sectors_per_track; sector++) {
 		Storage::Encodings::MFM::Sector new_sector;
 		new_sector.track = (uint8_t)position;
 		new_sector.side = (uint8_t)head;
@@ -91,19 +83,14 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	return track;
 }
 
-void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex)
-{
+void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex) {
 	std::vector<uint8_t> parsed_track;
 	Storage::Encodings::MFM::Parser parser(true, track);
-	for(unsigned int c = 0; c < sectors_per_track; c++)
-	{
+	for(unsigned int c = 0; c < sectors_per_track; c++) {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
-		if(sector)
-		{
+		if(sector) {
 			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
-		}
-		else
-		{
+		} else {
 			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
 			// it can no longer be stored as an SSD? If so, warn them by what route?
 			parsed_track.resize(parsed_track.size() + bytes_per_sector);

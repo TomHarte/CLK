@@ -37,13 +37,12 @@ namespace {
 #pragma mark - Lifecycle
 
 VideoOutput::VideoOutput(uint8_t *memory) :
-	ram_(memory),
-	current_pixel_line_(-1),
-	output_position_(0),
-	screen_mode_(6),
-	screen_map_pointer_(0),
-	cycles_into_draw_action_(0)
-{
+		ram_(memory),
+		current_pixel_line_(-1),
+		output_position_(0),
+		screen_mode_(6),
+		screen_map_pointer_(0),
+		cycles_into_draw_action_(0) {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
 	setup_base_address();
@@ -62,33 +61,26 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 
 #pragma mark - CRT getter
 
-std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt()
-{
+std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
 	return crt_;
 }
 
 #pragma mark - Display update methods
 
-void VideoOutput::start_pixel_line()
-{
+void VideoOutput::start_pixel_line() {
 	current_pixel_line_ = (current_pixel_line_+1)&255;
-	if(!current_pixel_line_)
-	{
+	if(!current_pixel_line_) {
 		start_line_address_ = start_screen_address_;
 		current_character_row_ = 0;
 		is_blank_line_ = false;
-	}
-	else
-	{
+	} else {
 		bool mode_has_blank_lines = (screen_mode_ == 6) || (screen_mode_ == 3);
 		is_blank_line_ = (mode_has_blank_lines && ((current_character_row_ > 7 && current_character_row_ < 10) || (current_pixel_line_ > 249)));
 
-		if(!is_blank_line_)
-		{
+		if(!is_blank_line_) {
 			start_line_address_++;
 
-			if(current_character_row_ > 7)
-			{
+			if(current_character_row_ > 7) {
 				start_line_address_ += ((screen_mode_ < 4) ? 80 : 40) * 8 - 8;
 				current_character_row_ = 0;
 			}
@@ -99,52 +91,41 @@ void VideoOutput::start_pixel_line()
 	initial_output_target_ = current_output_target_ = nullptr;
 }
 
-void VideoOutput::end_pixel_line()
-{
+void VideoOutput::end_pixel_line() {
 	if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 	current_character_row_++;
 }
 
-void VideoOutput::output_pixels(unsigned int number_of_cycles)
-{
+void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 	if(!number_of_cycles) return;
 
-	if(is_blank_line_)
-	{
+	if(is_blank_line_) {
 		crt_->output_blank(number_of_cycles * crt_cycles_multiplier);
-	}
-	else
-	{
+	} else {
 		unsigned int divider = 1;
-		switch(screen_mode_)
-		{
+		switch(screen_mode_) {
 			case 0: case 3: divider = 2; break;
 			case 1: case 4: case 6: divider = 4; break;
 			case 2: case 5: divider = 8; break;
 		}
 
-		if(!initial_output_target_ || divider != current_output_divider_)
-		{
+		if(!initial_output_target_ || divider != current_output_divider_) {
 			if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_);
 		}
 
 #define get_pixel()	\
-				if(current_screen_address_&32768)\
-				{\
+				if(current_screen_address_&32768) {\
 					current_screen_address_ = (screen_mode_base_address_ + current_screen_address_)&32767;\
 				}\
 				last_pixel_byte_ = ram_[current_screen_address_];\
 				current_screen_address_ = current_screen_address_+8
 
-		switch(screen_mode_)
-		{
+		switch(screen_mode_) {
 			case 0: case 3:
-				if(initial_output_target_)
-				{
-					while(number_of_cycles--)
-					{
+				if(initial_output_target_) {
+					while(number_of_cycles--) {
 						get_pixel();
 						*(uint32_t *)current_output_target_ = palette_tables_.eighty1bpp[last_pixel_byte_];
 						current_output_target_ += 4;
@@ -154,10 +135,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 			break;
 
 			case 1:
-				if(initial_output_target_)
-				{
-					while(number_of_cycles--)
-					{
+				if(initial_output_target_) {
+					while(number_of_cycles--) {
 						get_pixel();
 						*(uint16_t *)current_output_target_ = palette_tables_.eighty2bpp[last_pixel_byte_];
 						current_output_target_ += 2;
@@ -167,10 +146,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 			break;
 
 			case 2:
-				if(initial_output_target_)
-				{
-					while(number_of_cycles--)
-					{
+				if(initial_output_target_) {
+					while(number_of_cycles--) {
 						get_pixel();
 						*current_output_target_ = palette_tables_.eighty4bpp[last_pixel_byte_];
 						current_output_target_ += 1;
@@ -180,10 +157,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 			break;
 
 			case 4: case 6:
-				if(initial_output_target_)
-				{
-					if(current_pixel_column_&1)
-					{
+				if(initial_output_target_) {
+					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 4;
 						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
@@ -191,8 +166,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 						number_of_cycles--;
 						current_pixel_column_++;
 					}
-					while(number_of_cycles > 1)
-					{
+					while(number_of_cycles > 1) {
 						get_pixel();
 						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
@@ -204,8 +178,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 						number_of_cycles -= 2;
 						current_pixel_column_+=2;
 					}
-					if(number_of_cycles)
-					{
+					if(number_of_cycles) {
 						get_pixel();
 						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
@@ -215,10 +188,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 			break;
 
 			case 5:
-				if(initial_output_target_)
-				{
-					if(current_pixel_column_&1)
-					{
+				if(initial_output_target_) {
+					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 2;
 						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
 						current_output_target_ += 1;
@@ -226,8 +197,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 						number_of_cycles--;
 						current_pixel_column_++;
 					}
-					while(number_of_cycles > 1)
-					{
+					while(number_of_cycles > 1) {
 						get_pixel();
 						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
 						current_output_target_ += 1;
@@ -239,8 +209,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 						number_of_cycles -= 2;
 						current_pixel_column_+=2;
 					}
-					if(number_of_cycles)
-					{
+					if(number_of_cycles) {
 						get_pixel();
 						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
 						current_output_target_ += 1;
@@ -254,21 +223,17 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles)
 	}
 }
 
-void VideoOutput::run_for_cycles(int number_of_cycles)
-{
+void VideoOutput::run_for_cycles(int number_of_cycles) {
 	output_position_ = (output_position_ + number_of_cycles) % cycles_per_frame;
-	while(number_of_cycles)
-	{
+	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;
 		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
 		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels((unsigned int)time_left_in_action);
 
 		number_of_cycles -= time_left_in_action;
 		cycles_into_draw_action_ += time_left_in_action;
-		if(cycles_into_draw_action_ == draw_action_length)
-		{
-			switch(screen_map_[screen_map_pointer_].type)
-			{
+		if(cycles_into_draw_action_ == draw_action_length) {
+			switch(screen_map_[screen_map_pointer_].type) {
 				case DrawAction::Sync:			crt_->output_sync((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
 				case DrawAction::ColourBurst:	crt_->output_default_colour_burst((unsigned int)(draw_action_length * crt_cycles_multiplier));	break;
 				case DrawAction::Blank:			crt_->output_blank((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
@@ -283,10 +248,8 @@ void VideoOutput::run_for_cycles(int number_of_cycles)
 
 #pragma mark - Register hub
 
-void VideoOutput::set_register(int address, uint8_t value)
-{
-	switch(address & 0xf)
-	{
+void VideoOutput::set_register(int address, uint8_t value) {
+	switch(address & 0xf) {
 		case 0x02:
 			start_screen_address_ = (start_screen_address_ & 0xfe00) | (uint16_t)((value & 0xe0) << 1);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
@@ -295,21 +258,18 @@ void VideoOutput::set_register(int address, uint8_t value)
 			start_screen_address_ = (start_screen_address_ & 0x01ff) | (uint16_t)((value & 0x3f) << 9);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
-		case 0x07:
-		{
+		case 0x07: {
 			// update screen mode
 			uint8_t new_screen_mode = (value >> 3)&7;
 			if(new_screen_mode == 7) new_screen_mode = 4;
-			if(new_screen_mode != screen_mode_)
-			{
+			if(new_screen_mode != screen_mode_) {
 				screen_mode_ = new_screen_mode;
 				setup_base_address();
 			}
 		}
 		break;
 		case 0x08: case 0x09: case 0x0a: case 0x0b:
-		case 0x0c: case 0x0d: case 0x0e: case 0x0f:
-		{
+		case 0x0c: case 0x0d: case 0x0e: case 0x0f: {
 			static const int registers[4][4] = {
 				{10, 8, 2, 0},
 				{14, 12, 6, 4},
@@ -318,8 +278,7 @@ void VideoOutput::set_register(int address, uint8_t value)
 			};
 			const int index = (address >> 1)&3;
 			const uint8_t colour = ~value;
-			if(address&1)
-			{
+			if(address&1) {
 				palette_[registers[index][0]]	= (palette_[registers[index][0]]&3)	| ((colour >> 1)&4);
 				palette_[registers[index][1]]	= (palette_[registers[index][1]]&3)	| ((colour >> 0)&4);
 				palette_[registers[index][2]]	= (palette_[registers[index][2]]&3)	| ((colour << 1)&4);
@@ -327,9 +286,7 @@ void VideoOutput::set_register(int address, uint8_t value)
 
 				palette_[registers[index][2]]	= (palette_[registers[index][2]]&5)	| ((colour >> 4)&2);
 				palette_[registers[index][3]]	= (palette_[registers[index][3]]&5)	| ((colour >> 3)&2);
-			}
-			else
-			{
+			} else {
 				palette_[registers[index][0]]	= (palette_[registers[index][0]]&6)	| ((colour >> 7)&1);
 				palette_[registers[index][1]]	= (palette_[registers[index][1]]&6)	| ((colour >> 6)&1);
 				palette_[registers[index][2]]	= (palette_[registers[index][2]]&6)	| ((colour >> 5)&1);
@@ -341,8 +298,7 @@ void VideoOutput::set_register(int address, uint8_t value)
 
 			// regenerate all palette tables for now
 #define pack(a, b) (uint8_t)((a << 4) | (b))
-			for(int byte = 0; byte < 256; byte++)
-			{
+			for(int byte = 0; byte < 256; byte++) {
 				uint8_t *target = (uint8_t *)&palette_tables_.forty1bpp[byte];
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
 				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
@@ -367,10 +323,8 @@ void VideoOutput::set_register(int address, uint8_t value)
 	}
 }
 
-void VideoOutput::setup_base_address()
-{
-	switch(screen_mode_)
-	{
+void VideoOutput::setup_base_address() {
+	switch(screen_mode_) {
 		case 0: case 1: case 2: screen_mode_base_address_ = 0x3000; break;
 		case 3: screen_mode_base_address_ = 0x4000; break;
 		case 4: case 5: screen_mode_base_address_ = 0x5800; break;
@@ -380,33 +334,28 @@ void VideoOutput::setup_base_address()
 
 #pragma mark - Interrupts
 
-VideoOutput::Interrupt VideoOutput::get_next_interrupt()
-{
+VideoOutput::Interrupt VideoOutput::get_next_interrupt() {
 	VideoOutput::Interrupt interrupt;
 
-	if(output_position_ < real_time_clock_interrupt_1)
-	{
+	if(output_position_ < real_time_clock_interrupt_1) {
 		interrupt.cycles = real_time_clock_interrupt_1 - output_position_;
 		interrupt.interrupt = RealTimeClock;
 		return interrupt;
 	}
 
-	if(output_position_ < display_end_interrupt_1)
-	{
+	if(output_position_ < display_end_interrupt_1) {
 		interrupt.cycles = display_end_interrupt_1 - output_position_;
 		interrupt.interrupt = DisplayEnd;
 		return interrupt;
 	}
 
-	if(output_position_ < real_time_clock_interrupt_2)
-	{
+	if(output_position_ < real_time_clock_interrupt_2) {
 		interrupt.cycles = real_time_clock_interrupt_2 - output_position_;
 		interrupt.interrupt = RealTimeClock;
 		return interrupt;
 	}
 
-	if(output_position_ < display_end_interrupt_2)
-	{
+	if(output_position_ < display_end_interrupt_2) {
 		interrupt.cycles = display_end_interrupt_2 - output_position_;
 		interrupt.interrupt = DisplayEnd;
 		return interrupt;
@@ -419,34 +368,28 @@ VideoOutput::Interrupt VideoOutput::get_next_interrupt()
 
 #pragma mark - RAM timing and access information
 
-unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time)
-{
+unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) {
 	unsigned int result = 0;
 	int position = output_position_ + from_time;
 
 	result += 1 + (position&1);
-	if(screen_mode_ < 4)
-	{
+	if(screen_mode_ < 4) {
 		const int current_column = graphics_column(position + (position&1));
 		int current_line = graphics_line(position);
-		if(current_column < 80 && current_line < 256)
-		{
-			if(screen_mode_ == 3)
-			{
+		if(current_column < 80 && current_line < 256) {
+			if(screen_mode_ == 3) {
 				int output_position_line = graphics_line(output_position_);
 				int implied_row = current_character_row_ + (current_line - output_position_line) % 10;
 				if(implied_row < 8)
 					result += (unsigned int)(80 - current_column);
 			}
-			else
-				result += (unsigned int)(80 - current_column);
+			else result += (unsigned int)(80 - current_column);
 		}
 	}
 	return result;
 }
 
-VideoOutput::Range VideoOutput::get_memory_access_range()
-{
+VideoOutput::Range VideoOutput::get_memory_access_range() {
 	// This can't be more specific than this without applying a lot more thought because of mixed modes:
 	// suppose a program runs half the screen in an 80-column mode then switches to 40 columns. Then the
 	// real end address will be at 128*80 + 128*40 after the original base, subject to wrapping that depends
@@ -460,8 +403,7 @@ VideoOutput::Range VideoOutput::get_memory_access_range()
 
 #pragma mark - The screen map
 
-void VideoOutput::setup_screen_map()
-{
+void VideoOutput::setup_screen_map() {
 	/*
 
 		Odd field:					Even field:
@@ -475,15 +417,11 @@ void VideoOutput::setup_screen_map()
 		|-B-
 
 	*/
-	for(int c = 0; c < 2; c++)
-	{
-		if(c&1)
-		{
+	for(int c = 0; c < 2; c++) {
+		if(c&1) {
 			screen_map_.emplace_back(DrawAction::Sync, (cycles_per_line * 5) >> 1);
 			screen_map_.emplace_back(DrawAction::Blank, cycles_per_line >> 1);
-		}
-		else
-		{
+		} else {
 			screen_map_.emplace_back(DrawAction::Blank, cycles_per_line >> 1);
 			screen_map_.emplace_back(DrawAction::Sync, (cycles_per_line * 5) >> 1);
 		}
@@ -494,15 +432,13 @@ void VideoOutput::setup_screen_map()
 	}
 }
 
-void VideoOutput::emplace_blank_line()
-{
+void VideoOutput::emplace_blank_line() {
 	screen_map_.emplace_back(DrawAction::Sync, 9);
 	screen_map_.emplace_back(DrawAction::ColourBurst, 24 - 9);
 	screen_map_.emplace_back(DrawAction::Blank, 128 - 24);
 }
 
-void VideoOutput::emplace_pixel_line()
-{
+void VideoOutput::emplace_pixel_line() {
 	// output format is:
 	// 9 cycles: sync
 	// ... to 24 cycles: colour burst

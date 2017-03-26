@@ -23,8 +23,7 @@ namespace SignalProcessing {
 	Pegs the beginning of both clocks to the time at which the stepper is created. So e.g. a stepper
 	that converts from an input clock of 1200 to an output clock of 2 will first fire on cycle 600.
 */
-class Stepper
-{
+class Stepper {
 	public:
 		/*!
 			Establishes a stepper with a one-to-one conversion rate.
@@ -48,12 +47,10 @@ class Stepper
 
 			@returns the number of output steps.
 		*/
-		inline uint64_t step()
-		{
+		inline uint64_t step() {
 			uint64_t update = whole_step_;
 			accumulated_error_ += adjustment_up_;
-			if(accumulated_error_ > 0)
-			{
+			if(accumulated_error_ > 0) {
 				update++;
 				accumulated_error_ -= adjustment_down_;
 			}
@@ -65,12 +62,10 @@ class Stepper
 
 			@returns the number of output steps.
 		*/
-		inline uint64_t step(uint64_t number_of_steps)
-		{
+		inline uint64_t step(uint64_t number_of_steps) {
 			uint64_t update = whole_step_ * number_of_steps;
 			accumulated_error_ += adjustment_up_ * (int64_t)number_of_steps;
-			if(accumulated_error_ > 0)
-			{
+			if(accumulated_error_ > 0) {
 				update += 1 + (uint64_t)(accumulated_error_ / adjustment_down_);
 				accumulated_error_ = (accumulated_error_ % adjustment_down_) - adjustment_down_;
 			}
@@ -80,16 +75,14 @@ class Stepper
 		/*!
 			@returns the output rate.
 		*/
-		inline uint64_t get_output_rate()
-		{
+		inline uint64_t get_output_rate() {
 			return output_rate_;
 		}
 
 		/*!
 			@returns the input rate.
 		*/
-		inline uint64_t get_input_rate()
-		{
+		inline uint64_t get_input_rate() {
 			return input_rate_;
 		}
 

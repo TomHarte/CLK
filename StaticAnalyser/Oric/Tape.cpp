@@ -11,14 +11,12 @@
 
 using namespace StaticAnalyser::Oric;
 
-std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
-{
+std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	std::list<File> files;
 	Storage::Tape::Oric::Parser parser;
 
 	tape->reset();
-	while(!tape->is_at_end())
-	{
+	while(!tape->is_at_end()) {
 		// sync to next lead-in, check that it's one of three 0x16s
 		bool is_fast = parser.sync_and_get_encoding_speed(tape);
 		int next_bytes[2];
@@ -29,8 +27,7 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 
 		// get the first byte that isn't a 0x16, check it was a 0x24
 		int byte = 0x16;
-		while(!tape->is_at_end() && byte == 0x16)
-		{
+		while(!tape->is_at_end() && byte == 0x16) {
 			byte = parser.get_next_byte(tape, is_fast);
 		}
 		if(byte != 0x24) continue;
@@ -41,14 +38,12 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 
 		// get data and launch types
 		File new_file;
-		switch(parser.get_next_byte(tape, is_fast))
-		{
+		switch(parser.get_next_byte(tape, is_fast)) {
 			case 0x00:	new_file.data_type = File::ProgramType::BASIC;			break;
 			case 0x80:	new_file.data_type = File::ProgramType::MachineCode;	break;
 			default:	new_file.data_type = File::ProgramType::None;			break;
 		}
-		switch(parser.get_next_byte(tape, is_fast))
-		{
+		switch(parser.get_next_byte(tape, is_fast)) {
 			case 0x80:	new_file.launch_type = File::ProgramType::BASIC;		break;
 			case 0xc7:	new_file.launch_type = File::ProgramType::MachineCode;	break;
 			default:	new_file.launch_type = File::ProgramType::None;			break;
@@ -66,8 +61,7 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 		// read file name, up to 16 characters and null terminated
 		char file_name[17];
 		int name_pos = 0;
-		while(name_pos < 16)
-		{
+		while(name_pos < 16) {
 			file_name[name_pos] = (char)parser.get_next_byte(tape, is_fast);
 			if(!file_name[name_pos]) break;
 			name_pos++;
@@ -78,14 +72,12 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 		// read body
 		size_t body_length = new_file.ending_address - new_file.starting_address + 1;
 		new_file.data.reserve(body_length);
-		for(size_t c = 0; c < body_length; c++)
-		{
+		for(size_t c = 0; c < body_length; c++) {
 			new_file.data.push_back((uint8_t)parser.get_next_byte(tape, is_fast));
 		}
 
 		// only one validation check: was there enough tape?
-		if(!tape->is_at_end())
-		{
+		if(!tape->is_at_end()) {
 			files.push_back(new_file);
 		}
 	}

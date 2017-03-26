@@ -106,8 +106,7 @@ class OpenGLOutputBuilder {
 		OpenGLOutputBuilder(size_t bytes_per_pixel);
 		~OpenGLOutputBuilder();
 
-		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator)
-		{
+		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator) {
 			std::lock_guard<std::mutex> output_guard(output_mutex_);
 			colour_space_ = colour_space;
 			colour_cycle_numerator_ = colour_cycle_numerator;
@@ -115,33 +114,27 @@ class OpenGLOutputBuilder {
 			set_colour_space_uniforms();
 		}
 
-		inline void set_visible_area(Rect visible_area)
-		{
+		inline void set_visible_area(Rect visible_area) {
 			visible_area_ = visible_area;
 		}
 
-		inline std::unique_lock<std::mutex> get_output_lock()
-		{
+		inline std::unique_lock<std::mutex> get_output_lock() {
 			return std::unique_lock<std::mutex>(output_mutex_);
 		}
 
-		inline OutputDevice get_output_device()
-		{
+		inline OutputDevice get_output_device() {
 			return output_device_;
 		}
 
-		inline uint16_t get_composite_output_y()
-		{
+		inline uint16_t get_composite_output_y() {
 			return (uint16_t)composite_src_output_y_;
 		}
 
-		inline bool composite_output_buffer_is_full()
-		{
+		inline bool composite_output_buffer_is_full() {
 			return composite_src_output_y_ == IntermediateBufferHeight;
 		}
 
-		inline void increment_composite_output_y()
-		{
+		inline void increment_composite_output_y() {
 			if(!composite_output_buffer_is_full())
 				composite_src_output_y_++;
 		}

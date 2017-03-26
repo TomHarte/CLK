@@ -12,25 +12,20 @@
 
 using namespace StaticAnalyser::Commodore;
 
-std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape)
-{
+std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	Storage::Tape::Commodore::Parser parser;
 	std::list<File> file_list;
 
 	std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape);
 
-	while(!tape->is_at_end())
-	{
-		if(!header)
-		{
+	while(!tape->is_at_end()) {
+		if(!header) {
 			header = parser.get_next_header(tape);
 			continue;
 		}
 
-		switch(header->type)
-		{
-			case Storage::Tape::Commodore::Header::DataSequenceHeader:
-			{
+		switch(header->type) {
+			case Storage::Tape::Commodore::Header::DataSequenceHeader: {
 				File new_file;
 				new_file.name = header->name;
 				new_file.raw_name = header->raw_name;
@@ -39,8 +34,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 				new_file.type = File::DataSequence;
 
 				new_file.data.swap(header->data);
-				while(!tape->is_at_end())
-				{
+				while(!tape->is_at_end()) {
 					header = parser.get_next_header(tape);
 					if(!header) continue;
 					if(header->type != Storage::Tape::Commodore::Header::DataBlock) break;
@@ -52,11 +46,9 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 			break;
 
 			case Storage::Tape::Commodore::Header::RelocatableProgram:
-			case Storage::Tape::Commodore::Header::NonRelocatableProgram:
-			{
+			case Storage::Tape::Commodore::Header::NonRelocatableProgram: {
 				std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape);
-				if(data)
-				{
+				if(data) {
 					File new_file;
 					new_file.name = header->name;
 					new_file.raw_name = header->raw_name;

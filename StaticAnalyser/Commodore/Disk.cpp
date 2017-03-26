@@ -21,14 +21,12 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 	public:
 		std::shared_ptr<Storage::Disk::Drive> drive;
 
-		CommodoreGCRParser() : Storage::Disk::Controller(4000000, 1, 300), shift_register_(0), track_(1)
-		{
+		CommodoreGCRParser() : Storage::Disk::Controller(4000000, 1, 300), shift_register_(0), track_(1) {
 			drive.reset(new Storage::Disk::Drive);
 			set_drive(drive);
 		}
 
-		struct Sector
-		{
+		struct Sector {
 			uint8_t sector, track;
 			std::array<uint8_t, 256> data;
 			bool header_checksum_matched;
@@ -40,13 +38,11 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector)
-		{
+		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector) {
 			int difference = (int)track - (int)track_;
 			track_ = track;
 
-			if(difference)
-			{
+			if(difference) {
 				int direction = difference < 0 ? -1 : 1;
 				difference *= 2 * direction;
 
@@ -69,57 +65,48 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		uint8_t track_;
 		std::shared_ptr<Sector> sector_cache_[65536];
 
-		void process_input_bit(int value, unsigned int cycles_since_index_hole)
-		{
+		void process_input_bit(int value, unsigned int cycles_since_index_hole) {
 			shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0x3ff;
 			bit_count_++;
 		}
 
-		unsigned int proceed_to_next_block()
-		{
+		unsigned int proceed_to_next_block() {
 			// find GCR lead-in
 			proceed_to_shift_value(0x3ff);
 			if(shift_register_ != 0x3ff) return 0xff;
 
 			// find end of lead-in
-			while(shift_register_ == 0x3ff && index_count_ < 2)
-			{
+			while(shift_register_ == 0x3ff && index_count_ < 2) {
 				run_for_cycles(1);
 			}
 
 			// continue for a further nine bits
 			bit_count_ = 0;
-			while(bit_count_ < 9 && index_count_ < 2)
-			{
+			while(bit_count_ < 9 && index_count_ < 2) {
 				run_for_cycles(1);
 			}
 
 			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
 		}
 
-		unsigned int get_next_byte()
-		{
+		unsigned int get_next_byte() {
 			bit_count_ = 0;
 			while(bit_count_ < 10) run_for_cycles(1);
 			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
 		}
 
-		void proceed_to_shift_value(unsigned int shift_value)
-		{
+		void proceed_to_shift_value(unsigned int shift_value) {
 			index_count_ = 0;
-			while(shift_register_ != shift_value && index_count_ < 2)
-			{
+			while(shift_register_ != shift_value && index_count_ < 2) {
 				run_for_cycles(1);
 			}
 		}
 
-		void process_index_hole()
-		{
+		void process_index_hole() {
 			index_count_++;
 		}
 
-		std::shared_ptr<Sector> get_sector(uint8_t sector)
-		{
+		std::shared_ptr<Sector> get_sector(uint8_t sector) {
 			uint16_t sector_address = (uint16_t)((track_ << 8) | sector);
 			if(sector_cache_[sector_address]) return sector_cache_[sector_address];
 
@@ -127,24 +114,20 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			if(!first_sector) return first_sector;
 			if(first_sector->sector == sector) return first_sector;
 
-			while(1)
-			{
+			while(1) {
 				std::shared_ptr<Sector> next_sector = get_next_sector();
 				if(next_sector->sector == first_sector->sector) return nullptr;
 				if(next_sector->sector == sector) return next_sector;
 			}
 		}
 
-		std::shared_ptr<Sector> get_next_sector()
-		{
+		std::shared_ptr<Sector> get_next_sector() {
 			std::shared_ptr<Sector> sector(new Sector);
 			index_count_ = 0;
 
-			while(index_count_ < 2)
-			{
+			while(index_count_ < 2) {
 				// look for a sector header
-				while(1)
-				{
+				while(1) {
 					if(proceed_to_next_block() == 0x08) break;
 					if(index_count_ >= 2) return nullptr;
 				}
@@ -159,21 +142,18 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 				if(checksum != (sector->sector ^ sector->track ^ disk_id[0] ^ disk_id[1])) continue;
 
 				// look for the following data
-				while(1)
-				{
+				while(1) {
 					if(proceed_to_next_block() == 0x07) break;
 					if(index_count_ >= 2) return nullptr;
 				}
 
 				checksum = 0;
-				for(size_t c = 0; c < 256; c++)
-				{
+				for(size_t c = 0; c < 256; c++) {
 					sector->data[c] = (uint8_t)get_next_byte();
 					checksum ^= sector->data[c];
 				}
 
-				if(checksum == get_next_byte())
-				{
+				if(checksum == get_next_byte()) {
 					uint16_t sector_address = (uint16_t)((sector->track << 8) | sector->sector);
 					sector_cache_[sector_address] = sector;
 					return sector;
@@ -184,8 +164,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		}
 };
 
-std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk)
-{
+std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	std::list<File> files;
 	CommodoreGCRParser parser;
 	parser.drive->set_disk(disk);
@@ -197,8 +176,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 	std::vector<uint8_t> directory;
 	uint8_t next_track = 18;
 	uint8_t next_sector = 1;
-	while(1)
-	{
+	while(1) {
 		sector = parser.get_sector(next_track, next_sector);
 		if(!sector) break;
 		directory.insert(directory.end(), sector->data.begin(), sector->data.end());
@@ -210,13 +188,11 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 
 	// parse directory
 	size_t header_pointer = (size_t)-32;
-	while(header_pointer+32+31 < directory.size())
-	{
+	while(header_pointer+32+31 < directory.size()) {
 		header_pointer += 32;
 
 		File new_file;
-		switch(directory[header_pointer + 2] & 7)
-		{
+		switch(directory[header_pointer + 2] & 7) {
 			case 0:				// DEL files
 			default: continue;	// Unknown file types
 
@@ -230,8 +206,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 		next_sector = directory[header_pointer + 4];
 
 		new_file.raw_name.reserve(16);
-		for(size_t c = 0; c < 16; c++)
-		{
+		for(size_t c = 0; c < 16; c++) {
 			new_file.raw_name.push_back(directory[header_pointer + 5 + c]);
 		}
 		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
@@ -240,8 +215,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
 
 		bool is_first_sector = true;
-		while(next_track)
-		{
+		while(next_track) {
 			sector = parser.get_sector(next_track, next_sector);
 			if(!sector) break;
 

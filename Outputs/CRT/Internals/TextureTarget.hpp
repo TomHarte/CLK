@@ -46,16 +46,14 @@ class TextureTarget {
 		/*!
 			@returns the width of the texture target.
 		*/
-		GLsizei get_width()
-		{
+		GLsizei get_width() {
 			return _width;
 		}
 
 		/*!
 			@returns the height of the texture target.
 		*/
-		GLsizei get_height()
-		{
+		GLsizei get_height() {
 			return _height;
 		}
 

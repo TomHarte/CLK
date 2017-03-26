@@ -13,14 +13,13 @@
 using namespace OpenGL;
 
 TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter) :
-	_width(width),
-	_height(height),
-	_pixel_shader(nullptr),
-	_drawing_vertex_array(0),
-	_drawing_array_buffer(0),
-	_set_aspect_ratio(0.0f),
-	_texture_unit(texture_unit)
-{
+		_width(width),
+		_height(height),
+		_pixel_shader(nullptr),
+		_drawing_vertex_array(0),
+		_drawing_array_buffer(0),
+		_set_aspect_ratio(0.0f),
+		_texture_unit(texture_unit) {
 	glGenFramebuffers(1, &_framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
 
@@ -42,29 +41,24 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 		throw ErrorFramebufferIncomplete;
 }
 
-TextureTarget::~TextureTarget()
-{
+TextureTarget::~TextureTarget() {
 	glDeleteFramebuffers(1, &_framebuffer);
 	glDeleteTextures(1, &_texture);
 	if(_drawing_vertex_array) glDeleteVertexArrays(1, &_drawing_vertex_array);
 	if(_drawing_array_buffer) glDeleteBuffers(1, &_drawing_array_buffer);
 }
 
-void TextureTarget::bind_framebuffer()
-{
+void TextureTarget::bind_framebuffer() {
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
 	glViewport(0, 0, _width, _height);
 }
 
-void TextureTarget::bind_texture()
-{
+void TextureTarget::bind_texture() {
 	glBindTexture(GL_TEXTURE_2D, _texture);
 }
 
-void TextureTarget::draw(float aspect_ratio)
-{
-	if(!_pixel_shader)
-	{
+void TextureTarget::draw(float aspect_ratio) {
+	if(!_pixel_shader) {
 		const char *vertex_shader =
 			"#version 150\n"
 
@@ -112,8 +106,7 @@ void TextureTarget::draw(float aspect_ratio)
 		glUniform1i(texIDUniform, (GLint)(_texture_unit - GL_TEXTURE0));
 	}
 
-	if(_set_aspect_ratio != aspect_ratio)
-	{
+	if(_set_aspect_ratio != aspect_ratio) {
 		_set_aspect_ratio = aspect_ratio;
 		float buffer[4*4];
 

@@ -11,13 +11,11 @@
 using namespace Storage::Disk;
 
 PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegment &segment) :
-	segment_(new PCMSegment(segment))
-{
+		segment_(new PCMSegment(segment)) {
 	// add an extra bit of storage at the bottom if one is going to be needed;
 	// events returned are going to be in integral multiples of the length of a bit
 	// other than the very first and very last which will include a half bit length
-	if(segment_->length_of_a_bit.length&1)
-	{
+	if(segment_->length_of_a_bit.length&1) {
 		segment_->length_of_a_bit.length <<= 1;
 		segment_->length_of_a_bit.clock_rate <<= 1;
 	}
@@ -29,8 +27,7 @@ PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegment &segment) :
 	reset();
 }
 
-PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegmentEventSource &original)
-{
+PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegmentEventSource &original) {
 	// share underlying data with the original
 	segment_ = original.segment_;
 
@@ -39,16 +36,14 @@ PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegmentEventSource &origin
 	reset();
 }
 
-void PCMSegmentEventSource::reset()
-{
+void PCMSegmentEventSource::reset() {
 	// start with the first bit to be considered the zeroth, and assume that it'll be
 	// flux transitions for the foreseeable
 	bit_pointer_ = 0;
 	next_event_.type = Track::Event::FluxTransition;
 }
 
-Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event()
-{
+Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// track the initial bit pointer for potentially considering whether this was an
 	// initial index hole or a subsequent one later on
 	size_t initial_bit_pointer = bit_pointer_;
@@ -59,8 +54,7 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event()
 
 	// search for the next bit that is set, if any
 	const uint8_t *segment_data = segment_->data.data();
-	while(bit_pointer_ < segment_->number_of_bits)
-	{
+	while(bit_pointer_ < segment_->number_of_bits) {
 		int bit = segment_data[bit_pointer_ >> 3] & (0x80 >> (bit_pointer_&7));
 		bit_pointer_++;	// so this always points one beyond the most recent bit returned
 		next_event_.length.length += segment_->length_of_a_bit.length;
@@ -76,25 +70,21 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event()
 	// allow an extra half bit's length to run from the position of the potential final transition
 	// event to the end of the segment. Otherwise don't allow any extra time, as it's already
 	// been consumed
-	if(initial_bit_pointer <= segment_->number_of_bits)
-	{
+	if(initial_bit_pointer <= segment_->number_of_bits) {
 		next_event_.length.length += (segment_->length_of_a_bit.length >> 1);
 		bit_pointer_++;
 	}
 	return next_event_;
 }
 
-Storage::Time PCMSegmentEventSource::get_length()
-{
+Storage::Time PCMSegmentEventSource::get_length() {
 	return segment_->length_of_a_bit * segment_->number_of_bits;
 }
 
-Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start)
-{
+Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 	// test for requested time being beyond the end
 	Time length = get_length();
-	if(time_from_start >= length)
-	{
+	if(time_from_start >= length) {
 		next_event_.type = Track::Event::IndexHole;
 		bit_pointer_ = segment_->number_of_bits+1;
 		return length;
@@ -106,8 +96,7 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start)
 	// test for requested time being before the first bit
 	Time half_bit_length = segment_->length_of_a_bit;
 	half_bit_length.length >>= 1;
-	if(time_from_start < half_bit_length)
-	{
+	if(time_from_start < half_bit_length) {
 		bit_pointer_ = 0;
 		Storage::Time zero;
 		return zero;
