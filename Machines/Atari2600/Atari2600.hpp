@@ -23,9 +23,6 @@
 
 namespace Atari2600 {
 
-const unsigned int number_of_upcoming_events = 6;
-const unsigned int number_of_recorded_counters = 7;
-
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,

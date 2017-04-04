@@ -13,6 +13,8 @@
 
 namespace Atari2600 {
 
+const int CPUTicksPerAudioTick = 38;
+
 class Speaker: public ::Outputs::Filter<Speaker> {
 	public:
 		Speaker();

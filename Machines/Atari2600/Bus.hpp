@@ -9,9 +9,10 @@
 #ifndef Atari2600_Bus_hpp
 #define Atari2600_Bus_hpp
 
+#include "Atari2600.hpp"
 #include "PIA.hpp"
-#include "TIA.hpp"
 #include "Speaker.hpp"
+#include "TIA.hpp"
 
 namespace Atari2600 {
 
@@ -38,8 +39,8 @@ class Bus {
 		// speaker backlog accumlation counter
 		unsigned int cycles_since_speaker_update_;
 		inline void update_audio() {
-			unsigned int audio_cycles = cycles_since_speaker_update_ / 114;
-			cycles_since_speaker_update_ %= 114;
+			unsigned int audio_cycles = cycles_since_speaker_update_ / (CPUTicksPerAudioTick * 3);
+			cycles_since_speaker_update_ %= (CPUTicksPerAudioTick * 3);
 			speaker_->run_for_cycles(audio_cycles);
 		}
 
