@@ -8,10 +8,12 @@
 
 #import "CSBestEffortUpdater.h"
 
+#include <stdatomic.h>
+
 @implementation CSBestEffortUpdater
 {
 	// these are inherently handled only by thread-safe constructions
-	uint32_t _updateIsOngoing;
+	atomic_flag _updateIsOngoing;
 	dispatch_queue_t _serialDispatchQueue;
 
 	// these are permitted for modification on _serialDispatchQueue only
@@ -25,16 +27,18 @@
 	if(self = [super init])
 	{
 		_serialDispatchQueue = dispatch_queue_create("Best Effort Updater", DISPATCH_QUEUE_SERIAL);
+
+		// This is a workaround for assigning the correct initial value within Objective-C's form.
+		atomic_flag initialFlagValue = ATOMIC_FLAG_INIT;
+		_updateIsOngoing = initialFlagValue;
 	}
 	return self;
 }
 
 - (void)update
 {
-	const uint32_t processingMask = 0x01;
-
 	// Always post an -openGLView:didUpdateToTime: if a previous one isn't still ongoing. This is the hook upon which the substantial processing occurs.
-	if(!OSAtomicTestAndSet(processingMask, &_updateIsOngoing))
+	if(!atomic_flag_test_and_set(&_updateIsOngoing))
 	{
 		dispatch_async(_serialDispatchQueue, ^{
 			NSTimeInterval timeInterval = [NSDate timeIntervalSinceReferenceDate];
@@ -52,7 +56,7 @@
 			}
 			_previousTimeInterval = timeInterval;
 			_hasSkipped = NO;
-			OSAtomicTestAndClear(processingMask, &_updateIsOngoing);
+			atomic_flag_clear(&_updateIsOngoing);
 		});
 	}
 	else
