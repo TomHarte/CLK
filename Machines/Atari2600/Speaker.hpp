@@ -13,7 +13,9 @@
 
 namespace Atari2600 {
 
-const int CPUTicksPerAudioTick = 38;
+// This should be a divisor of 38; audio counters are updated every 38 cycles — though lesser dividers
+// will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
+const int CPUTicksPerAudioTick = 2;
 
 class Speaker: public ::Outputs::Filter<Speaker> {
 	public:
