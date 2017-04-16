@@ -38,7 +38,7 @@ Machine::Machine() :
 void Machine::setup_output(float aspect_ratio) {
 	bus_->tia_.reset(new TIA);
 	bus_->speaker_.reset(new Speaker);
-	bus_->speaker_->set_input_rate((float)(get_clock_rate() / 38.0));
+	bus_->speaker_->set_input_rate((float)(get_clock_rate() / (double)CPUTicksPerAudioTick));
 	bus_->tia_->get_crt()->set_delegate(this);
 }
 
@@ -149,8 +149,8 @@ void Machine::crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int n
 				bus_->tia_->set_output_mode(TIA::OutputMode::PAL);
 			}
 
-			bus_->speaker_->set_input_rate((float)(clock_rate / 38.0));
-			bus_->speaker_->set_high_frequency_cut_off((float)(clock_rate / (38.0 * 2.0)));
+			bus_->speaker_->set_input_rate((float)(clock_rate / (double)CPUTicksPerAudioTick));
+			bus_->speaker_->set_high_frequency_cut_off((float)(clock_rate / ((double)CPUTicksPerAudioTick * 2.0)));
 			set_clock_rate(clock_rate);
 		}
 	}
