@@ -128,5 +128,13 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 		free(lowercase_extension);
 	}
+
+	// Reset any tapes to their initial position
+	for(auto target : targets) {
+		for(auto tape : target.tapes) {
+			tape->reset();
+		}
+	}
+
 	return targets;
 }
