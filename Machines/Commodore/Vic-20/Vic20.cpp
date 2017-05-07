@@ -127,9 +127,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// CPU or 6560 costs.
 		if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU6502::BusOperation::ReadOpcode) {
 			if(address == 0xf7b2) {
-				printf("Find header");
+				printf("Find header\n");
 			} else if(address == 0xf90b) {
-				printf("Tape receive");
+				printf("Tape receive\n");
 			}
 		}
 	} else {
@@ -338,7 +338,6 @@ uint8_t UserPortVIA::get_port_input(Port port) {
 void UserPortVIA::set_control_line_output(Port port, Line line, bool value) {
 	if(port == Port::A && line == Line::Two) {
 		tape_->set_motor_control(!value);
-		printf("Tape motor: %d\n", value ? 1 : 0);
 	}
 }
 
