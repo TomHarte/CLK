@@ -148,7 +148,30 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 				*value = 0x0c;	// i.e. NOP abs
 			} else if(address == 0xf90b) {
-				printf("Tape receive\n");
+				uint8_t x = (uint8_t)get_value_of_register(CPU6502::Register::X);
+				if(x == 0xe) {
+					Storage::Tape::Commodore::Parser parser;
+					std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
+					uint16_t start_address, end_address;
+					start_address = (uint16_t)(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
+					end_address = (uint16_t)(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
+
+					uint8_t *data_ptr = data->data.data();
+					while(start_address != end_address) {
+						processor_write_memory_map_[start_address >> 10][start_address & 0x3ff] = *data_ptr;
+						data_ptr++;
+						start_address++;
+					}
+
+					user_basic_memory_[0x90] |= 0x40;
+
+					uint8_t	flags = (uint8_t)get_value_of_register(CPU6502::Register::Flags);
+					flags &= ~(uint8_t)(CPU6502::Flag::Carry | CPU6502::Flag::Interrupt);
+					set_value_of_register(CPU6502::Register::Flags, flags);
+
+					set_value_of_register(CPU6502::Register::ProgramCounter, 0xfccf + 1);
+					*value = 0x08;
+				}
 			}
 		}
 	} else {
@@ -171,31 +194,6 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	}
 	tape_->run_for_cycles(1);
 	if(c1540_) c1540_->run_for_cycles(1);
-
-	// If using fast tape then:
-	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
-	//	if the PC heads into RAM
-	//
-	// Where 'zero cost processing' is taken to be taking the 6560 off the bus (because I know it's
-	// expensive, and not relevant) then running the tape, the CPU and both 6522s as usual but not
-	// counting cycles towards the processing budget. So the limit is the host machine.
-	//
-	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
-	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
-	// the CPU out of the action.
-/*	if(use_fast_tape_hack_ && tape_->has_tape()) {
-		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode) {
-			is_running_at_zero_cost_ = true;
-			set_clock_is_unlimited(true);
-		}
-		if(
-			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
-			tape_->get_tape()->is_at_end()
-		) {
-			is_running_at_zero_cost_ = false;
-			set_clock_is_unlimited(false);
-		}
-	}*/
 
 	return 1;
 }
