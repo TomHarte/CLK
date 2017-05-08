@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include "../../../Storage/Tape/Formats/TapePRG.hpp"
+#include "../../../Storage/Tape/Parsers/Commodore.hpp"
 #include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 using namespace Commodore::Vic20;
@@ -127,7 +128,25 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// CPU or 6560 costs.
 		if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU6502::BusOperation::ReadOpcode) {
 			if(address == 0xf7b2) {
-				printf("Find header\n");
+				// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
+				// So cancel that via a double NOP and fill in the next header programmatically.
+				Storage::Tape::Commodore::Parser parser;
+				std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->get_tape());
+
+				// serialise to wherever b2:b3 points
+				uint16_t tape_buffer_pointer = (uint16_t)user_basic_memory_[0xb2] | (uint16_t)(user_basic_memory_[0xb3] << 8);
+				if(header) {
+					header->serialise(&user_basic_memory_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
+				} else {
+					// no header found, so store end-of-tape
+					user_basic_memory_[tape_buffer_pointer] = 0x05;	// i.e. end of tape
+				}
+
+				// clear status and the verify flag
+				user_basic_memory_[0x90] = 0;
+				user_basic_memory_[0x93] = 0;
+
+				*value = 0x0c;	// i.e. NOP abs
 			} else if(address == 0xf90b) {
 				printf("Tape receive\n");
 			}

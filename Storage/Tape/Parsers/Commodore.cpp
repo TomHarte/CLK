@@ -119,6 +119,20 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	return header;
 }
 
+void Header::serialise(uint8_t *target, uint16_t length) {
+	switch(type)
+	{
+		default:							target[0] = 0xff;	break;
+		case Header::RelocatableProgram:	target[0] = 0x01;	break;
+		case Header::DataBlock:				target[0] = 0x02;	break;
+		case Header::NonRelocatableProgram:	target[0] = 0x03;	break;
+		case Header::DataSequenceHeader:	target[0] = 0x04;	break;
+		case Header::EndOfTape:				target[0] = 0x05;	break;
+	}
+
+	memcpy(&target[1], data.data(), 191);
+}
+
 std::unique_ptr<Data> Parser::get_next_data_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original)
 {
 	std::unique_ptr<Data> data(new Data);
