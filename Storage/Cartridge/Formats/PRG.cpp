@@ -18,12 +18,8 @@ PRG::PRG(const char *file_name) {
 	struct stat file_stats;
 	stat(file_name, &file_stats);
 
-	// accept only files sized 1, 2, 4 or 8kb
-	if(
-		file_stats.st_size != 0x400 + 2 &&
-		file_stats.st_size != 0x800 + 2 &&
-		file_stats.st_size != 0x1000 + 2 &&
-		file_stats.st_size != 0x2000 + 2)
+	// accept only files sized less than 8kb
+	if(file_stats.st_size > 0x2000 + 2)
 		throw ErrorNotROM;
 
 	// get the loading address, and the rest of the contents
@@ -33,7 +29,9 @@ PRG::PRG(const char *file_name) {
 	loading_address |= fgetc(file) << 8;
 
 	size_t data_length = (size_t)file_stats.st_size - 2;
-	std::vector<uint8_t> contents(data_length);
+	size_t padded_data_length = 1;
+	while(padded_data_length < data_length) padded_data_length <<= 1;
+	std::vector<uint8_t> contents(padded_data_length);
 	fread(&contents[0], 1, (size_t)(data_length), file);
 	fclose(file);
 

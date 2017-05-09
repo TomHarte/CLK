@@ -18,12 +18,12 @@ using namespace Commodore::Vic20;
 Machine::Machine() :
 		rom_(nullptr),
 		is_running_at_zero_cost_(false),
-		tape_(new Storage::Tape::BinaryTapePlayer(1022727)) {
-	// create 6522s, serial port and bus
-	user_port_via_.reset(new UserPortVIA);
-	keyboard_via_.reset(new KeyboardVIA);
-	serial_port_.reset(new SerialPort);
-	serial_bus_.reset(new ::Commodore::Serial::Bus);
+		tape_(new Storage::Tape::BinaryTapePlayer(1022727)),
+		user_port_via_(new UserPortVIA),
+		keyboard_via_(new KeyboardVIA),
+		serial_port_(new SerialPort),
+		serial_bus_(new ::Commodore::Serial::Bus) {
+	// communicate the tape to the user-port VIA
 	user_port_via_->set_tape(tape_);
 
 	// wire up the serial bus and serial port
@@ -98,17 +98,6 @@ Machine::~Machine() {
 }
 
 unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
-//	static int logCount = 0;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && address == 0xf957) logCount = 500;
-//	if(operation == CPU6502::BusOperation::ReadOpcode && logCount) {
-//		logCount--;
-//		printf("%04x\n", address);
-//	}
-
-//	if(operation == CPU6502::BusOperation::Write && (address >= 0x033C && address < 0x033C + 192)) {
-//		printf("\n[%04x] <- %02x\n", address, *value);
-//	}
-
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	if(!is_running_at_zero_cost_) mos6560_->run_for_cycles(1);
 
@@ -158,10 +147,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					// perform a via-processor_write_memory_map_ memcpy
 					uint8_t *data_ptr = data->data.data();
-					while(start_address != end_address) {
-						processor_write_memory_map_[start_address >> 10][start_address & 0x3ff] = *data_ptr;
+					size_t data_left = data->data.size();
+					while(data_left && start_address != end_address) {
+						uint8_t *page = processor_write_memory_map_[start_address >> 10];
+						if(page) page[start_address & 0x3ff] = *data_ptr;
 						data_ptr++;
 						start_address++;
+						data_left--;
 					}
 
 					// set tape status, carry and flag
@@ -265,22 +257,6 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data) {
 		memcpy(target, data, length_to_copy);
 	}
 }
-
-//void Machine::set_prg(const char *file_name, size_t length, const uint8_t *data) {
-//	if(length > 2) {
-//		_rom_address = (uint16_t)(data[0] | (data[1] << 8));
-//		_rom_length = (uint16_t)(length - 2);
-//
-//		// install in the ROM area if this looks like a ROM; otherwise put on tape and throw into that mechanism
-//		if(_rom_address == 0xa000) {
-//			_rom = new uint8_t[0x2000];
-//			memcpy(_rom, &data[2], length - 2);
-//			write_to_map(processor_read_memory_map_, _rom, _rom_address, 0x2000);
-//		} else {
-//			set_tape(std::shared_ptr<Storage::Tape::Tape>(new Storage::Tape::PRG(file_name)));
-//		}
-//	}
-//}
 
 #pragma mar - Tape
 
