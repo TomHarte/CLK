@@ -10,7 +10,6 @@
 #define Storage_Tape_Parsers_Commodore_hpp
 
 #include "TapeParser.hpp"
-//#include "Utilities.hpp"
 #include <memory>
 #include <string>
 
@@ -43,6 +42,12 @@ struct Header {
 	uint16_t ending_address;
 	bool parity_was_valid;
 	bool duplicate_matched;
+
+	/*!
+		Writes a byte serialised version of this header to @c target, writing at most
+		@c length bytes.
+	*/
+	void serialise(uint8_t *target, uint16_t length);
 };
 
 struct Data {

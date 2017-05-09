@@ -13,6 +13,8 @@
 #include "Disk.hpp"
 #include "../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
+#include <sstream>
+
 using namespace StaticAnalyser::Commodore;
 
 static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
@@ -75,15 +77,15 @@ void StaticAnalyser::Commodore::AddTargets(
 
 	if(files.size()) {
 		target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
-		if(files.front().is_basic()) {
-			char command[16];
-			snprintf(command, 16, "LOAD\"%s\",%d,0\nRUN\n", is_disk ? "*" : "", device);
-			target.loadingCommand = command;
+		std::ostringstream string_stream;
+		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
+  		if(files.front().is_basic()) {
+			string_stream << "0";
 		} else {
-			char command[16];
-			snprintf(command, 16, "LOAD\"%s\",%d,1\nRUN\n", is_disk ? "*" : "", device);
-			target.loadingCommand = command;
+			string_stream << "1";
 		}
+		string_stream << "\nRUN\n";
+		target.loadingCommand = string_stream.str();
 
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {

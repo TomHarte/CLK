@@ -15,7 +15,6 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 	std::list<File> files;
 	Storage::Tape::Oric::Parser parser;
 
-	tape->reset();
 	while(!tape->is_at_end()) {
 		// sync to next lead-in, check that it's one of three 0x16s
 		bool is_fast = parser.sync_and_get_encoding_speed(tape);
@@ -81,7 +80,6 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 			files.push_back(new_file);
 		}
 	}
-	tape->reset();
 
 	return files;
 }

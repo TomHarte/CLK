@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include "../../../Storage/Tape/Formats/TapePRG.hpp"
+#include "../../../Storage/Tape/Parsers/Commodore.hpp"
 #include "../../../StaticAnalyser/StaticAnalyser.hpp"
 
 using namespace Commodore::Vic20;
@@ -17,12 +18,13 @@ using namespace Commodore::Vic20;
 Machine::Machine() :
 		rom_(nullptr),
 		is_running_at_zero_cost_(false),
-		tape_(1022727) {
+		tape_(new Storage::Tape::BinaryTapePlayer(1022727)) {
 	// create 6522s, serial port and bus
 	user_port_via_.reset(new UserPortVIA);
 	keyboard_via_.reset(new KeyboardVIA);
 	serial_port_.reset(new SerialPort);
 	serial_bus_.reset(new ::Commodore::Serial::Bus);
+	user_port_via_->set_tape(tape_);
 
 	// wire up the serial bus and serial port
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus_);
@@ -35,7 +37,7 @@ Machine::Machine() :
 	// wire up the 6522s, tape and machine
 	user_port_via_->set_interrupt_delegate(this);
 	keyboard_via_->set_interrupt_delegate(this);
-	tape_.set_delegate(this);
+	tape_->set_delegate(this);
 
 	// establish the memory maps
 	set_memory_size(MemorySize::Default);
@@ -124,11 +126,55 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
 		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
 		// CPU or 6560 costs.
-		if(use_fast_tape_hack_ && tape_.has_tape() && address == 0xf92f && operation == CPU6502::BusOperation::ReadOpcode) {
-			while(!user_port_via_->get_interrupt_line() && !keyboard_via_->get_interrupt_line() && !tape_.get_tape()->is_at_end()) {
-				user_port_via_->run_for_cycles(1);
-				keyboard_via_->run_for_cycles(1);
-				tape_.run_for_cycles(1);
+		if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU6502::BusOperation::ReadOpcode) {
+			if(address == 0xf7b2) {
+				// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
+				// So cancel that via a double NOP and fill in the next header programmatically.
+				Storage::Tape::Commodore::Parser parser;
+				std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->get_tape());
+
+				// serialise to wherever b2:b3 points
+				uint16_t tape_buffer_pointer = (uint16_t)user_basic_memory_[0xb2] | (uint16_t)(user_basic_memory_[0xb3] << 8);
+				if(header) {
+					header->serialise(&user_basic_memory_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
+				} else {
+					// no header found, so store end-of-tape
+					user_basic_memory_[tape_buffer_pointer] = 0x05;	// i.e. end of tape
+				}
+
+				// clear status and the verify flag
+				user_basic_memory_[0x90] = 0;
+				user_basic_memory_[0x93] = 0;
+
+				*value = 0x0c;	// i.e. NOP abs
+			} else if(address == 0xf90b) {
+				uint8_t x = (uint8_t)get_value_of_register(CPU6502::Register::X);
+				if(x == 0xe) {
+					Storage::Tape::Commodore::Parser parser;
+					std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
+					uint16_t start_address, end_address;
+					start_address = (uint16_t)(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
+					end_address = (uint16_t)(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
+
+					// perform a via-processor_write_memory_map_ memcpy
+					uint8_t *data_ptr = data->data.data();
+					while(start_address != end_address) {
+						processor_write_memory_map_[start_address >> 10][start_address & 0x3ff] = *data_ptr;
+						data_ptr++;
+						start_address++;
+					}
+
+					// set tape status, carry and flag
+					user_basic_memory_[0x90] |= 0x40;
+					uint8_t	flags = (uint8_t)get_value_of_register(CPU6502::Register::Flags);
+					flags &= ~(uint8_t)(CPU6502::Flag::Carry | CPU6502::Flag::Interrupt);
+					set_value_of_register(CPU6502::Register::Flags, flags);
+
+					// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
+					// ensure that the PC leaps to 0xfccf
+					set_value_of_register(CPU6502::Register::ProgramCounter, 0xfccf);
+					*value = 0xea;	// i.e. NOP implied
+				}
 			}
 		}
 	} else {
@@ -149,33 +195,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 			typer_.reset();
 		}
 	}
-	tape_.run_for_cycles(1);
+	tape_->run_for_cycles(1);
 	if(c1540_) c1540_->run_for_cycles(1);
-
-	// If using fast tape then:
-	//	if the PC hits 0xf98e, the ROM's tape loading routine, then begin zero cost processing;
-	//	if the PC heads into RAM
-	//
-	// Where 'zero cost processing' is taken to be taking the 6560 off the bus (because I know it's
-	// expensive, and not relevant) then running the tape, the CPU and both 6522s as usual but not
-	// counting cycles towards the processing budget. So the limit is the host machine.
-	//
-	// Note the additional test above for PC hitting 0xf92f, which is a loop in the ROM that waits
-	// for an interesting interrupt. Up there the fast tape hack goes even further in also cutting
-	// the CPU out of the action.
-	if(use_fast_tape_hack_ && tape_.has_tape()) {
-		if(address == 0xf98e && operation == CPU6502::BusOperation::ReadOpcode) {
-			is_running_at_zero_cost_ = true;
-			set_clock_is_unlimited(true);
-		}
-		if(
-			(address < 0xe000 && operation == CPU6502::BusOperation::ReadOpcode) ||
-			tape_.get_tape()->is_at_end()
-		) {
-			is_running_at_zero_cost_ = false;
-			set_clock_is_unlimited(false);
-		}
-	}
 
 	return 1;
 }
@@ -265,7 +286,7 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data) {
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	if(target.tapes.size()) {
-		tape_.set_tape(target.tapes.front());
+		tape_->set_tape(target.tapes.front());
 	}
 
 	if(target.disks.size()) {
@@ -292,8 +313,8 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
 	}
 
-	if(should_automatically_load_media_) {
-		if(target.loadingCommand.length()) {	// TODO: and automatic loading option enabled
+//	if(should_automatically_load_media_) {
+		if(target.loadingCommand.length()) {
 			set_typer_for_string(target.loadingCommand.c_str());
 		}
 
@@ -308,7 +329,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 				set_memory_size(ThirtyTwoKB);
 			break;
 		}
-	}
+//	}
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
@@ -329,15 +350,15 @@ void Machine::install_disk_rom() {
 
 uint8_t UserPortVIA::get_port_input(Port port) {
 	if(!port) {
-		return port_a_;	// TODO: bit 6 should be high if there is no tape, low otherwise
+		return port_a_ | (tape_->has_tape() ? 0x00 : 0x40);
 	}
 	return 0xff;
 }
 
 void UserPortVIA::set_control_line_output(Port port, Line line, bool value) {
-//	if(port == Port::A && line == Line::Two) {
-//		printf("Tape motor %s\n", value ? "on" : "off");
-//	}
+	if(port == Port::A && line == Line::Two) {
+		tape_->set_motor_control(!value);
+	}
 }
 
 void UserPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool value) {
@@ -367,6 +388,10 @@ UserPortVIA::UserPortVIA() : port_a_(0xbf) {}
 
 void UserPortVIA::set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort) {
 	serial_port_ = serialPort;
+}
+
+void UserPortVIA::set_tape(std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape) {
+	tape_ = tape;
 }
 
 #pragma mark - KeyboardVIA

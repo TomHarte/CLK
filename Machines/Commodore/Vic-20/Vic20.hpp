@@ -87,10 +87,12 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		void set_port_output(Port port, uint8_t value, uint8_t mask);
 
 		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort);
+		void set_tape(std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape);
 
 	private:
 		uint8_t port_a_;
 		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
+		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 };
 
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
@@ -164,7 +166,7 @@ class Machine:
 		void set_region(Region region);
 
 		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
-		inline void set_should_automatically_load_media(bool activate) { should_automatically_load_media_ = activate; }
+//		inline void set_should_automatically_load_media(bool activate) { should_automatically_load_media_ = activate; }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -213,15 +215,13 @@ class Machine:
 		std::shared_ptr<::Commodore::Serial::Bus> serial_bus_;
 
 		// Tape
-		Storage::Tape::BinaryTapePlayer tape_;
-		bool use_fast_tape_hack_, should_automatically_load_media_;
+		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
+		bool use_fast_tape_hack_;//, should_automatically_load_media_;
 		bool is_running_at_zero_cost_;
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
 		void install_disk_rom();
-
-		// Autoload string
 };
 
 }

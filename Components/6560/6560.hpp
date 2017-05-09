@@ -82,19 +82,19 @@ template <class T> class MOS6560 {
 		*/
 		void set_output_mode(OutputMode output_mode) {
 			output_mode_ = output_mode;
-			uint8_t luminances[16] = {		// range is 0–4
+			const uint8_t luminances[16] = {		// range is 0–4
 				0, 4, 1, 3, 2, 2, 1, 3,
 				2, 1, 2, 1, 2, 3, 2, 3
 			};
-			uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
+			const uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
 				15, 15, 5, 13, 2, 10, 0, 8,
 				6, 7, 5, 13, 2, 10, 0, 8,
 			};
-			uint8_t ntsc_chrominances[16] = {
+			const uint8_t ntsc_chrominances[16] = {
 				15, 15, 2, 10, 4, 12, 6, 14,
 				0, 8, 2, 10, 4, 12, 6, 14,
 			};
-			uint8_t *chrominances;
+			const uint8_t *chrominances;
 			Outputs::CRT::DisplayType display_type;
 
 			switch(output_mode) {
