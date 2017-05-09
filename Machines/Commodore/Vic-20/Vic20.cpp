@@ -147,10 +147,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					// perform a via-processor_write_memory_map_ memcpy
 					uint8_t *data_ptr = data->data.data();
-					while(start_address != end_address) {
-						processor_write_memory_map_[start_address >> 10][start_address & 0x3ff] = *data_ptr;
+					size_t data_left = data->data.size();
+					while(data_left && start_address != end_address) {
+						uint8_t *page = processor_write_memory_map_[start_address >> 10];
+						if(page) page[start_address & 0x3ff] = *data_ptr;
 						data_ptr++;
 						start_address++;
+						data_left--;
 					}
 
 					// set tape status, carry and flag
