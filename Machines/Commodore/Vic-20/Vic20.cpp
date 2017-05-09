@@ -156,6 +156,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 					start_address = (uint16_t)(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
 					end_address = (uint16_t)(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
 
+					// perform a via-processor_write_memory_map_ memcpy
 					uint8_t *data_ptr = data->data.data();
 					while(start_address != end_address) {
 						processor_write_memory_map_[start_address >> 10][start_address & 0x3ff] = *data_ptr;
@@ -163,14 +164,16 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						start_address++;
 					}
 
+					// set tape status, carry and flag
 					user_basic_memory_[0x90] |= 0x40;
-
 					uint8_t	flags = (uint8_t)get_value_of_register(CPU6502::Register::Flags);
 					flags &= ~(uint8_t)(CPU6502::Flag::Carry | CPU6502::Flag::Interrupt);
 					set_value_of_register(CPU6502::Register::Flags, flags);
 
-					set_value_of_register(CPU6502::Register::ProgramCounter, 0xfccf + 1);
-					*value = 0x08;
+					// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
+					// ensure that the PC leaps to 0xfccf
+					set_value_of_register(CPU6502::Register::ProgramCounter, 0xfccf);
+					*value = 0xea;	// i.e. NOP implied
 				}
 			}
 		}
