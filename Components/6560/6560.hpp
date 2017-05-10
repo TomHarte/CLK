@@ -43,7 +43,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 template <class T> class MOS6560 {
 	public:
 		MOS6560() :
-				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 1)),
+				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
 				speaker_(new Speaker),
 				horizontal_counter_(0),
 				vertical_counter_(0),
@@ -53,13 +53,11 @@ template <class T> class MOS6560 {
 			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
-					"uint c = texture(texID, coordinate).r;"
-					"float y = float(c >> 4) / 4.0;"
-					"uint yC = c & 15u;"
-					"float phaseOffset = 6.283185308 * float(yC) / 16.0;"
+					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
+					"float phaseOffset = 6.283185308 * float(yc.y);"
 
 					"float chroma = cos(phase + phaseOffset);"
-					"return mix(y, step(yC, 14) * chroma, amplitude);"
+					"return mix(yc.x, chroma, amplitude);"
 				"}");
 
 			// default to NTSC
@@ -82,11 +80,13 @@ template <class T> class MOS6560 {
 		*/
 		void set_output_mode(OutputMode output_mode) {
 			output_mode_ = output_mode;
-			const uint8_t luminances[16] = {		// range is 0–4
-				0, 4, 1, 3, 2, 2, 1, 3,
-				2, 1, 2, 1, 2, 3, 2, 3
+			const uint8_t luminances[16] = {
+				0,		255,	91,		190,
+				134,	176,	84,		224,
+				140,	212,	200,	213,
+				205,	200,	163,	221
 			};
-			const uint8_t pal_chrominances[16] = {	// range is 0–15; 15 is a special case meaning "no chrominance"
+			const uint8_t pal_chrominances[16] = {
 				15, 15, 5, 13, 2, 10, 0, 8,
 				6, 7, 5, 13, 2, 10, 0, 8,
 			};
@@ -118,7 +118,7 @@ template <class T> class MOS6560 {
 			}
 
 			crt_->set_new_display_type((unsigned int)(timing_.cycles_per_line*4), display_type);
-//			crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
 //				case OutputMode::PAL:
@@ -130,7 +130,9 @@ template <class T> class MOS6560 {
 //			}
 
 			for(int c = 0; c < 16; c++) {
-				colours_[c] = (uint8_t)((luminances[c] << 4) | chrominances[c]);
+				uint8_t *colour = (uint8_t *)&colours_[c];
+				colour[0] = luminances[c];
+				colour[1] = chrominances[c] * 15;
 			}
 		}
 
@@ -256,7 +258,7 @@ template <class T> class MOS6560 {
 
 					pixel_pointer = nullptr;
 					if(output_state_ == State::Pixels) {
-						pixel_pointer = crt_->allocate_write_area(260);
+						pixel_pointer = (uint16_t *)crt_->allocate_write_area(260);
 					}
 				}
 				cycles_in_state_++;
@@ -266,9 +268,9 @@ template <class T> class MOS6560 {
 						character_value_ = pixel_data;
 
 						if(pixel_pointer) {
-							uint8_t cell_colour = colours_[character_colour_ & 0x7];
+							uint16_t cell_colour = colours_[character_colour_ & 0x7];
 							if(!(character_colour_&0x8)) {
-								uint8_t colours[2];
+								uint16_t colours[2];
 								if(registers_.invertedCells) {
 									colours[0] = cell_colour;
 									colours[1] = registers_.backgroundColour;
@@ -285,7 +287,7 @@ template <class T> class MOS6560 {
 								pixel_pointer[6] = colours[(character_value_ >> 1)&1];
 								pixel_pointer[7] = colours[(character_value_ >> 0)&1];
 							} else {
-								uint8_t colours[4] = {registers_.backgroundColour, registers_.borderColour, cell_colour, registers_.auxiliary_colour};
+								uint16_t colours[4] = {registers_.backgroundColour, registers_.borderColour, cell_colour, registers_.auxiliary_colour};
 								pixel_pointer[0] =
 								pixel_pointer[1] = colours[(character_value_ >> 6)&3];
 								pixel_pointer[2] =
@@ -358,7 +360,7 @@ template <class T> class MOS6560 {
 				break;
 
 				case 0xf: {
-					uint8_t new_border_colour = colours_[value & 0x07];
+					uint16_t new_border_colour = colours_[value & 0x07];
 					if(this_state_ == State::Border && new_border_colour != registers_.borderColour) {
 						output_border(cycles_in_state_ * 4);
 						cycles_in_state_ = 0;
@@ -405,7 +407,7 @@ template <class T> class MOS6560 {
 			uint8_t first_column_location, first_row_location;
 			uint8_t number_of_columns, number_of_rows;
 			uint16_t character_cell_start_address, video_matrix_start_address;
-			uint8_t backgroundColour, borderColour, auxiliary_colour;
+			uint16_t backgroundColour, borderColour, auxiliary_colour;
 			bool invertedCells;
 
 			uint8_t direct_values[16];
@@ -436,11 +438,11 @@ template <class T> class MOS6560 {
 		bool is_odd_frame_, is_odd_line_;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
-		uint8_t colours_[16];
+		uint16_t colours_[16];
 
-		uint8_t *pixel_pointer;
+		uint16_t *pixel_pointer;
 		void output_border(unsigned int number_of_cycles) {
-			uint8_t *colour_pointer = crt_->allocate_write_area(1);
+			uint16_t *colour_pointer = (uint16_t *)crt_->allocate_write_area(1);
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
 			crt_->output_level(number_of_cycles);
 		}
