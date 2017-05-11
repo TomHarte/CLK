@@ -336,7 +336,7 @@ void OpenGLOutputBuilder::set_output_device(OutputDevice output_device) {
 }
 
 void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider) {
-	output_mutex_.lock();
+	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	input_frequency_ = input_frequency;
 	cycles_per_line_ = cycles_per_line;
 	height_of_display_ = height_of_display;
@@ -345,7 +345,6 @@ void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int 
 	vertical_period_divider_ = vertical_period_divider;
 
 	set_timing_uniforms();
-	output_mutex_.unlock();
 }
 
 #pragma mark - Internal Configuration
