@@ -54,10 +54,10 @@ template <class T> class MOS6560 {
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
 					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
-					"float phaseOffset = 6.283185308 * float(yc.y);"
+					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
 
 					"float chroma = cos(phase + phaseOffset);"
-					"return mix(yc.x, chroma, amplitude);"
+					"return mix(yc.x, step(yc.y, 0.75) * chroma, amplitude);"
 				"}");
 
 			// default to NTSC
@@ -91,7 +91,7 @@ template <class T> class MOS6560 {
 				6, 7, 5, 13, 2, 10, 0, 8,
 			};
 			const uint8_t ntsc_chrominances[16] = {
-				15, 15, 2, 10, 4, 12, 6, 14,
+				255, 255, 2, 10, 4, 12, 6, 14,
 				0, 8, 2, 10, 4, 12, 6, 14,
 			};
 			const uint8_t *chrominances;
@@ -118,7 +118,7 @@ template <class T> class MOS6560 {
 			}
 
 			crt_->set_new_display_type((unsigned int)(timing_.cycles_per_line*4), display_type);
-			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+//			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
 //				case OutputMode::PAL:
