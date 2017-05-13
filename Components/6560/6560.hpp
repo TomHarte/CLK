@@ -57,7 +57,7 @@ template <class T> class MOS6560 {
 					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
 
 					"float chroma = cos(phase + phaseOffset);"
-					"return mix(yc.x, step(yc.y, 0.75) * chroma, amplitude);"
+					"return mix(yc.x, step(yc.y, 0.75) * 0.5 * chroma, amplitude);"
 				"}");
 
 			// default to NTSC
@@ -80,19 +80,25 @@ template <class T> class MOS6560 {
 		*/
 		void set_output_mode(OutputMode output_mode) {
 			output_mode_ = output_mode;
+
+			// Lumunances are encoded trivially: on a 0–255 scale.
 			const uint8_t luminances[16] = {
 				0,		255,	91,		190,
 				134,	176,	84,		224,
 				140,	212,	200,	213,
 				205,	200,	163,	221
 			};
+
+			// Chrominances are encoded such that 0–128 is a complete revolution of phase;
+			// anything above 191 disables the colour subcarrier. Phase is relative to the
+			// colour burst, so 0 is green.
 			const uint8_t pal_chrominances[16] = {
 				15, 15, 5, 13, 2, 10, 0, 8,
 				6, 7, 5, 13, 2, 10, 0, 8,
 			};
 			const uint8_t ntsc_chrominances[16] = {
-				255, 255, 2, 10, 4, 12, 6, 14,
-				0, 8, 2, 10, 4, 12, 6, 14,
+				255,	255,	40,		104,	64,		120,	80,		16,
+				32,		32,		40,		104,	64,		120,	80,		16,
 			};
 			const uint8_t *chrominances;
 			Outputs::CRT::DisplayType display_type;
@@ -132,7 +138,7 @@ template <class T> class MOS6560 {
 			for(int c = 0; c < 16; c++) {
 				uint8_t *colour = (uint8_t *)&colours_[c];
 				colour[0] = luminances[c];
-				colour[1] = chrominances[c] * 15;
+				colour[1] = chrominances[c];
 			}
 		}
 
@@ -297,6 +303,15 @@ template <class T> class MOS6560 {
 								pixel_pointer[6] =
 								pixel_pointer[7] = colours[(character_value_ >> 0)&3];
 							}
+
+//							pixel_pointer[0] =
+//							pixel_pointer[1] =
+//							pixel_pointer[2] =
+//							pixel_pointer[3] =
+//							pixel_pointer[4] =
+//							pixel_pointer[5] =
+//							pixel_pointer[6] =
+//							pixel_pointer[7] = colours_[8];
 							pixel_pointer += 8;
 						}
 					} else {
