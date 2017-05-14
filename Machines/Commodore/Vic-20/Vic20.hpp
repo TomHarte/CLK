@@ -166,7 +166,6 @@ class Machine:
 		void set_region(Region region);
 
 		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
-//		inline void set_should_automatically_load_media(bool activate) { should_automatically_load_media_ = activate; }
 
 		// to satisfy CPU6502::Processor
 		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -216,7 +215,7 @@ class Machine:
 
 		// Tape
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
-		bool use_fast_tape_hack_;//, should_automatically_load_media_;
+		bool use_fast_tape_hack_;
 		bool is_running_at_zero_cost_;
 
 		// Disk

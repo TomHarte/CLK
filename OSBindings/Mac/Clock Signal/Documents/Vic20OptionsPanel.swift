@@ -13,18 +13,6 @@ class Vic20OptionsPanel: MachinePanel {
 		}
 	}
 
-	// MARK: automatic loading tick box
-	@IBOutlet var loadAutomaticallyButton: NSButton?
-	var autoloadingUserDefaultsKey: String {
-		get { return prefixedUserDefaultsKey("autoload") }
-	}
-
-	@IBAction func setShouldLoadAutomatically(_ sender: NSButton!) {
-		let loadAutomatically = sender.state == NSOnState
-		vic20.shouldLoadAutomatically = loadAutomatically
-		UserDefaults.standard.set(loadAutomatically, forKey: self.autoloadingUserDefaultsKey)
-	}
-
 	// MARK: country selector
 	@IBOutlet var countryButton: NSPopUpButton?
 	var countryUserDefaultsKey: String {
@@ -85,28 +73,21 @@ class Vic20OptionsPanel: MachinePanel {
 
 		let standardUserDefaults = UserDefaults.standard
 		standardUserDefaults.register(defaults: [
-			self.autoloadingUserDefaultsKey: true,
 			self.memorySizeUserDefaultsKey: 5,
 			self.countryUserDefaultsKey: 1
 		])
 
-		let loadAutomatically = standardUserDefaults.bool(forKey: self.autoloadingUserDefaultsKey)
-		vic20.shouldLoadAutomatically = loadAutomatically
-		self.loadAutomaticallyButton?.state = loadAutomatically ? NSOnState : NSOffState
-
-		if !loadAutomatically {
-			let memorySize = standardUserDefaults.integer(forKey: self.memorySizeUserDefaultsKey)
-			var indexToSelect: Int?
-			switch memorySize {
-				case 32:	indexToSelect = 2
-				case 8:		indexToSelect = 1
-				default:	indexToSelect = 0
-			}
-			if let indexToSelect = indexToSelect {
-				self.memorySizeButton?.selectItem(at: indexToSelect)
-				setMemorySize(indexToSelect)
-			}
-		}
+//			let memorySize = standardUserDefaults.integer(forKey: self.memorySizeUserDefaultsKey)
+//			var indexToSelect: Int?
+//			switch memorySize {
+//				case 32:	indexToSelect = 2
+//				case 8:		indexToSelect = 1
+//				default:	indexToSelect = 0
+//			}
+//			if let indexToSelect = indexToSelect {
+//				self.memorySizeButton?.selectItem(at: indexToSelect)
+//				setMemorySize(indexToSelect)
+//			}
 
 		// TODO: this should be part of the configuration
 		let country = standardUserDefaults.integer(forKey: self.countryUserDefaultsKey)

@@ -178,13 +178,6 @@ using namespace Commodore::Vic20;
 	}
 }
 
-- (void)setShouldLoadAutomatically:(BOOL)shouldLoadAutomatically {
-	_shouldLoadAutomatically = shouldLoadAutomatically;
-	@synchronized(self) {
-//		_vic20.set_should_automatically_load_media(shouldLoadAutomatically ? true : false);
-	}
-}
-
 - (void)setCountry:(CSVic20Country)country {
 	_country = country;
 	NSString *charactersROM, *kernelROM;
