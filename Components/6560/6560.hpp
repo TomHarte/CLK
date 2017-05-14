@@ -57,7 +57,7 @@ template <class T> class MOS6560 {
 					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
 
 					"float chroma = cos(phase + phaseOffset);"
-					"return mix(yc.x, step(yc.y, 0.75) * 0.5 * chroma, amplitude);"
+					"return mix(yc.x, step(yc.y, 0.75) * chroma, amplitude);"
 				"}");
 
 			// default to NTSC
@@ -94,9 +94,9 @@ template <class T> class MOS6560 {
 			// colour burst, so 0 is green.
 			const uint8_t pal_chrominances[16] = {
 				255,	255,	40,		112,
-				8,		88,		0,		56,
+				8,		88,		120,	56,
 				40,		48,		40,		112,
-				8,		88,		0,		56,
+				8,		88,		120,	56,
 			};
 			const uint8_t ntsc_chrominances[16] = {
 				255,	255,	40,		104,
