@@ -29,7 +29,6 @@ typedef NS_ENUM(NSInteger, CSVic20MemorySize)
 @interface CSVic20 : CSMachine <CSKeyboardMachine, CSFastLoading>
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
-@property (nonatomic, assign) BOOL shouldLoadAutomatically;
 @property (nonatomic, assign) CSVic20Country country;
 @property (nonatomic, assign) CSVic20MemorySize memorySize;
 

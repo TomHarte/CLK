@@ -289,23 +289,21 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
 	}
 
-//	if(should_automatically_load_media_) {
-		if(target.loadingCommand.length()) {
-			set_typer_for_string(target.loadingCommand.c_str());
-		}
+	if(target.loadingCommand.length()) {
+		set_typer_for_string(target.loadingCommand.c_str());
+	}
 
-		switch(target.vic20.memory_model) {
-			case StaticAnalyser::Vic20MemoryModel::Unexpanded:
-				set_memory_size(Default);
-			break;
-			case StaticAnalyser::Vic20MemoryModel::EightKB:
-				set_memory_size(ThreeKB);
-			break;
-			case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
-				set_memory_size(ThirtyTwoKB);
-			break;
-		}
-//	}
+	switch(target.vic20.memory_model) {
+		case StaticAnalyser::Vic20MemoryModel::Unexpanded:
+			set_memory_size(Default);
+		break;
+		case StaticAnalyser::Vic20MemoryModel::EightKB:
+			set_memory_size(ThreeKB);
+		break;
+		case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
+			set_memory_size(ThirtyTwoKB);
+		break;
+	}
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
