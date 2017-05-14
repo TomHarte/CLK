@@ -99,7 +99,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
 
 			// determine output position by scaling the output position according to the texture size
-			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0) + vec2(1.0)/outputTextureSize;"
+			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0);"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}", sampler_type, input_variable);
 
