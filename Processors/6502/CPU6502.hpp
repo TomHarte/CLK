@@ -9,8 +9,8 @@
 #ifndef CPU6502_cpp
 #define CPU6502_cpp
 
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdio>
+#include <cstdint>
 
 namespace CPU6502 {
 
