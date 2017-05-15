@@ -9,7 +9,7 @@
 #ifndef Electron_hpp
 #define Electron_hpp
 
-#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Processors/6502/6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -68,7 +68,7 @@ enum Key: uint16_t {
 	Acorn Electron.
 */
 class Machine:
-	public CPU6502::Processor<Machine>,
+	public CPU::MOS6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public Tape::Delegate,
 	public Utility::TypeRecipient,
@@ -87,8 +87,8 @@ class Machine:
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
 
-		// to satisfy CPU6502::Processor
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		// to satisfy CPU::MOS6502::Processor
+		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void synchronise();
 
 		// to satisfy CRTMachine::Machine
@@ -96,7 +96,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);

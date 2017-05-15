@@ -18,7 +18,7 @@ class CartridgeUnpaged: public Cartridge<CartridgeUnpaged> {
 		CartridgeUnpaged(const std::vector<uint8_t> &rom) :
 			Cartridge(rom) {}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(isReadOperation(operation) && (address & 0x1000)) {
 				*value = rom_[address & (rom_.size() - 1)];
 			}

@@ -23,7 +23,7 @@ class CartridgeParkerBros: public Cartridge<CartridgeParkerBros> {
 			rom_ptr_[3] = rom_ptr_[2] + 1024;
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 

@@ -97,7 +97,7 @@ Machine::~Machine() {
 	delete[] rom_;
 }
 
-unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	if(!is_running_at_zero_cost_) mos6560_->run_for_cycles(1);
 
@@ -115,7 +115,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		// PC hits the start of the loop that just waits for an interesting tape interrupt to have
 		// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
 		// CPU or 6560 costs.
-		if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU6502::BusOperation::ReadOpcode) {
+		if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 			if(address == 0xf7b2) {
 				// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
 				// So cancel that via a double NOP and fill in the next header programmatically.
@@ -137,7 +137,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 				*value = 0x0c;	// i.e. NOP abs
 			} else if(address == 0xf90b) {
-				uint8_t x = (uint8_t)get_value_of_register(CPU6502::Register::X);
+				uint8_t x = (uint8_t)get_value_of_register(CPU::MOS6502::Register::X);
 				if(x == 0xe) {
 					Storage::Tape::Commodore::Parser parser;
 					std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
@@ -158,13 +158,13 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 					// set tape status, carry and flag
 					user_basic_memory_[0x90] |= 0x40;
-					uint8_t	flags = (uint8_t)get_value_of_register(CPU6502::Register::Flags);
-					flags &= ~(uint8_t)(CPU6502::Flag::Carry | CPU6502::Flag::Interrupt);
-					set_value_of_register(CPU6502::Register::Flags, flags);
+					uint8_t	flags = (uint8_t)get_value_of_register(CPU::MOS6502::Register::Flags);
+					flags &= ~(uint8_t)(CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt);
+					set_value_of_register(CPU::MOS6502::Register::Flags, flags);
 
 					// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
 					// ensure that the PC leaps to 0xfccf
-					set_value_of_register(CPU6502::Register::ProgramCounter, 0xfccf);
+					set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 					*value = 0xea;	// i.e. NOP implied
 				}
 			}
@@ -181,7 +181,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 
 	user_port_via_->run_for_cycles(1);
 	keyboard_via_->run_for_cycles(1);
-	if(typer_ && operation == CPU6502::BusOperation::ReadOpcode && address == 0xEB1E) {
+	if(typer_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xEB1E) {
 		if(!typer_->type_next_character()) {
 			clear_all_keys();
 			typer_.reset();

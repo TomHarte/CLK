@@ -1,22 +1,22 @@
 //
-//  CPU6502AllRAM.cpp
+//  6502AllRAM.cpp
 //  CLK
 //
 //  Created by Thomas Harte on 13/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#include "CPU6502AllRAM.hpp"
+#include "6502AllRAM.hpp"
 #include <algorithm>
 #include <string.h>
 
-using namespace CPU6502;
+using namespace CPU::MOS6502;
 
 AllRAMProcessor::AllRAMProcessor() : _timestamp(0) {
 	set_power_on(false);
 }
 
-int AllRAMProcessor::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	_timestamp++;
 
 	if(isReadOperation(operation)) {

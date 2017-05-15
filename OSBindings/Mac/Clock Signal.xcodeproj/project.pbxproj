@@ -12,9 +12,9 @@
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
-		4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
-		4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* CPU6502.cpp */; };
-		4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */; };
+		4B14145B1B58879D00E04248 /* 6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* 6502.cpp */; };
+		4B14145D1B5887A600E04248 /* 6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414571B58879D00E04248 /* 6502.cpp */; };
+		4B14145E1B5887AA00E04248 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414591B58879D00E04248 /* 6502AllRAM.cpp */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
 		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
@@ -33,6 +33,7 @@
 		4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */; };
 		4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */; };
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
+		4B2C455D1EC9442600FC74DD /* RegisterSizes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2C455B1EC9442600FC74DD /* RegisterSizes.cpp */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
@@ -443,10 +444,10 @@
 		4B121F971E060CF000BFDA12 /* PCMSegment.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMSegment.hpp; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
-		4B1414571B58879D00E04248 /* CPU6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPU6502.cpp; sourceTree = "<group>"; };
-		4B1414581B58879D00E04248 /* CPU6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502.hpp; sourceTree = "<group>"; };
-		4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPU6502AllRAM.cpp; sourceTree = "<group>"; };
-		4B14145A1B58879D00E04248 /* CPU6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPU6502AllRAM.hpp; sourceTree = "<group>"; };
+		4B1414571B58879D00E04248 /* 6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502.cpp; sourceTree = "<group>"; };
+		4B1414581B58879D00E04248 /* 6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
+		4B1414591B58879D00E04248 /* 6502AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502AllRAM.cpp; sourceTree = "<group>"; };
+		4B14145A1B58879D00E04248 /* 6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502AllRAM.hpp; sourceTree = "<group>"; };
 		4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WolfgangLorenzTests.swift; sourceTree = "<group>"; };
 		4B1414611B58888700E04248 /* KlausDormannTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KlausDormannTests.swift; sourceTree = "<group>"; };
 		4B1D08051E0F7A1100763741 /* TimeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TimeTests.mm; sourceTree = "<group>"; };
@@ -480,6 +481,8 @@
 		4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Oric/Video.cpp; sourceTree = "<group>"; };
 		4B2BFDB11DAEF5FF001A68B8 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = Oric/Video.hpp; sourceTree = "<group>"; };
 		4B2C45411E3C3896002A2389 /* cartridge.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cartridge.png; sourceTree = "<group>"; };
+		4B2C455B1EC9442600FC74DD /* RegisterSizes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RegisterSizes.cpp; sourceTree = "<group>"; };
+		4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4B2E2D971C3A06EC00138695 /* Atari2600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Atari2600.cpp; sourceTree = "<group>"; };
 		4B2E2D981C3A06EC00138695 /* Atari2600.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Atari2600.hpp; sourceTree = "<group>"; };
 		4B2E2D991C3A06EC00138695 /* Atari2600Inputs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Atari2600Inputs.h; sourceTree = "<group>"; };
@@ -547,6 +550,7 @@
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B77069B1EC904570053B588 /* Z80.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Z80.cpp; path = Z80/Z80.cpp; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = Z80/Z80.hpp; sourceTree = "<group>"; };
+		4B7706A01EC9398D0053B588 /* MicroOpScheduler.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MicroOpScheduler.hpp; sourceTree = "<group>"; };
 		4B7913CA1DFCD80E00175A82 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Electron/Video.cpp; sourceTree = "<group>"; };
 		4B7913CB1DFCD80E00175A82 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = Electron/Video.hpp; sourceTree = "<group>"; };
 		4B79E4411E3AF38600141F11 /* cassette.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cassette.png; sourceTree = "<group>"; };
@@ -1014,10 +1018,10 @@
 		4B1414561B58879D00E04248 /* 6502 */ = {
 			isa = PBXGroup;
 			children = (
-				4B1414571B58879D00E04248 /* CPU6502.cpp */,
-				4B1414581B58879D00E04248 /* CPU6502.hpp */,
-				4B1414591B58879D00E04248 /* CPU6502AllRAM.cpp */,
-				4B14145A1B58879D00E04248 /* CPU6502AllRAM.hpp */,
+				4B1414571B58879D00E04248 /* 6502.cpp */,
+				4B1414581B58879D00E04248 /* 6502.hpp */,
+				4B1414591B58879D00E04248 /* 6502AllRAM.cpp */,
+				4B14145A1B58879D00E04248 /* 6502AllRAM.hpp */,
 			);
 			path = 6502;
 			sourceTree = "<group>";
@@ -1804,6 +1808,9 @@
 			children = (
 				4B1414561B58879D00E04248 /* 6502 */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
+				4B7706A01EC9398D0053B588 /* MicroOpScheduler.hpp */,
+				4B2C455B1EC9442600FC74DD /* RegisterSizes.cpp */,
+				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
 			);
 			name = Processors;
 			path = ../../Processors;
@@ -2509,6 +2516,7 @@
 				4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */,
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
+				4B2C455D1EC9442600FC74DD /* RegisterSizes.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */,
@@ -2516,7 +2524,7 @@
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B5073071DDD3B9400C48FBD /* ArrayBuilder.cpp in Sources */,
-				4B14145B1B58879D00E04248 /* CPU6502.cpp in Sources */,
+				4B14145B1B58879D00E04248 /* 6502.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
@@ -2536,8 +2544,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B14145E1B5887AA00E04248 /* CPU6502AllRAM.cpp in Sources */,
-				4B14145D1B5887A600E04248 /* CPU6502.cpp in Sources */,
+				4B14145E1B5887AA00E04248 /* 6502AllRAM.cpp in Sources */,
+				4B14145D1B5887A600E04248 /* 6502.cpp in Sources */,
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,

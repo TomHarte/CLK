@@ -123,7 +123,7 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable
 
 #pragma mark - The bus
 
-unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	unsigned int cycles = 1;
 
 	if(address < 0x8000) {
@@ -246,7 +246,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 						if(
 							use_fast_tape_hack_ &&
 							tape_.has_tape() &&
-							(operation == CPU6502::BusOperation::ReadOpcode) &&
+							(operation == CPU::MOS6502::BusOperation::ReadOpcode) &&
 							(
 								(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
 								(address == 0xf6de) || (address == 0xf6df) ||	// act to disable the normal branch into tape-handling
@@ -263,7 +263,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 																				// allow the PC read to return an RTS.
 							)
 						) {
-							uint8_t service_call = (uint8_t)get_value_of_register(CPU6502::Register::X);
+							uint8_t service_call = (uint8_t)get_value_of_register(CPU::MOS6502::Register::X);
 							if(address == 0xf0a8) {
 								if(!ram_[0x247] && service_call == 14) {
 									tape_.set_delegate(nullptr);
@@ -285,8 +285,8 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 									interrupt_status_ |= tape_.get_interrupt_status();
 
 									fast_load_is_in_data_ = true;
-									set_value_of_register(CPU6502::Register::A, 0);
-									set_value_of_register(CPU6502::Register::Y, tape_.get_data_register());
+									set_value_of_register(CPU::MOS6502::Register::A, 0);
+									set_value_of_register(CPU::MOS6502::Register::Y, tape_.get_data_register());
 									*value = 0x60; // 0x60 is RTS
 								}
 								else *value = os_[address & 16383];

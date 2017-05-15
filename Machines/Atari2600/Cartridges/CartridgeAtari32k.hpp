@@ -20,7 +20,7 @@ class CartridgeAtari32k: public Cartridge<CartridgeAtari32k> {
 			rom_ptr_ = rom_.data();
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
@@ -42,7 +42,7 @@ class CartridgeAtari32kSuperChip: public Cartridge<CartridgeAtari32kSuperChip> {
 			rom_ptr_ = rom_.data();
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 

@@ -9,25 +9,25 @@
 #ifndef Atari2600_Cartridge_hpp
 #define Atari2600_Cartridge_hpp
 
-#include "../../../Processors/6502/CPU6502.hpp"
+#include "../../../Processors/6502/6502.hpp"
 #include "../Bus.hpp"
 
 namespace Atari2600 {
 
 template<class T> class Cartridge:
-	public CPU6502::Processor<Cartridge<T>>,
+	public CPU::MOS6502::Processor<Cartridge<T>>,
 	public Bus {
 
 	public:
 		Cartridge(const std::vector<uint8_t> &rom) :
 			rom_(rom) {}
 
-		void run_for_cycles(int number_of_cycles) { CPU6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
-		void set_reset_line(bool state) { CPU6502::Processor<Cartridge<T>>::set_reset_line(state); }
+		void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
+		void set_reset_line(bool state) { CPU::MOS6502::Processor<Cartridge<T>>::set_reset_line(state); }
 		void advance_cycles(unsigned int cycles) {}
 
-		// to satisfy CPU6502::Processor
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		// to satisfy CPU::MOS6502::Processor
+		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			uint8_t returnValue = 0xff;
 			unsigned int cycles_run_for = 3;
 
@@ -35,7 +35,7 @@ template<class T> class Cartridge:
 			// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
 			// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 			// skips to the end of the line.
-			if(operation == CPU6502::BusOperation::Ready)
+			if(operation == CPU::MOS6502::BusOperation::Ready)
 				cycles_run_for = (unsigned int)tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
 
 			cycles_since_speaker_update_ += cycles_run_for;
@@ -43,7 +43,7 @@ template<class T> class Cartridge:
 			cycles_since_6532_update_ += (cycles_run_for / 3);
 			static_cast<T *>(this)->advance_cycles(cycles_run_for / 3);
 
-			if(operation != CPU6502::BusOperation::Ready) {
+			if(operation != CPU::MOS6502::BusOperation::Ready) {
 				// give the cartridge a chance to respond to the bus access
 				static_cast<T *>(this)->perform_bus_operation(operation, address, value);
 
@@ -91,7 +91,7 @@ template<class T> class Cartridge:
 							case 0x00:	update_video(); tia_->set_sync(*value & 0x02);		break;
 							case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
 
-							case 0x02:	CPU6502::Processor<Cartridge<T>>::set_ready_line(true);								break;
+							case 0x02:	CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(true);								break;
 							case 0x03:	update_video();	tia_->reset_horizontal_counter();	break;
 								// TODO: audio will now be out of synchronisation — fix
 
@@ -156,7 +156,7 @@ template<class T> class Cartridge:
 				}
 			}
 
-			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU6502::Processor<Cartridge<T>>::set_ready_line(false);
+			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(false);
 
 			return cycles_run_for / 3;
 		}
