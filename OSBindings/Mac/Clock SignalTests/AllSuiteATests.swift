@@ -14,12 +14,12 @@ class AllSuiteATests: XCTestCase {
 	func testAllSuiteA() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "AllSuiteA", ofType: "bin") {
 			if let allSuiteA = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine()
+				let machine = CSTestMachine6502()
 
 				machine.setData(allSuiteA, atAddress: 0x4000)
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0x45c0);  // end
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0x45c0);  // end
 
-				machine.setValue(0x4000, for: CSTestMachineRegister.programCounter)
+				machine.setValue(0x4000, for: CSTestMachine6502Register.programCounter)
 				while !machine.isJammed {
 					machine.runForNumber(ofCycles: 1000)
 				}

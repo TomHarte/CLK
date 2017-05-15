@@ -6,25 +6,25 @@
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#import "TestMachine.h"
+#import "TestMachine6502.h"
 #include <stdint.h>
 #include "6502AllRAM.hpp"
 
-const uint8_t CSTestMachineJamOpcode = CPU::MOS6502::JamOpcode;
+const uint8_t CSTestMachine6502JamOpcode = CPU::MOS6502::JamOpcode;
 
 class MachineJamHandler: public CPU::MOS6502::AllRAMProcessor::JamHandler {
 	public:
-		MachineJamHandler(CSTestMachine *targetMachine) : _targetMachine(targetMachine) {}
+		MachineJamHandler(CSTestMachine6502 *targetMachine) : _targetMachine(targetMachine) {}
 
 		void processor_did_jam(CPU::MOS6502::AllRAMProcessor::Processor *processor, uint16_t address) override {
 			[_targetMachine.jamHandler testMachine:_targetMachine didJamAtAddress:address];
 		}
 
 	private:
-		CSTestMachine *_targetMachine;
+		CSTestMachine6502 *_targetMachine;
 };
 
-@implementation CSTestMachine {
+@implementation CSTestMachine6502 {
 	CPU::MOS6502::AllRAMProcessor _processor;
 	MachineJamHandler *_cppJamHandler;
 }
@@ -43,34 +43,30 @@ class MachineJamHandler: public CPU::MOS6502::AllRAMProcessor::JamHandler {
 	_processor.return_from_subroutine();
 }
 
-- (CPU::MOS6502::Register)registerForRegister:(CSTestMachineRegister)reg {
+- (CPU::MOS6502::Register)registerForRegister:(CSTestMachine6502Register)reg {
 	switch (reg) {
-		case CSTestMachineRegisterProgramCounter:		return CPU::MOS6502::Register::ProgramCounter;
-		case CSTestMachineRegisterLastOperationAddress:	return CPU::MOS6502::Register::LastOperationAddress;
-		case CSTestMachineRegisterFlags:				return CPU::MOS6502::Register::Flags;
-		case CSTestMachineRegisterA:					return CPU::MOS6502::Register::A;
-		case CSTestMachineRegisterX:					return CPU::MOS6502::Register::X;
-		case CSTestMachineRegisterY:					return CPU::MOS6502::Register::Y;
-		case CSTestMachineRegisterStackPointer:			return CPU::MOS6502::Register::S;
+		case CSTestMachine6502RegisterProgramCounter:		return CPU::MOS6502::Register::ProgramCounter;
+		case CSTestMachine6502RegisterLastOperationAddress:	return CPU::MOS6502::Register::LastOperationAddress;
+		case CSTestMachine6502RegisterFlags:				return CPU::MOS6502::Register::Flags;
+		case CSTestMachine6502RegisterA:					return CPU::MOS6502::Register::A;
+		case CSTestMachine6502RegisterX:					return CPU::MOS6502::Register::X;
+		case CSTestMachine6502RegisterY:					return CPU::MOS6502::Register::Y;
+		case CSTestMachine6502RegisterStackPointer:			return CPU::MOS6502::Register::S;
 		default: break;
 	}
 }
 
-- (void)setValue:(uint16_t)value forRegister:(CSTestMachineRegister)reg {
+- (void)setValue:(uint16_t)value forRegister:(CSTestMachine6502Register)reg {
 	_processor.set_value_of_register([self registerForRegister:reg], value);
 }
 
-- (uint16_t)valueForRegister:(CSTestMachineRegister)reg {
+- (uint16_t)valueForRegister:(CSTestMachine6502Register)reg {
 	return _processor.get_value_of_register([self registerForRegister:reg]);
 }
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress {
 	_processor.set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
 }
-
-//- (void)reset {
-//	_processor.reset();
-//}
 
 - (void)runForNumberOfCycles:(int)cycles {
 	_processor.run_for_cycles(cycles);

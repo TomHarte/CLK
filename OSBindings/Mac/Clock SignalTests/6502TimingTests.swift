@@ -9,7 +9,7 @@
 import Foundation
 import XCTest
 
-class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
+class MOS6502TimingTests: XCTestCase, CSTestMachine6502JamHandler {
 
 	fileprivate var endTime: UInt32 = 0
 
@@ -20,7 +20,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xca,		// [2] DEX
 			0x18,		// [2] CLC
 			0x2a,		// [2] ROL A
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 10)
 	}
 
@@ -37,7 +37,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xa1, 0x44,			// [6] LDA ($44, x)
 			0xb1, 0x00,			// [5] LDA ($00), y (no wrap)
 			0xb1, 0x02,			// [6] LDA ($01), y (wrap)
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 48)
 	}
 
@@ -45,7 +45,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		let code: [UInt8] = [
 			0x24, 0x2a,			// [3] BIT $2a
 			0x2c, 0x2a, 0x2b,	// [4] BIT $2b2a
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 7)
 	}
 
@@ -61,7 +61,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x81, 0x44,			// [6] STA ($44, x)
 			0x91, 0x00,			// [6] STA ($00), y (no wrap)
 			0x91, 0x02,			// [6] STA ($01), y (wrap)
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 49)
 	}
 
@@ -72,14 +72,14 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xee, 0x00, 0x00,	// [6] INC $0000
 			0xfe, 0x00, 0x00,	// [7] INC $0000, x (no wrap)
 			0xfe, 0x02, 0x00,	// [7] INC $0002, x (wrap)
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 31)
 	}
 
 	func testJSR() {
 		let code: [UInt8] = [
 			0x20, 0x04, 0x02,	// [6] JSR $0204
-			CSTestMachineJamOpcode,
+			CSTestMachine6502JamOpcode,
 			0x60,				// [6] RTS
 			]
 		self.runTest(code, expectedRunLength: 12)
@@ -90,7 +90,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x6c, 0x04, 0x00,	// [5] JMP ($0004)
 			0x00, 0x00, 0x00, 0x00, 0x00,
 			0x4c, 0x0b, 0x02,	// [3] JMP 020b
-			CSTestMachineJamOpcode,
+			CSTestMachine6502JamOpcode,
 			]
 		self.runTest(code, expectedRunLength: 8)
 	}
@@ -100,7 +100,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x48, // [3] PHA
 			0x48, // [3] PHA
 			0x68, // [4] PLA
-			CSTestMachineJamOpcode,
+			CSTestMachine6502JamOpcode,
 			]
 		self.runTest(code, expectedRunLength: 10)
 	}
@@ -128,7 +128,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 14)
 	}
 
@@ -136,7 +136,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		let code: [UInt8] = [
 			0x8d, 0x08, 0x00,	// [4] STA $0008
 			0xc6, 0xb4,			// [5] DEC $B4
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 9)
 	}
 
@@ -144,14 +144,14 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		let code: [UInt8] = [
 			0x16, 0x16,			// [6] ASL $16, x
 			0x46, 0x46,			// [5] LSR $46
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 11)
 	}
 
 	func testSnippet3() {
 		let code: [UInt8] = [
 			0x20, 0x04, 0x02,	// [6] JSR $0204
-			CSTestMachineJamOpcode,
+			CSTestMachine6502JamOpcode,
 			0x86, 0x09,			// [3] STX $09
 			0x86, 0x09,			// [3] STX $09
 			0x85, 0x09,			// [3] STA $09
@@ -171,7 +171,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0x86, 0x09,			// [3] STX $09
 			0x87, 0x09,			// [3] SAX $09
 			0x60,				// [6] RTS
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 66)
 	}
 
@@ -191,12 +191,12 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 			0xd4, 0x00,	// [4] NOP zpg, x
 			0xe2, 0x00,	// [2] NOP #
 			0xf4, 0x00,	// [4] NOP zpg, x
-			CSTestMachineJamOpcode]
+			CSTestMachine6502JamOpcode]
 		self.runTest(code, expectedRunLength: 43)
 	}
 
 	func runTest(_ code: [UInt8], expectedRunLength: UInt32) {
-		let machine = CSTestMachine()
+		let machine = CSTestMachine6502()
 
 		machine.jamHandler = self
 
@@ -208,9 +208,9 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		machine.setValue(0x00, forAddress: 0x0003)
 		machine.setValue(0x08, forAddress: 0x0004)
 		machine.setValue(0x02, forAddress: 0x0005)
-		machine.setValue(0x200, for: CSTestMachineRegister.programCounter)
-		machine.setValue(0xff, for: CSTestMachineRegister.X)
-		machine.setValue(0xfe, for: CSTestMachineRegister.Y)
+		machine.setValue(0x200, for: CSTestMachine6502Register.programCounter)
+		machine.setValue(0xff, for: CSTestMachine6502Register.X)
+		machine.setValue(0xfe, for: CSTestMachine6502Register.Y)
 
 		self.endTime = 0
 		while self.endTime == 0 {
@@ -220,7 +220,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineJamHandler {
 		XCTAssert(self.endTime == expectedRunLength, "Took \(self.endTime) cycles to perform rather than \(expectedRunLength)")
 	}
 
-	func testMachine(_ machine: CSTestMachine!, didJamAtAddress address: UInt16) {
+	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
 		if self.endTime == 0 {
 			self.endTime = machine.timestamp - 9
 		}

@@ -34,15 +34,15 @@ class KlausDormannTests: XCTestCase {
 
 		if let filename = Bundle(for: type(of: self)).path(forResource: "6502_functional_test", ofType: "bin") {
 			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine()
+				let machine = CSTestMachine6502()
 
 				machine.setData(functionalTest, atAddress: 0)
-				machine.setValue(0x400, for: CSTestMachineRegister.programCounter)
+				machine.setValue(0x400, for: CSTestMachine6502Register.programCounter)
 
 				while true {
-					let oldPC = machine.value(for: CSTestMachineRegister.lastOperationAddress)
+					let oldPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
 					machine.runForNumber(ofCycles: 1000)
-					let newPC = machine.value(for: CSTestMachineRegister.lastOperationAddress)
+					let newPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
 
 					if newPC == oldPC {
 						let error = errorForTrapAddress(oldPC)

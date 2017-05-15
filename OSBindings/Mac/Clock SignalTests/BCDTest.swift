@@ -9,12 +9,12 @@
 import Foundation
 import XCTest
 
-class BCDTest: XCTestCase, CSTestMachineJamHandler {
+class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
 
 	func testBCD() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "BCDTEST_beeb", ofType: nil) {
 			if let bcdTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine()
+				let machine = CSTestMachine6502()
 				machine.jamHandler = self
 
 				machine.setData(bcdTest, atAddress: 0x2900)
@@ -27,10 +27,10 @@ class BCDTest: XCTestCase, CSTestMachineJamHandler {
 				machine.setValue(0x03, forAddress:0x204)
 				machine.setValue(0x02, forAddress:0x205)
 
-				machine.setValue(0x200, for: CSTestMachineRegister.programCounter)
+				machine.setValue(0x200, for: CSTestMachine6502Register.programCounter)
 
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffee)	// OSWRCH
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffff)	// end of test
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffee)	// OSWRCH
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffff)	// end of test
 
 				while(machine.value(for: .programCounter) != 0x203) {
 					machine.runForNumber(ofCycles: 1000)
@@ -41,11 +41,11 @@ class BCDTest: XCTestCase, CSTestMachineJamHandler {
 	}
 
 	fileprivate var output: String = ""
-	func testMachine(_ machine: CSTestMachine!, didJamAtAddress address: UInt16) {
+	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
 
 		switch address {
 			case 0xffee:
-				let character = machine.value(for: CSTestMachineRegister.A)
+				let character = machine.value(for: CSTestMachine6502Register.A)
 				output.append(Character(UnicodeScalar(character)!))
 
 				machine.returnFromSubroutine()

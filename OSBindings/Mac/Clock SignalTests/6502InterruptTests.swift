@@ -10,12 +10,12 @@ import XCTest
 
 class MOS6502InterruptTests: XCTestCase {
 
-	var machine: CSTestMachine! = nil
+	var machine: CSTestMachine6502! = nil
 	override func setUp() {
 		super.setUp()
 
 		// create a machine full of NOPs
-		machine = CSTestMachine()
+		machine = CSTestMachine6502()
 		for c in 0...65535 {
 			machine.setValue(0xea, forAddress: UInt16(c))
 		}
@@ -28,7 +28,7 @@ class MOS6502InterruptTests: XCTestCase {
 		machine.setValue(0x58, forAddress: 0x4000)
 
 		// pick things off at 0x4000
-		machine.setValue(0x4000, for: CSTestMachineRegister.programCounter)
+		machine.setValue(0x4000, for: CSTestMachine6502Register.programCounter)
 	}
 
     func testIRQLine() {
