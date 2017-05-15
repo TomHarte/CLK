@@ -89,9 +89,162 @@ struct MicroOp {
 */
 template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	private:
-		RegisterPair bc_, de_, hl_, afDash_, bcDash_, hlDash_, ix_, iy_;
-		uint8_t a, i, r;
+		uint8_t a_, i_, r_;
+		RegisterPair bc_, de_, hl_;
+		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
+		RegisterPair ix_, iy_, pc_, sp_;
+		uint8_t carry_flag_, sign_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_;
 
+		/*!
+			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+
+			Users of the 6502 template may override this.
+		*/
+		void flush() {}
+
+
+	public:
+		/*!
+			Gets the flags register.
+
+			@see set_flags
+
+			@returns The current value of the flags register.
+		*/
+		uint8_t get_flags() {
+			return
+				carry_flag_ |
+				(sign_result_ & Flag::Sign) |
+				(bit5_result_ & Flag::Bit5) |
+				half_carry_flag_ |
+				(bit3_result_ & Flag::Bit3) |
+				parity_overflow_flag_ |
+				subtract_flag_;
+		}
+
+		/*!
+			Sets the flags register.
+
+			@see set_flags
+
+			@param flags The new value of the flags register.
+		*/
+		void set_flags(uint8_t flags) {
+			carry_flag_				= flags & Flag::Carry;
+			sign_result_			= flags;
+			bit5_result_			= flags;
+			half_carry_flag_		= flags & Flag::HalfCarry;
+			bit3_result_			= flags;
+			parity_overflow_flag_	= flags & Flag::Parity;
+			subtract_flag_			= flags & Flag::Subtract;
+		}
+
+		/*!
+			Gets the value of a register.
+
+			@see set_value_of_register
+
+			@param r The register to set.
+			@returns The value of the register. 8-bit registers will be returned as unsigned.
+		*/
+		uint16_t get_value_of_register(Register r) {
+			switch (r) {
+				case Register::ProgramCounter:			return pc_.full;
+				case Register::StackPointer:			return sp_.full;
+
+				case Register::A:						return a_;
+				case Register::Flags:					return get_flags();
+				case Register::AF:						return (uint16_t)((a_ << 8) | get_flags());
+				case Register::B:						return bc_.bytes.high;
+				case Register::C:						return bc_.bytes.low;
+				case Register::BC:						return bc_.full;
+				case Register::D:						return de_.bytes.high;
+				case Register::E:						return de_.bytes.low;
+				case Register::DE:						return de_.full;
+				case Register::H:						return hl_.bytes.high;
+				case Register::L:						return hl_.bytes.low;
+				case Register::HL:						return hl_.full;
+
+				case Register::ADash:					return afDash_.bytes.high;
+				case Register::FlagsDash:				return afDash_.bytes.low;
+				case Register::AFDash:					return afDash_.full;
+				case Register::BDash:					return bcDash_.bytes.high;
+				case Register::CDash:					return bcDash_.bytes.low;
+				case Register::BCDash:					return bcDash_.full;
+				case Register::DDash:					return deDash_.bytes.high;
+				case Register::EDash:					return deDash_.bytes.low;
+				case Register::DEDash:					return deDash_.full;
+				case Register::HDash:					return hlDash_.bytes.high;
+				case Register::LDash:					return hlDash_.bytes.low;
+				case Register::HLDash:					return hlDash_.full;
+
+				case Register::IXh:						return ix_.bytes.high;
+				case Register::IXl:						return ix_.bytes.low;
+				case Register::IX:						return ix_.full;
+				case Register::IYh:						return iy_.bytes.high;
+				case Register::IYl:						return iy_.bytes.low;
+				case Register::IY:						return iy_.full;
+
+				case Register::R:						return r_;
+				case Register::I:						return i_;
+
+				default: return 0;
+			}
+		}
+
+		/*!
+			Sets the value of a register.
+
+			@see get_value_of_register
+
+			@param r The register to set.
+			@param value The value to set. If the register is only 8 bit, the value will be truncated.
+		*/
+		void set_value_of_register(Register r, uint16_t value) {
+			switch (r) {
+				case Register::ProgramCounter:	pc_.full = value;				break;
+				case Register::StackPointer:	sp_.full = value;				break;
+
+				case Register::A:				a_ = (uint8_t)value;			break;
+				case Register::AF:				a_ = (uint8_t)(value >> 8);		// deliberate fallthrough...
+				case Register::Flags:			set_flags((uint8_t)value);		break;
+
+				case Register::B:				bc_.bytes.high = (uint8_t)value;		break;
+				case Register::C:				bc_.bytes.low = (uint8_t)value;			break;
+				case Register::BC:				bc_.full = value;						break;
+				case Register::D:				de_.bytes.high = (uint8_t)value;		break;
+				case Register::E:				de_.bytes.low = (uint8_t)value;			break;
+				case Register::DE:				de_.full = value;						break;
+				case Register::H:				hl_.bytes.high = (uint8_t)value;		break;
+				case Register::L:				hl_.bytes.low = (uint8_t)value;			break;
+				case Register::HL:				hl_.full = value;						break;
+
+				case Register::ADash:			afDash_.bytes.high = (uint8_t)value;	break;
+				case Register::FlagsDash:		afDash_.bytes.low = (uint8_t)value;		break;
+				case Register::AFDash:			afDash_.full = value;					break;
+				case Register::BDash:			bcDash_.bytes.high = (uint8_t)value;	break;
+				case Register::CDash:			bcDash_.bytes.low = (uint8_t)value;		break;
+				case Register::BCDash:			bcDash_.full = value;					break;
+				case Register::DDash:			deDash_.bytes.high = (uint8_t)value;	break;
+				case Register::EDash:			deDash_.bytes.low = (uint8_t)value;		break;
+				case Register::DEDash:			deDash_.full = value;					break;
+				case Register::HDash:			hlDash_.bytes.high = (uint8_t)value;	break;
+				case Register::LDash:			hlDash_.bytes.low = (uint8_t)value;		break;
+				case Register::HLDash:			hlDash_.full = value;					break;
+
+				case Register::IXh:				ix_.bytes.high = (uint8_t)value;		break;
+				case Register::IXl:				ix_.bytes.low = (uint8_t)value;			break;
+				case Register::IX:				ix_.full = value;						break;
+				case Register::IYh:				iy_.bytes.high = (uint8_t)value;		break;
+				case Register::IYl:				iy_.bytes.low = (uint8_t)value;			break;
+				case Register::IY:				iy_.full = value;						break;
+
+				case Register::R:				r_ = (uint8_t)value;					break;
+				case Register::I:				i_ = (uint8_t)value;					break;
+
+				default: break;
+			}
+		}
 };
 
 }
