@@ -343,7 +343,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	return cycles;
 }
 
-void Machine::synchronise() {
+void Machine::flush() {
 	update_display();
 	update_audio();
 	speaker_->flush();

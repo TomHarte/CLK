@@ -323,7 +323,7 @@ template <class T> class MOS6560 {
 		/*!
 			Causes the 6560 to flush as much pending CRT and speaker communications as possible.
 		*/
-		inline void synchronise() { update_audio(); speaker_->flush(); }
+		inline void flush() { update_audio(); speaker_->flush(); }
 
 		/*!
 			Writes to a 6560 register.

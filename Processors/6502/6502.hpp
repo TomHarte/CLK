@@ -116,7 +116,7 @@ enum MicroOp {
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
-	order to provide the bus on which the 6502 operates and @c synchronise(), which is called upon completion of a continuous run
+	order to provide the bus on which the 6502 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 
 	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
@@ -1089,7 +1089,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			bus_address_ = busAddress;
 			bus_value_ = busValue;
 
-			static_cast<T *>(this)->synchronise();
+			static_cast<T *>(this)->flush();
 		}
 
 		/*!
@@ -1097,7 +1097,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			Users of the 6502 template may override this.
 		*/
-		void synchronise() {}
+		void flush() {}
 
 		/*!
 			Gets the value of a register.

@@ -89,7 +89,7 @@ class Machine:
 
 		// to satisfy CPU::MOS6502::Processor
 		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise();
+		void flush();
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);

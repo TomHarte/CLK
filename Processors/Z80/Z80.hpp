@@ -80,7 +80,7 @@ struct MicroOp {
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
-	order to provide the bus on which the 6502 operates and @c synchronise(), which is called upon completion of a continuous run
+	order to provide the bus on which the 6502 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 
 	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
@@ -89,12 +89,9 @@ struct MicroOp {
 */
 template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	private:
-
 		RegisterPair bc_, de_, hl_, afDash_, bcDash_, hlDash_, ix_, iy_;
 		uint8_t a, i, r;
 
-		const MicroOp *scheduled_programs_[4];
-		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_, schedule_program_program_counter_;
 };
 
 }

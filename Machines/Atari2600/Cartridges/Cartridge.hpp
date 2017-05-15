@@ -161,7 +161,7 @@ template<class T> class Cartridge:
 			return cycles_run_for / 3;
 		}
 
-		void synchronise() {
+		void flush() {
 			update_audio();
 			update_video();
 			speaker_->flush();

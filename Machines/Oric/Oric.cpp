@@ -136,9 +136,9 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	return 1;
 }
 
-void Machine::synchronise() {
+void Machine::flush() {
 	update_video();
-	via_.synchronise();
+	via_.flush();
 }
 
 void Machine::update_video() {
@@ -234,7 +234,7 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 	}
 }
 
-void Machine::VIA::synchronise() {
+void Machine::VIA::flush() {
 	ay8910->run_for_cycles(cycles_since_ay_update_);
 	ay8910->flush();
 	cycles_since_ay_update_ = 0;
