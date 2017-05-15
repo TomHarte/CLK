@@ -95,15 +95,28 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair ix_, iy_, pc_, sp_;
 		uint8_t carry_flag_, sign_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_;
 
+	public:
+		/*!
+			Runs the Z80 for a supplied number of cycles.
+
+			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
+			The Z80 will call that method for all bus accesses.
+
+			If it is a read operation then @c value will be seeded with the value 0xff.
+
+			@param number_of_cycles The number of cycles to run the Z80 for.
+		*/
+		void run_for_cycles(int number_of_cycles) {
+			// TODO (!)
+		}
+
 		/*!
 			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
 
-			Users of the 6502 template may override this.
+			Users of the Z80 template may override this.
 		*/
 		void flush() {}
 
-
-	public:
 		/*!
 			Gets the flags register.
 
