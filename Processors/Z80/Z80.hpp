@@ -11,6 +11,10 @@
 
 #include <cstdint>
 
+#include "../MicroOpScheduler.hpp"
+#include "../RegisterSizes.hpp"
+
+namespace CPU {
 namespace Z80 {
 
 /*
@@ -65,6 +69,13 @@ enum BusOperation {
 	None
 };
 
+struct MicroOp {
+	enum {
+	} type;
+	void *source;
+	void *destination;
+};
+
 /*!
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
@@ -76,21 +87,8 @@ enum BusOperation {
 	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
 	jammed state.
 */
-template <class T> class Processor {
+template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	private:
-		struct MicroOp {
-			enum {
-			} type;
-			void *source;
-			void *destination;
-		};
-
-		union RegisterPair {
-			uint16_t full;
-			struct {
-				uint8_t low, high;
-			} bytes;
-		};
 
 		RegisterPair bc_, de_, hl_, afDash_, bcDash_, hlDash_, ix_, iy_;
 		uint8_t a, i, r;
@@ -99,6 +97,7 @@ template <class T> class Processor {
 		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_, schedule_program_program_counter_;
 };
 
+}
 }
 
 #endif /* Z80_hpp */
