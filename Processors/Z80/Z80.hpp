@@ -10,6 +10,7 @@
 #define Z80_hpp
 
 #include <cstdint>
+#include <cstdio>
 
 #include "../MicroOpScheduler.hpp"
 #include "../RegisterSizes.hpp"
@@ -61,19 +62,29 @@ enum Flag: uint8_t {
 	@c None is reserved for internal use. It will never be requested from a subclass.
 */
 enum BusOperation {
-	ReadOpcode,
+	ReadOpcode = 0,
 	Read, Write,
 	Input, Output,
 	Interrupt,
-	BusRequest, BusAcknowledge,
+//	BusRequest, BusAcknowledge,
 	None
+};
+
+struct MachineCycle {
+	BusOperation operation;
+	const uint16_t *address;
+	uint8_t *value;
 };
 
 struct MicroOp {
 	enum {
+		BusOperation,
+		DecodeOperation,
+		MoveToNextProgram
 	} type;
 	void *source;
 	void *destination;
+	MachineCycle machine_cycle;
 };
 
 /*!
@@ -95,19 +106,58 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair ix_, iy_, pc_, sp_;
 		uint8_t carry_flag_, sign_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_;
 
+		int number_of_cycles_;
+
+		uint8_t operation_;
+
+		constexpr static int cycles_by_bus_operation[6] = {
+			4,
+			3, 3,
+			3, 3,
+			3
+		};
+
 	public:
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 
-			@discussion Subclasses must implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) .
-			The Z80 will call that method for all bus accesses.
+			@discussion Subclasses must implement @c perform_machine_cycle(MachineCycle *cycle) .
 
 			If it is a read operation then @c value will be seeded with the value 0xff.
 
 			@param number_of_cycles The number of cycles to run the Z80 for.
 		*/
 		void run_for_cycles(int number_of_cycles) {
-			// TODO (!)
+			static const MicroOp fetch_decode_execute[] = {
+				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &pc_.full, &operation_}},
+				{ MicroOp::DecodeOperation },
+				{ MicroOp::MoveToNextProgram }
+			};
+			schedule_program(fetch_decode_execute);
+
+			MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
+			number_of_cycles_ += number_of_cycles;
+			while(1) {
+				switch(operation->type) {
+					case MicroOp::BusOperation:
+						if(number_of_cycles_ < cycles_by_bus_operation[operation->type]) {
+							return;
+						}
+						perform_machine_cycle(&operation->machine_cycle);
+					break;
+					case MicroOp::MoveToNextProgram:
+						move_to_next_program();
+						operation--;
+						schedule_program_program_counter_--;
+					break;
+
+					default:
+						printf("Unhandled Z80 operation %d\n", operation->type);
+					return;
+				}
+				operation++;
+				schedule_program_program_counter_++;
+			}
 		}
 
 		/*!
@@ -116,6 +166,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			Users of the Z80 template may override this.
 		*/
 		void flush() {}
+
+		void perform_machine_cycle(const MachineCycle *cycle) {
+		}
 
 		/*!
 			Gets the flags register.

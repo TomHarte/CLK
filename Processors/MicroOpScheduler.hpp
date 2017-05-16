@@ -41,6 +41,12 @@ template <class T> class MicroOpScheduler {
 			scheduled_programs_[schedule_programs_write_pointer_] = program;
 			schedule_programs_write_pointer_ = (schedule_programs_write_pointer_+1)&3;
 		}
+
+		inline void move_to_next_program() {
+			scheduled_programs_[schedule_programs_read_pointer_] = NULL;
+			schedule_programs_read_pointer_ = (schedule_programs_read_pointer_+1)&3;
+			schedule_program_program_counter_ = 0;
+		}
 };
 
 }
