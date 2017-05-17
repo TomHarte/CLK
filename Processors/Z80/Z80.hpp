@@ -167,7 +167,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		void flush() {}
 
-		void perform_machine_cycle(const MachineCycle *cycle) {
+		int perform_machine_cycle(const MachineCycle *cycle) {
 		}
 
 		/*!

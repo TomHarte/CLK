@@ -15,9 +15,7 @@ namespace CPU {
 namespace MOS6502 {
 
 class AllRAMProcessor: public Processor<AllRAMProcessor> {
-
 	public:
-
 		AllRAMProcessor();
 
 		int perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
@@ -26,8 +24,8 @@ class AllRAMProcessor: public Processor<AllRAMProcessor> {
 		uint32_t get_timestamp();
 
 	private:
-		uint8_t _memory[65536];
-		uint32_t _timestamp;
+		uint8_t memory_[65536];
+		uint32_t timestamp_;
 };
 
 }

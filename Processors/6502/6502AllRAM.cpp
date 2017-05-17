@@ -17,12 +17,12 @@ AllRAMProcessor::AllRAMProcessor() : _timestamp(0) {
 }
 
 int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-	_timestamp++;
+	timestamp_++;
 
 	if(isReadOperation(operation)) {
-		*value = _memory[address];
+		*value = memory_[address];
 	} else {
-		_memory[address] = *value;
+		memory_[address] = *value;
 	}
 
 	return 1;
@@ -30,9 +30,9 @@ int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint
 
 void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data) {
 	size_t endAddress = std::min(startAddress + length, (size_t)65536);
-	memcpy(&_memory[startAddress], data, endAddress - startAddress);
+	memcpy(&memory_[startAddress], data, endAddress - startAddress);
 }
 
 uint32_t AllRAMProcessor::get_timestamp() {
-	return _timestamp;
+	return timestamp_;
 }
