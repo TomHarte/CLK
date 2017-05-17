@@ -7,7 +7,6 @@
 //
 
 import XCTest
-@testable import Clock_Signal
 
 class AllSuiteATests: XCTestCase {
 

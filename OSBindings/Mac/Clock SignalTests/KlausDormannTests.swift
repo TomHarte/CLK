@@ -37,16 +37,16 @@ class KlausDormannTests: XCTestCase {
 				let machine = CSTestMachine6502()
 
 				machine.setData(functionalTest, atAddress: 0)
-				machine.setValue(0x400, for: CSTestMachine6502Register.programCounter)
+				machine.setValue(0x400, for: .programCounter)
 
 				while true {
-					let oldPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
+					let oldPC = machine.value(for: .lastOperationAddress)
 					machine.runForNumber(ofCycles: 1000)
-					let newPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
+					let newPC = machine.value(for: .lastOperationAddress)
 
 					if newPC == oldPC {
 						let error = errorForTrapAddress(oldPC)
-						XCTAssert(error == nil, "Failed with error \(error)")
+						XCTAssert(error == nil, "Failed with error \(error!)")
 						return
 					}
 				}
