@@ -13,7 +13,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 	CSTestMachineZ80RegisterStackPointer,
 };
 
-@interface TestMachineZ80 : NSObject
+@interface CSTestMachineZ80 : NSObject
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
 - (void)runForNumberOfCycles:(int)cycles;

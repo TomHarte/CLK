@@ -16,7 +16,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	}
 }
 
-@implementation TestMachineZ80 {
+@implementation CSTestMachineZ80 {
 	CPU::Z80::AllRAMProcessor _processor;
 }
 

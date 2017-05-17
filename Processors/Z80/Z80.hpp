@@ -71,9 +71,19 @@ enum BusOperation {
 };
 
 struct MachineCycle {
-	BusOperation operation;
+	const BusOperation operation;
 	const uint16_t *address;
-	uint8_t *value;
+	uint8_t *const value;
+
+	inline int cycle_length() const {
+		static const int cycles_by_bus_operation[6] = {
+			4,
+			3, 3,
+			3, 3,
+			3
+		};
+		return cycles_by_bus_operation[operation];
+	}
 };
 
 struct MicroOp {
@@ -110,13 +120,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		uint8_t operation_;
 
-		constexpr static int cycles_by_bus_operation[6] = {
-			4,
-			3, 3,
-			3, 3,
-			3
-		};
-
 	public:
 		/*!
 			Runs the Z80 for a supplied number of cycles.
@@ -135,12 +138,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			};
 			schedule_program(fetch_decode_execute);
 
-			MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
+			const MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
 			number_of_cycles_ += number_of_cycles;
 			while(1) {
 				switch(operation->type) {
 					case MicroOp::BusOperation:
-						if(number_of_cycles_ < cycles_by_bus_operation[operation->type]) {
+						if(number_of_cycles_ < operation->machine_cycle.cycle_length()) {
 							return;
 						}
 						perform_machine_cycle(&operation->machine_cycle);
@@ -168,6 +171,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void flush() {}
 
 		int perform_machine_cycle(const MachineCycle *cycle) {
+			return 0;
 		}
 
 		/*!

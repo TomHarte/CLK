@@ -195,7 +195,6 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 
 	fileprivate var output: String = ""
 	fileprivate func runWolfgangLorenzTest(_ name: String) {
-
 		var machine: CSTestMachine6502!
 
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
@@ -298,7 +297,6 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 	}
 
 	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
-
 		switch address {
 			case 0xffd2:
 				machine.setValue(0x00, forAddress: 0x030c)
