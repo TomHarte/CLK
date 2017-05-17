@@ -146,7 +146,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						if(number_of_cycles_ < operation->machine_cycle.cycle_length()) {
 							return;
 						}
-						perform_machine_cycle(&operation->machine_cycle);
+						static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
 					break;
 					case MicroOp::MoveToNextProgram:
 						move_to_next_program();

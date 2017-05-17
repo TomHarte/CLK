@@ -18,6 +18,9 @@ class ZexallTests: XCTestCase {
 				let machine = CSTestMachineZ80()
 				machine.setData(testData, atAddress: 0x0100)
 
+				machine.setValue(0x0100, for: .programCounter)
+				machine.setValue(0xffff, for: .stackPointer)
+
 				machine.runForNumber(ofCycles: 20)
 			}
 		}
