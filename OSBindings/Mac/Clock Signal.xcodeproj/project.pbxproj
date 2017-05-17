@@ -413,6 +413,7 @@
 		4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
 		4BFCA1201ECBDC1500AC40C1 /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA11D1ECBD9BD00AC40C1 /* Z80AllRAM.cpp */; };
 		4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */; };
+		4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -978,6 +979,8 @@
 		4BFCA11E1ECBD9BD00AC40C1 /* Z80AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80AllRAM.hpp; path = Z80/Z80AllRAM.hpp; sourceTree = "<group>"; };
 		4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AllRAMProcessor.cpp; sourceTree = "<group>"; };
 		4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AllRAMProcessor.hpp; sourceTree = "<group>"; };
+		4BFCA1251ECBE33200AC40C1 /* TestMachineZ80.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachineZ80.h; sourceTree = "<group>"; };
+		4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachineZ80.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1181,11 +1184,13 @@
 				4B3BA0C81D318B44005DD7A7 /* MOS6522Bridge.h */,
 				4B3BA0CA1D318B44005DD7A7 /* MOS6532Bridge.h */,
 				4B3BA0CC1D318B44005DD7A7 /* TestMachine6502.h */,
+				4BFCA1251ECBE33200AC40C1 /* TestMachineZ80.h */,
 				4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */,
 				4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */,
 				4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */,
 				4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */,
 				4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */,
+				4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */,
 			);
 			path = Bridges;
 			sourceTree = "<group>";
@@ -2576,6 +2581,7 @@
 				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
+				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
 				4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
