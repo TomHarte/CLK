@@ -11,17 +11,8 @@
 
 using namespace CPU::Z80;
 
-AllRAMProcessor::AllRAMProcessor() {}
+AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
 
 int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 	return 0;
-}
-
-void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data) {
-	size_t endAddress = std::min(startAddress + length, (size_t)65536);
-	memcpy(&memory_[startAddress], data, endAddress - startAddress);
-}
-
-uint32_t AllRAMProcessor::get_timestamp() {
-	return timestamp_;
 }

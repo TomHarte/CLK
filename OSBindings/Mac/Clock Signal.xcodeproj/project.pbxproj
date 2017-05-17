@@ -412,6 +412,7 @@
 		4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829611D8F536B001BAE39 /* SSD.cpp */; };
 		4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
 		4BFCA1201ECBDC1500AC40C1 /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA11D1ECBD9BD00AC40C1 /* Z80AllRAM.cpp */; };
+		4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -975,6 +976,8 @@
 		4BF829681D8F7361001BAE39 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Acorn/File.hpp; sourceTree = "<group>"; };
 		4BFCA11D1ECBD9BD00AC40C1 /* Z80AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Z80AllRAM.cpp; path = Z80/Z80AllRAM.cpp; sourceTree = "<group>"; };
 		4BFCA11E1ECBD9BD00AC40C1 /* Z80AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80AllRAM.hpp; path = Z80/Z80AllRAM.hpp; sourceTree = "<group>"; };
+		4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AllRAMProcessor.cpp; sourceTree = "<group>"; };
+		4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AllRAMProcessor.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1813,6 +1816,8 @@
 				4B77069E1EC9045B0053B588 /* Z80 */,
 				4B7706A01EC9398D0053B588 /* MicroOpScheduler.hpp */,
 				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
+				4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */,
+				4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */,
 			);
 			name = Processors;
 			path = ../../Processors;
@@ -2551,6 +2556,7 @@
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
+				4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */,
 				4B50730A1DDFCFDF00C48FBD /* ArrayBuilderTests.mm in Sources */,
 				4B2AF8691E513FC20027EE29 /* TIATests.mm in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
