@@ -62,6 +62,14 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	}
 }
 
+void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_first_sample) {
+	if(type == DiscreteFourSamplesPerCycle) {
+		colour_burst_phase_adjustment_ = (uint8_t)(offset_of_first_sample * 256.0f) & 63;
+	} else {
+		colour_burst_phase_adjustment_ = 0xff;
+	}
+}
+
 CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
 	sync_capacitor_charge_level_(0),
 	is_receiving_sync_(false),
@@ -272,7 +280,8 @@ void CRT::output_scan(const Scan *const scan) {
 			colour_burst_phase_ = (position_phase + scan->phase) & 255;
 			colour_burst_amplitude_ = scan->amplitude;
 
-			colour_burst_phase_ = (colour_burst_phase_ & ~63) + 32;
+			if(colour_burst_phase_adjustment_ != 0xff)
+				colour_burst_phase_ = (colour_burst_phase_ & ~63) + colour_burst_phase_adjustment_;
 		}
 	}
 

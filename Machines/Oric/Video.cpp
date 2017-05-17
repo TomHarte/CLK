@@ -42,6 +42,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 			"return (float(texValue) - 4.0) / 20.0;"
 		"}"
 	);
+	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
 	set_output_device(Outputs::CRT::Television);
 	crt_->set_visible_area(crt_->get_rect_for_area(50, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
