@@ -59,7 +59,7 @@ class CRT {
 		};
 		void output_scan(const Scan *scan);
 
-		uint8_t colour_burst_phase_, colour_burst_amplitude_;
+		uint8_t colour_burst_phase_, colour_burst_amplitude_, colour_burst_phase_adjustment_;
 		bool is_writing_composite_run_;
 
 		unsigned int phase_denominator_, phase_numerator_, colour_cycle_numerator_;
@@ -251,6 +251,26 @@ class CRT {
 				openGL_output_builder_.set_composite_sampling_function(shader);
 			});
 		}
+
+		enum CompositeSourceType {
+			/// The composite function provides continuous output.
+			Continuous,
+			/// The composite function provides discrete output with four unique values per colour cycle.
+			DiscreteFourSamplesPerCycle
+		};
+
+		/*! Provides information about the type of output the composite sampling function provides — discrete or continuous.
+
+			This is necessary because the CRT implementation samples discretely and therefore can use fewer intermediate
+			samples if it can exactly duplicate the sampling rate and placement of the composite sampling function.
+
+			A continuous function is assumed by default.
+
+			@param type The type of output provided by the function supplied to `set_composite_sampling_function`.
+			@param offset_of_first_sample The relative position within a full cycle of the colour subcarrier at which the
+			first sample falls. E.g. 0.125 means "at 1/8th of the way through the complete cycle".
+		*/
+		void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
 
