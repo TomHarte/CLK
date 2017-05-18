@@ -90,7 +90,12 @@ struct MicroOp {
 	enum {
 		BusOperation,
 		DecodeOperation,
-		MoveToNextProgram
+		MoveToNextProgram,
+
+		IncrementPC,
+		Jump,
+
+		None
 	} type;
 	void *source;
 	void *destination;
@@ -120,45 +125,56 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		const MicroOp **program_table_;
 
 		uint8_t operation_;
+		RegisterPair address_;
 
 		void decode_base_operation(uint8_t operation) {
-#define XX nullptr
-			static const MicroOp *base_program_table[256] = {
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+#define XX				{MicroOp::None}
+#define FETCH_LOW()		{MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &pc_.full, &address_.bytes.low}}
+#define FETCH_HIGH()	{MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &pc_.full, &address_.bytes.high}}
+
+			static const MicroOp base_program_table[256][10] = {
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x00
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x08
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x10
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x18
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x20
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x28
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x30
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x38
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x40
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x48
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x50
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x58
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x60
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x68
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x70
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x78
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x80
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x88
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x90
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x98
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xa0
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xa8
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb0
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb8
+				XX,	/* 0xc0 */
+				XX,	/* 0xc1 */
+				XX,	/* 0xc2 */
+				{ FETCH_LOW(), {MicroOp::IncrementPC}, FETCH_HIGH(), {MicroOp::Jump}, {MicroOp::MoveToNextProgram}},	/* 0xc3 JP nnnn */
+				XX,	/* 0xc4 */
+				XX,	/* 0xc5 */
+				XX,	/* 0xc6 */
+				XX,	/* 0xc7 */
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xc8
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd0
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd8
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe0
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf0
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf8
 			};
-			if(!base_program_table[operation]) {
-				printf("Unknown Z80 operation %02x!!!\n", operation_);
+			if(base_program_table[operation][0].type == MicroOp::None) {
+				printf("Unknown Z80 operation %02x!!!\n", operation);
 			}
 			schedule_program(base_program_table[operation]);
 //			program_table_ = base_program_table;
@@ -208,16 +224,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						move_to_next_program();
 						checkSchedule();
 					break;
-					case MicroOp::DecodeOperation: {
+					case MicroOp::DecodeOperation:
 						pc_.full++;
 						decode_base_operation(operation_);
-//						const MicroOp *next_operation = program_table_[operation_];
-//						if(!next_operation) {
-//							printf("Unknown Z80 operation %02x!!!\n", operation_);
-//							return;
-//						}
-//						schedule_program(next_operation);
-					} break;
+					break;
+
+					case MicroOp::IncrementPC:		pc_.full++;			break;
+					case MicroOp::Jump:				pc_ = address_;		break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);
