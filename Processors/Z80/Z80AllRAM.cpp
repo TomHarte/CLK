@@ -17,6 +17,7 @@ int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 	switch(cycle->operation) {
 		case BusOperation::ReadOpcode:
 		case BusOperation::Read:
+			printf("r %04x\n", *cycle->address);
 			*cycle->value = memory_[*cycle->address];
 		break;
 		case BusOperation::Write:
