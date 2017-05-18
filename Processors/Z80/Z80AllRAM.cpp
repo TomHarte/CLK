@@ -14,5 +14,18 @@ using namespace CPU::Z80;
 AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
 
 int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
+	switch(cycle->operation) {
+		case BusOperation::ReadOpcode:
+		case BusOperation::Read:
+			*cycle->value = memory_[*cycle->address];
+		break;
+		case BusOperation::Write:
+			memory_[*cycle->address] = *cycle->value;
+		break;
+
+		default:
+			printf("???\n");
+		break;
+	}
 	return 0;
 }

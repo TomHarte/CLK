@@ -117,10 +117,58 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t carry_flag_, sign_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_;
 
 		int number_of_cycles_;
+		const MicroOp **program_table_;
 
 		uint8_t operation_;
 
+		void decode_base_operation(uint8_t operation) {
+#define XX nullptr
+			static const MicroOp *base_program_table[256] = {
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,
+			};
+			if(!base_program_table[operation]) {
+				printf("Unknown Z80 operation %02x!!!\n", operation_);
+			}
+			schedule_program(base_program_table[operation]);
+//			program_table_ = base_program_table;
+		}
+
 	public:
+		Processor() {
+//			set_base_program_table();
+		}
+
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 
@@ -136,11 +184,19 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
-			schedule_program(fetch_decode_execute);
 
-			const MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
+#define checkSchedule() \
+	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
+		schedule_program(fetch_decode_execute);\
+	}
+
 			number_of_cycles_ += number_of_cycles;
+			checkSchedule();
+
 			while(1) {
+				const MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
+				schedule_program_program_counter_++;
+
 				switch(operation->type) {
 					case MicroOp::BusOperation:
 						if(number_of_cycles_ < operation->machine_cycle.cycle_length()) {
@@ -150,16 +206,23 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 					case MicroOp::MoveToNextProgram:
 						move_to_next_program();
-						operation--;
-						schedule_program_program_counter_--;
+						checkSchedule();
 					break;
+					case MicroOp::DecodeOperation: {
+						pc_.full++;
+						decode_base_operation(operation_);
+//						const MicroOp *next_operation = program_table_[operation_];
+//						if(!next_operation) {
+//							printf("Unknown Z80 operation %02x!!!\n", operation_);
+//							return;
+//						}
+//						schedule_program(next_operation);
+					} break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);
 					return;
 				}
-				operation++;
-				schedule_program_program_counter_++;
 			}
 		}
 
