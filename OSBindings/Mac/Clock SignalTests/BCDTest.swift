@@ -27,7 +27,7 @@ class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
 				machine.setValue(0x03, forAddress:0x204)
 				machine.setValue(0x02, forAddress:0x205)
 
-				machine.setValue(0x200, for: CSTestMachine6502Register.programCounter)
+				machine.setValue(0x200, for: .programCounter)
 
 				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffee)	// OSWRCH
 				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffff)	// end of test
@@ -45,7 +45,7 @@ class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
 
 		switch address {
 			case 0xffee:
-				let character = machine.value(for: CSTestMachine6502Register.A)
+				let character = machine.value(for: .A)
 				output.append(Character(UnicodeScalar(character)!))
 
 				machine.returnFromSubroutine()
