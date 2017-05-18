@@ -12,7 +12,9 @@
 
 using namespace CPU::MOS6502;
 
-AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
+AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {
+	set_power_on(false);
+}
 
 int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	timestamp_++;
