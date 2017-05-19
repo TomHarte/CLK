@@ -67,23 +67,14 @@ enum BusOperation {
 	Input, Output,
 	Interrupt,
 //	BusRequest, BusAcknowledge,
-	None
+	Internal
 };
 
 struct MachineCycle {
 	const BusOperation operation;
+	const int length;
 	const uint16_t *address;
 	uint8_t *const value;
-
-	inline int cycle_length() const {
-		static const int cycles_by_bus_operation[6] = {
-			4,
-			3, 3,
-			3, 3,
-			3
-		};
-		return cycles_by_bus_operation[operation];
-	}
 };
 
 struct MicroOp {
@@ -129,12 +120,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair address_;
 
 		void decode_base_operation(uint8_t operation) {
-#define XX				{MicroOp::None}
-#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &y.full, &x}}
+#define XX				{MicroOp::None, 0}
+#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
 #define FETCH16(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y), {MicroOp::Increment16, &y.full}
 #define FETCH16L(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y)
 #define FETCH_LOW()		FETCH(address_.bytes.low, pc_)
 #define FETCH_HIGH()	FETCH(address_.bytes.high, pc_)
+#define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
 			static const MicroOp base_program_table[256][10] = {
@@ -178,9 +170,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe0
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf0
-				XX,
-				XX,
-//				Progam(),	/* 0xF9 LD SP, HL */
+				XX,	/* 0xf8 */
+				Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),	/* 0xF9 LD SP, HL */
 				XX,			XX,			XX,			XX,			XX,			XX,		// 0xf8
 			};
 			if(base_program_table[operation][0].type == MicroOp::None) {
@@ -206,7 +197,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		void run_for_cycles(int number_of_cycles) {
 			static const MicroOp fetch_decode_execute[] = {
-				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &pc_.full, &operation_}},
+				{ MicroOp::BusOperation, 4, nullptr, nullptr, {ReadOpcode, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
@@ -225,7 +216,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				switch(operation->type) {
 					case MicroOp::BusOperation:
-						if(number_of_cycles_ < operation->machine_cycle.cycle_length()) {
+						if(number_of_cycles_ < operation->machine_cycle.length) {
 							return;
 						}
 						static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
@@ -241,6 +232,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::Increment16:			(*((uint16_t *)operation->source))++;			break;
 					case MicroOp::Jump:					pc_ = address_;									break;
+
+					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;			break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);
