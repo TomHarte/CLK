@@ -84,8 +84,9 @@ struct MicroOp {
 		MoveToNextProgram,
 
 		Increment16,
+		Decrement16,
+		Move8,
 		Move16,
-		Jump,
 
 		None
 	} type;
@@ -121,24 +122,78 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		void decode_base_operation(uint8_t operation) {
 #define XX				{MicroOp::None, 0}
-#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
-#define FETCH16(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y), {MicroOp::Increment16, &y.full}
-#define FETCH16L(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y)
-#define FETCH_LOW()		FETCH(address_.bytes.low, pc_)
-#define FETCH_HIGH()	FETCH(address_.bytes.high, pc_)
+
+#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
+#define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
+
+#define STOREL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Write, 3, &y.full, &x}}
+
+#define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
+#define FETCH16L(x, y)	FETCH(x.bytes.low, y), FETCHL(x.bytes.high, y)
+
+#define PUSH(x)			STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_), {MicroOp::Decrement16, &sp_.full}
+
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
-			static const MicroOp base_program_table[256][10] = {
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x00
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x08
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x10
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x18
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x20
-				XX,			XX,			// 0x28
+
+			static const MicroOp base_program_table[256][20] = {
+				{ {MicroOp::MoveToNextProgram} },		/* 0x00 NOP */
+				Program(FETCH16(bc_, pc_)),				/* 0x01 LD BC, nn */
+				XX,	/* 0x02 LD (BC), A */
+				XX, /* 0x03 INC BC */
+				XX,	/* 0x04 INC B */
+				XX,	/* 0x05 DEC B */
+				Program(FETCH(bc_.bytes.high, pc_)),	/* 0x06 LD B, n */
+				XX,	/* 0x07 RLCA */
+				XX,	/* 0x08 EX AF, AF' */
+				XX,	/* 0x09 ADD HL, BC */
+				XX,	/* 0x0a LD A, (BC) */
+				XX,	/* 0x0b DEC BC */
+				XX,	/* 0x0c INC C */
+				XX,	/* 0x0d DEC C */
+				Program(FETCH(bc_.bytes.low, pc_)),		/* 0x0e LD C, n */
+				XX,	/* 0x0f RRCA */
+				XX,	/* 0x10 DJNZ */
+				Program(FETCH16(de_, pc_)),				/* 0x11 LD DE, nn */
+				XX,	/* 0x12 LD (DE), A */
+				XX, /* 0x13 INC DE */
+				XX, /* 0x14 INC D */
+				XX, /* 0x15 DEC D */
+				Program(FETCH(de_.bytes.high, pc_)),	/* 0x16 LD D, n */
+				XX, /* 0x17 RLA */
+				XX,	/* 0x18 JR */
+				XX,	/* 0x19 ADD HL, DE */
+				XX,	/* 0x1a LD A, (DE) */
+				XX,	/* 0x1b DEC DE */
+				XX,	/* 0x1c INC E */
+				XX,	/* 0x1d DEC E */
+				Program(FETCH(de_.bytes.low, pc_)),		/* 0x1e LD E, n */
+				XX,	/* 0x1f RRA */
+				XX,	/* 0x20 JR NZ */
+				Program(FETCH16(hl_, pc_)), /* 0x21 LD HL, nn */
+				XX,	/* 0x22 LD (nn), HL */
+				XX,	/* 0x23 INC HL */
+				XX,	/* 0x24 INC H */
+				XX, /* 0x25 DEC H */
+				Program(FETCH(hl_.bytes.high, pc_)),	/* 0x26 LD H, n */
+				XX,	/* 0x27 DAA */
+				XX,	/* 0x28 JR Z */
+				XX,	/* 0x29 ADD HL, HL */
 				Program(FETCH16(address_, pc_), FETCH16L(hl_, address_)),	/* 0x2a LD HL, (nn) */
-				XX,			XX,			XX,			XX,			XX,
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x30
+				XX,	/* 0x2b DEC HL */
+				XX,	/* 0x2c INC L */
+				XX,	/* 0x2d DEC L */
+				Program(FETCH(hl_.bytes.low, pc_)),	/* 0x2e LD L, n */
+				XX, /* 0x2f CPL */
+				XX,	/* 0x30 JR NC */
+				Program(FETCH16(sp_, pc_)),	/* 0x31 LD SP, nn */
+				XX,	/* 0x32 LD (nn), A */
+				XX, /* 0x33 INC SP */
+				XX,	/* 0x34 INC (HL) */
+				XX,	/* 0x35 DEC (HL) */
+				XX,	/* 0x36 LD (HL), n */
+				XX,	/* 0x37 SCF */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x38
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x40
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x48
@@ -156,15 +211,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xa8
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb0
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb8
-				XX,	/* 0xc0 */
-				XX,	/* 0xc1 */
-				XX,	/* 0xc2 */
-				Program(FETCH16L(address_, pc_), {MicroOp::Jump}),	/* 0xc3 JP nn */
-				XX,	/* 0xc4 */
-				XX,	/* 0xc5 */
-				XX,	/* 0xc6 */
-				XX,	/* 0xc7 */
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xc8
+				XX,	/* 0xc0 RET NZ */
+				XX,	/* 0xc1 POP BC */
+				XX,	/* 0xc2 JP NZ */
+				Program(FETCH16L(address_, pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xc3 JP nn */
+				XX,	/* 0xc4 CALL NZ */
+				XX,	/* 0xc5 PUSH BC */
+				XX,	/* 0xc6 ADD A, n */
+				XX,	/* 0xc7 RST 00h */
+				XX,	/* 0xc8 RET Z */
+				XX,	/* 0xc9 RET */
+				XX,	/* 0xca JP Z */
+				XX,	/* 0xcb [CB page] */
+				XX,	/* 0xcc CALL Z */
+				Program(FETCH16(address_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xcd CALL */
+				XX,	/* 0xce ADC A, n */
+				XX,	/* 0xcf RST 08h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd0
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd8
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe0
@@ -197,7 +259,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		void run_for_cycles(int number_of_cycles) {
 			static const MicroOp fetch_decode_execute[] = {
-				{ MicroOp::BusOperation, 4, nullptr, nullptr, {ReadOpcode, &pc_.full, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 4, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
@@ -230,10 +292,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						decode_base_operation(operation_);
 					break;
 
-					case MicroOp::Increment16:			(*((uint16_t *)operation->source))++;			break;
-					case MicroOp::Jump:					pc_ = address_;									break;
-
-					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;			break;
+					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
+					case MicroOp::Decrement16:			(*(uint16_t *)operation->source)--;											break;
+					case MicroOp::Move8:				*(uint8_t *)operation->destination = *(uint8_t *)operation->source;			break;
+					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);

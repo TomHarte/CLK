@@ -21,7 +21,11 @@ int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 			*cycle->value = memory_[*cycle->address];
 		break;
 		case BusOperation::Write:
+			printf("w %04x\n", *cycle->address);
 			memory_[*cycle->address] = *cycle->value;
+		break;
+
+		case BusOperation::Internal:
 		break;
 
 		default:
