@@ -88,6 +88,8 @@ struct MicroOp {
 		Move8,
 		Move16,
 
+		AssembleAF,
+
 		None
 	} type;
 	void *source;
@@ -118,7 +120,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		const MicroOp **program_table_;
 
 		uint8_t operation_;
-		RegisterPair address_;
+		RegisterPair address_, temporary_;
 
 		void decode_base_operation(uint8_t operation) {
 #define XX				{MicroOp::None, 0}
@@ -216,7 +218,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xc2 JP NZ */
 				Program(FETCH16L(address_, pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xc3 JP nn */
 				XX,	/* 0xc4 CALL NZ */
-				XX,	/* 0xc5 PUSH BC */
+				Program(WAIT(2), PUSH(bc_)),	/* 0xc5 PUSH BC */
 				XX,	/* 0xc6 ADD A, n */
 				XX,	/* 0xc7 RST 00h */
 				XX,	/* 0xc8 RET Z */
@@ -227,14 +229,40 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCH16(address_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xcd CALL */
 				XX,	/* 0xce ADC A, n */
 				XX,	/* 0xcf RST 08h */
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd0
+				XX,	/* 0xd0 RET NC */
+				XX,	/* 0xd1 POP DE */
+				XX,	/* 0xd2 JP NC */
+				XX,	/* 0xd3 OUT (n), A */
+				XX,	/* 0xd4 CALL NC */
+				Program(WAIT(2), PUSH(de_)),	/* 0xd5 PUSH DE */
+				XX,	/* 0xd6 SUB n */
+				XX,	/* 0xd7 RST 10h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd8
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe0
+				XX,	/* 0xe0 RET PO */
+				XX,	/* 0xe1 POP HL */
+				XX,	/* 0xe2 JP PO */
+				XX,	/* 0xe3 EX (SP), HL */
+				XX,	/* 0xe4 CALL PO */
+				Program(WAIT(2), PUSH(hl_)),	/* 0xe5 PUSH HL */
+				XX,	/* 0xe6 AND n */
+				XX,	/* 0xe7 RST 20h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf0
-				XX,	/* 0xf8 */
-				Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),	/* 0xF9 LD SP, HL */
-				XX,			XX,			XX,			XX,			XX,			XX,		// 0xf8
+				XX,	/* 0xf0 RET p */
+				XX,	/* 0xf1 POP AF */
+				XX,	/* 0xf2 JP P */
+				XX,	/* 0xf3 DI */
+				XX,	/* 0xf4 CALL P */
+				Program(WAIT(2), {MicroOp::AssembleAF}, PUSH(temporary_)),	/* 0xf5 PUSH AF */
+				XX,	/* 0xf6 OR n */
+				XX,	/* 0xf7 RST 30h */
+				XX,	/* 0xf8 RET M */
+				Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),	/* 0xf9 LD SP, HL */
+				XX,	/* 0xfa JP M */
+				XX,	/* 0xfb EI */
+				XX,	/* 0xfc CALL M */
+				XX,	/* 0xfd [FD page] */
+				XX,	/* 0xfe CP n */
+				XX,	/* 0xff RST 38h */
 			};
 			if(base_program_table[operation][0].type == MicroOp::None) {
 				printf("Unknown Z80 operation %02x!!!\n", operation);
@@ -296,6 +324,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::Decrement16:			(*(uint16_t *)operation->source)--;											break;
 					case MicroOp::Move8:				*(uint8_t *)operation->destination = *(uint8_t *)operation->source;			break;
 					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
+
+					case MicroOp::AssembleAF:
+						temporary_.bytes.high = a_;
+						temporary_.bytes.low = get_flags();
+					break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);
