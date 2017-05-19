@@ -118,10 +118,12 @@
 			case VK_ANSI_Comma:		_oric.set_key_state(Oric::Key::KeyComma, isPressed);		break;
 			case VK_ANSI_Period:	_oric.set_key_state(Oric::Key::KeyFullStop, isPressed);		break;
 
-			case VK_ANSI_Semicolon:
-									_oric.set_key_state(Oric::Key::KeySemiColon, isPressed);	break;
+			case VK_ANSI_Semicolon:	_oric.set_key_state(Oric::Key::KeySemiColon, isPressed);	break;
 
-			case VK_Shift:			_oric.set_key_state(Oric::Key::KeyLeftShift, isPressed);	break;
+			case VK_Shift:
+				_oric.set_key_state(Oric::Key::KeyLeftShift, isPressed);
+				_oric.set_key_state(Oric::Key::KeyRightShift, isPressed);
+			break;
 			case VK_RightShift:		_oric.set_key_state(Oric::Key::KeyRightShift, isPressed);	break;
 			case VK_Control:		_oric.set_key_state(Oric::Key::KeyControl, isPressed);		break;
 
