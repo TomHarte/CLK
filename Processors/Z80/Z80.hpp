@@ -92,8 +92,8 @@ struct MicroOp {
 		DecodeOperation,
 		MoveToNextProgram,
 
-		IncrementPC,
-		IncrementAddress,
+		Increment16,
+		Move16,
 		Jump,
 
 		None
@@ -130,9 +130,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		void decode_base_operation(uint8_t operation) {
 #define XX				{MicroOp::None}
-#define FETCH(x)		{MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &pc_.full, &x}}
-#define FETCH_LOW()		FETCH(address_.bytes.low)
-#define FETCH_HIGH()	FETCH(address_.bytes.high)
+#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, &y.full, &x}}
+#define FETCH16(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y), {MicroOp::Increment16, &y.full}
+#define FETCH16L(x, y)	FETCH(x.bytes.low, y), {MicroOp::Increment16, &y.full}, FETCH(x.bytes.high, y)
+#define FETCH_LOW()		FETCH(address_.bytes.low, pc_)
+#define FETCH_HIGH()	FETCH(address_.bytes.high, pc_)
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
 			static const MicroOp base_program_table[256][10] = {
@@ -142,7 +144,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x18
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x20
 				XX,			XX,			// 0x28
-				Program(FETCH_LOW(), {MicroOp::IncrementPC}, FETCH_HIGH(), {MicroOp::IncrementPC}, FETCH(hl_.bytes.low), {MicroOp::IncrementAddress}, FETCH(hl_.bytes.high)),	/* 0x2a LD HL, (nn) */
+				Program(FETCH16(address_, pc_), FETCH16L(hl_, address_)),	/* 0x2a LD HL, (nn) */
 				XX,			XX,			XX,			XX,			XX,
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x30
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x38
@@ -165,7 +167,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xc0 */
 				XX,	/* 0xc1 */
 				XX,	/* 0xc2 */
-				Program(FETCH_LOW(), {MicroOp::IncrementPC}, FETCH_HIGH(), {MicroOp::Jump}),	/* 0xc3 JP nn */
+				Program(FETCH16L(address_, pc_), {MicroOp::Jump}),	/* 0xc3 JP nn */
 				XX,	/* 0xc4 */
 				XX,	/* 0xc5 */
 				XX,	/* 0xc6 */
@@ -176,7 +178,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe0
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf0
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xf8
+				XX,
+				XX,
+//				Progam(),	/* 0xF9 LD SP, HL */
+				XX,			XX,			XX,			XX,			XX,			XX,		// 0xf8
 			};
 			if(base_program_table[operation][0].type == MicroOp::None) {
 				printf("Unknown Z80 operation %02x!!!\n", operation);
@@ -234,9 +239,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						decode_base_operation(operation_);
 					break;
 
-					case MicroOp::IncrementPC:			pc_.full++;				break;
-					case MicroOp::IncrementAddress:		address_.full++;		break;
-					case MicroOp::Jump:					pc_ = address_;			break;
+					case MicroOp::Increment16:			(*((uint16_t *)operation->source))++;			break;
+					case MicroOp::Jump:					pc_ = address_;									break;
 
 					default:
 						printf("Unhandled Z80 operation %d\n", operation->type);
