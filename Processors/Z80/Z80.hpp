@@ -133,7 +133,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
 #define FETCH16L(x, y)	FETCH(x.bytes.low, y), FETCHL(x.bytes.high, y)
 
-#define PUSH(x)			STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_), {MicroOp::Decrement16, &sp_.full}
+#define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
+#define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -214,11 +215,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb0
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb8
 				XX,	/* 0xc0 RET NZ */
-				XX,	/* 0xc1 POP BC */
+				Program(POP(bc_)),	/* 0xc1 POP BC */
 				XX,	/* 0xc2 JP NZ */
 				Program(FETCH16L(address_, pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xc3 JP nn */
 				XX,	/* 0xc4 CALL NZ */
-				Program(WAIT(2), PUSH(bc_)),	/* 0xc5 PUSH BC */
+				Program(WAIT(1), PUSH(bc_)),	/* 0xc5 PUSH BC */
 				XX,	/* 0xc6 ADD A, n */
 				XX,	/* 0xc7 RST 00h */
 				XX,	/* 0xc8 RET Z */
@@ -230,29 +231,29 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xce ADC A, n */
 				XX,	/* 0xcf RST 08h */
 				XX,	/* 0xd0 RET NC */
-				XX,	/* 0xd1 POP DE */
+				Program(POP(de_)),	/* 0xd1 POP DE */
 				XX,	/* 0xd2 JP NC */
 				XX,	/* 0xd3 OUT (n), A */
 				XX,	/* 0xd4 CALL NC */
-				Program(WAIT(2), PUSH(de_)),	/* 0xd5 PUSH DE */
+				Program(WAIT(1), PUSH(de_)),	/* 0xd5 PUSH DE */
 				XX,	/* 0xd6 SUB n */
 				XX,	/* 0xd7 RST 10h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xd8
 				XX,	/* 0xe0 RET PO */
-				XX,	/* 0xe1 POP HL */
+				Program(POP(hl_)),	/* 0xe1 POP HL */
 				XX,	/* 0xe2 JP PO */
 				XX,	/* 0xe3 EX (SP), HL */
 				XX,	/* 0xe4 CALL PO */
-				Program(WAIT(2), PUSH(hl_)),	/* 0xe5 PUSH HL */
+				Program(WAIT(1), PUSH(hl_)),	/* 0xe5 PUSH HL */
 				XX,	/* 0xe6 AND n */
 				XX,	/* 0xe7 RST 20h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
-				XX,	/* 0xf0 RET p */
+				Program(POP(pc_)),	/* 0xf0 RET p */
 				XX,	/* 0xf1 POP AF */
 				XX,	/* 0xf2 JP P */
 				XX,	/* 0xf3 DI */
 				XX,	/* 0xf4 CALL P */
-				Program(WAIT(2), {MicroOp::AssembleAF}, PUSH(temporary_)),	/* 0xf5 PUSH AF */
+				Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temporary_)),	/* 0xf5 PUSH AF */
 				XX,	/* 0xf6 OR n */
 				XX,	/* 0xf7 RST 30h */
 				XX,	/* 0xf8 RET M */
