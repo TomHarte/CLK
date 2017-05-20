@@ -186,8 +186,32 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			}
 		}
 
+		void assemble_ed_page(MicroOp **target) {
+#define NOP_ROW()	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX
+			static InstructionTable ed_program_table = {
+				NOP_ROW(),	/* 0x00 */
+				NOP_ROW(),	/* 0x10 */
+				NOP_ROW(),	/* 0x20 */
+				NOP_ROW(),	/* 0x30 */
+				NOP_ROW(),	/* 0x40 */
+				NOP_ROW(),	/* 0x50 */
+				NOP_ROW(),	/* 0x60 */
+				NOP_ROW(),	/* 0x70 */
+				NOP_ROW(),	/* 0x80 */
+				NOP_ROW(),	/* 0x90 */
+				NOP_ROW(),	/* 0xa0 */
+				NOP_ROW(),	/* 0xb0 */
+				NOP_ROW(),	/* 0xc0 */
+				NOP_ROW(),	/* 0xd0 */
+				NOP_ROW(),	/* 0xe0 */
+				NOP_ROW(),	/* 0xf0 */
+			};
+			assemble_page(target, ed_program_table);
+#undef NOP_ROW
+		}
+
 		void assemble_base_page(MicroOp **target) {
-			InstructionTable base_program_table = {
+			static InstructionTable base_program_table = {
 				{ {MicroOp::MoveToNextProgram} },		/* 0x00 NOP */
 				Program(FETCH16(bc_, pc_)),				/* 0x01 LD BC, nn */
 				XX,	/* 0x02 LD (BC), A */
@@ -346,6 +370,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	public:
 		Processor() {
 			assemble_base_page(base_page_);
+			assemble_ed_page(ed_page_);
 		}
 
 		/*!
