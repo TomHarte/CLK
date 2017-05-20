@@ -20,6 +20,7 @@ class AllRAMProcessor {
 		AllRAMProcessor(size_t memory_size);
 		uint32_t get_timestamp();
 		void set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data);
+		void get_data_at_address(uint16_t startAddress, size_t length, uint8_t *data);
 
 		class TrapHandler {
 			public:

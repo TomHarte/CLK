@@ -33,6 +33,9 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	switch (reg) {
 		case CSTestMachineZ80RegisterProgramCounter:	return CPU::Z80::Register::ProgramCounter;
 		case CSTestMachineZ80RegisterStackPointer:		return CPU::Z80::Register::StackPointer;
+		case CSTestMachineZ80RegisterC:					return CPU::Z80::Register::C;
+		case CSTestMachineZ80RegisterE:					return CPU::Z80::Register::E;
+		case CSTestMachineZ80RegisterDE:				return CPU::Z80::Register::DE;
 	}
 }
 
@@ -69,6 +72,16 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {
 	_processor.set_value_of_register(registerForRegister(reg), value);
+}
+
+- (void)setValue:(uint8_t)value atAddress:(uint16_t)address {
+	_processor.set_data_at_address(address, 1, &value);
+}
+
+- (uint8_t)valueAtAddress:(uint16_t)address {
+	uint8_t value;
+	_processor.get_data_at_address(address, 1, &value);
+	return value;
 }
 
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg {
