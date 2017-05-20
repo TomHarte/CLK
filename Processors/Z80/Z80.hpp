@@ -89,6 +89,7 @@ struct MicroOp {
 		Move16,
 
 		AssembleAF,
+		DisassembleAF,
 
 		None
 	} type;
@@ -223,7 +224,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xc6 ADD A, n */
 				XX,	/* 0xc7 RST 00h */
 				XX,	/* 0xc8 RET Z */
-				XX,	/* 0xc9 RET */
+				Program(POP(pc_)),	/* 0xc9 RET */
 				XX,	/* 0xca JP Z */
 				XX,	/* 0xcb [CB page] */
 				XX,	/* 0xcc CALL Z */
@@ -248,8 +249,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xe6 AND n */
 				XX,	/* 0xe7 RST 20h */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xe8
-				Program(POP(pc_)),	/* 0xf0 RET p */
-				XX,	/* 0xf1 POP AF */
+				XX,	/* 0xf0 RET p */
+				Program(POP(temporary_), {MicroOp::DisassembleAF}),	/* 0xf1 POP AF */
 				XX,	/* 0xf2 JP P */
 				XX,	/* 0xf3 DI */
 				XX,	/* 0xf4 CALL P */
@@ -329,6 +330,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::AssembleAF:
 						temporary_.bytes.high = a_;
 						temporary_.bytes.low = get_flags();
+					break;
+					case MicroOp::DisassembleAF:
+						a_ = temporary_.bytes.high;
+						set_flags(temporary_.bytes.low);
 					break;
 
 					default:
