@@ -157,6 +157,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				LD(r, bc_.bytes.high),	LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),		LD(r, de_.bytes.low),	\
 				LD(r, hl_.bytes.high),	LD(r, hl_.bytes.low),	Program(FETCHL(r, hl_)),	LD(r, a_)
 
+#define OP_GROUP(op)	\
+				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
+				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
+				Program({MicroOp::op, &hl_.bytes.high}),	Program({MicroOp::op, &hl_.bytes.low}),	\
+				Program(FETCHL(temporary_.bytes.low, hl_), {MicroOp::op, &temporary_.bytes.low}),	\
+				Program({MicroOp::op, &a_})
+
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
@@ -238,16 +245,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x88
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x90
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x98
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xa0
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xa8
-				Program({MicroOp::Or, &hl_.bytes.high}),	/* 0xb0 OR B */
-				Program({MicroOp::Or, &bc_.bytes.low}),	/* 0xb1 OR C */
-				Program({MicroOp::Or, &hl_.bytes.high}),	/* 0xb2 OR D */
-				Program({MicroOp::Or, &de_.bytes.low}),	/* 0xb3 OR E */
-				Program({MicroOp::Or, &hl_.bytes.high}),	/* 0xb4 OR H */
-				Program({MicroOp::Or, &hl_.bytes.low}),	/* 0xb5 OR L */
-				Program(FETCHL(temporary_.bytes.low, hl_), {MicroOp::Or, &temporary_.bytes.low}),	/* 0xb6 OR (HL) */
-				Program({MicroOp::Or, &a_}),	/* 0xb7 OR A */
+				OP_GROUP(And),	/* 0xa0 AND B;	0xa1 AND C;	0xa2 AND D;	0xa3 AND E;	0xa4 AND H;	0xa5 AND L;	0xa6 AND (HL);	0xa7 AND A */
+				OP_GROUP(Xor),	/* 0xa8 XOR B;	0xa9 XOR C;	0xaa XOR D;	0xab XOR E;	0xac XOR H;	0xad XOR L;	0xae XOR (HL);	0xaf XOR A */
+				OP_GROUP(Or),	/* 0xb0 OR B;	0xb1 OR C;	0xb2 OR D;	0xb3 OR E;	0xb4 OR H;	0xb5 OR L;	0xb6 OR (HL);	0xb7 OR A */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0xb8
 				XX,	/* 0xc0 RET NZ */
 				Program(POP(bc_)),	/* 0xc1 POP BC */
