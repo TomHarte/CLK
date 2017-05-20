@@ -219,7 +219,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX, /* 0x2f CPL */
 				XX,	/* 0x30 JR NC */
 				Program(FETCH16(sp_, pc_)),	/* 0x31 LD SP, nn */
-				XX,	/* 0x32 LD (nn), A */
+				Program(FETCH16(address_, pc_), STOREL(a_, address_)),	/* 0x32 LD (nn), A */
 				Program(WAIT(2), {MicroOp::Increment16, &sp_.full}), /* 0x33 INC SP */
 				XX,	/* 0x34 INC (HL) */
 				XX,	/* 0x35 DEC (HL) */
@@ -424,7 +424,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::TestM:	if(!(sign_result_ & 0x80))	{ move_to_next_program(); checkSchedule(); }		break;
 
 					default:
-						printf("Unhandled Z80 operation %d\n", operation->type);
+//						printf("Unhandled Z80 operation %d\n", operation->type);
 					return;
 				}
 			}
