@@ -145,7 +145,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				{ {MicroOp::MoveToNextProgram} },		/* 0x00 NOP */
 				Program(FETCH16(bc_, pc_)),				/* 0x01 LD BC, nn */
 				XX,	/* 0x02 LD (BC), A */
-				XX, /* 0x03 INC BC */
+				Program(WAIT(2), {MicroOp::Increment16, &bc_.full}), /* 0x03 INC BC */
 				XX,	/* 0x04 INC B */
 				XX,	/* 0x05 DEC B */
 				Program(FETCH(bc_.bytes.high, pc_)),	/* 0x06 LD B, n */
@@ -153,7 +153,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x08 EX AF, AF' */
 				XX,	/* 0x09 ADD HL, BC */
 				XX,	/* 0x0a LD A, (BC) */
-				XX,	/* 0x0b DEC BC */
+				Program(WAIT(2), {MicroOp::Decrement16, &bc_.full}),	/* 0x0b DEC BC */
 				XX,	/* 0x0c INC C */
 				XX,	/* 0x0d DEC C */
 				Program(FETCH(bc_.bytes.low, pc_)),		/* 0x0e LD C, n */
@@ -161,7 +161,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x10 DJNZ */
 				Program(FETCH16(de_, pc_)),				/* 0x11 LD DE, nn */
 				XX,	/* 0x12 LD (DE), A */
-				XX, /* 0x13 INC DE */
+				Program(WAIT(2), {MicroOp::Increment16, &de_.full}), /* 0x13 INC DE */
 				XX, /* 0x14 INC D */
 				XX, /* 0x15 DEC D */
 				Program(FETCH(de_.bytes.high, pc_)),	/* 0x16 LD D, n */
@@ -169,7 +169,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x18 JR */
 				XX,	/* 0x19 ADD HL, DE */
 				XX,	/* 0x1a LD A, (DE) */
-				XX,	/* 0x1b DEC DE */
+				Program(WAIT(2), {MicroOp::Decrement16, &de_.full}),	/* 0x1b DEC DE */
 				XX,	/* 0x1c INC E */
 				XX,	/* 0x1d DEC E */
 				Program(FETCH(de_.bytes.low, pc_)),		/* 0x1e LD E, n */
@@ -177,7 +177,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x20 JR NZ */
 				Program(FETCH16(hl_, pc_)), /* 0x21 LD HL, nn */
 				XX,	/* 0x22 LD (nn), HL */
-				XX,	/* 0x23 INC HL */
+				Program(WAIT(2), {MicroOp::Increment16, &hl_.full}),	/* 0x23 INC HL */
 				XX,	/* 0x24 INC H */
 				XX, /* 0x25 DEC H */
 				Program(FETCH(hl_.bytes.high, pc_)),	/* 0x26 LD H, n */
@@ -185,7 +185,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x28 JR Z */
 				XX,	/* 0x29 ADD HL, HL */
 				Program(FETCH16(address_, pc_), FETCH16L(hl_, address_)),	/* 0x2a LD HL, (nn) */
-				XX,	/* 0x2b DEC HL */
+				Program(WAIT(2), {MicroOp::Decrement16, &hl_.full}),	/* 0x2b DEC HL */
 				XX,	/* 0x2c INC L */
 				XX,	/* 0x2d DEC L */
 				Program(FETCH(hl_.bytes.low, pc_)),	/* 0x2e LD L, n */
@@ -193,20 +193,41 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0x30 JR NC */
 				Program(FETCH16(sp_, pc_)),	/* 0x31 LD SP, nn */
 				XX,	/* 0x32 LD (nn), A */
-				XX, /* 0x33 INC SP */
+				Program(WAIT(2), {MicroOp::Increment16, &sp_.full}), /* 0x33 INC SP */
 				XX,	/* 0x34 INC (HL) */
 				XX,	/* 0x35 DEC (HL) */
 				XX,	/* 0x36 LD (HL), n */
 				XX,	/* 0x37 SCF */
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x38
+				XX,	/* 0x38 JR C */
+				XX,	/* 0x39 ADD HL, SP */
+				XX,	/* 0x3a LD A, (nn) */
+				Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),	/* 0x3b DEC SP */
+				XX,	/* 0x3c INC A */
+				XX,	/* 0x3d DEC A */
+				XX,	/* 0x3e LD A, n */
+				XX,	/* 0x3f CCF */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x40
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x48
+				XX,	/* 0x48 LD C, B */
+				XX,	/* 0x49 LD C, C */
+				XX,	/* 0x4a LD C, D */
+				XX,	/* 0x4b LD C, E */
+				XX,	/* 0x4c LD C, H */
+				XX,	/* 0x4d LD C, L */
+				Program(FETCHL(bc_.bytes.low, hl_)),	/* 0x4e LD C,(HL) */
+				XX,	/* 0x4f LD C, A */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x50
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x58
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x60
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x68
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x70
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x78
+				XX,	/* 0x78 LD A, B */
+				XX,	/* 0x79 LD A, C */
+				XX,	/* 0x7a LD A, D */
+				XX,	/* 0x7b LD A, E */
+				XX,	/* 0x7c LD A, H */
+				XX,	/* 0x7d LD A, L */
+				Program(FETCHL(a_, hl_)),	/* 0x7e LD A, (HL) */
+				XX,	/* 0x7f LD A, A */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x80
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x88
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x90
