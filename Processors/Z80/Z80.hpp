@@ -104,6 +104,11 @@ struct MicroOp {
 		TestP,
 		TestM,
 
+		Add16,
+		ExDEHL,
+
+		SetInstructionPage,
+
 		None
 	} type;
 	void *source;
@@ -136,7 +141,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t operation_;
 		RegisterPair address_, temporary_;
 
-		void decode_base_operation(uint8_t operation) {
+		MicroOp **current_instruction_page_;
+		MicroOp *base_page_[256];
+		MicroOp *ed_page_[256];
+		MicroOp *fd_page_[256];
+
 #define XX				{MicroOp::None, 0}
 
 #define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
@@ -164,11 +173,21 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCHL(temporary_.bytes.low, hl_), {MicroOp::op, &temporary_.bytes.low}),	\
 				Program({MicroOp::op, &a_})
 
+#define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::Add16, &s.full, &d.full})
+
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
+		typedef MicroOp InstructionTable[256][20];
 
-			static const MicroOp base_program_table[256][20] = {
+		void assemble_page(MicroOp **target, InstructionTable &table) {
+			for(int c = 0; c < 256; c++) {
+				target[c] = table[c];
+			}
+		}
+
+		void assemble_base_page(MicroOp **target) {
+			InstructionTable base_program_table = {
 				{ {MicroOp::MoveToNextProgram} },		/* 0x00 NOP */
 				Program(FETCH16(bc_, pc_)),				/* 0x01 LD BC, nn */
 				XX,	/* 0x02 LD (BC), A */
@@ -178,7 +197,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCH(bc_.bytes.high, pc_)),	/* 0x06 LD B, n */
 				XX,	/* 0x07 RLCA */
 				XX,	/* 0x08 EX AF, AF' */
-				XX,	/* 0x09 ADD HL, BC */
+				ADD16(hl_, bc_),	/* 0x09 ADD HL, BC */
 				Program(FETCHL(a_, bc_)),	/* 0x0a LD A, (BC) */
 				Program(WAIT(2), {MicroOp::Decrement16, &bc_.full}),	/* 0x0b DEC BC */
 				XX,	/* 0x0c INC C */
@@ -194,7 +213,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCH(de_.bytes.high, pc_)),	/* 0x16 LD D, n */
 				XX, /* 0x17 RLA */
 				XX,	/* 0x18 JR */
-				XX,	/* 0x19 ADD HL, DE */
+				ADD16(hl_, de_),	/* 0x19 ADD HL, DE */
 				Program(FETCHL(a_, de_)),	/* 0x1a LD A, (DE) */
 				Program(WAIT(2), {MicroOp::Decrement16, &de_.full}),	/* 0x1b DEC DE */
 				XX,	/* 0x1c INC E */
@@ -210,7 +229,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCH(hl_.bytes.high, pc_)),	/* 0x26 LD H, n */
 				XX,	/* 0x27 DAA */
 				XX,	/* 0x28 JR Z */
-				XX,	/* 0x29 ADD HL, HL */
+				ADD16(hl_, hl_),	/* 0x29 ADD HL, HL */
 				Program(FETCH16(address_, pc_), FETCH16L(hl_, address_)),	/* 0x2a LD HL, (nn) */
 				Program(WAIT(2), {MicroOp::Decrement16, &hl_.full}),	/* 0x2b DEC HL */
 				XX,	/* 0x2c INC L */
@@ -223,10 +242,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(WAIT(2), {MicroOp::Increment16, &sp_.full}), /* 0x33 INC SP */
 				XX,	/* 0x34 INC (HL) */
 				XX,	/* 0x35 DEC (HL) */
-				XX,	/* 0x36 LD (HL), n */
+				Program(FETCH(temporary_.bytes.low, pc_), STOREL(temporary_.bytes.low, hl_)),	/* 0x36 LD (HL), n */
 				XX,	/* 0x37 SCF */
 				XX,	/* 0x38 JR C */
-				XX,	/* 0x39 ADD HL, SP */
+				ADD16(hl_, sp_),	/* 0x39 ADD HL, SP */
 				XX,	/* 0x3a LD A, (nn) */
 				Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),	/* 0x3b DEC SP */
 				XX,	/* 0x3c INC A */
@@ -292,9 +311,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xe8 RET PE */
 				XX,	/* 0xe9 JP (HL) */
 				JP(TestPE),	/* 0xea JP PE */
-				XX,	/* 0xeb EX DE, HL */
+				Program({MicroOp::ExDEHL}),	/* 0xeb EX DE, HL */
 				XX,	/* 0xec CALL PE */
-				XX,	/* 0xed [ED page] */
+				Program({MicroOp::SetInstructionPage, ed_page_}),	/* 0xed [ED page] */
 				XX,	/* 0xee XOR n */
 				XX,	/* 0xef RST 28h */
 				XX,	/* 0xf0 RET p */
@@ -310,20 +329,23 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				JP(TestM),	/* 0xfa JP M */
 				XX,	/* 0xfb EI */
 				XX,	/* 0xfc CALL M */
-				XX,	/* 0xfd [FD page] */
+				Program({MicroOp::SetInstructionPage, fd_page_}),	/* 0xfd [FD page] */
 				XX,	/* 0xfe CP n */
 				XX,	/* 0xff RST 38h */
 			};
-			if(base_program_table[operation][0].type == MicroOp::None) {
+			assemble_page(target, base_program_table);
+		}
+
+		void decode_operation(uint8_t operation) {
+			if(current_instruction_page_[operation]->type == MicroOp::None) {
 				printf("Unknown Z80 operation %02x!!!\n", operation);
 			}
-			schedule_program(base_program_table[operation]);
-//			program_table_ = base_program_table;
+			schedule_program(current_instruction_page_[operation]);
 		}
 
 	public:
 		Processor() {
-//			set_base_program_table();
+			assemble_base_page(base_page_);
 		}
 
 		/*!
@@ -344,6 +366,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
+		current_instruction_page_ = base_page_;\
 		schedule_program(fetch_decode_execute);\
 	}
 
@@ -367,7 +390,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 					case MicroOp::DecodeOperation:
 						pc_.full++;
-						decode_base_operation(operation_);
+						decode_operation(operation_);
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
@@ -414,6 +437,20 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #undef set_parity
 
+					case MicroOp::Add16: {
+						uint16_t sourceValue = *(uint16_t *)operation->source;
+						uint16_t destinationValue = *(uint16_t *)operation->destination;
+						int result = sourceValue + destinationValue;
+						int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
+
+						bit3_result_ = bit5_result_ = (uint8_t)(result >> 8);
+						carry_flag_ = (result >> 16) & Flag::Carry;
+						half_carry_flag_ = (halfResult >> 8) & Flag::HalfCarry;
+						subtract_flag_ = 0;
+
+						*(uint16_t *)operation->destination = (uint16_t)result;
+					} break;
+
 					case MicroOp::TestNZ:	if(!zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestZ:	if(zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestNC:	if(carry_flag_)				{ move_to_next_program(); checkSchedule(); }		break;
@@ -422,6 +459,17 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::TestPE:	if(!parity_overflow_flag_)	{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestP:	if(sign_result_ & 0x80)		{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestM:	if(!(sign_result_ & 0x80))	{ move_to_next_program(); checkSchedule(); }		break;
+
+					case MicroOp::ExDEHL: {
+						uint16_t temp = de_.full;
+						de_.full = hl_.full;
+						hl_.full = temp;
+					} break;
+
+					case MicroOp::SetInstructionPage:
+						schedule_program(fetch_decode_execute);
+						current_instruction_page_ = (CPU::Z80::MicroOp **)operation->source;
+					break;
 
 					default:
 //						printf("Unhandled Z80 operation %d\n", operation->type);
