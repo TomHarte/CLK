@@ -16,6 +16,7 @@ AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
 int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 	switch(cycle->operation) {
 		case BusOperation::ReadOpcode:
+			check_address_for_trap(*cycle->address);
 		case BusOperation::Read:
 			printf("r %04x\n", *cycle->address);
 			*cycle->value = memory_[*cycle->address];

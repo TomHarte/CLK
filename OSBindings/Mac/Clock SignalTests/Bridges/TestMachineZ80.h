@@ -13,6 +13,12 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 	CSTestMachineZ80RegisterStackPointer,
 };
 
+@class CSTestMachineZ80;
+
+@interface CSTestMachineTrapHandler
+- (void)testMachine:(CSTestMachineZ80 *)testMachine didTrapAtAddress:(uint16_t)address;
+@end
+
 @interface CSTestMachineZ80 : NSObject
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
@@ -20,5 +26,8 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg;
+
+@property(nonatomic, weak) id<CSTestMachineTrapHandler> trapHandler;
+- (void)addTrapAddress:(uint16_t)trapAddress;
 
 @end
