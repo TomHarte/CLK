@@ -10,6 +10,7 @@
 #define Z80_hpp
 
 #include <cstdint>
+#include <cstring>
 #include <cstdio>
 
 #include "../MicroOpScheduler.hpp"
@@ -71,14 +72,14 @@ enum BusOperation {
 };
 
 struct MachineCycle {
-	const BusOperation operation;
-	const int length;
-	const uint16_t *address;
-	uint8_t *const value;
+	BusOperation operation;
+	int length;
+	uint16_t *address;
+	uint8_t *value;
 };
 
 struct MicroOp {
-	enum {
+	enum Type {
 		BusOperation,
 		DecodeOperation,
 		MoveToNextProgram,
@@ -122,7 +123,8 @@ struct MicroOp {
 		SetInstructionPage,
 
 		None
-	} type;
+	};
+	Type type;
 	void *source;
 	void *destination;
 	MachineCycle machine_cycle;
@@ -156,9 +158,23 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t temp8_;
 
 		MicroOp **current_instruction_page_;
-		MicroOp *base_page_[256];
-		MicroOp *ed_page_[256];
-		MicroOp *fd_page_[256];
+		struct InstructionPage {
+			MicroOp *instructions[256];
+			MicroOp *all_operations;
+
+			InstructionPage() : all_operations(nullptr) {
+				for(int c = 0; c < 256; c++) {
+					instructions[c] = nullptr;
+				}
+			}
+
+			~InstructionPage() {
+				delete[] all_operations;
+			}
+		};
+		InstructionPage base_page_;
+		InstructionPage ed_page_;
+		InstructionPage fd_page_;
 
 #define XX				{MicroOp::None, 0}
 
@@ -208,15 +224,34 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		typedef MicroOp InstructionTable[256][20];
 
-		void assemble_page(MicroOp **target, InstructionTable &table) {
+		void assemble_page(InstructionPage &target, InstructionTable &table) {
+			size_t number_of_micro_ops = 0;
+			size_t lengths[256];
+
+			// Count number of micro-ops required.
 			for(int c = 0; c < 256; c++) {
-				target[c] = table[c];
+				size_t length = 0;
+				while(table[c][length].type != MicroOp::MoveToNextProgram && table[c][length].type != MicroOp::None) length++;
+				length++;
+				lengths[c] = length;
+				number_of_micro_ops += length;
+			}
+
+			// Allocate a landing area.
+			target.all_operations = new MicroOp[number_of_micro_ops];
+
+			// Copy in all programs and set pointers.
+			size_t destination = 0;
+			for(int c = 0; c < 256; c++) {
+				memcpy(&target.all_operations[destination], table[c], lengths[c] * sizeof(MicroOp));
+				target.instructions[c] = &target.all_operations[destination];
+				destination += lengths[c];
 			}
 		}
 
-		void assemble_ed_page(MicroOp **target) {
+		void assemble_ed_page(InstructionPage &target) {
 #define NOP_ROW()	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX
-			static InstructionTable ed_program_table = {
+			InstructionTable ed_program_table = {
 				NOP_ROW(),	/* 0x00 */
 				NOP_ROW(),	/* 0x10 */
 				NOP_ROW(),	/* 0x20 */
@@ -251,7 +286,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #undef NOP_ROW
 		}
 
-		void assemble_base_page(MicroOp **target) {
+		void assemble_base_page(InstructionPage &target) {
 #define INC_DEC_LD(r)	\
 				Program({MicroOp::Increment8, &r}),	\
 				Program({MicroOp::Decrement8, &r}),	\
@@ -263,7 +298,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define DEC_INC_DEC_LD(rf, r)	\
 				Program(WAIT(2), {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
-			static InstructionTable base_program_table = {
+			InstructionTable base_program_table = {
 				/* 0x00 NOP */			{ {MicroOp::MoveToNextProgram} },	/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
 				/* 0x02 LD (BC), A */	Program(STOREL(a_, bc_)),
 
@@ -400,7 +435,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xe7 RST 20h */	XX,
 				/* 0xe8 RET PE */	RET(TestPE),							/* 0xe9 JP (HL) */	Program({MicroOp::Move16, &hl_.full, &pc_.full}),
 				/* 0xea JP PE */	JP(TestPE),								/* 0xeb EX DE, HL */Program({MicroOp::ExDEHL}),
-				/* 0xec CALL PE */	CALL(TestPE),							/* 0xed [ED page] */Program({MicroOp::SetInstructionPage, ed_page_}),
+				/* 0xec CALL PE */	CALL(TestPE),							/* 0xed [ED page] */Program({MicroOp::SetInstructionPage, &ed_page_}),
 				/* 0xee XOR n */	Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),
 				/* 0xef RST 28h */	XX,
 				/* 0xf0 RET p */	RET(TestP),								/* 0xf1 POP AF */	Program(POP(temp16_), {MicroOp::DisassembleAF}),
@@ -410,7 +445,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xf7 RST 30h */	XX,
 				/* 0xf8 RET M */	RET(TestM),								/* 0xf9 LD SP, HL */Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),
 				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		Program({MicroOp::EI}),
-				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */Program({MicroOp::SetInstructionPage, fd_page_}),
+				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */Program({MicroOp::SetInstructionPage, &fd_page_}),
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
 				/* 0xff RST 38h */	XX,
 			};
@@ -420,8 +455,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void decode_operation(uint8_t operation) {
 			if(current_instruction_page_[operation]->type == MicroOp::None) {
 				uint8_t page = 0x00;
-				if(current_instruction_page_ == ed_page_) page = 0xed;
-				if(current_instruction_page_ == fd_page_) page = 0xfd;
+				if(current_instruction_page_ == ed_page_.instructions) page = 0xed;
+				if(current_instruction_page_ == fd_page_.instructions) page = 0xfd;
 				printf("Unknown Z80 operation %02x %02x!!!\n", page, operation);
 			}
 			schedule_program(current_instruction_page_[operation]);
@@ -443,6 +478,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			@param number_of_cycles The number of cycles to run the Z80 for.
 		*/
 		void run_for_cycles(int number_of_cycles) {
+			// TODO: this can't legitimately be static and contain references to this via pc_ and operation_;
+			// make it something else that is built at instance construction.
 			static const MicroOp fetch_decode_execute[] = {
 				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 4, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation },
@@ -451,7 +488,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
-		current_instruction_page_ = base_page_;\
+		current_instruction_page_ = base_page_.instructions;\
 		schedule_program(fetch_decode_execute);\
 	}
 
@@ -801,7 +838,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::SetInstructionPage:
 						schedule_program(fetch_decode_execute);
-						current_instruction_page_ = (CPU::Z80::MicroOp **)operation->source;
+						current_instruction_page_ = ((InstructionPage *)operation->source)->instructions;
 					break;
 
 					default:
