@@ -224,11 +224,19 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				NOP_ROW(),	/* 0x40 */
 				NOP_ROW(),	/* 0x50 */
 				NOP_ROW(),	/* 0x60 */
-				NOP_ROW(),	/* 0x70 */
+				/* 0x70 IN (C) */		XX,								/* 0x71 OUT (C), 0 */	XX,
+				/* 0x72 SBC HL, SP */	XX,								/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
+				/* 0x74 NEG */			XX,								/* 0x75 RETN */			XX,
+				/* 0x76 IM 1 */			XX,								/* 0x77 XX */			XX,
+				/* 0x78 IN A, (C) */	XX,								/* 0x79 OUT (C), A */	XX,
+				/* 0x7a ADC HL, SP */	XX,								/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
+				/* 0x7c NEG */			XX,								/* 0x7d RETN */			XX,
+				/* 0x7e IM 2 */			XX,								/* 0x7f XX */	XX,
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				NOP_ROW(),	/* 0xa0 */
-				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),		/* 0xb1 CPIR */		XX,
+				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),
+				/* 0xb1 CPIR */		XX,
 				/* 0xb2 INIR */		XX,								/* 0xb3 OTIR */		XX,
 				XX, XX, XX, XX,
 				/* 0xb8 LDDR */		XX,								/* 0xb9 CPDR */		XX,
