@@ -161,7 +161,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
-#define JP(cc)			Program(FETCH16(temporary_, pc_), {MicroOp::cc}, {MicroOp::Move16, &address_.full, &pc_.full})
+#define JP(cc)			Program(FETCH16(address_, pc_), {MicroOp::cc}, {MicroOp::Move16, &address_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
