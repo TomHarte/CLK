@@ -171,6 +171,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
 #define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
@@ -354,7 +355,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(POP(bc_)),	/* 0xc1 POP BC */
 				JP(TestNZ),	/* 0xc2 JP NZ */
 				Program(FETCH16L(temp16_, pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xc3 JP nn */
-				XX,	/* 0xc4 CALL NZ */
+				CALL(TestNZ),	/* 0xc4 CALL NZ */
 				Program(WAIT(1), PUSH(bc_)),	/* 0xc5 PUSH BC */
 				Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),	/* 0xc6 ADD A, n */
 				XX,	/* 0xc7 RST 00h */
@@ -362,7 +363,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(POP(pc_)),	/* 0xc9 RET */
 				JP(TestZ),	/* 0xca JP Z */
 				XX,	/* 0xcb [CB page] */
-				XX,	/* 0xcc CALL Z */
+				CALL(TestZ),	/* 0xcc CALL Z */
 				Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xcd CALL */
 				Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),	/* 0xce ADC A, n */
 				XX,	/* 0xcf RST 08h */
@@ -370,7 +371,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(POP(de_)),	/* 0xd1 POP DE */
 				JP(TestNC),	/* 0xd2 JP NC */
 				XX,	/* 0xd3 OUT (n), A */
-				XX,	/* 0xd4 CALL NC */
+				CALL(TestNC),	/* 0xd4 CALL NC */
 				Program(WAIT(1), PUSH(de_)),	/* 0xd5 PUSH DE */
 				Program(FETCH(temp8_, pc_), {MicroOp::SUB8, &temp8_}),	/* 0xd6 SUB n */
 				XX,	/* 0xd7 RST 10h */
@@ -378,7 +379,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xd9 EXX */
 				JP(TestC),	/* 0xda JP C */
 				XX,	/* 0xdb IN A, (n) */
-				XX,	/* 0xdc CALL C */
+				CALL(TestC),	/* 0xdc CALL C */
 				XX,	/* 0xdd [DD page] */
 				Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),	/* 0xde SBC A, n */
 				XX,	/* 0xdf RST 18h */
@@ -386,7 +387,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(POP(hl_)),	/* 0xe1 POP HL */
 				JP(TestPO),	/* 0xe2 JP PO */
 				XX,	/* 0xe3 EX (SP), HL */
-				XX,	/* 0xe4 CALL PO */
+				CALL(TestPO),	/* 0xe4 CALL PO */
 				Program(WAIT(1), PUSH(hl_)),	/* 0xe5 PUSH HL */
 				Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),	/* 0xe6 AND n */
 				XX,	/* 0xe7 RST 20h */
@@ -394,7 +395,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xe9 JP (HL) */
 				JP(TestPE),	/* 0xea JP PE */
 				Program({MicroOp::ExDEHL}),	/* 0xeb EX DE, HL */
-				XX,	/* 0xec CALL PE */
+				CALL(TestPE),	/* 0xec CALL PE */
 				Program({MicroOp::SetInstructionPage, ed_page_}),	/* 0xed [ED page] */
 				Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),	/* 0xee XOR n */
 				XX,	/* 0xef RST 28h */
@@ -402,7 +403,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(POP(temp16_), {MicroOp::DisassembleAF}),	/* 0xf1 POP AF */
 				JP(TestP),	/* 0xf2 JP P */
 				XX,	/* 0xf3 DI */
-				XX,	/* 0xf4 CALL P */
+				CALL(TestP),	/* 0xf4 CALL P */
 				Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temp16_)),	/* 0xf5 PUSH AF */
 				Program(FETCH(temp8_, pc_), {MicroOp::Or, &temp8_}),	/* 0xf6 OR n */
 				XX,	/* 0xf7 RST 30h */
@@ -410,7 +411,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),	/* 0xf9 LD SP, HL */
 				JP(TestM),	/* 0xfa JP M */
 				XX,	/* 0xfb EI */
-				XX,	/* 0xfc CALL M */
+				CALL(TestM),	/* 0xfc CALL M */
 				Program({MicroOp::SetInstructionPage, fd_page_}),	/* 0xfd [FD page] */
 				Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),	/* 0xfe CP n */
 				XX,	/* 0xff RST 38h */
