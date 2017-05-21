@@ -111,6 +111,8 @@ struct MicroOp {
 
 		ExDEHL,
 
+		EI,		DI,
+
 		LDIR,
 
 		RLA,	RLCA,	RRA,	RRCA,
@@ -143,6 +145,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair bc_, de_, hl_;
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
 		RegisterPair ix_, iy_, pc_, sp_;
+		bool iff1_, iff2_;
 		uint8_t sign_result_, zero_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_, carry_flag_;
 
 		int number_of_cycles_;
@@ -385,12 +388,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xee XOR n */	Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),
 				/* 0xef RST 28h */	XX,
 				/* 0xf0 RET p */	RET(TestP),								/* 0xf1 POP AF */	Program(POP(temp16_), {MicroOp::DisassembleAF}),
-				/* 0xf2 JP P */		JP(TestP),								/* 0xf3 DI */		XX,
+				/* 0xf2 JP P */		JP(TestP),								/* 0xf3 DI */		Program({MicroOp::DI}),
 				/* 0xf4 CALL P */	CALL(TestP),							/* 0xf5 PUSH AF */	Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temp16_)),
 				/* 0xf6 OR n */		Program(FETCH(temp8_, pc_), {MicroOp::Or, &temp8_}),
 				/* 0xf7 RST 30h */	XX,
 				/* 0xf8 RET M */	RET(TestM),								/* 0xf9 LD SP, HL */Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),
-				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		XX,
+				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		Program({MicroOp::EI}),
 				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */Program({MicroOp::SetInstructionPage, fd_page_}),
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
 				/* 0xff RST 38h */	XX,
@@ -764,6 +767,16 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						carry_flag_ = newCarry;
 						subtract_flag_ = half_carry_flag_ = 0;
 					} break;
+
+#pragma mark - Interrupt state
+
+					case MicroOp::EI:
+						iff1_ = iff2_ = true;
+					break;
+
+					case MicroOp::DI:
+						iff1_ = iff2_ = false;
+					break;
 
 #pragma mark - Internal bookkeeping
 
