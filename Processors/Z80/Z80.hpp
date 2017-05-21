@@ -254,7 +254,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
 
-				/* 0x0f RRCA */			XX,
+				/* 0x0f RRCA */			Program({MicroOp::RRCA}),
 				/* 0x10 DJNZ */			XX,									/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
 				/* 0x12 LD (DE), A */	Program(STOREL(a_, de_)),
 
@@ -268,7 +268,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
 
-				/* 0x1f RRA */			XX,
+				/* 0x1f RRA */			Program({MicroOp::RRA}),
 				/* 0x20 JR NZ */		XX,									 /* 0x21 LD HL, nn */	Program(FETCH16(hl_, pc_)),
 				/* 0x22 LD (nn), HL */	XX,
 
@@ -727,6 +727,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						hl_.full = temp;
 					} break;
 
+#pragma mark - Repetition group
+
 					case MicroOp::LDIR: {
 						bc_.full--;
 						de_.full++;
@@ -746,6 +748,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						}
 					} break;
 
+#pragma mark - Rotation
+
 					case MicroOp::RLA: {
 						uint8_t new_carry = a_ >> 7;
 						a_ = (uint8_t)((a_ << 1) | carry_flag_);
@@ -761,6 +765,24 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						carry_flag_ = new_carry;
 						subtract_flag_ = half_carry_flag_ = 0;
 					} break;
+
+					case MicroOp::RRA: {
+						uint8_t newCarry = a_ & 1;
+						a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
+						bit3_result_ = bit5_result_ = a_;
+						carry_flag_ = newCarry;
+						subtract_flag_ = half_carry_flag_ = 0;
+					} break;
+
+					case MicroOp::RRCA: {
+						uint8_t newCarry = a_ & 1;
+						a_ = (uint8_t)((a_ >> 1) | (newCarry << 7));
+						bit5_result_ = bit3_result_ = a_;
+						carry_flag_ = newCarry;
+						subtract_flag_ = half_carry_flag_ = 0;
+					} break;
+
+#pragma mark - Internal bookkeeping
 
 					case MicroOp::SetInstructionPage:
 						schedule_program(fetch_decode_execute);
