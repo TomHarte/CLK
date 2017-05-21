@@ -162,14 +162,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define XX				{MicroOp::None, 0}
 
+/// Fetches into x from address y, and then increments y.
 #define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
+/// Fetches into x from address y.
 #define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
 
+/// Stores x to address y, and then increments y.
+#define STORE(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Write, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
+/// Stores x to address y.
 #define STOREL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Write, 3, &y.full, &x}}
 
+/// Fetches the 16-bit quantity x from address y, incrementing y twice.
 #define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
+/// Fetches the 16-bit quantity x from address y, incrementing y once.
 #define FETCH16L(x, y)	FETCH(x.bytes.low, y), FETCHL(x.bytes.high, y)
 
+/// Stores the 16-bit quantity x to address y, incrementing y once.
 #define STORE16L(x, y)	STORE(x.bytes.low, y), STOREL(x.bytes.high, y)
 
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
@@ -403,7 +411,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		void decode_operation(uint8_t operation) {
 			if(current_instruction_page_[operation]->type == MicroOp::None) {
-				printf("Unknown Z80 operation %02x!!!\n", operation);
+				uint8_t page = 0x00;
+				if(current_instruction_page_ == ed_page_) page = 0xed;
+				if(current_instruction_page_ == fd_page_) page = 0xfd;
+				printf("Unknown Z80 operation %02x %02x!!!\n", page, operation);
 			}
 			schedule_program(current_instruction_page_[operation]);
 		}
