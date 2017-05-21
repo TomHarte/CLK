@@ -318,7 +318,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
 				LD_GROUP(hl_.bytes.low),
 
-				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x70
+				/* 0x70 LD (HL),B */	Program(STOREL(bc_.bytes.high, hl_)),	/* 0x71 LD (HL), C */	Program(STOREL(bc_.bytes.low, hl_)),
+				/* 0x72 LD (HL),D */	Program(STOREL(de_.bytes.high, hl_)),	/* 0x73 LD (HL), E */	Program(STOREL(de_.bytes.low, hl_)),
+				/* 0x74 LD (HL),H */	Program(STOREL(hl_.bytes.high, hl_)),	/* 0x75 LD (HL), L */	Program(STOREL(hl_.bytes.low, hl_)),
+				/* 0x76 HALT */			XX,										/* 0x77 LD (HL), A */	Program(STOREL(a_, hl_)),
 
 				/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
 				LD_GROUP(a_),
