@@ -83,7 +83,9 @@ struct MicroOp {
 		DecodeOperation,
 		MoveToNextProgram,
 
+		Increment8,
 		Increment16,
+		Decrement8,
 		Decrement16,
 		Move8,
 		Move16,
@@ -108,6 +110,10 @@ struct MicroOp {
 		ExDEHL,
 
 		LDIR,
+
+		RLA,	RLCA,	RRA,	RRCA,
+		RLC,	RRC,	RL,		RR,
+		SLA,	SRA,	SLL,	SRL,
 
 		SetInstructionPage,
 
@@ -141,7 +147,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		const MicroOp **program_table_;
 
 		uint8_t operation_;
-		RegisterPair address_, temporary_;
+		RegisterPair temp16_;
+		uint8_t temp8_;
 
 		MicroOp **current_instruction_page_;
 		MicroOp *base_page_[256];
@@ -161,7 +168,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
-#define JP(cc)			Program(FETCH16(address_, pc_), {MicroOp::cc}, {MicroOp::Move16, &address_.full, &pc_.full})
+#define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
@@ -172,7 +179,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
 				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
 				Program({MicroOp::op, &hl_.bytes.high}),	Program({MicroOp::op, &hl_.bytes.low}),	\
-				Program(FETCHL(temporary_.bytes.low, hl_), {MicroOp::op, &temporary_.bytes.low}),	\
+				Program(FETCHL(temp8_, hl_), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::Add16, &s.full, &d.full})
@@ -202,7 +209,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				NOP_ROW(),	/* 0xa0 */
-				/* 0xb0 LDIR */		Program(FETCHL(temporary_.bytes.low, hl_), STOREL(temporary_.bytes.low, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),		/* 0xb1 CPIR */		XX,
+				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),		/* 0xb1 CPIR */		XX,
 				/* 0xb2 INIR */		XX,								/* 0xb3 OTIR */		XX,
 				XX, XX, XX, XX,
 				/* 0xb8 LDDR */		XX,								/* 0xb9 CPDR */		XX,
@@ -218,77 +225,95 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		void assemble_base_page(MicroOp **target) {
+#define INC_DEC_LD(r)	\
+				Program({MicroOp::Increment8, &r}),	\
+				Program({MicroOp::Decrement8, &r}),	\
+				Program(FETCH(r, pc_))
+
+#define INC_INC_DEC_LD(rf, r)	\
+				Program(WAIT(2), {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
+
+#define DEC_INC_DEC_LD(rf, r)	\
+				Program(WAIT(2), {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
+
 			static InstructionTable base_program_table = {
-				{ {MicroOp::MoveToNextProgram} },		/* 0x00 NOP */
-				Program(FETCH16(bc_, pc_)),				/* 0x01 LD BC, nn */
-				XX,	/* 0x02 LD (BC), A */
-				Program(WAIT(2), {MicroOp::Increment16, &bc_.full}), /* 0x03 INC BC */
-				XX,	/* 0x04 INC B */
-				XX,	/* 0x05 DEC B */
-				Program(FETCH(bc_.bytes.high, pc_)),	/* 0x06 LD B, n */
-				XX,	/* 0x07 RLCA */
-				XX,	/* 0x08 EX AF, AF' */
-				ADD16(hl_, bc_),	/* 0x09 ADD HL, BC */
-				Program(FETCHL(a_, bc_)),	/* 0x0a LD A, (BC) */
-				Program(WAIT(2), {MicroOp::Decrement16, &bc_.full}),	/* 0x0b DEC BC */
-				XX,	/* 0x0c INC C */
-				XX,	/* 0x0d DEC C */
-				Program(FETCH(bc_.bytes.low, pc_)),		/* 0x0e LD C, n */
-				XX,	/* 0x0f RRCA */
-				XX,	/* 0x10 DJNZ */
-				Program(FETCH16(de_, pc_)),				/* 0x11 LD DE, nn */
-				XX,	/* 0x12 LD (DE), A */
-				Program(WAIT(2), {MicroOp::Increment16, &de_.full}), /* 0x13 INC DE */
-				XX, /* 0x14 INC D */
-				XX, /* 0x15 DEC D */
-				Program(FETCH(de_.bytes.high, pc_)),	/* 0x16 LD D, n */
-				XX, /* 0x17 RLA */
-				XX,	/* 0x18 JR */
-				ADD16(hl_, de_),	/* 0x19 ADD HL, DE */
-				Program(FETCHL(a_, de_)),	/* 0x1a LD A, (DE) */
-				Program(WAIT(2), {MicroOp::Decrement16, &de_.full}),	/* 0x1b DEC DE */
-				XX,	/* 0x1c INC E */
-				XX,	/* 0x1d DEC E */
-				Program(FETCH(de_.bytes.low, pc_)),		/* 0x1e LD E, n */
-				XX,	/* 0x1f RRA */
-				XX,	/* 0x20 JR NZ */
-				Program(FETCH16(hl_, pc_)), /* 0x21 LD HL, nn */
-				XX,	/* 0x22 LD (nn), HL */
-				Program(WAIT(2), {MicroOp::Increment16, &hl_.full}),	/* 0x23 INC HL */
-				XX,	/* 0x24 INC H */
-				XX, /* 0x25 DEC H */
-				Program(FETCH(hl_.bytes.high, pc_)),	/* 0x26 LD H, n */
-				XX,	/* 0x27 DAA */
-				XX,	/* 0x28 JR Z */
-				ADD16(hl_, hl_),	/* 0x29 ADD HL, HL */
-				Program(FETCH16(address_, pc_), FETCH16L(hl_, address_)),	/* 0x2a LD HL, (nn) */
-				Program(WAIT(2), {MicroOp::Decrement16, &hl_.full}),	/* 0x2b DEC HL */
-				XX,	/* 0x2c INC L */
-				XX,	/* 0x2d DEC L */
-				Program(FETCH(hl_.bytes.low, pc_)),	/* 0x2e LD L, n */
-				XX, /* 0x2f CPL */
-				XX,	/* 0x30 JR NC */
-				Program(FETCH16(sp_, pc_)),	/* 0x31 LD SP, nn */
-				Program(FETCH16(address_, pc_), STOREL(a_, address_)),	/* 0x32 LD (nn), A */
-				Program(WAIT(2), {MicroOp::Increment16, &sp_.full}), /* 0x33 INC SP */
-				XX,	/* 0x34 INC (HL) */
-				XX,	/* 0x35 DEC (HL) */
-				Program(FETCH(temporary_.bytes.low, pc_), STOREL(temporary_.bytes.low, hl_)),	/* 0x36 LD (HL), n */
-				XX,	/* 0x37 SCF */
-				XX,	/* 0x38 JR C */
-				ADD16(hl_, sp_),	/* 0x39 ADD HL, SP */
-				XX,	/* 0x3a LD A, (nn) */
-				Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),	/* 0x3b DEC SP */
-				XX,	/* 0x3c INC A */
-				XX,	/* 0x3d DEC A */
-				XX,	/* 0x3e LD A, n */
-				XX,	/* 0x3f CCF */
-				LD_GROUP(bc_.bytes.high),	/* 0x40 LD B, B;  0x41 LD B, C;	0x42 LD B, D;	0x43 LD B, E;	0x44 LD B, H;	0x45 LD B, L;	0x46 LD B, (HL);	0x47 LD B, A */
-				LD_GROUP(bc_.bytes.low),	/* 0x48 LD C, B;  0x49 LD C, C;	0x4a LD C, D;	0x4b LD C, E;	0x4c LD C, H;	0x4d LD C, L;	0x4e LD C, (HL);	0x4f LD C, A */
-				LD_GROUP(de_.bytes.high),	/* 0x50 LD D, B;  0x51 LD D, C;	0x52 LD D, D;	0x53 LD D, E;	0x54 LD D, H;	0x55 LD D, L;	0x56 LD D, (HL);	0x57 LD D, A */
-				LD_GROUP(de_.bytes.low),	/* 0x58 LD E, B;  0x59 LD E, C;	0x5a LD E, D;	0x5b LD E, E;	0x5c LD E, H;	0x5d LD E, L;	0x5e LD E, (HL);	0x5f LD E, A */
-				LD_GROUP(hl_.bytes.high),	/* 0x60 LD H, B;  0x61 LD H, C;	0x62 LD H, D;	0x63 LD H, E;	0x64 LD H, H;	0x65 LD H, L;	0x66 LD H, (HL);	0x67 LD H, A */
-				LD_GROUP(hl_.bytes.low),	/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
+				/* 0x00 NOP */			{ {MicroOp::MoveToNextProgram} },	/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
+				/* 0x02 LD (BC), A */	Program(STOREL(a_, bc_)),
+
+				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
+				INC_INC_DEC_LD(bc_, bc_.bytes.high),
+
+				/* 0x07 RLCA */			Program({MicroOp::RLCA}),
+				/* 0x08 EX AF, AF' */	XX,									/* 0x09 ADD HL, BC */	ADD16(hl_, bc_),
+				/* 0x0a LD A, (BC) */	Program(FETCHL(a_, bc_)),
+
+				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
+				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
+
+				/* 0x0f RRCA */			XX,
+				/* 0x10 DJNZ */			XX,									/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
+				/* 0x12 LD (DE), A */	Program(STOREL(a_, de_)),
+
+				/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
+				INC_INC_DEC_LD(de_, de_.bytes.high),
+
+				/* 0x17 RLA */			Program({MicroOp::RLA}),
+				/* 0x18 JR */			XX,									/* 0x19 ADD HL, DE */	ADD16(hl_, de_),
+				/* 0x1a LD A, (DE) */	Program(FETCHL(a_, de_)),
+
+				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
+				DEC_INC_DEC_LD(de_, de_.bytes.low),
+
+				/* 0x1f RRA */			XX,
+				/* 0x20 JR NZ */		XX,									 /* 0x21 LD HL, nn */	Program(FETCH16(hl_, pc_)),
+				/* 0x22 LD (nn), HL */	XX,
+
+				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
+				INC_INC_DEC_LD(hl_, hl_.bytes.high),
+
+				/* 0x27 DAA */			XX,
+				/* 0x28 JR Z */			XX,									/* 0x29 ADD HL, HL */	ADD16(hl_, hl_),
+				/* 0x2a LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(hl_, temp16_)),
+
+				/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
+				DEC_INC_DEC_LD(hl_, hl_.bytes.low),
+
+				/* 0x2f CPL */			XX,
+				/* 0x30 JR NC */		XX,									/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
+				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
+				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
+				/* 0x34 INC (HL) */		XX,
+				/* 0x35 DEC (HL) */		XX,
+				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, hl_)),
+				/* 0x37 SCF */			XX,
+				/* 0x38 JR C */			XX,
+				/* 0x39 ADD HL, SP */	ADD16(hl_, sp_),
+				/* 0x3a LD A, (nn) */	XX,
+				/* 0x3b DEC SP */		Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),
+
+				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
+				INC_DEC_LD(a_),
+
+				/* 0x3f CCF */			XX,
+
+				/* 0x40 LD B, B;  0x41 LD B, C;	0x42 LD B, D;	0x43 LD B, E;	0x44 LD B, H;	0x45 LD B, L;	0x46 LD B, (HL);	0x47 LD B, A */
+				LD_GROUP(bc_.bytes.high),
+
+				/* 0x48 LD C, B;  0x49 LD C, C;	0x4a LD C, D;	0x4b LD C, E;	0x4c LD C, H;	0x4d LD C, L;	0x4e LD C, (HL);	0x4f LD C, A */
+				LD_GROUP(bc_.bytes.low),
+
+				/* 0x50 LD D, B;  0x51 LD D, C;	0x52 LD D, D;	0x53 LD D, E;	0x54 LD D, H;	0x55 LD D, L;	0x56 LD D, (HL);	0x57 LD D, A */
+				LD_GROUP(de_.bytes.high),
+
+				/* 0x58 LD E, B;  0x59 LD E, C;	0x5a LD E, D;	0x5b LD E, E;	0x5c LD E, H;	0x5d LD E, L;	0x5e LD E, (HL);	0x5f LD E, A */
+				LD_GROUP(de_.bytes.low),
+
+				/* 0x60 LD H, B;  0x61 LD H, C;	0x62 LD H, D;	0x63 LD H, E;	0x64 LD H, H;	0x65 LD H, L;	0x66 LD H, (HL);	0x67 LD H, A */
+				LD_GROUP(hl_.bytes.high),
+
+				/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
+				LD_GROUP(hl_.bytes.low),
+
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x70
 				LD_GROUP(a_),				/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
 				XX,			XX,			XX,			XX,			XX,			XX,			XX,			XX,		// 0x80
@@ -302,7 +327,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xc0 RET NZ */
 				Program(POP(bc_)),	/* 0xc1 POP BC */
 				JP(TestNZ),	/* 0xc2 JP NZ */
-				Program(FETCH16L(address_, pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xc3 JP nn */
+				Program(FETCH16L(temp16_, pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xc3 JP nn */
 				XX,	/* 0xc4 CALL NZ */
 				Program(WAIT(1), PUSH(bc_)),	/* 0xc5 PUSH BC */
 				XX,	/* 0xc6 ADD A, n */
@@ -312,7 +337,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				JP(TestZ),	/* 0xca JP Z */
 				XX,	/* 0xcb [CB page] */
 				XX,	/* 0xcc CALL Z */
-				Program(FETCH16(address_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &address_.full, &pc_.full}),	/* 0xcd CALL */
+				Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xcd CALL */
 				XX,	/* 0xce ADC A, n */
 				XX,	/* 0xcf RST 08h */
 				XX,	/* 0xd0 RET NC */
@@ -348,11 +373,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xee XOR n */
 				XX,	/* 0xef RST 28h */
 				XX,	/* 0xf0 RET p */
-				Program(POP(temporary_), {MicroOp::DisassembleAF}),	/* 0xf1 POP AF */
+				Program(POP(temp16_), {MicroOp::DisassembleAF}),	/* 0xf1 POP AF */
 				JP(TestP),	/* 0xf2 JP P */
 				XX,	/* 0xf3 DI */
 				XX,	/* 0xf4 CALL P */
-				Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temporary_)),	/* 0xf5 PUSH AF */
+				Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temp16_)),	/* 0xf5 PUSH AF */
 				XX,	/* 0xf6 OR n */
 				XX,	/* 0xf7 RST 30h */
 				XX,	/* 0xf8 RET M */
@@ -431,13 +456,49 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
 
 					case MicroOp::AssembleAF:
-						temporary_.bytes.high = a_;
-						temporary_.bytes.low = get_flags();
+						temp16_.bytes.high = a_;
+						temp16_.bytes.low = get_flags();
 					break;
 					case MicroOp::DisassembleAF:
-						a_ = temporary_.bytes.high;
-						set_flags(temporary_.bytes.low);
+						a_ = temp16_.bytes.high;
+						set_flags(temp16_.bytes.low);
 					break;
+
+					case MicroOp::Increment8: {
+						uint8_t value = *(uint8_t *)operation->source;
+						int result = value + 1;
+
+						// with an increment, overflow occurs if the sign changes from
+						// positive to negative
+						int overflow = (value ^ result) & ~value;
+						int half_result = (value&0xf) + 1;
+
+						*(uint8_t *)operation->source = (uint8_t)result;
+
+						// sign, zero and 5 & 3 are set directly from the result
+						bit5_result_ = bit3_result_ = sign_result_ = zero_result_ = (uint8_t)result;
+						half_carry_flag_ = half_result & Flag::HalfCarry;
+						parity_overflow_flag_ = (overflow >> 5)&Flag::Overflow;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::Decrement8: {
+						uint8_t value = *(uint8_t *)operation->source;
+						int result = value - 1;
+
+						// with an increment, overflow occurs if the sign changes from
+						// positive to negative
+						int overflow = (value ^ result) & ~value;
+						int half_result = (value&0xf) - 1;
+
+						*(uint8_t *)operation->source = (uint8_t)result;
+
+						// sign, zero and 5 & 3 are set directly from the result
+						bit5_result_ = bit3_result_ = sign_result_ = zero_result_ = (uint8_t)result;
+						half_carry_flag_ = half_result & Flag::HalfCarry;
+						parity_overflow_flag_ = (overflow >> 5)&Flag::Overflow;
+						subtract_flag_ = Flag::Subtract;
+					} break;
 
 #define set_parity(v)	\
 	parity_overflow_flag_ = v^1;\
@@ -503,7 +564,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						de_.full++;
 						hl_.full++;
 
-						bit3_result_ = bit5_result_ = a_ + temporary_.bytes.low;
+						bit3_result_ = bit5_result_ = a_ + temp8_;
 						subtract_flag_ = 0;
 						half_carry_flag_ = 0;
 
@@ -515,6 +576,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							move_to_next_program();
 							checkSchedule();
 						}
+					} break;
+
+					case MicroOp::RLA: {
+						uint8_t new_carry = a_ >> 7;
+						a_ = (uint8_t)((a_ << 1) | carry_flag_);
+						bit3_result_ = bit5_result_ = a_;
+						carry_flag_ = new_carry;
+						subtract_flag_ = half_carry_flag_ = 0;
+					} break;
+
+					case MicroOp::RLCA: {
+						uint8_t new_carry = a_ >> 7;
+						a_ = (uint8_t)((a_ << 1) | new_carry);
+						bit3_result_ = bit5_result_ = a_;
+						carry_flag_ = new_carry;
+						subtract_flag_ = half_carry_flag_ = 0;
 					} break;
 
 					case MicroOp::SetInstructionPage:
