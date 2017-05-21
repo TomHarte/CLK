@@ -353,7 +353,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(FETCH16L(temp16_, pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xc3 JP nn */
 				XX,	/* 0xc4 CALL NZ */
 				Program(WAIT(1), PUSH(bc_)),	/* 0xc5 PUSH BC */
-				XX,	/* 0xc6 ADD A, n */
+				Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),	/* 0xc6 ADD A, n */
 				XX,	/* 0xc7 RST 00h */
 				XX,	/* 0xc8 RET Z */
 				Program(POP(pc_)),	/* 0xc9 RET */
@@ -361,7 +361,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xcb [CB page] */
 				XX,	/* 0xcc CALL Z */
 				Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),	/* 0xcd CALL */
-				XX,	/* 0xce ADC A, n */
+				Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),	/* 0xce ADC A, n */
 				XX,	/* 0xcf RST 08h */
 				XX,	/* 0xd0 RET NC */
 				Program(POP(de_)),	/* 0xd1 POP DE */
@@ -369,7 +369,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xd3 OUT (n), A */
 				XX,	/* 0xd4 CALL NC */
 				Program(WAIT(1), PUSH(de_)),	/* 0xd5 PUSH DE */
-				XX,	/* 0xd6 SUB n */
+				Program(FETCH(temp8_, pc_), {MicroOp::SUB8, &temp8_}),	/* 0xd6 SUB n */
 				XX,	/* 0xd7 RST 10h */
 				XX,	/* 0xd8 RET C */
 				XX,	/* 0xd9 EXX */
@@ -377,7 +377,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xdb IN A, (n) */
 				XX,	/* 0xdc CALL C */
 				XX,	/* 0xdd [DD page] */
-				XX,	/* 0xde SBC A, n */
+				Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),	/* 0xde SBC A, n */
 				XX,	/* 0xdf RST 18h */
 				XX,	/* 0xe0 RET PO */
 				Program(POP(hl_)),	/* 0xe1 POP HL */
@@ -385,7 +385,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xe3 EX (SP), HL */
 				XX,	/* 0xe4 CALL PO */
 				Program(WAIT(1), PUSH(hl_)),	/* 0xe5 PUSH HL */
-				XX,	/* 0xe6 AND n */
+				Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),	/* 0xe6 AND n */
 				XX,	/* 0xe7 RST 20h */
 				XX,	/* 0xe8 RET PE */
 				XX,	/* 0xe9 JP (HL) */
@@ -393,7 +393,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program({MicroOp::ExDEHL}),	/* 0xeb EX DE, HL */
 				XX,	/* 0xec CALL PE */
 				Program({MicroOp::SetInstructionPage, ed_page_}),	/* 0xed [ED page] */
-				XX,	/* 0xee XOR n */
+				Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),	/* 0xee XOR n */
 				XX,	/* 0xef RST 28h */
 				XX,	/* 0xf0 RET p */
 				Program(POP(temp16_), {MicroOp::DisassembleAF}),	/* 0xf1 POP AF */
@@ -401,7 +401,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xf3 DI */
 				XX,	/* 0xf4 CALL P */
 				Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temp16_)),	/* 0xf5 PUSH AF */
-				XX,	/* 0xf6 OR n */
+				Program(FETCH(temp8_, pc_), {MicroOp::Or, &temp8_}),	/* 0xf6 OR n */
 				XX,	/* 0xf7 RST 30h */
 				XX,	/* 0xf8 RET M */
 				Program(WAIT(2), {MicroOp::Move16, &hl_.full, &sp_.full}),	/* 0xf9 LD SP, HL */
@@ -409,7 +409,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				XX,	/* 0xfb EI */
 				XX,	/* 0xfc CALL M */
 				Program({MicroOp::SetInstructionPage, fd_page_}),	/* 0xfd [FD page] */
-				XX,	/* 0xfe CP n */
+				Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),	/* 0xfe CP n */
 				XX,	/* 0xff RST 38h */
 			};
 			assemble_page(target, base_program_table);
