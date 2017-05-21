@@ -167,6 +167,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
 #define FETCH16L(x, y)	FETCH(x.bytes.low, y), FETCHL(x.bytes.high, y)
 
+#define STORE16L(x, y)	STORE(x.bytes.low, y), STOREL(x.bytes.high, y)
+
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
@@ -272,7 +274,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				/* 0x1f RRA */			Program({MicroOp::RRA}),
 				/* 0x20 JR NZ */		XX,									 /* 0x21 LD HL, nn */	Program(FETCH16(hl_, pc_)),
-				/* 0x22 LD (nn), HL */	XX,
+				/* 0x22 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 
 				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
 				INC_INC_DEC_LD(hl_, hl_.bytes.high),
@@ -377,7 +379,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Program(WAIT(1), PUSH(hl_)),
 				/* 0xe6 AND n */	Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),
 				/* 0xe7 RST 20h */	XX,
-				/* 0xe8 RET PE */	RET(TestPE),							/* 0xe9 JP (HL) */	XX,
+				/* 0xe8 RET PE */	RET(TestPE),							/* 0xe9 JP (HL) */	Program({MicroOp::Move16, &hl_.full, &pc_.full}),
 				/* 0xea JP PE */	JP(TestPE),								/* 0xeb EX DE, HL */Program({MicroOp::ExDEHL}),
 				/* 0xec CALL PE */	CALL(TestPE),							/* 0xed [ED page] */Program({MicroOp::SetInstructionPage, ed_page_}),
 				/* 0xee XOR n */	Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),
@@ -391,7 +393,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		XX,
 				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */Program({MicroOp::SetInstructionPage, fd_page_}),
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
-				/* 0xff RST 38h */	XX,	
+				/* 0xff RST 38h */	XX,
 			};
 			assemble_page(target, base_program_table);
 		}
