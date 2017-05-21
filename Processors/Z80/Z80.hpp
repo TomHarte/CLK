@@ -107,6 +107,8 @@ struct MicroOp {
 		Add16,
 		ExDEHL,
 
+		LDIR,
+
 		SetInstructionPage,
 
 		None
@@ -200,7 +202,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				NOP_ROW(),	/* 0xa0 */
-				NOP_ROW(),	/* 0xb0 */
+				/* 0xb0 LDIR */		Program(FETCHL(temporary_.bytes.low, hl_), STOREL(temporary_.bytes.low, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),		/* 0xb1 CPIR */		XX,
+				/* 0xb2 INIR */		XX,								/* 0xb3 OTIR */		XX,
+				XX, XX, XX, XX,
+				/* 0xb8 LDDR */		XX,								/* 0xb9 CPDR */		XX,
+				/* 0xba INDR */		XX,								/* 0xbb OTDR */		XX,
+				XX, XX, XX, XX,
 				NOP_ROW(),	/* 0xc0 */
 				NOP_ROW(),	/* 0xd0 */
 				NOP_ROW(),	/* 0xe0 */
@@ -489,6 +496,25 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						uint16_t temp = de_.full;
 						de_.full = hl_.full;
 						hl_.full = temp;
+					} break;
+
+					case MicroOp::LDIR: {
+						bc_.full--;
+						de_.full++;
+						hl_.full++;
+
+						bit3_result_ = bit5_result_ = a_ + temporary_.bytes.low;
+						subtract_flag_ = 0;
+						half_carry_flag_ = 0;
+
+						if(bc_.full) {
+							parity_overflow_flag_ = Flag::Parity;
+							pc_.full -= 2;
+						} else {
+							parity_overflow_flag_ = 0;
+							move_to_next_program();
+							checkSchedule();
+						}
 					} break;
 
 					case MicroOp::SetInstructionPage:
