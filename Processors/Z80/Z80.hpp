@@ -292,7 +292,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x37 SCF */			XX,
 				/* 0x38 JR C */			XX,
 				/* 0x39 ADD HL, SP */	ADD16(hl_, sp_),
-				/* 0x3a LD A, (nn) */	XX,
+				/* 0x3a LD A, (nn) */	Program(FETCH16(temp16_, pc_), FETCHL(a_, temp16_)),
 				/* 0x3b DEC SP */		Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
