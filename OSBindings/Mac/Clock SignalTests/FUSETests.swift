@@ -70,7 +70,6 @@ class FUSETests: XCTestCase {
 						machine.setValue(UInt16(iff1), for: .IFF1)
 						machine.setValue(UInt16(iff2), for: .IFF2)
 						machine.setValue(UInt16(interruptMode), for: .IM)
-
 						// TODO: isHalted
 
 						while true {
@@ -93,7 +92,11 @@ class FUSETests: XCTestCase {
 							}
 						}
 
+						machine.captureBusActivity = true
 						machine.runForNumber(ofCycles: Int32(tStates))
+						machine.runToNextInstruction()
+
+						print("\(machine.busOperationCaptures)")
 					}
 				}
 			}

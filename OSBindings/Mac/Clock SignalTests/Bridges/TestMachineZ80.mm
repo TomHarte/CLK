@@ -11,9 +11,10 @@
 
 @interface CSTestMachineZ80 ()
 - (void)testMachineDidTrapAtAddress:(uint16_t)address;
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp;
 @end
 
-#pragma mark - C++ trap handler
+#pragma mark - C++ delegate handlers
 
 class MachineTrapHandler: public CPU::AllRAMProcessor::TrapHandler {
 	public:
@@ -21,6 +22,18 @@ class MachineTrapHandler: public CPU::AllRAMProcessor::TrapHandler {
 
 		void processor_did_trap(CPU::AllRAMProcessor &, uint16_t address) {
 			[target_ testMachineDidTrapAtAddress:address];
+		}
+
+	private:
+		CSTestMachineZ80 *target_;
+};
+
+class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegate {
+	public:
+		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
+
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::BusOperation operation, uint16_t address, uint8_t value, int time_stamp) {
+			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
 	private:
@@ -64,11 +77,20 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	}
 }
 
+#pragma mark - Capture class
+
+@implementation CSTestMachineZ80BusOperationCapture
+@end
+
 #pragma mark - Test class
 
 @implementation CSTestMachineZ80 {
 	CPU::Z80::AllRAMProcessor _processor;
 	MachineTrapHandler *_cppTrapHandler;
+	BusOperationHandler *_busOperationHandler;
+
+	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
+	BOOL _isAtReadOpcode;
 }
 
 #pragma mark - Lifecycle
@@ -76,13 +98,17 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (instancetype)init {
 	if(self = [super init]) {
 		_cppTrapHandler = new MachineTrapHandler(self);
+		_busOperationHandler = new BusOperationHandler(self);
+
 		_processor.set_trap_handler(_cppTrapHandler);
+		_processor.set_memory_access_delegate(_busOperationHandler);
 	}
 	return self;
 }
 
 - (void)dealloc {
 	delete _cppTrapHandler;
+	delete _busOperationHandler;
 }
 
 #pragma mark - Accessors
@@ -119,6 +145,39 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 - (void)testMachineDidTrapAtAddress:(uint16_t)address {
 	[self.trapHandler testMachine:self didTrapAtAddress:address];
+}
+
+#pragma mark - Z80-specific Runner
+
+- (void)runToNextInstruction {
+	_isAtReadOpcode = false;
+	while(!_isAtReadOpcode) {
+		_processor.run_for_cycles(1);
+	}
+}
+
+#pragma mark - Bus operation accumulation
+
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp {
+	_isAtReadOpcode |= (operation == CPU::Z80::BusOperation::ReadOpcode);
+
+	if(self.captureBusActivity) {
+		if(!_busOperationCaptures) _busOperationCaptures = [[NSMutableArray alloc] init];
+
+		if(operation == CPU::Z80::BusOperation::Read || operation == CPU::Z80::BusOperation::ReadOpcode || operation == CPU::Z80::BusOperation::Write) {
+			CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
+			capture.operation = (operation == CPU::Z80::BusOperation::Write) ? CSTestMachineZ80BusOperationCaptureOperationWrite : CSTestMachineZ80BusOperationCaptureOperationRead;
+			capture.address = address;
+			capture.value = value;
+			capture.timeStamp = time_stamp;
+
+			[_busOperationCaptures addObject:capture];
+		}
+	}
+}
+
+- (NSArray<CSTestMachineZ80BusOperationCapture *> *)busOperationCaptures {
+	return [_busOperationCaptures copy];
 }
 
 @end
