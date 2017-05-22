@@ -14,8 +14,8 @@ class FUSETests: XCTestCase {
 	func testFUSE() {
 		if	let inputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "in"),
 			let outputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "expected") {
-			if	let input = try? String(contentsOf: URL(fileURLWithPath: inputFilename)),
-				let output = try? String(contentsOf: URL(fileURLWithPath: outputFilename)) {
+			if	let input = try? String(contentsOf: URL(fileURLWithPath: inputFilename), encoding: .utf8),
+				let output = try? String(contentsOf: URL(fileURLWithPath: outputFilename), encoding: .utf8) {
 
 				let machine = CSTestMachineZ80()
 //				machine.setData(testData, atAddress: 0x0100)
