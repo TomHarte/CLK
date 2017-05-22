@@ -371,6 +371,9 @@
 		4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */; };
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */; };
+		4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF49AE1ED2880200AB3669 /* FUSETests.swift */; };
+		4BBF49B21ED2881200AB3669 /* tests.expected in Resources */ = {isa = PBXBuildFile; fileRef = 4BBF49B01ED2881200AB3669 /* tests.expected */; };
+		4BBF49B31ED2881200AB3669 /* tests.in in Resources */ = {isa = PBXBuildFile; fileRef = 4BBF49B11ED2881200AB3669 /* tests.in */; };
 		4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */; };
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
@@ -886,6 +889,9 @@
 		4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntermediateShader.cpp; sourceTree = "<group>"; };
 		4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IntermediateShader.hpp; sourceTree = "<group>"; };
 		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
+		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
+		4BBF49B01ED2881200AB3669 /* tests.expected */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = tests.expected; path = FUSE/tests.expected; sourceTree = "<group>"; };
+		4BBF49B11ED2881200AB3669 /* tests.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = tests.in; path = FUSE/tests.in; sourceTree = "<group>"; };
 		4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureBuilder.cpp; sourceTree = "<group>"; };
 		4BBF99091C8FBA6F0075DAFB /* TextureBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureBuilder.hpp; sourceTree = "<group>"; };
 		4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRTOpenGL.cpp; sourceTree = "<group>"; };
@@ -1040,11 +1046,12 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4BFCA1281ECBE7A700AC40C1 /* zexall.com */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
+				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
-				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
+				4BFCA1281ECBE7A700AC40C1 /* zexall.com */,
+				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
 			);
 			name = "Test Binaries";
@@ -1783,6 +1790,7 @@
 				4B049CDC1DA3C82F00322067 /* BCDTest.swift */,
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
 				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
+				4BBF49AE1ED2880200AB3669 /* FUSETests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
@@ -1832,6 +1840,15 @@
 			);
 			name = Processors;
 			path = ../../Processors;
+			sourceTree = "<group>";
+		};
+		4BBF49B41ED2881600AB3669 /* FUSE */ = {
+			isa = PBXGroup;
+			children = (
+				4BBF49B01ED2881200AB3669 /* tests.expected */,
+				4BBF49B11ED2881200AB3669 /* tests.in */,
+			);
+			name = FUSE;
 			sourceTree = "<group>";
 		};
 		4BBF99071C8FBA6F0075DAFB /* Internals */ = {
@@ -2350,6 +2367,7 @@
 				4BB299131B587D8400A49093 /* axsix in Resources */,
 				4BB299781B587D8400A49093 /* ldaix in Resources */,
 				4B44EBF71DC9883B00A7820C /* 6502_functional_test.bin in Resources */,
+				4BBF49B31ED2881200AB3669 /* tests.in in Resources */,
 				4BB299291B587D8400A49093 /* cia2pb7 in Resources */,
 				4BB2994A1B587D8400A49093 /* deca in Resources */,
 				4BB299CA1B587D8400A49093 /* sbciy in Resources */,
@@ -2427,6 +2445,7 @@
 				4BB2998D1B587D8400A49093 /* lsezx in Resources */,
 				4BB299811B587D8400A49093 /* ldya in Resources */,
 				4BB299991B587D8400A49093 /* nopb in Resources */,
+				4BBF49B21ED2881200AB3669 /* tests.expected in Resources */,
 				4BB299581B587D8400A49093 /* finish in Resources */,
 				4BB299D11B587D8400A49093 /* shaay in Resources */,
 				4BB299A21B587D8400A49093 /* oraix in Resources */,
@@ -2570,6 +2589,7 @@
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
 				4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */,
 				4B50730A1DDFCFDF00C48FBD /* ArrayBuilderTests.mm in Sources */,
+				4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */,
 				4B2AF8691E513FC20027EE29 /* TIATests.mm in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */,
