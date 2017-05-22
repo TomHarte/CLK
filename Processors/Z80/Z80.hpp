@@ -259,43 +259,35 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				NOP_ROW(),	/* 0x20 */
 				NOP_ROW(),	/* 0x30 */
 				/* 0x40 IN B, (C) */	XX,								/* 0x41 OUT (C), B */	XX,
-				/* 0x42 SBC HL, BC */	Program(WAIT(7), SBC16(hl_, bc_)),
-				/* 0x43 LD (nn), BC */	XX,
+				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	XX,
 				/* 0x44 NEG */			XX,								/* 0x45 RETN */			XX,
 				/* 0x46 IM 0 */			XX,								/* 0x47 LD I, A */		XX,
 				/* 0x48 IN C, (C) */	XX,								/* 0x49 OUT (C), C */	XX,
-				/* 0x4a ADC HL, BC */	Program(WAIT(7), ADC16(hl_, bc_)),
-				/* 0x4b LD BC, (nn) */	XX,
+				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	XX,
 				/* 0x4c NEG */			XX,								/* 0x4d RETI */			XX,
 				/* 0x4e IM 0/1 */		XX,								/* 0x4f LD R, A */		XX,
 				/* 0x50 IN D, (C) */	XX,								/* 0x51 OUT (C), D */	XX,
-				/* 0x52 SBC HL, DE */	Program(WAIT(7), SBC16(hl_, de_)),
-				/* 0x53 LD (nn), DE */	XX,
+				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	XX,
 				/* 0x54 NEG */			XX,								/* 0x55 RETN */			XX,
 				/* 0x56 IM 1 */			XX,								/* 0x57 LD A, I */		XX,
 				/* 0x58 IN E, (C) */	XX,								/* 0x59 OUT (C), E */	XX,
-				/* 0x5a ADC HL, DE */	Program(WAIT(7), ADC16(hl_, de_)),
-				/* 0x5b LD DE, (nn) */	XX,
+				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	XX,
 				/* 0x5c NEG */			XX,								/* 0x5d RETN */			XX,
 				/* 0x5e IM 2 */			XX,								/* 0x5f LD A, R */		XX,
 				/* 0x60 IN H, (C) */	XX,								/* 0x61 OUT (C), H */	XX,
-				/* 0x62 SBC HL, HL */	Program(WAIT(7), SBC16(hl_, hl_)),
-				/* 0x63 LD (nn), HL */	XX,
+				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	XX,
 				/* 0x64 NEG */			XX,								/* 0x65 RETN */			XX,
 				/* 0x66 IM 0 */			XX,								/* 0x67 RRD */			XX,
 				/* 0x68 IN L, (C) */	XX,								/* 0x69 OUT (C), L */	XX,
-				/* 0x6a ADC HL, HL */	Program(WAIT(7), ADC16(hl_, hl_)),
-				/* 0x6b LD HL, (nn) */	XX,
+				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	XX,
 				/* 0x6c NEG */			XX,								/* 0x6d RETN */			XX,
 				/* 0x6e IM 0/1 */		XX,								/* 0x6f RLD */			XX,
 				/* 0x70 IN (C) */		XX,								/* 0x71 OUT (C), 0 */	XX,
-				/* 0x72 SBC HL, SP */	Program(WAIT(7), SBC16(hl_, sp_)),
-				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
+				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
 				/* 0x74 NEG */			XX,								/* 0x75 RETN */			XX,
 				/* 0x76 IM 1 */			XX,								/* 0x77 XX */			XX,
 				/* 0x78 IN A, (C) */	XX,								/* 0x79 OUT (C), A */	XX,
-				/* 0x7a ADC HL, SP */	Program(WAIT(7), ADC16(hl_, sp_)),
-				/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
+				/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
 				/* 0x7c NEG */			XX,								/* 0x7d RETN */			XX,
 				/* 0x7e IM 2 */			XX,								/* 0x7f XX */			XX,
 				NOP_ROW(),	/* 0x80 */
@@ -381,8 +373,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x30 JR NC */		XX,									/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
 				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
-				/* 0x34 INC (HL) */		XX,
-				/* 0x35 DEC (HL) */		XX,
+				/* 0x34 INC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, hl_)),
+				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, hl_)),
 				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, index)),
 				/* 0x37 SCF */			XX,
 				/* 0x38 JR C */			XX,
@@ -878,7 +870,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::SetInstructionPage:
 						schedule_program(fetch_decode_execute);
 						current_instruction_page_ = ((InstructionPage *)operation->source)->instructions;
-						printf("+ ");
+//						printf("+ ");
 					break;
 
 					case MicroOp::CalculateIndexAddress:
