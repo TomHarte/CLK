@@ -93,7 +93,7 @@ class FUSETests: XCTestCase {
 							}
 						}
 
-//						machine.runForNumber(ofCycles: Int32(tStates))
+						machine.runForNumber(ofCycles: Int32(tStates))
 					}
 				}
 			}

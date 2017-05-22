@@ -11,7 +11,7 @@
 
 using namespace CPU::Z80;
 
-AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
+AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536), delegate_(nullptr) {}
 
 int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 	switch(cycle->operation) {
@@ -34,5 +34,11 @@ int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 			printf("???\n");
 		break;
 	}
+	timestamp_ += cycle->length;
+
+	if(delegate_ != nullptr) {
+		delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle->operation, *cycle->address, *cycle->value, timestamp_);
+	}
+
 	return 0;
 }
