@@ -12,9 +12,17 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 	CSTestMachineZ80RegisterProgramCounter,
 	CSTestMachineZ80RegisterStackPointer,
 
-	CSTestMachineZ80RegisterC,
-	CSTestMachineZ80RegisterE,
-	CSTestMachineZ80RegisterDE,
+	CSTestMachineZ80RegisterA,		CSTestMachineZ80RegisterF,		CSTestMachineZ80RegisterAF,
+	CSTestMachineZ80RegisterB,		CSTestMachineZ80RegisterC,		CSTestMachineZ80RegisterBC,
+	CSTestMachineZ80RegisterD,		CSTestMachineZ80RegisterE,		CSTestMachineZ80RegisterDE,
+	CSTestMachineZ80RegisterH,		CSTestMachineZ80RegisterL,		CSTestMachineZ80RegisterHL,
+	CSTestMachineZ80RegisterAFDash,
+	CSTestMachineZ80RegisterBCDash,
+	CSTestMachineZ80RegisterDEDash,
+	CSTestMachineZ80RegisterHLDash,
+	CSTestMachineZ80RegisterIX,		CSTestMachineZ80RegisterIY,
+	CSTestMachineZ80RegisterI,		CSTestMachineZ80RegisterR,
+	CSTestMachineZ80RegisterIFF1,	CSTestMachineZ80RegisterIFF2,	CSTestMachineZ80RegisterIM
 };
 
 @class CSTestMachineZ80;

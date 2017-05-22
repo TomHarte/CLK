@@ -39,6 +39,8 @@ enum Register {
 	IXh,	IXl,	IX,
 	IYh,	IYl,	IY,
 	R,		I,
+
+	IFF1,	IFF2,	IM
 };
 
 /*
@@ -149,6 +151,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
 		RegisterPair ix_, iy_, pc_, sp_;
 		bool iff1_, iff2_;
+		int interrupt_mode_;
 		uint8_t sign_result_, zero_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_, carry_flag_;
 
 		int number_of_cycles_;
@@ -981,6 +984,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				case Register::R:						return r_;
 				case Register::I:						return i_;
 
+				case Register::IFF1:					return iff1_ ? 1 : 0;
+				case Register::IFF2:					return iff2_ ? 1 : 0;
+				case Register::IM:						return interrupt_mode_;
+
 				default: return 0;
 			}
 		}
@@ -1034,6 +1041,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				case Register::R:				r_ = (uint8_t)value;					break;
 				case Register::I:				i_ = (uint8_t)value;					break;
+
+				case Register::IFF1:			iff1_ = !!value;						break;
+				case Register::IFF2:			iff2_ = !!value;						break;
+				case Register::IM:				interrupt_mode_ = value % 2;			break;
 
 				default: break;
 			}

@@ -31,11 +31,36 @@ class MachineTrapHandler: public CPU::AllRAMProcessor::TrapHandler {
 
 static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	switch (reg) {
+		case CSTestMachineZ80RegisterAF:				return CPU::Z80::Register::AF;
+		case CSTestMachineZ80RegisterA:					return CPU::Z80::Register::A;
+		case CSTestMachineZ80RegisterF:					return CPU::Z80::Register::Flags;
+		case CSTestMachineZ80RegisterBC:				return CPU::Z80::Register::BC;
+		case CSTestMachineZ80RegisterB:					return CPU::Z80::Register::B;
+		case CSTestMachineZ80RegisterC:					return CPU::Z80::Register::C;
+		case CSTestMachineZ80RegisterDE:				return CPU::Z80::Register::DE;
+		case CSTestMachineZ80RegisterD:					return CPU::Z80::Register::D;
+		case CSTestMachineZ80RegisterE:					return CPU::Z80::Register::E;
+		case CSTestMachineZ80RegisterHL:				return CPU::Z80::Register::HL;
+		case CSTestMachineZ80RegisterH:					return CPU::Z80::Register::H;
+		case CSTestMachineZ80RegisterL:					return CPU::Z80::Register::L;
+
+		case CSTestMachineZ80RegisterAFDash:			return CPU::Z80::Register::AFDash;
+		case CSTestMachineZ80RegisterBCDash:			return CPU::Z80::Register::BCDash;
+		case CSTestMachineZ80RegisterDEDash:			return CPU::Z80::Register::DEDash;
+		case CSTestMachineZ80RegisterHLDash:			return CPU::Z80::Register::HLDash;
+
+		case CSTestMachineZ80RegisterIX:				return CPU::Z80::Register::IX;
+		case CSTestMachineZ80RegisterIY:				return CPU::Z80::Register::IY;
+
+		case CSTestMachineZ80RegisterI:					return CPU::Z80::Register::I;
+		case CSTestMachineZ80RegisterR:					return CPU::Z80::Register::R;
+
+		case CSTestMachineZ80RegisterIFF1:				return CPU::Z80::Register::IFF1;
+		case CSTestMachineZ80RegisterIFF2:				return CPU::Z80::Register::IFF2;
+		case CSTestMachineZ80RegisterIM:				return CPU::Z80::Register::IM;
+
 		case CSTestMachineZ80RegisterProgramCounter:	return CPU::Z80::Register::ProgramCounter;
 		case CSTestMachineZ80RegisterStackPointer:		return CPU::Z80::Register::StackPointer;
-		case CSTestMachineZ80RegisterC:					return CPU::Z80::Register::C;
-		case CSTestMachineZ80RegisterE:					return CPU::Z80::Register::E;
-		case CSTestMachineZ80RegisterDE:				return CPU::Z80::Register::DE;
 	}
 }
 
