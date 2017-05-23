@@ -11,6 +11,82 @@ import Foundation
 
 class FUSETests: XCTestCase {
 
+	struct RegisterState {
+		var af: UInt16 = 0,		bc: UInt16 = 0,		de: UInt16 = 0,		hl: UInt16 = 0
+		var afDash: UInt16 = 0, bcDash: UInt16 = 0, deDash: UInt16 = 0, hlDash: UInt16 = 0
+		var ix: UInt16 = 0,		iy: UInt16 = 0,		sp: UInt16 = 0,		pc: UInt16 = 0
+		var i: UInt8 = 0,		r: UInt8 = 0
+		var	iff1: Bool = false,	iff2: Bool = false,	interruptMode: Int = 0
+		var isHalted: Bool = false
+		var tStates: Int = 0
+
+		func set(onMachine machine: CSTestMachineZ80) {
+			machine.setValue(af, for: .AF)
+			machine.setValue(bc, for: .BC)
+			machine.setValue(de, for: .DE)
+			machine.setValue(hl, for: .HL)
+			machine.setValue(afDash, for: .afDash)
+			machine.setValue(bcDash, for: .bcDash)
+			machine.setValue(deDash, for: .deDash)
+			machine.setValue(hlDash, for: .hlDash)
+			machine.setValue(ix, for: .IX)
+			machine.setValue(iy, for: .IY)
+			machine.setValue(sp, for: .stackPointer)
+			machine.setValue(pc, for: .programCounter)
+			machine.setValue(UInt16(i), for: .I)
+			machine.setValue(UInt16(r), for: .R)
+			machine.setValue(iff1 ? 1 : 0, for: .IFF1)
+			machine.setValue(iff2 ? 1 : 0, for: .IFF2)
+			machine.setValue(UInt16(interruptMode), for: .IM)
+			// TODO: isHalted
+		}
+
+		fileprivate func readHexInt16(from scanner: Scanner) -> UInt16 {
+			var temporary: UInt32 = 0
+			scanner.scanHexInt32(&temporary)
+			return UInt16(temporary)
+		}
+
+		fileprivate func readHexInt8(from scanner: Scanner) -> UInt8 {
+			var temporary: UInt32 = 0
+			scanner.scanHexInt32(&temporary)
+			return UInt8(temporary)
+		}
+
+		init(scanner: Scanner) {
+			af = readHexInt16(from: scanner)
+			bc = readHexInt16(from: scanner)
+			de = readHexInt16(from: scanner)
+			hl = readHexInt16(from: scanner)
+
+			afDash = readHexInt16(from: scanner)
+			bcDash = readHexInt16(from: scanner)
+			deDash = readHexInt16(from: scanner)
+			hlDash = readHexInt16(from: scanner)
+
+			ix = readHexInt16(from: scanner)
+			iy = readHexInt16(from: scanner)
+
+			sp = readHexInt16(from: scanner)
+			pc = readHexInt16(from: scanner)
+
+			i = readHexInt8(from: scanner)
+			r = readHexInt8(from: scanner)
+
+			iff1 = readHexInt8(from: scanner) == 1
+			iff2 = readHexInt8(from: scanner) == 1
+
+			var temporary: UInt32 = 0
+			scanner.scanHexInt32(&temporary)
+			interruptMode = Int(temporary)
+
+			isHalted = readHexInt8(from: scanner) == 1
+
+			scanner.scanHexInt32(&temporary)
+			tStates = Int(temporary)
+		}
+	}
+
 	func testFUSE() {
 		if	let inputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "in"),
 			let outputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "expected") {
@@ -26,52 +102,8 @@ class FUSETests: XCTestCase {
 						inputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &name)
 						if let name = name {
 							let machine = CSTestMachineZ80()
-
-							var af: UInt32 = 0, bc: UInt32 = 0, de: UInt32 = 0, hl: UInt32 = 0
-							var afDash: UInt32 = 0, bcDash: UInt32 = 0, deDash: UInt32 = 0, hlDash: UInt32 = 0
-							var ix: UInt32 = 0, iy: UInt32 = 0, sp: UInt32 = 0, pc: UInt32 = 0
-							var i: UInt32 = 0, r: UInt32 = 0, iff1: UInt32 = 0, iff2: UInt32 = 0, interruptMode: UInt32 = 0
-							var isHalted: UInt32 = 0, tStates: UInt32 = 0
-
-							inputScanner.scanHexInt32(&af)
-							inputScanner.scanHexInt32(&bc)
-							inputScanner.scanHexInt32(&de)
-							inputScanner.scanHexInt32(&hl)
-							inputScanner.scanHexInt32(&afDash)
-							inputScanner.scanHexInt32(&bcDash)
-							inputScanner.scanHexInt32(&deDash)
-							inputScanner.scanHexInt32(&hlDash)
-							inputScanner.scanHexInt32(&ix)
-							inputScanner.scanHexInt32(&iy)
-							inputScanner.scanHexInt32(&sp)
-							inputScanner.scanHexInt32(&pc)
-							inputScanner.scanHexInt32(&i)
-							inputScanner.scanHexInt32(&r)
-							inputScanner.scanHexInt32(&iff1)
-							inputScanner.scanHexInt32(&iff2)
-							inputScanner.scanHexInt32(&interruptMode)
-							inputScanner.scanHexInt32(&isHalted)
-							inputScanner.scanHexInt32(&tStates)
-
-							print("\(name)")
-							machine.setValue(UInt16(af), for: .AF)
-							machine.setValue(UInt16(bc), for: .BC)
-							machine.setValue(UInt16(de), for: .DE)
-							machine.setValue(UInt16(hl), for: .HL)
-							machine.setValue(UInt16(afDash), for: .afDash)
-							machine.setValue(UInt16(bcDash), for: .bcDash)
-							machine.setValue(UInt16(deDash), for: .deDash)
-							machine.setValue(UInt16(hlDash), for: .hlDash)
-							machine.setValue(UInt16(ix), for: .IX)
-							machine.setValue(UInt16(iy), for: .IY)
-							machine.setValue(UInt16(sp), for: .stackPointer)
-							machine.setValue(UInt16(pc), for: .programCounter)
-							machine.setValue(UInt16(i), for: .I)
-							machine.setValue(UInt16(r), for: .R)
-							machine.setValue(UInt16(iff1), for: .IFF1)
-							machine.setValue(UInt16(iff2), for: .IFF2)
-							machine.setValue(UInt16(interruptMode), for: .IM)
-							// TODO: isHalted
+							let state = RegisterState(scanner: inputScanner)
+							state.set(onMachine: machine)
 
 							while true {
 								var address: UInt32 = 0
@@ -93,8 +125,10 @@ class FUSETests: XCTestCase {
 								}
 							}
 
+							print("\(name)")
+
 							machine.captureBusActivity = true
-							machine.runForNumber(ofCycles: Int32(tStates))
+							machine.runForNumber(ofCycles: Int32(state.tStates))
 							machine.runToNextInstruction()
 
 							print("\(machine.busOperationCaptures)")
