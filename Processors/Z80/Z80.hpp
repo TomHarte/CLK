@@ -161,6 +161,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair temp16_;
 		uint8_t temp8_;
 
+		MicroOp *fetch_decode_execute_;
 		MicroOp **current_instruction_page_;
 		struct InstructionPage {
 			MicroOp *instructions[256];
@@ -484,22 +485,39 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_page(target, base_program_table);
 		}
 
+		void assemble_fetch_decode_execute() {
+			// TODO: this can't legitimately be static and contain references to this via pc_ and operation_;
+			// make it something else that is built at instance construction.
+			const MicroOp fetch_decode_execute[] = {
+				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 4, &pc_.full, &operation_}},
+				{ MicroOp::DecodeOperation },
+				{ MicroOp::MoveToNextProgram }
+			};
+			fetch_decode_execute_ = new MicroOp[3];
+			fetch_decode_execute_[0] = fetch_decode_execute[0];
+			fetch_decode_execute_[1] = fetch_decode_execute[1];
+			fetch_decode_execute_[2] = fetch_decode_execute[2];
+		}
+
 		void decode_operation(uint8_t operation) {
 			if(current_instruction_page_[operation]->type == MicroOp::None) {
 				uint8_t page = 0x00;
 				if(current_instruction_page_ == ed_page_.instructions) page = 0xed;
 				if(current_instruction_page_ == fd_page_.instructions) page = 0xfd;
 				printf("Unknown Z80 operation %02x %02x!!!\n", page, operation);
-			}
-			schedule_program(current_instruction_page_[operation]);
+			} else schedule_program(current_instruction_page_[operation]);
 		}
 
 	public:
-		Processor() {
+		Processor() : MicroOpScheduler() {
 			assemble_base_page(base_page_, hl_, false);
 			assemble_base_page(dd_page_, ix_, false);
 			assemble_base_page(fd_page_, iy_, false);
 			assemble_ed_page(ed_page_);
+			assemble_fetch_decode_execute();
+		}
+		~Processor() {
+			delete[] fetch_decode_execute_;
 		}
 
 		/*!
@@ -512,18 +530,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			@param number_of_cycles The number of cycles to run the Z80 for.
 		*/
 		void run_for_cycles(int number_of_cycles) {
-			// TODO: this can't legitimately be static and contain references to this via pc_ and operation_;
-			// make it something else that is built at instance construction.
-			static const MicroOp fetch_decode_execute[] = {
-				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 4, &pc_.full, &operation_}},
-				{ MicroOp::DecodeOperation },
-				{ MicroOp::MoveToNextProgram }
-			};
 
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
 		current_instruction_page_ = base_page_.instructions;\
-		schedule_program(fetch_decode_execute);\
+		schedule_program(fetch_decode_execute_);\
 	}
 
 			number_of_cycles_ += number_of_cycles;
@@ -535,11 +546,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				switch(operation->type) {
 					case MicroOp::BusOperation:
-						if(number_of_cycles_ < operation->machine_cycle.length) {
-							return;
-						}
+						if(number_of_cycles_ < operation->machine_cycle.length) { schedule_program_program_counter_--; return; }
 						number_of_cycles_ -= operation->machine_cycle.length;
 						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
+						if(number_of_cycles_ <= 0) return;
 					break;
 					case MicroOp::MoveToNextProgram:
 						move_to_next_program();
@@ -872,7 +882,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #pragma mark - Internal bookkeeping
 
 					case MicroOp::SetInstructionPage:
-						schedule_program(fetch_decode_execute);
+						schedule_program(fetch_decode_execute_);
 						current_instruction_page_ = ((InstructionPage *)operation->source)->instructions;
 //						printf("+ ");
 					break;

@@ -37,7 +37,7 @@ int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 	timestamp_ += cycle->length;
 
 	if(delegate_ != nullptr) {
-		delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle->operation, *cycle->address, *cycle->value, timestamp_);
+		delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle->operation, cycle->address ? *cycle->address : 0x0000, cycle->value ? *cycle->value : 0x00, timestamp_);
 	}
 
 	return 0;

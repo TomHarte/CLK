@@ -80,6 +80,11 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 #pragma mark - Capture class
 
 @implementation CSTestMachineZ80BusOperationCapture
+
+- (NSString *)description {
+	return [NSString stringWithFormat:@"%c %04x %02x [%d]", (self.operation == CSTestMachineZ80BusOperationCaptureOperationRead) ? 'r' : 'w', self.address, self.value, self.timeStamp];
+}
+
 @end
 
 #pragma mark - Test class
@@ -91,6 +96,8 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
 	BOOL _isAtReadOpcode;
+	int _timeSeekingReadOpcode;
+	int _lastOpcodeTime;
 }
 
 #pragma mark - Lifecycle
@@ -150,16 +157,21 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 #pragma mark - Z80-specific Runner
 
 - (void)runToNextInstruction {
-	_isAtReadOpcode = false;
+	_isAtReadOpcode = NO;
+	_timeSeekingReadOpcode = 0;
 	while(!_isAtReadOpcode) {
+		_timeSeekingReadOpcode++;
 		_processor.run_for_cycles(1);
 	}
 }
 
 #pragma mark - Bus operation accumulation
 
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp {
-	_isAtReadOpcode |= (operation == CPU::Z80::BusOperation::ReadOpcode);
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
+	int length = timeStamp - _lastOpcodeTime;
+	_lastOpcodeTime = timeStamp;
+	if(operation == CPU::Z80::BusOperation::ReadOpcode && length < _timeSeekingReadOpcode)
+		_isAtReadOpcode = YES;
 
 	if(self.captureBusActivity) {
 		if(!_busOperationCaptures) _busOperationCaptures = [[NSMutableArray alloc] init];
@@ -169,7 +181,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 			capture.operation = (operation == CPU::Z80::BusOperation::Write) ? CSTestMachineZ80BusOperationCaptureOperationWrite : CSTestMachineZ80BusOperationCaptureOperationRead;
 			capture.address = address;
 			capture.value = value;
-			capture.timeStamp = time_stamp;
+			capture.timeStamp = timeStamp;
 
 			[_busOperationCaptures addObject:capture];
 		}
