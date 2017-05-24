@@ -9,14 +9,26 @@
 import XCTest
 import Foundation
 
+fileprivate func readHexInt16(from scanner: Scanner) -> UInt16 {
+	var temporary: UInt32 = 0
+	scanner.scanHexInt32(&temporary)
+	return UInt16(temporary)
+}
+
+fileprivate func readHexInt8(from scanner: Scanner) -> UInt8 {
+	var temporary: UInt32 = 0
+	scanner.scanHexInt32(&temporary)
+	return UInt8(temporary)
+}
+
 fileprivate struct RegisterState {
-	var af: UInt16 = 0,		bc: UInt16 = 0,		de: UInt16 = 0,		hl: UInt16 = 0
-	var afDash: UInt16 = 0, bcDash: UInt16 = 0, deDash: UInt16 = 0, hlDash: UInt16 = 0
-	var ix: UInt16 = 0,		iy: UInt16 = 0,		sp: UInt16 = 0,		pc: UInt16 = 0
-	var i: UInt8 = 0,		r: UInt8 = 0
-	var	iff1: Bool = false,	iff2: Bool = false,	interruptMode: Int = 0
-	var isHalted: Bool = false
-	var tStates: Int = 0
+	let af: UInt16,		bc: UInt16,		de: UInt16,		hl: UInt16
+	let afDash: UInt16, bcDash: UInt16, deDash: UInt16, hlDash: UInt16
+	let ix: UInt16,		iy: UInt16,		sp: UInt16,		pc: UInt16
+	let i: UInt8,		r: UInt8
+	let	iff1: Bool,		iff2: Bool,		interruptMode: Int
+	let isHalted: Bool
+	let tStates: Int
 
 	func set(onMachine machine: CSTestMachineZ80) {
 		machine.setValue(af, for: .AF)
@@ -37,18 +49,6 @@ fileprivate struct RegisterState {
 		machine.setValue(iff2 ? 1 : 0, for: .IFF2)
 		machine.setValue(UInt16(interruptMode), for: .IM)
 		// TODO: isHalted
-	}
-
-	fileprivate func readHexInt16(from scanner: Scanner) -> UInt16 {
-		var temporary: UInt32 = 0
-		scanner.scanHexInt32(&temporary)
-		return UInt16(temporary)
-	}
-
-	fileprivate func readHexInt8(from scanner: Scanner) -> UInt8 {
-		var temporary: UInt32 = 0
-		scanner.scanHexInt32(&temporary)
-		return UInt8(temporary)
 	}
 
 	init(scanner: Scanner) {
@@ -149,12 +149,16 @@ class FUSETests: XCTestCase {
 
 				while !inputScanner.isAtEnd {
 					autoreleasepool {
-						var name: NSString?
-						inputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &name)
-						if let name = name {
+						var inputName: NSString?, outputName: NSString?
+						inputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &inputName)
+						outputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &outputName)
+
+						if let inputName = inputName, let outputName = outputName {
+							XCTAssertEqual(outputName, inputName)
+
 							let machine = CSTestMachineZ80()
-							let state = RegisterState(scanner: inputScanner)
-							state.set(onMachine: machine)
+							let initialState = RegisterState(scanner: inputScanner)
+							initialState.set(onMachine: machine)
 
 							while true {
 								var address: UInt32 = 0
@@ -176,11 +180,28 @@ class FUSETests: XCTestCase {
 								}
 							}
 
-							print("\(name)")
+							print("\(inputName)")
 
 							machine.captureBusActivity = true
-							machine.runForNumber(ofCycles: Int32(state.tStates))
+							machine.runForNumber(ofCycles: Int32(initialState.tStates))
 							machine.runToNextInstruction()
+
+							// test that trapped memory accesses are correct
+							while true {
+								var indentation: NSString?
+								outputScanner.scanCharacters(from: CharacterSet.whitespaces, into: &indentation)
+								if indentation == nil {
+									break
+								}
+
+								var nextMemoryAccess: NSString?
+								outputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &nextMemoryAccess)
+								print("\(indentation!): \(nextMemoryAccess)")
+							}
+
+							let finalState = RegisterState(machine: machine)
+
+
 
 							print("\(machine.busOperationCaptures)")
 						}
