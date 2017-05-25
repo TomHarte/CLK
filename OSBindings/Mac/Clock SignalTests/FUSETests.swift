@@ -153,6 +153,21 @@ class FUSETests: XCTestCase {
 						inputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &inputName)
 						outputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &outputName)
 
+						var outputBlock = ""
+						while true {
+							var nextLine: NSString?
+							outputScanner.scanUpTo("\n", into: &nextLine)
+							if let nextLine = nextLine {
+								print("!\(nextLine)")
+								outputBlock = outputBlock + " " + (nextLine as String)
+								if nextLine.length == 0 {
+									break
+								}
+							} else {
+								break
+							}
+						}
+
 						if let inputName = inputName, let outputName = outputName {
 							XCTAssertEqual(outputName, inputName)
 
