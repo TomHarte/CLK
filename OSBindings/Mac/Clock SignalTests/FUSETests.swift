@@ -51,37 +51,33 @@ fileprivate struct RegisterState {
 		// TODO: isHalted
 	}
 
-	init(scanner: Scanner) {
-		af = readHexInt16(from: scanner)
-		bc = readHexInt16(from: scanner)
-		de = readHexInt16(from: scanner)
-		hl = readHexInt16(from: scanner)
+	init(dictionary: [String: Any]) {
+		af = UInt16((dictionary["af"] as! NSNumber).int32Value)
+		bc = UInt16((dictionary["bc"] as! NSNumber).int32Value)
+		de = UInt16((dictionary["de"] as! NSNumber).int32Value)
+		hl = UInt16((dictionary["hl"] as! NSNumber).int32Value)
 
-		afDash = readHexInt16(from: scanner)
-		bcDash = readHexInt16(from: scanner)
-		deDash = readHexInt16(from: scanner)
-		hlDash = readHexInt16(from: scanner)
+		afDash = UInt16((dictionary["afDash"] as! NSNumber).int32Value)
+		bcDash = UInt16((dictionary["bcDash"] as! NSNumber).int32Value)
+		deDash = UInt16((dictionary["deDash"] as! NSNumber).int32Value)
+		hlDash = UInt16((dictionary["hlDash"] as! NSNumber).int32Value)
 
-		ix = readHexInt16(from: scanner)
-		iy = readHexInt16(from: scanner)
+		ix = UInt16((dictionary["ix"] as! NSNumber).int32Value)
+		iy = UInt16((dictionary["iy"] as! NSNumber).int32Value)
 
-		sp = readHexInt16(from: scanner)
-		pc = readHexInt16(from: scanner)
+		sp = UInt16((dictionary["sp"] as! NSNumber).int32Value)
+		pc = UInt16((dictionary["pc"] as! NSNumber).int32Value)
 
-		i = readHexInt8(from: scanner)
-		r = readHexInt8(from: scanner)
+		i = UInt8((dictionary["i"] as! NSNumber).int32Value)
+		r = UInt8((dictionary["r"] as! NSNumber).int32Value)
 
-		iff1 = readHexInt8(from: scanner) != 0
-		iff2 = readHexInt8(from: scanner) != 0
+		iff1 = (dictionary["iff1"] as! NSNumber).boolValue
+		iff2 = (dictionary["iff2"] as! NSNumber).boolValue
 
-		var temporary: UInt32 = 0
-		scanner.scanHexInt32(&temporary)
-		interruptMode = Int(temporary)
+		interruptMode = (dictionary["im"] as! NSNumber).intValue
+		isHalted = (dictionary["halted"] as! NSNumber).boolValue
 
-		isHalted = readHexInt8(from: scanner) == 1
-
-		scanner.scanHexInt32(&temporary)
-		tStates = Int(temporary)
+		tStates = (dictionary["tStates"] as! NSNumber).intValue
 	}
 
 	init(machine: CSTestMachineZ80) {
@@ -139,90 +135,40 @@ fileprivate func ==(lhs: RegisterState, rhs: RegisterState) -> Bool {
 class FUSETests: XCTestCase {
 
 	func testFUSE() {
-		if	let inputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "in"),
-			let outputFilename = Bundle(for: type(of: self)).path(forResource: "tests", ofType: "expected") {
-			if	let input = try? String(contentsOf: URL(fileURLWithPath: inputFilename), encoding: .utf8),
-				let output = try? String(contentsOf: URL(fileURLWithPath: outputFilename), encoding: .utf8) {
+		let inputFilename: String! = Bundle(for: type(of: self)).path(forResource: "tests.in", ofType: "json")
+		let outputFilename: String! = Bundle(for: type(of: self)).path(forResource: "tests.expected", ofType: "json")
 
-				let inputScanner = Scanner(string: input)
-				let outputScanner = Scanner(string: output)
+		XCTAssert(inputFilename != nil && outputFilename != nil)
 
-				while !inputScanner.isAtEnd {
-					autoreleasepool {
-						var inputName: NSString?, outputName: NSString?
-						inputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &inputName)
-						outputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &outputName)
+		let inputData: Data! = try? Data(contentsOf: URL(fileURLWithPath: inputFilename))
+		let outputData: Data! = try? Data(contentsOf: URL(fileURLWithPath: outputFilename))
 
-						var outputBlock = ""
-						while true {
-							var nextLine: NSString?
-							outputScanner.scanUpTo("\n", into: &nextLine)
-							if let nextLine = nextLine {
-								print("!\(nextLine)")
-								outputBlock = outputBlock + " " + (nextLine as String)
-								if nextLine.length == 0 {
-									break
-								}
-							} else {
-								break
-							}
-						}
+		XCTAssert(inputData != nil && outputData != nil)
 
-						if let inputName = inputName, let outputName = outputName {
-							XCTAssertEqual(outputName, inputName)
+		let inputArray: [Any]! = try! JSONSerialization.jsonObject(with: inputData, options: []) as? [Any]
+		let outputArray: [Any]! = try! JSONSerialization.jsonObject(with: outputData, options: []) as? [Any]
 
-							let machine = CSTestMachineZ80()
-							let initialState = RegisterState(scanner: inputScanner)
-							initialState.set(onMachine: machine)
+		XCTAssert(inputArray != nil && outputArray != nil)
 
-							while true {
-								var address: UInt32 = 0
-								var negative: Int = 0
-								if inputScanner.scanHexInt32(&address) {
-									while true {
-										var value: UInt32 = 0
-										if inputScanner.scanHexInt32(&value) {
-											machine.setValue(UInt8(value), atAddress: UInt16(address))
-											address = address + 1
-										} else {
-											inputScanner.scanInt(&negative)
-											break
-										}
-									}
-								} else {
-									inputScanner.scanInt(&negative)
-									break
-								}
-							}
+		var index = 0
+		for item in inputArray {
+			let itemDictionary = item as! [String: Any]
+			let outputDictionary = outputArray[index] as! [String: Any]
 
-							print("\(inputName)")
+			let initialState = RegisterState(dictionary: itemDictionary["state"] as! [String: Any])
+			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
 
-							machine.captureBusActivity = true
-							machine.runForNumber(ofCycles: Int32(initialState.tStates))
-							machine.runToNextInstruction()
+			let machine = CSTestMachineZ80()
+			initialState.set(onMachine: machine)
 
-							// test that trapped memory accesses are correct
-							while true {
-								var indentation: NSString?
-								outputScanner.scanCharacters(from: CharacterSet.whitespaces, into: &indentation)
-								if indentation == nil {
-									break
-								}
+//			machine.runForNumber(ofCycles: Int32(initialState.tStates))
+//			machine.runToNextInstruction()
 
-								var nextMemoryAccess: NSString?
-								outputScanner.scanUpToCharacters(from: CharacterSet.newlines, into: &nextMemoryAccess)
-								print("\(indentation!): \(nextMemoryAccess)")
-							}
+//			let finalState = RegisterState(machine: machine)
 
-							let finalState = RegisterState(machine: machine)
+			print("\(initialState) -> \(targetState)")
 
-
-
-							print("\(machine.busOperationCaptures)")
-						}
-					}
-				}
-			}
+			index = index + 1
 		}
 	}
 }
