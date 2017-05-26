@@ -726,9 +726,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = value - 1;
 
-						// with an increment, overflow occurs if the sign changes from
-						// positive to negative
-						int overflow = (value ^ result) & ~value;
+						// with a decrement, overflow occurs if the sign changes from
+						// negative to positive
+						int overflow = (value ^ result) & value;
 						int half_result = (value&0xf) - 1;
 
 						*(uint8_t *)operation->source = (uint8_t)result;
@@ -918,7 +918,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			@returns The current value of the flags register.
 		*/
 		uint8_t get_flags() {
-			return
+			uint8_t result =
 				(sign_result_ & Flag::Sign) |
 				(zero_result_ ? 0 : Flag::Zero) |
 				(bit5_result_ & Flag::Bit5) |
@@ -927,6 +927,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				parity_overflow_flag_ |
 				subtract_flag_ |
 				carry_flag_;
+			return result;
 		}
 
 		/*!
