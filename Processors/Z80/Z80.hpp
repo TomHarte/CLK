@@ -127,6 +127,9 @@ struct MicroOp {
 
 		DJNZ,
 		DAA,
+		CPL,
+		SCF,
+		CCF,
 
 		None
 	};
@@ -379,14 +382,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
 				DEC_INC_DEC_LD(index, index.bytes.low),
 
-				/* 0x2f CPL */			XX,
+				/* 0x2f CPL */			Program({MicroOp::CPL}),
 				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
 				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, hl_)),
 				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, hl_)),
 				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, index)),
-				/* 0x37 SCF */			XX,
+				/* 0x37 SCF */			Program({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
 				/* 0x3a LD A, (nn) */	Program(FETCH16(temp16_, pc_), FETCHL(a_, temp16_)),
@@ -395,7 +398,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
 				INC_DEC_LD(a_),
 
-				/* 0x3f CCF */			XX,
+				/* 0x3f CCF */			Program({MicroOp::CCF}),
 
 				/* 0x40 LD B, B;  0x41 LD B, C;	0x42 LD B, D;	0x43 LD B, E;	0x44 LD B, H;	0x45 LD B, L;	0x46 LD B, (HL);	0x47 LD B, A */
 				LD_GROUP(bc_.bytes.high),
@@ -609,6 +612,27 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
 						parity_overflow_flag_ = 0;
 						set_parity(a_);
+					break;
+
+					case MicroOp::CPL:
+						a_ ^= 0xff;
+						subtract_flag_ = Flag::Subtract;
+						half_carry_flag_ = Flag::HalfCarry;
+						bit5_result_ = bit3_result_ = a_;
+					break;
+
+					case MicroOp::CCF:
+						half_carry_flag_ = carry_flag_ << 4;
+						carry_flag_ ^= Flag::Carry;
+						subtract_flag_ = 0;
+						bit5_result_ = bit3_result_ = a_;
+					break;
+
+					case MicroOp::SCF:
+						carry_flag_ = Flag::Carry;
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+						bit5_result_ = bit3_result_ = a_;
 					break;
 
 #pragma mark - Relative jumps
