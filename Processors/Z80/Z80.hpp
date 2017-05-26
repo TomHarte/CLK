@@ -131,6 +131,8 @@ struct MicroOp {
 		SCF,
 		CCF,
 
+		CalculateRSTDestination,
+
 		None
 	};
 	Type type;
@@ -215,6 +217,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(pc_))
 #define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
@@ -454,42 +457,42 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	Program(FETCH16L(temp16_, pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Program(WAIT(1), PUSH(bc_)),
 				/* 0xc6 ADD A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),
-				/* 0xc7 RST 00h */	XX,
+				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		Program(POP(pc_)),
 				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */XX,
 				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xce ADC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),
-				/* 0xcf RST 08h */	XX,
+				/* 0xcf RST 08h */	RST(),
 				/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	Program(POP(de_)),
 				/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */XX,
 				/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Program(WAIT(1), PUSH(de_)),
 				/* 0xd6 SUB n */	Program(FETCH(temp8_, pc_), {MicroOp::SUB8, &temp8_}),
-				/* 0xd7 RST 10h */	XX,
+				/* 0xd7 RST 10h */	RST(),
 				/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		XX,
 				/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */XX,
 				/* 0xdc CALL C */	CALL(TestC),							/* 0xdd [DD page] */Program({MicroOp::SetInstructionPage, &dd_page_}),
 				/* 0xde SBC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),
-				/* 0xdf RST 18h */	XX,
+				/* 0xdf RST 18h */	RST(),
 				/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	Program(POP(index)),
 				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */XX,
 				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Program(WAIT(1), PUSH(index)),
 				/* 0xe6 AND n */	Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),
-				/* 0xe7 RST 20h */	XX,
+				/* 0xe7 RST 20h */	RST(),
 				/* 0xe8 RET PE */	RET(TestPE),							/* 0xe9 JP (HL) */	Program({MicroOp::Move16, &index.full, &pc_.full}),
 				/* 0xea JP PE */	JP(TestPE),								/* 0xeb EX DE, HL */Program({MicroOp::ExDEHL}),
 				/* 0xec CALL PE */	CALL(TestPE),							/* 0xed [ED page] */Program({MicroOp::SetInstructionPage, &ed_page_}),
 				/* 0xee XOR n */	Program(FETCH(temp8_, pc_), {MicroOp::Xor, &temp8_}),
-				/* 0xef RST 28h */	XX,
+				/* 0xef RST 28h */	RST(),
 				/* 0xf0 RET p */	RET(TestP),								/* 0xf1 POP AF */	Program(POP(temp16_), {MicroOp::DisassembleAF}),
 				/* 0xf2 JP P */		JP(TestP),								/* 0xf3 DI */		Program({MicroOp::DI}),
 				/* 0xf4 CALL P */	CALL(TestP),							/* 0xf5 PUSH AF */	Program(WAIT(1), {MicroOp::AssembleAF}, PUSH(temp16_)),
 				/* 0xf6 OR n */		Program(FETCH(temp8_, pc_), {MicroOp::Or, &temp8_}),
-				/* 0xf7 RST 30h */	XX,
+				/* 0xf7 RST 30h */	RST(),
 				/* 0xf8 RET M */	RET(TestM),								/* 0xf9 LD SP, HL */Program(WAIT(2), {MicroOp::Move16, &index.full, &sp_.full}),
 				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		Program({MicroOp::EI}),
 				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */Program({MicroOp::SetInstructionPage, &fd_page_}),
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
-				/* 0xff RST 38h */	XX,
+				/* 0xff RST 38h */	RST(),
 			};
 			assemble_page(target, base_program_table);
 		}
@@ -638,7 +641,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						bit5_result_ = bit3_result_ = a_;
 					break;
 
-#pragma mark - Relative jumps
+#pragma mark - Flow control
 
 					case MicroOp::DJNZ:
 						bc_.bytes.high--;
@@ -646,6 +649,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							move_to_next_program();
 							checkSchedule();
 						}
+					break;
+
+					case MicroOp::CalculateRSTDestination:
+						temp16_.full = operation_ & 0x38;
 					break;
 
 #pragma mark - 8-bit arithmetic
