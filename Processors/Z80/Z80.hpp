@@ -595,6 +595,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::And:
 						a_ &= *(uint8_t *)operation->source;
+						half_carry_flag_ = Flag::HalfCarry;
 						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
 						parity_overflow_flag_ = 0;
 						set_parity(a_);
@@ -602,6 +603,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::Or:
 						a_ |= *(uint8_t *)operation->source;
+						half_carry_flag_ = 0;
 						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
 						parity_overflow_flag_ = 0;
 						set_parity(a_);
@@ -609,6 +611,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::Xor:
 						a_ ^= *(uint8_t *)operation->source;
+						half_carry_flag_ = 0;
 						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
 						parity_overflow_flag_ = 0;
 						set_parity(a_);
