@@ -550,6 +550,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				const MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
 				schedule_program_program_counter_++;
 
+#define set_parity(v)	\
+	parity_overflow_flag_ = v^1;\
+	parity_overflow_flag_ ^= parity_overflow_flag_ >> 4;\
+	parity_overflow_flag_ ^= parity_overflow_flag_ << 2;\
+	parity_overflow_flag_ ^= parity_overflow_flag_ >> 1;\
+	parity_overflow_flag_ &= Flag::Parity;
+
 				switch(operation->type) {
 					case MicroOp::BusOperation:
 						if(number_of_cycles_ < operation->machine_cycle.length) { schedule_program_program_counter_--; return; }
@@ -583,13 +590,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Logical
 
-#define set_parity(v)	\
-	parity_overflow_flag_ = v^1;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ >> 4;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ << 2;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ >> 1;\
-	parity_overflow_flag_ &= Flag::Parity;
-
 					case MicroOp::And:
 						a_ &= *(uint8_t *)operation->source;
 						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
@@ -610,8 +610,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						parity_overflow_flag_ = 0;
 						set_parity(a_);
 					break;
-
-#undef set_parity
 
 #pragma mark - Relative jumps
 
@@ -769,18 +767,17 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						{
 							if(half_carry_flag_)
 							{
-								amountToAdd = (highNibble > 0x9) ? 0x66 : 0x06;
+								if(lowNibble > 0x9)
+									amountToAdd = (highNibble > 0x8) ? 0x66 : 0x06;
+								else
+									amountToAdd = (highNibble > 0x9) ? 0x66 : 0x06;
 							}
 							else
 							{
 								if(lowNibble > 0x9)
-								{
 									amountToAdd = (highNibble > 0x8) ? 0x66 : 0x06;
-								}
 								else
-								{
 									amountToAdd = (highNibble > 0x9) ? 0x60 : 0x00;
-								}
 							}
 						}
 
@@ -799,7 +796,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						if(subtract_flag_)
 						{
 							a_ -= amountToAdd;
-							if(half_carry_flag_ && lowNibble < 0x6) half_carry_flag_ = 0;
+							half_carry_flag_ = (half_carry_flag_ && lowNibble < 0x6) ? Flag::HalfCarry : 0;
 						}
 						else
 						{
@@ -808,14 +805,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						}
 
 						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = a_;
-							
-						uint8_t parity = a_;
-						parity ^= (parity >> 4);
-						parity ^= (parity >> 2);
-						parity ^= (parity >> 1);
-						parity_overflow_flag_ = (parity & 1) << 3;
-					} break;
 
+						set_parity(a_);
+					} break;
 
 #pragma mark - 16-bit arithmetic
 
@@ -981,6 +973,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 //						printf("Unhandled Z80 operation %d\n", operation->type);
 					return;
 				}
+#undef set_parity
+
 			}
 		}
 
