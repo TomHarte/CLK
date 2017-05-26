@@ -151,6 +151,7 @@ class FUSETests: XCTestCase {
 		XCTAssert(inputArray != nil && outputArray != nil)
 
 		var index = 0
+		var failures = 0
 		for item in inputArray {
 			let itemDictionary = item as! [String: Any]
 			let outputDictionary = outputArray[index] as! [String: Any]
@@ -179,7 +180,13 @@ class FUSETests: XCTestCase {
 
 			let finalState = RegisterState(machine: machine)
 
-			XCTAssert(finalState == targetState, "Failed \(itemDictionary["name"] as! String)")
+			XCTAssertEqual(finalState, targetState, "Failed \(itemDictionary["name"] as! String)")
+			if finalState != targetState {
+				failures = failures + 1
+				if failures == 5 {
+					return
+				}
+			}
 
 			// TODO compare bus operations and final memory state
 
