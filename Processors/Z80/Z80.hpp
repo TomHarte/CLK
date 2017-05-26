@@ -557,6 +557,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 					case MicroOp::DecodeOperation:
 						pc_.full++;
+						r_ = (r_ & 0x80) | ((r_ + 1) & 0x7f);
 						decode_operation(operation_);
 					break;
 
