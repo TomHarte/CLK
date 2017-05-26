@@ -179,7 +179,7 @@ class FUSETests: XCTestCase {
 
 			let finalState = RegisterState(machine: machine)
 
-			XCTAssertEqual(finalState, targetState, "Failed \(itemDictionary["name"] as! String)")
+			XCTAssert(finalState == targetState, "Failed \(itemDictionary["name"] as! String)")
 
 			// TODO compare bus operations and final memory state
 
