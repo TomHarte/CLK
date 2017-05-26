@@ -126,6 +126,7 @@ struct MicroOp {
 		CalculateIndexAddress,
 
 		DJNZ,
+		DAA,
 
 		None
 	};
@@ -371,7 +372,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
 				INC_INC_DEC_LD(index, index.bytes.high),
 
-				/* 0x27 DAA */			XX,
+				/* 0x27 DAA */			Program({MicroOp::DAA}),
 				/* 0x28 JR Z */			JR(TestZ),							/* 0x29 ADD HL, HL */	ADD16(index, index),
 				/* 0x2a LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(index, temp16_)),
 
@@ -753,6 +754,66 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						half_carry_flag_ = half_result & Flag::HalfCarry;
 						parity_overflow_flag_ = (overflow >> 5)&Flag::Overflow;
 						subtract_flag_ = Flag::Subtract;
+					} break;
+
+					case MicroOp::DAA: {
+						int lowNibble = a_ & 0xf;
+						int highNibble = a_ >> 4;
+						int amountToAdd = 0;
+
+						if(carry_flag_)
+						{
+							amountToAdd = (lowNibble > 0x9 || half_carry_flag_) ? 0x66 : 0x60;
+						}
+						else
+						{
+							if(half_carry_flag_)
+							{
+								amountToAdd = (highNibble > 0x9) ? 0x66 : 0x06;
+							}
+							else
+							{
+								if(lowNibble > 0x9)
+								{
+									amountToAdd = (highNibble > 0x8) ? 0x66 : 0x06;
+								}
+								else
+								{
+									amountToAdd = (highNibble > 0x9) ? 0x60 : 0x00;
+								}
+							}
+						}
+
+						if(!carry_flag_)
+						{
+							if(lowNibble > 0x9)
+							{
+								if(highNibble > 0x8) carry_flag_ = Flag::Carry;
+							}
+							else
+							{
+								if(highNibble > 0x9) carry_flag_ = Flag::Carry;
+							}
+						}
+
+						if(subtract_flag_)
+						{
+							a_ -= amountToAdd;
+							if(half_carry_flag_ && lowNibble < 0x6) half_carry_flag_ = 0;
+						}
+						else
+						{
+							a_ += amountToAdd;
+							half_carry_flag_ = (lowNibble > 0x9) ? Flag::HalfCarry : 0;
+						}
+
+						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = a_;
+							
+						uint8_t parity = a_;
+						parity ^= (parity >> 4);
+						parity ^= (parity >> 2);
+						parity ^= (parity >> 1);
+						parity_overflow_flag_ = (parity & 1) << 3;
 					} break;
 
 
