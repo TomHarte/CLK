@@ -52,10 +52,10 @@ fileprivate struct RegisterState {
 	}
 
 	init(dictionary: [String: Any]) {
-		af = UInt16((dictionary["af"] as! NSNumber).int32Value)
-		bc = UInt16((dictionary["bc"] as! NSNumber).int32Value)
-		de = UInt16((dictionary["de"] as! NSNumber).int32Value)
-		hl = UInt16((dictionary["hl"] as! NSNumber).int32Value)
+		af = UInt16(dictionary["af"] as! NSNumber)
+		bc = UInt16(dictionary["bc"] as! NSNumber)
+		de = UInt16(dictionary["de"] as! NSNumber)
+		hl = UInt16(dictionary["hl"] as! NSNumber)
 
 		afDash = UInt16((dictionary["afDash"] as! NSNumber).int32Value)
 		bcDash = UInt16((dictionary["bcDash"] as! NSNumber).int32Value)
@@ -161,12 +161,27 @@ class FUSETests: XCTestCase {
 			let machine = CSTestMachineZ80()
 			initialState.set(onMachine: machine)
 
-//			machine.runForNumber(ofCycles: Int32(initialState.tStates))
-//			machine.runToNextInstruction()
+			let memoryGroups = itemDictionary["memory"] as? [Any]
+			if let memoryGroups = memoryGroups {
+				for group in memoryGroups {
+					let groupDictionary = group as! [String: Any]
+					var address = UInt16(groupDictionary["address"] as! NSNumber)
+					let data = groupDictionary["data"] as! [NSNumber]
+					for value in data {
+						machine.setValue(UInt8(value), atAddress: address)
+						address = address + 1
+					}
+				}
+			}
 
-//			let finalState = RegisterState(machine: machine)
+			machine.runForNumber(ofCycles: Int32(initialState.tStates))
+			machine.runToNextInstruction()
 
-			print("\(initialState) -> \(targetState)")
+			let finalState = RegisterState(machine: machine)
+
+			XCTAssertEqual(finalState, targetState, "Failed \(itemDictionary["name"] as! String)")
+
+			// TODO compare bus operations and final memory state
 
 			index = index + 1
 		}
