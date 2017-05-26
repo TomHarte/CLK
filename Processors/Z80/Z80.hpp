@@ -125,6 +125,8 @@ struct MicroOp {
 		SetInstructionPage,
 		CalculateIndexAddress,
 
+		DJNZ,
+
 		None
 	};
 	Type type;
@@ -346,7 +348,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
 
 				/* 0x0f RRCA */			Program({MicroOp::RRCA}),
-				/* 0x10 DJNZ */			XX,									/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
+				/* 0x10 DJNZ */			Program(WAIT(1), FETCH(temp8_, pc_), {MicroOp::DJNZ}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full}),
+				/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
 				/* 0x12 LD (DE), A */	Program(STOREL(a_, de_)),
 
 				/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
@@ -606,6 +609,16 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 
 #undef set_parity
+
+#pragma mark - Relative jumps
+
+					case MicroOp::DJNZ:
+						bc_.bytes.high--;
+						if(!bc_.bytes.high) {
+							move_to_next_program();
+							checkSchedule();
+						}
+					break;
 
 #pragma mark - 8-bit arithmetic
 
