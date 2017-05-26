@@ -210,6 +210,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(pc_))
+#define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
@@ -364,28 +365,28 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
 
 				/* 0x1f RRA */			Program({MicroOp::RRA}),
-				/* 0x20 JR NZ */		XX,									 /* 0x21 LD HL, nn */	Program(FETCH16(index, pc_)),
+				/* 0x20 JR NZ */		JR(TestNZ),							 /* 0x21 LD HL, nn */	Program(FETCH16(index, pc_)),
 				/* 0x22 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(index, temp16_)),
 
 				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
 				INC_INC_DEC_LD(index, index.bytes.high),
 
 				/* 0x27 DAA */			XX,
-				/* 0x28 JR Z */			XX,									/* 0x29 ADD HL, HL */	ADD16(index, index),
+				/* 0x28 JR Z */			JR(TestZ),							/* 0x29 ADD HL, HL */	ADD16(index, index),
 				/* 0x2a LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(index, temp16_)),
 
 				/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
 				DEC_INC_DEC_LD(index, index.bytes.low),
 
 				/* 0x2f CPL */			XX,
-				/* 0x30 JR NC */		XX,									/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
+				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
 				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, hl_)),
 				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, hl_)),
 				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, index)),
 				/* 0x37 SCF */			XX,
-				/* 0x38 JR C */			XX,
+				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
 				/* 0x3a LD A, (nn) */	Program(FETCH16(temp16_, pc_), FETCHL(a_, temp16_)),
 				/* 0x3b DEC SP */		Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),
