@@ -112,7 +112,7 @@ struct MicroOp {
 		ADD16,	ADC16,	SBC16,
 		CP8,	SUB8,	SBC8,	ADD8,	ADC8,
 
-		ExDEHL,
+		ExDEHL, ExAFAFDash,
 
 		EI,		DI,
 
@@ -339,7 +339,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				INC_INC_DEC_LD(bc_, bc_.bytes.high),
 
 				/* 0x07 RLCA */			Program({MicroOp::RLCA}),
-				/* 0x08 EX AF, AF' */	XX,									/* 0x09 ADD HL, BC */	ADD16(index, bc_),
+				/* 0x08 EX AF, AF' */	Program({MicroOp::ExAFAFDash}),		/* 0x09 ADD HL, BC */	ADD16(index, bc_),
 				/* 0x0a LD A, (BC) */	Program(FETCHL(a_, bc_)),
 
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
@@ -813,6 +813,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						uint16_t temp = de_.full;
 						de_.full = hl_.full;
 						hl_.full = temp;
+					} break;
+
+					case MicroOp::ExAFAFDash: {
+						uint8_t a = a_;
+						uint8_t f = get_flags();
+						set_flags(afDash_.bytes.low);
+						a_ = afDash_.bytes.high;
+						afDash_.bytes.high = a;
+						afDash_.bytes.low = f;
 					} break;
 
 #pragma mark - Repetition group
