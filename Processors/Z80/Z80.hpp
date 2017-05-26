@@ -356,7 +356,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				INC_INC_DEC_LD(de_, de_.bytes.high),
 
 				/* 0x17 RLA */			Program({MicroOp::RLA}),
-				/* 0x18 JR */			XX,									/* 0x19 ADD HL, DE */	ADD16(index, de_),
+				/* 0x18 JR */			Program(FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full}),
+				/* 0x19 ADD HL, DE */	ADD16(index, de_),
 				/* 0x1a LD A, (DE) */	Program(FETCHL(a_, de_)),
 
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
