@@ -195,7 +195,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define XX				{MicroOp::None, 0}
 
 #define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
-#define IR_ADDR()		(add_offsets ? temp16_ : index)
+#define INDEX_ADDR()	(add_offsets ? temp16_ : index)
 
 /// Fetches into x from address y, and then increments y.
 #define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
@@ -225,15 +225,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
-#define LD_GROUP(r)	\
-				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),		LD(r, de_.bytes.low),	\
-				LD(r, index.bytes.high),	LD(r, index.bytes.low),	Program(FETCHL(r, index)),	LD(r, a_)
+#define LD_GROUP(r, ri)	\
+				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),						LD(r, de_.bytes.low),	\
+				LD(r, index.bytes.high),	LD(r, index.bytes.low),	Program(INDEX(), FETCHL(ri, INDEX_ADDR())),	LD(r, a_)
 
 #define OP_GROUP(op)	\
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
 				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
 				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
-				Program(INDEX(), FETCHL(temp8_, IR_ADDR()), {MicroOp::op, &temp8_}),	\
+				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
@@ -406,9 +406,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
 				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
-				/* 0x34 INC (HL) */		Program( FETCHL(temp8_, index), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, index)),
-				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, index), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, index)),
-				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, index)),
+				/* 0x34 INC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
+				/* 0x35 DEC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
+				/* 0x36 LD (HL), n */	Program(INDEX(), FETCH(temp8_, pc_), STOREL(temp8_, INDEX_ADDR())),
 				/* 0x37 SCF */			Program({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
@@ -421,30 +421,34 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x3f CCF */			Program({MicroOp::CCF}),
 
 				/* 0x40 LD B, B;  0x41 LD B, C;	0x42 LD B, D;	0x43 LD B, E;	0x44 LD B, H;	0x45 LD B, L;	0x46 LD B, (HL);	0x47 LD B, A */
-				LD_GROUP(bc_.bytes.high),
+				LD_GROUP(bc_.bytes.high, bc_.bytes.high),
 
 				/* 0x48 LD C, B;  0x49 LD C, C;	0x4a LD C, D;	0x4b LD C, E;	0x4c LD C, H;	0x4d LD C, L;	0x4e LD C, (HL);	0x4f LD C, A */
-				LD_GROUP(bc_.bytes.low),
+				LD_GROUP(bc_.bytes.low, bc_.bytes.low),
 
 				/* 0x50 LD D, B;  0x51 LD D, C;	0x52 LD D, D;	0x53 LD D, E;	0x54 LD D, H;	0x55 LD D, L;	0x56 LD D, (HL);	0x57 LD D, A */
-				LD_GROUP(de_.bytes.high),
+				LD_GROUP(de_.bytes.high, de_.bytes.high),
 
 				/* 0x58 LD E, B;  0x59 LD E, C;	0x5a LD E, D;	0x5b LD E, E;	0x5c LD E, H;	0x5d LD E, L;	0x5e LD E, (HL);	0x5f LD E, A */
-				LD_GROUP(de_.bytes.low),
+				LD_GROUP(de_.bytes.low, de_.bytes.low),
 
 				/* 0x60 LD H, B;  0x61 LD H, C;	0x62 LD H, D;	0x63 LD H, E;	0x64 LD H, H;	0x65 LD H, L;	0x66 LD H, (HL);	0x67 LD H, A */
-				LD_GROUP(index.bytes.high),
+				LD_GROUP(index.bytes.high, hl_.bytes.high),
 
 				/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
-				LD_GROUP(index.bytes.low),
+				LD_GROUP(index.bytes.low, hl_.bytes.low),
 
-				/* 0x70 LD (HL),B */	Program(STOREL(bc_.bytes.high, index)),		/* 0x71 LD (HL), C */	Program(STOREL(bc_.bytes.low, index)),
-				/* 0x72 LD (HL),D */	Program(STOREL(de_.bytes.high, index)),		/* 0x73 LD (HL), E */	Program(STOREL(de_.bytes.low, index)),
-				/* 0x74 LD (HL),H */	Program(STOREL(index.bytes.high, index)),	/* 0x75 LD (HL), L */	Program(STOREL(index.bytes.low, index)),
-				/* 0x76 HALT */			XX,											/* 0x77 LD (HL), A */	Program(STOREL(a_, index)),
+				/* 0x70 LD (HL),B */	Program(INDEX(), STOREL(bc_.bytes.high, INDEX_ADDR())),
+				/* 0x71 LD (HL), C */	Program(INDEX(), STOREL(bc_.bytes.low, INDEX_ADDR())),
+				/* 0x72 LD (HL),D */	Program(INDEX(), STOREL(de_.bytes.high, INDEX_ADDR())),
+				/* 0x73 LD (HL), E */	Program(INDEX(), STOREL(de_.bytes.low, INDEX_ADDR())),
+				/* 0x74 LD (HL),H */	Program(INDEX(), STOREL(index.bytes.high, INDEX_ADDR())),
+				/* 0x75 LD (HL), L */	Program(INDEX(), STOREL(index.bytes.low, INDEX_ADDR())),
+				/* 0x76 HALT */			XX,
+				/* 0x77 LD (HL), A */	Program(INDEX(), STOREL(a_, INDEX_ADDR())),
 
 				/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
-				LD_GROUP(a_),
+				LD_GROUP(a_, a_),
 
 				/* 0x80 ADD B;	0x81 ADD C;	0x82 ADD D;	0x83 ADD E;	0x84 ADD H;	0x85 ADD L;	0x86 ADD (HL);	0x87 ADD A */
 				OP_GROUP(ADD8),
