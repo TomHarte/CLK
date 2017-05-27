@@ -1026,7 +1026,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::BIT: {
 						uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
 
-						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = result;
+						sign_result_ = zero_result_ = result;
+						bit3_result_ = bit5_result_ = *(uint8_t *)operation->source;	// This is a divergence between FUSE and The Undocumented Z80 Documented.
 						half_carry_flag_ = Flag::HalfCarry;
 						subtract_flag_ = 0;
 						parity_overflow_flag_ = result ? 0 : Flag::Parity;
