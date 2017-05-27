@@ -133,6 +133,8 @@ struct MicroOp {
 
 		CalculateRSTDestination,
 
+		IndexedPlaceHolder,
+
 		None
 	};
 	Type type;
@@ -192,6 +194,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define XX				{MicroOp::None, 0}
 
+#define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
+#define IR_ADDR()		(add_offsets ? temp16_ : index)
+
 /// Fetches into x from address y, and then increments y.
 #define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
 /// Fetches into x from address y.
@@ -221,14 +226,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r)	\
-				LD(r, bc_.bytes.high),	LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),		LD(r, de_.bytes.low),	\
+				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),		LD(r, de_.bytes.low),	\
 				LD(r, index.bytes.high),	LD(r, index.bytes.low),	Program(FETCHL(r, index)),	LD(r, a_)
 
 #define OP_GROUP(op)	\
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
 				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
 				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
-				Program(FETCHL(temp8_, index), {MicroOp::op, &temp8_}),	\
+				Program(INDEX(), FETCHL(temp8_, IR_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
@@ -240,7 +245,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		typedef MicroOp InstructionTable[256][20];
 
-		void assemble_page(InstructionPage &target, InstructionTable &table) {
+		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
 			size_t number_of_micro_ops = 0;
 			size_t lengths[256];
 
@@ -259,9 +264,21 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// Copy in all programs and set pointers.
 			size_t destination = 0;
 			for(int c = 0; c < 256; c++) {
-				memcpy(&target.all_operations[destination], table[c], lengths[c] * sizeof(MicroOp));
 				target.instructions[c] = &target.all_operations[destination];
-				destination += lengths[c];
+				if(c == 0x86)
+					printf("!");
+				for(int t = 0; t < lengths[c];) {
+					// If an index placeholder is hit then drop it, and if offsets aren't being added,
+					// then also drop the indexing that follows and which is assumed here to be four
+					// micro-ops in length. Coupled to the INDEX() macro.
+					if(table[c][t].type == MicroOp::IndexedPlaceHolder) {
+						t++;
+						if(!add_offsets) t += 4;
+					}
+					target.all_operations[destination] = table[c][t];
+					destination++;
+					t++;
+				}
 			}
 		}
 
@@ -325,7 +342,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				NOP_ROW(),	/* 0xe0 */
 				NOP_ROW(),	/* 0xf0 */
 			};
-			assemble_page(target, ed_program_table);
+			assemble_page(target, ed_program_table, false);
 #undef NOP_ROW
 		}
 
@@ -389,8 +406,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
 				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
-				/* 0x34 INC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, hl_)),
-				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, hl_), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, hl_)),
+				/* 0x34 INC (HL) */		Program( FETCHL(temp8_, index), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, index)),
+				/* 0x35 DEC (HL) */		Program(FETCHL(temp8_, index), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, index)),
 				/* 0x36 LD (HL), n */	Program(FETCH(temp8_, pc_), STOREL(temp8_, index)),
 				/* 0x37 SCF */			Program({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
@@ -494,7 +511,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
 				/* 0xff RST 38h */	RST(),
 			};
-			assemble_page(target, base_program_table);
+			assemble_page(target, base_program_table, add_offsets);
 		}
 
 		void assemble_fetch_decode_execute() {
@@ -523,8 +540,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	public:
 		Processor() : MicroOpScheduler() {
 			assemble_base_page(base_page_, hl_, false);
-			assemble_base_page(dd_page_, ix_, false);
-			assemble_base_page(fd_page_, iy_, false);
+			assemble_base_page(dd_page_, ix_, true);
+			assemble_base_page(fd_page_, iy_, true);
 			assemble_ed_page(ed_page_);
 			assemble_fetch_decode_execute();
 		}
@@ -568,7 +585,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						if(number_of_cycles_ < operation->machine_cycle.length) { schedule_program_program_counter_--; return; }
 						number_of_cycles_ -= operation->machine_cycle.length;
 						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
-						if(number_of_cycles_ <= 0) return;
 					break;
 					case MicroOp::MoveToNextProgram:
 						move_to_next_program();

@@ -57,19 +57,19 @@ fileprivate struct RegisterState {
 		de = UInt16(dictionary["de"] as! NSNumber)
 		hl = UInt16(dictionary["hl"] as! NSNumber)
 
-		afDash = UInt16((dictionary["afDash"] as! NSNumber).int32Value)
-		bcDash = UInt16((dictionary["bcDash"] as! NSNumber).int32Value)
-		deDash = UInt16((dictionary["deDash"] as! NSNumber).int32Value)
-		hlDash = UInt16((dictionary["hlDash"] as! NSNumber).int32Value)
+		afDash = UInt16(dictionary["afDash"] as! NSNumber)
+		bcDash = UInt16(dictionary["bcDash"] as! NSNumber)
+		deDash = UInt16(dictionary["deDash"] as! NSNumber)
+		hlDash = UInt16(dictionary["hlDash"] as! NSNumber)
 
-		ix = UInt16((dictionary["ix"] as! NSNumber).int32Value)
-		iy = UInt16((dictionary["iy"] as! NSNumber).int32Value)
+		ix = UInt16(dictionary["ix"] as! NSNumber)
+		iy = UInt16(dictionary["iy"] as! NSNumber)
 
-		sp = UInt16((dictionary["sp"] as! NSNumber).int32Value)
-		pc = UInt16((dictionary["pc"] as! NSNumber).int32Value)
+		sp = UInt16(dictionary["sp"] as! NSNumber)
+		pc = UInt16(dictionary["pc"] as! NSNumber)
 
-		i = UInt8((dictionary["i"] as! NSNumber).int32Value)
-		r = UInt8((dictionary["r"] as! NSNumber).int32Value)
+		i = UInt8(dictionary["i"] as! NSNumber)
+		r = UInt8(dictionary["r"] as! NSNumber)
 
 		iff1 = (dictionary["iff1"] as! NSNumber).boolValue
 		iff2 = (dictionary["iff2"] as! NSNumber).boolValue
@@ -151,10 +151,17 @@ class FUSETests: XCTestCase {
 		XCTAssert(inputArray != nil && outputArray != nil)
 
 		var index = 0
-		var failures = 0
+//		var failures = 0
 		for item in inputArray {
 			let itemDictionary = item as! [String: Any]
 			let outputDictionary = outputArray[index] as! [String: Any]
+			index = index + 1
+
+			let name = itemDictionary["name"] as! String
+
+//			if name != "fd86" {
+//				continue
+//			}
 
 			let initialState = RegisterState(dictionary: itemDictionary["state"] as! [String: Any])
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
@@ -175,22 +182,20 @@ class FUSETests: XCTestCase {
 				}
 			}
 
-			machine.runForNumber(ofCycles: Int32(initialState.tStates))
-			machine.runToNextInstruction()
+			machine.runForNumber(ofCycles: Int32(targetState.tStates))
 
 			let finalState = RegisterState(machine: machine)
 
-			XCTAssertEqual(finalState, targetState, "Failed \(itemDictionary["name"] as! String)")
-			if finalState != targetState {
-				failures = failures + 1
-				if failures == 5 {
-					return
-				}
-			}
+			XCTAssert(finalState == targetState, "Failed \(name)")
+//			if finalState != targetState {
+//				failures = failures + 1
+//				if failures == 5 {
+//					return
+//				}
+//			}
 
 			// TODO compare bus operations and final memory state
 
-			index = index + 1
 		}
 	}
 }
