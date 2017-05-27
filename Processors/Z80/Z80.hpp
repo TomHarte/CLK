@@ -354,7 +354,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #undef NOP_ROW
 		}
 
-		void assembled_cd_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
+		void assemble_cb_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
 #define OCTO_OP_GROUP(x)	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x)
 			InstructionTable cb_program_table = {
 				/* 0x00 RLC B;	0x01 RLC C;	0x02 RLC D;	0x03 RLC E;	0x04 RLC H;	0x05 RLC L;	0x06 RLC (HL);	0x07 RLC A */
