@@ -237,12 +237,20 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),						LD(r, de_.bytes.low),	\
 				LD(r, index.bytes.high),	LD(r, index.bytes.low),	Program(INDEX(), FETCHL(ri, INDEX_ADDR())),	LD(r, a_)
 
-#define OP_GROUP(op)	\
+#define READ_OP_GROUP(op)	\
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
 				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
 				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
 				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
+
+#define MODIFY_OP_GROUP(op)	\
+				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
+				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
+				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
+				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1), STOREL(temp8_, INDEX_ADDR())),	\
+				Program({MicroOp::op, &a_})
+
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADC16, &s.full, &d.full})
@@ -273,8 +281,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			size_t destination = 0;
 			for(int c = 0; c < 256; c++) {
 				target.instructions[c] = &target.all_operations[destination];
-				if(c == 0x86)
-					printf("!");
 				for(int t = 0; t < lengths[c];) {
 					// If an index placeholder is hit then drop it, and if offsets aren't being added,
 					// then also drop the indexing that follows and which is assumed here to be four
@@ -355,31 +361,31 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		void assemble_cb_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
-#define OCTO_OP_GROUP(x)	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x)
+#define OCTO_OP_GROUP(x)	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x)
 			InstructionTable cb_program_table = {
 				/* 0x00 RLC B;	0x01 RLC C;	0x02 RLC D;	0x03 RLC E;	0x04 RLC H;	0x05 RLC L;	0x06 RLC (HL);	0x07 RLC A */
-				OP_GROUP(RLC),
+				MODIFY_OP_GROUP(RLC),
 
 				/* 0x08 RRC B;	0x09 RRC C;	0x0a RRC D;	0x0b RRC E;	0x0c RRC H;	0x0d RRC L;	0x0e RRC (HL);	0x0f RRC A */
-				OP_GROUP(RRC),
+				MODIFY_OP_GROUP(RRC),
 
 				/* 0x10 RL B;	0x11 RL C;	0x12 RL D;	0x13 RL E;	0x14 RL H;	0x15 RL L;	0x16 RL (HL);	0x17 RL A */
-				OP_GROUP(RL),
+				MODIFY_OP_GROUP(RL),
 
 				/* 0x18 RR B;	0x99 RR C;	0x1a RR D;	0x1b RR E;	0x1c RR H;	0x1d RR L;	0x1e RR (HL);	0x1f RR A */
-				OP_GROUP(RR),
+				MODIFY_OP_GROUP(RR),
 
 				/* 0x20 SLA B;	0x21 SLA C;	0x22 SLA D;	0x23 SLA E;	0x24 SLA H;	0x25 SLA L;	0x26 SLA (HL);	0x27 SLA A */
-				OP_GROUP(SLA),
+				MODIFY_OP_GROUP(SLA),
 
 				/* 0x28 SRA B;	0x29 SRA C;	0x2a SRA D;	0x2b SRA E;	0x2c SRA H;	0x2d SRA L;	0x2e SRA (HL);	0x2f SRA A */
-				OP_GROUP(SRA),
+				MODIFY_OP_GROUP(SRA),
 
 				/* 0x30 SLL B;	0x31 SLL C;	0x32 SLL D;	0x33 SLL E;	0x34 SLL H;	0x35 SLL L;	0x36 SLL (HL);	0x37 SLL A */
-				OP_GROUP(SLL),
+				MODIFY_OP_GROUP(SLL),
 
 				/* 0x38 SRL B;	0x39 SRL C;	0x3a SRL D;	0x3b SRL E;	0x3c SRL H;	0x3d SRL L;	0x3e SRL (HL);	0x3f SRL A */
-				OP_GROUP(SRL),
+				MODIFY_OP_GROUP(SRL),
 
 				/* 0x40 – 0x7f: BIT */
 				OCTO_OP_GROUP(BIT),
@@ -498,28 +504,28 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				LD_GROUP(a_, a_),
 
 				/* 0x80 ADD B;	0x81 ADD C;	0x82 ADD D;	0x83 ADD E;	0x84 ADD H;	0x85 ADD L;	0x86 ADD (HL);	0x87 ADD A */
-				OP_GROUP(ADD8),
+				READ_OP_GROUP(ADD8),
 
 				/* 0x88 ADC B;	0x89 ADC C;	0x8a ADC D;	0x8b ADC E;	0x8c ADC H;	0x8d ADC L;	0x8e ADC (HL);	0x8f ADC A */
-				OP_GROUP(ADC8),
+				READ_OP_GROUP(ADC8),
 
 				/* 0x90 SUB B;	0x91 SUB C;	0x92 SUB D;	0x93 SUB E;	0x94 SUB H;	0x95 SUB L;	0x96 SUB (HL);	0x97 SUB A */
-				OP_GROUP(SUB8),
+				READ_OP_GROUP(SUB8),
 
 				/* 0x98 SBC B;	0x99 SBC C;	0x9a SBC D;	0x9b SBC E;	0x9c SBC H;	0x9d SBC L;	0x9e SBC (HL);	0x9f SBC A */
-				OP_GROUP(SBC8),
+				READ_OP_GROUP(SBC8),
 
 				/* 0xa0 AND B;	0xa1 AND C;	0xa2 AND D;	0xa3 AND E;	0xa4 AND H;	0xa5 AND L;	0xa6 AND (HL);	0xa7 AND A */
-				OP_GROUP(And),
+				READ_OP_GROUP(And),
 
 				/* 0xa8 XOR B;	0xa9 XOR C;	0xaa XOR D;	0xab XOR E;	0xac XOR H;	0xad XOR L;	0xae XOR (HL);	0xaf XOR A */
-				OP_GROUP(Xor),
+				READ_OP_GROUP(Xor),
 
 				/* 0xb0 OR B;	0xb1 OR C;	0xb2 OR D;	0xb3 OR E;	0xb4 OR H;	0xb5 OR L;	0xb6 OR (HL);	0xb7 OR A */
-				OP_GROUP(Or),
+				READ_OP_GROUP(Or),
 
 				/* 0xb8 CP B;	0xb9 CP C;	0xba CP D;	0xbb CP E;	0xbc CP H;	0xbd CP L;	0xbe CP (HL);	0xbf CP A */
-				OP_GROUP(CP8),
+				READ_OP_GROUP(CP8),
 
 				/* 0xc0 RET NZ */	RET(TestNZ),							/* 0xc1 POP BC */	Program(POP(bc_)),
 				/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	Program(FETCH16L(temp16_, pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
