@@ -131,6 +131,10 @@ struct MicroOp {
 		SCF,
 		CCF,
 
+		RES,
+		BIT,
+		SET,
+
 		CalculateRSTDestination,
 
 		IndexedPlaceHolder,
@@ -191,6 +195,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		InstructionPage ed_page_;
 		InstructionPage fd_page_;
 		InstructionPage dd_page_;
+
+		InstructionPage cb_page_;
+		InstructionPage fdcb_page_;
+		InstructionPage ddcb_page_;
 
 #define XX				{MicroOp::None, 0}
 
@@ -346,7 +354,46 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #undef NOP_ROW
 		}
 
-		void assemble_base_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
+		void assembled_cd_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
+#define OCTO_OP_GROUP(x)	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x),	OP_GROUP(x)
+			InstructionTable cb_program_table = {
+				/* 0x00 RLC B;	0x01 RLC C;	0x02 RLC D;	0x03 RLC E;	0x04 RLC H;	0x05 RLC L;	0x06 RLC (HL);	0x07 RLC A */
+				OP_GROUP(RLC),
+
+				/* 0x08 RRC B;	0x09 RRC C;	0x0a RRC D;	0x0b RRC E;	0x0c RRC H;	0x0d RRC L;	0x0e RRC (HL);	0x0f RRC A */
+				OP_GROUP(RRC),
+
+				/* 0x10 RL B;	0x11 RL C;	0x12 RL D;	0x13 RL E;	0x14 RL H;	0x15 RL L;	0x16 RL (HL);	0x17 RL A */
+				OP_GROUP(RL),
+
+				/* 0x18 RR B;	0x99 RR C;	0x1a RR D;	0x1b RR E;	0x1c RR H;	0x1d RR L;	0x1e RR (HL);	0x1f RR A */
+				OP_GROUP(RR),
+
+				/* 0x20 SLA B;	0x21 SLA C;	0x22 SLA D;	0x23 SLA E;	0x24 SLA H;	0x25 SLA L;	0x26 SLA (HL);	0x27 SLA A */
+				OP_GROUP(SLA),
+
+				/* 0x28 SRA B;	0x29 SRA C;	0x2a SRA D;	0x2b SRA E;	0x2c SRA H;	0x2d SRA L;	0x2e SRA (HL);	0x2f SRA A */
+				OP_GROUP(SRA),
+
+				/* 0x30 SLL B;	0x31 SLL C;	0x32 SLL D;	0x33 SLL E;	0x34 SLL H;	0x35 SLL L;	0x36 SLL (HL);	0x37 SLL A */
+				OP_GROUP(SLL),
+
+				/* 0x38 SRL B;	0x39 SRL C;	0x3a SRL D;	0x3b SRL E;	0x3c SRL H;	0x3d SRL L;	0x3e SRL (HL);	0x3f SRL A */
+				OP_GROUP(SRL),
+
+				/* 0x40 – 0x7f: BIT */
+				OCTO_OP_GROUP(BIT),
+
+				/* 0x80 – 0xcf: RES */
+				OCTO_OP_GROUP(RES),
+
+				/* 0xd0 – 0xdf: SET */
+				OCTO_OP_GROUP(SET)
+			};
+			assemble_page(target, cb_program_table, add_offsets);
+		}
+
+		void assemble_base_page(InstructionPage &target, RegisterPair &index, bool add_offsets, InstructionPage &cb_page) {
 #define INC_DEC_LD(r)	\
 				Program({MicroOp::Increment8, &r}),	\
 				Program({MicroOp::Decrement8, &r}),	\
@@ -480,7 +527,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xc6 ADD A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),
 				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		Program(POP(pc_)),
-				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */XX,
+				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Program({MicroOp::SetInstructionPage, &cb_page}),
 				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xce ADC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),
 				/* 0xcf RST 08h */	RST(),
@@ -515,6 +562,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xfe CP n */		Program(FETCH(temp8_, pc_), {MicroOp::CP8, &temp8_}),
 				/* 0xff RST 38h */	RST(),
 			};
+			assemble_cb_page(cb_page, index, add_offsets);
 			assemble_page(target, base_program_table, add_offsets);
 		}
 
@@ -543,9 +591,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 	public:
 		Processor() : MicroOpScheduler() {
-			assemble_base_page(base_page_, hl_, false);
-			assemble_base_page(dd_page_, ix_, true);
-			assemble_base_page(fd_page_, iy_, true);
+			assemble_base_page(base_page_, hl_, false, cb_page_);
+			assemble_base_page(dd_page_, ix_, true, ddcb_page_);
+			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 			assemble_ed_page(ed_page_);
 			assemble_fetch_decode_execute();
 		}
@@ -946,7 +994,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						afDash_.bytes.low = f;
 					} break;
 
-#pragma mark - Repetition group
+#pragma mark - Repetition
 
 					case MicroOp::LDIR: {
 						bc_.full--;
@@ -967,7 +1015,26 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						}
 					} break;
 
-#pragma mark - Rotation
+#pragma mark - Bit Manipulation
+
+					case MicroOp::BIT: {
+						uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
+
+						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = result;
+						half_carry_flag_ = Flag::HalfCarry;
+						subtract_flag_ = 0;
+						parity_overflow_flag_ = result ? 0 : Flag::Parity;
+					} break;
+
+					case MicroOp::RES:
+						*(uint8_t *)operation->source &= ~(1 << ((operation_ >> 3)&7));
+					break;
+
+					case MicroOp::SET:
+						*(uint8_t *)operation->source |= (1 << ((operation_ >> 3)&7));
+					break;
+
+#pragma mark - Rotation and shifting
 
 					case MicroOp::RLA: {
 						uint8_t new_carry = a_ >> 7;
@@ -999,6 +1066,88 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						bit5_result_ = bit3_result_ = a_;
 						carry_flag_ = newCarry;
 						subtract_flag_ = half_carry_flag_ = 0;
+					} break;
+
+					case MicroOp::RLC: {
+						carry_flag_ = *(uint8_t *)operation->source >> 7;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::RRC: {
+						carry_flag_ = *(uint8_t *)operation->source & 1;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::RL: {
+						uint8_t next_carry = *(uint8_t *)operation->source >> 7;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
+						carry_flag_ = next_carry;
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::RR: {
+						uint8_t next_carry = *(uint8_t *)operation->source & 1;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
+						carry_flag_ = next_carry;
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::SLA: {
+						carry_flag_ = *(uint8_t *)operation->source >> 7;
+						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1);
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::SRA: {
+						carry_flag_ = *(uint8_t *)operation->source & 1;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (*(uint8_t *)operation->source & 0x80));
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::SLL: {
+						carry_flag_ = *(uint8_t *)operation->source >> 7;
+						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1) | 1;
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
+					} break;
+
+					case MicroOp::SRL: {
+						carry_flag_ = *(uint8_t *)operation->source & 1;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1));
+
+						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
+						set_parity(sign_result_);
+						half_carry_flag_ = 0;
+						subtract_flag_ = 0;
 					} break;
 
 #pragma mark - Interrupt state
