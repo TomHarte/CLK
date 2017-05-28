@@ -565,7 +565,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xde SBC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),
 				/* 0xdf RST 18h */	RST(),
 				/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	Program(POP(index)),
-				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */XX,
+				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */Program(POP(temp16_), WAIT(1), PUSH(index), WAIT(2), {MicroOp::Move16, &temp16_.full, &index.full}),
 				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Program(WAIT(1), PUSH(index)),
 				/* 0xe6 AND n */	Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),
 				/* 0xe7 RST 20h */	RST(),
