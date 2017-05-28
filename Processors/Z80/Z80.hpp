@@ -122,6 +122,7 @@ struct MicroOp {
 		RLA,	RLCA,	RRA,	RRCA,
 		RLC,	RRC,	RL,		RR,
 		SLA,	SRA,	SLL,	SRL,
+		RLD,	RRD,
 
 		SetInstructionPage,
 		CalculateIndexAddress,
@@ -367,11 +368,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x66 IM 0 */			Program({MicroOp::IM}),			/* 0x67 RRD */			XX,
+				/* 0x66 IM 0 */			Program({MicroOp::IM}),			/* 0x67 RRD */			Program(FETCHL(temp8_, hl_), WAIT(4), {MicroOp::RRD}, STOREL(temp8_, hl_)),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.low),
 				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(hl_, temp16_)),
 				/* 0x6c NEG */			Program({MicroOp::NEG}),		/* 0x6d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x6e IM 0/1 */		Program({MicroOp::IM}),			/* 0x6f RLD */			XX,
+				/* 0x6e IM 0/1 */		Program({MicroOp::IM}),			/* 0x6f RLD */			Program(FETCHL(temp8_, hl_), WAIT(4), {MicroOp::RLD}, STOREL(temp8_, hl_)),
 				/* 0x70 IN (C) */		IN_C(temp8_),
 				/* 0x71 OUT (C), 0 */	Program({MicroOp::SetZero}, OUT(bc_, temp8_)),
 				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
@@ -1019,7 +1020,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						sign_result_	= (uint8_t)(result >> 8);
 						zero_result_	= (uint8_t)(result | sign_result_);
 						subtract_flag_	= Flag::Subtract;
-						carry_flag_		= result >> 16;
+						carry_flag_		= (result >> 16) & Flag::Carry;
 						half_carry_flag_ = (halfResult >> 8) & Flag::HalfCarry;
 						parity_overflow_flag_ = (overflow & 0x8000) >> 13;
 
@@ -1195,6 +1196,29 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 
 #undef set_shift_flags
+
+#define set_decimal_rotate_flags()	\
+	subtract_flag_ = 0;	\
+	half_carry_flag_ = 0;	\
+	set_parity(a_);	\
+	bit3_result_ = bit5_result_ = zero_result_ = sign_result_ = a_;
+
+					case MicroOp::RRD: {
+						uint8_t low_nibble = a_ & 0xf;
+						a_ = (a_ & 0xf0) | (temp8_ & 0xf);
+						temp8_ = (temp8_ >> 4) | (low_nibble << 4);
+						set_decimal_rotate_flags();
+					} break;
+
+					case MicroOp::RLD: {
+						uint8_t low_nibble = a_ & 0xf;
+						a_ = (a_ & 0xf0) | (temp8_ >> 4);
+						temp8_ = (temp8_ << 4) | low_nibble;
+						set_decimal_rotate_flags();
+					} break;
+
+#undef set_decimal_rotate_flags
+
 
 #pragma mark - Interrupt state
 
