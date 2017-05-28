@@ -112,7 +112,7 @@ struct MicroOp {
 		ADD16,	ADC16,	SBC16,
 		CP8,	SUB8,	SBC8,	ADD8,	ADC8,
 
-		ExDEHL, ExAFAFDash,
+		ExDEHL, ExAFAFDash, EXX,
 
 		EI,		DI,
 
@@ -572,7 +572,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Program(WAIT(1), PUSH(de_)),
 				/* 0xd6 SUB n */	Program(FETCH(temp8_, pc_), {MicroOp::SUB8, &temp8_}),
 				/* 0xd7 RST 10h */	RST(),
-				/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		XX,
+				/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		Program({MicroOp::EXX}),
 				/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */Program(FETCH(temp16_.bytes.low, pc_), {MicroOp::Move8, &a_, &temp16_.bytes.high}, IN(temp16_, a_)),
 				/* 0xdc CALL C */	CALL(TestC),							/* 0xdd [DD page] */Program({MicroOp::SetInstructionPage, &dd_page_}),
 				/* 0xde SBC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),
@@ -1009,6 +1009,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						*(uint16_t *)operation->destination = (uint16_t)result;
 					} break;
 
+#pragma mark - Conditionals
+
 					case MicroOp::TestNZ:	if(!zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestZ:	if(zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestNC:	if(carry_flag_)				{ move_to_next_program(); checkSchedule(); }		break;
@@ -1018,10 +1020,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::TestP:	if(sign_result_ & 0x80)		{ move_to_next_program(); checkSchedule(); }		break;
 					case MicroOp::TestM:	if(!(sign_result_ & 0x80))	{ move_to_next_program(); checkSchedule(); }		break;
 
+#pragma mark - Exchange
+
+#define swap(a, b)	temp = a.full; a.full = b.full; b.full = temp;
+
 					case MicroOp::ExDEHL: {
-						uint16_t temp = de_.full;
-						de_.full = hl_.full;
-						hl_.full = temp;
+						uint16_t temp;
+						swap(de_, hl_);
 					} break;
 
 					case MicroOp::ExAFAFDash: {
@@ -1032,6 +1037,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						afDash_.bytes.high = a;
 						afDash_.bytes.low = f;
 					} break;
+
+					case MicroOp::EXX: {
+						uint16_t temp;
+						swap(de_, deDash_);
+						swap(bc_, bcDash_);
+						swap(hl_, hlDash_);
+					} break;
+
+#undef swap
 
 #pragma mark - Repetition
 
