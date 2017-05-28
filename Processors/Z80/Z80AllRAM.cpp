@@ -27,6 +27,14 @@ int AllRAMProcessor::perform_machine_cycle(const MachineCycle *cycle) {
 			memory_[*cycle->address] = *cycle->value;
 		break;
 
+		case BusOperation::Output:
+		break;
+		case BusOperation::Input:
+			// This logic is selected specifically because it seems to match
+			// the FUSE unit tests. It might need factoring out.
+			*cycle->value = (*cycle->address) >> 8;
+		break;
+
 		case BusOperation::Internal:
 		break;
 

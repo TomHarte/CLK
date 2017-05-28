@@ -167,6 +167,10 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
+//			if name != "ed40" {
+//				continue;
+//			}
+
 			let initialState = RegisterState(dictionary: itemDictionary["state"] as! [String: Any])
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
 
@@ -186,7 +190,6 @@ class FUSETests: XCTestCase {
 				}
 			}
 
-			print("\(name)")
 			machine.runForNumber(ofCycles: Int32(targetState.tStates))
 
 			let finalState = RegisterState(machine: machine)
