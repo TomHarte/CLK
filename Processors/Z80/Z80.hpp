@@ -115,7 +115,7 @@ struct MicroOp {
 
 		ExDEHL, ExAFAFDash, EXX,
 
-		EI,		DI,
+		EI,		DI,		IM,
 
 		LDIR,
 
@@ -348,36 +348,36 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
 				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	Program(FETCH16(temp16_, pc_), STORE16L(bc_, temp16_)),
 				/* 0x44 NEG */			Program({MicroOp::NEG}),		/* 0x45 RETN */			XX,
-				/* 0x46 IM 0 */			XX,								/* 0x47 LD I, A */		LD(i_, a_),
+				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		LD(i_, a_),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
 				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
 				/* 0x4c NEG */			Program({MicroOp::NEG}),		/* 0x4d RETI */			XX,
-				/* 0x4e IM 0/1 */		XX,								/* 0x4f LD R, A */		LD(r_, a_),
+				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		LD(r_, a_),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
 				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	Program(FETCH16(temp16_, pc_), STORE16L(de_, temp16_)),
 				/* 0x54 NEG */			Program({MicroOp::NEG}),		/* 0x55 RETN */			XX,
-				/* 0x56 IM 1 */			XX,								/* 0x57 LD A, I */		LD(a_, i_),
+				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		LD(a_, i_),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
 				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
 				/* 0x5c NEG */			Program({MicroOp::NEG}),		/* 0x5d RETN */			XX,
-				/* 0x5e IM 2 */			XX,								/* 0x5f LD A, R */		LD(a_, r_),
+				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		LD(a_, r_),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			XX,
-				/* 0x66 IM 0 */			XX,								/* 0x67 RRD */			XX,
+				/* 0x66 IM 0 */			Program({MicroOp::IM}),			/* 0x67 RRD */			XX,
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.low),
 				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(hl_, temp16_)),
 				/* 0x6c NEG */			Program({MicroOp::NEG}),		/* 0x6d RETN */			XX,
-				/* 0x6e IM 0/1 */		XX,								/* 0x6f RLD */			XX,
+				/* 0x6e IM 0/1 */		Program({MicroOp::IM}),			/* 0x6f RLD */			XX,
 				/* 0x70 IN (C) */		IN_C(temp8_),
 				/* 0x71 OUT (C), 0 */	Program({MicroOp::SetZero}, OUT(bc_, temp8_)),
 				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
 				/* 0x74 NEG */			Program({MicroOp::NEG}),		/* 0x75 RETN */			XX,
-				/* 0x76 IM 1 */			XX,								/* 0x77 XX */			XX,
+				/* 0x76 IM 1 */			Program({MicroOp::IM}),			/* 0x77 XX */			XX,
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(a_),
 				/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
 				/* 0x7c NEG */			Program({MicroOp::NEG}),		/* 0x7d RETN */			XX,
-				/* 0x7e IM 2 */			XX,								/* 0x7f XX */			XX,
+				/* 0x7e IM 2 */			Program({MicroOp::IM}),			/* 0x7f XX */			XX,
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				/* 0xa0 LDI */		XX,
@@ -1201,6 +1201,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::DI:
 						iff1_ = iff2_ = false;
+					break;
+
+					case MicroOp::IM:
+						switch(operation_ & 0x18) {
+							case 0x00:	interrupt_mode_ = 0;	break;
+							case 0x08:	interrupt_mode_ = 0;	break;	// IM 0/1
+							case 0x10:	interrupt_mode_ = 1;	break;
+							case 0x18:	interrupt_mode_ = 2;	break;
+						}
 					break;
 
 #pragma mark - Input
