@@ -138,6 +138,8 @@ struct MicroOp {
 		SET,
 
 		CalculateRSTDestination,
+
+		SetAFlags,
 		SetInFlags,
 		SetZero,
 
@@ -357,11 +359,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
 				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	Program(FETCH16(temp16_, pc_), STORE16L(de_, temp16_)),
 				/* 0x54 NEG */			Program({MicroOp::NEG}),		/* 0x55 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		LD(a_, i_),
+				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program({MicroOp::Move8, &i_, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
-				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
+				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(de_, temp16_)),
 				/* 0x5c NEG */			Program({MicroOp::NEG}),		/* 0x5d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		LD(a_, r_),
+				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program({MicroOp::Move8, &r_, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			Program(POP(pc_), {MicroOp::RETN}),
@@ -1219,6 +1221,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						subtract_flag_ = half_carry_flag_ = 0;
 						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = *(uint8_t *)operation->source;
 						set_parity(sign_result_);
+					break;
+
+					case MicroOp::SetAFlags:
+						subtract_flag_ = half_carry_flag_ = 0;
+						parity_overflow_flag_ = iff2_ ? Flag::Parity : 0;
+						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = a_;
 					break;
 
 					case MicroOp::SetZero:
