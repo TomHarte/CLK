@@ -174,13 +174,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair temp16_;
 		uint8_t temp8_;
 
-		MicroOp *fetch_decode_execute_;
 		struct InstructionPage {
 			MicroOp *instructions[256];
 			MicroOp *all_operations;
+			MicroOp *fetch_decode_execute;
 			bool increments_r;
 
-			InstructionPage() : all_operations(nullptr), increments_r(true) {
+			InstructionPage() : all_operations(nullptr), increments_r(true), fetch_decode_execute(nullptr) {
 				for(int c = 0; c < 256; c++) {
 					instructions[c] = nullptr;
 				}
@@ -188,6 +188,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			~InstructionPage() {
 				delete[] all_operations;
+				delete[] fetch_decode_execute;
 			}
 		};
 		InstructionPage *current_instruction_page_;
@@ -201,7 +202,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		InstructionPage fdcb_page_;
 		InstructionPage ddcb_page_;
 
-#define XX				{MicroOp::None, 0}
+#define XX				Program({MicroOp::None})
 
 #define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
@@ -247,7 +248,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program({MicroOp::op, &a_})
 
 #define RMW(x, op, ...) Program(INDEX(), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
-#define RMWI(x, op, ...) Program(WAIT(1), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
+#define RMWI(x, op, ...) Program(WAIT(2), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
 
 #define MODIFY_OP_GROUP(op)	\
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
@@ -256,7 +257,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				RMW(temp8_, op),	\
 				Program({MicroOp::op, &a_})
 
-#define MUTATE_OP_GROUP(op)	\
+#define IX_MODIFY_OP_GROUP(op)	\
 				RMWI(bc_.bytes.high, op),	\
 				RMWI(bc_.bytes.low, op),	\
 				RMWI(de_.bytes.high, op),	\
@@ -265,6 +266,16 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				RMWI(hl_.bytes.low, op),	\
 				RMWI(temp8_, op),	\
 				RMWI(a_, op)
+
+#define IX_READ_OP_GROUP(op)	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
+				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1))
 
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
@@ -380,7 +391,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		void assemble_cb_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
 #define OCTO_OP_GROUP(m, x)	m(x),	m(x),	m(x),	m(x),	m(x),	m(x),	m(x),	m(x)
-#define CB_PAGE(m)	m(RLC), m(RRC),	m(RL),	m(RR),	m(SLA),	m(SRA),	m(SLL),	m(SRL),	OCTO_OP_GROUP(m, BIT),	OCTO_OP_GROUP(m, RES),	OCTO_OP_GROUP(m, SET)
+#define CB_PAGE(m, p)	m(RLC), m(RRC),	m(RL),	m(RR),	m(SLA),	m(SRA),	m(SLL),	m(SRL),	OCTO_OP_GROUP(p, BIT),	OCTO_OP_GROUP(m, RES),	OCTO_OP_GROUP(m, SET)
 
 			InstructionTable cb_program_table = {
 				/* 0x00 RLC B;	0x01 RLC C;	0x02 RLC D;	0x03 RLC E;	0x04 RLC H;	0x05 RLC L;	0x06 RLC (HL);	0x07 RLC A */
@@ -394,10 +405,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x40 – 0x7f: BIT */
 				/* 0x80 – 0xcf: RES */
 				/* 0xd0 – 0xdf: SET */
-				CB_PAGE(MODIFY_OP_GROUP)
+				CB_PAGE(MODIFY_OP_GROUP, READ_OP_GROUP)
 			};
 			InstructionTable offsets_cb_program_table = {
-				CB_PAGE(MUTATE_OP_GROUP)
+				CB_PAGE(IX_MODIFY_OP_GROUP, IX_READ_OP_GROUP)
 			};
 			assemble_page(target, add_offsets ? offsets_cb_program_table : cb_program_table, add_offsets);
 
@@ -578,27 +589,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_page(target, base_program_table, add_offsets);
 		}
 
-		void assemble_fetch_decode_execute() {
+		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			// TODO: this can't legitimately be static and contain references to this via pc_ and operation_;
 			// make it something else that is built at instance construction.
 			const MicroOp fetch_decode_execute[] = {
-				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 4, &pc_.full, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {(length == 4) ? ReadOpcode : Read, length, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
-			fetch_decode_execute_ = new MicroOp[3];
-			fetch_decode_execute_[0] = fetch_decode_execute[0];
-			fetch_decode_execute_[1] = fetch_decode_execute[1];
-			fetch_decode_execute_[2] = fetch_decode_execute[2];
+			target.fetch_decode_execute = new MicroOp[3];
+			target.fetch_decode_execute[0] = fetch_decode_execute[0];
+			target.fetch_decode_execute[1] = fetch_decode_execute[1];
+			target.fetch_decode_execute[2] = fetch_decode_execute[2];
 		}
 
 		void decode_operation(uint8_t operation) {
-			if(current_instruction_page_->instructions[operation]->type == MicroOp::None) {
-				uint8_t page = 0x00;
-				if(current_instruction_page_ == &ed_page_) page = 0xed;
-				if(current_instruction_page_ == &fd_page_) page = 0xfd;
-				printf("Unknown Z80 operation %02x %02x!!!\n", page, operation);
-			} else schedule_program(current_instruction_page_->instructions[operation]);
+			schedule_program(current_instruction_page_->instructions[operation]);
 		}
 
 	public:
@@ -607,13 +613,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_base_page(dd_page_, ix_, true, ddcb_page_);
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 			assemble_ed_page(ed_page_);
-			assemble_fetch_decode_execute();
 
 			fdcb_page_.increments_r = false;
 			ddcb_page_.increments_r = false;
-		}
-		~Processor() {
-			delete[] fetch_decode_execute_;
+
+			assemble_fetch_decode_execute(base_page_, 4);
+			assemble_fetch_decode_execute(dd_page_, 4);
+			assemble_fetch_decode_execute(fd_page_, 4);
+			assemble_fetch_decode_execute(ed_page_, 4);
+			assemble_fetch_decode_execute(cb_page_, 4);
+
+			assemble_fetch_decode_execute(fdcb_page_, 3);
+			assemble_fetch_decode_execute(ddcb_page_, 3);
 		}
 
 		/*!
@@ -630,7 +641,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
 		current_instruction_page_ = &base_page_;\
-		schedule_program(fetch_decode_execute_);\
+		schedule_program(base_page_.fetch_decode_execute);\
 	}
 
 			number_of_cycles_ += number_of_cycles;
@@ -1179,8 +1190,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #pragma mark - Internal bookkeeping
 
 					case MicroOp::SetInstructionPage:
-						schedule_program(fetch_decode_execute_);
 						current_instruction_page_ = (InstructionPage *)operation->source;
+						schedule_program(current_instruction_page_->fetch_decode_execute);
 //						printf("+ ");
 					break;
 
@@ -1188,8 +1199,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						temp16_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
 					break;
 
-					default:
-//						printf("Unhandled Z80 operation %d\n", operation->type);
+					case MicroOp::None: {
+						uint8_t page = 0x00;
+						if(current_instruction_page_ == &ed_page_) page = 0xed;
+						if(current_instruction_page_ == &fd_page_) page = 0xfd;
+						printf("Unknown Z80 operation %02x %02x!!!\n", page, operation_);
+					} return;
+
+					case MicroOp::IndexedPlaceHolder:
+						printf("Hit placeholder!!!\n");
 					return;
 				}
 #undef set_parity
