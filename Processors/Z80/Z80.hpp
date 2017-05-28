@@ -169,19 +169,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t sign_result_, zero_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_, carry_flag_;
 
 		int number_of_cycles_;
-		const MicroOp **program_table_;
 
 		uint8_t operation_;
 		RegisterPair temp16_;
 		uint8_t temp8_;
 
 		MicroOp *fetch_decode_execute_;
-		MicroOp **current_instruction_page_;
 		struct InstructionPage {
 			MicroOp *instructions[256];
 			MicroOp *all_operations;
+			bool increments_r;
 
-			InstructionPage() : all_operations(nullptr) {
+			InstructionPage() : all_operations(nullptr), increments_r(true) {
 				for(int c = 0; c < 256; c++) {
 					instructions[c] = nullptr;
 				}
@@ -191,6 +190,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				delete[] all_operations;
 			}
 		};
+		InstructionPage *current_instruction_page_;
+
 		InstructionPage base_page_;
 		InstructionPage ed_page_;
 		InstructionPage fd_page_;
@@ -203,6 +204,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define XX				{MicroOp::None, 0}
 
 #define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
+#define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()	(add_offsets ? temp16_ : index)
 
 /// Fetches into x from address y, and then increments y.
@@ -244,12 +246,25 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
+#define RMW(x, op, ...) Program(INDEX(), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
+#define RMWI(x, op, ...) Program(WAIT(1), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
+
 #define MODIFY_OP_GROUP(op)	\
 				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
 				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
 				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
-				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1), STOREL(temp8_, INDEX_ADDR())),	\
+				RMW(temp8_, op),	\
 				Program({MicroOp::op, &a_})
+
+#define MUTATE_OP_GROUP(op)	\
+				RMWI(bc_.bytes.high, op),	\
+				RMWI(bc_.bytes.low, op),	\
+				RMWI(de_.bytes.high, op),	\
+				RMWI(de_.bytes.low, op),	\
+				RMWI(hl_.bytes.high, op),	\
+				RMWI(hl_.bytes.low, op),	\
+				RMWI(temp8_, op),	\
+				RMWI(a_, op)
 
 
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
@@ -283,11 +298,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				target.instructions[c] = &target.all_operations[destination];
 				for(int t = 0; t < lengths[c];) {
 					// If an index placeholder is hit then drop it, and if offsets aren't being added,
-					// then also drop the indexing that follows and which is assumed here to be four
-					// micro-ops in length. Coupled to the INDEX() macro.
+					// then also drop the indexing that follows, which is assumed to be everything
+					// up to and including the next ::CalculateIndexAddress. Coupled to the INDEX() macro.
 					if(table[c][t].type == MicroOp::IndexedPlaceHolder) {
 						t++;
-						if(!add_offsets) t += 4;
+						if(!add_offsets) {
+							while(table[c][t].type != MicroOp::CalculateIndexAddress) t++;
+							t++;
+						}
 					}
 					target.all_operations[destination] = table[c][t];
 					destination++;
@@ -361,42 +379,30 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		void assemble_cb_page(InstructionPage &target, RegisterPair &index, bool add_offsets) {
-#define OCTO_OP_GROUP(x)	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x),	MODIFY_OP_GROUP(x)
+#define OCTO_OP_GROUP(m, x)	m(x),	m(x),	m(x),	m(x),	m(x),	m(x),	m(x),	m(x)
+#define CB_PAGE(m)	m(RLC), m(RRC),	m(RL),	m(RR),	m(SLA),	m(SRA),	m(SLL),	m(SRL),	OCTO_OP_GROUP(m, BIT),	OCTO_OP_GROUP(m, RES),	OCTO_OP_GROUP(m, SET)
+
 			InstructionTable cb_program_table = {
 				/* 0x00 RLC B;	0x01 RLC C;	0x02 RLC D;	0x03 RLC E;	0x04 RLC H;	0x05 RLC L;	0x06 RLC (HL);	0x07 RLC A */
-				MODIFY_OP_GROUP(RLC),
-
 				/* 0x08 RRC B;	0x09 RRC C;	0x0a RRC D;	0x0b RRC E;	0x0c RRC H;	0x0d RRC L;	0x0e RRC (HL);	0x0f RRC A */
-				MODIFY_OP_GROUP(RRC),
-
 				/* 0x10 RL B;	0x11 RL C;	0x12 RL D;	0x13 RL E;	0x14 RL H;	0x15 RL L;	0x16 RL (HL);	0x17 RL A */
-				MODIFY_OP_GROUP(RL),
-
 				/* 0x18 RR B;	0x99 RR C;	0x1a RR D;	0x1b RR E;	0x1c RR H;	0x1d RR L;	0x1e RR (HL);	0x1f RR A */
-				MODIFY_OP_GROUP(RR),
-
 				/* 0x20 SLA B;	0x21 SLA C;	0x22 SLA D;	0x23 SLA E;	0x24 SLA H;	0x25 SLA L;	0x26 SLA (HL);	0x27 SLA A */
-				MODIFY_OP_GROUP(SLA),
-
 				/* 0x28 SRA B;	0x29 SRA C;	0x2a SRA D;	0x2b SRA E;	0x2c SRA H;	0x2d SRA L;	0x2e SRA (HL);	0x2f SRA A */
-				MODIFY_OP_GROUP(SRA),
-
 				/* 0x30 SLL B;	0x31 SLL C;	0x32 SLL D;	0x33 SLL E;	0x34 SLL H;	0x35 SLL L;	0x36 SLL (HL);	0x37 SLL A */
-				MODIFY_OP_GROUP(SLL),
-
 				/* 0x38 SRL B;	0x39 SRL C;	0x3a SRL D;	0x3b SRL E;	0x3c SRL H;	0x3d SRL L;	0x3e SRL (HL);	0x3f SRL A */
-				MODIFY_OP_GROUP(SRL),
-
 				/* 0x40 – 0x7f: BIT */
-				OCTO_OP_GROUP(BIT),
-
 				/* 0x80 – 0xcf: RES */
-				OCTO_OP_GROUP(RES),
-
 				/* 0xd0 – 0xdf: SET */
-				OCTO_OP_GROUP(SET)
+				CB_PAGE(MODIFY_OP_GROUP)
 			};
-			assemble_page(target, cb_program_table, add_offsets);
+			InstructionTable offsets_cb_program_table = {
+				CB_PAGE(MUTATE_OP_GROUP)
+			};
+			assemble_page(target, add_offsets ? offsets_cb_program_table : cb_program_table, add_offsets);
+
+#undef OCTO_OP_GROUP
+#undef CB_PAGE
 		}
 
 		void assemble_base_page(InstructionPage &target, RegisterPair &index, bool add_offsets, InstructionPage &cb_page) {
@@ -533,7 +539,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xc6 ADD A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),
 				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		Program(POP(pc_)),
-				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Program({MicroOp::SetInstructionPage, &cb_page}),
+				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Program({MicroOp::SetInstructionPage, &cb_page}, FINDEX()),
 				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xce ADC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),
 				/* 0xcf RST 08h */	RST(),
@@ -587,12 +593,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		void decode_operation(uint8_t operation) {
-			if(current_instruction_page_[operation]->type == MicroOp::None) {
+			if(current_instruction_page_->instructions[operation]->type == MicroOp::None) {
 				uint8_t page = 0x00;
-				if(current_instruction_page_ == ed_page_.instructions) page = 0xed;
-				if(current_instruction_page_ == fd_page_.instructions) page = 0xfd;
+				if(current_instruction_page_ == &ed_page_) page = 0xed;
+				if(current_instruction_page_ == &fd_page_) page = 0xfd;
 				printf("Unknown Z80 operation %02x %02x!!!\n", page, operation);
-			} else schedule_program(current_instruction_page_[operation]);
+			} else schedule_program(current_instruction_page_->instructions[operation]);
 		}
 
 	public:
@@ -602,6 +608,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 			assemble_ed_page(ed_page_);
 			assemble_fetch_decode_execute();
+
+			fdcb_page_.increments_r = false;
+			ddcb_page_.increments_r = false;
 		}
 		~Processor() {
 			delete[] fetch_decode_execute_;
@@ -620,7 +629,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
-		current_instruction_page_ = base_page_.instructions;\
+		current_instruction_page_ = &base_page_;\
 		schedule_program(fetch_decode_execute_);\
 	}
 
@@ -649,8 +658,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						checkSchedule();
 					break;
 					case MicroOp::DecodeOperation:
+						if(current_instruction_page_->increments_r) r_ = (r_ & 0x80) | ((r_ + 1) & 0x7f);
 						pc_.full++;
-						r_ = (r_ & 0x80) | ((r_ + 1) & 0x7f);
 						decode_operation(operation_);
 					break;
 
@@ -1171,7 +1180,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::SetInstructionPage:
 						schedule_program(fetch_decode_execute_);
-						current_instruction_page_ = ((InstructionPage *)operation->source)->instructions;
+						current_instruction_page_ = (InstructionPage *)operation->source;
 //						printf("+ ");
 					break;
 
