@@ -1063,119 +1063,94 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Rotation and shifting
 
+#define set_rotate_flags()	\
+	bit3_result_ = bit5_result_ = a_;	\
+	carry_flag_ = new_carry;	\
+	subtract_flag_ = half_carry_flag_ = 0;
+
 					case MicroOp::RLA: {
 						uint8_t new_carry = a_ >> 7;
 						a_ = (uint8_t)((a_ << 1) | carry_flag_);
-						bit3_result_ = bit5_result_ = a_;
-						carry_flag_ = new_carry;
-						subtract_flag_ = half_carry_flag_ = 0;
+						set_rotate_flags();
+					} break;
+
+					case MicroOp::RRA: {
+						uint8_t new_carry = a_ & 1;
+						a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
+						set_rotate_flags();
 					} break;
 
 					case MicroOp::RLCA: {
 						uint8_t new_carry = a_ >> 7;
 						a_ = (uint8_t)((a_ << 1) | new_carry);
-						bit3_result_ = bit5_result_ = a_;
-						carry_flag_ = new_carry;
-						subtract_flag_ = half_carry_flag_ = 0;
-					} break;
-
-					case MicroOp::RRA: {
-						uint8_t newCarry = a_ & 1;
-						a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
-						bit3_result_ = bit5_result_ = a_;
-						carry_flag_ = newCarry;
-						subtract_flag_ = half_carry_flag_ = 0;
+						set_rotate_flags();
 					} break;
 
 					case MicroOp::RRCA: {
-						uint8_t newCarry = a_ & 1;
-						a_ = (uint8_t)((a_ >> 1) | (newCarry << 7));
-						bit5_result_ = bit3_result_ = a_;
-						carry_flag_ = newCarry;
-						subtract_flag_ = half_carry_flag_ = 0;
+						uint8_t new_carry = a_ & 1;
+						a_ = (uint8_t)((a_ >> 1) | (new_carry << 7));
+						set_rotate_flags();
 					} break;
 
-					case MicroOp::RLC: {
+#undef set_rotate_flags
+
+#define set_shift_flags()	\
+	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;	\
+	set_parity(sign_result_);	\
+	half_carry_flag_ = 0;	\
+	subtract_flag_ = 0;
+
+					case MicroOp::RLC:
 						carry_flag_ = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
+						set_shift_flags();
+					break;
 
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
-
-					case MicroOp::RRC: {
+					case MicroOp::RRC:
 						carry_flag_ = *(uint8_t *)operation->source & 1;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
-
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
+						set_shift_flags();
+					break;
 
 					case MicroOp::RL: {
 						uint8_t next_carry = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
 						carry_flag_ = next_carry;
-
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
+						set_shift_flags();
 					} break;
 
 					case MicroOp::RR: {
 						uint8_t next_carry = *(uint8_t *)operation->source & 1;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
 						carry_flag_ = next_carry;
-
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
+						set_shift_flags();
 					} break;
 
-					case MicroOp::SLA: {
+					case MicroOp::SLA:
 						carry_flag_ = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1);
+						set_shift_flags();
+					break;
 
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
-
-					case MicroOp::SRA: {
+					case MicroOp::SRA:
 						carry_flag_ = *(uint8_t *)operation->source & 1;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (*(uint8_t *)operation->source & 0x80));
+						set_shift_flags();
+					break;
 
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
-
-					case MicroOp::SLL: {
+					case MicroOp::SLL:
 						carry_flag_ = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1) | 1;
+						set_shift_flags();
+					break;
 
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
-
-					case MicroOp::SRL: {
+					case MicroOp::SRL:
 						carry_flag_ = *(uint8_t *)operation->source & 1;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1));
+						set_shift_flags();
+					break;
 
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;
-						set_parity(sign_result_);
-						half_carry_flag_ = 0;
-						subtract_flag_ = 0;
-					} break;
+#undef set_shift_flags
 
 #pragma mark - Interrupt state
 
