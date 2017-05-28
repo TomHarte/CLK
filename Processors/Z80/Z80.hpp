@@ -226,6 +226,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 /// Stores the 16-bit quantity x to address y, incrementing y once.
 #define STORE16L(x, y)	STORE(x.bytes.low, y), STOREL(x.bytes.high, y)
 
+/// Outputs the 8-bit value to the 16-bit port
+#define OUT(port, value)	{MicroOp::BusOperation, nullptr, nullptr, {Output, 4, &port.full, &value}}
+
+/// Inputs the 8-bit value from the 16-bit port
+#define IN(port, value)		{MicroOp::BusOperation, nullptr, nullptr, {Input, 4, &port.full, &value}}
+
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
 
@@ -555,12 +561,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xce ADC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),
 				/* 0xcf RST 08h */	RST(),
 				/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	Program(POP(de_)),
-				/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */XX,
+				/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */Program(FETCH(temp16_.bytes.low, pc_), {MicroOp::Move8, &a_, &temp16_.bytes.high}, OUT(temp16_, a_)),
 				/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Program(WAIT(1), PUSH(de_)),
 				/* 0xd6 SUB n */	Program(FETCH(temp8_, pc_), {MicroOp::SUB8, &temp8_}),
 				/* 0xd7 RST 10h */	RST(),
 				/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		XX,
-				/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */XX,
+				/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */Program(FETCH(temp16_.bytes.low, pc_), {MicroOp::Move8, &a_, &temp16_.bytes.high}, IN(temp16_, a_)),
 				/* 0xdc CALL C */	CALL(TestC),							/* 0xdd [DD page] */Program({MicroOp::SetInstructionPage, &dd_page_}),
 				/* 0xde SBC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),
 				/* 0xdf RST 18h */	RST(),
