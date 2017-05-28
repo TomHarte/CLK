@@ -703,29 +703,29 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Logical
 
+#define set_logical_flags(hf)	\
+	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;	\
+	set_parity(a_);	\
+	half_carry_flag_ = hf;	\
+	subtract_flag_ = 0;	\
+	carry_flag_ = 0;
+
 					case MicroOp::And:
 						a_ &= *(uint8_t *)operation->source;
-						half_carry_flag_ = Flag::HalfCarry;
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
-						parity_overflow_flag_ = 0;
-						set_parity(a_);
+						set_logical_flags(Flag::HalfCarry);
 					break;
 
 					case MicroOp::Or:
 						a_ |= *(uint8_t *)operation->source;
-						half_carry_flag_ = 0;
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
-						parity_overflow_flag_ = 0;
-						set_parity(a_);
+						set_logical_flags(0);
 					break;
 
 					case MicroOp::Xor:
 						a_ ^= *(uint8_t *)operation->source;
-						half_carry_flag_ = 0;
-						sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;
-						parity_overflow_flag_ = 0;
-						set_parity(a_);
+						set_logical_flags(0);
 					break;
+
+#undef set_logical_flags
 
 					case MicroOp::CPL:
 						a_ ^= 0xff;

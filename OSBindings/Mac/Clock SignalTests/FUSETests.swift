@@ -167,7 +167,7 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
-//			if name != "ed40" {
+//			if name != "a0" {
 //				continue;
 //			}
 
