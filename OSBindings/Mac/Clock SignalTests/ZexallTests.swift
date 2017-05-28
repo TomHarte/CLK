@@ -11,6 +11,8 @@ import Foundation
 
 class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 
+	fileprivate var done = false
+
 	func testZexall() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "zexall", ofType: "com") {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
@@ -24,34 +26,50 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				machine.addTrapAddress(0x0005);
 				machine.trapHandler = self
 
+				// establish 0 as another trap location, as RST 0h is one of the ways that
+				// CP/M programs can exit
+				machine.addTrapAddress(0);
+
 				// seed execution at 0x0100
 				machine.setValue(0x0100, for: .programCounter)
 
 				// run!
-				machine.runForNumber(ofCycles: 20)
+				while !done {
+					machine.runForNumber(ofCycles: 200)
+				}
 			}
 		}
 	}
 
 	func testMachine(_ testMachine: CSTestMachineZ80!, didTrapAtAddress address: UInt16) {
-		// only 0x0005 was registered as a trap address, so no need further to inspect
-		let cRegister = testMachine.value(for: .C)
-		if cRegister == 9 {
-			var address = testMachine.value(for: .DE)
-			var character: Character = " "
-			var output = ""
-			while true {
-				character = Character(UnicodeScalar(testMachine.value(atAddress: address)))
-				if character == "$" {
-					break
+		switch address {
+			case 0x0005:
+				let cRegister = testMachine.value(for: .C)
+				switch cRegister {
+					case 9:
+						var address = testMachine.value(for: .DE)
+						var character: Character = " "
+						var output = ""
+						while true {
+							character = Character(UnicodeScalar(testMachine.value(atAddress: address)))
+							if character == "$" {
+								break
+							}
+							output = output + String(character)
+							address = address + 1
+						}
+						print(output)
+					case 5:
+						print(String(describing: UnicodeScalar(testMachine.value(for: .E))))
+					case 0:
+						done = true
+					default:
+						break
 				}
-				output = output + String(character)
-				address = address + 1
-			}
-			print(output)
-		}
-		if cRegister == 5 {
-			print(String(describing: UnicodeScalar(testMachine.value(for: .E))))
+			case 0x0000:
+				done = true;
+			default:
+				break
 		}
 	}
 }
