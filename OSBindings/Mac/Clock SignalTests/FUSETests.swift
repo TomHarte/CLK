@@ -172,9 +172,9 @@ class FUSETests: XCTestCase {
 			let machine = CSTestMachineZ80()
 			initialState.set(onMachine: machine)
 
-			let memoryGroups = itemDictionary["memory"] as? [Any]
-			if let memoryGroups = memoryGroups {
-				for group in memoryGroups {
+			let inputMemoryGroups = itemDictionary["memory"] as? [Any]
+			if let inputMemoryGroups = inputMemoryGroups {
+				for group in inputMemoryGroups {
 					let groupDictionary = group as! [String: Any]
 					var address = UInt16(groupDictionary["address"] as! NSNumber)
 					let data = groupDictionary["data"] as! [NSNumber]
@@ -189,7 +189,22 @@ class FUSETests: XCTestCase {
 
 			let finalState = RegisterState(machine: machine)
 
-			XCTAssertEqual(finalState, targetState, "Failed \(name)")
+			// Compare processor state.
+			XCTAssertEqual(finalState, targetState, "Failed processor state \(name)")
+
+			// Compare memory state.
+			let outputMemoryGroups = outputDictionary["memory"] as? [Any]
+			if let outputMemoryGroups = outputMemoryGroups {
+				for group in outputMemoryGroups {
+					let groupDictionary = group as! [String: Any]
+					var address = UInt16(groupDictionary["address"] as! NSNumber)
+					let data = groupDictionary["data"] as! [NSNumber]
+					for value in data {
+						XCTAssert(machine.value(atAddress: address) == UInt8(value), "Failed memory state \(name)")
+						address = address + 1
+					}
+				}
+			}
 
 			// TODO compare bus operations and final memory state
 		}
