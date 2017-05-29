@@ -541,12 +541,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
 				LD_GROUP(index.bytes.low, hl_.bytes.low),
 
-				/* 0x70 LD (HL),B */	Program(INDEX(), STOREL(bc_.bytes.high, INDEX_ADDR())),
+				/* 0x70 LD (HL), B */	Program(INDEX(), STOREL(bc_.bytes.high, INDEX_ADDR())),
 				/* 0x71 LD (HL), C */	Program(INDEX(), STOREL(bc_.bytes.low, INDEX_ADDR())),
-				/* 0x72 LD (HL),D */	Program(INDEX(), STOREL(de_.bytes.high, INDEX_ADDR())),
+				/* 0x72 LD (HL), D */	Program(INDEX(), STOREL(de_.bytes.high, INDEX_ADDR())),
 				/* 0x73 LD (HL), E */	Program(INDEX(), STOREL(de_.bytes.low, INDEX_ADDR())),
-				/* 0x74 LD (HL),H */	Program(INDEX(), STOREL(index.bytes.high, INDEX_ADDR())),
-				/* 0x75 LD (HL), L */	Program(INDEX(), STOREL(index.bytes.low, INDEX_ADDR())),
+				/* 0x74 LD (HL), H */	Program(INDEX(), STOREL(hl_.bytes.high, INDEX_ADDR())),	// neither of these stores parts of the index register;
+				/* 0x75 LD (HL), L */	Program(INDEX(), STOREL(hl_.bytes.low, INDEX_ADDR())),	// they always store exactly H and L.
 				/* 0x76 HALT */			XX,
 				/* 0x77 LD (HL), A */	Program(INDEX(), STOREL(a_, INDEX_ADDR())),
 
