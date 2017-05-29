@@ -117,7 +117,10 @@ struct MicroOp {
 
 		EI,		DI,		IM,
 
-		LDIR,
+		LDI,	LDIR,	LDD,	LDDR,
+		CPI,	CPIR,	CPD,	CPDR,
+		INI,	INIR,	IND,	INDR,
+		OUTI,	OUTIR,	OUTD,	OUTDR,
 
 		RLA,	RLCA,	RRA,	RRCA,
 		RLC,	RRC,	RL,		RR,
@@ -384,19 +387,25 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x7e IM 2 */			Program({MicroOp::IM}),			/* 0x7f XX */			XX,
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
-				/* 0xa0 LDI */		XX,
-				/* 0xa1 CPI */		XX,
-				/* 0xa2 INI */		XX,								/* 0xa3 OTI */		XX,
+				/* 0xa0 LDI */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDI}),
+				/* 0xa1 CPI */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPI}),
+				/* 0xa2 INI */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INI}),
+				/* 0xa3 OTI */		Program(OUT(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::OUTI}),
 				XX, XX, XX, XX,
-				/* 0xa8 LDD */		XX,								/* 0xa9 CPD */		XX,
-				/* 0xaa IND */		XX,								/* 0xab OTD */		XX,
+				/* 0xa8 LDD */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDD}),
+				/* 0xa9 CPD */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPD}),
+				/* 0xaa IND */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::IND}),
+				/* 0xab OTD */		Program(OUT(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::OUTD}),
 				XX, XX, XX, XX,
 				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),
-				/* 0xb1 CPIR */		XX,
-				/* 0xb2 INIR */		XX,								/* 0xb3 OTIR */		XX,
+				/* 0xb1 CPIR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPIR}, WAIT(5)),
+				/* 0xb2 INIR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INIR}, WAIT(5)),
+				/* 0xb3 OTIR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::OUTIR}, WAIT(5)),
 				XX, XX, XX, XX,
-				/* 0xb8 LDDR */		XX,								/* 0xb9 CPDR */		XX,
-				/* 0xba INDR */		XX,								/* 0xbb OTDR */		XX,
+				/* 0xb8 LDDR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDDR}, WAIT(5)),
+				/* 0xb9 CPDR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPDR}, WAIT(5)),
+				/* 0xba INDR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INDR}, WAIT(5)),
+				/* 0xbb OTDR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::OUTDR}, WAIT(5)),
 				XX, XX, XX, XX,
 				NOP_ROW(),	/* 0xc0 */
 				NOP_ROW(),	/* 0xd0 */
@@ -1067,10 +1076,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Repetition
 
+					case MicroOp::LDDR:
 					case MicroOp::LDIR: {
 						bc_.full--;
-						de_.full++;
-						hl_.full++;
+						de_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
+						hl_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
 
 						bit3_result_ = bit5_result_ = a_ + temp8_;
 						subtract_flag_ = 0;
@@ -1085,6 +1095,50 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							checkSchedule();
 						}
 					} break;
+
+					case MicroOp::LDD:
+					case MicroOp::LDI: {
+						bc_.full--;
+						de_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
+						hl_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
+
+						bit3_result_ = bit5_result_ = a_ + temp8_;
+						subtract_flag_ = 0;
+						half_carry_flag_ = 0;
+						parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
+					} break;
+
+					case MicroOp::CPDR:
+					case MicroOp::CPIR: {
+						bc_.full--;
+						de_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
+						hl_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
+
+						bit3_result_ = bit5_result_ = a_ + temp8_;
+						subtract_flag_ = 0;
+						half_carry_flag_ = 0;
+
+						if(bc_.full) {
+							parity_overflow_flag_ = Flag::Parity;
+							pc_.full -= 2;
+						} else {
+							parity_overflow_flag_ = 0;
+							move_to_next_program();
+							checkSchedule();
+						}
+					} break;
+
+//					case MicroOp::CPD:
+//					case MicroOp::CPI: {
+//						bc_.full--;
+//						de_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
+//						hl_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
+//
+//						bit3_result_ = bit5_result_ = a_ + temp8_;
+//						subtract_flag_ = 0;
+//						half_carry_flag_ = 0;
+//						parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
+//					} break;
 
 #pragma mark - Bit Manipulation
 
