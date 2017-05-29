@@ -638,7 +638,16 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 	public:
-		Processor() : MicroOpScheduler(), is_halted_(false) {
+		Processor() : MicroOpScheduler(),
+			is_halted_(false),
+			sp_(0xffff),
+			pc_(0x0000),
+			a_(0xff),
+			interrupt_mode_(0),
+			iff1_(false),
+			iff2_(false) {
+			set_flags(0xff);
+
 			assemble_base_page(base_page_, hl_, false, cb_page_);
 			assemble_base_page(dd_page_, ix_, true, ddcb_page_);
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);

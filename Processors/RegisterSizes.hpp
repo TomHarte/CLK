@@ -14,6 +14,9 @@
 namespace CPU {
 
 union RegisterPair {
+	RegisterPair(uint16_t v) : full(v) {}
+	RegisterPair() {}
+
 	uint16_t full;
 	struct {
 		uint8_t low, high;
