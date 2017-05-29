@@ -707,7 +707,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::DecodeOperation:
 						if(current_instruction_page_->increments_r) r_ = (r_ & 0x80) | ((r_ + 1) & 0x7f);
 						pc_.full++;
-						decode_operation(operation_);
+						decode_operation(is_halted_ ? 0x00 : operation_);
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
@@ -1385,7 +1385,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::HALT:
 						is_halted_ = true;
-						pc_.full --;
 					break;
 
 #pragma mark - Internal bookkeeping
