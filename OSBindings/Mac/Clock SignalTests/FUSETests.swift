@@ -167,7 +167,7 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
-//			if name != "dd36" {
+//			if name != "66" {
 //				continue;
 //			}
 
@@ -253,7 +253,7 @@ class FUSETests: XCTestCase {
 						capturedBusActivity[capturedBusAcivityIndex].value == value! &&
 						capturedBusActivity[capturedBusAcivityIndex].timeStamp == time &&
 						capturedBusActivity[capturedBusAcivityIndex].operation == operation,
-						"Failed bus operation match \(name)")
+						"Failed bus operation match \(name) (at time \(time) with address \(address), value was \(value != nil ? value! : 0), tracking index \(capturedBusAcivityIndex) amgonst \(capturedBusActivity))")
 					capturedBusAcivityIndex += 1
 				}
 			}
