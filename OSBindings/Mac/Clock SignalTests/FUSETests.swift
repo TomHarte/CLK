@@ -167,7 +167,7 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
-//			if name != "edb1" {
+//			if name != "eda2" {
 //				continue;
 //			}
 
@@ -194,7 +194,7 @@ class FUSETests: XCTestCase {
 
 			let finalState = RegisterState(machine: machine)
 
-			XCTAssertEqual(finalState, targetState, "Failed \(name)")
+			XCTAssert(finalState == targetState, "Failed \(name)")
 //			if finalState != targetState {
 //				failures = failures + 1
 //				if failures == 5 {

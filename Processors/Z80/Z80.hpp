@@ -1076,8 +1076,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Repetition
 
-#define REPEAT()	\
-	if(parity_overflow_flag_) {	\
+#define REPEAT(test)	\
+	if(test) {	\
 		pc_.full -= 2;	\
 	} else {	\
 		move_to_next_program();	\
@@ -1096,7 +1096,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::LDDR:
 					case MicroOp::LDIR: {
 						LDxR_STEP(MicroOp::LDIR);
-						REPEAT();
+						REPEAT(bc_.full);
 					} break;
 
 					case MicroOp::LDD:
@@ -1122,7 +1122,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::CPDR:
 					case MicroOp::CPIR: {
 						CPxR_STEP(MicroOp::CPIR);
-						REPEAT();
+						REPEAT(bc_.full);
 					} break;
 
 					case MicroOp::CPD:
@@ -1131,6 +1131,40 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					} break;
 
 #undef CPxR_STEP
+
+#define INxR_STEP(incr)	\
+	bc_.bytes.high--;	\
+	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	\
+	sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = bc_.bytes.high;	\
+	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
+	\
+	int next_bc = bc_.bytes.low + ((operation->type == incr) ? 1 : -1);	\
+	int summation = temp8_ + (next_bc&0xff);	\
+	\
+	if(summation > 0xff) {	\
+		carry_flag_ = Flag::Carry;	\
+		half_carry_flag_ = Flag::HalfCarry;	\
+	} else {	\
+		carry_flag_ = 0;	\
+		half_carry_flag_ = 0;	\
+	}	\
+	\
+	summation = (summation&7) ^ bc_.bytes.high;	\
+	set_parity(summation);
+
+					case MicroOp::INDR:
+					case MicroOp::INIR: {
+						INxR_STEP(MicroOp::INIR);
+						REPEAT(bc_.bytes.high);
+					} break;
+
+					case MicroOp::IND:
+					case MicroOp::INI: {
+						INxR_STEP(MicroOp::INI);
+					} break;
+
+#undef INxR_STEP
 
 #pragma mark - Bit Manipulation
 
