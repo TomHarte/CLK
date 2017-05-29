@@ -166,6 +166,10 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
+//			if name != "dd36" {
+//				continue;
+//			}
+
 			let initialState = RegisterState(dictionary: itemDictionary["state"] as! [String: Any])
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
 
@@ -206,7 +210,7 @@ class FUSETests: XCTestCase {
 				}
 			}
 
-			// TODO compare bus operations and final memory state
+			// TODO compare bus operations
 		}
 	}
 }

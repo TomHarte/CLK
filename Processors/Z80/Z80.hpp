@@ -324,6 +324,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			for(int c = 0; c < 256; c++) {
 				target.instructions[c] = &target.all_operations[destination];
 				for(int t = 0; t < lengths[c];) {
+					// Skip zero-length bus cycles.
+					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length == 0) {
+						t++;
+						continue;
+					}
+
 					// If an index placeholder is hit then drop it, and if offsets aren't being added,
 					// then also drop the indexing that follows, which is assumed to be everything
 					// up to and including the next ::CalculateIndexAddress. Coupled to the INDEX() macro.
@@ -505,7 +511,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
 				/* 0x35 DEC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
-				/* 0x36 LD (HL), n */	Program(INDEX(), FETCH(temp8_, pc_), STOREL(temp8_, INDEX_ADDR())),
+				/* 0x36 LD (HL), n */	Program({MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}, FETCH(temp8_, pc_), WAIT(add_offsets ? 2 : 0), STOREL(temp8_, INDEX_ADDR())),
 				/* 0x37 SCF */			Program({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
