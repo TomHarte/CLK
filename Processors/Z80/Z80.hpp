@@ -1122,7 +1122,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::CPDR:
 					case MicroOp::CPIR: {
 						CPxR_STEP(MicroOp::CPIR);
-						REPEAT(bc_.full);
+						REPEAT(bc_.full && sign_result_);
 					} break;
 
 					case MicroOp::CPD:
