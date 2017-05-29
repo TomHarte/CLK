@@ -154,6 +154,10 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	[self.trapHandler testMachine:self didTrapAtAddress:address];
 }
 
+- (BOOL)isHalted {
+	return _processor.get_halt_line() ? YES : NO;
+}
+
 #pragma mark - Z80-specific Runner
 
 - (void)runToNextInstruction {

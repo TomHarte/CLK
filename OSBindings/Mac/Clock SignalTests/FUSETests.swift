@@ -113,8 +113,8 @@ fileprivate struct RegisterState {
 
 		interruptMode = Int(machine.value(for: .IM))
 
-		isHalted = false	// TODO
-		tStates = 0			// TODO
+		isHalted = machine.isHalted
+		tStates = 0			// TODO	 (?)
 	}
 }
 
@@ -137,7 +137,8 @@ fileprivate func ==(lhs: RegisterState, rhs: RegisterState) -> Bool {
 			lhs.r == rhs.r &&
 			lhs.iff1 == rhs.iff1 &&
 			lhs.iff2 == rhs.iff2 &&
-			lhs.interruptMode == rhs.interruptMode
+			lhs.interruptMode == rhs.interruptMode &&
+			lhs.isHalted == rhs.isHalted
 }
 
 class FUSETests: XCTestCase {

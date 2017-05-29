@@ -129,7 +129,9 @@ struct MicroOp {
 
 		SetInstructionPage,
 		CalculateIndexAddress,
+
 		RETN,
+		HALT,
 
 		DJNZ,
 		DAA,
@@ -177,6 +179,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		bool iff1_, iff2_;
 		int interrupt_mode_;
 		uint8_t sign_result_, zero_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_, carry_flag_;
+		bool is_halted_;
 
 		int number_of_cycles_;
 
@@ -547,7 +550,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x73 LD (HL), E */	Program(INDEX(), STOREL(de_.bytes.low, INDEX_ADDR())),
 				/* 0x74 LD (HL), H */	Program(INDEX(), STOREL(hl_.bytes.high, INDEX_ADDR())),	// neither of these stores parts of the index register;
 				/* 0x75 LD (HL), L */	Program(INDEX(), STOREL(hl_.bytes.low, INDEX_ADDR())),	// they always store exactly H and L.
-				/* 0x76 HALT */			XX,
+				/* 0x76 HALT */			Program({MicroOp::HALT}),
 				/* 0x77 LD (HL), A */	Program(INDEX(), STOREL(a_, INDEX_ADDR())),
 
 				/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
@@ -641,7 +644,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 	public:
-		Processor() : MicroOpScheduler() {
+		Processor() : MicroOpScheduler(), is_halted_(false) {
 			assemble_base_page(base_page_, hl_, false, cb_page_);
 			assemble_base_page(dd_page_, ix_, true, ddcb_page_);
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
@@ -1374,10 +1377,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						temp8_ = 0;
 					break;
 
-#pragma mark - Return
+#pragma mark - Special-case Flow
 
 					case MicroOp::RETN:
 						iff1_ = iff2_;
+					break;
+
+					case MicroOp::HALT:
+						is_halted_ = true;
+						pc_.full --;
 					break;
 
 #pragma mark - Internal bookkeeping
@@ -1569,6 +1577,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				default: break;
 			}
+		}
+
+		/*!
+			Gets the value of the HALT output line.
+		*/
+		bool get_halt_line() {
+			return is_halted_;
 		}
 };
 
