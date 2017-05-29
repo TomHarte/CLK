@@ -1076,21 +1076,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Repetition
 
+#define LDxR_STEP(incr)	\
+	bc_.full--;	\
+	de_.full += (operation->type == incr) ? 1 : -1;	\
+	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	bit3_result_ = bit5_result_ = a_ + temp8_;	\
+	subtract_flag_ = 0;	\
+	half_carry_flag_ = 0;	\
+	parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
+
 					case MicroOp::LDDR:
 					case MicroOp::LDIR: {
-						bc_.full--;
-						de_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
-						hl_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
+						LDxR_STEP(MicroOp::LDIR);
 
-						bit3_result_ = bit5_result_ = a_ + temp8_;
-						subtract_flag_ = 0;
-						half_carry_flag_ = 0;
-
-						if(bc_.full) {
-							parity_overflow_flag_ = Flag::Parity;
+						if(parity_overflow_flag_) {
 							pc_.full -= 2;
 						} else {
-							parity_overflow_flag_ = 0;
 							move_to_next_program();
 							checkSchedule();
 						}
@@ -1098,15 +1099,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::LDD:
 					case MicroOp::LDI: {
-						bc_.full--;
-						de_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
-						hl_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
-
-						bit3_result_ = bit5_result_ = a_ + temp8_;
-						subtract_flag_ = 0;
-						half_carry_flag_ = 0;
-						parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
+						LDxR_STEP(MicroOp::LDI);
 					} break;
+
+#undef LDxR_STEP
 
 					case MicroOp::CPDR:
 					case MicroOp::CPIR: {
