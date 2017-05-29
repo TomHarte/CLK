@@ -1076,6 +1076,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Repetition
 
+#define REPEAT()	\
+	if(parity_overflow_flag_) {	\
+		pc_.full -= 2;	\
+	} else {	\
+		move_to_next_program();	\
+		checkSchedule();	\
+	}
+
 #define LDxR_STEP(incr)	\
 	bc_.full--;	\
 	de_.full += (operation->type == incr) ? 1 : -1;	\
@@ -1088,13 +1096,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::LDDR:
 					case MicroOp::LDIR: {
 						LDxR_STEP(MicroOp::LDIR);
-
-						if(parity_overflow_flag_) {
-							pc_.full -= 2;
-						} else {
-							move_to_next_program();
-							checkSchedule();
-						}
+						REPEAT();
 					} break;
 
 					case MicroOp::LDD:
@@ -1104,37 +1106,31 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #undef LDxR_STEP
 
+#define CPxR_STEP(incr)	\
+	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	bc_.full--;	\
+	\
+	uint8_t result = a_ - temp8_;	\
+	uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
+	\
+	parity_overflow_flag_ =  bc_.full ? Flag::Parity : 0;	\
+	half_carry_flag_ = halfResult & Flag::HalfCarry;	\
+	subtract_flag_ = Flag::Subtract;	\
+	bit5_result_ = bit3_result_ = (uint8_t)((result&0x8) | ((result&0x2) << 4));	\
+	sign_result_ = zero_result_ = result;
+
 					case MicroOp::CPDR:
 					case MicroOp::CPIR: {
-						bc_.full--;
-						de_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
-						hl_.full += (operation->type == MicroOp::LDIR) ? 1 : -1;
-
-						bit3_result_ = bit5_result_ = a_ + temp8_;
-						subtract_flag_ = 0;
-						half_carry_flag_ = 0;
-
-						if(bc_.full) {
-							parity_overflow_flag_ = Flag::Parity;
-							pc_.full -= 2;
-						} else {
-							parity_overflow_flag_ = 0;
-							move_to_next_program();
-							checkSchedule();
-						}
+						CPxR_STEP(MicroOp::CPIR);
+						REPEAT();
 					} break;
 
-//					case MicroOp::CPD:
-//					case MicroOp::CPI: {
-//						bc_.full--;
-//						de_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
-//						hl_.full += (operation->type == MicroOp::LDI) ? 1 : -1;
-//
-//						bit3_result_ = bit5_result_ = a_ + temp8_;
-//						subtract_flag_ = 0;
-//						half_carry_flag_ = 0;
-//						parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
-//					} break;
+					case MicroOp::CPD:
+					case MicroOp::CPI: {
+						CPxR_STEP(MicroOp::CPI);
+					} break;
+
+#undef CPxR_STEP
 
 #pragma mark - Bit Manipulation
 
