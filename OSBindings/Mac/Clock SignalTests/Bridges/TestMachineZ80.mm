@@ -89,7 +89,14 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 @implementation CSTestMachineZ80BusOperationCapture
 
 - (NSString *)description {
-	return [NSString stringWithFormat:@"%c %04x %02x [%d]", (self.operation == CSTestMachineZ80BusOperationCaptureOperationRead) ? 'r' : 'w', self.address, self.value, self.timeStamp];
+	NSString *opName = @"";
+	switch(self.operation) {
+		case CSTestMachineZ80BusOperationCaptureOperationRead:		opName = @"r";	break;
+		case CSTestMachineZ80BusOperationCaptureOperationWrite:		opName = @"w";	break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortRead:	opName = @"i";	break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortWrite:	opName = @"o";	break;
+	}
+	return [NSString stringWithFormat:@"%@ %04x %02x [%d]", opName, self.address, self.value, self.timeStamp];
 }
 
 @end

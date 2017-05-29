@@ -118,7 +118,7 @@ struct MicroOp {
 		LDI,	LDIR,	LDD,	LDDR,
 		CPI,	CPIR,	CPD,	CPDR,
 		INI,	INIR,	IND,	INDR,
-		OUTI,	OUTIR,	OUTD,	OUTDR,
+		OUTI,	OUTD,	OUT_R,
 
 		RLA,	RLCA,	RRA,	RRCA,
 		RLC,	RRC,	RL,		RR,
@@ -393,22 +393,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xa0 LDI */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDI}),
 				/* 0xa1 CPI */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPI}),
 				/* 0xa2 INI */		Program(WAIT(1), IN(bc_, temp8_), STOREL(temp8_, hl_), {MicroOp::INI}),
-				/* 0xa3 OTI */		Program(WAIT(1), FETCHL(temp8_, hl_), OUT(bc_, temp8_), {MicroOp::OUTI}),
+				/* 0xa3 OTI */		Program(WAIT(1), FETCHL(temp8_, hl_), {MicroOp::OUTI}, OUT(bc_, temp8_)),
 				NOP, NOP, NOP, NOP,
 				/* 0xa8 LDD */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDD}),
 				/* 0xa9 CPD */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPD}),
 				/* 0xaa IND */		Program(WAIT(1), IN(bc_, temp8_), STOREL(temp8_, hl_), {MicroOp::IND}),
-				/* 0xab OTD */		Program(WAIT(1), FETCHL(temp8_, hl_), OUT(bc_, temp8_), {MicroOp::OUTD}),
+				/* 0xab OTD */		Program(WAIT(1), FETCHL(temp8_, hl_), {MicroOp::OUTD}, OUT(bc_, temp8_)),
 				NOP, NOP, NOP, NOP,
 				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),
 				/* 0xb1 CPIR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPIR}, WAIT(5)),
 				/* 0xb2 INIR */		Program(WAIT(1), IN(bc_, temp8_), STOREL(temp8_, hl_), {MicroOp::INIR}, WAIT(5)),
-				/* 0xb3 OTIR */		Program(WAIT(1), FETCHL(temp8_, hl_), OUT(bc_, temp8_), {MicroOp::OUTIR}, WAIT(5)),
+				/* 0xb3 OTIR */		Program(WAIT(1), FETCHL(temp8_, hl_), {MicroOp::OUTI}, OUT(bc_, temp8_), {MicroOp::OUT_R}, WAIT(5)),
 				NOP, NOP, NOP, NOP,
 				/* 0xb8 LDDR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDDR}, WAIT(5)),
 				/* 0xb9 CPDR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPDR}, WAIT(5)),
 				/* 0xba INDR */		Program(WAIT(1), IN(bc_, temp8_), STOREL(temp8_, hl_), {MicroOp::INDR}, WAIT(5)),
-				/* 0xbb OTDR */		Program(WAIT(1), FETCHL(temp8_, hl_), OUT(bc_, temp8_), {MicroOp::OUTDR}, WAIT(5)),
+				/* 0xbb OTDR */		Program(WAIT(1), FETCHL(temp8_, hl_), {MicroOp::OUTD}, OUT(bc_, temp8_), {MicroOp::OUT_R}, WAIT(5)),
 				NOP, NOP, NOP, NOP,
 				NOP_ROW(),	/* 0xc0 */
 				NOP_ROW(),	/* 0xd0 */
@@ -1187,11 +1187,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	summation = (summation&7) ^ bc_.bytes.high;	\
 	set_parity(summation);
 
-					case MicroOp::OUTDR:
-					case MicroOp::OUTIR: {
-						OUTxR_STEP(MicroOp::OUTIR);
+					case MicroOp::OUT_R:
 						REPEAT(bc_.bytes.high);
-					} break;
+					break;
 
 					case MicroOp::OUTD:
 					case MicroOp::OUTI: {
