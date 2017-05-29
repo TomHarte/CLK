@@ -167,7 +167,7 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
-//			if name != "66" {
+//			if name != "d3_1" {
 //				continue;
 //			}
 
@@ -230,7 +230,11 @@ class FUSETests: XCTestCase {
 						continue
 					}
 
+					// FUSE counts a memory access as occurring at the last cycle of its bus operation;
+					// it counts a port access as occurring on the second. timeOffset is used to adjust
+					// the FUSE numbers as required.
 					var operation: CSTestMachineZ80BusOperationCaptureOperation = .read
+					var timeOffset: Int32 = 0
 					switch type {
 						case "MR":
 							operation = .read
@@ -240,9 +244,11 @@ class FUSETests: XCTestCase {
 
 						case "PR":
 							operation = .portRead
+							timeOffset = 3
 
 						case "PW":
 							operation = .portWrite
+							timeOffset = 3
 
 						default:
 							print("Unhandled activity type \(type)!")
@@ -251,7 +257,7 @@ class FUSETests: XCTestCase {
 					XCTAssert(
 						capturedBusActivity[capturedBusAcivityIndex].address == address &&
 						capturedBusActivity[capturedBusAcivityIndex].value == value! &&
-						capturedBusActivity[capturedBusAcivityIndex].timeStamp == time &&
+						capturedBusActivity[capturedBusAcivityIndex].timeStamp == (time + timeOffset) &&
 						capturedBusActivity[capturedBusAcivityIndex].operation == operation,
 						"Failed bus operation match \(name) (at time \(time) with address \(address), value was \(value != nil ? value! : 0), tracking index \(capturedBusAcivityIndex) amgonst \(capturedBusActivity))")
 					capturedBusAcivityIndex += 1
