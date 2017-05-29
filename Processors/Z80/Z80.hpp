@@ -61,8 +61,6 @@ enum Flag: uint8_t {
 /*!
 	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
 	between a Z80 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
-
-	@c None is reserved for internal use. It will never be requested from a subclass.
 */
 enum BusOperation {
 	ReadOpcode = 0,
@@ -149,9 +147,7 @@ struct MicroOp {
 		SetInFlags,
 		SetZero,
 
-		IndexedPlaceHolder,
-
-		None
+		IndexedPlaceHolder
 	};
 	Type type;
 	void *source;
@@ -215,7 +211,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		InstructionPage fdcb_page_;
 		InstructionPage ddcb_page_;
 
-#define XX				Program({MicroOp::None})
+#define NOP				{MicroOp::MoveToNextProgram}
 
 #define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
@@ -296,7 +292,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
 				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1))
 
-
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADC16, &s.full, &d.full})
 #define SBC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::SBC16, &s.full, &d.full})
@@ -313,7 +308,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// Count number of micro-ops required.
 			for(int c = 0; c < 256; c++) {
 				size_t length = 0;
-				while(table[c][length].type != MicroOp::MoveToNextProgram && table[c][length].type != MicroOp::None) length++;
+				while(table[c][length].type != MicroOp::MoveToNextProgram) length++;
 				length++;
 				lengths[c] = length;
 				number_of_micro_ops += length;
@@ -355,7 +350,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define OUT_C(r)	Program(OUT(bc_, r))
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 
-#define NOP_ROW()	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX,	XX
+#define NOP_ROW()	NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP
 			InstructionTable ed_program_table = {
 				NOP_ROW(),	/* 0x00 */
 				NOP_ROW(),	/* 0x10 */
@@ -385,37 +380,36 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(hl_, temp16_)),
 				/* 0x6c NEG */			Program({MicroOp::NEG}),		/* 0x6d RETN */			Program(POP(pc_), {MicroOp::RETN}),
 				/* 0x6e IM 0/1 */		Program({MicroOp::IM}),			/* 0x6f RLD */			Program(FETCHL(temp8_, hl_), WAIT(4), {MicroOp::RLD}, STOREL(temp8_, hl_)),
-				/* 0x70 IN (C) */		IN_C(temp8_),
-				/* 0x71 OUT (C), 0 */	Program({MicroOp::SetZero}, OUT(bc_, temp8_)),
+				/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	Program({MicroOp::SetZero}, OUT(bc_, temp8_)),
 				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
 				/* 0x74 NEG */			Program({MicroOp::NEG}),		/* 0x75 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x76 IM 1 */			Program({MicroOp::IM}),			/* 0x77 XX */			XX,
+				/* 0x76 IM 1 */			Program({MicroOp::IM}),			/* 0x77 XX */			NOP,
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(a_),
 				/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
 				/* 0x7c NEG */			Program({MicroOp::NEG}),		/* 0x7d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x7e IM 2 */			Program({MicroOp::IM}),			/* 0x7f XX */			XX,
+				/* 0x7e IM 2 */			Program({MicroOp::IM}),			/* 0x7f XX */			NOP,
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				/* 0xa0 LDI */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDI}),
 				/* 0xa1 CPI */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPI}),
 				/* 0xa2 INI */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INI}),
 				/* 0xa3 OTI */		Program(FETCHL(temp8_, hl_), OUT(bc_, temp8_), WAIT(1), {MicroOp::OUTI}),
-				XX, XX, XX, XX,
+				NOP, NOP, NOP, NOP,
 				/* 0xa8 LDD */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDD}),
 				/* 0xa9 CPD */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPD}),
 				/* 0xaa IND */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::IND}),
 				/* 0xab OTD */		Program(FETCHL(temp8_, hl_), OUT(bc_, temp8_), WAIT(1), {MicroOp::OUTD}),
-				XX, XX, XX, XX,
+				NOP, NOP, NOP, NOP,
 				/* 0xb0 LDIR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDIR}, WAIT(5)),
 				/* 0xb1 CPIR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPIR}, WAIT(5)),
 				/* 0xb2 INIR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INIR}, WAIT(5)),
 				/* 0xb3 OTIR */		Program(FETCHL(temp8_, hl_), OUT(bc_, temp8_), WAIT(1), {MicroOp::OUTIR}, WAIT(5)),
-				XX, XX, XX, XX,
+				NOP, NOP, NOP, NOP,
 				/* 0xb8 LDDR */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDDR}, WAIT(5)),
 				/* 0xb9 CPDR */		Program(FETCHL(temp8_, hl_), WAIT(5), {MicroOp::CPDR}, WAIT(5)),
 				/* 0xba INDR */		Program(IN(bc_, temp8_), STOREL(temp8_, hl_), WAIT(1), {MicroOp::INDR}, WAIT(5)),
 				/* 0xbb OTDR */		Program(FETCHL(temp8_, hl_), OUT(bc_, temp8_), WAIT(1), {MicroOp::OUTDR}, WAIT(5)),
-				XX, XX, XX, XX,
+				NOP, NOP, NOP, NOP,
 				NOP_ROW(),	/* 0xc0 */
 				NOP_ROW(),	/* 0xd0 */
 				NOP_ROW(),	/* 0xe0 */
@@ -465,7 +459,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				Program(WAIT(2), {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
 			InstructionTable base_program_table = {
-				/* 0x00 NOP */			{ {MicroOp::MoveToNextProgram} },	/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
+				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
 				/* 0x02 LD (BC), A */	Program(STOREL(a_, bc_)),
 
 				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
@@ -1397,13 +1391,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::CalculateIndexAddress:
 						temp16_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
 					break;
-
-					case MicroOp::None: {
-						uint8_t page = 0x00;
-						if(current_instruction_page_ == &ed_page_) page = 0xed;
-						if(current_instruction_page_ == &fd_page_) page = 0xfd;
-						printf("Unknown Z80 operation %02x %02x!!!\n", page, operation_);
-					} return;
 
 					case MicroOp::IndexedPlaceHolder:
 						printf("Hit placeholder!!!\n");
