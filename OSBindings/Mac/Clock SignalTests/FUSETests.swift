@@ -59,12 +59,12 @@ fileprivate struct RegisterState {
 
 	init(dictionary: [String: Any]) {
 		// don't test bits 3 and 5 for now
-		af = UInt16(dictionary["af"] as! NSNumber) & ~0x0028
+		af = UInt16(dictionary["af"] as! NSNumber)
 		bc = UInt16(dictionary["bc"] as! NSNumber)
 		de = UInt16(dictionary["de"] as! NSNumber)
 		hl = UInt16(dictionary["hl"] as! NSNumber)
 
-		afDash = UInt16(dictionary["afDash"] as! NSNumber) & ~0x0028
+		afDash = UInt16(dictionary["afDash"] as! NSNumber)
 		bcDash = UInt16(dictionary["bcDash"] as! NSNumber)
 		deDash = UInt16(dictionary["deDash"] as! NSNumber)
 		hlDash = UInt16(dictionary["hlDash"] as! NSNumber)
@@ -89,12 +89,12 @@ fileprivate struct RegisterState {
 
 	init(machine: CSTestMachineZ80) {
 		// don't test bits 3 and 5 for now
-		af = machine.value(for: .AF) & ~0x0028
+		af = machine.value(for: .AF)
 		bc = machine.value(for: .BC)
 		de = machine.value(for: .DE)
 		hl = machine.value(for: .HL)
 
-		afDash = machine.value(for: .afDash) & ~0x0028
+		afDash = machine.value(for: .afDash)
 		bcDash = machine.value(for: .bcDash)
 		deDash = machine.value(for: .deDash)
 		hlDash = machine.value(for: .hlDash)
@@ -121,11 +121,11 @@ fileprivate struct RegisterState {
 extension RegisterState: Equatable {}
 
 fileprivate func ==(lhs: RegisterState, rhs: RegisterState) -> Bool {
-	return	lhs.af == rhs.af &&
+	return	(lhs.af  & ~0x0028) == (rhs.af  & ~0x0028) &&
 			lhs.bc == rhs.bc &&
 			lhs.de == rhs.de &&
 			lhs.hl == rhs.hl &&
-			lhs.afDash == rhs.afDash &&
+			(lhs.afDash  & ~0x0028) == (rhs.afDash & ~0x0028) &&
 			lhs.bcDash == rhs.bcDash &&
 			lhs.deDash == rhs.deDash &&
 			lhs.hlDash == rhs.hlDash &&
