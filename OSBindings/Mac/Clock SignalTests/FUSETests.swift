@@ -175,6 +175,7 @@ class FUSETests: XCTestCase {
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
 
 			let machine = CSTestMachineZ80()
+			machine.captureBusActivity = true
 			initialState.set(onMachine: machine)
 
 			let inputMemoryGroups = itemDictionary["memory"] as? [Any]
@@ -211,7 +212,51 @@ class FUSETests: XCTestCase {
 				}
 			}
 
-			// TODO compare bus operations
+			// Compare bus operations.
+			let capturedBusActivity = machine.busOperationCaptures
+			var capturedBusAcivityIndex = 0;
+
+			let desiredBusActivity = outputDictionary["busActivity"] as? [[String: Any]]
+			if let desiredBusActivity = desiredBusActivity {
+				for action in desiredBusActivity {
+					let type = action["type"] as! String
+					let time = action["time"] as! Int32
+					let address = action["address"] as! UInt16
+					let value = action["value"] as? UInt8
+
+					if type == "MC" || type == "PC" {
+						// Don't do anything with FUSE's contended memory records; it's
+						// presently unclear to me exactly what they're supposed to communicate
+						continue
+					}
+
+					var operation: CSTestMachineZ80BusOperationCaptureOperation = .read
+					switch type {
+						case "MR":
+							operation = .read
+
+						case "MW":
+							operation = .write
+
+						case "PR":
+							operation = .portRead
+
+						case "PW":
+							operation = .portWrite
+
+						default:
+							print("Unhandled activity type \(type)!")
+					}
+
+					XCTAssert(
+						capturedBusActivity[capturedBusAcivityIndex].address == address &&
+						capturedBusActivity[capturedBusAcivityIndex].value == value! &&
+						capturedBusActivity[capturedBusAcivityIndex].timeStamp == time &&
+						capturedBusActivity[capturedBusAcivityIndex].operation == operation,
+						"Failed bus operation match \(name)")
+					capturedBusAcivityIndex += 1
+				}
+			}
 		}
 	}
 }

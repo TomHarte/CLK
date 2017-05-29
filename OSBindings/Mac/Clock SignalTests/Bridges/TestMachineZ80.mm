@@ -79,6 +79,13 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 #pragma mark - Capture class
 
+@interface CSTestMachineZ80BusOperationCapture()
+@property(nonatomic, assign) CSTestMachineZ80BusOperationCaptureOperation operation;
+@property(nonatomic, assign) uint16_t address;
+@property(nonatomic, assign) uint8_t value;
+@property(nonatomic, assign) int timeStamp;
+@end
+
 @implementation CSTestMachineZ80BusOperationCapture
 
 - (NSString *)description {
@@ -106,6 +113,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	if(self = [super init]) {
 		_cppTrapHandler = new MachineTrapHandler(self);
 		_busOperationHandler = new BusOperationHandler(self);
+		_busOperationCaptures = [[NSMutableArray alloc] init];
 
 		_processor.set_trap_handler(_cppTrapHandler);
 		_processor.set_memory_access_delegate(_busOperationHandler);
@@ -178,17 +186,33 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 		_isAtReadOpcode = YES;
 
 	if(self.captureBusActivity) {
-		if(!_busOperationCaptures) _busOperationCaptures = [[NSMutableArray alloc] init];
+		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
+		switch(operation) {
+			case CPU::Z80::BusOperation::Write:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationWrite;
+			break;
 
-		if(operation == CPU::Z80::BusOperation::Read || operation == CPU::Z80::BusOperation::ReadOpcode || operation == CPU::Z80::BusOperation::Write) {
-			CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
-			capture.operation = (operation == CPU::Z80::BusOperation::Write) ? CSTestMachineZ80BusOperationCaptureOperationWrite : CSTestMachineZ80BusOperationCaptureOperationRead;
-			capture.address = address;
-			capture.value = value;
-			capture.timeStamp = timeStamp;
+			case CPU::Z80::BusOperation::Read:
+			case CPU::Z80::BusOperation::ReadOpcode:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
+			break;
 
-			[_busOperationCaptures addObject:capture];
+			case CPU::Z80::BusOperation::Input:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortRead;
+			break;
+
+			case CPU::Z80::BusOperation::Output:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
+			break;
+
+			default:
+				return;
 		}
+		capture.address = address;
+		capture.value = value;
+		capture.timeStamp = timeStamp;
+
+		[_busOperationCaptures addObject:capture];
 	}
 }
 

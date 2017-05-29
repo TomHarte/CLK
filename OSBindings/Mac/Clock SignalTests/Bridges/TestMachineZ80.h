@@ -12,19 +12,21 @@
 @class CSTestMachineZ80;
 
 @protocol CSTestMachineTrapHandler
-- (void)testMachine:(CSTestMachineZ80 *)testMachine didTrapAtAddress:(uint16_t)address;
+- (void)testMachine:(nonnull CSTestMachineZ80 *)testMachine didTrapAtAddress:(uint16_t)address;
 @end
 
 typedef NS_ENUM(NSInteger, CSTestMachineZ80BusOperationCaptureOperation) {
 	CSTestMachineZ80BusOperationCaptureOperationRead,
-	CSTestMachineZ80BusOperationCaptureOperationWrite
+	CSTestMachineZ80BusOperationCaptureOperationWrite,
+	CSTestMachineZ80BusOperationCaptureOperationPortRead,
+	CSTestMachineZ80BusOperationCaptureOperationPortWrite,
 };
 
 @interface CSTestMachineZ80BusOperationCapture: NSObject
-@property(nonatomic, assign) CSTestMachineZ80BusOperationCaptureOperation operation;
-@property(nonatomic, assign) uint16_t address;
-@property(nonatomic, assign) uint8_t value;
-@property(nonatomic, assign) int timeStamp;
+@property(nonatomic, readonly) CSTestMachineZ80BusOperationCaptureOperation operation;
+@property(nonatomic, readonly) uint16_t address;
+@property(nonatomic, readonly) uint8_t value;
+@property(nonatomic, readonly) int timeStamp;
 @end
 
 typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
@@ -46,7 +48,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 
 @interface CSTestMachineZ80 : NSObject
 
-- (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
+- (void)setData:(nonnull NSData *)data atAddress:(uint16_t)startAddress;
 - (void)setValue:(uint8_t)value atAddress:(uint16_t)address;
 - (uint8_t)valueAtAddress:(uint16_t)address;
 
@@ -56,11 +58,11 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg;
 
-@property(nonatomic, weak) id<CSTestMachineTrapHandler> trapHandler;
+@property(nonatomic, weak, nullable) id<CSTestMachineTrapHandler> trapHandler;
 - (void)addTrapAddress:(uint16_t)trapAddress;
 
 @property(nonatomic, assign) BOOL captureBusActivity;
-@property(nonatomic, readonly) NSArray<CSTestMachineZ80BusOperationCapture *> *busOperationCaptures;
+@property(nonatomic, readonly, nonnull) NSArray<CSTestMachineZ80BusOperationCapture *> *busOperationCaptures;
 
 @property(nonatomic, readonly) BOOL isHalted;
 

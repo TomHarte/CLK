@@ -41,7 +41,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 
-	func testMachine(_ testMachine: CSTestMachineZ80!, didTrapAtAddress address: UInt16) {
+	func testMachine(_ testMachine: CSTestMachineZ80, didTrapAtAddress address: UInt16) {
 		switch address {
 			case 0x0005:
 				let cRegister = testMachine.value(for: .C)
@@ -67,7 +67,8 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 						break
 				}
 			case 0x0000:
-				done = true;
+				done = true
+
 			default:
 				break
 		}
