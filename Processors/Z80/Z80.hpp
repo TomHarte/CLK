@@ -1166,6 +1166,37 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #undef INxR_STEP
 
+#define OUTxR_STEP(incr)	\
+	bc_.bytes.high--;	\
+	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	\
+	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = bc_.bytes.high;	\
+	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
+	\
+	int summation = temp8_ + hl_.bytes.low;	\
+	if(summation > 0xff) {	\
+		carry_flag_ = Flag::Carry;	\
+		half_carry_flag_ = Flag::HalfCarry;	\
+	} else {	\
+		carry_flag_ = half_carry_flag_ = 0;	\
+	}	\
+	\
+	summation = (summation&7) ^ bc_.bytes.high;	\
+	set_parity(summation);
+
+					case MicroOp::OUTDR:
+					case MicroOp::OUTIR: {
+						OUTxR_STEP(MicroOp::OUTIR);
+						REPEAT(bc_.bytes.high);
+					} break;
+
+					case MicroOp::OUTD:
+					case MicroOp::OUTI: {
+						OUTxR_STEP(MicroOp::OUTI);
+					} break;
+
+#undef OUTxR_STEP
+
 #pragma mark - Bit Manipulation
 
 					case MicroOp::BIT: {
