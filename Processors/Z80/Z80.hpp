@@ -157,15 +157,11 @@ struct MicroOp {
 };
 
 /*!
-	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
+	@abstact An abstract base class for emulation of a Z80 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
-	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
-	order to provide the bus on which the 6502 operates and @c flush(), which is called upon completion of a continuous run
+	@discussion Subclasses should implement @c perform_machine_cycle in
+	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
-
-	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
-	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
-	jammed state.
 */
 template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	private:
@@ -668,7 +664,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 
-			@discussion Subclasses must implement @c perform_machine_cycle(MachineCycle *cycle) .
+			@discussion Subclasses must implement @c perform_machine_cycle(const MachineCycle &cycle) .
 
 			If it is a read operation then @c value will be seeded with the value 0xff.
 
@@ -699,7 +695,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::BusOperation:
 						if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; return; }
 						number_of_cycles_ -= operation->machine_cycle.length;
-						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
+						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);
 					break;
 					case MicroOp::MoveToNextProgram:
 						move_to_next_program();
@@ -1407,7 +1403,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		void flush() {}
 
-		int perform_machine_cycle(const MachineCycle *cycle) {
+		int perform_machine_cycle(const MachineCycle &cycle) {
 			return 0;
 		}
 
