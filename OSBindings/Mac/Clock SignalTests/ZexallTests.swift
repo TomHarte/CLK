@@ -12,6 +12,7 @@ import Foundation
 class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 
 	fileprivate var done = false
+	fileprivate var output = ""
 
 	func testZexall() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "zexall", ofType: "com") {
@@ -23,6 +24,8 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 
 				// add a RET at the CP/M entry location, and establish it as a trap location
 				machine.setValue(0xc9, atAddress: 0x0005)
+				machine.setValue(0xff, atAddress: 0x0006)
+				machine.setValue(0xff, atAddress: 0x0007)
 				machine.addTrapAddress(0x0005);
 				machine.trapHandler = self
 
@@ -37,6 +40,9 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				while !done {
 					machine.runForNumber(ofCycles: 200)
 				}
+
+				print("Done!")
+				print(output)
 			}
 		}
 	}
@@ -49,7 +55,6 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 					case 9:
 						var address = testMachine.value(for: .DE)
 						var character: Character = " "
-						var output = ""
 						while true {
 							character = Character(UnicodeScalar(testMachine.value(atAddress: address)))
 							if character == "$" {
@@ -58,14 +63,14 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 							output = output + String(character)
 							address = address + 1
 						}
-						print(output)
 					case 5:
-						print(String(describing: UnicodeScalar(testMachine.value(for: .E))))
+						output += String(describing: UnicodeScalar(testMachine.value(for: .E)))
 					case 0:
 						done = true
 					default:
 						break
 				}
+				print(output)
 			case 0x0000:
 				done = true
 
