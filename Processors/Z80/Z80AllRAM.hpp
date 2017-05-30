@@ -22,7 +22,7 @@ class AllRAMProcessor:
 	public:
 		AllRAMProcessor();
 
-		int perform_machine_cycle(const MachineCycle *cycle);
+		int perform_machine_cycle(const MachineCycle &cycle);
 
 		struct MemoryAccessDelegate {
 			virtual void z80_all_ram_processor_did_perform_bus_operation(AllRAMProcessor &processor, BusOperation operation, uint16_t address, uint8_t value, int time_stamp) = 0;
