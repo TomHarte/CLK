@@ -403,6 +403,7 @@
 		4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD69F921D98760000243FE1 /* AcornADF.cpp */; };
 		4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
 		4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE7C9161E3D397100A5496D /* TIA.cpp */; };
+		4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BE9A6B01EDE293000CBCB47 /* zexdoc.com */; };
 		4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA525D1DF33323007E74F2 /* Tape.cpp */; };
 		4BEA52631DF339D7007E74F2 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA52611DF339D7007E74F2 /* Speaker.cpp */; };
 		4BEA52661DF3472B007E74F2 /* Speaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA52641DF3472B007E74F2 /* Speaker.cpp */; };
@@ -944,6 +945,7 @@
 		4BE77A2D1D84ADFB00BC3827 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Commodore/File.hpp; sourceTree = "<group>"; };
 		4BE7C9161E3D397100A5496D /* TIA.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TIA.cpp; sourceTree = "<group>"; };
 		4BE7C9171E3D397100A5496D /* TIA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TIA.hpp; sourceTree = "<group>"; };
+		4BE9A6B01EDE293000CBCB47 /* zexdoc.com */ = {isa = PBXFileReference; lastKnownFileType = file; name = zexdoc.com; path = Zexall/zexdoc.com; sourceTree = "<group>"; };
 		4BEA525D1DF33323007E74F2 /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = Electron/Tape.cpp; sourceTree = "<group>"; };
 		4BEA525F1DF333D8007E74F2 /* Tape.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = Electron/Tape.hpp; sourceTree = "<group>"; };
 		4BEA52601DF3343A007E74F2 /* Interrupts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Interrupts.hpp; path = Electron/Interrupts.hpp; sourceTree = "<group>"; };
@@ -1050,7 +1052,7 @@
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
-				4BFCA1281ECBE7A700AC40C1 /* zexall.com */,
+				4BE9A6B21EDE294200CBCB47 /* Zexall */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
 			);
@@ -2003,6 +2005,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		4BE9A6B21EDE294200CBCB47 /* Zexall */ = {
+			isa = PBXGroup;
+			children = (
+				4BFCA1281ECBE7A700AC40C1 /* zexall.com */,
+				4BE9A6B01EDE293000CBCB47 /* zexdoc.com */,
+			);
+			name = Zexall;
+			sourceTree = "<group>";
+		};
 		4BEAC0801E7E0DF800EE56B2 /* Cartridges */ = {
 			isa = PBXGroup;
 			children = (
@@ -2370,6 +2381,7 @@
 				4BB299781B587D8400A49093 /* ldaix in Resources */,
 				4B44EBF71DC9883B00A7820C /* 6502_functional_test.bin in Resources */,
 				4BB299291B587D8400A49093 /* cia2pb7 in Resources */,
+				4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */,
 				4BB2994A1B587D8400A49093 /* deca in Resources */,
 				4BB299CA1B587D8400A49093 /* sbciy in Resources */,
 				4BB2993D1B587D8400A49093 /* cpxa in Resources */,
