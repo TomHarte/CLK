@@ -175,7 +175,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair ix_, iy_, pc_, sp_;
 		bool iff1_, iff2_;
 		int interrupt_mode_;
-		uint8_t sign_result_, zero_result_, bit5_result_, half_carry_flag_, bit3_result_, parity_overflow_flag_, subtract_flag_, carry_flag_;
+		uint8_t sign_result_;				// the sign flag is set if the value in sign_result_ is negative
+		uint8_t zero_result_;				// the zero flag is set if the value in zero_result_ is zero
+		uint8_t half_carry_result_;			// the half-carry flag is set if bit 4 of half_carry_result_ is set
+		uint8_t bit53_result_;				// the bit 3 and 5 flags are set if the corresponding bits of bit53_result_ are set
+		uint8_t parity_overflow_result_;	// the parity/overflow flag is set if the corresponding bit of parity_overflow_result_ is set
+		uint8_t subtract_flag_;				// contains a copy of the subtract flag in isolation
+		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
 		bool is_halted_;
 
 		int number_of_cycles_;
@@ -189,6 +195,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
 			bool increments_r;
+
+			InstructionPage() : increments_r(true) {}
 		};
 		InstructionPage *current_instruction_page_;
 
@@ -682,11 +690,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				schedule_program_program_counter_++;
 
 #define set_parity(v)	\
-	parity_overflow_flag_ = v^1;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ >> 4;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ << 2;\
-	parity_overflow_flag_ ^= parity_overflow_flag_ >> 1;\
-	parity_overflow_flag_ &= Flag::Parity;
+	parity_overflow_result_ = v^1;\
+	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
+	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
+	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
 
 				switch(operation->type) {
 					case MicroOp::BusOperation:
@@ -721,11 +728,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #pragma mark - Logical
 
 #define set_logical_flags(hf)	\
-	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = a_;	\
+	sign_result_ = zero_result_ = bit53_result_ = a_;	\
 	set_parity(a_);	\
-	half_carry_flag_ = hf;	\
+	half_carry_result_ = hf;	\
 	subtract_flag_ = 0;	\
-	carry_flag_ = 0;
+	carry_result_ = 0;
 
 					case MicroOp::And:
 						a_ &= *(uint8_t *)operation->source;
@@ -747,22 +754,22 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::CPL:
 						a_ ^= 0xff;
 						subtract_flag_ = Flag::Subtract;
-						half_carry_flag_ = Flag::HalfCarry;
-						bit5_result_ = bit3_result_ = a_;
+						half_carry_result_ = Flag::HalfCarry;
+						bit53_result_ = a_;
 					break;
 
 					case MicroOp::CCF:
-						half_carry_flag_ = carry_flag_ << 4;
-						carry_flag_ ^= Flag::Carry;
+						half_carry_result_ = carry_result_ << 4;
+						carry_result_ ^= Flag::Carry;
 						subtract_flag_ = 0;
-						bit5_result_ = bit3_result_ = a_;
+						bit53_result_ = a_;
 					break;
 
 					case MicroOp::SCF:
-						carry_flag_ = Flag::Carry;
-						half_carry_flag_ = 0;
+						carry_result_ = Flag::Carry;
+						half_carry_result_ = 0;
 						subtract_flag_ = 0;
-						bit5_result_ = bit3_result_ = a_;
+						bit53_result_ = a_;
 					break;
 
 #pragma mark - Flow control
@@ -792,11 +799,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 						sign_result_ =			// set sign and zero
 						zero_result_ = (uint8_t)result;
-						bit3_result_ = bit5_result_ = value;		// set the 5 and 3 flags, which come
+						bit53_result_ = value;		// set the 5 and 3 flags, which come
 																	// from the operand atypically
-						carry_flag_ = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
-						parity_overflow_flag_ =	(overflow&0x80) >> 5;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = Flag::Subtract;
 					} break;
 
@@ -811,18 +818,17 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 						a_ = (uint8_t)result;
 
-						sign_result_ = zero_result_ =
-						bit5_result_ = bit3_result_ = (uint8_t)result;
-						carry_flag_ = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
-						parity_overflow_flag_ =	(overflow&0x80) >> 5;
+						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = Flag::Subtract;
 					} break;
 
 					case MicroOp::SBC8: {
 						uint8_t value = *(uint8_t *)operation->source;
-						int result = a_ - value - carry_flag_;
-						int halfResult = (a_&0xf) - (value&0xf) - carry_flag_;
+						int result = a_ - value - (carry_result_ & Flag::Carry);
+						int halfResult = (a_&0xf) - (value&0xf) - (carry_result_ & Flag::Carry);
 
 						// overflow for a subtraction is when the signs were originally
 						// different and the result is different again
@@ -830,11 +836,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 						a_ = (uint8_t)result;
 
-						sign_result_ = zero_result_ =
-						bit5_result_ = bit3_result_ = (uint8_t)result;
-						carry_flag_ = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
-						parity_overflow_flag_ =	(overflow&0x80) >> 5;
+						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = Flag::Subtract;
 					} break;
 
@@ -849,18 +854,17 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 						a_ = (uint8_t)result;
 
-						sign_result_ = zero_result_ =
-						bit3_result_ = bit5_result_ = (uint8_t)result;
-						carry_flag_	 = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow&0x80) >> 5;
+						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = 0;
 					} break;
 
 					case MicroOp::ADC8: {
 						uint8_t value = *(uint8_t *)operation->source;
-						int result = a_ + value + carry_flag_;
-						int halfResult = (a_&0xf) + (value&0xf) + carry_flag_;
+						int result = a_ + value + (carry_result_ & Flag::Carry);
+						int halfResult = (a_&0xf) + (value&0xf) + (carry_result_ & Flag::Carry);
 
 						// overflow for addition is when the signs were originally
 						// the same and the result is different
@@ -868,11 +872,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 						a_ = (uint8_t)result;
 
-						sign_result_ = zero_result_ =
-						bit5_result_ = bit3_result_ = (uint8_t)result;
-						carry_flag_ = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow&0x80) >> 5;
+						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = 0;
 					} break;
 
@@ -882,11 +885,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						int halfResult = -(a_&0xf);
 
 						a_ = (uint8_t)result;
-						bit5_result_ = bit3_result_ = sign_result_ = zero_result_ = a_;
-						parity_overflow_flag_ = overflow ? Flag::Overflow : 0;
+						bit53_result_ = sign_result_ = zero_result_ = a_;
+						parity_overflow_result_ = overflow ? Flag::Overflow : 0;
 						subtract_flag_ = Flag::Subtract;
-						carry_flag_ = (result >> 8) & Flag::Carry;
-						half_carry_flag_ = halfResult & Flag::HalfCarry;
+						carry_result_ = result >> 8;
+						half_carry_result_ = halfResult;
 					} break;
 
 					case MicroOp::Increment8: {
@@ -901,9 +904,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						*(uint8_t *)operation->source = (uint8_t)result;
 
 						// sign, zero and 5 & 3 are set directly from the result
-						bit5_result_ = bit3_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-						half_carry_flag_ = half_result & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow >> 5)&Flag::Overflow;
+						bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
+						half_carry_result_ = half_result;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = 0;
 					} break;
 
@@ -919,9 +922,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						*(uint8_t *)operation->source = (uint8_t)result;
 
 						// sign, zero and 5 & 3 are set directly from the result
-						bit5_result_ = bit3_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-						half_carry_flag_ = half_result & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow >> 5)&Flag::Overflow;
+						bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
+						half_carry_result_ = half_result;
+						parity_overflow_result_ = overflow >> 5;
 						subtract_flag_ = Flag::Subtract;
 					} break;
 
@@ -930,13 +933,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						int highNibble = a_ >> 4;
 						int amountToAdd = 0;
 
-						if(carry_flag_)
+						if(carry_result_ & Flag::Carry)
 						{
-							amountToAdd = (lowNibble > 0x9 || half_carry_flag_) ? 0x66 : 0x60;
+							amountToAdd = (lowNibble > 0x9 || (half_carry_result_ & Flag::HalfCarry)) ? 0x66 : 0x60;
 						}
 						else
 						{
-							if(half_carry_flag_)
+							if(half_carry_result_ & Flag::HalfCarry)
 							{
 								if(lowNibble > 0x9)
 									amountToAdd = (highNibble > 0x8) ? 0x66 : 0x06;
@@ -952,30 +955,30 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							}
 						}
 
-						if(!carry_flag_)
+						if(!(carry_result_ & Flag::Carry))
 						{
 							if(lowNibble > 0x9)
 							{
-								if(highNibble > 0x8) carry_flag_ = Flag::Carry;
+								if(highNibble > 0x8) carry_result_ = Flag::Carry;
 							}
 							else
 							{
-								if(highNibble > 0x9) carry_flag_ = Flag::Carry;
+								if(highNibble > 0x9) carry_result_ = Flag::Carry;
 							}
 						}
 
 						if(subtract_flag_)
 						{
 							a_ -= amountToAdd;
-							half_carry_flag_ = (half_carry_flag_ && lowNibble < 0x6) ? Flag::HalfCarry : 0;
+							half_carry_result_ = ((half_carry_result_ & Flag::HalfCarry) && lowNibble < 0x6) ? Flag::HalfCarry : 0;
 						}
 						else
 						{
 							a_ += amountToAdd;
-							half_carry_flag_ = (lowNibble > 0x9) ? Flag::HalfCarry : 0;
+							half_carry_result_ = (lowNibble > 0x9) ? Flag::HalfCarry : 0;
 						}
 
-						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = a_;
+						sign_result_ = zero_result_ = bit53_result_ = a_;
 
 						set_parity(a_);
 					} break;
@@ -988,9 +991,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						int result = sourceValue + destinationValue;
 						int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
-						bit3_result_ = bit5_result_ = (uint8_t)(result >> 8);
-						carry_flag_ = (result >> 16) & Flag::Carry;
-						half_carry_flag_ = (halfResult >> 8) & Flag::HalfCarry;
+						bit53_result_ = (uint8_t)(result >> 8);
+						carry_result_ = result >> 16;
+						half_carry_result_ = (halfResult >> 8);
 						subtract_flag_ = 0;
 
 						*(uint16_t *)operation->destination = (uint16_t)result;
@@ -999,19 +1002,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::ADC16: {
 						uint16_t sourceValue = *(uint16_t *)operation->source;
 						uint16_t destinationValue = *(uint16_t *)operation->destination;
-						int result = sourceValue + destinationValue + carry_flag_;
-						int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + carry_flag_;
+						int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
+						int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
 
 						int overflow = (result ^ destinationValue) & ~(destinationValue ^ sourceValue);
 
-						bit5_result_	=
-						bit3_result_	=
+						bit53_result_	=
 						sign_result_	= (uint8_t)(result >> 8);
 						zero_result_	= (uint8_t)(result | sign_result_);
 						subtract_flag_	= 0;
-						carry_flag_		= result >> 16;
-						half_carry_flag_ = (halfResult >> 8) & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow & 0x8000) >> 13;
+						carry_result_	= result >> 16;
+						half_carry_result_ = halfResult >> 8;
+						parity_overflow_result_ = overflow >> 13;
 
 						*(uint16_t *)operation->destination = (uint16_t)result;
 					} break;
@@ -1019,36 +1021,35 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::SBC16: {
 						uint16_t sourceValue = *(uint16_t *)operation->source;
 						uint16_t destinationValue = *(uint16_t *)operation->destination;
-						int result = destinationValue - sourceValue - carry_flag_;
-						int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - carry_flag_;
+						int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
+						int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
 						// subtraction, so parity rules are:
 						// signs of operands were different, 
 						// sign of result is different
 						int overflow = (result ^ destinationValue) & (sourceValue ^ destinationValue);
 
-						bit5_result_	=
-						bit3_result_	=
+						bit53_result_	=
 						sign_result_	= (uint8_t)(result >> 8);
 						zero_result_	= (uint8_t)(result | sign_result_);
 						subtract_flag_	= Flag::Subtract;
-						carry_flag_		= (result >> 16) & Flag::Carry;
-						half_carry_flag_ = (halfResult >> 8) & Flag::HalfCarry;
-						parity_overflow_flag_ = (overflow & 0x8000) >> 13;
+						carry_result_	= result >> 16;
+						half_carry_result_ = halfResult >> 8;
+						parity_overflow_result_ = overflow >> 13;
 
 						*(uint16_t *)operation->destination = (uint16_t)result;
 					} break;
 
 #pragma mark - Conditionals
 
-					case MicroOp::TestNZ:	if(!zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestZ:	if(zero_result_)			{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestNC:	if(carry_flag_)				{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestC:	if(!carry_flag_)			{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestPO:	if(parity_overflow_flag_)	{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestPE:	if(!parity_overflow_flag_)	{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestP:	if(sign_result_ & 0x80)		{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestM:	if(!(sign_result_ & 0x80))	{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestNZ:	if(!zero_result_)								{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestZ:	if(zero_result_)								{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ move_to_next_program(); checkSchedule(); }		break;
 
 #pragma mark - Exchange
 
@@ -1091,10 +1092,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	bc_.full--;	\
 	de_.full += (operation->type == incr) ? 1 : -1;	\
 	hl_.full += (operation->type == incr) ? 1 : -1;	\
-	bit3_result_ = bit5_result_ = a_ + temp8_;	\
+	bit53_result_ = a_ + temp8_;	\
 	subtract_flag_ = 0;	\
-	half_carry_flag_ = 0;	\
-	parity_overflow_flag_ = bc_.full ? Flag::Parity : 0;
+	half_carry_result_ = 0;	\
+	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
 
 					case MicroOp::LDDR:
 					case MicroOp::LDIR: {
@@ -1116,10 +1117,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	uint8_t result = a_ - temp8_;	\
 	uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
 	\
-	parity_overflow_flag_ =  bc_.full ? Flag::Parity : 0;	\
-	half_carry_flag_ = halfResult & Flag::HalfCarry;	\
+	parity_overflow_result_ =  bc_.full ? Flag::Parity : 0;	\
+	half_carry_result_ = halfResult;	\
 	subtract_flag_ = Flag::Subtract;	\
-	bit5_result_ = bit3_result_ = (uint8_t)((result&0x8) | ((result&0x2) << 4));	\
+	bit53_result_ = (uint8_t)((result&0x8) | ((result&0x2) << 4));	\
 	sign_result_ = zero_result_ = result;
 
 					case MicroOp::CPDR:
@@ -1139,18 +1140,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	bc_.bytes.high--;	\
 	hl_.full += (operation->type == incr) ? 1 : -1;	\
 	\
-	sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = bc_.bytes.high;	\
+	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
 	\
 	int next_bc = bc_.bytes.low + ((operation->type == incr) ? 1 : -1);	\
 	int summation = temp8_ + (next_bc&0xff);	\
 	\
 	if(summation > 0xff) {	\
-		carry_flag_ = Flag::Carry;	\
-		half_carry_flag_ = Flag::HalfCarry;	\
+		carry_result_ = Flag::Carry;	\
+		half_carry_result_ = Flag::HalfCarry;	\
 	} else {	\
-		carry_flag_ = 0;	\
-		half_carry_flag_ = 0;	\
+		carry_result_ = 0;	\
+		half_carry_result_ = 0;	\
 	}	\
 	\
 	summation = (summation&7) ^ bc_.bytes.high;	\
@@ -1173,15 +1174,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	bc_.bytes.high--;	\
 	hl_.full += (operation->type == incr) ? 1 : -1;	\
 	\
-	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = bc_.bytes.high;	\
+	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
 	\
 	int summation = temp8_ + hl_.bytes.low;	\
 	if(summation > 0xff) {	\
-		carry_flag_ = Flag::Carry;	\
-		half_carry_flag_ = Flag::HalfCarry;	\
+		carry_result_ = Flag::Carry;	\
+		half_carry_result_ = Flag::HalfCarry;	\
 	} else {	\
-		carry_flag_ = half_carry_flag_ = 0;	\
+		carry_result_ = half_carry_result_ = 0;	\
 	}	\
 	\
 	summation = (summation&7) ^ bc_.bytes.high;	\
@@ -1204,10 +1205,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
 
 						sign_result_ = zero_result_ = result;
-						bit3_result_ = bit5_result_ = *(uint8_t *)operation->source;	// This is a divergence between FUSE and The Undocumented Z80 Documented.
-						half_carry_flag_ = Flag::HalfCarry;
+						bit53_result_ = *(uint8_t *)operation->source;	// This is a divergence between FUSE and The Undocumented Z80 Documented.
+						half_carry_result_ = Flag::HalfCarry;
 						subtract_flag_ = 0;
-						parity_overflow_flag_ = result ? 0 : Flag::Parity;
+						parity_overflow_result_ = result ? 0 : Flag::Parity;
 					} break;
 
 					case MicroOp::RES:
@@ -1221,19 +1222,19 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #pragma mark - Rotation and shifting
 
 #define set_rotate_flags()	\
-	bit3_result_ = bit5_result_ = a_;	\
-	carry_flag_ = new_carry;	\
-	subtract_flag_ = half_carry_flag_ = 0;
+	bit53_result_ = a_;	\
+	carry_result_ = new_carry;	\
+	subtract_flag_ = half_carry_result_ = 0;
 
 					case MicroOp::RLA: {
 						uint8_t new_carry = a_ >> 7;
-						a_ = (uint8_t)((a_ << 1) | carry_flag_);
+						a_ = (uint8_t)((a_ << 1) | (carry_result_ & Flag::Carry));
 						set_rotate_flags();
 					} break;
 
 					case MicroOp::RRA: {
 						uint8_t new_carry = a_ & 1;
-						a_ = (uint8_t)((a_ >> 1) | (carry_flag_ << 7));
+						a_ = (uint8_t)((a_ >> 1) | (carry_result_ << 7));
 						set_rotate_flags();
 					} break;
 
@@ -1252,57 +1253,57 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #undef set_rotate_flags
 
 #define set_shift_flags()	\
-	sign_result_ = zero_result_ = bit5_result_ = bit3_result_ = *(uint8_t *)operation->source;	\
+	sign_result_ = zero_result_ = bit53_result_ = *(uint8_t *)operation->source;	\
 	set_parity(sign_result_);	\
-	half_carry_flag_ = 0;	\
+	half_carry_result_ = 0;	\
 	subtract_flag_ = 0;
 
 					case MicroOp::RLC:
-						carry_flag_ = *(uint8_t *)operation->source >> 7;
-						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
+						carry_result_ = *(uint8_t *)operation->source >> 7;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_result_);
 						set_shift_flags();
 					break;
 
 					case MicroOp::RRC:
-						carry_flag_ = *(uint8_t *)operation->source & 1;
-						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
+						carry_result_ = *(uint8_t *)operation->source;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_result_ << 7));
 						set_shift_flags();
 					break;
 
 					case MicroOp::RL: {
 						uint8_t next_carry = *(uint8_t *)operation->source >> 7;
-						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | carry_flag_);
-						carry_flag_ = next_carry;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source << 1) | (carry_result_ & Flag::Carry));
+						carry_result_ = next_carry;
 						set_shift_flags();
 					} break;
 
 					case MicroOp::RR: {
-						uint8_t next_carry = *(uint8_t *)operation->source & 1;
-						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_flag_ << 7));
-						carry_flag_ = next_carry;
+						uint8_t next_carry = *(uint8_t *)operation->source;
+						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (carry_result_ << 7));
+						carry_result_ = next_carry;
 						set_shift_flags();
 					} break;
 
 					case MicroOp::SLA:
-						carry_flag_ = *(uint8_t *)operation->source >> 7;
+						carry_result_ = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1);
 						set_shift_flags();
 					break;
 
 					case MicroOp::SRA:
-						carry_flag_ = *(uint8_t *)operation->source & 1;
+						carry_result_ = *(uint8_t *)operation->source;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1) | (*(uint8_t *)operation->source & 0x80));
 						set_shift_flags();
 					break;
 
 					case MicroOp::SLL:
-						carry_flag_ = *(uint8_t *)operation->source >> 7;
+						carry_result_ = *(uint8_t *)operation->source >> 7;
 						*(uint8_t *)operation->source = (uint8_t)(*(uint8_t *)operation->source << 1) | 1;
 						set_shift_flags();
 					break;
 
 					case MicroOp::SRL:
-						carry_flag_ = *(uint8_t *)operation->source & 1;
+						carry_result_ = *(uint8_t *)operation->source;
 						*(uint8_t *)operation->source = (uint8_t)((*(uint8_t *)operation->source >> 1));
 						set_shift_flags();
 					break;
@@ -1311,9 +1312,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define set_decimal_rotate_flags()	\
 	subtract_flag_ = 0;	\
-	half_carry_flag_ = 0;	\
+	half_carry_result_ = 0;	\
 	set_parity(a_);	\
-	bit3_result_ = bit5_result_ = zero_result_ = sign_result_ = a_;
+	bit53_result_ = zero_result_ = sign_result_ = a_;
 
 					case MicroOp::RRD: {
 						uint8_t low_nibble = a_ & 0xf;
@@ -1354,15 +1355,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #pragma mark - Input
 
 					case MicroOp::SetInFlags:
-						subtract_flag_ = half_carry_flag_ = 0;
-						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = *(uint8_t *)operation->source;
+						subtract_flag_ = half_carry_result_ = 0;
+						sign_result_ = zero_result_ = bit53_result_ = *(uint8_t *)operation->source;
 						set_parity(sign_result_);
 					break;
 
 					case MicroOp::SetAFlags:
-						subtract_flag_ = half_carry_flag_ = 0;
-						parity_overflow_flag_ = iff2_ ? Flag::Parity : 0;
-						sign_result_ = zero_result_ = bit3_result_ = bit5_result_ = a_;
+						subtract_flag_ = half_carry_result_ = 0;
+						parity_overflow_result_ = iff2_ ? Flag::Parity : 0;
+						sign_result_ = zero_result_ = bit53_result_ = a_;
 					break;
 
 					case MicroOp::SetZero:
@@ -1421,12 +1422,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			uint8_t result =
 				(sign_result_ & Flag::Sign) |
 				(zero_result_ ? 0 : Flag::Zero) |
-				(bit5_result_ & Flag::Bit5) |
-				half_carry_flag_ |
-				(bit3_result_ & Flag::Bit3) |
-				parity_overflow_flag_ |
+				(bit53_result_ & (Flag::Bit5 | Flag::Bit3)) |
+				(half_carry_result_ & Flag::HalfCarry) |
+				(parity_overflow_result_ & Flag::Parity) |
 				subtract_flag_ |
-				carry_flag_;
+				(carry_result_ & Flag::Carry);
 			return result;
 		}
 
@@ -1440,12 +1440,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void set_flags(uint8_t flags) {
 			sign_result_			= flags;
 			zero_result_			= (flags & Flag::Zero) ^ Flag::Zero;
-			bit5_result_			= flags;
-			half_carry_flag_		= flags & Flag::HalfCarry;
-			bit3_result_			= flags;
-			parity_overflow_flag_	= flags & Flag::Parity;
+			bit53_result_			= flags;
+			half_carry_result_		= flags;
+			parity_overflow_result_	= flags;
 			subtract_flag_			= flags & Flag::Subtract;
-			carry_flag_				= flags & Flag::Carry;
+			carry_result_			= flags;
 		}
 
 		/*!
