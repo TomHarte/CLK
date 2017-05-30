@@ -558,15 +558,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// without touching the class storage (i.e. it explicitly says they need be completely up
 			// to date in this stack frame only); which saves some complicated addressing
 			unsigned int scheduleProgramsReadPointer = schedule_programs_read_pointer_;
-			unsigned int scheduleProgramProgramCounter = schedule_program_program_counter_;
 			RegisterPair nextAddress = next_address_;
 			BusOperation nextBusOperation = next_bus_operation_;
 			uint16_t busAddress = bus_address_;
 			uint8_t *busValue = bus_value_;
 
 #define checkSchedule(op) \
-	if(!scheduled_programs_[scheduleProgramsReadPointer]) {\
-		scheduleProgramsReadPointer = schedule_programs_write_pointer_ = scheduleProgramProgramCounter = 0;\
+	if(!scheduled_program_counter_) {\
+		scheduleProgramsReadPointer = schedule_programs_write_pointer_ = 0;\
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
@@ -607,8 +606,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					while(1) {
 
-						const MicroOp cycle = program[scheduleProgramProgramCounter];
-						scheduleProgramProgramCounter++;
+						const MicroOp cycle = *scheduled_program_counter_;
+						scheduled_program_counter_++;
 
 #define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val;				val = 0xff
 #define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val;				val	= 0xff
@@ -649,7 +648,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							case OperationMoveToNextProgram:
 								scheduled_programs_[scheduleProgramsReadPointer] = NULL;
 								scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
-								scheduleProgramProgramCounter = 0;
+								scheduled_program_counter_ = scheduled_programs_[scheduleProgramsReadPointer];
 								checkSchedule();
 								program = scheduled_programs_[scheduleProgramsReadPointer];
 							continue;
@@ -1083,7 +1082,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			cycles_left_to_run_ = number_of_cycles;
 			schedule_programs_read_pointer_ = scheduleProgramsReadPointer;
-			schedule_program_program_counter_ = scheduleProgramProgramCounter;
 			next_address_ = nextAddress;
 			next_bus_operation_ = nextBusOperation;
 			bus_address_ = busAddress;

@@ -17,7 +17,7 @@ template <class T> class MicroOpScheduler {
 			scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
 			schedule_programs_write_pointer_(0),
 			schedule_programs_read_pointer_(0),
-			schedule_program_program_counter_(0) {}
+			scheduled_program_counter_(nullptr) {}
 
 	protected:
 		/*
@@ -28,7 +28,8 @@ template <class T> class MicroOpScheduler {
 			queue to take that step.
 		*/
 		const T *scheduled_programs_[4];
-		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_, schedule_program_program_counter_;
+		const T *scheduled_program_counter_;
+		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_;
 
 		/*!
 			Schedules a new program, adding it to the end of the queue. Programs should be
@@ -39,13 +40,14 @@ template <class T> class MicroOpScheduler {
 		*/
 		inline void schedule_program(const T *program) {
 			scheduled_programs_[schedule_programs_write_pointer_] = program;
+			if(schedule_programs_write_pointer_ == schedule_programs_read_pointer_) scheduled_program_counter_ = program;
 			schedule_programs_write_pointer_ = (schedule_programs_write_pointer_+1)&3;
 		}
 
 		inline void move_to_next_program() {
-			scheduled_programs_[schedule_programs_read_pointer_] = NULL;
+			scheduled_programs_[schedule_programs_read_pointer_] = nullptr;
 			schedule_programs_read_pointer_ = (schedule_programs_read_pointer_+1)&3;
-			schedule_program_program_counter_ = 0;
+			scheduled_program_counter_ = scheduled_programs_[schedule_programs_read_pointer_];
 		}
 };
 

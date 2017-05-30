@@ -686,8 +686,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			checkSchedule();
 
 			while(1) {
-				const MicroOp *operation = &scheduled_programs_[schedule_programs_read_pointer_][schedule_program_program_counter_];
-				schedule_program_program_counter_++;
+				const MicroOp *operation = scheduled_program_counter_;
+				scheduled_program_counter_++;
 
 #define set_parity(v)	\
 	parity_overflow_result_ = v^1;\
@@ -697,7 +697,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				switch(operation->type) {
 					case MicroOp::BusOperation:
-						if(number_of_cycles_ < operation->machine_cycle.length) { schedule_program_program_counter_--; return; }
+						if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; return; }
 						number_of_cycles_ -= operation->machine_cycle.length;
 						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(&operation->machine_cycle);
 					break;
