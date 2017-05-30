@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <vector>
 
 #include "../MicroOpScheduler.hpp"
 #include "../RegisterSizes.hpp"
@@ -184,21 +185,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t temp8_;
 
 		struct InstructionPage {
-			MicroOp *instructions[256];
-			MicroOp *all_operations;
-			MicroOp *fetch_decode_execute;
+			std::vector<MicroOp *> instructions;
+			std::vector<MicroOp> all_operations;
+			std::vector<MicroOp> fetch_decode_execute;
 			bool increments_r;
-
-			InstructionPage() : all_operations(nullptr), increments_r(true), fetch_decode_execute(nullptr) {
-				for(int c = 0; c < 256; c++) {
-					instructions[c] = nullptr;
-				}
-			}
-
-			~InstructionPage() {
-				delete[] all_operations;
-				delete[] fetch_decode_execute;
-			}
 		};
 		InstructionPage *current_instruction_page_;
 
@@ -315,7 +305,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			}
 
 			// Allocate a landing area.
-			target.all_operations = new MicroOp[number_of_micro_ops];
+			target.all_operations.resize(number_of_micro_ops);
+			target.instructions.resize(256, nullptr);
 
 			// Copy in all programs and set pointers.
 			size_t destination = 0;
@@ -627,7 +618,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
-			target.fetch_decode_execute = new MicroOp[3];
+			target.fetch_decode_execute.resize(3);
 			target.fetch_decode_execute[0] = fetch_decode_execute[0];
 			target.fetch_decode_execute[1] = fetch_decode_execute[1];
 			target.fetch_decode_execute[2] = fetch_decode_execute[2];
@@ -680,7 +671,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define checkSchedule() \
 	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
 		current_instruction_page_ = &base_page_;\
-		schedule_program(base_page_.fetch_decode_execute);\
+		schedule_program(base_page_.fetch_decode_execute.data());\
 	}
 
 			number_of_cycles_ += number_of_cycles;
@@ -1392,7 +1383,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::SetInstructionPage:
 						current_instruction_page_ = (InstructionPage *)operation->source;
-						schedule_program(current_instruction_page_->fetch_decode_execute);
+						schedule_program(current_instruction_page_->fetch_decode_execute.data());
 					break;
 
 					case MicroOp::CalculateIndexAddress:
