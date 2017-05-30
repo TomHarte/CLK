@@ -121,9 +121,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 		_cppTrapHandler = new MachineTrapHandler(self);
 		_busOperationHandler = new BusOperationHandler(self);
 		_busOperationCaptures = [[NSMutableArray alloc] init];
-
-		_processor.set_trap_handler(_cppTrapHandler);
-		_processor.set_memory_access_delegate(_busOperationHandler);
 	}
 	return self;
 }
@@ -162,6 +159,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (void)addTrapAddress:(uint16_t)trapAddress {
+	_processor.set_trap_handler(_cppTrapHandler);
 	_processor.add_trap_address(trapAddress);
 }
 
@@ -185,6 +183,11 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 #pragma mark - Bus operation accumulation
+
+- (void)setCaptureBusActivity:(BOOL)captureBusActivity {
+	_captureBusActivity = captureBusActivity;
+	_processor.set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
+}
 
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
 	int length = timeStamp - _lastOpcodeTime;
