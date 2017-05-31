@@ -178,7 +178,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t parity_overflow_result_;	// the parity/overflow flag is set if the corresponding bit of parity_overflow_result_ is set
 		uint8_t subtract_flag_;				// contains a copy of the subtract flag in isolation
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
-		bool is_halted_;
+		uint8_t halt_mask_;
 
 		int number_of_cycles_;
 
@@ -634,7 +634,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 	public:
 		Processor() : MicroOpScheduler(),
-			is_halted_(false),
+			halt_mask_(0xff),
 			sp_(0xffff),
 			pc_(0x0000),
 			a_(0xff),
@@ -704,7 +704,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::DecodeOperation:
 						r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
 						pc_.full++;
-						decode_operation(is_halted_ ? 0x00 : operation_);
+						decode_operation(operation_ & halt_mask_);
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
@@ -1397,7 +1397,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 
 					case MicroOp::HALT:
-						is_halted_ = true;
+						halt_mask_ = 0x00;
 					break;
 
 #pragma mark - Internal bookkeeping
@@ -1586,7 +1586,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			Gets the value of the HALT output line.
 		*/
 		bool get_halt_line() {
-			return is_halted_;
+			return halt_mask_ == 0x00;
 		}
 };
 
