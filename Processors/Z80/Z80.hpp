@@ -1084,30 +1084,37 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		checkSchedule();	\
 	}
 
-#define LDxR_STEP(incr)	\
+#define LDxR_STEP(dir)	\
 	bc_.full--;	\
-	de_.full += (operation->type == incr) ? 1 : -1;	\
-	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	de_.full += dir;	\
+	hl_.full += dir;	\
 	bit53_result_ = a_ + temp8_;	\
 	subtract_flag_ = 0;	\
 	half_carry_result_ = 0;	\
 	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
 
-					case MicroOp::LDDR:
-					case MicroOp::LDIR: {
-						LDxR_STEP(MicroOp::LDIR);
+					case MicroOp::LDDR: {
+						LDxR_STEP(-1);
 						REPEAT(bc_.full);
 					} break;
 
-					case MicroOp::LDD:
+					case MicroOp::LDIR: {
+						LDxR_STEP(1);
+						REPEAT(bc_.full);
+					} break;
+
+					case MicroOp::LDD: {
+						LDxR_STEP(-1);
+					} break;
+
 					case MicroOp::LDI: {
-						LDxR_STEP(MicroOp::LDI);
+						LDxR_STEP(1);
 					} break;
 
 #undef LDxR_STEP
 
-#define CPxR_STEP(incr)	\
-	hl_.full += (operation->type == incr) ? 1 : -1;	\
+#define CPxR_STEP(dir)	\
+	hl_.full += dir;	\
 	bc_.full--;	\
 	\
 	uint8_t result = a_ - temp8_;	\
@@ -1119,27 +1126,34 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	bit53_result_ = (uint8_t)((result&0x8) | ((result&0x2) << 4));	\
 	sign_result_ = zero_result_ = result;
 
-					case MicroOp::CPDR:
-					case MicroOp::CPIR: {
-						CPxR_STEP(MicroOp::CPIR);
+					case MicroOp::CPDR: {
+						CPxR_STEP(-1);
 						REPEAT(bc_.full && sign_result_);
 					} break;
 
-					case MicroOp::CPD:
+					case MicroOp::CPIR: {
+						CPxR_STEP(1);
+						REPEAT(bc_.full && sign_result_);
+					} break;
+
+					case MicroOp::CPD: {
+						CPxR_STEP(-1);
+					} break;
+
 					case MicroOp::CPI: {
-						CPxR_STEP(MicroOp::CPI);
+						CPxR_STEP(1);
 					} break;
 
 #undef CPxR_STEP
 
-#define INxR_STEP(incr)	\
+#define INxR_STEP(dir)	\
 	bc_.bytes.high--;	\
-	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	hl_.full += dir;	\
 	\
 	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
 	\
-	int next_bc = bc_.bytes.low + ((operation->type == incr) ? 1 : -1);	\
+	int next_bc = bc_.bytes.low + dir;	\
 	int summation = temp8_ + (next_bc&0xff);	\
 	\
 	if(summation > 0xff) {	\
@@ -1153,22 +1167,29 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	summation = (summation&7) ^ bc_.bytes.high;	\
 	set_parity(summation);
 
-					case MicroOp::INDR:
-					case MicroOp::INIR: {
-						INxR_STEP(MicroOp::INIR);
+					case MicroOp::INDR: {
+						INxR_STEP(-1);
 						REPEAT(bc_.bytes.high);
 					} break;
 
-					case MicroOp::IND:
+					case MicroOp::INIR: {
+						INxR_STEP(1);
+						REPEAT(bc_.bytes.high);
+					} break;
+
+					case MicroOp::IND: {
+						INxR_STEP(-1);
+					} break;
+
 					case MicroOp::INI: {
-						INxR_STEP(MicroOp::INI);
+						INxR_STEP(1);
 					} break;
 
 #undef INxR_STEP
 
-#define OUTxR_STEP(incr)	\
+#define OUTxR_STEP(dir)	\
 	bc_.bytes.high--;	\
-	hl_.full += (operation->type == incr) ? 1 : -1;	\
+	hl_.full += dir;	\
 	\
 	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
@@ -1188,9 +1209,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						REPEAT(bc_.bytes.high);
 					break;
 
-					case MicroOp::OUTD:
+					case MicroOp::OUTD: {
+						OUTxR_STEP(-1);
+					} break;
+
 					case MicroOp::OUTI: {
-						OUTxR_STEP(MicroOp::OUTI);
+						OUTxR_STEP(1);
 					} break;
 
 #undef OUTxR_STEP
