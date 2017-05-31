@@ -167,9 +167,9 @@ class FUSETests: XCTestCase {
 
 			let name = itemDictionary["name"] as! String
 
-//			if name != "d3_1" {
-//				continue;
-//			}
+			if name != "02" {
+				continue;
+			}
 
 			let initialState = RegisterState(dictionary: itemDictionary["state"] as! [String: Any])
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])

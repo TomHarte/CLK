@@ -16,23 +16,26 @@ namespace CPU {
 namespace Z80 {
 
 class AllRAMProcessor:
-	public ::CPU::AllRAMProcessor,
-	public Processor<AllRAMProcessor> {
+	public ::CPU::AllRAMProcessor {
 
 	public:
-		AllRAMProcessor();
-
-		int perform_machine_cycle(const MachineCycle &cycle);
+		static AllRAMProcessor *Processor();
 
 		struct MemoryAccessDelegate {
 			virtual void z80_all_ram_processor_did_perform_bus_operation(AllRAMProcessor &processor, BusOperation operation, uint16_t address, uint8_t value, int time_stamp) = 0;
 		};
-		void set_memory_access_delegate(MemoryAccessDelegate *delegate) {
+		inline void set_memory_access_delegate(MemoryAccessDelegate *delegate) {
 			delegate_ = delegate;
 		}
 
-	private:
+		virtual void run_for_cycles(int cycles) = 0;
+		virtual uint16_t get_value_of_register(Register r) = 0;
+		virtual void set_value_of_register(Register r, uint16_t value) = 0;
+		virtual bool get_halt_line() = 0;
+
+	protected:
 		MemoryAccessDelegate *delegate_;
+		AllRAMProcessor() : ::CPU::AllRAMProcessor(65536), delegate_(nullptr) {}
 };
 
 }

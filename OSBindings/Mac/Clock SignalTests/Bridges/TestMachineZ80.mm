@@ -104,7 +104,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 #pragma mark - Test class
 
 @implementation CSTestMachineZ80 {
-	CPU::Z80::AllRAMProcessor _processor;
+	CPU::Z80::AllRAMProcessor *_processor;
 	MachineTrapHandler *_cppTrapHandler;
 	BusOperationHandler *_busOperationHandler;
 
@@ -118,6 +118,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 - (instancetype)init {
 	if(self = [super init]) {
+		_processor = CPU::Z80::AllRAMProcessor::Processor();
 		_cppTrapHandler = new MachineTrapHandler(self);
 		_busOperationHandler = new BusOperationHandler(self);
 		_busOperationCaptures = [[NSMutableArray alloc] init];
@@ -133,34 +134,34 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 #pragma mark - Accessors
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress {
-	_processor.set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
+	_processor->set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
-	_processor.run_for_cycles(cycles);
+	_processor->run_for_cycles(cycles);
 }
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {
-	_processor.set_value_of_register(registerForRegister(reg), value);
+	_processor->set_value_of_register(registerForRegister(reg), value);
 }
 
 - (void)setValue:(uint8_t)value atAddress:(uint16_t)address {
-	_processor.set_data_at_address(address, 1, &value);
+	_processor->set_data_at_address(address, 1, &value);
 }
 
 - (uint8_t)valueAtAddress:(uint16_t)address {
 	uint8_t value;
-	_processor.get_data_at_address(address, 1, &value);
+	_processor->get_data_at_address(address, 1, &value);
 	return value;
 }
 
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg {
-	return _processor.get_value_of_register(registerForRegister(reg));
+	return _processor->get_value_of_register(registerForRegister(reg));
 }
 
 - (void)addTrapAddress:(uint16_t)trapAddress {
-	_processor.set_trap_handler(_cppTrapHandler);
-	_processor.add_trap_address(trapAddress);
+	_processor->set_trap_handler(_cppTrapHandler);
+	_processor->add_trap_address(trapAddress);
 }
 
 - (void)testMachineDidTrapAtAddress:(uint16_t)address {
@@ -168,7 +169,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (BOOL)isHalted {
-	return _processor.get_halt_line() ? YES : NO;
+	return _processor->get_halt_line() ? YES : NO;
 }
 
 #pragma mark - Z80-specific Runner
@@ -178,7 +179,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_timeSeekingReadOpcode = 0;
 	while(!_isAtReadOpcode) {
 		_timeSeekingReadOpcode++;
-		_processor.run_for_cycles(1);
+		_processor->run_for_cycles(1);
 	}
 }
 
@@ -186,7 +187,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 - (void)setCaptureBusActivity:(BOOL)captureBusActivity {
 	_captureBusActivity = captureBusActivity;
-	_processor.set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
+	_processor->set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
 }
 
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
