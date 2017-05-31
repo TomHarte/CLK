@@ -155,6 +155,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 					default:
 						break
 				}
+				output += textToAppend
 				print(textToAppend)
 
 			case 0x0000:
