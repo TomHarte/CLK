@@ -190,9 +190,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			std::vector<MicroOp *> instructions;
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
-			bool increments_r;
+			uint8_t r_step_;
 
-			InstructionPage() : increments_r(true) {}
+			InstructionPage() : r_step_(1) {}
 		};
 		InstructionPage *current_instruction_page_;
 
@@ -648,8 +648,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 			assemble_ed_page(ed_page_);
 
-			fdcb_page_.increments_r = false;
-			ddcb_page_.increments_r = false;
+			fdcb_page_.r_step_ = 0;
+			ddcb_page_.r_step_ = 0;
 
 			assemble_fetch_decode_execute(base_page_, 4);
 			assemble_fetch_decode_execute(dd_page_, 4);
@@ -702,7 +702,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						checkSchedule();
 					break;
 					case MicroOp::DecodeOperation:
-						if(current_instruction_page_->increments_r) r_ = (r_ & 0x80) | ((r_ + 1) & 0x7f);
+						r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
 						pc_.full++;
 						decode_operation(is_halted_ ? 0x00 : operation_);
 					break;
