@@ -640,7 +640,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			a_(0xff),
 			interrupt_mode_(0),
 			iff1_(false),
-			iff2_(false) {
+			iff2_(false),
+			number_of_cycles_(0) {
 			set_flags(0xff);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
