@@ -564,6 +564,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule(op) \
 	if(!scheduled_program_counter_) {\
+		schedule_programs_read_pointer_ = schedule_programs_write_pointer_ = 0;	\
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
@@ -707,7 +708,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 								if(jam_handler_) {
 									jam_handler_->processor_did_jam(this, pc_.full - 1);
-									checkSchedule(is_jammed_ = false; scheduled_program_counter_ = scheduled_programs_[schedule_programs_read_pointer_]);
+									checkSchedule(is_jammed_ = false;);
 								}
 							} continue;
 
@@ -1145,6 +1146,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			if(is_jammed_) {
 				scheduled_programs_[0] = scheduled_programs_[1] = scheduled_programs_[2] = scheduled_programs_[3] = nullptr;
+				scheduled_program_counter_ = nullptr;
 			}
 		}
 
