@@ -557,7 +557,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// These plus program below act to give the compiler permission to update these values
 			// without touching the class storage (i.e. it explicitly says they need be completely up
 			// to date in this stack frame only); which saves some complicated addressing
-			unsigned int scheduleProgramsReadPointer = schedule_programs_read_pointer_;
 			RegisterPair nextAddress = next_address_;
 			BusOperation nextBusOperation = next_bus_operation_;
 			uint16_t busAddress = bus_address_;
@@ -565,7 +564,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule(op) \
 	if(!scheduled_program_counter_) {\
-		scheduleProgramsReadPointer = schedule_programs_write_pointer_ = 0;\
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
@@ -591,7 +589,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			checkSchedule();
 			number_of_cycles += cycles_left_to_run_;
-			const MicroOp *program = scheduled_programs_[scheduleProgramsReadPointer];
 
 			while(number_of_cycles > 0) {
 
@@ -646,11 +643,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							continue;
 
 							case OperationMoveToNextProgram:
-								scheduled_programs_[scheduleProgramsReadPointer] = NULL;
-								scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
-								scheduled_program_counter_ = scheduled_programs_[scheduleProgramsReadPointer];
+								move_to_next_program();
 								checkSchedule();
-								program = scheduled_programs_[scheduleProgramsReadPointer];
 							continue;
 
 #define push(v) {\
@@ -713,7 +707,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 								if(jam_handler_) {
 									jam_handler_->processor_did_jam(this, pc_.full - 1);
-									checkSchedule(is_jammed_ = false; program = scheduled_programs_[scheduleProgramsReadPointer]);
+									checkSchedule(is_jammed_ = false; scheduled_program_counter_ = scheduled_programs_[schedule_programs_read_pointer_]);
 								}
 							} continue;
 
@@ -1081,7 +1075,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			}
 
 			cycles_left_to_run_ = number_of_cycles;
-			schedule_programs_read_pointer_ = scheduleProgramsReadPointer;
 			next_address_ = nextAddress;
 			next_bus_operation_ = nextBusOperation;
 			bus_address_ = busAddress;
