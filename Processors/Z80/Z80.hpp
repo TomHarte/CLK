@@ -628,10 +628,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			target.fetch_decode_execute[2] = fetch_decode_execute[2];
 		}
 
-		void decode_operation(uint8_t operation) {
-			schedule_program(current_instruction_page_->instructions[operation]);
-		}
-
 	public:
 		Processor() : MicroOpScheduler(),
 			halt_mask_(0xff),
@@ -705,7 +701,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::DecodeOperation:
 						r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
 						pc_.full++;
-						decode_operation(operation_ & halt_mask_);
+						schedule_program(current_instruction_page_->instructions[operation_ & halt_mask_]);
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
