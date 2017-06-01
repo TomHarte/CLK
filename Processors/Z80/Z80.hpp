@@ -779,96 +779,80 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - 8-bit arithmetic
 
+#define set_arithmetic_flags(sub, b53)	\
+	sign_result_ = zero_result_ = (uint8_t)result;	\
+	carry_result_ = result >> 8;	\
+	half_carry_result_ = half_result;	\
+	parity_overflow_result_ = overflow >> 5;	\
+	subtract_flag_ = sub;	\
+	bit53_result_ = (uint8_t)b53;
+
 					case MicroOp::CP8: {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = a_ - value;
-						int halfResult = (a_&0xf) - (value&0xf);
+						int half_result = (a_&0xf) - (value&0xf);
 
 						// overflow for a subtraction is when the signs were originally
 						// different and the result is different again
 						int overflow = (value^a_) & (result^a_);
 
-						sign_result_ =			// set sign and zero
-						zero_result_ = (uint8_t)result;
-						bit53_result_ = value;		// set the 5 and 3 flags, which come
-																	// from the operand atypically
-						carry_result_ = result >> 8;
-						half_carry_result_ = halfResult;
-						parity_overflow_result_ = overflow >> 5;
-						subtract_flag_ = Flag::Subtract;
+						// the 5 and 3 flags come from the operand, atypically
+						set_arithmetic_flags(Flag::Subtract, value);
 					} break;
 
 					case MicroOp::SUB8: {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = a_ - value;
-						int halfResult = (a_&0xf) - (value&0xf);
+						int half_result = (a_&0xf) - (value&0xf);
 
 						// overflow for a subtraction is when the signs were originally
 						// different and the result is different again
 						int overflow = (value^a_) & (result^a_);
 
 						a_ = (uint8_t)result;
-
-						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
-						carry_result_ = result >> 8;
-						half_carry_result_ = halfResult;
-						parity_overflow_result_ = overflow >> 5;
-						subtract_flag_ = Flag::Subtract;
+						set_arithmetic_flags(Flag::Subtract, result);
 					} break;
 
 					case MicroOp::SBC8: {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = a_ - value - (carry_result_ & Flag::Carry);
-						int halfResult = (a_&0xf) - (value&0xf) - (carry_result_ & Flag::Carry);
+						int half_result = (a_&0xf) - (value&0xf) - (carry_result_ & Flag::Carry);
 
 						// overflow for a subtraction is when the signs were originally
 						// different and the result is different again
 						int overflow = (value^a_) & (result^a_);
 
 						a_ = (uint8_t)result;
-
-						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
-						carry_result_ = result >> 8;
-						half_carry_result_ = halfResult;
-						parity_overflow_result_ = overflow >> 5;
-						subtract_flag_ = Flag::Subtract;
+						set_arithmetic_flags(Flag::Subtract, result);
 					} break;
 
 					case MicroOp::ADD8: {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = a_ + value;
-						int halfResult = (a_&0xf) + (value&0xf);
+						int half_result = (a_&0xf) + (value&0xf);
 
 						// overflow for addition is when the signs were originally
 						// the same and the result is different
 						int overflow = ~(value^a_) & (result^a_);
 
 						a_ = (uint8_t)result;
-
-						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
-						carry_result_ = result >> 8;
-						half_carry_result_ = halfResult;
-						parity_overflow_result_ = overflow >> 5;
-						subtract_flag_ = 0;
+						set_arithmetic_flags(0, result);
 					} break;
 
 					case MicroOp::ADC8: {
 						uint8_t value = *(uint8_t *)operation->source;
 						int result = a_ + value + (carry_result_ & Flag::Carry);
-						int halfResult = (a_&0xf) + (value&0xf) + (carry_result_ & Flag::Carry);
+						int half_result = (a_&0xf) + (value&0xf) + (carry_result_ & Flag::Carry);
 
 						// overflow for addition is when the signs were originally
 						// the same and the result is different
 						int overflow = ~(value^a_) & (result^a_);
 
 						a_ = (uint8_t)result;
-
-						sign_result_ = zero_result_ = bit53_result_ = (uint8_t)result;
-						carry_result_ = result >> 8;
-						half_carry_result_ = halfResult;
-						parity_overflow_result_ = overflow >> 5;
-						subtract_flag_ = 0;
+						set_arithmetic_flags(0, result);
 					} break;
+
+#undef set_arithmetic_flags
 
 					case MicroOp::NEG: {
 						int overflow = (a_ == 0x80);
@@ -1581,6 +1565,43 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		bool get_halt_line() {
 			return halt_mask_ == 0x00;
+		}
+
+		/*!
+			Sets the logical value of the interrupt line at @c time_offset cycles from now.
+		*/
+		void set_interrupt_line(bool value, int time_offset) {
+		}
+
+		/*!
+			Sets the logical value of the non-maskable interrupt line at @c time_offset cycles from now.
+		*/
+		void set_non_maskable_interrupt_line(bool value, int time_offset) {
+		}
+
+		/*!
+			Sets the logical value of the bus request line at @c time_offset cycles from now.
+		*/
+		void set_bus_request_line(bool value, int time_offset) {
+		}
+
+		/*!
+			For receivers of perform_machine_cycle only. Temporarily rejects the current machine
+			cycle, causing time to be rewinded to its beginning.
+
+			Behaviour will be to cause the Z80 to repeat this machine cycle, having adjusted total
+			running time appropriately. This method is intended for use if a subclass receives
+			perform_machine_cycle, indicating that the cycle should be completed, and discovers
+			that it should have signalled IRQ, NMI or BUSREQ during the cycle. In that case it
+			can rewind time and post the signal with a proper time offset.
+		*/
+		void reject_machine_cycle() {
+		}
+
+		/*!
+			Returns the bus cycle that the Z80 is currently in the process of performing.
+		*/
+		const MachineCycle &get_current_bus_cycle(int &cycles_since_start) {
 		}
 };
 
