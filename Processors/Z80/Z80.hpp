@@ -575,7 +575,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				/* 0xc6 ADD A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADD8, &temp8_}),
 				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		Program(POP(pc_)),
-				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Program({MicroOp::SetInstructionPage, &cb_page}, FINDEX()),
+				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Program(FINDEX(), {MicroOp::SetInstructionPage, &cb_page}),
 				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Program(FETCH16(temp16_, pc_), WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xce ADC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::ADC8, &temp8_}),
 				/* 0xcf RST 08h */	RST(),
@@ -669,14 +669,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		*/
 		void run_for_cycles(int number_of_cycles) {
 
-#define checkSchedule() \
-	if(!scheduled_programs_[schedule_programs_read_pointer_]) {\
-		current_instruction_page_ = &base_page_;\
-		schedule_program(base_page_.fetch_decode_execute.data());\
-	}
+#define advance_operation() \
+	current_instruction_page_ = &base_page_;	\
+	scheduled_program_counter_ = base_page_.fetch_decode_execute.data();
 
 			number_of_cycles_ += number_of_cycles;
-			checkSchedule();
+			if(!scheduled_program_counter_) {
+				advance_operation();
+			}
 
 			while(1) {
 				const MicroOp *operation = scheduled_program_counter_;
@@ -695,13 +695,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);
 					break;
 					case MicroOp::MoveToNextProgram:
-						move_to_next_program();
-						checkSchedule();
+						advance_operation();
 					break;
 					case MicroOp::DecodeOperation:
 						r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
 						pc_.full++;
-						schedule_program(current_instruction_page_->instructions[operation_ & halt_mask_]);
+						scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
@@ -770,8 +769,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::DJNZ:
 						bc_.bytes.high--;
 						if(!bc_.bytes.high) {
-							move_to_next_program();
-							checkSchedule();
+							advance_operation();
 						}
 					break;
 
@@ -1035,14 +1033,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Conditionals
 
-					case MicroOp::TestNZ:	if(!zero_result_)								{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestZ:	if(zero_result_)								{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ move_to_next_program(); checkSchedule(); }		break;
-					case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ move_to_next_program(); checkSchedule(); }		break;
+					case MicroOp::TestNZ:	if(!zero_result_)								{ advance_operation(); }		break;
+					case MicroOp::TestZ:	if(zero_result_)								{ advance_operation(); }		break;
+					case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ advance_operation(); }		break;
+					case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ advance_operation(); }		break;
+					case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ advance_operation(); }		break;
+					case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ advance_operation(); }		break;
+					case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ advance_operation(); }		break;
+					case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ advance_operation(); }		break;
 
 #pragma mark - Exchange
 
@@ -1077,8 +1075,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	if(test) {	\
 		pc_.full -= 2;	\
 	} else {	\
-		move_to_next_program();	\
-		checkSchedule();	\
+		advance_operation();	\
 	}
 
 #define LDxR_STEP(dir)	\
@@ -1401,7 +1398,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::SetInstructionPage:
 						current_instruction_page_ = (InstructionPage *)operation->source;
-						schedule_program(current_instruction_page_->fetch_decode_execute.data());
+						scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute.data();
 					break;
 
 					case MicroOp::CalculateIndexAddress:
