@@ -190,6 +190,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			std::vector<MicroOp *> instructions;
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
+			MicroOp *fetch_decode_execute_data;
 			uint8_t r_step_;
 
 			InstructionPage() : r_step_(1) {}
@@ -626,6 +627,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			target.fetch_decode_execute[0] = fetch_decode_execute[0];
 			target.fetch_decode_execute[1] = fetch_decode_execute[1];
 			target.fetch_decode_execute[2] = fetch_decode_execute[2];
+			target.fetch_decode_execute_data = target.fetch_decode_execute.data();
 		}
 
 	public:
@@ -671,7 +673,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define advance_operation() \
 	current_instruction_page_ = &base_page_;	\
-	scheduled_program_counter_ = base_page_.fetch_decode_execute.data();
+	scheduled_program_counter_ = base_page_.fetch_decode_execute_data;
 
 			number_of_cycles_ += number_of_cycles;
 			if(!scheduled_program_counter_) {
@@ -1382,7 +1384,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::SetInstructionPage:
 						current_instruction_page_ = (InstructionPage *)operation->source;
-						scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute.data();
+						scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute_data;
 					break;
 
 					case MicroOp::CalculateIndexAddress:
