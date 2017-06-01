@@ -33,7 +33,11 @@ class AllRAMProcessor {
 		std::vector<uint8_t> memory_;
 		uint32_t timestamp_;
 
-		void check_address_for_trap(uint16_t address);
+		inline void check_address_for_trap(uint16_t address) {
+			if(trap_addresses_.find(address) != trap_addresses_.end()) {
+				trap_handler_->processor_did_trap(*this, address);
+			}
+		}
 
 	private:
 		std::set<uint16_t> trap_addresses_;

@@ -28,12 +28,6 @@ uint32_t AllRAMProcessor::get_timestamp() {
 	return timestamp_;
 }
 
-void AllRAMProcessor::check_address_for_trap(uint16_t address) {
-	if(trap_addresses_.find(address) != trap_addresses_.end()) {
-		trap_handler_->processor_did_trap(*this, address);
-	}
-}
-
 void AllRAMProcessor::set_trap_handler(TrapHandler *trap_handler) {
 	trap_handler_ = trap_handler;
 }
