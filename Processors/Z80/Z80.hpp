@@ -182,6 +182,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		int number_of_cycles_;
 
+		enum Interrupt: uint8_t {
+			IRQ			= 0x01,
+			NMI			= 0x02,
+			BUSREQ		= 0x04,
+		};
+		uint8_t request_status_;
+		bool irq_line_;
+
 		uint8_t operation_;
 		RegisterPair temp16_;
 		uint8_t temp8_;
@@ -1337,10 +1345,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::EI:
 						iff1_ = iff2_ = true;
+						if(irq_line_) request_status_ |= Interrupt::IRQ;
 					break;
 
 					case MicroOp::DI:
 						iff1_ = iff2_ = false;
+						request_status_ &= ~Interrupt::IRQ;
 					break;
 
 					case MicroOp::IM:
@@ -1570,21 +1580,33 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		/*!
-			Sets the logical value of the interrupt line at @c time_offset cycles from now.
+			Sets the logical value of the interrupt line.
 		*/
-		void set_interrupt_line(bool value, int time_offset) {
+		void set_interrupt_line(bool value) {
+			// IRQ requests are level triggered and masked.
+			irq_line_ = value;
+			if(irq_line_ && iff1_) {
+				request_status_ |= Interrupt::IRQ;
+			} else {
+				request_status_ &= ~Interrupt::IRQ;
+			}
 		}
 
 		/*!
-			Sets the logical value of the non-maskable interrupt line at @c time_offset cycles from now.
+			Sets the logical value of the non-maskable interrupt line.
 		*/
-		void set_non_maskable_interrupt_line(bool value, int time_offset) {
+		void set_non_maskable_interrupt_line(bool value) {
+			// NMIs are edge triggered and cannot be masked.
+			if(value) request_status_ |= Interrupt::NMI;
 		}
 
 		/*!
-			Sets the logical value of the bus request line at @c time_offset cycles from now.
+			Sets the logical value of the bus request line.
 		*/
-		void set_bus_request_line(bool value, int time_offset) {
+		void set_bus_request_line(bool value) {
+			// Bus requests are level triggered and cannot be masked.
+			if(value) request_status_ |= Interrupt::BUSREQ;
+			else request_status_ &= ~Interrupt::BUSREQ;
 		}
 
 		/*!
