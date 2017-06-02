@@ -148,7 +148,9 @@ struct MicroOp {
 		SetInFlags,
 		SetZero,
 
-		IndexedPlaceHolder
+		IndexedPlaceHolder,
+
+		Reset
 	};
 	Type type;
 	void *source;
@@ -206,6 +208,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			InstructionPage() : r_step_(1) {}
 		};
+		std::vector<MicroOp> reset_program_;
+		std::vector<MicroOp> irq_program_[3];
+		std::vector<MicroOp> nmi_program_;
 		InstructionPage *current_instruction_page_;
 
 		InstructionPage base_page_;
@@ -685,8 +690,21 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void run_for_cycles(int number_of_cycles) {
 
 #define advance_operation() \
-	current_instruction_page_ = &base_page_;	\
-	scheduled_program_counter_ = base_page_.fetch_decode_execute_data;
+	if(last_request_status_) {	\
+		halt_mask_ = 0xff;	\
+		if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {	\
+			request_status_ &= ~Interrupt::PowerOn;	\
+			scheduled_program_counter_ = reset_program_.data();	\
+		} else if(last_request_status_ & Interrupt::NMI) {	\
+			request_status_ &= ~Interrupt::NMI;	\
+			scheduled_program_counter_ = nmi_program_.data();	\
+		} else if(last_request_status_ & Interrupt::IRQ) {	\
+			scheduled_program_counter_ = irq_program_[interrupt_mode_].data();	\
+		}	\
+	} else {	\
+		current_instruction_page_ = &base_page_;	\
+		scheduled_program_counter_ = base_page_.fetch_decode_execute_data;	\
+	}
 
 			number_of_cycles_ += number_of_cycles;
 			if(!scheduled_program_counter_) {
@@ -1390,6 +1408,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 					case MicroOp::RETN:
 						iff1_ = iff2_;
+						if(irq_line_ && iff1_) request_status_ |= Interrupt::IRQ;
 					break;
 
 					case MicroOp::HALT:
