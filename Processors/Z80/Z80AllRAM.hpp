@@ -32,6 +32,7 @@ class AllRAMProcessor:
 		virtual uint16_t get_value_of_register(Register r) = 0;
 		virtual void set_value_of_register(Register r, uint16_t value) = 0;
 		virtual bool get_halt_line() = 0;
+		virtual void reset_power_on() = 0;
 
 	protected:
 		MemoryAccessDelegate *delegate_;

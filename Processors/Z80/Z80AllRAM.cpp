@@ -70,6 +70,10 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		bool get_halt_line() {
 			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::get_halt_line();
 		}
+
+		void reset_power_on() {
+			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::reset_power_on();
+		}
 };
 
 }
