@@ -186,8 +186,11 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			IRQ			= 0x01,
 			NMI			= 0x02,
 			BUSREQ		= 0x04,
+			Reset		= 0x08,
+			PowerOn		= 0x10
 		};
 		uint8_t request_status_;
+		uint8_t last_request_status_;
 		bool irq_line_;
 
 		uint8_t operation_;
@@ -647,7 +650,9 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			interrupt_mode_(0),
 			iff1_(false),
 			iff2_(false),
-			number_of_cycles_(0) {
+			number_of_cycles_(0),
+			request_status_(Interrupt::PowerOn),
+			last_request_status_(Interrupt::PowerOn) {
 			set_flags(0xff);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
@@ -702,6 +707,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					case MicroOp::BusOperation:
 						if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; return; }
 						number_of_cycles_ -= operation->machine_cycle.length;
+						last_request_status_ = request_status_;
 						number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);
 					break;
 					case MicroOp::MoveToNextProgram:
@@ -1607,6 +1613,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// Bus requests are level triggered and cannot be masked.
 			if(value) request_status_ |= Interrupt::BUSREQ;
 			else request_status_ &= ~Interrupt::BUSREQ;
+		}
+
+		/*!
+			Sets the logical value of the reset line.
+		*/
+		void set_reset_line(bool value) {
+			// Reset requests are level triggered and cannot be masked.
+			if(value) request_status_ |= Interrupt::Reset;
+			else request_status_ &= ~Interrupt::Reset;
 		}
 
 		/*!
