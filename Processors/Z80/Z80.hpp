@@ -657,7 +657,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			iff2_(false),
 			number_of_cycles_(0),
 			request_status_(Interrupt::PowerOn),
-			last_request_status_(Interrupt::PowerOn) {
+			last_request_status_(Interrupt::PowerOn),
+			irq_line_(false) {
 			set_flags(0xff);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
@@ -676,6 +677,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 			assemble_fetch_decode_execute(fdcb_page_, 3);
 			assemble_fetch_decode_execute(ddcb_page_, 3);
+
+			MicroOp reset_program[] = Program(WAIT(3), {MicroOp::Reset});
+			reset_program_.resize(3);
+			reset_program_[0] = reset_program[0];
+			reset_program_[1] = reset_program[1];
+			reset_program_[2] = reset_program[2];
 		}
 
 		/*!
@@ -1415,6 +1422,19 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						halt_mask_ = 0x00;
 					break;
 
+#pragma mark - Interrupt handling
+
+ 					case MicroOp::Reset:
+						// TODO
+//						iff1_ = iff2_ = false;
+//						interrupt_mode_ = 0;
+//						pc_.full = 0;
+//						sp_.full = 0xffff;
+//						a_ = 0xff;
+//						set_flags(0xff);
+//						i_ = r_ = 0;
+					break;
+
 #pragma mark - Internal bookkeeping
 
 					case MicroOp::SetInstructionPage:
@@ -1641,6 +1661,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// Reset requests are level triggered and cannot be masked.
 			if(value) request_status_ |= Interrupt::Reset;
 			else request_status_ &= ~Interrupt::Reset;
+		}
+
+		/*!
+			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
+			reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
+		*/
+		inline void reset_power_on() {
+			request_status_ &= ~Interrupt::PowerOn;
+			last_request_status_ &= ~Interrupt::PowerOn;
 		}
 
 		/*!

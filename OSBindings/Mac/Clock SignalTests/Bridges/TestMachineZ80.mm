@@ -119,6 +119,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (instancetype)init {
 	if(self = [super init]) {
 		_processor = CPU::Z80::AllRAMProcessor::Processor();
+		_processor.reset_power_on();
 		_cppTrapHandler = new MachineTrapHandler(self);
 		_busOperationHandler = new BusOperationHandler(self);
 		_busOperationCaptures = [[NSMutableArray alloc] init];
