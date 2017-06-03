@@ -129,6 +129,8 @@ struct MicroOp {
 		SetInstructionPage,
 		CalculateIndexAddress,
 
+		BeginNMI,
+		BeginIRQ,
 		RETN,
 		HALT,
 
@@ -646,6 +648,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			target.fetch_decode_execute_data = target.fetch_decode_execute.data();
 		}
 
+		void copy_program(MicroOp *source, std::vector<MicroOp> &destination) {
+			size_t length = 0;
+			while(source[length].type != MicroOp::MoveToNextProgram) length++;
+			destination.resize(length + 1);
+			size_t pointer = 0;
+			while(true) {
+				destination[pointer] = source[pointer];
+				if(source[pointer].type == MicroOp::MoveToNextProgram) break;
+				pointer++;
+			}
+		}
+
 	public:
 		Processor() : MicroOpScheduler(),
 			halt_mask_(0xff),
@@ -679,10 +693,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			assemble_fetch_decode_execute(ddcb_page_, 3);
 
 			MicroOp reset_program[] = Program(WAIT(3), {MicroOp::Reset});
-			reset_program_.resize(3);
-			reset_program_[0] = reset_program[0];
-			reset_program_[1] = reset_program[1];
-			reset_program_[2] = reset_program[2];
+			MicroOp nmi_program[] = {
+				{ MicroOp::BeginNMI },
+				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 5, &pc_.full, &operation_}},
+				PUSH(pc_),
+				{ MicroOp::MoveToNextProgram }
+			};
+
+			copy_program(reset_program, reset_program_);
+			copy_program(nmi_program, nmi_program_);
 		}
 
 		/*!
@@ -1412,6 +1431,17 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 
 #pragma mark - Special-case Flow
+
+					case MicroOp::BeginIRQ:
+						iff2_ = iff1_ = false;
+						request_status_ &= ~Interrupt::IRQ;
+					break;
+
+					case MicroOp::BeginNMI:
+						iff2_ = iff1_;
+						iff1_ = false;
+						request_status_ &= ~Interrupt::IRQ;
+					break;
 
 					case MicroOp::RETN:
 						iff1_ = iff2_;
