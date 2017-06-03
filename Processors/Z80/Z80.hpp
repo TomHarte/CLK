@@ -316,6 +316,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
+#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation)
+
 		typedef MicroOp InstructionTable[256][20];
 
 		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
@@ -325,7 +327,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			// Count number of micro-ops required.
 			for(int c = 0; c < 256; c++) {
 				size_t length = 0;
-				while(table[c][length].type != MicroOp::MoveToNextProgram) length++;
+				while(!isTerminal(table[c][length].type)) length++;
 				length++;
 				lengths[c] = length;
 				number_of_micro_ops += length;
@@ -640,8 +642,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp fetch_decode_execute[] = {
 				{ MicroOp::BusOperation, nullptr, nullptr, {(length == 4) ? ReadOpcode : Read, length, &pc_.full, &operation_}},
-				{ MicroOp::DecodeOperation },
-				{ MicroOp::MoveToNextProgram }
+				{ MicroOp::DecodeOperation }
 			};
 			copy_program(fetch_decode_execute, target.fetch_decode_execute);
 			target.fetch_decode_execute_data = target.fetch_decode_execute.data();
@@ -649,12 +650,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 			size_t length = 0;
-			while(source[length].type != MicroOp::MoveToNextProgram && source[length].type != MicroOp::DecodeOperation) length++;
+			while(!isTerminal(source[length].type)) length++;
 			destination.resize(length + 1);
 			size_t pointer = 0;
 			while(true) {
 				destination[pointer] = source[pointer];
-				if(source[pointer].type == MicroOp::MoveToNextProgram || source[pointer].type == MicroOp::DecodeOperation) break;
+				if(isTerminal(source[pointer].type)) break;
 				pointer++;
 			}
 		}
