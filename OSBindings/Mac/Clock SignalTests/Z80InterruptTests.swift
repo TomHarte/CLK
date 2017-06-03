@@ -42,4 +42,35 @@ class Z80InterruptTests: XCTestCase {
 		XCTAssertEqual(machine.value(for: .IFF2), 0)
 	}
 
+	func testIRQDisabled() {
+		let machine = CSTestMachineZ80()
+
+		// start the PC at 0x0100, interrupts disabled
+		machine.setValue(0x0100, for: .programCounter)
+		machine.setValue(0, for: .IFF1)
+		machine.setValue(0, for: .IFF2)
+
+		// install six NOPs
+		for address: UInt16 in 0x0100 ..< 0x0106 {
+			machine.setValue(0x00, atAddress: address)
+		}
+
+		// replace the fourth NOP with an EI
+		machine.setValue(0xfb, atAddress: 0x0103)
+
+		// run for four cycles, signal IRQ and run for 8 more
+		machine.runForNumber(ofCycles: 4)
+		machine.irqLine = true
+		machine.runForNumber(ofCycles: 8)
+
+		// confirm that the request was ignored
+		XCTAssertEqual(machine.value(for: .programCounter), 0x0103)
+
+		// run for 12 more cycles, hitting the EI and, if no interrupt occured, the two NOPs after it
+		machine.runForNumber(ofCycles: 12)
+
+		// confirm that an interruption occurred, causing the PC not yet to have proceeded beyond 0x0105
+		XCTAssertEqual(machine.value(for: .programCounter), 0x0105)
+	}
+
 }

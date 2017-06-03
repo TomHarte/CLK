@@ -42,6 +42,12 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 				case BusOperation::Internal:
 				break;
 
+				case BusOperation::Interrupt:
+					// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
+					// arbitrary.
+					*cycle.value = 0x21;
+				break;
+
 				default:
 					printf("???\n");
 				break;
