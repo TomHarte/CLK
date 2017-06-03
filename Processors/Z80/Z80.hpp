@@ -707,7 +707,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 6, nullptr, &operation_}},
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
