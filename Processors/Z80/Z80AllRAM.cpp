@@ -74,6 +74,14 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		void reset_power_on() {
 			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::reset_power_on();
 		}
+
+		void set_interrupt_line(bool value) {
+			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_interrupt_line(value);
+		}
+
+		void set_non_maskable_interrupt_line(bool value) {
+			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_non_maskable_interrupt_line(value);
+		}
 };
 
 }

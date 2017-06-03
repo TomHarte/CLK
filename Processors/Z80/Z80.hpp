@@ -136,6 +136,7 @@ struct MicroOp {
 		BeginIRQ,
 		BeginIRQMode0,
 		RETN,
+		JumpTo66,
 		HALT,
 
 		DJNZ,
@@ -701,6 +702,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				{ MicroOp::BeginNMI },
 				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 5, &pc_.full, &operation_}},
 				PUSH(pc_),
+				{ MicroOp::JumpTo66, nullptr, nullptr},
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode0_program[] = {
@@ -1474,6 +1476,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 						iff2_ = iff1_;
 						iff1_ = false;
 						request_status_ &= ~Interrupt::IRQ;
+					break;
+
+					case MicroOp::JumpTo66:
+						pc_.full = 0x66;
 					break;
 
 					case MicroOp::RETN:

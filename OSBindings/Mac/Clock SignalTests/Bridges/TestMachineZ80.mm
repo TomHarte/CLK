@@ -173,6 +173,16 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor->get_halt_line() ? YES : NO;
 }
 
+- (void)setNmiLine:(BOOL)nmiLine {
+	_nmiLine = nmiLine;
+	_processor->set_non_maskable_interrupt_line(nmiLine ? true : false);
+}
+
+- (void)setIrqLine:(BOOL)irqLine {
+	_irqLine = irqLine;
+	_processor->set_interrupt_line(irqLine ? true : false);
+}
+
 #pragma mark - Z80-specific Runner
 
 - (void)runToNextInstruction {

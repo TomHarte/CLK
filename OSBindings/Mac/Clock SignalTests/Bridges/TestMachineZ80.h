@@ -66,4 +66,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 
 @property(nonatomic, readonly) BOOL isHalted;
 
+@property(nonatomic) BOOL nmiLine;
+@property(nonatomic) BOOL irqLine;
+
 @end
