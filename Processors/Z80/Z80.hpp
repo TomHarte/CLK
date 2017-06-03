@@ -68,7 +68,7 @@ enum BusOperation {
 	Read, Write,
 	Input, Output,
 	Interrupt,
-//	BusRequest, BusAcknowledge,
+	BusAcknowledge,
 	Internal
 };
 
@@ -83,6 +83,7 @@ struct MicroOp {
 	enum Type {
 		BusOperation,
 		DecodeOperation,
+		DecodeOperationNoRChange,
 		MoveToNextProgram,
 
 		Increment8,
@@ -133,6 +134,7 @@ struct MicroOp {
 
 		BeginNMI,
 		BeginIRQ,
+		BeginIRQMode0,
 		RETN,
 		HALT,
 
@@ -177,6 +179,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		RegisterPair ix_, iy_, pc_, sp_;
 		bool iff1_, iff2_;
 		int interrupt_mode_;
+		uint16_t pc_increment_;
 		uint8_t sign_result_;				// the sign flag is set if the value in sign_result_ is negative
 		uint8_t zero_result_;				// the zero flag is set if the value in zero_result_ is zero
 		uint8_t half_carry_result_;			// the half-carry flag is set if bit 4 of half_carry_result_ is set
@@ -316,7 +319,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
-#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation)
+#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
 
 		typedef MicroOp InstructionTable[256][20];
 
@@ -672,7 +675,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			number_of_cycles_(0),
 			request_status_(Interrupt::PowerOn),
 			last_request_status_(Interrupt::PowerOn),
-			irq_line_(false) {
+			irq_line_(false),
+			pc_increment_(1) {
 			set_flags(0xff);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
@@ -699,9 +703,32 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				PUSH(pc_),
 				{ MicroOp::MoveToNextProgram }
 			};
+			MicroOp irq_mode0_program[] = {
+				{ MicroOp::BeginIRQMode0 },
+				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &operation_}},
+				{ MicroOp::DecodeOperationNoRChange }
+			};
+			MicroOp irq_mode1_program[] = {
+				{ MicroOp::BeginIRQ },
+				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &operation_}},
+				PUSH(pc_),
+				{ MicroOp::Move16, &temp16_.full, &pc_.full },
+				{ MicroOp::MoveToNextProgram }
+			};
+			MicroOp irq_mode2_program[] = {
+				{ MicroOp::BeginIRQ },
+				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &temp16_.bytes.low}},
+				PUSH(pc_),
+				{ MicroOp::Move8, &i_, &temp16_.bytes.high },
+				FETCH16L(pc_, temp16_),
+				{ MicroOp::MoveToNextProgram }
+			};
 
 			copy_program(reset_program, reset_program_);
 			copy_program(nmi_program, nmi_program_);
+			copy_program(irq_mode0_program, irq_program_[0]);
+			copy_program(irq_mode1_program, irq_program_[1]);
+			copy_program(irq_mode2_program, irq_program_[2]);
 		}
 
 		/*!
@@ -716,6 +743,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		void run_for_cycles(int number_of_cycles) {
 
 #define advance_operation() \
+	pc_increment_ = 1;	\
 	if(last_request_status_) {	\
 		halt_mask_ = 0xff;	\
 		if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {	\
@@ -759,12 +787,13 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 					case MicroOp::DecodeOperation:
 						r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
-						pc_.full++;
+						pc_.full += pc_increment_;
+					case MicroOp::DecodeOperationNoRChange:
 						scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
-					case MicroOp::IncrementPC:			pc_.full++;																	break;
+					case MicroOp::IncrementPC:			pc_.full += pc_increment_;													break;
 					case MicroOp::Decrement16:			(*(uint16_t *)operation->source)--;											break;
 					case MicroOp::Move8:				*(uint8_t *)operation->destination = *(uint8_t *)operation->source;			break;
 					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
@@ -1433,9 +1462,12 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Special-case Flow
 
+					case MicroOp::BeginIRQMode0:
+						pc_increment_ = 0;			// deliberate fallthrough
 					case MicroOp::BeginIRQ:
 						iff2_ = iff1_ = false;
 						request_status_ &= ~Interrupt::IRQ;
+						temp16_.full = 0x38;
 					break;
 
 					case MicroOp::BeginNMI:
