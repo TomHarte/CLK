@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <vector>
 
-#include "../MicroOpScheduler.hpp"
 #include "../RegisterSizes.hpp"
 
 namespace CPU {
@@ -79,92 +78,6 @@ struct MachineCycle {
 	uint8_t *value;
 };
 
-struct MicroOp {
-	enum Type {
-		BusOperation,
-		DecodeOperation,
-		DecodeOperationNoRChange,
-		MoveToNextProgram,
-
-		Increment8,
-		Increment16,
-		Decrement8,
-		Decrement16,
-		Move8,
-		Move16,
-
-		IncrementPC,
-
-		AssembleAF,
-		DisassembleAF,
-
-		And,
-		Or,
-		Xor,
-
-		TestNZ,
-		TestZ,
-		TestNC,
-		TestC,
-		TestPO,
-		TestPE,
-		TestP,
-		TestM,
-
-		ADD16,	ADC16,	SBC16,
-		CP8,	SUB8,	SBC8,	ADD8,	ADC8,
-		NEG,
-
-		ExDEHL, ExAFAFDash, EXX,
-
-		EI,		DI,		IM,
-
-		LDI,	LDIR,	LDD,	LDDR,
-		CPI,	CPIR,	CPD,	CPDR,
-		INI,	INIR,	IND,	INDR,
-		OUTI,	OUTD,	OUT_R,
-
-		RLA,	RLCA,	RRA,	RRCA,
-		RLC,	RRC,	RL,		RR,
-		SLA,	SRA,	SLL,	SRL,
-		RLD,	RRD,
-
-		SetInstructionPage,
-		CalculateIndexAddress,
-
-		BeginNMI,
-		BeginIRQ,
-		BeginIRQMode0,
-		RETN,
-		JumpTo66,
-		HALT,
-
-		DJNZ,
-		DAA,
-		CPL,
-		SCF,
-		CCF,
-
-		RES,
-		BIT,
-		SET,
-
-		CalculateRSTDestination,
-
-		SetAFlags,
-		SetInFlags,
-		SetZero,
-
-		IndexedPlaceHolder,
-
-		Reset
-	};
-	Type type;
-	void *source;
-	void *destination;
-	MachineCycle machine_cycle;
-};
-
 /*!
 	@abstact An abstract base class for emulation of a Z80 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
@@ -172,7 +85,7 @@ struct MicroOp {
 	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 */
-template <class T> class Processor: public MicroOpScheduler<MicroOp> {
+template <class T> class Processor {
 	private:
 		uint8_t a_, i_, r_;
 		RegisterPair bc_, de_, hl_;
@@ -206,6 +119,94 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		uint8_t operation_;
 		RegisterPair temp16_;
 		uint8_t temp8_;
+
+		struct MicroOp {
+			enum Type {
+				BusOperation,
+				DecodeOperation,
+				DecodeOperationNoRChange,
+				MoveToNextProgram,
+
+				Increment8,
+				Increment16,
+				Decrement8,
+				Decrement16,
+				Move8,
+				Move16,
+
+				IncrementPC,
+
+				AssembleAF,
+				DisassembleAF,
+
+				And,
+				Or,
+				Xor,
+
+				TestNZ,
+				TestZ,
+				TestNC,
+				TestC,
+				TestPO,
+				TestPE,
+				TestP,
+				TestM,
+
+				ADD16,	ADC16,	SBC16,
+				CP8,	SUB8,	SBC8,	ADD8,	ADC8,
+				NEG,
+
+				ExDEHL, ExAFAFDash, EXX,
+
+				EI,		DI,		IM,
+
+				LDI,	LDIR,	LDD,	LDDR,
+				CPI,	CPIR,	CPD,	CPDR,
+				INI,	INIR,	IND,	INDR,
+				OUTI,	OUTD,	OUT_R,
+
+				RLA,	RLCA,	RRA,	RRCA,
+				RLC,	RRC,	RL,		RR,
+				SLA,	SRA,	SLL,	SRL,
+				RLD,	RRD,
+
+				SetInstructionPage,
+				CalculateIndexAddress,
+
+				BeginNMI,
+				BeginIRQ,
+				BeginIRQMode0,
+				RETN,
+				JumpTo66,
+				HALT,
+
+				DJNZ,
+				DAA,
+				CPL,
+				SCF,
+				CCF,
+
+				RES,
+				BIT,
+				SET,
+
+				CalculateRSTDestination,
+
+				SetAFlags,
+				SetInFlags,
+				SetZero,
+
+				IndexedPlaceHolder,
+
+				Reset
+			};
+			Type type;
+			void *source;
+			void *destination;
+			MachineCycle machine_cycle;
+		};
+		const MicroOp *scheduled_program_counter_;
+
 
 		struct InstructionPage {
 			std::vector<MicroOp *> instructions;
@@ -665,14 +666,15 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 	public:
-		Processor() : MicroOpScheduler(),
+		Processor() :
 			halt_mask_(0xff),
 			number_of_cycles_(0),
 			request_status_(Interrupt::PowerOn),
 			last_request_status_(Interrupt::PowerOn),
 			irq_line_(false),
 			bus_request_line_(false),
-			pc_increment_(1) {
+			pc_increment_(1),
+			scheduled_program_counter_(nullptr) {
 			set_flags(0xff);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
