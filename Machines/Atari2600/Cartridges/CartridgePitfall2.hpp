@@ -26,7 +26,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 			cycles_since_audio_update_ += cycles;
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 

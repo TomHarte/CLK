@@ -1,18 +1,22 @@
 //
-//  CPU6502.hpp
+//  6502.hpp
 //  CLK
 //
 //  Created by Thomas Harte on 09/07/2015.
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef CPU6502_cpp
-#define CPU6502_cpp
+#ifndef MOS6502_cpp
+#define MOS6502_cpp
 
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdio>
+#include <cstdint>
 
-namespace CPU6502 {
+#include "../MicroOpScheduler.hpp"
+#include "../RegisterSizes.hpp"
+
+namespace CPU {
+namespace MOS6502 {
 
 /*
 	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
@@ -56,25 +60,70 @@ enum BusOperation {
 /*!
 	Evaluates to `true` if the operation is a read; `false` if it is a write.
 */
-#define isReadOperation(v)	(v == CPU6502::BusOperation::Read || v == CPU6502::BusOperation::ReadOpcode)
+#define isReadOperation(v)	(v == CPU::MOS6502::BusOperation::Read || v == CPU::MOS6502::BusOperation::ReadOpcode)
 
 /*!
 	An opcode that is guaranteed to cause the CPU to jam.
 */
 extern const uint8_t JamOpcode;
 
+/*
+	This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
+	as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+	to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+*/
+enum MicroOp {
+	CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
+	CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
+	OperationSetI,
+
+	OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
+	CycleReadVectorLow,							CycleReadVectorHigh,
+
+	CycleReadFromS,								CycleReadFromPC,
+	CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+	CycleNoWritePush,
+	CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
+	CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
+	OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
+	CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
+	OperationMoveToNextProgram,					OperationIncrementPC,
+	CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
+	CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
+	OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
+	OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
+	OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
+	OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
+	OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
+	OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
+	OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
+	OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
+	OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
+	OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
+	OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
+	OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
+	OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
+	OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
+	OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
+	OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
+	OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+	OperationSetOperandFromFlags,
+	OperationSetFlagsFromA,
+	CycleScheduleJam
+};
+
 /*!
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
-	order to provide the bus on which the 6502 operates and @c synchronise(), which is called upon completion of a continuous run
+	order to provide the bus on which the 6502 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 
 	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
 	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
 	jammed state.
 */
-template <class T> class Processor {
+template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 	public:
 
 		class JamHandler {
@@ -84,59 +133,7 @@ template <class T> class Processor {
 
 	private:
 
-		/*
-			This emulation funcitons by decomposing instructions into micro programs, consisting of the micro operations
-			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
-			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
-		*/
-		enum MicroOp {
-			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
-			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			OperationSetI,
-
-			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
-			CycleReadVectorLow,							CycleReadVectorHigh,
-
-			CycleReadFromS,								CycleReadFromPC,
-			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
-			CycleNoWritePush,
-			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
-			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
-			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
-			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
-			OperationMoveToNextProgram,					OperationIncrementPC,
-			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
-			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
-			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
-			OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
-			OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
-			OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
-			OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
-			OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
-			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
-			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
-			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
-			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
-			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
-			OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
-			OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
-			OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
-			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
-			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
-			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
-			OperationSetOperandFromFlags,
-			OperationSetFlagsFromA,
-			CycleScheduleJam
-		};
-
 #define JAM {CycleFetchOperand, CycleScheduleJam, OperationMoveToNextProgram}
-
-		union RegisterPair {
-			uint16_t full;
-			struct {
-				uint8_t low, high;
-			} bytes;
-		};
 
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
@@ -152,34 +149,12 @@ template <class T> class Processor {
 		RegisterPair address_, next_address_;
 
 		/*
-			Up to four programs can be scheduled; each will be carried out in turn. This
-			storage maintains pointers to the scheduled list of programs.
-
-			Programs should be terminated by an OperationMoveToNextProgram, causing this
-			queue to take that step.
-		*/
-		const MicroOp *scheduled_programs_[4];
-		unsigned int schedule_programs_write_pointer_, schedule_programs_read_pointer_, schedule_program_program_counter_;
-
-		/*
 			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
 			possibly deferring is no longer of value.
 		*/
 		BusOperation next_bus_operation_;
 		uint16_t bus_address_;
 		uint8_t *bus_value_;
-
-		/*!
-			Schedules a new program, adding it to the end of the queue. Programs should be
-			terminated with a OperationMoveToNextProgram. No attempt to copy the program
-			is made; a non-owning reference is kept.
-
-			@param program The program to schedule.
-		*/
-		inline void schedule_program(const MicroOp *program) {
-			scheduled_programs_[schedule_programs_write_pointer_] = program;
-			schedule_programs_write_pointer_ = (schedule_programs_write_pointer_+1)&3;
-		}
 
 		/*!
 			Gets the flags register.
@@ -535,14 +510,11 @@ template <class T> class Processor {
 
 	protected:
 		Processor() :
-				schedule_programs_read_pointer_(0),
-				schedule_programs_write_pointer_(0),
 				is_jammed_(false),
 				jam_handler_(nullptr),
 				cycles_left_to_run_(0),
 				ready_line_is_enabled_(false),
 				ready_is_active_(false),
-				scheduled_programs_{nullptr, nullptr, nullptr, nullptr},
 				inverse_interrupt_flag_(0),
 				irq_request_history_(0),
 				s_(0),
@@ -585,16 +557,14 @@ template <class T> class Processor {
 			// These plus program below act to give the compiler permission to update these values
 			// without touching the class storage (i.e. it explicitly says they need be completely up
 			// to date in this stack frame only); which saves some complicated addressing
-			unsigned int scheduleProgramsReadPointer = schedule_programs_read_pointer_;
-			unsigned int scheduleProgramProgramCounter = schedule_program_program_counter_;
 			RegisterPair nextAddress = next_address_;
 			BusOperation nextBusOperation = next_bus_operation_;
 			uint16_t busAddress = bus_address_;
 			uint8_t *busValue = bus_value_;
 
 #define checkSchedule(op) \
-	if(!scheduled_programs_[scheduleProgramsReadPointer]) {\
-		scheduleProgramsReadPointer = schedule_programs_write_pointer_ = scheduleProgramProgramCounter = 0;\
+	if(!scheduled_program_counter_) {\
+		schedule_programs_read_pointer_ = schedule_programs_write_pointer_ = 0;	\
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
@@ -620,7 +590,6 @@ template <class T> class Processor {
 
 			checkSchedule();
 			number_of_cycles += cycles_left_to_run_;
-			const MicroOp *program = scheduled_programs_[scheduleProgramsReadPointer];
 
 			while(number_of_cycles > 0) {
 
@@ -635,8 +604,8 @@ template <class T> class Processor {
 
 					while(1) {
 
-						const MicroOp cycle = program[scheduleProgramProgramCounter];
-						scheduleProgramProgramCounter++;
+						const MicroOp cycle = *scheduled_program_counter_;
+						scheduled_program_counter_++;
 
 #define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val;				val = 0xff
 #define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val;				val	= 0xff
@@ -675,11 +644,8 @@ template <class T> class Processor {
 							continue;
 
 							case OperationMoveToNextProgram:
-								scheduled_programs_[scheduleProgramsReadPointer] = NULL;
-								scheduleProgramsReadPointer = (scheduleProgramsReadPointer+1)&3;
-								scheduleProgramProgramCounter = 0;
+								move_to_next_program();
 								checkSchedule();
-								program = scheduled_programs_[scheduleProgramsReadPointer];
 							continue;
 
 #define push(v) {\
@@ -742,7 +708,7 @@ template <class T> class Processor {
 
 								if(jam_handler_) {
 									jam_handler_->processor_did_jam(this, pc_.full - 1);
-									checkSchedule(is_jammed_ = false; program = scheduled_programs_[scheduleProgramsReadPointer]);
+									checkSchedule(is_jammed_ = false;);
 								}
 							} continue;
 
@@ -1110,14 +1076,12 @@ template <class T> class Processor {
 			}
 
 			cycles_left_to_run_ = number_of_cycles;
-			schedule_programs_read_pointer_ = scheduleProgramsReadPointer;
-			schedule_program_program_counter_ = scheduleProgramProgramCounter;
 			next_address_ = nextAddress;
 			next_bus_operation_ = nextBusOperation;
 			bus_address_ = busAddress;
 			bus_value_ = busValue;
 
-			static_cast<T *>(this)->synchronise();
+			static_cast<T *>(this)->flush();
 		}
 
 		/*!
@@ -1125,7 +1089,7 @@ template <class T> class Processor {
 
 			Users of the 6502 template may override this.
 		*/
-		void synchronise() {}
+		void flush() {}
 
 		/*!
 			Gets the value of a register.
@@ -1176,12 +1140,13 @@ template <class T> class Processor {
 		*/
 		void return_from_subroutine() {
 			s_++;
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
-			static_cast<T *>(this)->perform_bus_operation(CPU6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
+			static_cast<T *>(this)->perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
+			static_cast<T *>(this)->perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
 			pc_.full++;
 
 			if(is_jammed_) {
 				scheduled_programs_[0] = scheduled_programs_[1] = scheduled_programs_[2] = scheduled_programs_[3] = nullptr;
+				scheduled_program_counter_ = nullptr;
 			}
 		}
 
@@ -1279,5 +1244,6 @@ template <class T> class Processor {
 };
 
 }
+}
 
-#endif /* CPU6502_cpp */
+#endif /* MOS6502_cpp */

@@ -34,7 +34,7 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
 }
 
-unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -80,7 +80,7 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 }
 
 void Machine::run_for_cycles(int number_of_cycles) {
-	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+	CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles);
 	set_motor_on(drive_VIA_.get_motor_enabled());
 	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
 		Storage::Disk::Controller::run_for_cycles(number_of_cycles);

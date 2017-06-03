@@ -19,13 +19,13 @@ class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
 			rom_ptr_ = rom_.data();
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(!(address & 0x1000)) return;
 
 			// This is a bit of a hack; a real cartridge can't see either the sync or read lines, and can't see
 			// address line 13. Instead it looks for a pattern in recent address accesses that would imply an
 			// RST or JSR.
-			if(operation == CPU6502::BusOperation::ReadOpcode && (last_opcode_ == 0x20 || last_opcode_ == 0x60)) {
+			if(operation == CPU::MOS6502::BusOperation::ReadOpcode && (last_opcode_ == 0x20 || last_opcode_ == 0x60)) {
 				if(address & 0x2000) {
 					rom_ptr_ = rom_.data();
 				} else {
@@ -37,7 +37,7 @@ class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
 				*value = rom_ptr_[address & 4095];
 			}
 
-			if(operation == CPU6502::BusOperation::ReadOpcode) last_opcode_ = *value;
+			if(operation == CPU::MOS6502::BusOperation::ReadOpcode) last_opcode_ = *value;
 		}
 
 	private:

@@ -9,7 +9,7 @@
 #ifndef Commodore1540_hpp
 #define Commodore1540_hpp
 
-#include "../../../Processors/6502/CPU6502.hpp"
+#include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6522/6522.hpp"
 
 #include "../SerialBus.hpp"
@@ -120,7 +120,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 	Provides an emulation of the C1540.
 */
 class Machine:
-	public CPU6502::Processor<Machine>,
+	public CPU::MOS6502::Processor<Machine>,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public DriveVIA::Delegate,
 	public Storage::Disk::Controller {
@@ -141,8 +141,8 @@ class Machine:
 		void run_for_cycles(int number_of_cycles);
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
-		// to satisfy CPU6502::Processor
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
+		// to satisfy CPU::MOS6502::Processor
+		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

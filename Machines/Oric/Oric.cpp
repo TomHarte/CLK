@@ -78,16 +78,16 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data) {
 	}
 }
 
-unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	if(address > ram_top_) {
 		if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
 		// 024D = 0 => fast; otherwise slow
 		// E6C9 = read byte: return byte in A
-		if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end()) {
+		if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end()) {
 			uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
-			set_value_of_register(CPU6502::A, next_byte);
-			set_value_of_register(CPU6502::Flags, next_byte ? 0 : CPU6502::Flag::Zero);
+			set_value_of_register(CPU::MOS6502::A, next_byte);
+			set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 			*value = 0x60; // i.e. RTS
 		}
 	} else {
@@ -120,7 +120,7 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 		}
 	}
 
-	if(typer_ && address == scan_keyboard_address_ && operation == CPU6502::BusOperation::ReadOpcode) {
+	if(typer_ && address == scan_keyboard_address_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 		// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
 		// do anything until at least the second, regardless of machine
 		if(!keyboard_read_count_) keyboard_read_count_++;
@@ -136,9 +136,9 @@ unsigned int Machine::perform_bus_operation(CPU6502::BusOperation operation, uin
 	return 1;
 }
 
-void Machine::synchronise() {
+void Machine::flush() {
 	update_video();
-	via_.synchronise();
+	via_.flush();
 }
 
 void Machine::update_video() {
@@ -199,7 +199,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 }
 
 void Machine::run_for_cycles(int number_of_cycles) {
-	CPU6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+	CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles);
 }
 
 #pragma mark - The 6522
@@ -234,7 +234,7 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 	}
 }
 
-void Machine::VIA::synchronise() {
+void Machine::VIA::flush() {
 	ay8910->run_for_cycles(cycles_since_ay_update_);
 	ay8910->flush();
 	cycles_since_ay_update_ = 0;

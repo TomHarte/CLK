@@ -13,7 +13,7 @@
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
-#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Processors/6502/6502.hpp"
 #include "../../Components/6522/6522.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Storage/Tape/Parsers/Oric.hpp"
@@ -57,7 +57,7 @@ enum ROM {
 };
 
 class Machine:
-	public CPU6502::Processor<Machine>,
+	public CPU::MOS6502::Processor<Machine>,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
@@ -78,9 +78,9 @@ class Machine:
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target);
 
-		// to satisfy CPU6502::Processor
-		unsigned int perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void synchronise();
+		// to satisfy CPU::MOS6502::Processor
+		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		void flush();
 
 		// to satisfy CRTMachine::Machine
 		virtual void setup_output(float aspect_ratio);
@@ -151,7 +151,7 @@ class Machine:
 				std::unique_ptr<TapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
-				void synchronise();
+				void flush();
 
 			private:
 				void update_ay();

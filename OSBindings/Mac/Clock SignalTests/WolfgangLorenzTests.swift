@@ -9,7 +9,7 @@
 import XCTest
 import Foundation
 
-class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
+class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 	
 	func testWolfgangLorenzStart()	{
 		self.runWolfgangLorenzTest(" start")
@@ -195,13 +195,12 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 
 	fileprivate var output: String = ""
 	fileprivate func runWolfgangLorenzTest(_ name: String) {
-
-		var machine: CSTestMachine!
+		var machine: CSTestMachine6502!
 
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
-				machine = CSTestMachine()
+				machine = CSTestMachine6502()
 				machine.jamHandler = self
 //				machine.logActivity = true
 				output = ""
@@ -226,15 +225,15 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 				] as [UInt8]), count: 19)
 				machine.setData( irqHandler, atAddress: 0xff48)
 
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffd2)	// print character
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xe16f)	// load
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xffe4)	// scan keyboard
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0x8000)	// exit
-				machine.setValue(CSTestMachineJamOpcode, forAddress:0xa474)	// exit
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffd2)	// print character
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xe16f)	// load
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffe4)	// scan keyboard
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0x8000)	// exit
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xa474)	// exit
 
-				machine.setValue(0x0801, for: CSTestMachineRegister.programCounter)
-				machine.setValue(0xfd, for: CSTestMachineRegister.stackPointer)
-				machine.setValue(0x04, for: CSTestMachineRegister.flags)
+				machine.setValue(0x0801, for: CSTestMachine6502Register.programCounter)
+				machine.setValue(0xfd, for: CSTestMachine6502Register.stackPointer)
+				machine.setValue(0x04, for: CSTestMachine6502Register.flags)
 			}
 		}
 
@@ -246,7 +245,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 			machine.runForNumber(ofCycles: 1000)
 		}
 
-		let jammedPC = machine.value(for: CSTestMachineRegister.lastOperationAddress)
+		let jammedPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
 		if jammedPC != 0xe16f {
 			let hexAddress = String(format:"%04x", jammedPC)
 			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
@@ -297,19 +296,18 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineJamHandler {
 		return result
 	}
 
-	func testMachine(_ machine: CSTestMachine!, didJamAtAddress address: UInt16) {
-
+	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
 		switch address {
 			case 0xffd2:
 				machine.setValue(0x00, forAddress: 0x030c)
 
-				let character = machine.value(for: CSTestMachineRegister.A)
+				let character = machine.value(for: CSTestMachine6502Register.A)
 				output.append(Character(UnicodeScalar(character)!))
 
 				machine.returnFromSubroutine()
 
 			case 0xffe4:
-				machine.setValue(0x3, for:CSTestMachineRegister.A)
+				machine.setValue(0x3, for:CSTestMachine6502Register.A)
 				machine.returnFromSubroutine()
 
 			case 0x8000, 0xa474:

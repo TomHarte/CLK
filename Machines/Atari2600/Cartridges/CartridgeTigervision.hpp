@@ -21,7 +21,7 @@ class CartridgeTigervision: public Cartridge<CartridgeTigervision> {
 			rom_ptr_[1] = rom_ptr_[0] + 2048;
 		}
 
-		void perform_bus_operation(CPU6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if((address&0x1fff) == 0x3f) {
 				int offset = ((*value) * 2048) & (rom_.size() - 1);
 				rom_ptr_[0] = rom_.data() + offset;

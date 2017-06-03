@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-#include "../../Processors/6502/CPU6502.hpp"
+#include "../../Processors/6502/6502.hpp"
 #include "../CRTMachine.hpp"
 #include "Bus.hpp"
 #include "PIA.hpp"
