@@ -1680,7 +1680,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
-				case Register::IM:				interrupt_mode_ = value % 2;			break;
+				case Register::IM:				interrupt_mode_ = value % 3;			break;
 
 				default: break;
 			}
