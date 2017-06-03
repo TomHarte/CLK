@@ -92,6 +92,8 @@ struct MicroOp {
 		Move8,
 		Move16,
 
+		IncrementPC,
+
 		AssembleAF,
 		DisassembleAF,
 
@@ -230,8 +232,10 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()	(add_offsets ? temp16_ : index)
 
+#define INC16(r)		{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
+
 /// Fetches into x from address y, and then increments y.
-#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
+#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, INC16(y)
 /// Fetches into x from address y.
 #define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
 
@@ -634,28 +638,23 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 		}
 
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
-			// TODO: this can't legitimately be static and contain references to this via pc_ and operation_;
-			// make it something else that is built at instance construction.
 			const MicroOp fetch_decode_execute[] = {
 				{ MicroOp::BusOperation, nullptr, nullptr, {(length == 4) ? ReadOpcode : Read, length, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation },
 				{ MicroOp::MoveToNextProgram }
 			};
-			target.fetch_decode_execute.resize(3);
-			target.fetch_decode_execute[0] = fetch_decode_execute[0];
-			target.fetch_decode_execute[1] = fetch_decode_execute[1];
-			target.fetch_decode_execute[2] = fetch_decode_execute[2];
+			copy_program(fetch_decode_execute, target.fetch_decode_execute);
 			target.fetch_decode_execute_data = target.fetch_decode_execute.data();
 		}
 
-		void copy_program(MicroOp *source, std::vector<MicroOp> &destination) {
+		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 			size_t length = 0;
-			while(source[length].type != MicroOp::MoveToNextProgram) length++;
+			while(source[length].type != MicroOp::MoveToNextProgram && source[length].type != MicroOp::DecodeOperation) length++;
 			destination.resize(length + 1);
 			size_t pointer = 0;
 			while(true) {
 				destination[pointer] = source[pointer];
-				if(source[pointer].type == MicroOp::MoveToNextProgram) break;
+				if(source[pointer].type == MicroOp::MoveToNextProgram || source[pointer].type == MicroOp::DecodeOperation) break;
 				pointer++;
 			}
 		}
@@ -764,6 +763,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 					break;
 
 					case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
+					case MicroOp::IncrementPC:			pc_.full++;																	break;
 					case MicroOp::Decrement16:			(*(uint16_t *)operation->source)--;											break;
 					case MicroOp::Move8:				*(uint8_t *)operation->destination = *(uint8_t *)operation->source;			break;
 					case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
