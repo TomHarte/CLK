@@ -1752,14 +1752,14 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			that it should have signalled IRQ, NMI or BUSREQ during the cycle. In that case it
 			can rewind time and post the signal with a proper time offset.
 		*/
-		void reject_machine_cycle() {
-		}
+//		void reject_machine_cycle() {
+//		}
 
 		/*!
 			Returns the bus cycle that the Z80 is currently in the process of performing.
 		*/
-		const MachineCycle &get_current_bus_cycle(int &cycles_since_start) {
-		}
+//		const MachineCycle &get_current_bus_cycle(int &cycles_since_start) {
+//		}
 };
 
 }
