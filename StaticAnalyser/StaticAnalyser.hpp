@@ -49,7 +49,8 @@ struct Target {
 		Atari2600,
 		Electron,
 		Vic20,
-		Oric
+		Oric,
+		ZX80
 	} machine;
 	float probability;
 
