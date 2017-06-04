@@ -78,13 +78,6 @@ extern const uint8_t JamOpcode;
 	jammed state.
 */
 template <class T> class Processor {
-	public:
-
-		class JamHandler {
-			public:
-				virtual void processor_did_jam(Processor *processor, uint16_t address) = 0;
-		};
-
 	private:
 
 		/*
@@ -426,8 +419,6 @@ template <class T> class Processor {
 		}
 
 		bool is_jammed_;
-		JamHandler *jam_handler_;
-
 		int cycles_left_to_run_;
 
 		enum InterruptRequestFlags: uint8_t {
@@ -511,7 +502,6 @@ template <class T> class Processor {
 	protected:
 		Processor() :
 				is_jammed_(false),
-				jam_handler_(nullptr),
 				cycles_left_to_run_(0),
 				ready_line_is_enabled_(false),
 				ready_is_active_(false),
@@ -704,11 +694,6 @@ template <class T> class Processor {
 								is_jammed_ = true;
 								static const MicroOp jam[] = JAM;
 								scheduled_program_counter_ = jam;
-
-								if(jam_handler_) {
-									jam_handler_->processor_did_jam(this, pc_.full - 1);
-									checkSchedule(is_jammed_ = false;);
-								}
 							} continue;
 
 #pragma mark - Bitwise
@@ -1229,15 +1214,6 @@ template <class T> class Processor {
 		*/
 		inline bool is_jammed() {
 			return is_jammed_;
-		}
-
-		/*!
-			Installs a jam handler. Jam handlers are notified if a running 6502 jams.
-
-			@param handler The class instance that will be this 6502's jam handler from now on.
-		*/
-		inline void set_jam_handler(JamHandler *handler) {
-			jam_handler_ = handler;
 		}
 };
 

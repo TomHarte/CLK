@@ -20,6 +20,7 @@ class AllRAMProcessor:
 
 	public:
 		static AllRAMProcessor *Processor();
+		virtual ~AllRAMProcessor() {}
 
 		virtual void run_for_cycles(int number_of_cycles) = 0;
 		virtual bool is_jammed() = 0;

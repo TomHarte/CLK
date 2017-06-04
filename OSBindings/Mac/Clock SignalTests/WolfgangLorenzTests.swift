@@ -9,7 +9,7 @@
 import XCTest
 import Foundation
 
-class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
+class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	
 	func testWolfgangLorenzStart()	{
 		self.runWolfgangLorenzTest(" start")
@@ -201,7 +201,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
 				machine = CSTestMachine6502()
-				machine.jamHandler = self
+				machine.trapHandler = self
 //				machine.logActivity = true
 				output = ""
 
@@ -225,11 +225,18 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 				] as [UInt8]), count: 19)
 				machine.setData( irqHandler, atAddress: 0xff48)
 
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffd2)	// print character
+				machine.addTrapAddress(0xffd2)	// print character
+				machine.addTrapAddress(0xffe4)	// scan keyboard
+
+				machine.addTrapAddress(0x8000)	// exit
+				machine.addTrapAddress(0xa474)	// exit
+
+				machine.setValue(0x60, forAddress:0xffd2)	// 0x60 is RTS
+				machine.setValue(0x60, forAddress:0xffe4)
+				machine.setValue(0x60, forAddress:0x8000)
+				machine.setValue(0x60, forAddress:0xa474)
+
 				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xe16f)	// load
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffe4)	// scan keyboard
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0x8000)	// exit
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xa474)	// exit
 
 				machine.setValue(0x0801, for: CSTestMachine6502Register.programCounter)
 				machine.setValue(0xfd, for: CSTestMachine6502Register.stackPointer)
@@ -296,28 +303,23 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachine6502JamHandler {
 		return result
 	}
 
-	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
+	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
+		let testMachine6502 = testMachine as! CSTestMachine6502
 		switch address {
 			case 0xffd2:
-				machine.setValue(0x00, forAddress: 0x030c)
+				testMachine6502.setValue(0x00, forAddress: 0x030c)
 
-				let character = machine.value(for: CSTestMachine6502Register.A)
+				let character = testMachine6502.value(for: CSTestMachine6502Register.A)
 				output.append(Character(UnicodeScalar(character)!))
 
-				machine.returnFromSubroutine()
-
 			case 0xffe4:
-				machine.setValue(0x3, for:CSTestMachine6502Register.A)
-				machine.returnFromSubroutine()
+				testMachine6502.setValue(0x3, for:CSTestMachine6502Register.A)
 
 			case 0x8000, 0xa474:
 				NSException(name: NSExceptionName(rawValue: "Failed test"), reason: self.petsciiToString(output), userInfo: nil).raise()
 
 			case 0x0000:
 				NSException(name: NSExceptionName(rawValue: "Failed test"), reason: "Execution hit 0000", userInfo: nil).raise()
-
-			case 0xe16f:	// load next (which we consider to be success)
-			break;
 
 			default:
 				let hexAddress = String(format:"%04x", address)

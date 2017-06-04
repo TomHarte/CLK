@@ -12,6 +12,7 @@ using namespace CPU;
 
 AllRAMProcessor::AllRAMProcessor(size_t memory_size) :
 	memory_(memory_size),
+	traps_(memory_size, false),
 	timestamp_(0) {}
 
 void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data) {
@@ -33,5 +34,5 @@ void AllRAMProcessor::set_trap_handler(TrapHandler *trap_handler) {
 }
 
 void AllRAMProcessor::add_trap_address(uint16_t address) {
-	trap_addresses_.insert(address);
+	traps_[address] = true;
 }
