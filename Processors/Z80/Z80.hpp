@@ -269,9 +269,9 @@ template <class T> class Processor {
 
 #define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(pc_))
+#define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r, ri)	\
@@ -486,14 +486,14 @@ template <class T> class Processor {
 
 			InstructionTable base_program_table = {
 				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
-				/* 0x02 LD (BC), A */	Program(STOREL(a_, bc_)),
+				/* 0x02 LD (BC), A */	Program({MicroOp::Move16, &bc_.full, &memptr_.full}, STORE(a_, memptr_)),
 
 				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
 				INC_INC_DEC_LD(bc_, bc_.bytes.high),
 
 				/* 0x07 RLCA */			Program({MicroOp::RLCA}),
 				/* 0x08 EX AF, AF' */	Program({MicroOp::ExAFAFDash}),		/* 0x09 ADD HL, BC */	ADD16(index, bc_),
-				/* 0x0a LD A, (BC) */	Program(FETCHL(a_, bc_)),
+				/* 0x0a LD A, (BC) */	Program({MicroOp::Move16, &bc_.full, &memptr_.full}, FETCH(a_, memptr_)),
 
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
@@ -501,7 +501,7 @@ template <class T> class Processor {
 				/* 0x0f RRCA */			Program({MicroOp::RRCA}),
 				/* 0x10 DJNZ */			Program(WAIT(1), FETCH(temp8_, pc_), {MicroOp::DJNZ}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
-				/* 0x12 LD (DE), A */	Program(STOREL(a_, de_)),
+				/* 0x12 LD (DE), A */	Program({MicroOp::Move16, &de_.full, &memptr_.full}, STORE(a_, memptr_)),
 
 				/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
 				INC_INC_DEC_LD(de_, de_.bytes.high),
@@ -509,7 +509,7 @@ template <class T> class Processor {
 				/* 0x17 RLA */			Program({MicroOp::RLA}),
 				/* 0x18 JR */			Program(FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
-				/* 0x1a LD A, (DE) */	Program(FETCHL(a_, de_)),
+				/* 0x1a LD A, (DE) */	Program({MicroOp::Move16, &de_.full, &memptr_.full}, FETCH(a_, memptr_)),
 
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
@@ -538,7 +538,7 @@ template <class T> class Processor {
 				/* 0x37 SCF */			Program({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
-				/* 0x3a LD A, (nn) */	Program(FETCH16(temp16_, pc_), FETCHL(a_, temp16_)),
+				/* 0x3a LD A, (nn) */	Program(FETCH16(memptr_, pc_), FETCH(a_, memptr_)),
 				/* 0x3b DEC SP */		Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
@@ -621,7 +621,7 @@ template <class T> class Processor {
 				/* 0xde SBC A, n */	Program(FETCH(temp8_, pc_), {MicroOp::SBC8, &temp8_}),
 				/* 0xdf RST 18h */	RST(),
 				/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	Program(POP(index)),
-				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */Program(POP(temp16_), WAIT(1), PUSH(index), WAIT(2), {MicroOp::Move16, &temp16_.full, &index.full}),
+				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */Program(POP(memptr_), WAIT(1), PUSH(index), WAIT(2), {MicroOp::Move16, &memptr_.full, &index.full}),
 				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Program(WAIT(1), PUSH(index)),
 				/* 0xe6 AND n */	Program(FETCH(temp8_, pc_), {MicroOp::And, &temp8_}),
 				/* 0xe7 RST 20h */	RST(),
@@ -877,7 +877,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CalculateRSTDestination:
-							temp16_.full = operation_ & 0x38;
+							memptr_.full = operation_ & 0x38;
 						break;
 
 #pragma mark - 8-bit arithmetic
@@ -1064,7 +1064,8 @@ template <class T> class Processor {
 #pragma mark - 16-bit arithmetic
 
 						case MicroOp::ADD16: {
-							uint16_t sourceValue = *(uint16_t *)operation->source;
+							memptr_.full = *(uint16_t *)operation->source;
+							uint16_t sourceValue = memptr_.full;
 							uint16_t destinationValue = *(uint16_t *)operation->destination;
 							int result = sourceValue + destinationValue;
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
@@ -1078,7 +1079,8 @@ template <class T> class Processor {
 						} break;
 
 						case MicroOp::ADC16: {
-							uint16_t sourceValue = *(uint16_t *)operation->source;
+							memptr_.full = *(uint16_t *)operation->source;
+							uint16_t sourceValue = memptr_.full;
 							uint16_t destinationValue = *(uint16_t *)operation->destination;
 							int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
@@ -1097,7 +1099,8 @@ template <class T> class Processor {
 						} break;
 
 						case MicroOp::SBC16: {
-							uint16_t sourceValue = *(uint16_t *)operation->source;
+							memptr_.full = *(uint16_t *)operation->source;
+							uint16_t sourceValue = memptr_.full;
 							uint16_t destinationValue = *(uint16_t *)operation->destination;
 							int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
 							int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
@@ -1221,10 +1224,12 @@ template <class T> class Processor {
 						} break;
 
 						case MicroOp::CPD: {
+							memptr_.full--;
 							CPxR_STEP(-1);
 						} break;
 
 						case MicroOp::CPI: {
+							memptr_.full++;
 							CPxR_STEP(1);
 						} break;
 
@@ -1262,10 +1267,12 @@ template <class T> class Processor {
 						} break;
 
 						case MicroOp::IND: {
+							memptr_.full = bc_.full - 1;
 							INxR_STEP(-1);
 						} break;
 
 						case MicroOp::INI: {
+							memptr_.full = bc_.full + 1;
 							INxR_STEP(1);
 						} break;
 
@@ -1295,10 +1302,12 @@ template <class T> class Processor {
 
 						case MicroOp::OUTD: {
 							OUTxR_STEP(-1);
+							memptr_.full = bc_.full - 1;
 						} break;
 
 						case MicroOp::OUTI: {
 							OUTxR_STEP(1);
+							memptr_.full = bc_.full + 1;
 						} break;
 
 #undef OUTxR_STEP
@@ -1426,6 +1435,7 @@ template <class T> class Processor {
 	bit53_result_ = zero_result_ = sign_result_ = a_;
 
 						case MicroOp::RRD: {
+							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ & 0xf);
 							temp8_ = (temp8_ >> 4) | (low_nibble << 4);
@@ -1433,6 +1443,7 @@ template <class T> class Processor {
 						} break;
 
 						case MicroOp::RLD: {
+							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ >> 4);
 							temp8_ = (temp8_ << 4) | low_nibble;
