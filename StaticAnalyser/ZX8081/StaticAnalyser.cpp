@@ -13,4 +13,9 @@ void StaticAnalyser::ZX8081::AddTargets(
 		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
 		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
 		std::list<StaticAnalyser::Target> &destination) {
+	// Temporary: be entirely trusting.
+	StaticAnalyser::Target target;
+	target.machine = Target::ZX80;
+	target.tapes = tapes;
+	destination.push_back(target);
 }

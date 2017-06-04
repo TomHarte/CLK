@@ -345,7 +345,7 @@ template <class T> class Processor {
 
 			// Copy in all programs and set pointers.
 			size_t destination = 0;
-			for(int c = 0; c < 256; c++) {
+			for(size_t c = 0; c < 256; c++) {
 				target.instructions[c] = &target.all_operations[destination];
 				for(int t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
