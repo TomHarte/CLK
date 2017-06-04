@@ -49,6 +49,13 @@ class Machine:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
 		std::vector<uint8_t> ram_;
+
+		bool vertical_sync_;
+
+		int cycles_since_display_update_;
+		void update_display();
+		void set_sync(bool sync);
+		void output_byte(uint8_t byte);
 };
 
 }

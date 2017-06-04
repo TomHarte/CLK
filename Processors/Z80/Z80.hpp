@@ -38,7 +38,7 @@ enum Register {
 
 	IXh,	IXl,	IX,
 	IYh,	IYl,	IY,
-	R,		I,
+	R,		I,		Refresh,
 
 	IFF1,	IFF2,	IM
 };
@@ -1652,10 +1652,11 @@ template <class T> class Processor {
 
 				case Register::R:						return r_;
 				case Register::I:						return i_;
+				case Register::Refresh:					return (uint16_t)(r_ |	(i_ << 8));
 
 				case Register::IFF1:					return iff1_ ? 1 : 0;
 				case Register::IFF2:					return iff2_ ? 1 : 0;
-				case Register::IM:						return interrupt_mode_;
+				case Register::IM:						return (uint16_t)interrupt_mode_;
 
 				default: return 0;
 			}
@@ -1710,6 +1711,7 @@ template <class T> class Processor {
 
 				case Register::R:				r_ = (uint8_t)value;					break;
 				case Register::I:				i_ = (uint8_t)value;					break;
+				case Register::Refresh:			r_ = (uint8_t)value;	i_ = (uint8_t)(value >> 8);		break;
 
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
