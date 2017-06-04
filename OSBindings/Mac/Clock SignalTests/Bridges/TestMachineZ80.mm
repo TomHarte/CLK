@@ -8,25 +8,13 @@
 
 #import "TestMachineZ80.h"
 #include "Z80AllRAM.hpp"
+#import "TestMachine+ForSubclassEyesOnly.h"
 
 @interface CSTestMachineZ80 ()
-- (void)testMachineDidTrapAtAddress:(uint16_t)address;
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp;
 @end
 
 #pragma mark - C++ delegate handlers
-
-class MachineTrapHandler: public CPU::AllRAMProcessor::TrapHandler {
-	public:
-		MachineTrapHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
-
-		void processor_did_trap(CPU::AllRAMProcessor &, uint16_t address) {
-			[target_ testMachineDidTrapAtAddress:address];
-		}
-
-	private:
-		CSTestMachineZ80 *target_;
-};
 
 class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegate {
 	public:
@@ -105,7 +93,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 @implementation CSTestMachineZ80 {
 	CPU::Z80::AllRAMProcessor *_processor;
-	MachineTrapHandler *_cppTrapHandler;
 	BusOperationHandler *_busOperationHandler;
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
@@ -120,7 +107,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	if(self = [super init]) {
 		_processor = CPU::Z80::AllRAMProcessor::Processor();
 		_processor->reset_power_on();
-		_cppTrapHandler = new MachineTrapHandler(self);
 		_busOperationHandler = new BusOperationHandler(self);
 		_busOperationCaptures = [[NSMutableArray alloc] init];
 	}
@@ -128,7 +114,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (void)dealloc {
-	delete _cppTrapHandler;
 	delete _busOperationHandler;
 }
 
@@ -160,15 +145,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor->get_value_of_register(registerForRegister(reg));
 }
 
-- (void)addTrapAddress:(uint16_t)trapAddress {
-	_processor->set_trap_handler(_cppTrapHandler);
-	_processor->add_trap_address(trapAddress);
-}
-
-- (void)testMachineDidTrapAtAddress:(uint16_t)address {
-	[self.trapHandler testMachine:self didTrapAtAddress:address];
-}
-
 - (BOOL)isHalted {
 	return _processor->get_halt_line() ? YES : NO;
 }
@@ -181,6 +157,10 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (void)setIrqLine:(BOOL)irqLine {
 	_irqLine = irqLine;
 	_processor->set_interrupt_line(irqLine ? true : false);
+}
+
+- (CPU::AllRAMProcessor *)processor {
+	return _processor;
 }
 
 #pragma mark - Z80-specific Runner

@@ -131,17 +131,18 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 
-	func testMachine(_ testMachine: CSTestMachineZ80, didTrapAtAddress address: UInt16) {
+	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
+		let testMachineZ80 = testMachine as! CSTestMachineZ80
 		switch address {
 			case 0x0005:
-				let cRegister = testMachine.value(for: .C)
+				let cRegister = testMachineZ80.value(for: .C)
 				var textToAppend = ""
 				switch cRegister {
 					case 9:
-						var address = testMachine.value(for: .DE)
+						var address = testMachineZ80.value(for: .DE)
 						var character: Character = " "
 						while true {
-							character = Character(UnicodeScalar(testMachine.value(atAddress: address)))
+							character = Character(UnicodeScalar(testMachineZ80.value(atAddress: address)))
 							if character == "$" {
 								break
 							}
@@ -149,7 +150,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 							address = address + 1
 						}
 					case 5:
-						textToAppend = String(describing: UnicodeScalar(testMachine.value(for: .E)))
+						textToAppend = String(describing: UnicodeScalar(testMachineZ80.value(for: .E)))
 					case 0:
 						done = true
 					default:

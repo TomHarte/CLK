@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "TestMachine.h"
 
 typedef NS_ENUM(NSInteger, CSTestMachine6502Register) {
 	CSTestMachine6502RegisterLastOperationAddress,
@@ -25,7 +26,7 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 - (void)testMachine:(CSTestMachine6502 *)machine didJamAtAddress:(uint16_t)address;
 @end
 
-@interface CSTestMachine6502 : NSObject
+@interface CSTestMachine6502 : CSTestMachine
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
 - (void)runForNumberOfCycles:(int)cycles;
