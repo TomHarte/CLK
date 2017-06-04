@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
+		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
@@ -444,6 +445,9 @@
 		4B046DC31CFE651500E9E45E /* CRTMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTMachine.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
 		4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80InterruptTests.swift; sourceTree = "<group>"; };
+		4B08A2761EE39306008B7065 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
+		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
+		4B08A2791EE3957B008B7065 /* TestMachine+ForSubclassEyesOnly.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TestMachine+ForSubclassEyesOnly.h"; sourceTree = "<group>"; };
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DigitalPhaseLockedLoop.cpp; sourceTree = "<group>"; };
 		4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DigitalPhaseLockedLoop.hpp; sourceTree = "<group>"; };
@@ -1198,12 +1202,15 @@
 				4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */,
 				4B3BA0C81D318B44005DD7A7 /* MOS6522Bridge.h */,
 				4B3BA0CA1D318B44005DD7A7 /* MOS6532Bridge.h */,
+				4B08A2761EE39306008B7065 /* TestMachine.h */,
+				4B08A2791EE3957B008B7065 /* TestMachine+ForSubclassEyesOnly.h */,
 				4B3BA0CC1D318B44005DD7A7 /* TestMachine6502.h */,
 				4BFCA1251ECBE33200AC40C1 /* TestMachineZ80.h */,
 				4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */,
 				4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */,
 				4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */,
 				4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */,
+				4B08A2771EE39306008B7065 /* TestMachine.mm */,
 				4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */,
 				4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */,
 			);
@@ -2623,6 +2630,7 @@
 				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
+				4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
 				4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */,
 			);

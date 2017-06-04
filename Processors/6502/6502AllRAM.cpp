@@ -12,20 +12,61 @@
 
 using namespace CPU::MOS6502;
 
-AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {
-	set_power_on(false);
+namespace {
+
+class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<ConcreteAllRAMProcessor> {
+	public:
+		ConcreteAllRAMProcessor() {
+			set_power_on(false);
+		}
+
+		inline int perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
+			timestamp_++;
+
+			if(operation == BusOperation::ReadOpcode) {
+				check_address_for_trap(address);
+			}
+
+			if(isReadOperation(operation)) {
+				*value = memory_[address];
+			} else {
+				memory_[address] = *value;
+			}
+
+			return 1;
+		}
+
+		void run_for_cycles(int number_of_cycles) {
+			Processor<ConcreteAllRAMProcessor>::run_for_cycles(number_of_cycles);
+		}
+
+		bool is_jammed() {
+			return Processor<ConcreteAllRAMProcessor>::is_jammed();
+		}
+
+		void set_irq_line(bool value) {
+			Processor<ConcreteAllRAMProcessor>::set_irq_line(value);
+		}
+
+		void set_nmi_line(bool value) {
+			Processor<ConcreteAllRAMProcessor>::set_nmi_line(value);
+		}
+
+		void return_from_subroutine() {
+			Processor<ConcreteAllRAMProcessor>::return_from_subroutine();
+		}
+
+		uint16_t get_value_of_register(Register r) {
+			return Processor<ConcreteAllRAMProcessor>::get_value_of_register(r);
+		}
+
+		void set_value_of_register(Register r, uint16_t value) {
+			Processor<ConcreteAllRAMProcessor>::set_value_of_register(r, value);
+		}
+};
+
 }
 
-int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-	timestamp_++;
-
-//	if(operation == MOS6502::BusOperation::ReadOpcode) printf("%04x\n", address);
-
-	if(isReadOperation(operation)) {
-		*value = memory_[address];
-	} else {
-		memory_[address] = *value;
-	}
-
-	return 1;
+AllRAMProcessor *AllRAMProcessor::Processor() {
+	return new ConcreteAllRAMProcessor;
 }

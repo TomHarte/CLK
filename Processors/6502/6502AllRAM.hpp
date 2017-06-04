@@ -16,13 +16,22 @@ namespace CPU {
 namespace MOS6502 {
 
 class AllRAMProcessor:
-	public ::CPU::AllRAMProcessor,
-	public Processor<AllRAMProcessor> {
+	public ::CPU::AllRAMProcessor {
 
 	public:
-		AllRAMProcessor();
+		static AllRAMProcessor *Processor();
+		virtual ~AllRAMProcessor() {}
 
-		int perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		virtual void run_for_cycles(int number_of_cycles) = 0;
+		virtual bool is_jammed() = 0;
+		virtual void set_irq_line(bool value) = 0;
+		virtual void set_nmi_line(bool value) = 0;
+		virtual void return_from_subroutine() = 0;
+		virtual uint16_t get_value_of_register(Register r) = 0;
+		virtual void set_value_of_register(Register r, uint16_t value) = 0;
+
+	protected:
+		AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
 };
 
 }
