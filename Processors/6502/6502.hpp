@@ -12,7 +12,6 @@
 #include <cstdio>
 #include <cstdint>
 
-#include "../MicroOpScheduler.hpp"
 #include "../RegisterSizes.hpp"
 
 namespace CPU {
@@ -67,51 +66,6 @@ enum BusOperation {
 */
 extern const uint8_t JamOpcode;
 
-/*
-	This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
-	as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
-	to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
-*/
-enum MicroOp {
-	CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
-	CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-	OperationSetI,
-
-	OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
-	CycleReadVectorLow,							CycleReadVectorHigh,
-
-	CycleReadFromS,								CycleReadFromPC,
-	CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
-	CycleNoWritePush,
-	CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
-	CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
-	OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
-	CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
-	OperationMoveToNextProgram,					OperationIncrementPC,
-	CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
-	CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
-	OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
-	OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
-	OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
-	OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
-	OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
-	OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
-	OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
-	OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
-	OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
-	OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
-	OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
-	OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
-	OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
-	OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
-	OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
-	OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
-	OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
-	OperationSetOperandFromFlags,
-	OperationSetFlagsFromA,
-	CycleScheduleJam
-};
-
 /*!
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
@@ -123,7 +77,7 @@ enum MicroOp {
 	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
 	jammed state.
 */
-template <class T> class Processor: public MicroOpScheduler<MicroOp> {
+template <class T> class Processor {
 	public:
 
 		class JamHandler {
@@ -133,7 +87,53 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 	private:
 
-#define JAM {CycleFetchOperand, CycleScheduleJam, OperationMoveToNextProgram}
+		/*
+			This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
+			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+		*/
+		enum MicroOp {
+			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
+			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
+			OperationSetI,
+
+			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
+			CycleReadVectorLow,							CycleReadVectorHigh,
+
+			CycleReadFromS,								CycleReadFromPC,
+			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CycleNoWritePush,
+			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
+			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
+			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
+			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
+			OperationMoveToNextProgram,					OperationIncrementPC,
+			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
+			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
+			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
+			OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
+			OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
+			OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
+			OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
+			OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
+			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
+			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
+			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
+			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
+			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
+			OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
+			OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
+			OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
+			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
+			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
+			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+			OperationSetOperandFromFlags,
+			OperationSetFlagsFromA,
+			CycleScheduleJam
+		};
+		const MicroOp *scheduled_program_counter_;
+
+#define JAM {CycleFetchOperand, CycleScheduleJam}
 
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
@@ -422,7 +422,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 #undef Immediate
 #undef Implied
 
-			schedule_program(operations[operation]);
+			scheduled_program_counter_ = operations[operation];
 		}
 
 		bool is_jammed_;
@@ -522,7 +522,8 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 				interrupt_requests_(InterruptRequestFlags::PowerOn),
 				irq_line_(0),
 				nmi_line_is_enabled_(false),
-				set_overflow_line_is_enabled_(false) {
+				set_overflow_line_is_enabled_(false),
+				scheduled_program_counter_(nullptr) {
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
 			carry_flag_ &= Flag::Carry;
@@ -550,8 +551,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			static const MicroOp fetch_decode_execute[] = {
 				CycleFetchOperation,
 				CycleFetchOperand,
-				OperationDecodeOperation,
-				OperationMoveToNextProgram
+				OperationDecodeOperation
 			};
 
 			// These plus program below act to give the compiler permission to update these values
@@ -564,19 +564,18 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #define checkSchedule(op) \
 	if(!scheduled_program_counter_) {\
-		schedule_programs_read_pointer_ = schedule_programs_write_pointer_ = 0;	\
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-				schedule_program(get_reset_program());\
+				scheduled_program_counter_ = get_reset_program();\
 			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-				schedule_program(get_nmi_program());\
+				scheduled_program_counter_ = get_nmi_program();\
 			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-				schedule_program(get_irq_program());\
+				scheduled_program_counter_ = get_irq_program();\
 			} \
 		} else {\
-			schedule_program(fetch_decode_execute);\
+			scheduled_program_counter_ = fetch_decode_execute;\
 		}\
 		op;\
 	}
@@ -644,7 +643,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							continue;
 
 							case OperationMoveToNextProgram:
-								move_to_next_program();
+								scheduled_program_counter_ = nullptr;
 								checkSchedule();
 							continue;
 
@@ -704,7 +703,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 							case CycleScheduleJam: {
 								is_jammed_ = true;
 								static const MicroOp jam[] = JAM;
-								schedule_program(jam);
+								scheduled_program_counter_ = jam;
 
 								if(jam_handler_) {
 									jam_handler_->processor_did_jam(this, pc_.full - 1);
@@ -1003,7 +1002,7 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 
 #pragma mark - Branching
 
-#define BRA(condition)	pc_.full++; if(condition) schedule_program(doBranch)
+#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = doBranch
 
 							case OperationBPL: BRA(!(negative_result_&0x80));				continue;
 							case OperationBMI: BRA(negative_result_&0x80);					continue;
@@ -1145,7 +1144,6 @@ template <class T> class Processor: public MicroOpScheduler<MicroOp> {
 			pc_.full++;
 
 			if(is_jammed_) {
-				scheduled_programs_[0] = scheduled_programs_[1] = scheduled_programs_[2] = scheduled_programs_[3] = nullptr;
 				scheduled_program_counter_ = nullptr;
 			}
 		}
