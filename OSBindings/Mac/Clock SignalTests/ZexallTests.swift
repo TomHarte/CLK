@@ -15,7 +15,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 	fileprivate var output = ""
 
 	func testZexall() {
-		if let filename = Bundle(for: type(of: self)).path(forResource: "zexdoc", ofType: "com") {
+		if let filename = Bundle(for: type(of: self)).path(forResource: "zexall", ofType: "com") {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
 				// install test program, at the usual CP/M place
@@ -51,7 +51,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 					machine.runForNumber(ofCycles: cyclesPerIteration)
 					cyclesToDate += TimeInterval(cyclesPerIteration)
 					if printDate.timeIntervalSinceNow < -5.0 {
-						print("\(cyclesToDate / -startDate.timeIntervalSinceNow) Mhz")
+//						print("\(cyclesToDate / -startDate.timeIntervalSinceNow) Mhz")
 						printDate = Date()
 					}
 				}

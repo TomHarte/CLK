@@ -117,7 +117,7 @@ template <class T> class Processor {
 		bool bus_request_line_;
 
 		uint8_t operation_;
-		RegisterPair temp16_;
+		RegisterPair temp16_, memptr_;
 		uint8_t temp8_;
 
 		struct MicroOp {
@@ -236,7 +236,7 @@ template <class T> class Processor {
 
 #define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
-#define INDEX_ADDR()	(add_offsets ? temp16_ : index)
+#define INDEX_ADDR()	(add_offsets ? memptr_ : index)
 
 #define INC16(r)		{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
@@ -270,7 +270,7 @@ template <class T> class Processor {
 #define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(pc_))
-#define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define LD(a, b)		Program({MicroOp::Move8, &b, &a})
 
@@ -499,7 +499,7 @@ template <class T> class Processor {
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
 
 				/* 0x0f RRCA */			Program({MicroOp::RRCA}),
-				/* 0x10 DJNZ */			Program(WAIT(1), FETCH(temp8_, pc_), {MicroOp::DJNZ}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full}),
+				/* 0x10 DJNZ */			Program(WAIT(1), FETCH(temp8_, pc_), {MicroOp::DJNZ}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
 				/* 0x12 LD (DE), A */	Program(STOREL(a_, de_)),
 
@@ -507,7 +507,7 @@ template <class T> class Processor {
 				INC_INC_DEC_LD(de_, de_.bytes.high),
 
 				/* 0x17 RLA */			Program({MicroOp::RLA}),
-				/* 0x18 JR */			Program(FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &temp16_.full, &pc_.full}),
+				/* 0x18 JR */			Program(FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
 				/* 0x1a LD A, (DE) */	Program(FETCHL(a_, de_)),
 
@@ -1308,8 +1308,8 @@ template <class T> class Processor {
 						case MicroOp::BIT: {
 							uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
 
-							if(current_instruction_page_->is_indexed) {
-								bit53_result_ = temp16_.bytes.high;
+							if(current_instruction_page_->is_indexed || ((operation_&0x08) == 7)) {
+								bit53_result_ = memptr_.bytes.high;
 							} else {
 								bit53_result_ = *(uint8_t *)operation->source;
 							}
@@ -1530,7 +1530,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CalculateIndexAddress:
-							temp16_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
+							memptr_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
 						break;
 
 						case MicroOp::IndexedPlaceHolder:
