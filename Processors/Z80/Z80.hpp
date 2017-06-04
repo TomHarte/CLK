@@ -786,7 +786,7 @@ template <class T> class Processor {
 					scheduled_program_counter_++;
 
 #define set_parity(v)	\
-	parity_overflow_result_ = v^1;\
+	parity_overflow_result_ = (uint8_t)(v^1);\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
 	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
@@ -857,7 +857,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CCF:
-							half_carry_result_ = carry_result_ << 4;
+							half_carry_result_ = (uint8_t)(carry_result_ << 4);
 							carry_result_ ^= Flag::Carry;
 							subtract_flag_ = 0;
 							bit53_result_ = a_;
@@ -887,9 +887,9 @@ template <class T> class Processor {
 
 #define set_arithmetic_flags(sub, b53)	\
 	sign_result_ = zero_result_ = (uint8_t)result;	\
-	carry_result_ = result >> 8;	\
-	half_carry_result_ = half_result;	\
-	parity_overflow_result_ = overflow >> 5;	\
+	carry_result_ = (uint8_t)(result >> 8);	\
+	half_carry_result_ = (uint8_t)half_result;	\
+	parity_overflow_result_ = (uint8_t)(overflow >> 5);	\
 	subtract_flag_ = sub;	\
 	bit53_result_ = (uint8_t)b53;
 
@@ -969,8 +969,8 @@ template <class T> class Processor {
 							bit53_result_ = sign_result_ = zero_result_ = a_;
 							parity_overflow_result_ = overflow ? Flag::Overflow : 0;
 							subtract_flag_ = Flag::Subtract;
-							carry_result_ = result >> 8;
-							half_carry_result_ = halfResult;
+							carry_result_ = (uint8_t)(result >> 8);
+							half_carry_result_ = (uint8_t)halfResult;
 						} break;
 
 						case MicroOp::Increment8: {
@@ -986,8 +986,8 @@ template <class T> class Processor {
 
 							// sign, zero and 5 & 3 are set directly from the result
 							bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-							half_carry_result_ = half_result;
-							parity_overflow_result_ = overflow >> 5;
+							half_carry_result_ = (uint8_t)half_result;
+							parity_overflow_result_ = (uint8_t)(overflow >> 5);
 							subtract_flag_ = 0;
 						} break;
 
@@ -1004,8 +1004,8 @@ template <class T> class Processor {
 
 							// sign, zero and 5 & 3 are set directly from the result
 							bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-							half_carry_result_ = half_result;
-							parity_overflow_result_ = overflow >> 5;
+							half_carry_result_ = (uint8_t)half_result;
+							parity_overflow_result_ = (uint8_t)(overflow >> 5);
 							subtract_flag_ = Flag::Subtract;
 						} break;
 
@@ -1074,8 +1074,8 @@ template <class T> class Processor {
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
 							bit53_result_ = (uint8_t)(result >> 8);
-							carry_result_ = result >> 16;
-							half_carry_result_ = (halfResult >> 8);
+							carry_result_ = (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
 							subtract_flag_ = 0;
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
@@ -1094,9 +1094,9 @@ template <class T> class Processor {
 							sign_result_	= (uint8_t)(result >> 8);
 							zero_result_	= (uint8_t)(result | sign_result_);
 							subtract_flag_	= 0;
-							carry_result_	= result >> 16;
-							half_carry_result_ = halfResult >> 8;
-							parity_overflow_result_ = overflow >> 13;
+							carry_result_	= (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
+							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
 						} break;
@@ -1117,9 +1117,9 @@ template <class T> class Processor {
 							sign_result_	= (uint8_t)(result >> 8);
 							zero_result_	= (uint8_t)(result | sign_result_);
 							subtract_flag_	= Flag::Subtract;
-							carry_result_	= result >> 16;
-							half_carry_result_ = halfResult >> 8;
-							parity_overflow_result_ = overflow >> 13;
+							carry_result_	= (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
+							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
 						} break;
@@ -1176,7 +1176,7 @@ template <class T> class Processor {
 	de_.full += dir;	\
 	hl_.full += dir;	\
 	uint8_t sum = a_ + temp8_;	\
-	bit53_result_ = (sum&0x8) | ((sum & 0x02) << 4);	\
+	bit53_result_ = (uint8_t)((sum&0x8) | ((sum & 0x02) << 4));	\
 	subtract_flag_ = 0;	\
 	half_carry_result_ = 0;	\
 	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
@@ -1441,7 +1441,7 @@ template <class T> class Processor {
 							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ & 0xf);
-							temp8_ = (temp8_ >> 4) | (low_nibble << 4);
+							temp8_ = (uint8_t)((temp8_ >> 4) | (low_nibble << 4));
 							set_decimal_rotate_flags();
 						} break;
 
@@ -1449,7 +1449,7 @@ template <class T> class Processor {
 							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ >> 4);
-							temp8_ = (temp8_ << 4) | low_nibble;
+							temp8_ = (uint8_t)((temp8_ << 4) | low_nibble);
 							set_decimal_rotate_flags();
 						} break;
 
@@ -1544,7 +1544,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CalculateIndexAddress:
-							memptr_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
+							memptr_.full = (uint16_t)(*(uint16_t *)operation->source + (int8_t)temp8_);
 						break;
 
 						case MicroOp::IndexedPlaceHolder:
