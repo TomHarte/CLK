@@ -51,7 +51,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 					machine.runForNumber(ofCycles: cyclesPerIteration)
 					cyclesToDate += TimeInterval(cyclesPerIteration)
 					if printDate.timeIntervalSinceNow < -5.0 {
-//						print("\(cyclesToDate / -startDate.timeIntervalSinceNow) Mhz")
+						print("\(cyclesToDate / -startDate.timeIntervalSinceNow) Mhz")
 						printDate = Date()
 					}
 				}
