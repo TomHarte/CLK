@@ -1169,7 +1169,8 @@ template <class T> class Processor {
 	bc_.full--;	\
 	de_.full += dir;	\
 	hl_.full += dir;	\
-	bit53_result_ = a_ + temp8_;	\
+	uint8_t sum = a_ + temp8_;	\
+	bit53_result_ = (sum&0x8) | ((sum & 0x02) << 4);	\
 	subtract_flag_ = 0;	\
 	half_carry_result_ = 0;	\
 	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
