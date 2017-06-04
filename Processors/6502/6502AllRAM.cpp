@@ -20,7 +20,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			set_power_on(false);
 		}
 
-		int perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
+		inline int perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
 			timestamp_++;
 
 			if(operation == BusOperation::ReadOpcode) {
