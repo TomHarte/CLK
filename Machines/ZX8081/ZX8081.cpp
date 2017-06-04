@@ -28,6 +28,9 @@ void Machine::setup_output(float aspect_ratio) {
 		"}");
 }
 
+void Machine::flush() {
+}
+
 void Machine::close_output() {
 }
 
@@ -43,4 +46,11 @@ void Machine::run_for_cycles(int number_of_cycles) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
+}
+
+void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
+	switch(type) {
+		case ZX80: zx80_rom_ = data; break;
+		case ZX81: zx81_rom_ = data; break;
+	}
 }

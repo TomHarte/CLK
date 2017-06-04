@@ -775,7 +775,10 @@ template <class T> class Processor {
 				while(bus_request_line_) {
 					static MachineCycle bus_acknowledge_cycle = {BusOperation::BusAcknowledge, 1};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
-					if(!number_of_cycles_) return;
+					if(!number_of_cycles_) {
+						flush();
+						return;
+					}
 				}
 
 				while(!bus_request_line_) {
@@ -790,7 +793,7 @@ template <class T> class Processor {
 
 					switch(operation->type) {
 						case MicroOp::BusOperation:
-							if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; return; }
+							if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; flush(); return; }
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
 							number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);

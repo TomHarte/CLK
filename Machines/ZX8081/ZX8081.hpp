@@ -14,7 +14,14 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 
+#include <cstdint>
+#include <vector>
+
 namespace ZX8081 {
+
+enum ROMType: uint8_t {
+	ZX80, ZX81
+};
 
 class Machine:
 	public CPU::Z80::Processor<Machine>,
@@ -24,6 +31,7 @@ class Machine:
 		Machine();
 
 		int perform_machine_cycle(const CPU::Z80::MachineCycle &cycle);
+		void flush();
 
 		void setup_output(float aspect_ratio);
 		void close_output();
@@ -35,8 +43,12 @@ class Machine:
 
 		void configure_as_target(const StaticAnalyser::Target &target);
 
+		void set_rom(ROMType type, std::vector<uint8_t> data);
+
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
+		std::vector<uint8_t> ram_;
 };
 
 }
