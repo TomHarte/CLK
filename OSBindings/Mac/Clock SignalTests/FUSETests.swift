@@ -121,7 +121,7 @@ fileprivate struct RegisterState {
 extension RegisterState: Equatable {}
 
 fileprivate func ==(lhs: RegisterState, rhs: RegisterState) -> Bool {
-	return	(lhs.af  & ~0x0028) == (rhs.af  & ~0x0028) &&
+	return	lhs.af == rhs.af &&
 			lhs.bc == rhs.bc &&
 			lhs.de == rhs.de &&
 			lhs.hl == rhs.hl &&
