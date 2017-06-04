@@ -38,6 +38,14 @@ class ZX80O: public Tape, public Storage::FileHolder {
 	private:
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
+
+		uint8_t byte_;
+		int bit_pointer_;
+		int wave_pointer_;
+		bool is_past_silence_;
+		bool is_high_;
+
+		uint16_t end_of_file_;
 };
 
 }
