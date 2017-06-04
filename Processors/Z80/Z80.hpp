@@ -213,9 +213,10 @@ template <class T> class Processor {
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
 			MicroOp *fetch_decode_execute_data;
-			uint8_t r_step_;
+			uint8_t r_step;
+			bool is_indexed;
 
-			InstructionPage() : r_step_(1) {}
+			InstructionPage() : r_step(1), is_indexed(false) {}
 		};
 		std::vector<MicroOp> reset_program_;
 		std::vector<MicroOp> irq_program_[3];
@@ -682,8 +683,13 @@ template <class T> class Processor {
 			assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 			assemble_ed_page(ed_page_);
 
-			fdcb_page_.r_step_ = 0;
-			ddcb_page_.r_step_ = 0;
+			fdcb_page_.r_step = 0;
+			fd_page_.is_indexed = true;
+			fdcb_page_.is_indexed = true;
+
+			ddcb_page_.r_step = 0;
+			dd_page_.is_indexed = true;
+			ddcb_page_.is_indexed = true;
 
 			assemble_fetch_decode_execute(base_page_, 4);
 			assemble_fetch_decode_execute(dd_page_, 4);
@@ -793,7 +799,7 @@ template <class T> class Processor {
 							advance_operation();
 						break;
 						case MicroOp::DecodeOperation:
-							r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step_) & 0x7f);
+							r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step) & 0x7f);
 							pc_.full += pc_increment_;
 						case MicroOp::DecodeOperationNoRChange:
 							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
@@ -1299,8 +1305,13 @@ template <class T> class Processor {
 						case MicroOp::BIT: {
 							uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
 
+							if(current_instruction_page_->is_indexed) {
+								bit53_result_ = temp16_.bytes.high;
+							} else {
+								bit53_result_ = *(uint8_t *)operation->source;
+							}
+
 							sign_result_ = zero_result_ = result;
-							bit53_result_ = *(uint8_t *)operation->source;	// This is a divergence between FUSE and The Undocumented Z80 Documented.
 							half_carry_result_ = Flag::HalfCarry;
 							subtract_flag_ = 0;
 							parity_overflow_result_ = result ? 0 : Flag::Parity;
