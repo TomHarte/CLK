@@ -1205,8 +1205,10 @@ template <class T> class Processor {
 	parity_overflow_result_ =  bc_.full ? Flag::Parity : 0;	\
 	half_carry_result_ = halfResult;	\
 	subtract_flag_ = Flag::Subtract;	\
+	sign_result_ = zero_result_ = result;	\
+	\
+	result -= (halfResult >> 4)&1;	\
 	bit53_result_ = (uint8_t)((result&0x8) | ((result&0x2) << 4));	\
-	sign_result_ = zero_result_ = result;
 
 						case MicroOp::CPDR: {
 							CPxR_STEP(-1);
