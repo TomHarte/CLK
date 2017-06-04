@@ -19,6 +19,8 @@ AllRAMProcessor::AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {
 int AllRAMProcessor::perform_bus_operation(MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	timestamp_++;
 
+//	if(operation == MOS6502::BusOperation::ReadOpcode) printf("%04x\n", address);
+
 	if(isReadOperation(operation)) {
 		*value = memory_[address];
 	} else {
