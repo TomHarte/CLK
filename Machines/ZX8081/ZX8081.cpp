@@ -8,33 +8,33 @@
 
 #include "ZX8081.hpp"
 
-//static int logging_delay = 3250000 * 10;
+#include "../MemoryFuzzer.hpp"
 
 using namespace ZX8081;
 
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
-	ram_(65536) {
+	ram_(1024) {
 	// run at 3.25 Mhz
 	set_clock_rate(3250000);
+	Memory::Fuzz(ram_);
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	cycles_since_display_update_ += cycle.length;
-//	logging_delay -= cycle.length;
 
 	uint8_t r;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
-			if((*cycle.address&0xff) == 0xff) {
+			if((address&7) == 7) {
 				set_vsync(false);
 			}
 		break;
 
 		case CPU::Z80::BusOperation::Input:
-			if((*cycle.address&0xff) == 0xfe) {
+			if((address&7) == 6) {
 				set_vsync(true);
 			}
 			*cycle.value = 0xff;
@@ -55,13 +55,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				uint8_t value = ram_[address & 1023];
 				if(address&0x8000 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode && !get_halt_line()) {
 					// TODO: character lookup.
-//					if(logging_delay < 0) printf("%02x ", value);
-					if(value) printf("!");
 					output_byte(value);
 					*cycle.value = 0;
-				}
-				else
-					*cycle.value = value;
+				} else *cycle.value = value;
 			}
 		break;
 
@@ -124,16 +120,13 @@ void Machine::update_display() {
 
 void Machine::set_vsync(bool sync) {
 	if(sync == vsync_) return;
-//	if(logging_delay < 0) if(!sync) printf("\n---\n");
 	vsync_ = sync;
 }
 
 void Machine::set_hsync(bool sync) {
 	if(sync == hsync_) return;
-//	if(logging_delay < 0) if(sync) printf("\n");
 	hsync_ = sync;
 }
 
 void Machine::output_byte(uint8_t byte) {
-//	printf("%02x ", byte);
 }

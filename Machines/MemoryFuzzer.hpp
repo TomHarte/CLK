@@ -11,10 +11,12 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
 namespace Memory {
 
 void Fuzz(uint8_t *buffer, size_t size);
+void Fuzz(std::vector<uint8_t> &buffer);
 
 }
 
