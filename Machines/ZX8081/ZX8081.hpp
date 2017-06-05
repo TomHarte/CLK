@@ -50,11 +50,12 @@ class Machine:
 		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
 		std::vector<uint8_t> ram_;
 
-		bool vertical_sync_;
+		bool vsync_, hsync_;
 
 		int cycles_since_display_update_;
 		void update_display();
-		void set_sync(bool sync);
+		void set_vsync(bool sync);
+		void set_hsync(bool sync);
 		void output_byte(uint8_t byte);
 };
 

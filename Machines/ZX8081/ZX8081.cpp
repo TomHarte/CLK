@@ -11,7 +11,8 @@
 using namespace ZX8081;
 
 Machine::Machine() :
-	vertical_sync_(false),
+	vsync_(false),
+	hsync_(false),
 	ram_(65536) {
 	// run at 3.25 Mhz
 	set_clock_rate(3250000);
@@ -23,24 +24,26 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	uint8_t r;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
-			if(*cycle.address == 0xff) {
-				update_display();
-				set_sync(false);
+			if((*cycle.address&0xff) == 0xff) {
+				set_vsync(false);
 			}
 		break;
 
 		case CPU::Z80::BusOperation::Input:
-			if(*cycle.address == 0xfe) {
-				update_display();
-				set_sync(true);
+			if((*cycle.address&0xff) == 0xfe) {
+				set_vsync(true);
 			}
+			*cycle.value = 0xff;
 		break;
 
 		case CPU::Z80::BusOperation::Interrupt:
+			set_hsync(true);
 			*cycle.value = 0xff;
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
+			set_hsync(false);
+//			printf("%04x\n", *cycle.address);
 			r = (uint8_t)get_value_of_register(CPU::Z80::Register::R);
 			set_interrupt_line(!(r & 0x40));
 		case CPU::Z80::BusOperation::Read:
@@ -113,8 +116,16 @@ void Machine::update_display() {
 	cycles_since_display_update_ = 0;
 }
 
-void Machine::set_sync(bool sync) {
+void Machine::set_vsync(bool sync) {
+	if(sync && !vsync_) printf("\n---\n");
+	vsync_ = sync;
+}
+
+void Machine::set_hsync(bool sync) {
+	if(sync && !hsync_) printf("\n");
+	hsync_ = sync;
 }
 
 void Machine::output_byte(uint8_t byte) {
+	printf("%02x ", byte);
 }
