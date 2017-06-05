@@ -1732,6 +1732,8 @@ template <class T> class Processor {
 			Sets the logical value of the interrupt line.
 		*/
 		void set_interrupt_line(bool value) {
+			if(irq_line_ == value) return;
+
 			// IRQ requests are level triggered and masked.
 			irq_line_ = value;
 			if(irq_line_ && iff1_) {
