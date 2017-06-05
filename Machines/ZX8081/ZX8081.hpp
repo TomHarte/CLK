@@ -51,11 +51,15 @@ class Machine:
 		std::vector<uint8_t> ram_;
 
 		bool vsync_, hsync_;
+		bool is_sync_;
+		uint8_t *line_data_;
 
-		int cycles_since_display_update_;
+		unsigned int cycles_since_display_update_;
 		void update_display();
 		void set_vsync(bool sync);
 		void set_hsync(bool sync);
+		void update_sync();
+		void output_level(unsigned int number_of_cycles);
 		void output_byte(uint8_t byte);
 };
 

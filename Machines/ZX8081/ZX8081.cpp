@@ -15,7 +15,8 @@ using namespace ZX8081;
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
-	ram_(1024) {
+	ram_(1024),
+	line_data_(nullptr) {
 	// run at 3.25 Mhz
 	set_clock_rate(3250000);
 	Memory::Fuzz(ram_);
@@ -114,19 +115,43 @@ void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
 #pragma mark - Video
 
 void Machine::update_display() {
-	// TODO.
-	cycles_since_display_update_ = 0;
+//	cycles_since_display_update_ = 0;
 }
 
 void Machine::set_vsync(bool sync) {
 	if(sync == vsync_) return;
 	vsync_ = sync;
+	update_sync();
 }
 
 void Machine::set_hsync(bool sync) {
 	if(sync == hsync_) return;
 	hsync_ = sync;
+	update_sync();
+}
+
+void Machine::update_sync() {
+	bool is_sync = hsync_ || vsync_;
+	if(is_sync == is_sync_) return;
+
+	if(is_sync_) {
+		crt_->output_sync(cycles_since_display_update_);
+	} else {
+		output_level(cycles_since_display_update_);
+	}
+	cycles_since_display_update_ = 0;
+	is_sync_ = is_sync;
+}
+
+void Machine::output_level(unsigned int number_of_cycles) {
+	uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+	if(colour_pointer) *colour_pointer = 0;
+	crt_->output_level(number_of_cycles);
 }
 
 void Machine::output_byte(uint8_t byte) {
+	if(!line_data_) {
+	}
+//	printf("%d\n", cycles_since_display_update_);
+//	cycles_since_display_update_ = 0;
 }
