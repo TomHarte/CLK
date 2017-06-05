@@ -8,6 +8,8 @@
 
 #include "ZX8081.hpp"
 
+//static int logging_delay = 3250000 * 10;
+
 using namespace ZX8081;
 
 Machine::Machine() :
@@ -20,8 +22,10 @@ Machine::Machine() :
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	cycles_since_display_update_ += cycle.length;
+//	logging_delay -= cycle.length;
 
 	uint8_t r;
+	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
 			if((*cycle.address&0xff) == 0xff) {
@@ -43,24 +47,26 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 
 		case CPU::Z80::BusOperation::ReadOpcode:
 			set_hsync(false);
-//			printf("%04x\n", *cycle.address);
 			r = (uint8_t)get_value_of_register(CPU::Z80::Register::R);
 			set_interrupt_line(!(r & 0x40));
 		case CPU::Z80::BusOperation::Read:
-			if(*cycle.address < rom_.size()) *cycle.value = rom_[*cycle.address];
-			else {
-				uint8_t value = ram_[*cycle.address];
-				if(*cycle.address > 32768 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode) {
+			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
+			else if((address & 0x4000) == 0x4000) {
+				uint8_t value = ram_[address & 1023];
+				if(address&0x8000 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode && !get_halt_line()) {
 					// TODO: character lookup.
+//					if(logging_delay < 0) printf("%02x ", value);
+					if(value) printf("!");
 					output_byte(value);
 					*cycle.value = 0;
 				}
-				else *cycle.value = value;
+				else
+					*cycle.value = value;
 			}
 		break;
 
 		case CPU::Z80::BusOperation::Write:
-			ram_[*cycle.address] = *cycle.value;
+			if((address & 0x4000) == 0x4000) ram_[address & 1023] = *cycle.value;
 		break;
 
 		default: break;
@@ -117,15 +123,17 @@ void Machine::update_display() {
 }
 
 void Machine::set_vsync(bool sync) {
-	if(sync && !vsync_) printf("\n---\n");
+	if(sync == vsync_) return;
+//	if(logging_delay < 0) if(!sync) printf("\n---\n");
 	vsync_ = sync;
 }
 
 void Machine::set_hsync(bool sync) {
-	if(sync && !hsync_) printf("\n");
+	if(sync == hsync_) return;
+//	if(logging_delay < 0) if(sync) printf("\n");
 	hsync_ = sync;
 }
 
 void Machine::output_byte(uint8_t byte) {
-	printf("%02x ", byte);
+//	printf("%02x ", byte);
 }
