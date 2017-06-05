@@ -803,7 +803,7 @@ template <class T> class Processor {
 						break;
 						case MicroOp::DecodeOperation:
 							r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step) & 0x7f);
-							pc_.full += pc_increment_;
+							pc_.full += pc_increment_ & (uint16_t)halt_mask_;
 						case MicroOp::DecodeOperationNoRChange:
 							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 						break;
