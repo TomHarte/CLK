@@ -23,9 +23,9 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
-	cycles_since_display_update_ += cycle.length;
+	cycles_since_display_update_ += (unsigned int)cycle.length;
 
-	uint8_t r;
+	uint16_t r = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
@@ -37,24 +37,32 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		case CPU::Z80::BusOperation::Input:
 			if((address&7) == 6) {
 				set_vsync(true);
+				line_counter_ = 0;
 			}
 			*cycle.value = 0xff;
 		break;
 
 		case CPU::Z80::BusOperation::Interrupt:
 			set_hsync(true);
+			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
 			set_hsync(false);
-			r = (uint8_t)get_value_of_register(CPU::Z80::Register::R);
+			r = (uint8_t)get_value_of_register(CPU::Z80::Register::Refresh);
 			set_interrupt_line(!(r & 0x40));
 		case CPU::Z80::BusOperation::Read:
 			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
 			else if((address & 0x4000) == 0x4000) {
 				uint8_t value = ram_[address & 1023];
 				if(address&0x8000 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode && !get_halt_line()) {
+					size_t char_address = (size_t)((r & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
+					if((char_address & 0xc000) == 0x0000) {
+						uint8_t mask = (value & 0x80) ? 0xff : 0x00;
+						value = rom_[char_address & (rom_.size() - 1)] ^ mask;
+					}
+
 					// TODO: character lookup.
 					output_byte(value);
 					*cycle.value = 0;
@@ -154,8 +162,8 @@ void Machine::output_level(unsigned int number_of_cycles) {
 }
 
 void Machine::output_data() {
-	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
-	crt_->output_data(data_length, 1);
+	unsigned int data_length = ((unsigned int)(line_data_pointer_ - line_data_)) ;
+	crt_->output_data(data_length * 1, 1);
 	line_data_pointer_ = line_data_ = nullptr;
 	cycles_since_display_update_ -= data_length;
 }
@@ -175,10 +183,11 @@ void Machine::output_byte(uint8_t byte) {
 	}
 
 	if(line_data_) {
-		line_data_pointer_[0] = byte;
-		line_data_pointer_[1] = byte;
-		line_data_pointer_[2] = byte;
-		line_data_pointer_[3] = byte;
+		uint8_t mask = 0x80;
+		for(int c = 0; c < 4; c++) {
+			line_data_pointer_[c] = (byte & mask) ? 0xff : 0x00;
+			mask >>= 1;
+		}
 		line_data_pointer_ += 4;
 	}
 }

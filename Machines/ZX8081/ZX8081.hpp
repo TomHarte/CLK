@@ -53,6 +53,7 @@ class Machine:
 		bool vsync_, hsync_;
 		bool is_sync_;
 		uint8_t *line_data_, *line_data_pointer_;
+		int line_counter_;
 
 		unsigned int cycles_since_display_update_;
 		void update_display();
