@@ -53,7 +53,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					mask <<= 1;
 				}
 
-				value &= ~(tape_player_.get_input() ? 0x80 : 0);
+				value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
 			}
 			*cycle.value = value;
 		} break;
