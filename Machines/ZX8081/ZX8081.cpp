@@ -149,13 +149,13 @@ void Machine::update_sync() {
 
 void Machine::output_level(unsigned int number_of_cycles) {
 	uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
-	if(colour_pointer) *colour_pointer = 0;
+	if(colour_pointer) *colour_pointer = 0xff;
 	crt_->output_level(number_of_cycles);
 }
 
 void Machine::output_data() {
-	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_) * 4;
-	crt_->output_data(data_length, 4);
+	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
+	crt_->output_data(data_length, 1);
 	line_data_pointer_ = line_data_ = nullptr;
 	cycles_since_display_update_ -= data_length;
 }
@@ -165,6 +165,8 @@ void Machine::output_byte(uint8_t byte) {
 		if(cycles_since_display_update_ > 4) {
 			output_data();
 		}
+	} else {
+		output_level(cycles_since_display_update_);
 	}
 
 	if(!line_data_) {
