@@ -16,7 +16,8 @@ Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
 	ram_(1024),
-	line_data_(nullptr) {
+	line_data_(nullptr),
+	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {
 	// run at 3.25 Mhz
 	set_clock_rate(3250000);
 	Memory::Fuzz(ram_);
@@ -34,13 +35,20 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			}
 		break;
 
-		case CPU::Z80::BusOperation::Input:
+		case CPU::Z80::BusOperation::Input: {
+			uint8_t value = 0xff;
 			if((address&7) == 6) {
 				set_vsync(true);
 				line_counter_ = 0;
+
+				uint16_t mask = 0x100;
+				for(int c = 0; c < 8; c++) {
+					if(!(address & mask)) value &= key_states_[c];
+					mask <<= 1;
+				}
 			}
-			*cycle.value = 0xff;
-		break;
+			*cycle.value = value;
+		} break;
 
 		case CPU::Z80::BusOperation::Interrupt:
 			set_hsync(true);
@@ -189,9 +197,22 @@ void Machine::output_byte(uint8_t byte) {
 
 void Machine::setup_output(float aspect_ratio) {
 	crt_.reset(new Outputs::CRT::CRT(210 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1));
-	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+	crt_->set_composite_sampling_function(
+		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
-			"return vec3(float(texture(texID, coordinate).r) / 255.0);"
+			"return float(texture(texID, coordinate).r) / 255.0;"
 		"}");
+}
+
+#pragma mark - Keyboard
+
+void Machine::set_key_state(uint16_t key, bool isPressed) {
+	if(isPressed)
+		key_states_[key >> 8] &= (uint8_t)(~key);
+	else
+		key_states_[key >> 8] |= (uint8_t)key;
+}
+
+void Machine::clear_all_keys() {
+	memset(key_states_, 0xff, 8);
 }
