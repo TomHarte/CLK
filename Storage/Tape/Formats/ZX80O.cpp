@@ -41,7 +41,7 @@ void ZX80O::virtual_reset() {
 	fseek(file_, 0, SEEK_SET);
 	is_past_silence_ = false;
 	is_high_ = true;
-	bit_pointer_ = 9;
+	bit_pointer_ = wave_pointer_ = 0;
 }
 
 bool ZX80O::is_at_end() {
@@ -61,14 +61,20 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 	}
 
 	// For each byte, output 8 bits and then silence.
-	if(bit_pointer_ == 9) {
+	if(!bit_pointer_ && !wave_pointer_) {
 		byte_ = (uint8_t)fgetc(file_);
 		bit_pointer_ = 0;
 		wave_pointer_ = 0;
 	}
 
-	// Bytes are stored MSB first.
-	if(bit_pointer_ < 8) {
+	if(!wave_pointer_) {
+		// post-waves silence (here actually a pre-waves silence) is 1300µs
+		pulse.length.length = 13;
+		pulse.length.clock_rate = 10000;
+		pulse.type = Pulse::Type::Zero;
+
+		wave_pointer_ ++;
+	} else {
 		// waves are of length 150µs
 		pulse.length.length = 3;
 		pulse.length.clock_rate = 20000;
@@ -76,27 +82,18 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 		if(is_high_) {
 			pulse.type = Pulse::Type::High;
 			is_high_ = false;
-			printf("-");
 		} else {
 			pulse.type = Pulse::Type::Low;
 			is_high_ = true;
-			printf("_");
 
+			// Bytes are stored MSB first.
 			int wave_count = (byte_ & (0x80 >> bit_pointer_)) ? 9 : 4;
 			wave_pointer_++;
-			if(wave_pointer_ == wave_count) {
-				bit_pointer_++;
+			if(wave_pointer_ == wave_count + 1) {
+				bit_pointer_ = (bit_pointer_ + 1)&7;
 				wave_pointer_ = 0;
 			}
 		}
-	} else {
-		// post-waves silence is 1300µs
-		pulse.length.length = 13;
-		pulse.length.clock_rate = 10000;
-		pulse.type = Pulse::Type::Zero;
-
-		bit_pointer_++;
-		printf("\n");
 	}
 
 	return pulse;
