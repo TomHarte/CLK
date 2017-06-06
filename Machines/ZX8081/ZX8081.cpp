@@ -53,7 +53,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					mask <<= 1;
 				}
 
-				mask &= ~(tape_player_.get_input() ? 0x80 : 0);
+				value &= ~(tape_player_.get_input() ? 0x80 : 0);
 			}
 			*cycle.value = value;
 		} break;
@@ -120,7 +120,8 @@ void Machine::run_for_cycles(int number_of_cycles) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
-	// TODO: pay attention to the target
+	// TODO: pay attention to the target; it can't currently specify a ZX81
+	// so assume a ZX80 if we got here.
 	rom_ = zx80_rom_;
 
 	if(target.tapes.size()) {
