@@ -13,6 +13,7 @@
 #include "../CRTMachine.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -78,6 +79,9 @@ class Machine:
 		void output_level(unsigned int number_of_cycles);
 		void output_byte(uint8_t byte);
 		void output_data();
+
+		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool tape_level_;
 };
 
 }

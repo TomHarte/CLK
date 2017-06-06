@@ -12,40 +12,49 @@
 
 using namespace ZX8081;
 
+namespace {
+	const unsigned int ZX8081ClockRate = 3250000;
+}
+
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
 	ram_(1024),
 	line_data_(nullptr),
-	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {
+	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	tape_player_(ZX8081ClockRate) {
 	// run at 3.25 Mhz
-	set_clock_rate(3250000);
+	set_clock_rate(ZX8081ClockRate);
 	Memory::Fuzz(ram_);
+	tape_player_.set_motor_control(true);
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	cycles_since_display_update_ += (unsigned int)cycle.length;
+	tape_player_.run_for_cycles(cycle.length);
 
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
-			if((address&7) == 7) {
+//			if((address&7) == 7) {
 				set_vsync(false);
-			}
+				line_counter_ = 0;
+//			}
 		break;
 
 		case CPU::Z80::BusOperation::Input: {
 			uint8_t value = 0xff;
-			if((address&7) == 6) {
+			if(!(address&1)) {
 				set_vsync(true);
-				line_counter_ = 0;
 
 				uint16_t mask = 0x100;
 				for(int c = 0; c < 8; c++) {
 					if(!(address & mask)) value &= key_states_[c];
 					mask <<= 1;
 				}
+
+				mask &= ~(tape_player_.get_input() ? 0x80 : 0);
 			}
 			*cycle.value = value;
 		} break;
@@ -110,6 +119,10 @@ void Machine::run_for_cycles(int number_of_cycles) {
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	// TODO: pay attention to the target
 	rom_ = zx80_rom_;
+
+	if(target.tapes.size()) {
+		tape_player_.set_tape(target.tapes.front());
+	}
 }
 
 void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
