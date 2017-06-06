@@ -80,15 +80,6 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	return 0;
 }
 
-void Machine::setup_output(float aspect_ratio) {
-	crt_.reset(new Outputs::CRT::CRT(210, 1, Outputs::CRT::DisplayType::PAL50, 1));
-	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
-		"{"
-			"return vec3(float(texture(texID, coordinate).r) / 255.0);"
-		"}");
-}
-
 void Machine::flush() {
 	update_display();
 }
@@ -147,9 +138,9 @@ void Machine::update_sync() {
 	}
 
 	if(is_sync_) {
-		crt_->output_sync(cycles_since_display_update_);
+		crt_->output_sync(cycles_since_display_update_ << 1);
 	} else {
-		output_level(cycles_since_display_update_);
+		output_level(cycles_since_display_update_ << 1);
 	}
 	cycles_since_display_update_ = 0;
 	is_sync_ = is_sync;
@@ -162,10 +153,10 @@ void Machine::output_level(unsigned int number_of_cycles) {
 }
 
 void Machine::output_data() {
-	unsigned int data_length = ((unsigned int)(line_data_pointer_ - line_data_)) ;
-	crt_->output_data(data_length * 1, 1);
+	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
+	crt_->output_data(data_length, 1);
 	line_data_pointer_ = line_data_ = nullptr;
-	cycles_since_display_update_ -= data_length;
+	cycles_since_display_update_ -= data_length >> 1;
 }
 
 void Machine::output_byte(uint8_t byte) {
@@ -174,7 +165,7 @@ void Machine::output_byte(uint8_t byte) {
 			output_data();
 		}
 	} else {
-		output_level(cycles_since_display_update_);
+		output_level(cycles_since_display_update_ << 1);
 		cycles_since_display_update_ = 0;
 	}
 
@@ -184,10 +175,23 @@ void Machine::output_byte(uint8_t byte) {
 
 	if(line_data_) {
 		uint8_t mask = 0x80;
-		for(int c = 0; c < 4; c++) {
+		for(int c = 0; c < 8; c++) {
 			line_data_pointer_[c] = (byte & mask) ? 0xff : 0x00;
 			mask >>= 1;
 		}
-		line_data_pointer_ += 4;
+		line_data_pointer_ += 8;
+
+		if(line_data_pointer_ - line_data_ == 320) {
+			output_data();
+		}
 	}
+}
+
+void Machine::setup_output(float aspect_ratio) {
+	crt_.reset(new Outputs::CRT::CRT(210 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1));
+	crt_->set_rgb_sampling_function(
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"{"
+			"return vec3(float(texture(texID, coordinate).r) / 255.0);"
+		"}");
 }
