@@ -73,11 +73,11 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 }
 
 void Machine::setup_output(float aspect_ratio) {
-	crt_.reset(new Outputs::CRT::CRT(207, 1, Outputs::CRT::DisplayType::PAL50, 1));
+	crt_.reset(new Outputs::CRT::CRT(210, 1, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
-			"return vec3(1.0);"
+			"return vec3(float(texture(texID, coordinate).r) / 255.0);"
 		"}");
 }
 
@@ -134,6 +134,10 @@ void Machine::update_sync() {
 	bool is_sync = hsync_ || vsync_;
 	if(is_sync == is_sync_) return;
 
+	if(line_data_) {
+		output_data();
+	}
+
 	if(is_sync_) {
 		crt_->output_sync(cycles_since_display_update_);
 	} else {
@@ -149,9 +153,29 @@ void Machine::output_level(unsigned int number_of_cycles) {
 	crt_->output_level(number_of_cycles);
 }
 
+void Machine::output_data() {
+	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_) * 4;
+	crt_->output_data(data_length, 4);
+	line_data_pointer_ = line_data_ = nullptr;
+	cycles_since_display_update_ -= data_length;
+}
+
 void Machine::output_byte(uint8_t byte) {
-	if(!line_data_) {
+	if(line_data_) {
+		if(cycles_since_display_update_ > 4) {
+			output_data();
+		}
 	}
-//	printf("%d\n", cycles_since_display_update_);
-//	cycles_since_display_update_ = 0;
+
+	if(!line_data_) {
+		line_data_pointer_ = line_data_ = crt_->allocate_write_area(320);
+	}
+
+	if(line_data_) {
+		line_data_pointer_[0] = byte;
+		line_data_pointer_[1] = byte;
+		line_data_pointer_[2] = byte;
+		line_data_pointer_[3] = byte;
+		line_data_pointer_ += 4;
+	}
 }

@@ -52,7 +52,7 @@ class Machine:
 
 		bool vsync_, hsync_;
 		bool is_sync_;
-		uint8_t *line_data_;
+		uint8_t *line_data_, *line_data_pointer_;
 
 		unsigned int cycles_since_display_update_;
 		void update_display();
@@ -61,6 +61,7 @@ class Machine:
 		void update_sync();
 		void output_level(unsigned int number_of_cycles);
 		void output_byte(uint8_t byte);
+		void output_data();
 };
 
 }
