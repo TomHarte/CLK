@@ -25,7 +25,7 @@ Machine::Machine() :
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	cycles_since_display_update_ += (unsigned int)cycle.length;
 
-	uint16_t r = 0;
+	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
@@ -50,16 +50,16 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 
 		case CPU::Z80::BusOperation::ReadOpcode:
 			set_hsync(false);
-			r = (uint8_t)get_value_of_register(CPU::Z80::Register::Refresh);
-			set_interrupt_line(!(r & 0x40));
+			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
+			set_interrupt_line(!(refresh & 0x40));
 		case CPU::Z80::BusOperation::Read:
 			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
 			else if((address & 0x4000) == 0x4000) {
 				uint8_t value = ram_[address & 1023];
 				if(address&0x8000 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode && !get_halt_line()) {
-					size_t char_address = (size_t)((r & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
+					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
 					if((char_address & 0xc000) == 0x0000) {
-						uint8_t mask = (value & 0x80) ? 0xff : 0x00;
+						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
 						value = rom_[char_address & (rom_.size() - 1)] ^ mask;
 					}
 
