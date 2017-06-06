@@ -76,9 +76,11 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 		if(is_high_) {
 			pulse.type = Pulse::Type::High;
 			is_high_ = false;
+			printf("-");
 		} else {
 			pulse.type = Pulse::Type::Low;
 			is_high_ = true;
+			printf("_");
 
 			int wave_count = (byte_ & (0x80 >> bit_pointer_)) ? 9 : 4;
 			wave_pointer_++;
@@ -94,6 +96,7 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 		pulse.type = Pulse::Type::Zero;
 
 		bit_pointer_++;
+		printf("\n");
 	}
 
 	return pulse;
