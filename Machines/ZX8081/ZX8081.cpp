@@ -167,6 +167,7 @@ void Machine::output_byte(uint8_t byte) {
 		}
 	} else {
 		output_level(cycles_since_display_update_);
+		cycles_since_display_update_ = 0;
 	}
 
 	if(!line_data_) {
