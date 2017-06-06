@@ -15,6 +15,8 @@
 #include "../../Processors/Z80/Z80.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
+#include "Video.hpp"
+
 #include <cstdint>
 #include <vector>
 
@@ -60,25 +62,18 @@ class Machine:
 		void clear_all_keys();
 
 	private:
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
 		std::vector<uint8_t> ram_;
 
 		bool vsync_, hsync_;
-		bool is_sync_;
-		uint8_t *line_data_, *line_data_pointer_;
 		int line_counter_;
 
 		uint8_t key_states_[8];
 
-		unsigned int cycles_since_display_update_;
-		void update_display();
 		void set_vsync(bool sync);
 		void set_hsync(bool sync);
 		void update_sync();
-		void output_level(unsigned int number_of_cycles);
-		void output_byte(uint8_t byte);
-		void output_data();
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_level_;

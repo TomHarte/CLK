@@ -20,7 +20,6 @@ Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
 	ram_(1024),
-	line_data_(nullptr),
 	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	tape_player_(ZX8081ClockRate) {
 	// run at 3.25 Mhz
@@ -30,7 +29,7 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
-	cycles_since_display_update_ += (unsigned int)cycle.length;
+	video_->run_for_cycles(cycle.length);
 	tape_player_.run_for_cycles(cycle.length);
 
 	uint16_t refresh = 0;
@@ -80,8 +79,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 						value = rom_[char_address & (rom_.size() - 1)] ^ mask;
 					}
 
-					// TODO: character lookup.
-					output_byte(value);
+					video_->output_byte(value);
 					*cycle.value = 0;
 				} else *cycle.value = value;
 			}
@@ -98,14 +96,19 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 }
 
 void Machine::flush() {
-	update_display();
+	video_->flush();
+}
+
+void Machine::setup_output(float aspect_ratio) {
+	video_.reset(new Video);
 }
 
 void Machine::close_output() {
+	video_.reset();
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {
-	return crt_;
+	return video_->get_crt();
 }
 
 std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
@@ -134,87 +137,18 @@ void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
 
 #pragma mark - Video
 
-void Machine::update_display() {
-//	cycles_since_display_update_ = 0;
-}
-
 void Machine::set_vsync(bool sync) {
-	if(sync == vsync_) return;
 	vsync_ = sync;
 	update_sync();
 }
 
 void Machine::set_hsync(bool sync) {
-	if(sync == hsync_) return;
 	hsync_ = sync;
 	update_sync();
 }
 
 void Machine::update_sync() {
-	bool is_sync = hsync_ || vsync_;
-	if(is_sync == is_sync_) return;
-
-	if(line_data_) {
-		output_data();
-	}
-
-	if(is_sync_) {
-		crt_->output_sync(cycles_since_display_update_ << 1);
-	} else {
-		output_level(cycles_since_display_update_ << 1);
-	}
-	cycles_since_display_update_ = 0;
-	is_sync_ = is_sync;
-}
-
-void Machine::output_level(unsigned int number_of_cycles) {
-	uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
-	if(colour_pointer) *colour_pointer = 0xff;
-	crt_->output_level(number_of_cycles);
-}
-
-void Machine::output_data() {
-	unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
-	crt_->output_data(data_length, 1);
-	line_data_pointer_ = line_data_ = nullptr;
-	cycles_since_display_update_ -= data_length >> 1;
-}
-
-void Machine::output_byte(uint8_t byte) {
-	if(line_data_) {
-		if(cycles_since_display_update_ > 4) {
-			output_data();
-		}
-	} else {
-		output_level(cycles_since_display_update_ << 1);
-		cycles_since_display_update_ = 0;
-	}
-
-	if(!line_data_) {
-		line_data_pointer_ = line_data_ = crt_->allocate_write_area(320);
-	}
-
-	if(line_data_) {
-		uint8_t mask = 0x80;
-		for(int c = 0; c < 8; c++) {
-			line_data_pointer_[c] = (byte & mask) ? 0xff : 0x00;
-			mask >>= 1;
-		}
-		line_data_pointer_ += 8;
-
-		if(line_data_pointer_ - line_data_ == 320) {
-			output_data();
-		}
-	}
-}
-
-void Machine::setup_output(float aspect_ratio) {
-	crt_.reset(new Outputs::CRT::CRT(210 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1));
-	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
-		"{"
-			"return float(texture(texID, coordinate).r) / 255.0;"
-		"}");
+	video_->set_sync(vsync_ || hsync_);
 }
 
 #pragma mark - Keyboard
