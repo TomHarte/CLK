@@ -13,15 +13,31 @@
 
 namespace ZX8081 {
 
+/*!
+	Packages a ZX80/81-style video feed into a CRT-compatible waveform.
+
+	While sync is active, this feed will output the sync level.
+
+	While sync is inactive, this feed will output the white level unless it is supplied
+	with a byte to output. When a byte is supplied for output, it will be interpreted as
+	a 1-bit graphic and output over the next 4 cycles, picking between the white level
+	and the black level.
+*/
 class Video {
 	public:
+		/// Constructs an instance of the video feed; a CRT is also created.
 		Video();
-
+		/// @returns The CRT this video feed is feeding.
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+
+		/// Advances time by @c number_of_cycles cycles.
 		void run_for_cycles(int number_of_cycles);
+		/// Forces output to catch up to the current output position.
 		void flush();
 
+		/// Sets the current sync output.
 		void set_sync(bool sync);
+		/// Causes @c byte to be serialised into pixels and output over the next four cycles.
 		void output_byte(uint8_t byte);
 
 	private:
@@ -29,6 +45,8 @@ class Video {
 		uint8_t *line_data_, *line_data_pointer_;
 		unsigned int cycles_since_update_;
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+
+		void flush(bool next_sync);
 };
 
 }
