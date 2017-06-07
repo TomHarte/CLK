@@ -24,16 +24,18 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
 	float pulse_time = pulse_time_.get_float();
 	pulse_time_.set_zero();
 
-	if(pulse_time > expected_gap_length * 1.1f) {
+	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);
 	}
-	else if(pulse_time >= expected_pulse_length * 0.9f) {
+	else if(pulse_time > expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Gap);
 	}
-	else if(pulse_time >= expected_pulse_length * 0.9f && pulse_time <= expected_pulse_length * 1.1f) {
+	else if(pulse_time >= expected_pulse_length * 0.75f && pulse_time <= expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Pulse);
 	}
-	else push_wave(WaveType::Unrecognised);
+	else {
+		push_wave(WaveType::Unrecognised);
+	}
 }
 
 void Parser::inspect_waves(const std::vector<WaveType> &waves) {
@@ -52,12 +54,19 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 
 		// If those pulses were followed by a gap then they might be
 		// a recognised symbol.
-		if(number_of_pulses < waves.size() &&
+		if(number_of_pulses > 17 || number_of_pulses < 7) {
+			push_symbol(SymbolType::Unrecognised, 1);
+		}
+		else if(number_of_pulses < waves.size() &&
 			(waves[number_of_pulses] == WaveType::LongGap || waves[number_of_pulses] == WaveType::Gap)) {
+			// A 1 is 18 up/down waves, a 0 is 8. But the final down will be indistinguishable from
+			// the gap that follows the bit due to the simplified "high is high, everything else is low"
+			// logic applied to pulse detection. So those two things will merge. Meaning we're looking for
+			// 17 and/or 7 pulses.
 			int gaps_to_swallow = (waves[number_of_pulses] == WaveType::Gap) ? 1 : 0;
 			switch(number_of_pulses) {
-				case 18:	push_symbol(SymbolType::One, 18 + gaps_to_swallow);	break;
-				case 8:		push_symbol(SymbolType::Zero, 8 + gaps_to_swallow);	break;
+				case 17:	push_symbol(SymbolType::One, 17 + gaps_to_swallow);	break;
+				case 7:		push_symbol(SymbolType::Zero, 7 + gaps_to_swallow);	break;
 				default:	push_symbol(SymbolType::Unrecognised, 1);			break;
 			}
 		}
