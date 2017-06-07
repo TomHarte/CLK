@@ -384,6 +384,7 @@
 		4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */; };
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
+		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */; };
@@ -922,6 +923,8 @@
 		4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
 		4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureTarget.hpp; sourceTree = "<group>"; };
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
+		4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Parsers/ZX8081.cpp; sourceTree = "<group>"; };
+		4BBFBB6B1EE8401E00C01E7A /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Parsers/ZX8081.hpp; sourceTree = "<group>"; };
 		4BC3B74D1CD194CC00F86E85 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
@@ -1415,6 +1418,8 @@
 				4B8805F31DCFD22A003085B1 /* Commodore.hpp */,
 				4B8805F91DCFF807003085B1 /* Oric.cpp */,
 				4B8805FA1DCFF807003085B1 /* Oric.hpp */,
+				4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */,
+				4BBFBB6B1EE8401E00C01E7A /* ZX8081.hpp */,
 			);
 			name = Parsers;
 			sourceTree = "<group>";
@@ -2627,6 +2632,7 @@
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */,
 				4BEA52661DF3472B007E74F2 /* Speaker.cpp in Sources */,
+				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B5073071DDD3B9400C48FBD /* ArrayBuilder.cpp in Sources */,
