@@ -38,10 +38,8 @@ template <typename WaveType, typename SymbolType> class Parser {
 			Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
 			or the tape runs out, returning the most-recently declared symbol.
 		*/
-		SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape)
-		{
-			while(!_has_next_symbol && !tape->is_at_end())
-			{
+		SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+			while(!_has_next_symbol && !tape->is_at_end()) {
 				process_pulse(tape->get_next_pulse());
 			}
 			_has_next_symbol = false;
@@ -61,8 +59,7 @@ template <typename WaveType, typename SymbolType> class Parser {
 			
 			Expected to be called by subclasses from @c process_pulse as and when recognised waves arise.
 		*/
-		void push_wave(WaveType wave)
-		{
+		void push_wave(WaveType wave) {
 			_wave_queue.push_back(wave);
 			inspect_waves(_wave_queue);
 		}
@@ -73,8 +70,7 @@ template <typename WaveType, typename SymbolType> class Parser {
 			Expected to be called by subclasses from @c process_pulse if it is recognised that the first set of waves
 			do not form a valid symbol.
 		*/
-		void remove_waves(int number_of_waves)
-		{
+		void remove_waves(int number_of_waves) {
 			_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+number_of_waves);
 		}
 
@@ -84,15 +80,13 @@ template <typename WaveType, typename SymbolType> class Parser {
 			Expected to be called by subclasses from @c process_pulse when it recognises that the first @c number_of_waves
 			waves together represent @c symbol.
 		*/
-		void push_symbol(SymbolType symbol, int number_of_waves)
-		{
+		void push_symbol(SymbolType symbol, int number_of_waves) {
 			_has_next_symbol = true;
 			_next_symbol = symbol;
 			remove_waves(number_of_waves);
 		}
 
-		void set_error_flag()
-		{
+		void set_error_flag() {
 			_error_flag = true;
 		}
 
