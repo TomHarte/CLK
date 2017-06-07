@@ -25,11 +25,11 @@ struct File {
 };
 
 enum class WaveType {
-	Pulse, Gap, LongGap
+	Pulse, Gap, LongGap, Unrecognised
 };
 
 enum class SymbolType {
-	One, Zero, Gap
+	One, Zero, FileGap, Unrecognised
 };
 
 class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
@@ -37,22 +37,24 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 		Parser();
 
 		/*!
-			Reads and combines the next eight bits.
+			Reads and combines the next eight bits. Returns -1 if any errors are encountered.
 		*/
-		uint8_t get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 		/*!
 			Waits for a long gap, reads all the bytes between that and the next long gap, then
 			attempts to parse those as a valid ZX80 or ZX81 file. If no file is found,
 			returns nullptr.
 		*/
-		std::shared_ptr<File> get_next_file();
+		std::shared_ptr<File> get_next_file(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 	private:
-		/*!
-			Proceeds beyond the current or next gap then counts pulses until the gap afterwards, and returns the resulting bit.
-		*/
-		uint8_t get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		bool pulse_was_high_;
+		Time pulse_time_;
+		void process_pulse(Storage::Tape::Tape::Pulse pulse);
+		void inspect_waves(const std::vector<WaveType> &waves);
+
+		std::shared_ptr<File> get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape);
 };
 
 }
