@@ -75,7 +75,7 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 
 		wave_pointer_ ++;
 	} else {
-		// waves are of length 150µs
+		// pulses are of length 150µs
 		pulse.length.length = 3;
 		pulse.length.clock_rate = 20000;
 
