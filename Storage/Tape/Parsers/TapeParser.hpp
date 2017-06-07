@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <vector>
+#include <assert.h>
 
 namespace Storage {
 namespace Tape {
@@ -27,24 +28,36 @@ namespace Tape {
 template <typename WaveType, typename SymbolType> class Parser {
 	public:
 		/// Instantiates a new parser with the supplied @c tape.
-		Parser() : _has_next_symbol(false), _error_flag(false) {}
+		Parser() : has_next_symbol_(false), error_flag_(false) {}
 
 		/// Resets the error flag.
-		void reset_error_flag()		{	_error_flag = false;		}
+		void reset_error_flag()		{	error_flag_ = false;		}
 		/// @returns @c true if an error has occurred since the error flag was last reset; @c false otherwise.
-		bool get_error_flag()		{	return _error_flag;			}
+		bool get_error_flag()		{	return error_flag_;			}
 
 		/*!
 			Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
 			or the tape runs out, returning the most-recently declared symbol.
 		*/
 		SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-			while(!_has_next_symbol && !tape->is_at_end()) {
+			while(!has_next_symbol_ && !tape->is_at_end()) {
 				process_pulse(tape->get_next_pulse());
 			}
-			_has_next_symbol = false;
-			return _next_symbol;
+			has_next_symbol_ = false;
+			return next_symbol_;
 		}
+
+		/*!
+			This class provides a single token of lookahead; return_symbol allows the single previous
+			token supplied by get_next_symbol to be returned, in which case it will be the thing returned
+			by the next call to get_next_symbol.
+		*/
+		void return_symbol(SymbolType symbol) {
+			assert(!has_next_symbol_);
+			has_next_symbol_ = true;
+			next_symbol_ = symbol;
+		}
+
 
 		/*!
 			Should be implemented by subclasses. Consumes @c pulse. Is likely either to call @c push_wave
@@ -60,8 +73,8 @@ template <typename WaveType, typename SymbolType> class Parser {
 			Expected to be called by subclasses from @c process_pulse as and when recognised waves arise.
 		*/
 		void push_wave(WaveType wave) {
-			_wave_queue.push_back(wave);
-			inspect_waves(_wave_queue);
+			wave_queue_.push_back(wave);
+			inspect_waves(wave_queue_);
 		}
 
 		/*!
@@ -71,7 +84,7 @@ template <typename WaveType, typename SymbolType> class Parser {
 			do not form a valid symbol.
 		*/
 		void remove_waves(int number_of_waves) {
-			_wave_queue.erase(_wave_queue.begin(), _wave_queue.begin()+number_of_waves);
+			wave_queue_.erase(wave_queue_.begin(), wave_queue_.begin()+number_of_waves);
 		}
 
 		/*!
@@ -81,17 +94,17 @@ template <typename WaveType, typename SymbolType> class Parser {
 			waves together represent @c symbol.
 		*/
 		void push_symbol(SymbolType symbol, int number_of_waves) {
-			_has_next_symbol = true;
-			_next_symbol = symbol;
+			has_next_symbol_ = true;
+			next_symbol_ = symbol;
 			remove_waves(number_of_waves);
 		}
 
 		void set_error_flag() {
-			_error_flag = true;
+			error_flag_ = true;
 		}
 
 	private:
-		bool _error_flag;
+		bool error_flag_;
 
 		/*!
 			Should be implemented by subclasses. Inspects @c waves for a potential new symbol. If one is
@@ -101,9 +114,9 @@ template <typename WaveType, typename SymbolType> class Parser {
 		*/
 		virtual void inspect_waves(const std::vector<WaveType> &waves) = 0;
 
-		std::vector<WaveType> _wave_queue;
-		SymbolType _next_symbol;
-		bool _has_next_symbol;
+		std::vector<WaveType> wave_queue_;
+		SymbolType next_symbol_;
+		bool has_next_symbol_;
 };
 
 }
