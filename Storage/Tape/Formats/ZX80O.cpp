@@ -53,7 +53,7 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 
 	// Start with 1 second of silence.
 	if(!is_past_silence_ || is_at_end()) {
-		pulse.type = Pulse::Type::Zero;
+		pulse.type = Pulse::Type::Low;
 		pulse.length.length = 5;
 		pulse.length.clock_rate = 1;
 		is_past_silence_ = true;
@@ -71,7 +71,7 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 		// post-waves silence (here actually a pre-waves silence) is 1300µs
 		pulse.length.length = 13;
 		pulse.length.clock_rate = 10000;
-		pulse.type = Pulse::Type::Zero;
+		pulse.type = Pulse::Type::Low;
 
 		wave_pointer_ ++;
 	} else {
