@@ -98,6 +98,7 @@
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
+		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
@@ -611,6 +612,8 @@
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20OptionsPanel.swift; sourceTree = "<group>"; };
 		4B9CCDA21DA27C3F0098B625 /* CSJoystickMachine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickMachine.h; sourceTree = "<group>"; };
+		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Data/ZX8081.cpp; sourceTree = "<group>"; };
+		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Data/ZX8081.hpp; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
 		4BA22B061D8817CE0008C640 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Commodore/Disk.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
@@ -1355,15 +1358,15 @@
 		4B69FB391C4D908A00B5F0AA /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				4B5FADB81DE3151600AEC565 /* FileHolder.cpp */,
 				4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */,
+				4B5FADB91DE3151600AEC565 /* FileHolder.hpp */,
 				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
 				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
 				4BEE0A691D72496600532C7B /* Cartridge */,
 				4B8805F81DCFF6CD003085B1 /* Data */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
-				4B5FADB81DE3151600AEC565 /* FileHolder.cpp */,
-				4B5FADB91DE3151600AEC565 /* FileHolder.hpp */,
 			);
 			name = Storage;
 			path = ../../Storage;
@@ -1428,7 +1431,9 @@
 			isa = PBXGroup;
 			children = (
 				4B8805F51DCFF6C9003085B1 /* Commodore.cpp */,
+				4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */,
 				4B8805F61DCFF6C9003085B1 /* Commodore.hpp */,
+				4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */,
 			);
 			name = Data;
 			sourceTree = "<group>";
@@ -2594,6 +2599,7 @@
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,
 				4B5FADBD1DE31D1500AEC565 /* OricMFMDSK.cpp in Sources */,
 				4B14978B1EE4AC5E00CE2596 /* StaticAnalyser.cpp in Sources */,
+				4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */,
 				4B77069D1EC904570053B588 /* Z80.cpp in Sources */,
 				4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,

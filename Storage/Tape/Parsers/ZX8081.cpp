@@ -91,7 +91,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	return result;
 }
 
-std::shared_ptr<File> Parser::get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	if(tape->is_at_end()) return nullptr;
 	SymbolType symbol = get_next_symbol(tape);
 	if(symbol != SymbolType::FileGap) {
@@ -103,21 +103,18 @@ std::shared_ptr<File> Parser::get_next_file_data(const std::shared_ptr<Storage::
 	if(tape->is_at_end()) return nullptr;
 	return_symbol(symbol);
 
-	std::shared_ptr<File> result(new File);
+	std::shared_ptr<std::vector<uint8_t>> result(new std::vector<uint8_t>);
 	int byte;
 	while(!tape->is_at_end()) {
 		byte = get_next_byte(tape);
 		if(byte == -1) return result;
-		result->data.push_back((uint8_t)byte);
+		result->push_back((uint8_t)byte);
 	}
 	return result;
 }
 
-std::shared_ptr<File> Parser::get_next_file(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	std::shared_ptr<File> file = get_next_file_data(tape);
-	if(!file) return file;
-
-	// TODO: is this ZX80? ZX81? Sensible at all?
-
-	return file;
+std::shared_ptr<Storage::Data::ZX8081::File> Parser::get_next_file(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	std::shared_ptr<std::vector<uint8_t>> file_data = get_next_file_data(tape);
+	if(!file_data) return nullptr;
+	return Storage::Data::ZX8081::FileFromData(*file_data);
 }
