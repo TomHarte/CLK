@@ -46,7 +46,7 @@ class ZX80O: public Tape, public Storage::FileHolder {
 		bool is_past_silence_, has_ended_final_byte_;
 		bool is_high_;
 
-		uint16_t end_of_file_;
+		size_t size_of_file_;
 };
 
 }

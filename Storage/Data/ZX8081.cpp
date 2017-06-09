@@ -33,6 +33,10 @@ static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) 
 	if(vars > end_of_file) return nullptr;
 	if(end_of_file > display_address) return nullptr;
 
+	// TODO: does it make sense to inspect the tokenised BASIC?
+	// It starts at 0x4028 and proceeds as [16-bit line number] [tokens] [0x76],
+	// but I'm as yet unable to find documentation of the tokens.
+
 	// TODO: check that the line numbers declared above exist (?)
 
 	std::shared_ptr<File> file(new File);

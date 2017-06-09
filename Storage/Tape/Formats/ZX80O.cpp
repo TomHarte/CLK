@@ -7,31 +7,21 @@
 //
 
 #include "ZX80O.hpp"
+#include "../../Data/ZX8081.hpp"
 
 using namespace Storage::Tape;
 
 ZX80O::ZX80O(const char *file_name) :
 	Storage::FileHolder(file_name) {
 
-	// Files can be no longer than 16 kb
-	if(file_stats_.st_size > 16384) throw ErrorNotZX80O;
+	// Check that contents look like a ZX80 file
+	std::vector<uint8_t> whole_file((size_t)file_stats_.st_size);
+	fread(whole_file.data(), 1, (size_t)file_stats_.st_size, file_);
+	std::shared_ptr<::Storage::Data::ZX8081::File> file = Storage::Data::ZX8081::FileFromData(whole_file);
 
-	// skip the system area
-	fseek(file_, 8, SEEK_SET);
+	if(!file || file->isZX81) throw ErrorNotZX80O;
 
-	// read the pointer to VARS and the alleged pointer to end of file
-	uint16_t vars = fgetc16le();
-	end_of_file_ = fgetc16le();
-
-	// VARs should be before end of file
-	if(vars > end_of_file_) throw ErrorNotZX80O;
-
-	// end of file should be no further than the actual file size
-	if(end_of_file_ - 0x4000 > file_stats_.st_size) throw ErrorNotZX80O;
-
-	// TODO: does it make sense to inspect the tokenised BASIC?
-	// It starts at 0x4028 and proceeds as [16-bit line number] [tokens] [0x76],
-	// but I'm as yet unable to find documentation of the tokens.
+	size_of_file_ = file->data.size();
 
 	// then rewind and start again
 	virtual_reset();
@@ -46,7 +36,7 @@ void ZX80O::virtual_reset() {
 }
 
 bool ZX80O::has_finished_data() {
-	return (ftell(file_) == end_of_file_ - 0x4000) && !wave_pointer_ && !bit_pointer_;
+	return (ftell(file_) == size_of_file_) && !wave_pointer_ && !bit_pointer_;
 }
 
 bool ZX80O::is_at_end() {
@@ -69,8 +59,6 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 	// For each byte, output 8 bits and then silence.
 	if(!bit_pointer_ && !wave_pointer_) {
 		byte_ = (uint8_t)fgetc(file_);
-		if(has_finished_data())
-			printf("");
 		bit_pointer_ = 0;
 		wave_pointer_ = 0;
 	}
