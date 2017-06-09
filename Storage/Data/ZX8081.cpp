@@ -17,6 +17,8 @@ static uint16_t short_at(size_t address, const std::vector<uint8_t> &data) {
 static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) {
 	// Does this look like a ZX80 file?
 
+	if(data.size() < 0x28) return nullptr;
+
 //	uint16_t next_line_number = short_at(0x2, data);
 //	uint16_t first_visible_line = short_at(0x13, data);
 
