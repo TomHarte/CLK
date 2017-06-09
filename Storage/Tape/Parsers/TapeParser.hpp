@@ -43,6 +43,7 @@ template <typename WaveType, typename SymbolType> class Parser {
 			while(!has_next_symbol_ && !tape->is_at_end()) {
 				process_pulse(tape->get_next_pulse());
 			}
+			if(tape->is_at_end()) mark_end();
 			has_next_symbol_ = false;
 			return next_symbol_;
 		}
@@ -64,6 +65,12 @@ template <typename WaveType, typename SymbolType> class Parser {
 			or to take no action.
 		*/
 		virtual void process_pulse(Storage::Tape::Tape::Pulse pulse) = 0;
+
+		/*!
+			An optional implementation for subclasses; called to announce that the tape has ended: that
+			no more process_pulse calls will occur.
+		*/
+		virtual void mark_end() {}
 
 	protected:
 
@@ -101,6 +108,13 @@ template <typename WaveType, typename SymbolType> class Parser {
 
 		void set_error_flag() {
 			error_flag_ = true;
+		}
+
+		/*!
+			@returns `true` if there is no data left on the tape and the WaveType queue has been exhausted; `false` otherwise.
+		*/
+		bool is_at_end(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+			return tape->is_at_end() && wave_queue_.empty() && !has_next_symbol_;
 		}
 
 	private:
