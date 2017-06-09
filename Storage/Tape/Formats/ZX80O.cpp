@@ -40,29 +40,37 @@ ZX80O::ZX80O(const char *file_name) :
 void ZX80O::virtual_reset() {
 	fseek(file_, 0, SEEK_SET);
 	is_past_silence_ = false;
+	has_ended_final_byte_ = false;
 	is_high_ = true;
 	bit_pointer_ = wave_pointer_ = 0;
 }
 
+bool ZX80O::has_finished_data() {
+	return (ftell(file_) == end_of_file_ - 0x4000) && !wave_pointer_ && !bit_pointer_;
+}
+
 bool ZX80O::is_at_end() {
-	return ftell(file_) == end_of_file_ - 0x4000;
+	return has_finished_data() && has_ended_final_byte_;
 }
 
 Tape::Pulse ZX80O::virtual_get_next_pulse() {
 	Tape::Pulse pulse;
 
 	// Start with 1 second of silence.
-	if(!is_past_silence_ || (is_at_end() && !wave_pointer_)) {
+	if(!is_past_silence_ || has_finished_data()) {
 		pulse.type = Pulse::Type::Low;
 		pulse.length.length = 5;
 		pulse.length.clock_rate = 1;
 		is_past_silence_ = true;
+		has_ended_final_byte_ = has_finished_data();
 		return pulse;
 	}
 
 	// For each byte, output 8 bits and then silence.
 	if(!bit_pointer_ && !wave_pointer_) {
 		byte_ = (uint8_t)fgetc(file_);
+		if(has_finished_data())
+			printf("");
 		bit_pointer_ = 0;
 		wave_pointer_ = 0;
 	}
