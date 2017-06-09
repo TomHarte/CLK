@@ -18,7 +18,10 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
 
 	if(pulse_is_high == pulse_was_high_) return;
 	pulse_was_high_ = pulse_is_high;
+	post_pulse();
+}
 
+void Parser::post_pulse() {
 	const float expected_pulse_length = 150.0f / 1000000.0f;
 	const float expected_gap_length = 1300.0f / 1000000.0f;
 	float pulse_time = pulse_time_.get_float();
@@ -36,6 +39,13 @@ void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
 	else {
 		push_wave(WaveType::Unrecognised);
 	}
+}
+
+void Parser::mark_end() {
+	// Push the last thing detected, and post an 'unrecognised' to ensure
+	// the queue empties out.
+	post_pulse();
+	push_wave(WaveType::Unrecognised);
 }
 
 void Parser::inspect_waves(const std::vector<WaveType> &waves) {
@@ -77,7 +87,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	int c = 8;
 	int result = 0;
 	while(c--) {
-		if(tape->is_at_end()) return -1;
+		if(is_at_end(tape)) return -1;
 		SymbolType symbol = get_next_symbol(tape);
 		if(symbol == SymbolType::FileGap) {
 			return_symbol(symbol);
@@ -92,20 +102,20 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 }
 
 std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	if(tape->is_at_end()) return nullptr;
+	if(is_at_end(tape)) return nullptr;
 	SymbolType symbol = get_next_symbol(tape);
 	if(symbol != SymbolType::FileGap) {
 		return nullptr;
 	}
-	while(symbol == SymbolType::FileGap && !tape->is_at_end()) {
+	while(symbol == SymbolType::FileGap && !is_at_end(tape)) {
 		symbol = get_next_symbol(tape);
 	}
-	if(tape->is_at_end()) return nullptr;
+	if(is_at_end(tape)) return nullptr;
 	return_symbol(symbol);
 
 	std::shared_ptr<std::vector<uint8_t>> result(new std::vector<uint8_t>);
 	int byte;
-	while(!tape->is_at_end()) {
+	while(!is_at_end(tape)) {
 		byte = get_next_byte(tape);
 		if(byte == -1) return result;
 		result->push_back((uint8_t)byte);

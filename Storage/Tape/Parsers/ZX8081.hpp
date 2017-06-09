@@ -48,7 +48,11 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 	private:
 		bool pulse_was_high_;
 		Time pulse_time_;
+		void post_pulse();
+
 		void process_pulse(Storage::Tape::Tape::Pulse pulse);
+		void mark_end();
+
 		void inspect_waves(const std::vector<WaveType> &waves);
 
 		std::shared_ptr<std::vector<uint8_t>> get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape);
