@@ -32,6 +32,10 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	video_->run_for_cycles(cycle.length);
 	tape_player_.run_for_cycles(cycle.length);
 
+	static uint64_t time = 0;
+	time += (uint64_t)cycle.length;
+	static uint8_t last_input = 0xff;
+
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
@@ -54,6 +58,13 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				}
 
 				value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
+
+//				if((last_input ^ value) & 0x80) {
+//					printf("%lld\n", time);
+//					time = 0;
+//					last_input = value;
+//				}
+//				printf("[%02x]\n", value);
 			}
 			*cycle.value = value;
 		} break;
@@ -65,9 +76,13 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
+//			if(address >= 0x22f && address < 0x24d && count) {
+//				printf("%04x A:%02x BC:%04x DE:%04x\n", address, get_value_of_register(CPU::Z80::Register::A), get_value_of_register(CPU::Z80::Register::BC), get_value_of_register(CPU::Z80::Register::DE));
+//				count--;
+//			}
 			set_hsync(false);
 			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
-			set_interrupt_line(!(refresh & 0x40));
+			set_interrupt_line(!(refresh & 0x40), -2);
 		case CPU::Z80::BusOperation::Read:
 			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
 			else if((address & 0x4000) == 0x4000) {
