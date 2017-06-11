@@ -56,9 +56,15 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 	}
 
 	if(waves.size() >= 9) {
+		size_t wave_offset = 0;
+		// If the very first thing is a gap, swallow it.
+		if(waves[0] == WaveType::Gap) {
+			wave_offset = 1;
+		}
+
 		// Count the number of pulses at the start of this vector
 		size_t number_of_pulses = 0;
-		while(waves[number_of_pulses] == WaveType::Pulse && number_of_pulses < waves.size()) {
+		while(waves[number_of_pulses + wave_offset] == WaveType::Pulse && number_of_pulses < waves.size()) {
 			number_of_pulses++;
 		}
 
@@ -67,13 +73,13 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 		if(number_of_pulses > 17 || number_of_pulses < 7) {
 			push_symbol(SymbolType::Unrecognised, 1);
 		}
-		else if(number_of_pulses < waves.size() &&
-			(waves[number_of_pulses] == WaveType::LongGap || waves[number_of_pulses] == WaveType::Gap)) {
+		else if(number_of_pulses + wave_offset < waves.size() &&
+			(waves[number_of_pulses + wave_offset] == WaveType::LongGap || waves[number_of_pulses + wave_offset] == WaveType::Gap)) {
 			// A 1 is 18 up/down waves, a 0 is 8. But the final down will be indistinguishable from
 			// the gap that follows the bit due to the simplified "high is high, everything else is low"
 			// logic applied to pulse detection. So those two things will merge. Meaning we're looking for
 			// 17 and/or 7 pulses.
-			int gaps_to_swallow = (waves[number_of_pulses] == WaveType::Gap) ? 1 : 0;
+			int gaps_to_swallow = (int)wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
 				case 17:	push_symbol(SymbolType::One, 17 + gaps_to_swallow);	break;
 				case 7:		push_symbol(SymbolType::Zero, 7 + gaps_to_swallow);	break;
