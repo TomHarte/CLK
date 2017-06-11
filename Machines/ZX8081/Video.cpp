@@ -24,6 +24,9 @@ Video::Video() :
 		"{"
 			"return float(texture(texID, coordinate).r) / 255.0;"
 		"}");
+
+	// Show only the centre 80% of the TV frame.
+	crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
 void Video::run_for_cycles(int number_of_cycles) {
