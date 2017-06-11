@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZX8081_hpp
-#define ZX8081_hpp
+#ifndef Storage_Data_ZX8081_hpp
+#define Storage_Data_ZX8081_hpp
 
 #include <string>
 #include <vector>
