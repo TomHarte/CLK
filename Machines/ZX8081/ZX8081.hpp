@@ -64,9 +64,14 @@ class Machine:
 
 	private:
 		std::shared_ptr<Video> video_;
-		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
-		std::vector<uint8_t> ram_;
+		std::vector<uint8_t> zx81_rom_, zx80_rom_;
 		uint16_t tape_trap_address_, tape_return_address_;
+
+		std::vector<uint8_t> ram_;
+		uint16_t ram_mask_, ram_base_;
+
+		std::vector<uint8_t> rom_;
+		uint16_t rom_mask_;
 
 		bool vsync_, hsync_;
 		int line_counter_;

@@ -20,7 +20,6 @@ namespace {
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
-	ram_(1024),
 	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	tape_player_(ZX8081ClockRate) {
 	set_clock_rate(ZX8081ClockRate);
@@ -86,10 +85,15 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			}
 
 		case CPU::Z80::BusOperation::Read:
-			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
-			else if((address & 0x4000) == 0x4000) {
-				uint8_t value = ram_[address & 1023];
-				if(address&0x8000 && !(value & 0x40) && cycle.operation == CPU::Z80::BusOperation::ReadOpcode && !get_halt_line()) {
+			if(address < ram_base_) {
+				*cycle.value = rom_[address & rom_mask_];
+			} else {
+				uint8_t value = ram_[address & ram_mask_];
+
+				// If this is an M1 cycle reading from above the 32kb mark and HALT is not
+				// currently active, perform a video output and return a NOP. Otherwise,
+				// just return the value as read.
+				if(cycle.operation == CPU::Z80::BusOperation::ReadOpcode && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
 					if((char_address & 0xc000) == 0x0000) {
 						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
@@ -103,7 +107,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		break;
 
 		case CPU::Z80::BusOperation::Write:
-			if((address & 0x4000) == 0x4000) ram_[address & 1023] = *cycle.value;
+			if(address >= ram_base_) {
+				ram_[address & ram_mask_] = *cycle.value;
+			}
 		break;
 
 		default: break;
@@ -139,14 +145,33 @@ void Machine::run_for_cycles(int number_of_cycles) {
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	// TODO: pay attention to the target; it can't currently specify a ZX81
 	// so assume a ZX80 if we got here.
-	if(true) {
-		rom_ = zx80_rom_;
-		tape_trap_address_ = 0x220;
-		tape_return_address_ = 0x248;
-	} else {
+	if(target.zx8081.isZX81) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
+	} else {
+		rom_ = zx80_rom_;
+		tape_trap_address_ = 0x220;
+		tape_return_address_ = 0x248;
+	}
+	rom_mask_ = (uint16_t)(rom_.size() - 1);
+
+	switch(target.zx8081.memory_model) {
+		case StaticAnalyser::ZX8081MemoryModel::Unexpanded:
+			ram_.resize(1024);
+			ram_base_ = 16384;
+			ram_mask_ = 1023;
+		break;
+		case StaticAnalyser::ZX8081MemoryModel::SixteenKB:
+			ram_.resize(16384);
+			ram_base_ = 16384;
+			ram_mask_ = 16383;
+		break;
+		case StaticAnalyser::ZX8081MemoryModel::SixtyFourKB:
+			ram_.resize(65536);
+			ram_base_ = 8192;
+			ram_mask_ = 0xffff;
+		break;
 	}
 
 	if(target.tapes.size()) {
