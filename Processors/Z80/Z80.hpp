@@ -1734,8 +1734,12 @@ template <class T> class Processor {
 
 		/*!
 			Sets the logical value of the interrupt line.
+
+			@param offset If called while within perform_machine_cycle this may be a value indicating
+			how many cycles before now the line changed state. The value may not be longer than the
+			current machine cycle. If called at any other time, this must be zero.
 		*/
-		void set_interrupt_line(bool value) {
+		void set_interrupt_line(bool value, int offset = 0) {
 			if(irq_line_ == value) return;
 
 			// IRQ requests are level triggered and masked.
@@ -1745,14 +1749,28 @@ template <class T> class Processor {
 			} else {
 				request_status_ &= ~Interrupt::IRQ;
 			}
+
+			// If this change happened at least one cycle ago then: (i) we're promised that this is a machine
+			// cycle per the contract on supplying an offset; and (ii) that means it happened before the lines
+			// were sampled. So adjust the most recent sample.
+			if(offset <= 0) {
+				last_request_status_ = (last_request_status_ & ~Interrupt::IRQ) | (request_status_ & Interrupt::IRQ);
+			}
 		}
 
 		/*!
 			Sets the logical value of the non-maskable interrupt line.
+			
+			@param offset See discussion in set_interrupt_line.
 		*/
-		void set_non_maskable_interrupt_line(bool value) {
+		void set_non_maskable_interrupt_line(bool value, int offset = 0) {
 			// NMIs are edge triggered and cannot be masked.
-			if(value) request_status_ |= Interrupt::NMI;
+			if(value) {
+				request_status_ |= Interrupt::NMI;
+				if(offset <= 0) {
+					last_request_status_ |= Interrupt::NMI;
+				}
+			}
 		}
 
 		/*!
