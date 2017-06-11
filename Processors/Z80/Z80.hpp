@@ -1753,7 +1753,7 @@ template <class T> class Processor {
 			// If this change happened at least one cycle ago then: (i) we're promised that this is a machine
 			// cycle per the contract on supplying an offset; and (ii) that means it happened before the lines
 			// were sampled. So adjust the most recent sample.
-			if(offset <= 0) {
+			if(offset < 0) {
 				last_request_status_ = (last_request_status_ & ~Interrupt::IRQ) | (request_status_ & Interrupt::IRQ);
 			}
 		}
@@ -1767,7 +1767,7 @@ template <class T> class Processor {
 			// NMIs are edge triggered and cannot be masked.
 			if(value) {
 				request_status_ |= Interrupt::NMI;
-				if(offset <= 0) {
+				if(offset < 0) {
 					last_request_status_ |= Interrupt::NMI;
 				}
 			}
