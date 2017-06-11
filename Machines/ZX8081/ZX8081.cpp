@@ -9,10 +9,12 @@
 #include "ZX8081.hpp"
 
 #include "../MemoryFuzzer.hpp"
+#include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 using namespace ZX8081;
 
 namespace {
+	// The clock rate is 3.25Mhz.
 	const unsigned int ZX8081ClockRate = 3250000;
 }
 
@@ -22,7 +24,6 @@ Machine::Machine() :
 	ram_(1024),
 	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	tape_player_(ZX8081ClockRate) {
-	// run at 3.25 Mhz
 	set_clock_rate(ZX8081ClockRate);
 	Memory::Fuzz(ram_);
 	tape_player_.set_motor_control(true);
@@ -32,18 +33,12 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	video_->run_for_cycles(cycle.length);
 	tape_player_.run_for_cycles(cycle.length);
 
-	static uint64_t time = 0;
-	time += (uint64_t)cycle.length;
-	static uint8_t last_input = 0xff;
-
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	switch(cycle.operation) {
 		case CPU::Z80::BusOperation::Output:
-//			if((address&7) == 7) {
-				set_vsync(false);
-				line_counter_ = 0;
-//			}
+			set_vsync(false);
+			line_counter_ = 0;
 		break;
 
 		case CPU::Z80::BusOperation::Input: {
@@ -58,13 +53,6 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				}
 
 				value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
-
-//				if((last_input ^ value) & 0x80) {
-//					printf("%lld\n", time);
-//					time = 0;
-//					last_input = value;
-//				}
-//				printf("[%02x]\n", value);
 			}
 			*cycle.value = value;
 		} break;
@@ -76,13 +64,29 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
-//			if(address >= 0x22f && address < 0x24d && count) {
-//				printf("%04x A:%02x BC:%04x DE:%04x\n", address, get_value_of_register(CPU::Z80::Register::A), get_value_of_register(CPU::Z80::Register::BC), get_value_of_register(CPU::Z80::Register::DE));
-//				count--;
-//			}
 			set_hsync(false);
+
+			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
+			// address is low. The Z80 signals a refresh, providing the refresh address during the
+			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
+			// of the IRQ line if necessary.
 			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
 			set_interrupt_line(!(refresh & 0x40), -2);
+			set_interrupt_line(false);
+
+			// Check for use of the fast tape hack.
+			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
+				Storage::Tape::ZX8081::Parser parser;
+				int next_byte = parser.get_next_byte(tape_player_.get_tape());
+				if(next_byte != -1) {
+					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
+					ram_[hl & 1023] = (uint8_t)next_byte;
+					*cycle.value = 0x00;
+					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_);
+					return 0;
+				}
+			}
+
 		case CPU::Z80::BusOperation::Read:
 			if((address & 0xc000) == 0x0000) *cycle.value = rom_[address & (rom_.size() - 1)];
 			else if((address & 0x4000) == 0x4000) {
@@ -137,7 +141,15 @@ void Machine::run_for_cycles(int number_of_cycles) {
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	// TODO: pay attention to the target; it can't currently specify a ZX81
 	// so assume a ZX80 if we got here.
-	rom_ = zx80_rom_;
+	if(true) {
+		rom_ = zx80_rom_;
+		tape_trap_address_ = 0x220;
+		tape_return_address_ = 0x248;
+	} else {
+		rom_ = zx81_rom_;
+		tape_trap_address_ = 0x37c;
+		tape_return_address_ = 0x380;
+	}
 
 	if(target.tapes.size()) {
 		tape_player_.set_tape(target.tapes.front());

@@ -65,6 +65,7 @@ class Machine:
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_, rom_;
 		std::vector<uint8_t> ram_;
+		uint16_t tape_trap_address_, tape_return_address_;
 
 		bool vsync_, hsync_;
 		int line_counter_;
