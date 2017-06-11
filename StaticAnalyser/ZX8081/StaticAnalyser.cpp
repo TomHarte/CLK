@@ -36,9 +36,16 @@ void StaticAnalyser::ZX8081::AddTargets(
 	if(!tapes.empty()) {
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(tapes.front());
 		if(!files.empty()) {
-			// TODO: check files for machine type, memory size.
 			StaticAnalyser::Target target;
-			target.machine = Target::ZX80;
+			target.machine = Target::ZX8081;
+			target.zx8081.isZX81 = files.front().isZX81;
+			if(files.front().data.size() > 16384) {
+				target.zx8081.memory_model = ZX8081MemoryModel::SixtyFourKB;
+			} else if(files.front().data.size() > 1024) {
+				target.zx8081.memory_model = ZX8081MemoryModel::SixteenKB;
+			} else {
+				target.zx8081.memory_model = ZX8081MemoryModel::Unexpanded;
+			}
 			target.tapes = tapes;
 			destination.push_back(target);
 		}
