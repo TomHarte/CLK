@@ -14,6 +14,7 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 #include "Video.hpp"
 
@@ -77,6 +78,7 @@ class Machine:
 		void update_sync();
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		Storage::Tape::ZX8081::Parser parser_;
 		bool tape_level_;
 };
 

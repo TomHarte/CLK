@@ -9,7 +9,6 @@
 #include "ZX8081.hpp"
 
 #include "../MemoryFuzzer.hpp"
-#include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 using namespace ZX8081;
 
@@ -31,7 +30,7 @@ Machine::Machine() :
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	video_->run_for_cycles(cycle.length);
-	tape_player_.run_for_cycles(cycle.length);
+//	tape_player_.run_for_cycles(cycle.length);
 
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
@@ -76,8 +75,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 
 			// Check for use of the fast tape hack.
 			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
-				Storage::Tape::ZX8081::Parser parser;
-				int next_byte = parser.get_next_byte(tape_player_.get_tape());
+				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
 					ram_[hl & 1023] = (uint8_t)next_byte;
