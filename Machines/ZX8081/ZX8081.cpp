@@ -82,7 +82,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
 					ram_[hl & 1023] = (uint8_t)next_byte;
 					*cycle.value = 0x00;
-					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_);
+					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 					return 0;
 				}
 			}
