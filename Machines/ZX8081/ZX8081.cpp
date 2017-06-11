@@ -97,7 +97,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
 					if((char_address & 0xc000) == 0x0000) {
 						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
-						value = rom_[char_address & (rom_.size() - 1)] ^ mask;
+						value = rom_[char_address & rom_mask_] ^ mask;
 					}
 
 					video_->output_byte(value);
