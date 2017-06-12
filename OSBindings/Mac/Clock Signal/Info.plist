@@ -186,7 +186,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>NSDocumentClass</key>
-			<string>MachineDocument</string>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
