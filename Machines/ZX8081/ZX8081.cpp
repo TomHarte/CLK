@@ -76,7 +76,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
-					ram_[hl & 1023] = (uint8_t)next_byte;
+					ram_[hl & ram_mask_] = (uint8_t)next_byte;
 					*cycle.value = 0x00;
 					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 					return 0;
