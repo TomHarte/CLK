@@ -21,14 +21,14 @@ ZX80O::ZX80O(const char *file_name) :
 
 	if(!file || file->isZX81) throw ErrorNotZX80O;
 
-	size_of_file_ = file->data.size();
+	data_ = file->data;
 
 	// then rewind and start again
 	virtual_reset();
 }
 
 void ZX80O::virtual_reset() {
-	fseek(file_, 0, SEEK_SET);
+	data_pointer_ = 0;
 	is_past_silence_ = false;
 	has_ended_final_byte_ = false;
 	is_high_ = true;
@@ -36,7 +36,7 @@ void ZX80O::virtual_reset() {
 }
 
 bool ZX80O::has_finished_data() {
-	return (ftell(file_) == size_of_file_) && !wave_pointer_ && !bit_pointer_;
+	return (data_pointer_ == data_.size()) && !wave_pointer_ && !bit_pointer_;
 }
 
 bool ZX80O::is_at_end() {
@@ -58,7 +58,8 @@ Tape::Pulse ZX80O::virtual_get_next_pulse() {
 
 	// For each byte, output 8 bits and then silence.
 	if(!bit_pointer_ && !wave_pointer_) {
-		byte_ = (uint8_t)fgetc(file_);
+		byte_ = data_[data_pointer_];
+		data_pointer_++;
 		bit_pointer_ = 0;
 		wave_pointer_ = 0;
 	}

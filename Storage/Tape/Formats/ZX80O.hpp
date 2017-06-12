@@ -11,7 +11,9 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+
 #include <cstdint>
+#include <vector>
 
 namespace Storage {
 namespace Tape {
@@ -46,7 +48,8 @@ class ZX80O: public Tape, public Storage::FileHolder {
 		bool is_past_silence_, has_ended_final_byte_;
 		bool is_high_;
 
-		size_t size_of_file_;
+		std::vector<uint8_t> data_;
+		size_t data_pointer_;
 };
 
 }
