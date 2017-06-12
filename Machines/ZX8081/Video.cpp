@@ -11,7 +11,7 @@
 using namespace ZX8081;
 
 Video::Video() :
-	crt_(new Outputs::CRT::CRT(206 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)),
+	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)),
 	line_data_(nullptr),
 	line_data_pointer_(nullptr),
 	cycles_since_update_(0),
