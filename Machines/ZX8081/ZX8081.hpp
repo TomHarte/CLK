@@ -84,7 +84,6 @@ class Machine:
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
-		bool tape_level_;
 };
 
 }

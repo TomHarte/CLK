@@ -20,11 +20,10 @@ namespace {
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
-	key_states_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	tape_player_(ZX8081ClockRate) {
 	set_clock_rate(ZX8081ClockRate);
-	Memory::Fuzz(ram_);
 	tape_player_.set_motor_control(true);
+	clear_all_keys();
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
@@ -95,7 +94,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				// just return the value as read.
 				if(cycle.operation == CPU::Z80::BusOperation::ReadOpcode && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
-					if((char_address & 0xc000) == 0x0000) {
+					if(char_address < ram_base_) {
 						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
 						value = rom_[char_address & rom_mask_] ^ mask;
 					}
@@ -170,9 +169,10 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		case StaticAnalyser::ZX8081MemoryModel::SixtyFourKB:
 			ram_.resize(65536);
 			ram_base_ = 8192;
-			ram_mask_ = 0xffff;
+			ram_mask_ = 65535;
 		break;
 	}
+	Memory::Fuzz(ram_);
 
 	if(target.tapes.size()) {
 		tape_player_.set_tape(target.tapes.front());
