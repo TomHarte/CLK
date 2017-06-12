@@ -6,12 +6,12 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#include "ZX80O.hpp"
+#include "ZX80O81P.hpp"
 #include "../../Data/ZX8081.hpp"
 
 using namespace Storage::Tape;
 
-ZX80O::ZX80O(const char *file_name) :
+ZX80O81P::ZX80O81P(const char *file_name) :
 	Storage::FileHolder(file_name) {
 
 	// Check that contents look like a ZX80 file
@@ -19,7 +19,7 @@ ZX80O::ZX80O(const char *file_name) :
 	fread(whole_file.data(), 1, (size_t)file_stats_.st_size, file_);
 	std::shared_ptr<::Storage::Data::ZX8081::File> file = Storage::Data::ZX8081::FileFromData(whole_file);
 
-	if(!file || file->isZX81) throw ErrorNotZX80O;
+	if(!file || file->isZX81) throw ErrorNotZX80O81P;
 
 	data_ = file->data;
 
@@ -27,7 +27,7 @@ ZX80O::ZX80O(const char *file_name) :
 	virtual_reset();
 }
 
-void ZX80O::virtual_reset() {
+void ZX80O81P::virtual_reset() {
 	data_pointer_ = 0;
 	is_past_silence_ = false;
 	has_ended_final_byte_ = false;
@@ -35,15 +35,15 @@ void ZX80O::virtual_reset() {
 	bit_pointer_ = wave_pointer_ = 0;
 }
 
-bool ZX80O::has_finished_data() {
+bool ZX80O81P::has_finished_data() {
 	return (data_pointer_ == data_.size()) && !wave_pointer_ && !bit_pointer_;
 }
 
-bool ZX80O::is_at_end() {
+bool ZX80O81P::is_at_end() {
 	return has_finished_data() && has_ended_final_byte_;
 }
 
-Tape::Pulse ZX80O::virtual_get_next_pulse() {
+Tape::Pulse ZX80O81P::virtual_get_next_pulse() {
 	Tape::Pulse pulse;
 
 	// Start with 1 second of silence.

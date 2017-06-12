@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZX80O_hpp
-#define ZX80O_hpp
+#ifndef ZX80O81P_hpp
+#define ZX80O81P_hpp
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -21,17 +21,17 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
 */
-class ZX80O: public Tape, public Storage::FileHolder {
+class ZX80O81P: public Tape, public Storage::FileHolder {
 	public:
 		/*!
 			Constructs an @c ZX80O containing content from the file with name @c file_name.
 
 			@throws ErrorNotZX80O if this file could not be opened and recognised as a valid ZX80-format .O.
 		*/
-		ZX80O(const char *file_name);
+		ZX80O81P(const char *file_name);
 
 		enum {
-			ErrorNotZX80O
+			ErrorNotZX80O81P
 		};
 
 		// implemented to satisfy @c Tape
