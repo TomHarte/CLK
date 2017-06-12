@@ -14,14 +14,19 @@ using namespace Storage::Tape;
 ZX80O81P::ZX80O81P(const char *file_name) :
 	Storage::FileHolder(file_name) {
 
-	// Check that contents look like a ZX80 file
-	std::vector<uint8_t> whole_file((size_t)file_stats_.st_size);
-	fread(whole_file.data(), 1, (size_t)file_stats_.st_size, file_);
-	std::shared_ptr<::Storage::Data::ZX8081::File> file = Storage::Data::ZX8081::FileFromData(whole_file);
+	// Grab the actual file contents
+	data_.resize((size_t)file_stats_.st_size);
+	fread(data_.data(), 1, (size_t)file_stats_.st_size, file_);
 
-	if(!file || file->isZX81) throw ErrorNotZX80O81P;
+	// If it's a ZX81 file, prepend a file name.
+	char type = (char)tolower(file_name[strlen(file_name) - 1]);
+	if(type == 'p' || type == '1') {
+		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.
+		data_.insert(data_.begin(), 0x80);
+	}
 
-	data_ = file->data;
+	std::shared_ptr<::Storage::Data::ZX8081::File> file = Storage::Data::ZX8081::FileFromData(data_);
+	if(!file) throw ErrorNotZX80O81P;
 
 	// then rewind and start again
 	virtual_reset();
