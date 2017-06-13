@@ -84,6 +84,9 @@ class Machine:
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
+
+		int horizontal_counter_;
+		bool is_zx81_;
 };
 
 }

@@ -142,9 +142,8 @@ void Machine::run_for_cycles(int number_of_cycles) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
-	// TODO: pay attention to the target; it can't currently specify a ZX81
-	// so assume a ZX80 if we got here.
-	if(target.zx8081.isZX81) {
+	is_zx81_ = target.zx8081.isZX81;
+	if(is_zx81_) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
