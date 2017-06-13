@@ -25,6 +25,10 @@ struct File {
 
 std::shared_ptr<File> FileFromData(const std::vector<uint8_t> &data);
 
+std::wstring StringFromData(const std::vector<uint8_t> &data, bool is_zx81);
+std::vector<uint8_t> DataFromString(const std::wstring &string, bool is_zx81);
+
+
 }
 }
 }
