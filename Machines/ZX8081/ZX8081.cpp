@@ -27,7 +27,20 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
-	video_->run_for_cycles(cycle.length);
+	int previous_counter = horizontal_counter_;
+	horizontal_counter_ += cycle.length;
+	if(previous_counter < 16 && horizontal_counter_ >= 16) {
+		video_->run_for_cycles(16 - previous_counter);
+		set_hsync(true);
+		video_->run_for_cycles(horizontal_counter_ - 16);
+	} else if(previous_counter < 32 && horizontal_counter_ >= 32) {
+		video_->run_for_cycles(32 - previous_counter);
+		set_hsync(false);
+		video_->run_for_cycles(horizontal_counter_ - 32);
+	} else {
+		video_->run_for_cycles(cycle.length);
+	}
+
 //	tape_player_.run_for_cycles(cycle.length);
 
 	uint16_t refresh = 0;
@@ -55,13 +68,14 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		} break;
 
 		case CPU::Z80::BusOperation::Interrupt:
-			set_hsync(true);
+//			set_hsync(true);
 			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
+			horizontal_counter_ = 0;	// TODO: more than this?
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
-			set_hsync(false);
+//			set_hsync(false);
 
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
