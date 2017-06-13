@@ -36,6 +36,8 @@ class AllRAMProcessor:
 		virtual void set_interrupt_line(bool value) = 0;
 		virtual void set_non_maskable_interrupt_line(bool value) = 0;
 
+		virtual int get_length_of_completed_machine_cycles() = 0;
+
 	protected:
 		MemoryAccessDelegate *delegate_;
 		AllRAMProcessor() : ::CPU::AllRAMProcessor(65536), delegate_(nullptr) {}

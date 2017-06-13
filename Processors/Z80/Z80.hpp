@@ -285,6 +285,13 @@ template <class T> class Processor {
 				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
+#define READ_OP_GROUP_D(op)	\
+				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
+				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
+				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
+				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::op, &temp8_}),	\
+				Program({MicroOp::op, &a_})
+
 #define RMW(x, op, ...) Program(INDEX(), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
 #define RMWI(x, op, ...) Program(WAIT(2), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
 
@@ -461,7 +468,7 @@ template <class T> class Processor {
 				/* 0x40 – 0x7f: BIT */
 				/* 0x80 – 0xcf: RES */
 				/* 0xd0 – 0xdf: SET */
-				CB_PAGE(MODIFY_OP_GROUP, READ_OP_GROUP)
+				CB_PAGE(MODIFY_OP_GROUP, READ_OP_GROUP_D)
 			};
 			InstructionTable offsets_cb_program_table = {
 				CB_PAGE(IX_MODIFY_OP_GROUP, IX_READ_OP_GROUP)

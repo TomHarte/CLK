@@ -59,6 +59,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 @property(nonatomic, readonly, nonnull) NSArray<CSTestMachineZ80BusOperationCapture *> *busOperationCaptures;
 
 @property(nonatomic, readonly) BOOL isHalted;
+@property(nonatomic, readonly) int completedCycles;
 
 @property(nonatomic) BOOL nmiLine;
 @property(nonatomic) BOOL irqLine;
