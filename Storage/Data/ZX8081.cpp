@@ -96,14 +96,15 @@ std::shared_ptr<File> Storage::Data::ZX8081::FileFromData(const std::vector<uint
 std::wstring Storage::Data::ZX8081::StringFromData(const std::vector<uint8_t> &data, bool is_zx81) {
 	std::wstring string;
 
-	wchar_t zx80_map[] = {
+	wchar_t zx80_map[64] = {
 		' ',	u'\u2598',	u'\u259d',	u'\u2580',	u'\u2596',	u'\u258c',	u'\u259e',	u'\u259b',	u'\u2588',	u'\u2584',	u'\u2580',	'"',	u'£',	'$',	':',	'?',
 		'(',	')',		'>',		'<',		'=',		'+',		'-',		'*',		'/',		';',		',',		'.',	'0',	'1',	'2',	'3',
 		'4',	'5',		'6',		'7',		'8',		'9',		'A',		'B',		'C',		'D',		'E',		'F',	'G',	'H',	'I',	'J',
 		'K',	'L',		'M',		'N',		'O',		'P',		'Q',		'R',		'S',		'T',		'U',		'V',	'W',	'X',	'Y',	'Z'
 	};
-	wchar_t zx81_map[] = {
-		' ',	u'\u2598',	u'\u259d',	u'\u2580',	u'\u2596',	u'\u258c',	u'\u259e',	u'\u259b',	u'\u2588',	u'\u2584',	u'\u2580',	u'£',	'$',	':',	'?',
+	// TODO: the block character conversions shown here are in the wrong order
+	wchar_t zx81_map[64] = {
+		' ',	u'\u2598',	u'\u259d',	u'\u2580',	u'\u2596',	u'\u258c',	u'\u259e',	u'\u259b',	u'\u2588',	u'\u2584',	u'\u2580',	'"',	u'£',	'$',	':',	'?',
 		'(',	')',		'-',		'+',		'*',		'/',		'=',		'>',		'<',		';',		',',		'.',	'0',	'1',	'2',	'3',
 		'4',	'5',		'6',		'7',		'8',		'9',		'A',		'B',		'C',		'D',		'E',		'F',	'G',	'H',	'I',	'J',
 		'K',	'L',		'M',		'N',		'O',		'P',		'Q',		'R',		'S',		'T',		'U',		'V',	'W',	'X',	'Y',	'Z'
