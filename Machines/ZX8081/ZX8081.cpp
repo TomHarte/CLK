@@ -27,18 +27,27 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
+	const int vsync_length = 16;
+
 	int previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
-	if(previous_counter < 16 && horizontal_counter_ >= 16) {
-		video_->run_for_cycles(16 - previous_counter);
-		set_hsync(true);
-		video_->run_for_cycles(horizontal_counter_ - 16);
-	} else if(previous_counter < 32 && horizontal_counter_ >= 32) {
-		video_->run_for_cycles(32 - previous_counter);
-		set_hsync(false);
-		video_->run_for_cycles(horizontal_counter_ - 32);
+
+	if(is_zx81_) {
 	} else {
-		video_->run_for_cycles(cycle.length);
+		const int vsync_start_cycle = 13;
+		const int vsync_end_cycle = vsync_start_cycle + vsync_length;
+
+		if(previous_counter < vsync_start_cycle && horizontal_counter_ >= vsync_start_cycle) {
+			video_->run_for_cycles(vsync_start_cycle - previous_counter);
+			set_hsync(true);
+			video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle);
+		} else if(previous_counter < vsync_end_cycle  && horizontal_counter_ >= vsync_end_cycle) {
+			video_->run_for_cycles(vsync_end_cycle - previous_counter);
+			set_hsync(false);
+			video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle);
+		} else {
+			video_->run_for_cycles(cycle.length);
+		}
 	}
 
 //	tape_player_.run_for_cycles(cycle.length);
