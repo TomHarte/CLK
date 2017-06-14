@@ -38,12 +38,12 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		set_hsync(true);
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
-			if(get_halt_line()) {
-				wait_cycles = vsync_start_cycle_ - horizontal_counter_;
+			if(!get_halt_line()) {
+				wait_cycles = vsync_end_cycle_ - horizontal_counter_;
 			}
 		}
 		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_ + wait_cycles);
-	} else if(previous_counter < vsync_end_cycle_  && horizontal_counter_ >= vsync_end_cycle_) {
+	} else if(previous_counter <= vsync_end_cycle_ && horizontal_counter_ > vsync_end_cycle_) {
 		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
 		set_hsync(false);
 		if(nmi_is_enabled_) set_non_maskable_interrupt_line(false);
@@ -180,12 +180,14 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		tape_return_address_ = 0x380;
 		vsync_start_cycle_ = 13;
 		vsync_end_cycle_ = 33;
+		vsync_start_cycle_ = 16;
+		vsync_end_cycle_ = 32;
 	} else {
 		rom_ = zx80_rom_;
 		tape_trap_address_ = 0x220;
 		tape_return_address_ = 0x248;
-		vsync_start_cycle_ = 16;
-		vsync_end_cycle_ = 32;
+		vsync_start_cycle_ = 13;
+		vsync_end_cycle_ = 33;
 	}
 	rom_mask_ = (uint16_t)(rom_.size() - 1);
 
