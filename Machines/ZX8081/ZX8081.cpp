@@ -20,6 +20,7 @@ namespace {
 Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
+	nmi_is_enabled_(false),
 	tape_player_(ZX8081ClockRate) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
@@ -27,30 +28,34 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
-	const int vsync_length = 16;
+	int wait_cycles = 0;
 
 	int previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
 
-	if(is_zx81_) {
-	} else {
-		const int vsync_start_cycle = 13;
-		const int vsync_end_cycle = vsync_start_cycle + vsync_length;
-
-		if(previous_counter < vsync_start_cycle && horizontal_counter_ >= vsync_start_cycle) {
-			video_->run_for_cycles(vsync_start_cycle - previous_counter);
-			set_hsync(true);
-			video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle);
-		} else if(previous_counter < vsync_end_cycle  && horizontal_counter_ >= vsync_end_cycle) {
-			video_->run_for_cycles(vsync_end_cycle - previous_counter);
-			set_hsync(false);
-			video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle);
-		} else {
-			video_->run_for_cycles(cycle.length);
+	if(previous_counter < vsync_start_cycle_ && horizontal_counter_ >= vsync_start_cycle_) {
+		video_->run_for_cycles(vsync_start_cycle_ - previous_counter);
+		set_hsync(true);
+		if(nmi_is_enabled_) {
+			set_non_maskable_interrupt_line(true);
+			if(get_halt_line()) {
+				wait_cycles = vsync_start_cycle_ - horizontal_counter_;
+			}
 		}
+		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_ + wait_cycles);
+	} else if(previous_counter < vsync_end_cycle_  && horizontal_counter_ >= vsync_end_cycle_) {
+		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
+		set_hsync(false);
+		if(nmi_is_enabled_) set_non_maskable_interrupt_line(false);
+		video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle_);
+	} else {
+		video_->run_for_cycles(cycle.length);
 	}
 
-//	tape_player_.run_for_cycles(cycle.length);
+	horizontal_counter_ += wait_cycles;
+	if(is_zx81_) horizontal_counter_ %= 207;
+
+//	tape_player_.run_for_cycles(cycle.length + wait_cycles);
 
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
@@ -58,6 +63,12 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		case CPU::Z80::BusOperation::Output:
 			set_vsync(false);
 			line_counter_ = 0;
+
+			switch(address & 7) {
+				default: break;
+				case 0x5:	nmi_is_enabled_ = false;		break;
+				case 0x6:	nmi_is_enabled_ = is_zx81_;		break;
+			}
 		break;
 
 		case CPU::Z80::BusOperation::Input: {
@@ -77,15 +88,12 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		} break;
 
 		case CPU::Z80::BusOperation::Interrupt:
-//			set_hsync(true);
 			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
-			horizontal_counter_ = 0;	// TODO: more than this?
+			horizontal_counter_ = 0;
 		break;
 
 		case CPU::Z80::BusOperation::ReadOpcode:
-//			set_hsync(false);
-
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
@@ -137,7 +145,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 		default: break;
 	}
 
-	return 0;
+	return wait_cycles;
 }
 
 void Machine::flush() {
@@ -170,10 +178,14 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
+		vsync_start_cycle_ = 13;
+		vsync_end_cycle_ = 33;
 	} else {
 		rom_ = zx80_rom_;
 		tape_trap_address_ = 0x220;
 		tape_return_address_ = 0x248;
+		vsync_start_cycle_ = 16;
+		vsync_end_cycle_ = 32;
 	}
 	rom_mask_ = (uint16_t)(rom_.size() - 1);
 

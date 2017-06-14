@@ -87,6 +87,8 @@ class Machine:
 
 		int horizontal_counter_;
 		bool is_zx81_;
+		bool nmi_is_enabled_;
+		int vsync_start_cycle_, vsync_end_cycle_;
 };
 
 }
