@@ -64,11 +64,8 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			set_vsync(false);
 			line_counter_ = 0;
 
-			switch(address & 7) {
-				default: break;
-				case 0x5:	nmi_is_enabled_ = false;		break;
-				case 0x6:	nmi_is_enabled_ = is_zx81_;		break;
-			}
+			if(!(address & 2)) nmi_is_enabled_ = false;
+			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
 		break;
 
 		case CPU::Z80::BusOperation::Input: {
