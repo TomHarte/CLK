@@ -14,9 +14,10 @@ namespace {
 
 class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<ConcreteAllRAMProcessor> {
 	public:
-		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
+		ConcreteAllRAMProcessor() : AllRAMProcessor(), completed_cycles(0) {}
 
 		inline int perform_machine_cycle(const MachineCycle &cycle) {
+			completed_cycles += cycle.length;
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case BusOperation::ReadOpcode:
@@ -88,6 +89,14 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		void set_non_maskable_interrupt_line(bool value) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_non_maskable_interrupt_line(value);
 		}
+
+		int get_length_of_completed_machine_cycles() {
+			return completed_cycles;
+		}
+
+		private:
+			int completed_cycles;
+
 };
 
 }

@@ -104,7 +104,7 @@
 			<key>CFBundleTypeName</key>
 			<string>Commodore Disk</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>Editor</string>
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
@@ -120,7 +120,7 @@
 			<key>CFBundleTypeName</key>
 			<string>Commodore 1540/1 Disk</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>Editor</string>
 			<key>LSTypeIsPackage</key>
 			<integer>0</integer>
 			<key>NSDocumentClass</key>
@@ -140,7 +140,7 @@
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Disk Image</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>Editor</string>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -153,6 +153,36 @@
 			<string>floppy35</string>
 			<key>CFBundleTypeName</key>
 			<string>Disk Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>o</string>
+				<string>80</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
+			<key>CFBundleTypeName</key>
+			<string>ZX80 Tape Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>p</string>
+				<string>81</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
+			<key>CFBundleTypeName</key>
+			<string>ZX81 Tape Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>NSDocumentClass</key>

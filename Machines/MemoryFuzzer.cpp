@@ -22,3 +22,7 @@ void Memory::Fuzz(uint8_t *buffer, size_t size) {
 		buffer[c] = (uint8_t)(std::rand() >> shift);
 	}
 }
+
+void Memory::Fuzz(std::vector<uint8_t> &buffer) {
+	Fuzz(buffer.data(), buffer.size());
+}

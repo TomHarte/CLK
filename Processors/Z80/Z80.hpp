@@ -38,7 +38,7 @@ enum Register {
 
 	IXh,	IXl,	IX,
 	IYh,	IYl,	IY,
-	R,		I,
+	R,		I,		Refresh,
 
 	IFF1,	IFF2,	IM
 };
@@ -285,6 +285,13 @@ template <class T> class Processor {
 				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
 				Program({MicroOp::op, &a_})
 
+#define READ_OP_GROUP_D(op)	\
+				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
+				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
+				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
+				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::op, &temp8_}),	\
+				Program({MicroOp::op, &a_})
+
 #define RMW(x, op, ...) Program(INDEX(), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
 #define RMWI(x, op, ...) Program(WAIT(2), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
 
@@ -345,7 +352,7 @@ template <class T> class Processor {
 
 			// Copy in all programs and set pointers.
 			size_t destination = 0;
-			for(int c = 0; c < 256; c++) {
+			for(size_t c = 0; c < 256; c++) {
 				target.instructions[c] = &target.all_operations[destination];
 				for(int t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
@@ -385,19 +392,19 @@ template <class T> class Processor {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
 				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	Program(FETCH16(temp16_, pc_), STORE16L(bc_, temp16_)),
 				/* 0x44 NEG */			Program({MicroOp::NEG}),		/* 0x45 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		LD(i_, a_),
+				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &i_}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
 				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
 				/* 0x4c NEG */			Program({MicroOp::NEG}),		/* 0x4d RETI */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		LD(r_, a_),
+				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &r_}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
 				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	Program(FETCH16(temp16_, pc_), STORE16L(de_, temp16_)),
 				/* 0x54 NEG */			Program({MicroOp::NEG}),		/* 0x55 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program({MicroOp::Move8, &i_, &a_}, {MicroOp::SetAFlags}),
+				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program(WAIT(1), {MicroOp::Move8, &i_, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
 				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(de_, temp16_)),
 				/* 0x5c NEG */			Program({MicroOp::NEG}),		/* 0x5d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program({MicroOp::Move8, &r_, &a_}, {MicroOp::SetAFlags}),
+				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program(WAIT(1), {MicroOp::Move8, &r_, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			Program(POP(pc_), {MicroOp::RETN}),
@@ -461,7 +468,7 @@ template <class T> class Processor {
 				/* 0x40 – 0x7f: BIT */
 				/* 0x80 – 0xcf: RES */
 				/* 0xd0 – 0xdf: SET */
-				CB_PAGE(MODIFY_OP_GROUP, READ_OP_GROUP)
+				CB_PAGE(MODIFY_OP_GROUP, READ_OP_GROUP_D)
 			};
 			InstructionTable offsets_cb_program_table = {
 				CB_PAGE(IX_MODIFY_OP_GROUP, IX_READ_OP_GROUP)
@@ -775,7 +782,10 @@ template <class T> class Processor {
 				while(bus_request_line_) {
 					static MachineCycle bus_acknowledge_cycle = {BusOperation::BusAcknowledge, 1};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
-					if(!number_of_cycles_) return;
+					if(!number_of_cycles_) {
+						static_cast<T *>(this)->flush();
+						return;
+					}
 				}
 
 				while(!bus_request_line_) {
@@ -783,14 +793,18 @@ template <class T> class Processor {
 					scheduled_program_counter_++;
 
 #define set_parity(v)	\
-	parity_overflow_result_ = v^1;\
+	parity_overflow_result_ = (uint8_t)(v^1);\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
 	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
 
 					switch(operation->type) {
 						case MicroOp::BusOperation:
-							if(number_of_cycles_ < operation->machine_cycle.length) { scheduled_program_counter_--; return; }
+							if(number_of_cycles_ < operation->machine_cycle.length) {
+								scheduled_program_counter_--;
+								static_cast<T *>(this)->flush();
+								return;
+							}
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
 							number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);
@@ -800,7 +814,7 @@ template <class T> class Processor {
 						break;
 						case MicroOp::DecodeOperation:
 							r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step) & 0x7f);
-							pc_.full += pc_increment_;
+							pc_.full += pc_increment_ & (uint16_t)halt_mask_;
 						case MicroOp::DecodeOperationNoRChange:
 							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 						break;
@@ -854,7 +868,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CCF:
-							half_carry_result_ = carry_result_ << 4;
+							half_carry_result_ = (uint8_t)(carry_result_ << 4);
 							carry_result_ ^= Flag::Carry;
 							subtract_flag_ = 0;
 							bit53_result_ = a_;
@@ -884,9 +898,9 @@ template <class T> class Processor {
 
 #define set_arithmetic_flags(sub, b53)	\
 	sign_result_ = zero_result_ = (uint8_t)result;	\
-	carry_result_ = result >> 8;	\
-	half_carry_result_ = half_result;	\
-	parity_overflow_result_ = overflow >> 5;	\
+	carry_result_ = (uint8_t)(result >> 8);	\
+	half_carry_result_ = (uint8_t)half_result;	\
+	parity_overflow_result_ = (uint8_t)(overflow >> 5);	\
 	subtract_flag_ = sub;	\
 	bit53_result_ = (uint8_t)b53;
 
@@ -966,8 +980,8 @@ template <class T> class Processor {
 							bit53_result_ = sign_result_ = zero_result_ = a_;
 							parity_overflow_result_ = overflow ? Flag::Overflow : 0;
 							subtract_flag_ = Flag::Subtract;
-							carry_result_ = result >> 8;
-							half_carry_result_ = halfResult;
+							carry_result_ = (uint8_t)(result >> 8);
+							half_carry_result_ = (uint8_t)halfResult;
 						} break;
 
 						case MicroOp::Increment8: {
@@ -983,8 +997,8 @@ template <class T> class Processor {
 
 							// sign, zero and 5 & 3 are set directly from the result
 							bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-							half_carry_result_ = half_result;
-							parity_overflow_result_ = overflow >> 5;
+							half_carry_result_ = (uint8_t)half_result;
+							parity_overflow_result_ = (uint8_t)(overflow >> 5);
 							subtract_flag_ = 0;
 						} break;
 
@@ -1001,8 +1015,8 @@ template <class T> class Processor {
 
 							// sign, zero and 5 & 3 are set directly from the result
 							bit53_result_ = sign_result_ = zero_result_ = (uint8_t)result;
-							half_carry_result_ = half_result;
-							parity_overflow_result_ = overflow >> 5;
+							half_carry_result_ = (uint8_t)half_result;
+							parity_overflow_result_ = (uint8_t)(overflow >> 5);
 							subtract_flag_ = Flag::Subtract;
 						} break;
 
@@ -1071,8 +1085,8 @@ template <class T> class Processor {
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
 							bit53_result_ = (uint8_t)(result >> 8);
-							carry_result_ = result >> 16;
-							half_carry_result_ = (halfResult >> 8);
+							carry_result_ = (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
 							subtract_flag_ = 0;
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
@@ -1091,9 +1105,9 @@ template <class T> class Processor {
 							sign_result_	= (uint8_t)(result >> 8);
 							zero_result_	= (uint8_t)(result | sign_result_);
 							subtract_flag_	= 0;
-							carry_result_	= result >> 16;
-							half_carry_result_ = halfResult >> 8;
-							parity_overflow_result_ = overflow >> 13;
+							carry_result_	= (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
+							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
 						} break;
@@ -1114,9 +1128,9 @@ template <class T> class Processor {
 							sign_result_	= (uint8_t)(result >> 8);
 							zero_result_	= (uint8_t)(result | sign_result_);
 							subtract_flag_	= Flag::Subtract;
-							carry_result_	= result >> 16;
-							half_carry_result_ = halfResult >> 8;
-							parity_overflow_result_ = overflow >> 13;
+							carry_result_	= (uint8_t)(result >> 16);
+							half_carry_result_ = (uint8_t)(halfResult >> 8);
+							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
 						} break;
@@ -1173,7 +1187,7 @@ template <class T> class Processor {
 	de_.full += dir;	\
 	hl_.full += dir;	\
 	uint8_t sum = a_ + temp8_;	\
-	bit53_result_ = (sum&0x8) | ((sum & 0x02) << 4);	\
+	bit53_result_ = (uint8_t)((sum&0x8) | ((sum & 0x02) << 4));	\
 	subtract_flag_ = 0;	\
 	half_carry_result_ = 0;	\
 	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
@@ -1438,7 +1452,7 @@ template <class T> class Processor {
 							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ & 0xf);
-							temp8_ = (temp8_ >> 4) | (low_nibble << 4);
+							temp8_ = (uint8_t)((temp8_ >> 4) | (low_nibble << 4));
 							set_decimal_rotate_flags();
 						} break;
 
@@ -1446,7 +1460,7 @@ template <class T> class Processor {
 							memptr_.full = hl_.full + 1;
 							uint8_t low_nibble = a_ & 0xf;
 							a_ = (a_ & 0xf0) | (temp8_ >> 4);
-							temp8_ = (temp8_ << 4) | low_nibble;
+							temp8_ = (uint8_t)((temp8_ << 4) | low_nibble);
 							set_decimal_rotate_flags();
 						} break;
 
@@ -1541,7 +1555,7 @@ template <class T> class Processor {
 						break;
 
 						case MicroOp::CalculateIndexAddress:
-							memptr_.full = *(uint16_t *)operation->source + (int8_t)temp8_;
+							memptr_.full = (uint16_t)(*(uint16_t *)operation->source + (int8_t)temp8_);
 						break;
 
 						case MicroOp::IndexedPlaceHolder:
@@ -1649,10 +1663,11 @@ template <class T> class Processor {
 
 				case Register::R:						return r_;
 				case Register::I:						return i_;
+				case Register::Refresh:					return (uint16_t)(r_ |	(i_ << 8));
 
 				case Register::IFF1:					return iff1_ ? 1 : 0;
 				case Register::IFF2:					return iff2_ ? 1 : 0;
-				case Register::IM:						return interrupt_mode_;
+				case Register::IM:						return (uint16_t)interrupt_mode_;
 
 				default: return 0;
 			}
@@ -1707,6 +1722,7 @@ template <class T> class Processor {
 
 				case Register::R:				r_ = (uint8_t)value;					break;
 				case Register::I:				i_ = (uint8_t)value;					break;
+				case Register::Refresh:			r_ = (uint8_t)value;	i_ = (uint8_t)(value >> 8);		break;
 
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
@@ -1725,8 +1741,14 @@ template <class T> class Processor {
 
 		/*!
 			Sets the logical value of the interrupt line.
+
+			@param offset If called while within perform_machine_cycle this may be a value indicating
+			how many cycles before now the line changed state. The value may not be longer than the
+			current machine cycle. If called at any other time, this must be zero.
 		*/
-		void set_interrupt_line(bool value) {
+		void set_interrupt_line(bool value, int offset = 0) {
+			if(irq_line_ == value) return;
+
 			// IRQ requests are level triggered and masked.
 			irq_line_ = value;
 			if(irq_line_ && iff1_) {
@@ -1734,14 +1756,28 @@ template <class T> class Processor {
 			} else {
 				request_status_ &= ~Interrupt::IRQ;
 			}
+
+			// If this change happened at least one cycle ago then: (i) we're promised that this is a machine
+			// cycle per the contract on supplying an offset; and (ii) that means it happened before the lines
+			// were sampled. So adjust the most recent sample.
+			if(offset < 0) {
+				last_request_status_ = (last_request_status_ & ~Interrupt::IRQ) | (request_status_ & Interrupt::IRQ);
+			}
 		}
 
 		/*!
 			Sets the logical value of the non-maskable interrupt line.
+			
+			@param offset See discussion in set_interrupt_line.
 		*/
-		void set_non_maskable_interrupt_line(bool value) {
+		void set_non_maskable_interrupt_line(bool value, int offset = 0) {
 			// NMIs are edge triggered and cannot be masked.
-			if(value) request_status_ |= Interrupt::NMI;
+			if(value) {
+				request_status_ |= Interrupt::NMI;
+				if(offset < 0) {
+					last_request_status_ |= Interrupt::NMI;
+				}
+			}
 		}
 
 		/*!

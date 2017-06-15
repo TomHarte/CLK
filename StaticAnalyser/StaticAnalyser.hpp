@@ -40,6 +40,12 @@ enum class Atari2600PagingModel {
 	Pitfall2
 };
 
+enum class ZX8081MemoryModel {
+	Unexpanded,
+	SixteenKB,
+	SixtyFourKB
+};
+
 /*!
 	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
@@ -49,7 +55,8 @@ struct Target {
 		Atari2600,
 		Electron,
 		Vic20,
-		Oric
+		Oric,
+		ZX8081
 	} machine;
 	float probability;
 
@@ -74,6 +81,11 @@ struct Target {
 			Vic20MemoryModel memory_model;
 			bool has_c1540;
 		} vic20;
+
+		struct {
+			ZX8081MemoryModel memory_model;
+			bool isZX81;
+		} zx8081;
 	};
 
 	std::string loadingCommand;

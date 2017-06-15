@@ -149,6 +149,10 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor->get_halt_line() ? YES : NO;
 }
 
+- (int)completedCycles {
+	return _processor->get_length_of_completed_machine_cycles();
+}
+
 - (void)setNmiLine:(BOOL)nmiLine {
 	_nmiLine = nmiLine;
 	_processor->set_non_maskable_interrupt_line(nmiLine ? true : false);

@@ -18,6 +18,7 @@
 #import "CSElectron.h"
 #import "CSOric.h"
 #import "CSVic20.h"
+#import "CSZX8081.h"
 
 #import "Clock_Signal-Swift.h"
 
@@ -49,6 +50,7 @@
 		case StaticAnalyser::Target::Electron:	return @"ElectronOptions";
 		case StaticAnalyser::Target::Oric:		return @"OricOptions";
 		case StaticAnalyser::Target::Vic20:		return @"Vic20Options";
+		case StaticAnalyser::Target::ZX8081:	return @"ZX8081Options";
 		default: return nil;
 	}
 }
@@ -61,6 +63,7 @@
 		case StaticAnalyser::Target::Electron:	return [[CSElectron alloc] init];
 		case StaticAnalyser::Target::Oric:		return [[CSOric alloc] init];
 		case StaticAnalyser::Target::Vic20:		return [[CSVic20 alloc] init];
+		case StaticAnalyser::Target::ZX8081:	return [[CSZX8081 alloc] init];
 		default: return nil;
 	}
 }

@@ -15,6 +15,7 @@
 #include "Atari/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
+#include "ZX8081/StaticAnalyser.hpp"
 
 // Cartridges
 #include "../Storage/Cartridge/Formats/BinaryDump.hpp"
@@ -32,13 +33,15 @@
 #include "../Storage/Tape/Formats/OricTAP.hpp"
 #include "../Storage/Tape/Formats/TapePRG.hpp"
 #include "../Storage/Tape/Formats/TapeUEF.hpp"
+#include "../Storage/Tape/Formats/ZX80O81P.hpp"
 
 typedef int TargetPlatformType;
 enum class TargetPlatform: TargetPlatformType {
 	Acorn		=	1 << 0,
 	Atari2600	=	1 << 1,
 	Commodore	=	1 << 2,
-	Oric		=	1 << 3
+	Oric		=	1 << 3,
+	ZX8081		=	1 << 4,
 };
 
 using namespace StaticAnalyser;
@@ -86,6 +89,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 
 	if(lowercase_extension)
 	{
+		Format("80", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 80
+		Format("81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 81
 		Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
 		Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
 		Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
@@ -93,6 +98,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
 		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK
 		Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
+		Format("o", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
+		Format("p", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
 
 		// PRG
 		if(!strcmp(lowercase_extension, "prg"))
@@ -125,6 +132,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
 		if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
 		if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)	ZX8081::AddTargets(disks, tapes, cartridges, targets);
 
 		free(lowercase_extension);
 	}

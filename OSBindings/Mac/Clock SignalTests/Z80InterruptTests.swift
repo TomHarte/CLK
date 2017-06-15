@@ -135,8 +135,13 @@ class Z80InterruptTests: XCTestCase {
 		machine.runForNumber(ofCycles: 4)
 		XCTAssertEqual(machine.value(for: .programCounter), 0x0102)
 
-		// run for eleven more cycles to allow the IRQ to begin
-		machine.runForNumber(ofCycles: 13)
+		// run for twelve cycles and confirm that the IRQ has yet to begin
+		machine.runForNumber(ofCycles: 12)
+
+		XCTAssertNotEqual(machine.value(for: .programCounter), 0x38)
+
+		// run for one more cycles to allow the IRQ to begin
+		machine.runForNumber(ofCycles: 1)
 
 		// confirm that the PC is now at 0x38, that the old is on the stack and
 		// that interrupts are now disabled
