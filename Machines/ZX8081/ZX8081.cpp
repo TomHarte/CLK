@@ -100,7 +100,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			set_interrupt_line(false);
 
 			// Check for use of the fast tape hack.
-/*			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
+			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
@@ -109,7 +109,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 					return 0;
 				}
-			}*/
+			}
 
 		case CPU::Z80::BusOperation::Read:
 			if(address < ram_base_) {
