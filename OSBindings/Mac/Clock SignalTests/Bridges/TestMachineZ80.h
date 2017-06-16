@@ -13,10 +13,12 @@
 @class CSTestMachineZ80;
 
 typedef NS_ENUM(NSInteger, CSTestMachineZ80BusOperationCaptureOperation) {
+	CSTestMachineZ80BusOperationCaptureOperationReadOpcode,
 	CSTestMachineZ80BusOperationCaptureOperationRead,
 	CSTestMachineZ80BusOperationCaptureOperationWrite,
 	CSTestMachineZ80BusOperationCaptureOperationPortRead,
 	CSTestMachineZ80BusOperationCaptureOperationPortWrite,
+	CSTestMachineZ80BusOperationCaptureOperationInternalOperation,
 };
 
 @interface CSTestMachineZ80BusOperationCapture: NSObject

@@ -246,19 +246,24 @@ class FUSETests: XCTestCase {
 					// it counts a port access as occurring on the second. timeOffset is used to adjust
 					// the FUSE numbers as required.
 					var operation: CSTestMachineZ80BusOperationCaptureOperation = .read
+					var alternativeOperation: CSTestMachineZ80BusOperationCaptureOperation = .read
 					var timeOffset: Int32 = 0
 					switch type {
 						case "MR":
 							operation = .read
+							alternativeOperation = .readOpcode
 
 						case "MW":
+							alternativeOperation = .write
 							operation = .write
 
 						case "PR":
+							alternativeOperation = .portRead
 							operation = .portRead
 							timeOffset = 3
 
 						case "PW":
+							alternativeOperation = .portWrite
 							operation = .portWrite
 							timeOffset = 3
 
@@ -270,7 +275,10 @@ class FUSETests: XCTestCase {
 						capturedBusActivity[capturedBusAcivityIndex].address == address &&
 						capturedBusActivity[capturedBusAcivityIndex].value == value! &&
 						capturedBusActivity[capturedBusAcivityIndex].timeStamp == (time + timeOffset) &&
-						capturedBusActivity[capturedBusAcivityIndex].operation == operation,
+						(
+							capturedBusActivity[capturedBusAcivityIndex].operation == operation ||
+							capturedBusActivity[capturedBusAcivityIndex].operation == alternativeOperation
+						),
 						"Failed bus operation match \(name) (at time \(time) with address \(address), value was \(value != nil ? value! : 0), tracking index \(capturedBusAcivityIndex) amongst \(capturedBusActivity))")
 					capturedBusAcivityIndex += 1
 				}

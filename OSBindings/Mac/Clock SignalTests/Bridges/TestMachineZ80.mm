@@ -199,8 +199,11 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 			break;
 
 			case CPU::Z80::BusOperation::Read:
-			case CPU::Z80::BusOperation::ReadOpcode:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
+			break;
+
+			case CPU::Z80::BusOperation::ReadOpcode:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationReadOpcode;
 			break;
 
 			case CPU::Z80::BusOperation::Input:
@@ -209,6 +212,10 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 			case CPU::Z80::BusOperation::Output:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
+			break;
+
+			case CPU::Z80::BusOperation::Internal:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationInternalOperation;
 			break;
 
 			default:
