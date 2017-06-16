@@ -55,7 +55,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
-	// LD r, nn
+	// LD r, n
 	func testLDrn() {
 		test(
 			program: [0x3e, 0x00],
@@ -151,7 +151,7 @@ class Z80MachineCycleTests: XCTestCase {
 	}
 
 	// LD A, (nn)
-	func testLDAnn() {
+	func testLDAinn() {
 		test(
 			program: [0x3a, 0x23, 0x45],
 			busCycles: [
@@ -164,7 +164,7 @@ class Z80MachineCycleTests: XCTestCase {
 	}
 
 	// LD (nn), A
-	func testLDnnA() {
+	func testLDinnA() {
 		test(
 			program: [0x32, 0x23, 0x45],
 			busCycles: [
@@ -194,6 +194,210 @@ class Z80MachineCycleTests: XCTestCase {
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 5),
+			]
+		)
+	}
+
+	// LD dd, nn
+	func testLDddnn() {
+		test(
+			program: [0x01, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// LD IX, nn
+	func testLDIXnn() {
+		test(
+			program: [0xdd, 0x21, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// LD HL, (nn)
+	func testLDHLinn() {
+		test(
+			program: [0x2a, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// LD (nn), HL
+	func testLDinnHL() {
+		test(
+			program: [0x22, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// LD dd, (nn)
+	func testLDddinn() {
+		test(
+			program: [0xed, 0x4b, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+ 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// LD (nn), dd
+	func testLDinndd() {
+		test(
+			program: [0xed, 0x43, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+ 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// LD IX, (nn)
+	func testLDIXinn() {
+		test(
+			program: [0xdd, 0x2a, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+ 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// LD (nn), IX
+	func testLDinnIX() {
+		test(
+			program: [0xdd, 0x22, 0x12, 0x47],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+ 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// LD SP, HL
+	func testLDSPHL() {
+		test(
+			program: [0xf9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 6),
+			]
+		)
+	}
+
+	// LD SP, IX
+	func testLDSPIX() {
+		test(
+			program: [0xdd, 0xf9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 6),
+			]
+		)
+	}
+
+	// PUSH qq
+	func testPUSHqq() {
+		test(
+			program: [0xc5],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// PUSH IX
+	func testPUSHIX() {
+		test(
+			program: [0xdd, 0xe5],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// POP qq
+	func testPOPqq() {
+		test(
+			program: [0xe1],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// POP IX
+	func testPOPIX() {
+		test(
+			program: [0xdd, 0xe1],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// EX DE, HL
+	func testEXDEHL() {
+		test(
+			program: [0xeb],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// EX AF, AF'
+	func testEXAFAFDd() {
+		test(
+			program: [0x08],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
 			]
 		)
 	}
