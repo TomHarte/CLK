@@ -38,8 +38,15 @@ class Z80MachineCycleTests: XCTestCase {
 			let length = cycle.timeStamp - totalCycles
 			totalCycles += length
 
-			XCTAssertEqual(length, busCycles[index].length)
-			XCTAssertEqual(cycle.operation, busCycles[index].operation)
+			if index >= busCycles.count {
+				// this can't be reached without one of the asserts failing;
+				// it's to prevent an unintended exeception via out-of-bounds
+				// array access
+				break
+			} else {
+				XCTAssertEqual(length, busCycles[index].length)
+				XCTAssertEqual(cycle.operation, busCycles[index].operation)
+			}
 
 			index += 1
 		}
