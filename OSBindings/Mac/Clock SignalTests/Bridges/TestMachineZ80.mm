@@ -79,10 +79,12 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (NSString *)description {
 	NSString *opName = @"";
 	switch(self.operation) {
-		case CSTestMachineZ80BusOperationCaptureOperationRead:		opName = @"r";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationWrite:		opName = @"w";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationPortRead:	opName = @"i";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationPortWrite:	opName = @"o";	break;
+		case CSTestMachineZ80BusOperationCaptureOperationReadOpcode:		opName = @"ro";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationRead:				opName = @"r";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationWrite:				opName = @"w";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortRead:			opName = @"i";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortWrite:			opName = @"o";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationInternalOperation:	opName = @"iop";	break;
 	}
 	return [NSString stringWithFormat:@"%@ %04x %02x [%d]", opName, self.address, self.value, self.timeStamp];
 }
