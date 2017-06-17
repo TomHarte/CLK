@@ -87,10 +87,11 @@ struct MachineCycle {
 */
 template <class T> class Processor {
 	private:
-		uint8_t a_, i_, r_;
+		uint8_t a_;
 		RegisterPair bc_, de_, hl_;
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
 		RegisterPair ix_, iy_, pc_, sp_;
+		RegisterPair ir_;
 		bool iff1_, iff2_;
 		int interrupt_mode_;
 		uint16_t pc_increment_;
@@ -392,19 +393,19 @@ template <class T> class Processor {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
 				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	Program(FETCH16(temp16_, pc_), STORE16L(bc_, temp16_)),
 				/* 0x44 NEG */			Program({MicroOp::NEG}),		/* 0x45 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &i_}),
+				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &ir_.bytes.high}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
 				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
 				/* 0x4c NEG */			Program({MicroOp::NEG}),		/* 0x4d RETI */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &r_}),
+				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &ir_.bytes.low}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
 				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	Program(FETCH16(temp16_, pc_), STORE16L(de_, temp16_)),
 				/* 0x54 NEG */			Program({MicroOp::NEG}),		/* 0x55 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program(WAIT(1), {MicroOp::Move8, &i_, &a_}, {MicroOp::SetAFlags}),
+				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program(WAIT(1), {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
 				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(de_, temp16_)),
 				/* 0x5c NEG */			Program({MicroOp::NEG}),		/* 0x5d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program(WAIT(1), {MicroOp::Move8, &r_, &a_}, {MicroOp::SetAFlags}),
+				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program(WAIT(1), {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
 				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			Program(POP(pc_), {MicroOp::RETN}),
@@ -731,7 +732,7 @@ template <class T> class Processor {
 				{ MicroOp::BeginIRQ },
 				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &temp16_.bytes.low}},
 				PUSH(pc_),
-				{ MicroOp::Move8, &i_, &temp16_.bytes.high },
+				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
 				FETCH16L(pc_, temp16_),
 				{ MicroOp::MoveToNextProgram }
 			};
@@ -813,7 +814,7 @@ template <class T> class Processor {
 							advance_operation();
 						break;
 						case MicroOp::DecodeOperation:
-							r_ = (r_ & 0x80) | ((r_ + current_instruction_page_->r_step) & 0x7f);
+							ir_.bytes.low = (ir_.bytes.low & 0x80) | ((ir_.bytes.low + current_instruction_page_->r_step) & 0x7f);
 							pc_.full += pc_increment_ & (uint16_t)halt_mask_;
 						case MicroOp::DecodeOperationNoRChange:
 							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
@@ -1544,7 +1545,7 @@ template <class T> class Processor {
 							sp_.full = 0xffff;
 							a_ = 0xff;
 							set_flags(0xff);
-							i_ = r_ = 0;
+							ir_.full = 0;
 						break;
 
 #pragma mark - Internal bookkeeping
@@ -1661,9 +1662,9 @@ template <class T> class Processor {
 				case Register::IYl:						return iy_.bytes.low;
 				case Register::IY:						return iy_.full;
 
-				case Register::R:						return r_;
-				case Register::I:						return i_;
-				case Register::Refresh:					return (uint16_t)(r_ |	(i_ << 8));
+				case Register::R:						return ir_.bytes.low;
+				case Register::I:						return ir_.bytes.high;
+				case Register::Refresh:					return ir_.full;
 
 				case Register::IFF1:					return iff1_ ? 1 : 0;
 				case Register::IFF2:					return iff2_ ? 1 : 0;
@@ -1720,9 +1721,9 @@ template <class T> class Processor {
 				case Register::IYl:				iy_.bytes.low = (uint8_t)value;			break;
 				case Register::IY:				iy_.full = value;						break;
 
-				case Register::R:				r_ = (uint8_t)value;					break;
-				case Register::I:				i_ = (uint8_t)value;					break;
-				case Register::Refresh:			r_ = (uint8_t)value;	i_ = (uint8_t)(value >> 8);		break;
+				case Register::R:				ir_.bytes.low = (uint8_t)value;			break;
+				case Register::I:				ir_.bytes.high = (uint8_t)value;		break;
+				case Register::Refresh:			ir_.full = (uint16_t)value;				break;
 
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
