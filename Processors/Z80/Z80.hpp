@@ -125,7 +125,7 @@ struct MachineCycle {
 #define Instr(r, ...)				Sequence(BusOp(Refresh(r)), __VA_ARGS__)
 
 /// A standard instruction is one with the most normal timing: two cycles of refresh, then the work.
-#define StdInstr(...)				Instr(2, __VA_ARGS_)
+#define StdInstr(...)				Instr(2, __VA_ARGS__)
 
 // Assumption made: those instructions that are rated with an opcode fetch greater than four cycles spend the extra time
 // providing a lengthened refresh cycle. I assume this because the CPU doesn't have foresight and presumably spends the
@@ -291,13 +291,13 @@ template <class T> class Processor {
 /* The following are helper macros that define common parts of instructions */
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
-#define ReadInc(addr, val)		Read3(addr, val), Inc16(y)
-#define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &y.full}
+#define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
+#define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &addr.full}
 
 #define Read16Inc(addr, val)	ReadInc(addr, val.bytes.low), ReadInc(addr, val.bytes.high)
 #define Read16(addr, val)		ReadInc(addr, val.bytes.low), Read(addr, val.bytes.high)
 
-#define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write(addr, val.bytes.high)
+#define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write3(addr, val.bytes.high)
 
 #define INDEX()					{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()				{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
@@ -429,37 +429,37 @@ template <class T> class Processor {
 				NOP_ROW(),	/* 0x20 */
 				NOP_ROW(),	/* 0x30 */
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
-				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	Program(FETCH16(temp16_, pc_), STORE16L(bc_, temp16_)),
-				/* 0x44 NEG */			Program({MicroOp::NEG}),		/* 0x45 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x46 IM 0 */			Program({MicroOp::IM}),			/* 0x47 LD I, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &ir_.bytes.high}),
+				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, bc_)),
+				/* 0x44 NEG */			StdInstr({MicroOp::NEG}),		/* 0x45 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x46 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x47 LD I, A */		Instr(3, {MicroOp::Move8, &a_, &ir_.bytes.high}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
-				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(bc_, temp16_)),
-				/* 0x4c NEG */			Program({MicroOp::NEG}),		/* 0x4d RETI */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x4e IM 0/1 */		Program({MicroOp::IM}),			/* 0x4f LD R, A */		Program(WAIT(1), {MicroOp::Move8, &a_, &ir_.bytes.low}),
+				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, bc_)),
+				/* 0x4c NEG */			StdInstr({MicroOp::NEG}),		/* 0x4d RETI */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x4e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x4f LD R, A */		Instr(3, {MicroOp::Move8, &a_, &ir_.bytes.low}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
-				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	Program(FETCH16(temp16_, pc_), STORE16L(de_, temp16_)),
-				/* 0x54 NEG */			Program({MicroOp::NEG}),		/* 0x55 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x56 IM 1 */			Program({MicroOp::IM}),			/* 0x57 LD A, I */		Program(WAIT(1), {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
+				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, de_)),
+				/* 0x54 NEG */			StdInstr({MicroOp::NEG}),		/* 0x55 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x56 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x57 LD A, I */		Instr(3, {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
-				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(de_, temp16_)),
-				/* 0x5c NEG */			Program({MicroOp::NEG}),		/* 0x5d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x5e IM 2 */			Program({MicroOp::IM}),			/* 0x5f LD A, R */		Program(WAIT(1), {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
+				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, de_)),
+				/* 0x5c NEG */			StdInstr({MicroOp::NEG}),		/* 0x5d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x5e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x5f LD A, R */		Instr(3, {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
-				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(hl_, temp16_)),
-				/* 0x64 NEG */			Program({MicroOp::NEG}),		/* 0x65 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x66 IM 0 */			Program({MicroOp::IM}),			/* 0x67 RRD */			Program(FETCHL(temp8_, hl_), WAIT(4), {MicroOp::RRD}, STOREL(temp8_, hl_)),
+				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, hl_)),
+				/* 0x64 NEG */			StdInstr({MicroOp::NEG}),		/* 0x65 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x66 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x67 RRD */			StdInstr(Read3(hl_, temp8_), InternalOperation(4), {MicroOp::RRD}, Write3(hl_, temp8_)),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.low),
-				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(hl_, temp16_)),
-				/* 0x6c NEG */			Program({MicroOp::NEG}),		/* 0x6d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x6e IM 0/1 */		Program({MicroOp::IM}),			/* 0x6f RLD */			Program(FETCHL(temp8_, hl_), WAIT(4), {MicroOp::RLD}, STOREL(temp8_, hl_)),
-				/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	Program({MicroOp::SetZero}, OUT(bc_, temp8_)),
-				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Program(FETCH16(temp16_, pc_), STORE16L(sp_, temp16_)),
-				/* 0x74 NEG */			Program({MicroOp::NEG}),		/* 0x75 RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x76 IM 1 */			Program({MicroOp::IM}),			/* 0x77 XX */			NOP,
+				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Store16(temp16_, hl_)),
+				/* 0x6c NEG */			StdInstr({MicroOp::NEG}),		/* 0x6d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(4), {MicroOp::RLD}, Write3(hl_, temp8_)),
+				/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, OUT(bc_, temp8_)),
+				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, temp16_), Store16(temp16_, sp_)),
+				/* 0x74 NEG */			StdInstr({MicroOp::NEG}),		/* 0x75 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x76 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x77 XX */			NOP,
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(a_),
-				/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(sp_, temp16_)),
-				/* 0x7c NEG */			Program({MicroOp::NEG}),		/* 0x7d RETN */			Program(POP(pc_), {MicroOp::RETN}),
-				/* 0x7e IM 2 */			Program({MicroOp::IM}),			/* 0x7f XX */			NOP,
+				/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Store16(temp16_, sp_)),
+				/* 0x7c NEG */			StdInstr({MicroOp::NEG}),		/* 0x7d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
+				/* 0x7e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x7f XX */			NOP,
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				/* 0xa0 LDI */		Program(FETCHL(temp8_, hl_), STOREL(temp8_, de_), WAIT(2), {MicroOp::LDI}),
