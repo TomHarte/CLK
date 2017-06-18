@@ -11,7 +11,7 @@
 #import "TestMachine+ForSubclassEyesOnly.h"
 
 @interface CSTestMachineZ80 ()
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp;
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::MachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp;
 @end
 
 #pragma mark - C++ delegate handlers
@@ -20,7 +20,7 @@ class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegat
 	public:
 		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::BusOperation operation, uint16_t address, uint8_t value, int time_stamp) {
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::MachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) {
 			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
@@ -187,36 +187,36 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_processor->set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
 }
 
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::MachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
 	int length = timeStamp - _lastOpcodeTime;
 	_lastOpcodeTime = timeStamp;
-	if(operation == CPU::Z80::BusOperation::ReadOpcode && length < _timeSeekingReadOpcode)
+	if(operation == CPU::Z80::MachineCycle::Operation::ReadOpcode && length < _timeSeekingReadOpcode)
 		_isAtReadOpcode = YES;
 
 	if(self.captureBusActivity) {
 		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
 		switch(operation) {
-			case CPU::Z80::BusOperation::Write:
+			case CPU::Z80::MachineCycle::Operation::Write:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationWrite;
 			break;
 
-			case CPU::Z80::BusOperation::Read:
+			case CPU::Z80::MachineCycle::Operation::Read:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
 			break;
 
-			case CPU::Z80::BusOperation::ReadOpcode:
+			case CPU::Z80::MachineCycle::Operation::ReadOpcode:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationReadOpcode;
 			break;
 
-			case CPU::Z80::BusOperation::Input:
+			case CPU::Z80::MachineCycle::Operation::Input:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortRead;
 			break;
 
-			case CPU::Z80::BusOperation::Output:
+			case CPU::Z80::MachineCycle::Operation::Output:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
 			break;
 
-			case CPU::Z80::BusOperation::Internal:
+			case CPU::Z80::MachineCycle::Operation::Internal:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationInternalOperation;
 			break;
 

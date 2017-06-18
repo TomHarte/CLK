@@ -22,7 +22,7 @@ class AllRAMProcessor:
 		static AllRAMProcessor *Processor();
 
 		struct MemoryAccessDelegate {
-			virtual void z80_all_ram_processor_did_perform_bus_operation(AllRAMProcessor &processor, BusOperation operation, uint16_t address, uint8_t value, int time_stamp) = 0;
+			virtual void z80_all_ram_processor_did_perform_bus_operation(AllRAMProcessor &processor, MachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) = 0;
 		};
 		inline void set_memory_access_delegate(MemoryAccessDelegate *delegate) {
 			delegate_ = delegate;

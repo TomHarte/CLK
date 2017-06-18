@@ -20,30 +20,30 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			completed_cycles += cycle.length;
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
-				case BusOperation::ReadOpcode:
+				case MachineCycle::Operation::ReadOpcode:
 //					printf("! ");
 					check_address_for_trap(address);
-				case BusOperation::Read:
+				case MachineCycle::Operation::Read:
 //					printf("r %04x [%02x] AF:%04x BC:%04x DE:%04x HL:%04x SP:%04x\n", address, memory_[address], get_value_of_register(CPU::Z80::Register::AF), get_value_of_register(CPU::Z80::Register::BC), get_value_of_register(CPU::Z80::Register::DE), get_value_of_register(CPU::Z80::Register::HL), get_value_of_register(CPU::Z80::Register::StackPointer));
 					*cycle.value = memory_[address];
 				break;
-				case BusOperation::Write:
+				case MachineCycle::Operation::Write:
 //					printf("w %04x\n", address);
 					memory_[address] = *cycle.value;
 				break;
 
-				case BusOperation::Output:
+				case MachineCycle::Operation::Output:
 				break;
-				case BusOperation::Input:
+				case MachineCycle::Operation::Input:
 					// This logic is selected specifically because it seems to match
 					// the FUSE unit tests. It might need factoring out.
 					*cycle.value = address >> 8;
 				break;
 
-				case BusOperation::Internal:
+				case MachineCycle::Operation::Internal:
 				break;
 
-				case BusOperation::Interrupt:
+				case MachineCycle::Operation::Interrupt:
 					// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
 					// arbitrary.
 					*cycle.value = 0x21;

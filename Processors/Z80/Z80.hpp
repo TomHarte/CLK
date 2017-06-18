@@ -62,17 +62,15 @@ enum Flag: uint8_t {
 	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
 	between a Z80 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
 */
-enum BusOperation {
-	ReadOpcode = 0,
-	Read, Write,
-	Input, Output,
-	Interrupt,
-	BusAcknowledge,
-	Internal
-};
-
 struct MachineCycle {
-	BusOperation operation;
+	enum Operation {
+		ReadOpcode = 0,
+		Read, Write,
+		Input, Output,
+		Interrupt,
+		BusAcknowledge,
+		Internal
+	} operation;
 	int length;
 	uint16_t *address;
 	uint8_t *value;
@@ -242,14 +240,14 @@ template <class T> class Processor {
 #define INC16(r)		{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
 /// Fetches into x from address y, and then increments y.
-#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}, INC16(y)
+#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Read, 3, &y.full, &x}}, INC16(y)
 /// Fetches into x from address y.
-#define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Read, 3, &y.full, &x}}
+#define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Read, 3, &y.full, &x}}
 
 /// Stores x to address y, and then increments y.
-#define STORE(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {Write, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
+#define STORE(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Write, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
 /// Stores x to address y.
-#define STOREL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {Write, 3, &y.full, &x}}
+#define STOREL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Write, 3, &y.full, &x}}
 
 /// Fetches the 16-bit quantity x from address y, incrementing y twice.
 #define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
@@ -260,10 +258,10 @@ template <class T> class Processor {
 #define STORE16L(x, y)	STORE(x.bytes.low, y), STOREL(x.bytes.high, y)
 
 /// Outputs the 8-bit value to the 16-bit port
-#define OUT(port, value)	{MicroOp::BusOperation, nullptr, nullptr, {Output, 4, &port.full, &value}}
+#define OUT(port, value)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Output, 4, &port.full, &value}}
 
 /// Inputs the 8-bit value from the 16-bit port
-#define IN(port, value)		{MicroOp::BusOperation, nullptr, nullptr, {Input, 4, &port.full, &value}}
+#define IN(port, value)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Input, 4, &port.full, &value}}
 
 #define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
 #define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
@@ -327,7 +325,7 @@ template <class T> class Processor {
 #define ADC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADC16, &s.full, &d.full})
 #define SBC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::SBC16, &s.full, &d.full})
 
-#define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {Internal, n} }
+#define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, n} }
 #define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
 #define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
@@ -655,7 +653,7 @@ template <class T> class Processor {
 
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp fetch_decode_execute[] = {
-				{ MicroOp::BusOperation, nullptr, nullptr, {(length == 4) ? ReadOpcode : Read, length, &pc_.full, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {(length == 4) ? MachineCycle::ReadOpcode : MachineCycle::Read, length, &pc_.full, &operation_}},
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program(fetch_decode_execute, target.fetch_decode_execute);
@@ -711,26 +709,26 @@ template <class T> class Processor {
 			MicroOp reset_program[] = Program(WAIT(3), {MicroOp::Reset});
 			MicroOp nmi_program[] = {
 				{ MicroOp::BeginNMI },
-				{ MicroOp::BusOperation, nullptr, nullptr, {ReadOpcode, 5, &pc_.full, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::ReadOpcode, 5, &pc_.full, &operation_}},
 				PUSH(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 6, nullptr, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, 6, nullptr, &operation_}},
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &operation_}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, 7, nullptr, &operation_}},
 				PUSH(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-				{ MicroOp::BusOperation, nullptr, nullptr, {BusOperation::Interrupt, 7, nullptr, &temp16_.bytes.low}},
+				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, 7, nullptr, &temp16_.bytes.low}},
 				PUSH(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
 				FETCH16L(pc_, temp16_),
@@ -781,7 +779,7 @@ template <class T> class Processor {
 			while(1) {
 
 				while(bus_request_line_) {
-					static MachineCycle bus_acknowledge_cycle = {BusOperation::BusAcknowledge, 1};
+					static MachineCycle bus_acknowledge_cycle = {MachineCycle::Operation::BusAcknowledge, 1};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
