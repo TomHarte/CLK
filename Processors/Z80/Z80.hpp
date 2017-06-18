@@ -84,28 +84,28 @@ struct MachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, Phase::Start, 2, addr, val, false}
-#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, Phase::Wait, 1, addr, val, true}
-#define Refresh(len)				{MachineCycle::Refresh, Phase::Start, 2, &ir_.full, nullptr, false}
+#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, addr, val, false}
+#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, 1, addr, val, true}
+#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::Start, 2, &ir_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{MachineCycle::Read, Phase::Start, 2, addr, val, false}
-#define ReadWait(l, addr, val, f)	{MachineCycle::Read, Phase::Wait, l, addr, val, f}
-#define ReadEnd(addr, val)			{MachineCycle::Read, Phase::End, 1, addr, val, false}
+#define ReadStart(addr, val)		{MachineCycle::Read, MachineCycle::Phase::Start, 2, addr, val, false}
+#define ReadWait(l, addr, val, f)	{MachineCycle::Read, MachineCycle::Phase::Wait, l, addr, val, f}
+#define ReadEnd(addr, val)			{MachineCycle::Read, MachineCycle::Phase::End, 1, addr, val, false}
 
-#define WriteStart(addr, val)		{MachineCycle::Write, Phase::Start, 2, addr, val, false}
-#define WriteWait(l, addr, val, f)	{MachineCycle::Write, Phase::Wait, l, addr, val, f}
-#define WriteEnd(addr, val)			{MachineCycle::Write, Phase::End, 1, addr, val, false}
+#define WriteStart(addr, val)		{MachineCycle::Write, MachineCycle::Phase::Start, 2, addr, val, false}
+#define WriteWait(l, addr, val, f)	{MachineCycle::Write, MachineCycle::Phase::Wait, l, addr, val, f}
+#define WriteEnd(addr, val)			{MachineCycle::Write, MachineCycle::Phase::End, 1, addr, val, false}
 
-#define InputStart(addr, val)		{MachineCycle::Input, Phase::Start, 2, addr, val, false}
-#define InputWait(addr, val, f)		{MachineCycle::Input, Phase::Wait, 1, addr, val, f}
-#define InputEnd(addr, val)			{MachineCycle::Input, Phase::End, 1, addr, val, false}
+#define InputStart(addr, val)		{MachineCycle::Input, MachineCycle::Phase::Start, 2, addr, val, false}
+#define InputWait(addr, val, f)		{MachineCycle::Input, MachineCycle::Phase::Wait, 1, addr, val, f}
+#define InputEnd(addr, val)			{MachineCycle::Input, MachineCycle::Phase::End, 1, addr, val, false}
 
-#define OutpuStart(addr, val)		{MachineCycle::Output, Phase::Start, 2, addr, val}
-#define OutpuWait(addr, val, f)		{MachineCycle::Output, Phase::Wait, 1, addr, val, f}
-#define OutpuEnd(addr, val)			{MachineCycle::Output, Phase::End, 1, addr, val}
+#define OutpuStart(addr, val)		{MachineCycle::Output, MachineCycle::Phase::Start, 2, addr, val}
+#define OutpuWait(addr, val, f)		{MachineCycle::Output, MachineCycle::Phase::Wait, 1, addr, val, f}
+#define OutpuEnd(addr, val)			{MachineCycle::Output, MachineCycle::Phase::End, 1, addr, val}
 
 // A wrapper to express a bus operation as a micro-op
-#define BusOp(c)					{MicroOp::BusOperation, nullptr, nullptr, c}
+#define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
 
 // Compound bus operations, as micro-ops
 #define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
@@ -116,7 +116,7 @@ struct MachineCycle {
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(n)		BusOp({MachineCycle::Internal, n})
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, len}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -299,12 +299,12 @@ template <class T> class Processor {
 
 #define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write(addr, val.bytes.high)
 
-#define INDEX()					{MicroOp::IndexedPlaceHolder}, Read(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
-#define FINDEX()				{MicroOp::IndexedPlaceHolder}, Read(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
+#define INDEX()					{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
+#define FINDEX()				{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()			(add_offsets ? memptr_ : index)
 
-#define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write(sp_, x.bytes.low)
-#define Pop(x)					Read(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
+#define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.low)
+#define Pop(x)					Read3(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read3(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
 
 /* The following are actual instructions */
 #define NOP						Sequence(BusOp(Refresh(2)))
@@ -314,18 +314,18 @@ template <class T> class Processor {
 #define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define LD(a, b)		Program({MicroOp::Move8, &b, &a})
+#define LD(a, b)				StdInstr({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r, ri)	\
 				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),						LD(r, de_.bytes.low),	\
-				LD(r, index.bytes.high),	LD(r, index.bytes.low),	Program(INDEX(), FETCHL(ri, INDEX_ADDR())),	LD(r, a_)
+				LD(r, index.bytes.high),	LD(r, index.bytes.low),	StdInstr(INDEX(), Read3(INDEX_ADDR(), ri)),	LD(r, a_)
 
 #define READ_OP_GROUP(op)	\
-				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
-				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
-				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
-				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}),	\
-				Program({MicroOp::op, &a_})
+				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
+				StdInstr({MicroOp::op, &de_.bytes.high}),	StdInstr({MicroOp::op, &de_.bytes.low}),	\
+				StdInstr({MicroOp::op, &index.bytes.high}),	StdInstr({MicroOp::op, &index.bytes.low}),	\
+				StdInstr(INDEX(), Read3(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr({MicroOp::op, &a_})
 
 #define READ_OP_GROUP_D(op)	\
 				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
@@ -364,9 +364,9 @@ template <class T> class Processor {
 				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1)),	\
 				Program(WAIT(2), FETCHL(temp8_, INDEX_ADDR()), {MicroOp::op, &temp8_}, WAIT(1))
 
-#define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
-#define ADC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADC16, &s.full, &d.full})
-#define SBC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::SBC16, &s.full, &d.full})
+#define ADD16(d, s) Program(InternalOperation(4), InternalOperation(3), {MicroOp::ADD16, &s.full, &d.full})
+#define ADC16(d, s) Program(InternalOperation(4), InternalOperation(3), {MicroOp::ADC16, &s.full, &d.full})
+#define SBC16(d, s) Program(InternalOperation(4), InternalOperation(3), {MicroOp::SBC16, &s.full, &d.full})
 
 #define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
 
