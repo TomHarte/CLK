@@ -291,8 +291,8 @@ template <class T> class Processor {
 /* The following are helper macros that define common parts of instructions */
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
-#define ReadInc(addr, val)		Read(addr, val), INC16(y)
-#define WriteInc(addr, val)		Write(addr, val), {MicroOp::Increment16, &y.full}
+#define ReadInc(addr, val)		Read3(addr, val), Inc16(y)
+#define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &y.full}
 
 #define Read16Inc(addr, val)	ReadInc(addr, val.bytes.low), ReadInc(addr, val.bytes.high)
 #define Read16(addr, val)		ReadInc(addr, val.bytes.low), Read(addr, val.bytes.high)
@@ -328,21 +328,21 @@ template <class T> class Processor {
 				Program({MicroOp::op, &a_})
 
 #define READ_OP_GROUP_D(op)	\
-				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
-				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
-				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
-				Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::op, &temp8_}),	\
-				Program({MicroOp::op, &a_})
+				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
+				StdInstr({MicroOp::op, &de_.bytes.high}),	StdInstr({MicroOp::op, &de_.bytes.low}),	\
+				StdInstr({MicroOp::op, &index.bytes.high}),	StdInstr({MicroOp::op, &index.bytes.low}),	\
+				StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr({MicroOp::op, &a_})
 
-#define RMW(x, op, ...) Program(INDEX(), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
-#define RMWI(x, op, ...) Program(WAIT(2), FETCHL(x, INDEX_ADDR()), {MicroOp::op, &x}, WAIT(1), STOREL(x, INDEX_ADDR()))
+#define RMW(x, op, ...) StdInstr(INDEX(), Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
+#define RMWI(x, op, ...) Instr(4, Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
 
 #define MODIFY_OP_GROUP(op)	\
-				Program({MicroOp::op, &bc_.bytes.high}),	Program({MicroOp::op, &bc_.bytes.low}),	\
-				Program({MicroOp::op, &de_.bytes.high}),	Program({MicroOp::op, &de_.bytes.low}),	\
-				Program({MicroOp::op, &index.bytes.high}),	Program({MicroOp::op, &index.bytes.low}),	\
+				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
+				StdInstr({MicroOp::op, &de_.bytes.high}),	StdInstr({MicroOp::op, &de_.bytes.low}),	\
+				StdInstr({MicroOp::op, &index.bytes.high}),	StdInstr({MicroOp::op, &index.bytes.low}),	\
 				RMW(temp8_, op),	\
-				Program({MicroOp::op, &a_})
+				StdInstr({MicroOp::op, &a_})
 
 #define IX_MODIFY_OP_GROUP(op)	\
 				RMWI(bc_.bytes.high, op),	\
@@ -520,19 +520,19 @@ template <class T> class Processor {
 
 		void assemble_base_page(InstructionPage &target, RegisterPair &index, bool add_offsets, InstructionPage &cb_page) {
 #define INC_DEC_LD(r)	\
-				Program({MicroOp::Increment8, &r}),	\
-				Program({MicroOp::Decrement8, &r}),	\
-				Program(FETCH(r, pc_))
+				StdInstr({MicroOp::Increment8, &r}),	\
+				StdInstr({MicroOp::Decrement8, &r}),	\
+				StdInstr(ReadInc(pc_, r))
 
 #define INC_INC_DEC_LD(rf, r)	\
-				Program(WAIT(2), {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
+				Instr(4, {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
 
 #define DEC_INC_DEC_LD(rf, r)	\
 				Program(WAIT(2), {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
 			InstructionTable base_program_table = {
-				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	Program(FETCH16(bc_, pc_)),
-				/* 0x02 LD (BC), A */	Program({MicroOp::Move16, &bc_.full, &memptr_.full}, STORE(a_, memptr_)),
+				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16(pc_, bc_)),
+				/* 0x02 LD (BC), A */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Write(memptr_, a_)),
 
 				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
 				INC_INC_DEC_LD(bc_, bc_.bytes.high),
