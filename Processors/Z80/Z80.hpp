@@ -65,16 +65,54 @@ enum Flag: uint8_t {
 struct MachineCycle {
 	enum Operation {
 		ReadOpcode = 0,
+		Refresh,
 		Read, Write,
 		Input, Output,
 		Interrupt,
 		BusAcknowledge,
 		Internal
 	} operation;
+	enum Phase {
+		Start,
+		Wait,
+		End
+	} phase;
 	int length;
 	uint16_t *address;
 	uint8_t *value;
 };
+
+#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, Phase::Start, 2, addr, val)
+#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, Phase::Wait, 1, addr, val)
+#define Refresh(len)				{MachineCycle::Refresh, Phase::Start, 2, &ir_.full, nullptr)
+
+#define ReadStart(addr, val)		{MachineCycle::Read, Phase::Start, 2, addr, val)
+#define ReadWait(addr, val)			{MachineCycle::Read, Phase::Wait, 1, addr, val)
+#define ReadEnd(addr, val)			{MachineCycle::Read, Phase::End, 1, addr, val)
+
+#define WriteStart(addr, val)		{MachineCycle::Write, Phase::Start, 2, addr, val)
+#define WriteWait(addr, val)		{MachineCycle::Write, Phase::Wait, 1, addr, val)
+#define WriteEnd(addr, val)			{MachineCycle::Write, Phase::End, 1, addr, val)
+
+#define InputStart(addr, val)		{MachineCycle::Input, Phase::Start, 3, addr, val)
+#define InputWait(addr, val)		{MachineCycle::Input, Phase::Wait, 1, addr, val)
+#define InputEnd(addr, val)			{MachineCycle::Input, Phase::End, 1, addr, val)
+
+#define OutpuStart(addr, val)		{MachineCycle::Output, Phase::Start, 3, addr, val)
+#define OutpuWait(addr, val)		{MachineCycle::Output, Phase::Wait, 1, addr, val)
+#define OutpuEnd(addr, val)			{MachineCycle::Output, Phase::End, 1, addr, val)
+
+#define BusOp(c)					{MicroOp::BusOperation, nullptr, nullptr, c}
+
+#define Read(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(addr, val)), BusOp(ReadEnd(addr, val))
+#define Write(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(addr, val)), BusOp(WriteEnd(addr, val))
+#define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val)), BusOp(InputEnd(addr, val))
+#define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val)), BusOp(OutputEnd(addr, val))
+#define InternalOperation(n)		BusOp({MachineCycle::Internal, n})
+
+#define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
+#define Instr(r, ...)				Sequence(BusOp(Refresh(r)), __VA_ARGS__)
+#define StdInstr(...)				Instr(2, __VA_ARGS_)
 
 /*!
 	@abstact An abstract base class for emulation of a Z80 processor via the curiously recurring template pattern/f-bounded polymorphism.
@@ -324,9 +362,6 @@ template <class T> class Processor {
 #define ADD16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::ADC16, &s.full, &d.full})
 #define SBC16(d, s) Program(WAIT(4), WAIT(3), {MicroOp::SBC16, &s.full, &d.full})
-
-#define WAIT(n)			{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, n} }
-#define Program(...)	{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
 
 #define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
 
