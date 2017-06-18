@@ -80,39 +80,57 @@ struct MachineCycle {
 	int length;
 	uint16_t *address;
 	uint8_t *value;
+	bool was_requested;
 };
 
-#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, Phase::Start, 2, addr, val)
-#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, Phase::Wait, 1, addr, val)
-#define Refresh(len)				{MachineCycle::Refresh, Phase::Start, 2, &ir_.full, nullptr)
+// Elemental bus operations
+#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, Phase::Start, 2, addr, val, false}
+#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, Phase::Wait, 1, addr, val, true}
+#define Refresh(len)				{MachineCycle::Refresh, Phase::Start, 2, &ir_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{MachineCycle::Read, Phase::Start, 2, addr, val)
-#define ReadWait(addr, val)			{MachineCycle::Read, Phase::Wait, 1, addr, val)
-#define ReadEnd(addr, val)			{MachineCycle::Read, Phase::End, 1, addr, val)
+#define ReadStart(addr, val)		{MachineCycle::Read, Phase::Start, 2, addr, val, false}
+#define ReadWait(l, addr, val, f)	{MachineCycle::Read, Phase::Wait, l, addr, val, f}
+#define ReadEnd(addr, val)			{MachineCycle::Read, Phase::End, 1, addr, val, false}
 
-#define WriteStart(addr, val)		{MachineCycle::Write, Phase::Start, 2, addr, val)
-#define WriteWait(addr, val)		{MachineCycle::Write, Phase::Wait, 1, addr, val)
-#define WriteEnd(addr, val)			{MachineCycle::Write, Phase::End, 1, addr, val)
+#define WriteStart(addr, val)		{MachineCycle::Write, Phase::Start, 2, addr, val, false}
+#define WriteWait(l, addr, val, f)	{MachineCycle::Write, Phase::Wait, l, addr, val, f}
+#define WriteEnd(addr, val)			{MachineCycle::Write, Phase::End, 1, addr, val, false}
 
-#define InputStart(addr, val)		{MachineCycle::Input, Phase::Start, 3, addr, val)
-#define InputWait(addr, val)		{MachineCycle::Input, Phase::Wait, 1, addr, val)
-#define InputEnd(addr, val)			{MachineCycle::Input, Phase::End, 1, addr, val)
+#define InputStart(addr, val)		{MachineCycle::Input, Phase::Start, 2, addr, val, false}
+#define InputWait(addr, val, f)		{MachineCycle::Input, Phase::Wait, 1, addr, val, f}
+#define InputEnd(addr, val)			{MachineCycle::Input, Phase::End, 1, addr, val, false}
 
-#define OutpuStart(addr, val)		{MachineCycle::Output, Phase::Start, 3, addr, val)
-#define OutpuWait(addr, val)		{MachineCycle::Output, Phase::Wait, 1, addr, val)
-#define OutpuEnd(addr, val)			{MachineCycle::Output, Phase::End, 1, addr, val)
+#define OutpuStart(addr, val)		{MachineCycle::Output, Phase::Start, 2, addr, val}
+#define OutpuWait(addr, val, f)		{MachineCycle::Output, Phase::Wait, 1, addr, val, f}
+#define OutpuEnd(addr, val)			{MachineCycle::Output, Phase::End, 1, addr, val}
 
+// A wrapper to express a bus operation as a micro-op
 #define BusOp(c)					{MicroOp::BusOperation, nullptr, nullptr, c}
 
-#define Read(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(addr, val)), BusOp(ReadEnd(addr, val))
-#define Write(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(addr, val)), BusOp(WriteEnd(addr, val))
-#define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val)), BusOp(InputEnd(addr, val))
-#define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val)), BusOp(OutputEnd(addr, val))
+// Compound bus operations, as micro-ops
+#define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, false)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
+
+#define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
+#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, false)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
+
+#define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
+#define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
 #define InternalOperation(n)		BusOp({MachineCycle::Internal, n})
 
+/// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
+
+/// An instruction is the part of an instruction that follows instruction fetch; it should include two or more refresh cycles and then the work of the instruction.
 #define Instr(r, ...)				Sequence(BusOp(Refresh(r)), __VA_ARGS__)
+
+/// A standard instruction is one with the most normal timing: two cycles of refresh, then the work.
 #define StdInstr(...)				Instr(2, __VA_ARGS_)
+
+// Assumption made: those instructions that are rated with an opcode fetch greater than four cycles spend the extra time
+// providing a lengthened refresh cycle. I assume this because the CPU doesn't have foresight and presumably spends the
+// normal refresh time decoding. So if it gets to cycle four and realises it has two more cycles of work, I have assumed
+// it simply maintains the refresh state for an extra two cycles.
 
 /*!
 	@abstact An abstract base class for emulation of a Z80 processor via the curiously recurring template pattern/f-bounded polymorphism.
@@ -269,43 +287,30 @@ template <class T> class Processor {
 		InstructionPage fdcb_page_;
 		InstructionPage ddcb_page_;
 
-#define NOP				{MicroOp::MoveToNextProgram}
 
-#define INDEX()			{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &index}
-#define FINDEX()		{MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}
-#define INDEX_ADDR()	(add_offsets ? memptr_ : index)
+/* The following are helper macros that define common parts of instructions */
+#define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
-#define INC16(r)		{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
+#define ReadInc(addr, val)		Read(addr, val), INC16(y)
+#define WriteInc(addr, val)		Write(addr, val), {MicroOp::Increment16, &y.full}
 
-/// Fetches into x from address y, and then increments y.
-#define FETCH(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Read, 3, &y.full, &x}}, INC16(y)
-/// Fetches into x from address y.
-#define FETCHL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Read, 3, &y.full, &x}}
+#define Read16Inc(addr, val)	ReadInc(addr, val.bytes.low), ReadInc(addr, val.bytes.high)
+#define Read16(addr, val)		ReadInc(addr, val.bytes.low), Read(addr, val.bytes.high)
 
-/// Stores x to address y, and then increments y.
-#define STORE(x, y)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Write, 3, &y.full, &x}}, {MicroOp::Increment16, &y.full}
-/// Stores x to address y.
-#define STOREL(x, y)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Write, 3, &y.full, &x}}
+#define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write(addr, val.bytes.high)
 
-/// Fetches the 16-bit quantity x from address y, incrementing y twice.
-#define FETCH16(x, y)	FETCH(x.bytes.low, y), FETCH(x.bytes.high, y)
-/// Fetches the 16-bit quantity x from address y, incrementing y once.
-#define FETCH16L(x, y)	FETCH(x.bytes.low, y), FETCHL(x.bytes.high, y)
+#define INDEX()					{MicroOp::IndexedPlaceHolder}, Read(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
+#define FINDEX()				{MicroOp::IndexedPlaceHolder}, Read(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
+#define INDEX_ADDR()			(add_offsets ? memptr_ : index)
 
-/// Stores the 16-bit quantity x to address y, incrementing y once.
-#define STORE16L(x, y)	STORE(x.bytes.low, y), STOREL(x.bytes.high, y)
+#define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write(sp_, x.bytes.low)
+#define Pop(x)					Read(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
 
-/// Outputs the 8-bit value to the 16-bit port
-#define OUT(port, value)	{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Output, 4, &port.full, &value}}
+/* The following are actual instructions */
+#define NOP						Sequence(BusOp(Refresh(2)))
 
-/// Inputs the 8-bit value from the 16-bit port
-#define IN(port, value)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Input, 4, &port.full, &value}}
-
-#define PUSH(x)			{MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.high, sp_), {MicroOp::Decrement16, &sp_.full}, STOREL(x.bytes.low, sp_)
-#define POP(x)			FETCHL(x.bytes.low, sp_), {MicroOp::Increment16, &sp_.full}, FETCHL(x.bytes.high, sp_), {MicroOp::Increment16, &sp_.full}
-
-#define JP(cc)			Program(FETCH16(temp16_, pc_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define CALL(cc)		Program(FETCH16(temp16_, pc_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define CALL(cc)				StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
