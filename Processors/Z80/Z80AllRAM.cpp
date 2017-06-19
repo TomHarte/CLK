@@ -38,6 +38,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 					break;
 
 					case MachineCycle::Operation::Internal:
+					case MachineCycle::Operation::Refresh:
 					break;
 
 					case MachineCycle::Operation::Interrupt:
