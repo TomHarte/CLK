@@ -311,9 +311,9 @@ template <class T> class Processor {
 
 #define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)				StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, WAIT(1), PUSH(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define RET(cc)			Program(WAIT(1), {MicroOp::cc}, POP(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define JR(cc)			Program(FETCH(temp8_, pc_), {MicroOp::cc}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define RST()			Program(WAIT(1), {MicroOp::CalculateRSTDestination}, PUSH(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RET(cc)					Instr(3, {MicroOp::cc}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RST()					Instr(3, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)				StdInstr({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r, ri)	\
@@ -418,8 +418,8 @@ template <class T> class Processor {
 		}
 
 		void assemble_ed_page(InstructionPage &target) {
-#define IN_C(r)		Program(IN(bc_, r), {MicroOp::SetInFlags, &r})
-#define OUT_C(r)	Program(OUT(bc_, r))
+#define IN_C(r)		StdInstr(Input(bc_, r), {MicroOp::SetInFlags, &r})
+#define OUT_C(r)	StdInstr(Output(bc_, r))
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 
 #define NOP_ROW()	NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP
@@ -528,7 +528,7 @@ template <class T> class Processor {
 				Instr(4, {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
 
 #define DEC_INC_DEC_LD(rf, r)	\
-				Program(WAIT(2), {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
+				Instr(4, {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
 			InstructionTable base_program_table = {
 				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16(pc_, bc_)),
@@ -537,60 +537,60 @@ template <class T> class Processor {
 				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
 				INC_INC_DEC_LD(bc_, bc_.bytes.high),
 
-				/* 0x07 RLCA */			Program({MicroOp::RLCA}),
-				/* 0x08 EX AF, AF' */	Program({MicroOp::ExAFAFDash}),		/* 0x09 ADD HL, BC */	ADD16(index, bc_),
-				/* 0x0a LD A, (BC) */	Program({MicroOp::Move16, &bc_.full, &memptr_.full}, FETCH(a_, memptr_)),
+				/* 0x07 RLCA */			StdInstr({MicroOp::RLCA}),
+				/* 0x08 EX AF, AF' */	StdInstr({MicroOp::ExAFAFDash}),	/* 0x09 ADD HL, BC */	ADD16(index, bc_),
+				/* 0x0a LD A, (BC) */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Read(memptr_, a_)),
 
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
 
-				/* 0x0f RRCA */			Program({MicroOp::RRCA}),
-				/* 0x10 DJNZ */			Program(WAIT(1), FETCH(temp8_, pc_), {MicroOp::DJNZ}, WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
-				/* 0x11 LD DE, nn */	Program(FETCH16(de_, pc_)),
-				/* 0x12 LD (DE), A */	Program({MicroOp::Move16, &de_.full, &memptr_.full}, STORE(a_, memptr_)),
+				/* 0x0f RRCA */			StdInstr({MicroOp::RRCA}),
+				/* 0x10 DJNZ */			Instr(3, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+				/* 0x11 LD DE, nn */	StdInstr(Read16Inc(pc_, de_)),
+				/* 0x12 LD (DE), A */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Write(memptr_, a_)),
 
 				/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
 				INC_INC_DEC_LD(de_, de_.bytes.high),
 
-				/* 0x17 RLA */			Program({MicroOp::RLA}),
-				/* 0x18 JR */			Program(FETCH(temp8_, pc_), WAIT(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+				/* 0x17 RLA */			StdInstr({MicroOp::RLA}),
+				/* 0x18 JR */			StdInstr(ReadInc(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
-				/* 0x1a LD A, (DE) */	Program({MicroOp::Move16, &de_.full, &memptr_.full}, FETCH(a_, memptr_)),
+				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read(memptr_, a_)),
 
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
 
-				/* 0x1f RRA */			Program({MicroOp::RRA}),
-				/* 0x20 JR NZ */		JR(TestNZ),							 /* 0x21 LD HL, nn */	Program(FETCH16(index, pc_)),
-				/* 0x22 LD (nn), HL */	Program(FETCH16(temp16_, pc_), STORE16L(index, temp16_)),
+				/* 0x1f RRA */			StdInstr({MicroOp::RRA}),
+				/* 0x20 JR NZ */		JR(TestNZ),							 /* 0x21 LD HL, nn */	StdInstr(Read16Inc(pc_, index)),
+				/* 0x22 LD (nn), HL */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, index)),
 
 				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
 				INC_INC_DEC_LD(index, index.bytes.high),
 
-				/* 0x27 DAA */			Program({MicroOp::DAA}),
+				/* 0x27 DAA */			StdInstr({MicroOp::DAA}),
 				/* 0x28 JR Z */			JR(TestZ),							/* 0x29 ADD HL, HL */	ADD16(index, index),
-				/* 0x2a LD HL, (nn) */	Program(FETCH16(temp16_, pc_), FETCH16L(index, temp16_)),
+				/* 0x2a LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, index)),
 
 				/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
 				DEC_INC_DEC_LD(index, index.bytes.low),
 
-				/* 0x2f CPL */			Program({MicroOp::CPL}),
-				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Program(FETCH16(sp_, pc_)),
-				/* 0x32 LD (nn), A */	Program(FETCH16(temp16_, pc_), STOREL(a_, temp16_)),
-				/* 0x33 INC SP */		Program(WAIT(2), {MicroOp::Increment16, &sp_.full}),
-				/* 0x34 INC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Increment8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
-				/* 0x35 DEC (HL) */		Program(INDEX(), FETCHL(temp8_, INDEX_ADDR()), WAIT(1), {MicroOp::Decrement8, &temp8_}, STOREL(temp8_, INDEX_ADDR())),
-				/* 0x36 LD (HL), n */	Program({MicroOp::IndexedPlaceHolder}, FETCH(temp8_, pc_), {MicroOp::CalculateIndexAddress, &index}, FETCH(temp8_, pc_), WAIT(add_offsets ? 2 : 0), STOREL(temp8_, INDEX_ADDR())),
-				/* 0x37 SCF */			Program({MicroOp::SCF}),
+				/* 0x2f CPL */			StdInstr({MicroOp::CPL}),
+				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	StdInstr(Read16Inc(pc_, sp_)),
+				/* 0x32 LD (nn), A */	StdInstr(Read16Inc(pc_, temp16_), Write(temp16_, a_)),
+				/* 0x33 INC SP */		Instr(4, {MicroOp::Increment16, &sp_.full}),
+				/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
+				/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
+				/* 0x36 LD (HL), n */	StdInstr({MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}, Read(pc_, temp8_), Write(INDEX_ADDR(), temp8_)),	// WAIT(add_offsets ? 2 : 0),
+				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
-				/* 0x3a LD A, (nn) */	Program(FETCH16(memptr_, pc_), FETCH(a_, memptr_)),
-				/* 0x3b DEC SP */		Program(WAIT(2), {MicroOp::Decrement16, &sp_.full}),
+				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read(memptr_, a_)),
+				/* 0x3b DEC SP */		Instr(4, {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
 				INC_DEC_LD(a_),
 
-				/* 0x3f CCF */			Program({MicroOp::CCF}),
+				/* 0x3f CCF */			StdInstr({MicroOp::CCF}),
 
 				/* 0x40 LD B, B;  0x41 LD B, C;	0x42 LD B, D;	0x43 LD B, E;	0x44 LD B, H;	0x45 LD B, L;	0x46 LD B, (HL);	0x47 LD B, A */
 				LD_GROUP(bc_.bytes.high, bc_.bytes.high),
@@ -610,14 +610,14 @@ template <class T> class Processor {
 				/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
 				LD_GROUP(index.bytes.low, hl_.bytes.low),
 
-				/* 0x70 LD (HL), B */	Program(INDEX(), STOREL(bc_.bytes.high, INDEX_ADDR())),
-				/* 0x71 LD (HL), C */	Program(INDEX(), STOREL(bc_.bytes.low, INDEX_ADDR())),
-				/* 0x72 LD (HL), D */	Program(INDEX(), STOREL(de_.bytes.high, INDEX_ADDR())),
-				/* 0x73 LD (HL), E */	Program(INDEX(), STOREL(de_.bytes.low, INDEX_ADDR())),
-				/* 0x74 LD (HL), H */	Program(INDEX(), STOREL(hl_.bytes.high, INDEX_ADDR())),	// neither of these stores parts of the index register;
-				/* 0x75 LD (HL), L */	Program(INDEX(), STOREL(hl_.bytes.low, INDEX_ADDR())),	// they always store exactly H and L.
-				/* 0x76 HALT */			Program({MicroOp::HALT}),
-				/* 0x77 LD (HL), A */	Program(INDEX(), STOREL(a_, INDEX_ADDR())),
+				/* 0x70 LD (HL), B */	StdInstr(INDEX(), Write(INDEX_ADDR(), bc_.bytes.high)),
+				/* 0x71 LD (HL), C */	StdInstr(INDEX(), Write(INDEX_ADDR(), bc_.bytes.low)),
+				/* 0x72 LD (HL), D */	StdInstr(INDEX(), Write(INDEX_ADDR(), de_.bytes.high)),
+				/* 0x73 LD (HL), E */	StdInstr(INDEX(), Write(INDEX_ADDR(), de_.bytes.low)),
+				/* 0x74 LD (HL), H */	StdInstr(INDEX(), Write(INDEX_ADDR(), hl_.bytes.high)),	// neither of these stores parts of the index register;
+				/* 0x75 LD (HL), L */	StdInstr(INDEX(), Write(INDEX_ADDR(), hl_.bytes.low)),		// they always store exactly H and L.
+				/* 0x76 HALT */			StdInstr({MicroOp::HALT}),
+				/* 0x77 LD (HL), A */	StdInstr(INDEX(), Write(INDEX_ADDR(), a_)),
 
 				/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
 				LD_GROUP(a_, a_),
