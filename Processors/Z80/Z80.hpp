@@ -306,6 +306,9 @@ template <class T> class Processor {
 #define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.low)
 #define Pop(x)					Read3(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read3(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
 
+#define Push8(x)				{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write5(sp_, x.bytes.low)
+#define Pop7(x)					Read3(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read4(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
+
 /* The following are actual instructions */
 #define NOP						Sequence(BusOp(Refresh(2)))
 
@@ -370,7 +373,7 @@ template <class T> class Processor {
 
 #define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
 
-		typedef MicroOp InstructionTable[256][20];
+		typedef MicroOp InstructionTable[256][30];
 
 		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
 			size_t number_of_micro_ops = 0;
@@ -667,7 +670,7 @@ template <class T> class Processor {
 				/* 0xde SBC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SBC8, &temp8_}),
 				/* 0xdf RST 18h */	RST(),
 				/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	StdInstr(Pop(index)),
-				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */StdInstr(Pop(memptr_), Push(index), {MicroOp::Move16, &memptr_.full, &index.full}),	// WAIT(1), WAIT(2),
+				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */StdInstr(Pop7(memptr_), Push8(index), {MicroOp::Move16, &memptr_.full, &index.full}),
 				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Instr(3, Push(index)),
 				/* 0xe6 AND n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::And, &temp8_}),
 				/* 0xe7 RST 20h */	RST(),
