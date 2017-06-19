@@ -694,10 +694,11 @@ template <class T> class Processor {
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp normal_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart(pc_, operation_)),
+				BusOp(ReadOpcodeWait(pc_, operation_)),
 				{ MicroOp::DecodeOperation }
 			};
 			const MicroOp short_fetch_decode_execute[] = {
-				BusOp(ReadOpcodeStart(pc_, operation_)),
+				Read3(pc_, operation_),
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
@@ -843,6 +844,9 @@ template <class T> class Processor {
 
 					switch(operation->type) {
 						case MicroOp::BusOperation:
+							if(operation->machine_cycle.was_requested) {	 // TODO: && !wait_line_
+								continue;
+							}
 							if(number_of_cycles_ < operation->machine_cycle.length) {
 								scheduled_program_counter_--;
 								static_cast<T *>(this)->flush();

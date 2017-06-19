@@ -10,9 +10,25 @@ import XCTest
 
 class Z80MachineCycleTests: XCTestCase {
 
-	private struct MachineCycle {
+	private struct MachineCycle: CustomDebugStringConvertible {
 		var operation: CSTestMachineZ80BusOperationCaptureOperation
 		var length: Int32
+
+		public var debugDescription: String {
+			get {
+				var opName = ""
+				switch operation {
+					case .readOpcode:			opName = "ro"
+					case .read:					opName = "r"
+					case .write:				opName = "w"
+					case .portRead:				opName = "i"
+					case .portWrite:			opName = "o"
+					case .internalOperation:	opName = "iop"
+				}
+				return "\(opName) \(length)"
+			}
+		}
+
 	}
 
 	private func test(program : [UInt8], busCycles : [MachineCycle]) {
@@ -34,6 +50,7 @@ class Z80MachineCycleTests: XCTestCase {
 		// Check the results
 		totalCycles = 0
 		var index = 0
+		var matches = true
 		for cycle in machine.busOperationCaptures {
 			let length = cycle.timeStamp - totalCycles
 			totalCycles += length
@@ -44,12 +61,16 @@ class Z80MachineCycleTests: XCTestCase {
 				// array access
 				break
 			} else {
-				XCTAssertEqual(length, busCycles[index].length)
-				XCTAssertEqual(cycle.operation, busCycles[index].operation)
+				if length != busCycles[index].length || cycle.operation != busCycles[index].operation {
+					matches = false
+					break;
+				}
 			}
 
 			index += 1
 		}
+
+		XCTAssert(matches, "Z80 performed \(machine.busOperationCaptures); was expected to perform \(busCycles)")
 	}
 
 	// LD r, r
