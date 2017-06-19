@@ -116,7 +116,7 @@ struct MachineCycle {
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, MachineCycle::Phase::Start, len}}
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, MachineCycle::Phase::End, len}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
