@@ -391,8 +391,8 @@ class Z80MachineCycleTests: XCTestCase {
 			program: [0xe1],
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),
-				MachineCycle(operation: .write, length: 3),
-				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 			]
 		)
 	}
@@ -404,8 +404,8 @@ class Z80MachineCycleTests: XCTestCase {
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
-				MachineCycle(operation: .write, length: 3),
-				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 			]
 		)
 	}
