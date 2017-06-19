@@ -14,49 +14,47 @@ namespace {
 
 class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<ConcreteAllRAMProcessor> {
 	public:
-		ConcreteAllRAMProcessor() : AllRAMProcessor(), completed_cycles(0) {}
+		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
 		inline int perform_machine_cycle(const MachineCycle &cycle) {
-			completed_cycles += cycle.length;
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-			switch(cycle.operation) {
-				case MachineCycle::Operation::ReadOpcode:
-//					printf("! ");
-					check_address_for_trap(address);
-				case MachineCycle::Operation::Read:
-//					printf("r %04x [%02x] AF:%04x BC:%04x DE:%04x HL:%04x SP:%04x\n", address, memory_[address], get_value_of_register(CPU::Z80::Register::AF), get_value_of_register(CPU::Z80::Register::BC), get_value_of_register(CPU::Z80::Register::DE), get_value_of_register(CPU::Z80::Register::HL), get_value_of_register(CPU::Z80::Register::StackPointer));
-					*cycle.value = memory_[address];
-				break;
-				case MachineCycle::Operation::Write:
-//					printf("w %04x\n", address);
-					memory_[address] = *cycle.value;
-				break;
+//			if(cycle.phase == MachineCycle::Phase::End) {
+				switch(cycle.operation) {
+					case MachineCycle::Operation::ReadOpcode:
+						check_address_for_trap(address);
+					case MachineCycle::Operation::Read:
+						*cycle.value = memory_[address];
+					break;
+					case MachineCycle::Operation::Write:
+						memory_[address] = *cycle.value;
+					break;
 
-				case MachineCycle::Operation::Output:
-				break;
-				case MachineCycle::Operation::Input:
-					// This logic is selected specifically because it seems to match
-					// the FUSE unit tests. It might need factoring out.
-					*cycle.value = address >> 8;
-				break;
+					case MachineCycle::Operation::Output:
+					break;
+					case MachineCycle::Operation::Input:
+						// This logic is selected specifically because it seems to match
+						// the FUSE unit tests. It might need factoring out.
+						*cycle.value = address >> 8;
+					break;
 
-				case MachineCycle::Operation::Internal:
-				break;
+					case MachineCycle::Operation::Internal:
+					break;
 
-				case MachineCycle::Operation::Interrupt:
-					// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
-					// arbitrary.
-					*cycle.value = 0x21;
-				break;
+					case MachineCycle::Operation::Interrupt:
+						// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
+						// arbitrary.
+						*cycle.value = 0x21;
+					break;
 
-				default:
-					printf("???\n");
-				break;
-			}
+					default:
+						printf("???\n");
+					break;
+				}
+//			}
 			timestamp_ += cycle.length;
 
 			if(delegate_ != nullptr) {
-				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
+				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, cycle.phase, address, cycle.value ? *cycle.value : 0x00, timestamp_);
 			}
 
 			return 0;
@@ -89,14 +87,6 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		void set_non_maskable_interrupt_line(bool value) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_non_maskable_interrupt_line(value);
 		}
-
-		int get_length_of_completed_machine_cycles() {
-			return completed_cycles;
-		}
-
-		private:
-			int completed_cycles;
-
 };
 
 }
