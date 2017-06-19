@@ -429,4 +429,43 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// EXX
+	func testEXX() {
+		test(
+			program: [0xd9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// EX (SP), HL
+	func testEXSPHL() {
+		test(
+			program: [0xe3],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 5),
+			]
+		)
+	}
+
+	// EX (SP), IX
+	func testEXSPIX() {
+		test(
+			program: [0xdd, 0xe3],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 5),
+			]
+		)
+	}
 }
