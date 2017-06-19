@@ -534,7 +534,7 @@ template <class T> class Processor {
 				Instr(4, {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
 			InstructionTable base_program_table = {
-				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16(pc_, bc_)),
+				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16Inc(pc_, bc_)),
 				/* 0x02 LD (BC), A */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Write3(memptr_, a_)),
 
 				/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */

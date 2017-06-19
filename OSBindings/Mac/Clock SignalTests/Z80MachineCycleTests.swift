@@ -468,4 +468,92 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// LDI
+	func testLDI() {
+		test(
+			program: [0xed, 0xa0],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 5),
+			]
+		)
+	}
+
+	// CPI (NB: I've diverted from the documentation by assuming the five-cycle 'write' is an internal operation)
+	func testCPI() {
+		test(
+			program: [0xed, 0xa1],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+			]
+		)
+	}
+
+	// LDIR
+	func testLDIR() {
+		test(
+			program: [
+				0x01, 0x02, 0x00,	// LD BC, 2
+				0xed, 0xb0,			// LDIR
+				0x00, 0x00, 0x00	// NOP, NOP, NOP
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 5),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .write, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// CPIR (as per CPI; assumed no writes)
+	func testCPIR() {
+		test(
+			program: [
+				0x01, 0x02, 0x00,	// LD BC, 2
+				0xed, 0xb1,			// CPIR
+				0x00, 0x00, 0x00	// NOP, NOP, NOP
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
 }
