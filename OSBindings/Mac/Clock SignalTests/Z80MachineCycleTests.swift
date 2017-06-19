@@ -556,4 +556,50 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// ADD A,r
+	func testADDAr() {
+		test(
+			program: [0x80],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// ADD A,n
+	func testADDAn() {
+		test(
+			program: [0xc6, 0x00],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// ADD A,(HL)
+	func testADDAHL() {
+		test(
+			program: [0x86],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// ADD A,(IX+d)
+	func testADDAIXd() {
+		test(
+			program: [0xdd, 0x86],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
 }
