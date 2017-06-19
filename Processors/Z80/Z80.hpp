@@ -86,7 +86,7 @@ struct MachineCycle {
 // Elemental bus operations
 #define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
 #define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, 1, &addr.full, &val, true}
-#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::End, 2, &ir_.full, nullptr, false}
+#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
 
 #define ReadStart(addr, val)		{MachineCycle::Read, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
 #define ReadWait(l, addr, val, f)	{MachineCycle::Read, MachineCycle::Phase::Wait, l, &addr.full, &val, f}
