@@ -863,4 +863,97 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// JP nn
+	func testJPnn() {
+		test(
+			program: [0xc3, 0x00, 0x80],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// JP cc, nn
+	func testJPccnn() {
+		test(
+			program: [
+				0x37,				// SCF
+				0xd2, 0x00, 0x80,	// JP NC, 0x8000
+				0xda, 0x00, 0x80,	// JP C, 0x8000
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
+	// JR e
+	func testJRe() {
+		test(
+			program: [0x18, 0x80],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// JR cc, e
+	func testJRcce() {
+		test(
+			program: [
+				0x37,			// SCF
+				0x30, 0x80,		// JR NC, 0x8000
+				0x38, 0x80,		// JR C, 0x8000
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// JP (HL)
+	func testJPHL() {
+		test(
+			program: [0xe9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// JP (IX)
+	func testJPIX() {
+		test(
+			program: [0xdd, 0xe9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
 }
