@@ -956,4 +956,27 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// DJNZ
+	func testDJNZ() {
+		test(
+			program: [
+				0x06, 0x02,			// LD B, 2
+				0x10, 0xfe,			// DJNZ -2
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
 }
