@@ -648,6 +648,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// NEG, IM 0, IM 1, IM 2
 	func testNEGIMs() {
 		test(
 			program: [0xed, 0x44, 0xed, 0x46, 0xed, 0x56, 0xed, 0x5e],
@@ -665,6 +666,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// ADD HL, rr
 	func testADDHL() {
 		test(
 			program: [0x09],
@@ -676,6 +678,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// ADD IX, rr
 	func testADDIX() {
 		test(
 			program: [0xdd, 0x09],
@@ -688,6 +691,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// ADD A, (HL)
 	func testADCHL() {
 		test(
 			program: [0xed, 0x4a],
@@ -700,6 +704,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// INC rr
 	func testINCss() {
 		test(
 			program: [0x03],
@@ -709,6 +714,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// INC IX
 	func testINCIX() {
 		test(
 			program: [0xdd, 0x23],
@@ -719,6 +725,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// RLCA
 	func testRLCA() {
 		test(
 			program: [0x07],
@@ -728,6 +735,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// RLC r
 	func testRLCr() {
 		test(
 			program: [0xcb, 0x00],
@@ -738,6 +746,7 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// RLC (HL)
 	func testRLCHL() {
 		test(
 			program: [0xcb, 0x06],
