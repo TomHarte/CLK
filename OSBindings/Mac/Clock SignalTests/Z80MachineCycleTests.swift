@@ -980,7 +980,47 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
-	// TODO: CALL
+	// CALL
+	func testCALL() {
+		test(
+			program: [0xcd, 0x00, 0x80],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// CALL cc
+	func testCALLcc() {
+		test(
+			program: [
+				0x37,		// SCF
+				0xd4,		// CALL NC
+				0xdc,		// CALL C
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
 
 	// RET
 	func testRET() {
