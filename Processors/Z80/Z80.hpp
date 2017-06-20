@@ -292,6 +292,7 @@ template <class T> class Processor {
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 
 #define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
+#define Read4Inc(addr, val)		Read4(addr, val), Inc16(addr)
 #define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &addr.full}
 
 #define Read16Inc(addr, val)	ReadInc(addr, val.bytes.low), ReadInc(addr, val.bytes.high)
@@ -299,8 +300,8 @@ template <class T> class Processor {
 
 #define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write3(addr, val.bytes.high)
 
-#define INDEX()					{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
-#define FINDEX()				{MicroOp::IndexedPlaceHolder}, Read3(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
+#define INDEX()					{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
+#define FINDEX()				{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()			(add_offsets ? memptr_ : index)
 
 #define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.high), {MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.bytes.low)
@@ -583,7 +584,7 @@ template <class T> class Processor {
 				/* 0x33 INC SP */		Instr(4, {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 				/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-				/* 0x36 LD (HL), n */	StdInstr({MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}, Read3(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),	// WAIT(add_offsets ? 2 : 0),
+				/* 0x36 LD (HL), n */	StdInstr({MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}, ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
 				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
@@ -656,7 +657,7 @@ template <class T> class Processor {
 				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(pc_)),
 				/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */StdInstr(FINDEX(), {MicroOp::SetInstructionPage, &cb_page}),
-				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, temp16_.bytes.low), Read4(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
+				/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, temp16_.bytes.low), Read4Inc(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
 				/* 0xce ADC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADC8, &temp8_}),
 				/* 0xcf RST 08h */	RST(),
 				/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	StdInstr(Pop(de_)),
