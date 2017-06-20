@@ -602,4 +602,120 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// INC r, DEC r
+	func testINCrDECr() {
+		test(
+			program: [0x3c, 0x3d],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// INC (HL), DEC (HL)
+	func testINCHLDECHL() {
+		test(
+			program: [0x34, 0x34],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// DAA, CPL, CCF, SCF, NOP, DI, EI, HALT
+	func testDAACPLCCFSCFNOPDIEIHALT() {
+		test(
+			program: [0x27, 0x2f, 0x3f, 0x37, 0x00, 0xf3, 0xfb, 0x76],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),	// one more for luck
+			]
+		)
+	}
+
+	func testNEGIMs() {
+		test(
+			program: [0xed, 0x44, 0xed, 0x46, 0xed, 0x56, 0xed, 0x5e],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	func testADDHL() {
+		test(
+			program: [0x09],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .internalOperation, length: 4),
+				MachineCycle(operation: .internalOperation, length: 3),
+			]
+		)
+	}
+
+	func testADDIX() {
+		test(
+			program: [0xdd, 0x09],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .internalOperation, length: 4),
+				MachineCycle(operation: .internalOperation, length: 3),
+			]
+		)
+	}
+
+	func testADCHL() {
+		test(
+			program: [0xed, 0x4a],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .internalOperation, length: 4),
+				MachineCycle(operation: .internalOperation, length: 3),
+			]
+		)
+	}
+
+	func testINCss() {
+		test(
+			program: [0x03],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 6),
+			]
+		)
+	}
+
+	func testINCIX() {
+		test(
+			program: [0xdd, 0x23],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 6),
+			]
+		)
+	}
 }
