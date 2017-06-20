@@ -840,7 +840,7 @@ class Z80MachineCycleTests: XCTestCase {
 	// BIT n,(IX+d)
 	func testBITIX() {
 		test(
-			program: [0xdb, 0xcb, 0x00, 0x46],
+			program: [0xdd, 0xcb, 0x00, 0x46],
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
@@ -854,7 +854,7 @@ class Z80MachineCycleTests: XCTestCase {
 	// SET n,(IX+d)
 	func testSETIX() {
 		test(
-			program: [0xdb, 0xcb, 0x00, 0xc6],
+			program: [0xdd, 0xcb, 0x00, 0xc6],
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
