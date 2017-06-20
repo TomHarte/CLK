@@ -979,4 +979,215 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// TODO: CALL
+
+	// RET
+	func testRET() {
+		test(
+			program: [0xc9],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// RET cc
+	func testRETcc() {
+		test(
+			program: [
+				0x37,		// SCF
+				0xd0,		// RET NC
+				0xd8,		// RET C
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// RETI
+	func testRETI() {
+		test(
+			program: [0xed, 0x4d],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// RST
+	func testRST() {
+		test(
+			program: [0xc7],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// IN A, (n)
+	func testINAn() {
+		test(
+			program: [0xdb, 0xfe],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .portRead, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// IN r, (C)
+	func testINrC() {
+		test(
+			program: [0xed, 0x40],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .portRead, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// INI
+	func testINI() {
+		test(
+			program: [0xed, 0xa2],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .portRead, length: 4),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// INIR
+	func testINIR() {
+		test(
+			program: [
+				0x01, 0x02, 0x00,	// LD BC, 2
+				0xed, 0xb2,			// INIR
+				0x00, 0x00, 0x00	// NOP, NOP, NOP
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .portRead, length: 4),
+				MachineCycle(operation: .write, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .portRead, length: 4),
+				MachineCycle(operation: .write, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// OUT (n), A
+	func testOUTnA() {
+		test(
+			program: [0xd3, 0xfe],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .portWrite, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// OUT (C), r
+	func testOUTCr() {
+		test(
+			program: [0xed, 0x41],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .portWrite, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// OUTI
+	func testOUTI() {
+		test(
+			program: [0xed, 0xa3],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .portWrite, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// OTIR
+	func testOTIR() {
+		test(
+			program: [
+				0x01, 0x02, 0x00,	// LD BC, 2
+				0xed, 0xb3,			// OTIR
+				0x00, 0x00, 0x00	// NOP, NOP, NOP
+			],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .portWrite, length: 4),
+				MachineCycle(operation: .internalOperation, length: 5),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .portWrite, length: 4),
+
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
 }
