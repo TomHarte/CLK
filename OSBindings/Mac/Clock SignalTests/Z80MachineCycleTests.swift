@@ -773,4 +773,96 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	// RLD
+	func testRLD() {
+		test(
+			program: [0xed, 0x6f],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// BIT n,r
+	func testBITr() {
+		test(
+			program: [0xcb, 0x40],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	// SET n,r
+	func testSETr() {
+		test(
+			program: [0xcb, 0xc0],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// BIT n,(HL)
+	func testBITHL() {
+		test(
+			program: [0xcb, 0x46],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+			]
+		)
+	}
+
+	// SET n,(HL)
+	func testSETHL() {
+		test(
+			program: [0xcb, 0xc6],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// BIT n,(IX+d)
+	func testBITIX() {
+		test(
+			program: [0xdb, 0xcb, 0x00, 0x46],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 4),
+			]
+		)
+	}
+
+	// SET n,(IX+d)
+	func testSETIX() {
+		test(
+			program: [0xdb, 0xcb, 0x00, 0xc6],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
 }
