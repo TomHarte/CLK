@@ -84,9 +84,9 @@ struct MachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
-#define ReadOpcodeWait(addr, val)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, 1, &addr.full, &val, true}
-#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
+#define ReadOpcodeStart(addr, val)		{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
+#define ReadOpcodeWait(addr, val, f)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
+#define Refresh(len)					{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
 
 #define ReadStart(addr, val)		{MachineCycle::Read, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
 #define ReadWait(l, addr, val, f)	{MachineCycle::Read, MachineCycle::Phase::Wait, l, &addr.full, &val, f}
@@ -338,7 +338,7 @@ template <class T> class Processor {
 				StdInstr({MicroOp::op, &a_})
 
 #define RMW(x, op, ...) StdInstr(INDEX(), Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
-#define RMWI(x, op, ...) Instr(3, Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
+#define RMWI(x, op, ...) StdInstr(Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
 
 #define MODIFY_OP_GROUP(op)	\
 				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
@@ -697,11 +697,13 @@ template <class T> class Processor {
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp normal_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart(pc_, operation_)),
-				BusOp(ReadOpcodeWait(pc_, operation_)),
+				BusOp(ReadOpcodeWait(pc_, operation_, true)),
 				{ MicroOp::DecodeOperation }
 			};
 			const MicroOp short_fetch_decode_execute[] = {
-				Read3(pc_, operation_),
+				BusOp(ReadOpcodeStart(pc_, operation_)),
+				BusOp(ReadOpcodeWait(pc_, operation_, false)),
+				BusOp(ReadOpcodeWait(pc_, operation_, true)),
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
