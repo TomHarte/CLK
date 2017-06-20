@@ -718,4 +718,50 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
+	func testRLCA() {
+		test(
+			program: [0x07],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	func testRLCr() {
+		test(
+			program: [0xcb, 0x00],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+			]
+		)
+	}
+
+	func testRLCHL() {
+		test(
+			program: [0xcb, 0x06],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
+
+	// RLC (IX+d) (NB: the official table doesn't read the final part of the instruction; I've assumed a five-cycle version of read opcode replaces the internal operation)
+	func testRLCIX() {
+		test(
+			program: [0xdd, 0xcb, 0x00, 0x06],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .readOpcode, length: 5),
+				MachineCycle(operation: .read, length: 4),
+				MachineCycle(operation: .write, length: 3),
+			]
+		)
+	}
 }
