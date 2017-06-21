@@ -110,6 +110,7 @@ struct MachineCycle {
 // Compound bus operations, as micro-ops
 #define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
 #define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, false)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
 
 #define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
 #define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, false)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
@@ -294,6 +295,7 @@ template <class T> class Processor {
 
 #define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
 #define Read4Inc(addr, val)		Read4(addr, val), Inc16(addr)
+#define Read5Inc(addr, val)		Read5(addr, val), Inc16(addr)
 #define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &addr.full}
 
 #define Read16Inc(addr, val)	ReadInc(addr, val.bytes.low), ReadInc(addr, val.bytes.high)
@@ -585,7 +587,7 @@ template <class T> class Processor {
 				/* 0x33 INC SP */		Instr(4, {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 				/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-				/* 0x36 LD (HL), n */	StdInstr(INDEX(), ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
+				/* 0x36 LD (HL), n */	StdInstr(ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
 				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
@@ -692,6 +694,16 @@ template <class T> class Processor {
 				/* 0xfe CP n */		StdInstr(ReadInc(pc_, temp8_), {MicroOp::CP8, &temp8_}),
 				/* 0xff RST 38h */	RST(),
 			};
+
+			if(add_offsets) {
+				// The indexed version of 0x36 differs substantially from the non-indexed by building index calculation into
+				// the cycle that fetches the final operand. So patch in a different microprogram if building an indexed table.
+				InstructionTable copy_table = {
+					StdInstr(FINDEX(), Read5Inc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_))
+				};
+				memcpy(&base_program_table[0x36], &copy_table[0], sizeof(copy_table[0]));
+			}
+
 			assemble_cb_page(cb_page, index, add_offsets);
 			assemble_page(target, base_program_table, add_offsets);
 		}
