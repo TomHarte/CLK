@@ -325,7 +325,9 @@ template <class T> class Processor {
 
 #define LD_GROUP(r, ri)	\
 				LD(r, bc_.bytes.high),		LD(r, bc_.bytes.low),	LD(r, de_.bytes.high),						LD(r, de_.bytes.low),	\
-				LD(r, index.bytes.high),	LD(r, index.bytes.low),	StdInstr(INDEX(), Read3(INDEX_ADDR(), ri)),	LD(r, a_)
+				LD(r, index.bytes.high),	LD(r, index.bytes.low),		\
+				StdInstr(INDEX(), Read3(INDEX_ADDR(), temp8_), {MicroOp::Move8, &temp8_, &ri}),		\
+				LD(r, a_)
 
 #define READ_OP_GROUP(op)	\
 				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
