@@ -1000,9 +1000,9 @@ class Z80MachineCycleTests: XCTestCase {
 	func testCALLcc() {
 		test(
 			program: [
-				0x37,		// SCF
-				0xd4,		// CALL NC
-				0xdc,		// CALL C
+				0x37,					// SCF
+				0xd4, 0x00, 0x80,		// CALL NC
+				0xdc, 0x00, 0x80		// CALL C
 			],
 			busCycles: [
 				MachineCycle(operation: .readOpcode, length: 4),

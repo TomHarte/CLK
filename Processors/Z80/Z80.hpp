@@ -273,6 +273,7 @@ template <class T> class Processor {
 
 			InstructionPage() : r_step(1), is_indexed(false) {}
 		};
+		std::vector<MicroOp> conditional_call_untaken_program_;
 		std::vector<MicroOp> reset_program_;
 		std::vector<MicroOp> irq_program_[3];
 		std::vector<MicroOp> nmi_program_;
@@ -314,7 +315,7 @@ template <class T> class Processor {
 #define NOP						Sequence(BusOp(Refresh(2)))
 
 #define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define CALL(cc)				StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})	// WAIT(1),
+#define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.bytes.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define RET(cc)					Instr(3, {MicroOp::cc}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Instr(3, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
@@ -734,6 +735,9 @@ template <class T> class Processor {
 			pc_increment_(1),
 			scheduled_program_counter_(nullptr) {
 			set_flags(0xff);
+
+			MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, temp16_.bytes.high));
+			copy_program(conditional_call_untaken_program, conditional_call_untaken_program_);
 
 			assemble_base_page(base_page_, hl_, false, cb_page_);
 			assemble_base_page(dd_page_, ix_, true, ddcb_page_);
@@ -1190,14 +1194,23 @@ template <class T> class Processor {
 
 #pragma mark - Conditionals
 
-						case MicroOp::TestNZ:	if(!zero_result_)								{ advance_operation(); }		break;
-						case MicroOp::TestZ:	if(zero_result_)								{ advance_operation(); }		break;
-						case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ advance_operation(); }		break;
-						case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ advance_operation(); }		break;
-						case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ advance_operation(); }		break;
-						case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ advance_operation(); }		break;
-						case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ advance_operation(); }		break;
-						case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ advance_operation(); }		break;
+#define decline_conditional()	\
+	if(operation->source) {		\
+		scheduled_program_counter_ = (MicroOp *)operation->source;	\
+	} else {	\
+		advance_operation();	\
+	}
+
+						case MicroOp::TestNZ:	if(!zero_result_)								{ decline_conditional(); }		break;
+						case MicroOp::TestZ:	if(zero_result_)								{ decline_conditional(); }		break;
+						case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ decline_conditional(); }		break;
+						case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ decline_conditional(); }		break;
+						case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ decline_conditional(); }		break;
+						case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ decline_conditional(); }		break;
+						case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ decline_conditional(); }		break;
+						case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ decline_conditional(); }		break;
+
+#undef decline_conditional
 
 #pragma mark - Exchange
 
