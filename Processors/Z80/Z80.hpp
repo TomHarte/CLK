@@ -360,14 +360,14 @@ template <class T> class Processor {
 				RMWI(a_, op)
 
 #define IX_READ_OP_GROUP(op)	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Instr(4, Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
 
 #define ADD16(d, s) StdInstr(InternalOperation(4), InternalOperation(3), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) StdInstr(InternalOperation(4), InternalOperation(3), {MicroOp::ADC16, &s.full, &d.full})
