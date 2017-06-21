@@ -104,7 +104,7 @@ struct MachineCycle {
 #define OutputWait(addr, val, f)	{MachineCycle::Output, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
 #define OutputEnd(addr, val)		{MachineCycle::Output, MachineCycle::Phase::End, 1, &addr.full, &val}
 
-#define IntAck(length)				{MachineCycle::Operation::Interrupt, MachineCycle::Phase::End, length, nullptr, &operation_}
+#define IntAck(length, val)			{MachineCycle::Operation::Interrupt, MachineCycle::Phase::End, length, nullptr, &val}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -790,12 +790,12 @@ template <class T> class Processor {
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				BusOp(IntAck(4)),
+				BusOp(IntAck(4, operation_)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(5)),
+				BusOp(IntAck(5, operation_)),
 				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
@@ -803,11 +803,11 @@ template <class T> class Processor {
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(5)),
+				BusOp(IntAck(5, temp16_.bytes.low)),
 				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
-				Read16(pc_, temp16_),
+				Read16(temp16_, pc_),
 				{ MicroOp::MoveToNextProgram }
 			};
 
