@@ -790,19 +790,21 @@ template <class T> class Processor {
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				BusOp(IntAck(6)),
+				BusOp(IntAck(4)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(7)),
+				BusOp(IntAck(5)),
+				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(7)),
+				BusOp(IntAck(5)),
+				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
 				Read16(pc_, temp16_),
