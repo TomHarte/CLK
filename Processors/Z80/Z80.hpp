@@ -84,9 +84,9 @@ struct MachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart(addr, val)		{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
-#define ReadOpcodeWait(addr, val, f)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
-#define Refresh(len)					{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
+#define ReadOpcodeStart()			{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &pc_.full, &operation_, false}
+#define ReadOpcodeWait(length, f)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, length, &pc_.full, &operation_, f}
+#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
 
 #define ReadStart(addr, val)		{MachineCycle::Read, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
 #define ReadWait(l, addr, val, f)	{MachineCycle::Read, MachineCycle::Phase::Wait, l, &addr.full, &val, f}
@@ -103,6 +103,8 @@ struct MachineCycle {
 #define OutputStart(addr, val)		{MachineCycle::Output, MachineCycle::Phase::Start, 2, &addr.full, &val}
 #define OutputWait(addr, val, f)	{MachineCycle::Output, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
 #define OutputEnd(addr, val)		{MachineCycle::Output, MachineCycle::Phase::End, 1, &addr.full, &val}
+
+#define IntAck(length)				{MachineCycle::Operation::Interrupt, MachineCycle::Phase::End, length, nullptr, &operation_}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -316,10 +318,10 @@ template <class T> class Processor {
 /* The following are actual instructions */
 #define NOP						Sequence(BusOp(Refresh(2)))
 
-#define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc}, {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.bytes.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define RET(cc)					Instr(3, {MicroOp::cc}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RET(cc)					Instr(3, {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Instr(3, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)				StdInstr({MicroOp::Move8, &b, &a})
 
@@ -712,14 +714,14 @@ template <class T> class Processor {
 
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp normal_fetch_decode_execute[] = {
-				BusOp(ReadOpcodeStart(pc_, operation_)),
-				BusOp(ReadOpcodeWait(pc_, operation_, true)),
+				BusOp(ReadOpcodeStart()),
+				BusOp(ReadOpcodeWait(1, true)),
 				{ MicroOp::DecodeOperation }
 			};
 			const MicroOp short_fetch_decode_execute[] = {
-				BusOp(ReadOpcodeStart(pc_, operation_)),
-				BusOp(ReadOpcodeWait(pc_, operation_, false)),
-				BusOp(ReadOpcodeWait(pc_, operation_, true)),
+				BusOp(ReadOpcodeStart()),
+				BusOp(ReadOpcodeWait(1, false)),
+				BusOp(ReadOpcodeWait(1, true)),
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
@@ -742,6 +744,7 @@ template <class T> class Processor {
 		Processor() :
 			halt_mask_(0xff),
 			number_of_cycles_(0),
+			interrupt_mode_(0),
 			request_status_(Interrupt::PowerOn),
 			last_request_status_(Interrupt::PowerOn),
 			irq_line_(false),
@@ -778,26 +781,28 @@ template <class T> class Processor {
 			MicroOp reset_program[] = Sequence(InternalOperation(3), {MicroOp::Reset});
 			MicroOp nmi_program[] = {
 				{ MicroOp::BeginNMI },
-//				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::ReadOpcode, 5, &pc_.full, &operation_}},
+				BusOp(ReadOpcodeStart()),
+				BusOp(ReadOpcodeWait(1, false)),
+				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, MachineCycle::Phase::End, 6, nullptr, &operation_}},
+				BusOp(IntAck(6)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-//				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, 7, nullptr, &operation_}},
+				BusOp(IntAck(7)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-//				{ MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Operation::Interrupt, 7, nullptr, &temp16_.bytes.low}},
+				BusOp(IntAck(7)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
 				Read16(pc_, temp16_),
