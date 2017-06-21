@@ -585,7 +585,7 @@ template <class T> class Processor {
 				/* 0x33 INC SP */		Instr(4, {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 				/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-				/* 0x36 LD (HL), n */	StdInstr({MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}, ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
+				/* 0x36 LD (HL), n */	StdInstr(INDEX(), ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
 				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),

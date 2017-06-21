@@ -156,6 +156,20 @@ class Z80MachineCycleTests: XCTestCase {
 		)
 	}
 
+	// LD (IX+d), n
+	func testLDIXdn() {
+		test(
+			program: [0xdd, 0x36, 0x10, 0x80],
+			busCycles: [
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .readOpcode, length: 4),
+				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .internalOperation, length: 5),
+				MachineCycle(operation: .read, length: 3),
+			]
+		)
+	}
+
 	// LD A, (DE)
 	func testLDADE() {
 		test(
