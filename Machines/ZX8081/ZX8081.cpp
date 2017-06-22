@@ -57,6 +57,10 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 //	tape_player_.run_for_cycles(cycle.length + wait_cycles);
 
+	if(!cycle.is_terminal()) {
+		return wait_cycles;
+	}
+
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	bool is_opcode_read = false;
@@ -91,15 +95,21 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			horizontal_counter_ = 0;
 		break;
 
+		case CPU::Z80::PartialMachineCycle::Refresh:
+			if(!(address & 0x40)) {
+				set_interrupt_line(true, -2);
+				set_interrupt_line(false);
+			}
+		break;
+
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
+//			printf("%04x ", address);
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
 			// of the IRQ line if necessary.
-			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
-			set_interrupt_line(!(refresh & 0x40), -2);
-			set_interrupt_line(false);
+//			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
 
 			// Check for use of the fast tape hack.
 			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
