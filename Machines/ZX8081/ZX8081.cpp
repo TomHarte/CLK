@@ -41,7 +41,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			}
 		}
 		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_);
-	} else if(previous_counter <= vsync_end_cycle_ && horizontal_counter_ > vsync_end_cycle_) {
+	} else if(previous_counter < vsync_end_cycle_ && horizontal_counter_ >= vsync_end_cycle_) {
 		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
 		set_hsync(false);
 		if(nmi_is_enabled_) {
@@ -54,8 +54,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	}
 
 	if(is_zx81_) horizontal_counter_ %= 207;
-
-//	tape_player_.run_for_cycles(cycle.length + wait_cycles);
+//	tape_player_.run_for_cycles(cycle.length);
 
 	if(!cycle.is_terminal()) {
 		return 0;
@@ -188,8 +187,6 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
-		vsync_start_cycle_ = 13;
-		vsync_end_cycle_ = 33;
 		vsync_start_cycle_ = 16;
 		vsync_end_cycle_ = 32;
 	} else {
