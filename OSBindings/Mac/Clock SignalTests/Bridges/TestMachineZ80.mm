@@ -11,7 +11,10 @@
 #import "TestMachine+ForSubclassEyesOnly.h"
 
 @interface CSTestMachineZ80 ()
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)time_stamp;
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation
+	address:(uint16_t)address
+	value:(uint8_t)value
+	timeStamp:(int)time_stamp;
 @end
 
 #pragma mark - C++ delegate handlers
@@ -20,7 +23,7 @@ class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegat
 	public:
 		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::BusOperation operation, uint16_t address, uint8_t value, int time_stamp) {
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) {
 			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
@@ -79,10 +82,12 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (NSString *)description {
 	NSString *opName = @"";
 	switch(self.operation) {
-		case CSTestMachineZ80BusOperationCaptureOperationRead:		opName = @"r";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationWrite:		opName = @"w";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationPortRead:	opName = @"i";	break;
-		case CSTestMachineZ80BusOperationCaptureOperationPortWrite:	opName = @"o";	break;
+		case CSTestMachineZ80BusOperationCaptureOperationReadOpcode:		opName = @"ro";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationRead:				opName = @"r";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationWrite:				opName = @"w";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortRead:			opName = @"i";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationPortWrite:			opName = @"o";		break;
+		case CSTestMachineZ80BusOperationCaptureOperationInternalOperation:	opName = @"iop";	break;
 	}
 	return [NSString stringWithFormat:@"%@ %04x %02x [%d]", opName, self.address, self.value, self.timeStamp];
 }
@@ -96,7 +101,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	BusOperationHandler *_busOperationHandler;
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
-	BOOL _isAtReadOpcode;
 	int _timeSeekingReadOpcode;
 	int _lastOpcodeTime;
 }
@@ -150,7 +154,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (int)completedCycles {
-	return _processor->get_length_of_completed_machine_cycles();
+	return _processor->get_timestamp();
 }
 
 - (void)setNmiLine:(BOOL)nmiLine {
@@ -167,17 +171,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor;
 }
 
-#pragma mark - Z80-specific Runner
-
-- (void)runToNextInstruction {
-	_isAtReadOpcode = NO;
-	_timeSeekingReadOpcode = 0;
-	while(!_isAtReadOpcode) {
-		_timeSeekingReadOpcode++;
-		_processor->run_for_cycles(1);
-	}
-}
-
 #pragma mark - Bus operation accumulation
 
 - (void)setCaptureBusActivity:(BOOL)captureBusActivity {
@@ -185,34 +178,38 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_processor->set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
 }
 
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::BusOperation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
 	int length = timeStamp - _lastOpcodeTime;
 	_lastOpcodeTime = timeStamp;
-	if(operation == CPU::Z80::BusOperation::ReadOpcode && length < _timeSeekingReadOpcode)
-		_isAtReadOpcode = YES;
 
 	if(self.captureBusActivity) {
 		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
 		switch(operation) {
-			case CPU::Z80::BusOperation::Write:
+			case CPU::Z80::PartialMachineCycle::Write:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationWrite;
 			break;
 
-			case CPU::Z80::BusOperation::Read:
-			case CPU::Z80::BusOperation::ReadOpcode:
+			case CPU::Z80::PartialMachineCycle::Read:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
 			break;
 
-			case CPU::Z80::BusOperation::Input:
+			case CPU::Z80::PartialMachineCycle::Refresh:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationReadOpcode;
+			break;
+
+			case CPU::Z80::PartialMachineCycle::Input:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortRead;
 			break;
 
-			case CPU::Z80::BusOperation::Output:
+			case CPU::Z80::PartialMachineCycle::Output:
 				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
 			break;
 
-			default:
-				return;
+			case CPU::Z80::PartialMachineCycle::Internal:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationInternalOperation;
+			break;
+
+			default: return;
 		}
 		capture.address = address;
 		capture.value = value;

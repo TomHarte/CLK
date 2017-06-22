@@ -27,7 +27,7 @@ Machine::Machine() :
 	clear_all_keys();
 }
 
-int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
+int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	int wait_cycles = 0;
 
 	int previous_counter = horizontal_counter_;
@@ -57,10 +57,14 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 
 //	tape_player_.run_for_cycles(cycle.length + wait_cycles);
 
-	uint16_t refresh = 0;
+	if(!cycle.is_terminal()) {
+		return wait_cycles;
+	}
+
 	uint16_t address = cycle.address ? *cycle.address : 0;
+	bool is_opcode_read = false;
 	switch(cycle.operation) {
-		case CPU::Z80::BusOperation::Output:
+		case CPU::Z80::PartialMachineCycle::Output:
 			set_vsync(false);
 			line_counter_ = 0;
 
@@ -68,7 +72,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
 		break;
 
-		case CPU::Z80::BusOperation::Input: {
+		case CPU::Z80::PartialMachineCycle::Input: {
 			uint8_t value = 0xff;
 			if(!(address&1)) {
 				set_vsync(true);
@@ -84,21 +88,35 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			*cycle.value = value;
 		} break;
 
-		case CPU::Z80::BusOperation::Interrupt:
+		case CPU::Z80::PartialMachineCycle::Interrupt:
 			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
 			horizontal_counter_ = 0;
 		break;
 
-		case CPU::Z80::BusOperation::ReadOpcode:
+		case CPU::Z80::PartialMachineCycle::Refresh:
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
 			// of the IRQ line if necessary.
-			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
-			set_interrupt_line(!(refresh & 0x40), -2);
-			set_interrupt_line(false);
+			if(!(address & 0x40)) {
+				set_interrupt_line(true, -2);
+				set_interrupt_line(false);
+			}
+			if(latched_video_byte_) {
+				size_t char_address = (size_t)((address & 0xff00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+				if(char_address < ram_base_) {
+					uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
+					latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
+				}
 
+				video_->output_byte(latched_video_byte_);
+				latched_video_byte_ = 0;
+			}
+		break;
+
+		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// Check for use of the fast tape hack.
 			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
@@ -110,8 +128,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					return 0;
 				}
 			}
+			is_opcode_read = true;
 
-		case CPU::Z80::BusOperation::Read:
+		case CPU::Z80::PartialMachineCycle::Read:
 			if(address < ram_base_) {
 				*cycle.value = rom_[address & rom_mask_];
 			} else {
@@ -120,20 +139,14 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				// If this is an M1 cycle reading from above the 32kb mark and HALT is not
 				// currently active, perform a video output and return a NOP. Otherwise,
 				// just return the value as read.
-				if(cycle.operation == CPU::Z80::BusOperation::ReadOpcode && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
-					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
-					if(char_address < ram_base_) {
-						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
-						value = rom_[char_address & rom_mask_] ^ mask;
-					}
-
-					video_->output_byte(value);
+				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
+					latched_video_byte_ = value;
 					*cycle.value = 0;
 				} else *cycle.value = value;
 			}
 		break;
 
-		case CPU::Z80::BusOperation::Write:
+		case CPU::Z80::PartialMachineCycle::Write:
 			if(address >= ram_base_) {
 				ram_[address & ram_mask_] = *cycle.value;
 			}

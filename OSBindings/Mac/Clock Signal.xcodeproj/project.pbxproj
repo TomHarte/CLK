@@ -411,6 +411,7 @@
 		4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
 		4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD69F921D98760000243FE1 /* AcornADF.cpp */; };
+		4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */; };
 		4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
 		4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE7C9161E3D397100A5496D /* TIA.cpp */; };
 		4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BE9A6B01EDE293000CBCB47 /* zexdoc.com */; };
@@ -969,6 +970,7 @@
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
 		4BD69F921D98760000243FE1 /* AcornADF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AcornADF.cpp; sourceTree = "<group>"; };
 		4BD69F931D98760000243FE1 /* AcornADF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AcornADF.hpp; sourceTree = "<group>"; };
+		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
 		4BE77A2C1D84ADFB00BC3827 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = File.cpp; path = ../../StaticAnalyser/Commodore/File.cpp; sourceTree = "<group>"; };
 		4BE77A2D1D84ADFB00BC3827 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Commodore/File.hpp; sourceTree = "<group>"; };
 		4BE7C9161E3D397100A5496D /* TIA.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TIA.cpp; sourceTree = "<group>"; };
@@ -1856,6 +1858,7 @@
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */,
+				4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */,
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
@@ -2666,6 +2669,7 @@
 				4B14145E1B5887AA00E04248 /* 6502AllRAM.cpp in Sources */,
 				4B14145D1B5887A600E04248 /* 6502.cpp in Sources */,
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
+				4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,

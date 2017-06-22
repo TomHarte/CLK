@@ -45,7 +45,7 @@ class Machine:
 	public:
 		Machine();
 
-		int perform_machine_cycle(const CPU::Z80::MachineCycle &cycle);
+		int perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
 		void flush();
 
 		void setup_output(float aspect_ratio);
@@ -89,6 +89,7 @@ class Machine:
 		bool is_zx81_;
 		bool nmi_is_enabled_;
 		int vsync_start_cycle_, vsync_end_cycle_;
+		uint8_t latched_video_byte_;
 };
 
 }
