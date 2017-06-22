@@ -61,7 +61,6 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		return wait_cycles;
 	}
 
-	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	bool is_opcode_read = false;
 	switch(cycle.operation) {
@@ -96,21 +95,28 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Refresh:
+			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
+			// address is low. The Z80 signals a refresh, providing the refresh address during the
+			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
+			// of the IRQ line if necessary.
 			if(!(address & 0x40)) {
 				set_interrupt_line(true, -2);
 				set_interrupt_line(false);
+			}
+			if(latched_video_byte_) {
+				size_t char_address = (size_t)((address & 0xff00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+				if(char_address < ram_base_) {
+					uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
+					latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
+				}
+
+				video_->output_byte(latched_video_byte_);
+				latched_video_byte_ = 0;
 			}
 		break;
 
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
-//			printf("%04x ", address);
-			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
-			// address is low. The Z80 signals a refresh, providing the refresh address during the
-			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
-			// of the IRQ line if necessary.
-//			refresh = get_value_of_register(CPU::Z80::Register::Refresh);
-
 			// Check for use of the fast tape hack.
 			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
@@ -134,13 +140,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				// currently active, perform a video output and return a NOP. Otherwise,
 				// just return the value as read.
 				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
-					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
-					if(char_address < ram_base_) {
-						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;
-						value = rom_[char_address & rom_mask_] ^ mask;
-					}
-
-					video_->output_byte(value);
+					latched_video_byte_ = value;
 					*cycle.value = 0;
 				} else *cycle.value = value;
 			}
