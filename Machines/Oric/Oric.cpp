@@ -187,7 +187,7 @@ void Machine::set_output_device(Outputs::CRT::OutputDevice output_device) {
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) {
 	// set CB1
-	via_.set_control_line_input(VIA::Port::B, VIA::Line::One, tape_player->get_input());
+	via_.set_control_line_input(VIA::Port::B, VIA::Line::One, !tape_player->get_input());
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {

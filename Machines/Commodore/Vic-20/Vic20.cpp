@@ -307,7 +307,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
-	keyboard_via_->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, tape->get_input());
+	keyboard_via_->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, !tape->get_input());
 }
 
 #pragma mark - Disc
