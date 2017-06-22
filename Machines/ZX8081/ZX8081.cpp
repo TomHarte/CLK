@@ -59,6 +59,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 
 	uint16_t refresh = 0;
 	uint16_t address = cycle.address ? *cycle.address : 0;
+	bool is_opcode_read = false;
 	switch(cycle.operation) {
 		case CPU::Z80::MachineCycle::Operation::Output:
 			set_vsync(false);
@@ -90,7 +91,8 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			horizontal_counter_ = 0;
 		break;
 
-		case CPU::Z80::MachineCycle::Operation::ReadOpcode:
+		case CPU::Z80::MachineCycle::Operation::ReadOpcodeStart:
+		case CPU::Z80::MachineCycle::Operation::ReadOpcodeWait:
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
@@ -110,6 +112,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 					return 0;
 				}
 			}
+			is_opcode_read = true;
 
 		case CPU::Z80::MachineCycle::Operation::Read:
 			if(address < ram_base_) {
@@ -120,7 +123,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 				// If this is an M1 cycle reading from above the 32kb mark and HALT is not
 				// currently active, perform a video output and return a NOP. Otherwise,
 				// just return the value as read.
-				if(cycle.operation == CPU::Z80::MachineCycle::Operation::ReadOpcode && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
+				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					size_t char_address = (size_t)((refresh & 0xff00) | ((value & 0x3f) << 3) | line_counter_);
 					if(char_address < ram_base_) {
 						uint8_t mask = (value & 0x80) ? 0x00 : 0xff;

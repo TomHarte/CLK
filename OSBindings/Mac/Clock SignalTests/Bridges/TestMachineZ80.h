@@ -52,7 +52,6 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 - (uint8_t)valueAtAddress:(uint16_t)address;
 
 - (void)runForNumberOfCycles:(int)cycles;
-- (void)runToNextInstruction;
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg;

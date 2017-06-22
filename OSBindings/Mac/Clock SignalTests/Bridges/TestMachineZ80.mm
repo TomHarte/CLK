@@ -12,7 +12,6 @@
 
 @interface CSTestMachineZ80 ()
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::MachineCycle::Operation)operation
-	phase:(CPU::Z80::MachineCycle::Phase)phase
 	address:(uint16_t)address
 	value:(uint8_t)value
 	timeStamp:(int)time_stamp;
@@ -24,8 +23,8 @@ class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegat
 	public:
 		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::MachineCycle::Operation operation, CPU::Z80::MachineCycle::Phase phase, uint16_t address, uint8_t value, int time_stamp) {
-			[target_ testMachineDidPerformBusOperation:operation phase:phase address:address value:value timeStamp:time_stamp];
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::MachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) {
+			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
 	private:
@@ -102,7 +101,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	BusOperationHandler *_busOperationHandler;
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
-	BOOL _isAtReadOpcode;
 	int _timeSeekingReadOpcode;
 	int _lastOpcodeTime;
 }
@@ -173,17 +171,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor;
 }
 
-#pragma mark - Z80-specific Runner
-
-- (void)runToNextInstruction {
-	_isAtReadOpcode = NO;
-	_timeSeekingReadOpcode = 0;
-	while(!_isAtReadOpcode) {
-		_timeSeekingReadOpcode++;
-		_processor->run_for_cycles(1);
-	}
-}
-
 #pragma mark - Bus operation accumulation
 
 - (void)setCaptureBusActivity:(BOOL)captureBusActivity {
@@ -191,50 +178,44 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_processor->set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
 }
 
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::MachineCycle::Operation)operation phase:(CPU::Z80::MachineCycle::Phase)phase address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::MachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
 	int length = timeStamp - _lastOpcodeTime;
 	_lastOpcodeTime = timeStamp;
-	if(operation == CPU::Z80::MachineCycle::Operation::ReadOpcode && length < _timeSeekingReadOpcode)
-		_isAtReadOpcode = YES;
 
 	if(self.captureBusActivity) {
 		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
-		if(phase == CPU::Z80::MachineCycle::Phase::End) {
-			switch(operation) {
-				case CPU::Z80::MachineCycle::Operation::Write:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationWrite;
-				break;
+		switch(operation) {
+			case CPU::Z80::MachineCycle::Operation::Write:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationWrite;
+			break;
 
-				case CPU::Z80::MachineCycle::Operation::Read:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
-				break;
+			case CPU::Z80::MachineCycle::Operation::Read:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationRead;
+			break;
 
-				case CPU::Z80::MachineCycle::Operation::ReadOpcode:
-				case CPU::Z80::MachineCycle::Operation::Refresh:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationReadOpcode;
-				break;
+			case CPU::Z80::MachineCycle::Operation::Refresh:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationReadOpcode;
+			break;
 
-				case CPU::Z80::MachineCycle::Operation::Input:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortRead;
-				break;
+			case CPU::Z80::MachineCycle::Operation::Input:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortRead;
+			break;
 
-				case CPU::Z80::MachineCycle::Operation::Output:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
-				break;
+			case CPU::Z80::MachineCycle::Operation::Output:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationPortWrite;
+			break;
 
-				case CPU::Z80::MachineCycle::Operation::Internal:
-					capture.operation = CSTestMachineZ80BusOperationCaptureOperationInternalOperation;
-				break;
+			case CPU::Z80::MachineCycle::Operation::Internal:
+				capture.operation = CSTestMachineZ80BusOperationCaptureOperationInternalOperation;
+			break;
 
-				default:
-					return;
-			}
-			capture.address = address;
-			capture.value = value;
-			capture.timeStamp = timeStamp;
-
-			[_busOperationCaptures addObject:capture];
+			default: return;
 		}
+		capture.address = address;
+		capture.value = value;
+		capture.timeStamp = timeStamp;
+
+		[_busOperationCaptures addObject:capture];
 	}
 }
 

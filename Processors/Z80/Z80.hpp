@@ -64,47 +64,62 @@ enum Flag: uint8_t {
 */
 struct MachineCycle {
 	enum Operation {
-		ReadOpcode = 0,
-		Refresh,
-		Read, Write,
-		Input, Output,
+		ReadOpcodeStart = 0,
+		ReadOpcodeWait,
+		Read,
+		Write,
+		Input,
+		Output,
 		Interrupt,
+
+		Refresh,
+		Internal,
 		BusAcknowledge,
-		Internal
+
+		ReadStart,
+		ReadWait,
+		WriteStart,
+		WriteWait,
+		InputStart,
+		InputWait,
+		OutputStart,
+		OutputWait
 	} operation;
-	enum Phase {
-		Start,
-		Wait,
-		End
-	} phase;
 	int length;
 	uint16_t *address;
 	uint8_t *value;
 	bool was_requested;
+
+	inline bool expects_action() const {
+		return operation <= Operation::Interrupt;
+	}
+	inline bool is_terminal() const {
+		return operation <= Operation::BusAcknowledge;
+	}
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{MachineCycle::ReadOpcode, MachineCycle::Phase::Start, 2, &pc_.full, &operation_, false}
-#define ReadOpcodeWait(length, f)	{MachineCycle::ReadOpcode, MachineCycle::Phase::Wait, length, &pc_.full, &operation_, f}
-#define Refresh(len)				{MachineCycle::Refresh, MachineCycle::Phase::End, len, &ir_.full, nullptr, false}
+#define ReadOpcodeStart()			{MachineCycle::ReadOpcodeStart, 2, &pc_.full, &operation_, false}
+#define ReadOpcodeWait(length, f)	{MachineCycle::ReadOpcodeWait, length, &pc_.full, &operation_, f}
+#define Refresh(len)				{MachineCycle::Refresh, len, &ir_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{MachineCycle::Read, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
-#define ReadWait(l, addr, val, f)	{MachineCycle::Read, MachineCycle::Phase::Wait, l, &addr.full, &val, f}
-#define ReadEnd(addr, val)			{MachineCycle::Read, MachineCycle::Phase::End, 1, &addr.full, &val, false}
+#define ReadStart(addr, val)		{MachineCycle::ReadStart, 2, &addr.full, &val, false}
+#define ReadWait(l, addr, val, f)	{MachineCycle::ReadWait, l, &addr.full, &val, f}
+#define ReadEnd(addr, val)			{MachineCycle::Read, 1, &addr.full, &val, false}
 
-#define WriteStart(addr, val)		{MachineCycle::Write, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
-#define WriteWait(l, addr, val, f)	{MachineCycle::Write, MachineCycle::Phase::Wait, l, &addr.full, &val, f}
-#define WriteEnd(addr, val)			{MachineCycle::Write, MachineCycle::Phase::End, 1, &addr.full, &val, false}
+#define WriteStart(addr, val)		{MachineCycle::WriteStart, 2, &addr.full, &val, false}
+#define WriteWait(l, addr, val, f)	{MachineCycle::WriteWait, l, &addr.full, &val, f}
+#define WriteEnd(addr, val)			{MachineCycle::Write, 1, &addr.full, &val, false}
 
-#define InputStart(addr, val)		{MachineCycle::Input, MachineCycle::Phase::Start, 2, &addr.full, &val, false}
-#define InputWait(addr, val, f)		{MachineCycle::Input, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
-#define InputEnd(addr, val)			{MachineCycle::Input, MachineCycle::Phase::End, 1, &addr.full, &val, false}
+#define InputStart(addr, val)		{MachineCycle::InputStart, 2, &addr.full, &val, false}
+#define InputWait(addr, val, f)		{MachineCycle::InputWait, 1, &addr.full, &val, f}
+#define InputEnd(addr, val)			{MachineCycle::Input, 1, &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{MachineCycle::Output, MachineCycle::Phase::Start, 2, &addr.full, &val}
-#define OutputWait(addr, val, f)	{MachineCycle::Output, MachineCycle::Phase::Wait, 1, &addr.full, &val, f}
-#define OutputEnd(addr, val)		{MachineCycle::Output, MachineCycle::Phase::End, 1, &addr.full, &val}
+#define OutputStart(addr, val)		{MachineCycle::OutputStart, 2, &addr.full, &val}
+#define OutputWait(addr, val, f)	{MachineCycle::OutputWait, 1, &addr.full, &val, f}
+#define OutputEnd(addr, val)		{MachineCycle::Output, 1, &addr.full, &val}
 
-#define IntAck(length, val)			{MachineCycle::Operation::Interrupt, MachineCycle::Phase::End, length, nullptr, &val}
+#define IntAck(length, val)			{MachineCycle::Interrupt, length, nullptr, &val}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -119,7 +134,7 @@ struct MachineCycle {
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, MachineCycle::Phase::End, len}}
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, len}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -173,6 +188,7 @@ template <class T> class Processor {
 		uint8_t last_request_status_;
 		bool irq_line_;
 		bool bus_request_line_;
+		bool wait_line_;
 
 		uint8_t operation_;
 		RegisterPair temp16_, memptr_;
@@ -745,6 +761,7 @@ template <class T> class Processor {
 			halt_mask_(0xff),
 			number_of_cycles_(0),
 			interrupt_mode_(0),
+			wait_line_(false),
 			request_status_(Interrupt::PowerOn),
 			last_request_status_(Interrupt::PowerOn),
 			irq_line_(false),
@@ -855,7 +872,7 @@ template <class T> class Processor {
 			while(1) {
 
 				while(bus_request_line_) {
-					static MachineCycle bus_acknowledge_cycle = {MachineCycle::Operation::BusAcknowledge, MachineCycle::Phase::End, 1};
+					static MachineCycle bus_acknowledge_cycle = {MachineCycle::Operation::BusAcknowledge, 1};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
@@ -875,13 +892,17 @@ template <class T> class Processor {
 
 					switch(operation->type) {
 						case MicroOp::BusOperation:
-							if(operation->machine_cycle.was_requested) {	 // TODO: && !wait_line_
-								continue;
-							}
 							if(number_of_cycles_ < operation->machine_cycle.length) {
 								scheduled_program_counter_--;
 								static_cast<T *>(this)->flush();
 								return;
+							}
+							if(operation->machine_cycle.was_requested) {
+								if(wait_line_) {
+									scheduled_program_counter_--;
+								} else {
+									continue;
+								}
 							}
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
@@ -1890,6 +1911,13 @@ template <class T> class Processor {
 		inline void reset_power_on() {
 			request_status_ &= ~Interrupt::PowerOn;
 			last_request_status_ &= ~Interrupt::PowerOn;
+		}
+
+		/*!
+			Sets the logical value of the wait line.
+		*/
+		inline void set_wait_line(bool value) {
+			wait_line_ = value;
 		}
 
 		/*!

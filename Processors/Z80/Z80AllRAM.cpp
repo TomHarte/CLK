@@ -17,45 +17,47 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
 		inline int perform_machine_cycle(const MachineCycle &cycle) {
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-//			if(cycle.phase == MachineCycle::Phase::End) {
-				switch(cycle.operation) {
-					case MachineCycle::Operation::ReadOpcode:
-						check_address_for_trap(address);
-					case MachineCycle::Operation::Read:
-						*cycle.value = memory_[address];
-					break;
-					case MachineCycle::Operation::Write:
-						memory_[address] = *cycle.value;
-					break;
-
-					case MachineCycle::Operation::Output:
-					break;
-					case MachineCycle::Operation::Input:
-						// This logic is selected specifically because it seems to match
-						// the FUSE unit tests. It might need factoring out.
-						*cycle.value = address >> 8;
-					break;
-
-					case MachineCycle::Operation::Internal:
-					case MachineCycle::Operation::Refresh:
-					break;
-
-					case MachineCycle::Operation::Interrupt:
-						// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
-						// arbitrary.
-						*cycle.value = 0x21;
-					break;
-
-					default:
-						printf("???\n");
-					break;
-				}
-//			}
 			timestamp_ += cycle.length;
+			if(!cycle.is_terminal()) {
+				return 0;
+			}
+
+			uint16_t address = cycle.address ? *cycle.address : 0x0000;
+			switch(cycle.operation) {
+				case MachineCycle::Operation::ReadOpcodeStart:
+					check_address_for_trap(address);
+				case MachineCycle::Operation::Read:
+					*cycle.value = memory_[address];
+				break;
+				case MachineCycle::Operation::Write:
+					memory_[address] = *cycle.value;
+				break;
+
+				case MachineCycle::Operation::Output:
+				break;
+				case MachineCycle::Operation::Input:
+					// This logic is selected specifically because it seems to match
+					// the FUSE unit tests. It might need factoring out.
+					*cycle.value = address >> 8;
+				break;
+
+				case MachineCycle::Operation::Internal:
+				case MachineCycle::Operation::Refresh:
+				break;
+
+				case MachineCycle::Operation::Interrupt:
+					// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
+					// arbitrary.
+					*cycle.value = 0x21;
+				break;
+
+				default:
+					printf("???\n");
+				break;
+			}
 
 			if(delegate_ != nullptr) {
-				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, cycle.phase, address, cycle.value ? *cycle.value : 0x00, timestamp_);
+				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
 			}
 
 			return 0;
