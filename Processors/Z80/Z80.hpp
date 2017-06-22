@@ -62,7 +62,7 @@ enum Flag: uint8_t {
 	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
 	between a Z80 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
 */
-struct MachineCycle {
+struct PartialMachineCycle {
 	enum Operation {
 		ReadOpcodeStart = 0,
 		ReadOpcodeWait,
@@ -99,27 +99,27 @@ struct MachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{MachineCycle::ReadOpcodeStart, 2, &pc_.full, &operation_, false}
-#define ReadOpcodeWait(length, f)	{MachineCycle::ReadOpcodeWait, length, &pc_.full, &operation_, f}
-#define Refresh(len)				{MachineCycle::Refresh, len, &ir_.full, nullptr, false}
+#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, 2, &pc_.full, &operation_, false}
+#define ReadOpcodeWait(length, f)	{PartialMachineCycle::ReadOpcodeWait, length, &pc_.full, &operation_, f}
+#define Refresh(len)				{PartialMachineCycle::Refresh, len, &ir_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{MachineCycle::ReadStart, 2, &addr.full, &val, false}
-#define ReadWait(l, addr, val, f)	{MachineCycle::ReadWait, l, &addr.full, &val, f}
-#define ReadEnd(addr, val)			{MachineCycle::Read, 1, &addr.full, &val, false}
+#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, 2, &addr.full, &val, false}
+#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, l, &addr.full, &val, f}
+#define ReadEnd(addr, val)			{PartialMachineCycle::Read, 1, &addr.full, &val, false}
 
-#define WriteStart(addr, val)		{MachineCycle::WriteStart, 2, &addr.full, &val, false}
-#define WriteWait(l, addr, val, f)	{MachineCycle::WriteWait, l, &addr.full, &val, f}
-#define WriteEnd(addr, val)			{MachineCycle::Write, 1, &addr.full, &val, false}
+#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart, 2, &addr.full, &val, false}
+#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, l, &addr.full, &val, f}
+#define WriteEnd(addr, val)			{PartialMachineCycle::Write, 1, &addr.full, &val, false}
 
-#define InputStart(addr, val)		{MachineCycle::InputStart, 2, &addr.full, &val, false}
-#define InputWait(addr, val, f)		{MachineCycle::InputWait, 1, &addr.full, &val, f}
-#define InputEnd(addr, val)			{MachineCycle::Input, 1, &addr.full, &val, false}
+#define InputStart(addr, val)		{PartialMachineCycle::InputStart, 2, &addr.full, &val, false}
+#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, 1, &addr.full, &val, f}
+#define InputEnd(addr, val)			{PartialMachineCycle::Input, 1, &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{MachineCycle::OutputStart, 2, &addr.full, &val}
-#define OutputWait(addr, val, f)	{MachineCycle::OutputWait, 1, &addr.full, &val, f}
-#define OutputEnd(addr, val)		{MachineCycle::Output, 1, &addr.full, &val}
+#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, 2, &addr.full, &val}
+#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, 1, &addr.full, &val, f}
+#define OutputEnd(addr, val)		{PartialMachineCycle::Output, 1, &addr.full, &val}
 
-#define IntAck(length, val)			{MachineCycle::Interrupt, length, nullptr, &val}
+#define IntAck(length, val)			{PartialMachineCycle::Interrupt, length, nullptr, &val}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -134,7 +134,7 @@ struct MachineCycle {
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {MachineCycle::Internal, len}}
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, len}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -277,7 +277,7 @@ template <class T> class Processor {
 			Type type;
 			void *source;
 			void *destination;
-			MachineCycle machine_cycle;
+			PartialMachineCycle machine_cycle;
 		};
 		const MicroOp *scheduled_program_counter_;
 
@@ -838,7 +838,7 @@ template <class T> class Processor {
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 
-			@discussion Subclasses must implement @c perform_machine_cycle(const MachineCycle &cycle) .
+			@discussion Subclasses must implement @c perform_machine_cycle(const PartialMachineCycle &cycle) .
 
 			If it is a read operation then @c value will be seeded with the value 0xff.
 
@@ -872,7 +872,7 @@ template <class T> class Processor {
 			while(1) {
 
 				while(bus_request_line_) {
-					static MachineCycle bus_acknowledge_cycle = {MachineCycle::Operation::BusAcknowledge, 1};
+					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
@@ -1683,7 +1683,7 @@ template <class T> class Processor {
 		*/
 		void flush() {}
 
-		int perform_machine_cycle(const MachineCycle &cycle) {
+		int perform_machine_cycle(const PartialMachineCycle &cycle) {
 			return 0;
 		}
 
@@ -1936,7 +1936,7 @@ template <class T> class Processor {
 		/*!
 			Returns the bus cycle that the Z80 is currently in the process of performing.
 		*/
-//		const MachineCycle &get_current_bus_cycle(int &cycles_since_start) {
+//		const PartialMachineCycle &get_current_bus_cycle(int &cycles_since_start) {
 //		}
 };
 

@@ -16,7 +16,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 	public:
 		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
-		inline int perform_machine_cycle(const MachineCycle &cycle) {
+		inline int perform_machine_cycle(const PartialMachineCycle &cycle) {
 			timestamp_ += cycle.length;
 			if(!cycle.is_terminal()) {
 				return 0;
@@ -24,28 +24,28 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
-				case MachineCycle::Operation::ReadOpcodeStart:
+				case PartialMachineCycle::ReadOpcodeStart:
 					check_address_for_trap(address);
-				case MachineCycle::Operation::Read:
+				case PartialMachineCycle::Read:
 					*cycle.value = memory_[address];
 				break;
-				case MachineCycle::Operation::Write:
+				case PartialMachineCycle::Write:
 					memory_[address] = *cycle.value;
 				break;
 
-				case MachineCycle::Operation::Output:
+				case PartialMachineCycle::Output:
 				break;
-				case MachineCycle::Operation::Input:
+				case PartialMachineCycle::Input:
 					// This logic is selected specifically because it seems to match
 					// the FUSE unit tests. It might need factoring out.
 					*cycle.value = address >> 8;
 				break;
 
-				case MachineCycle::Operation::Internal:
-				case MachineCycle::Operation::Refresh:
+				case PartialMachineCycle::Internal:
+				case PartialMachineCycle::Refresh:
 				break;
 
-				case MachineCycle::Operation::Interrupt:
+				case PartialMachineCycle::Interrupt:
 					// A pick that means LD HL, (nn) if interpreted as an instruction but is otherwise
 					// arbitrary.
 					*cycle.value = 0x21;

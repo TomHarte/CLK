@@ -27,7 +27,7 @@ Machine::Machine() :
 	clear_all_keys();
 }
 
-int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
+int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	int wait_cycles = 0;
 
 	int previous_counter = horizontal_counter_;
@@ -61,7 +61,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 	uint16_t address = cycle.address ? *cycle.address : 0;
 	bool is_opcode_read = false;
 	switch(cycle.operation) {
-		case CPU::Z80::MachineCycle::Operation::Output:
+		case CPU::Z80::PartialMachineCycle::Output:
 			set_vsync(false);
 			line_counter_ = 0;
 
@@ -69,7 +69,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
 		break;
 
-		case CPU::Z80::MachineCycle::Operation::Input: {
+		case CPU::Z80::PartialMachineCycle::Input: {
 			uint8_t value = 0xff;
 			if(!(address&1)) {
 				set_vsync(true);
@@ -85,14 +85,14 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			*cycle.value = value;
 		} break;
 
-		case CPU::Z80::MachineCycle::Operation::Interrupt:
+		case CPU::Z80::PartialMachineCycle::Interrupt:
 			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
 			horizontal_counter_ = 0;
 		break;
 
-		case CPU::Z80::MachineCycle::Operation::ReadOpcodeStart:
-		case CPU::Z80::MachineCycle::Operation::ReadOpcodeWait:
+		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// The ZX80 and 81 signal an interrupt while refresh is active and bit 6 of the refresh
 			// address is low. The Z80 signals a refresh, providing the refresh address during the
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
@@ -114,7 +114,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			}
 			is_opcode_read = true;
 
-		case CPU::Z80::MachineCycle::Operation::Read:
+		case CPU::Z80::PartialMachineCycle::Read:
 			if(address < ram_base_) {
 				*cycle.value = rom_[address & rom_mask_];
 			} else {
@@ -136,7 +136,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::MachineCycle &cycle) {
 			}
 		break;
 
-		case CPU::Z80::MachineCycle::Operation::Write:
+		case CPU::Z80::PartialMachineCycle::Write:
 			if(address >= ram_base_) {
 				ram_[address & ram_mask_] = *cycle.value;
 			}
