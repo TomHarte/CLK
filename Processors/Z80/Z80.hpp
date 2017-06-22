@@ -101,7 +101,7 @@ struct PartialMachineCycle {
 // Elemental bus operations
 #define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, 2, &pc_.full, &operation_, false}
 #define ReadOpcodeWait(length, f)	{PartialMachineCycle::ReadOpcodeWait, length, &pc_.full, &operation_, f}
-#define Refresh(len)				{PartialMachineCycle::Refresh, len, &ir_.full, nullptr, false}
+#define Refresh(len)				{PartialMachineCycle::Refresh, len, &refresh_addr_.full, nullptr, false}
 
 #define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, 2, &addr.full, &val, false}
 #define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, l, &addr.full, &val, f}
@@ -163,7 +163,7 @@ template <class T> class Processor {
 		RegisterPair bc_, de_, hl_;
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
 		RegisterPair ix_, iy_, pc_, sp_;
-		RegisterPair ir_;
+		RegisterPair ir_, refresh_addr_;
 		bool iff1_, iff2_;
 		int interrupt_mode_;
 		uint16_t pc_increment_;
@@ -912,9 +912,14 @@ template <class T> class Processor {
 							advance_operation();
 						break;
 						case MicroOp::DecodeOperation:
+							refresh_addr_ = ir_;
 							ir_.bytes.low = (ir_.bytes.low & 0x80) | ((ir_.bytes.low + current_instruction_page_->r_step) & 0x7f);
 							pc_.full += pc_increment_ & (uint16_t)halt_mask_;
+							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
+						break;
 						case MicroOp::DecodeOperationNoRChange:
+							refresh_addr_ = ir_;
+							pc_.full += pc_increment_ & (uint16_t)halt_mask_;
 							scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 						break;
 
