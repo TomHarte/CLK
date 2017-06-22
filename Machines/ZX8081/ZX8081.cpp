@@ -28,8 +28,6 @@ Machine::Machine() :
 }
 
 int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-	int wait_cycles = 0;
-
 	int previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
 
@@ -39,26 +37,27 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
 			if(!get_halt_line()) {
-				wait_cycles = vsync_end_cycle_ - horizontal_counter_;
+				set_wait_line(true);
 			}
 		}
-		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_ + wait_cycles);
-	} else if(previous_counter <= vsync_end_cycle_ && horizontal_counter_ > vsync_end_cycle_) {
+		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_);
+	} else if(previous_counter < vsync_end_cycle_ && horizontal_counter_ >= vsync_end_cycle_) {
 		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
 		set_hsync(false);
-		if(nmi_is_enabled_) set_non_maskable_interrupt_line(false);
+		if(nmi_is_enabled_) {
+			set_non_maskable_interrupt_line(false);
+			set_wait_line(false);
+		}
 		video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle_);
 	} else {
 		video_->run_for_cycles(cycle.length);
 	}
 
-	horizontal_counter_ += wait_cycles;
 	if(is_zx81_) horizontal_counter_ %= 207;
-
-//	tape_player_.run_for_cycles(cycle.length + wait_cycles);
+//	tape_player_.run_for_cycles(cycle.length);
 
 	if(!cycle.is_terminal()) {
-		return wait_cycles;
+		return 0;
 	}
 
 	uint16_t address = cycle.address ? *cycle.address : 0;
@@ -155,7 +154,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		default: break;
 	}
 
-	return wait_cycles;
+	return 0;
 }
 
 void Machine::flush() {
@@ -188,8 +187,6 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
-		vsync_start_cycle_ = 13;
-		vsync_end_cycle_ = 33;
 		vsync_start_cycle_ = 16;
 		vsync_end_cycle_ = 32;
 	} else {
