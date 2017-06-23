@@ -7,11 +7,12 @@ So its aims are:
 * that aims for the lowest possible latency; and
 * 100% accurate emulations, naturally.
 
-In terms of platforms, it currently contains emulations of the:
+It currently contains emulations of the:
 * Acorn Electron;
 * Atari 2600;
-* Oric 1/Atmos; and
-* Commodore Vic-20 (and Commodore 1540/1).
+* Oric 1/Atmos;
+* Commodore Vic-20 (and Commodore 1540/1); and
+* Sinclair ZX80/81.
 
 ## Single-click Loading
 
