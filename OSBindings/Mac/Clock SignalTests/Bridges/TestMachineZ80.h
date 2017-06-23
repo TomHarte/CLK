@@ -64,5 +64,6 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 
 @property(nonatomic) BOOL nmiLine;
 @property(nonatomic) BOOL irqLine;
+@property(nonatomic) BOOL waitLine;
 
 @end

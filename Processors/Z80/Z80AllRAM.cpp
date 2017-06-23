@@ -90,6 +90,10 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		void set_non_maskable_interrupt_line(bool value) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_non_maskable_interrupt_line(value);
 		}
+
+		void set_wait_line(bool value) {
+			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_wait_line(value);
+		}
 };
 
 }

@@ -10,6 +10,15 @@ import XCTest
 
 class Z80InterruptTests: XCTestCase {
 
+	private func assertNMI(machine: CSTestMachineZ80) {
+		// confirm that the PC is now at 0x66, that the old is on the stack and
+		// that IFF1 has migrated to IFF2
+		XCTAssertEqual(machine.value(for: .programCounter), 0x66)
+		XCTAssertEqual(machine.value(atAddress: 0xffff), 0x01)
+		XCTAssertEqual(machine.value(atAddress: 0xfffe), 0x02)
+		XCTAssertEqual(machine.value(for: .IFF2), 0)
+	}
+
 	func testNMI() {
 		let machine = CSTestMachineZ80()
 
@@ -34,12 +43,45 @@ class Z80InterruptTests: XCTestCase {
 		// run for eleven more cycles to allow the NMI to begin
 		machine.runForNumber(ofCycles: 11)
 
-		// confirm that the PC is now at 0x66, that the old is on the stack and
-		// that IFF1 has migrated to IFF2
-		XCTAssertEqual(machine.value(for: .programCounter), 0x66)
-		XCTAssertEqual(machine.value(atAddress: 0xffff), 0x01)
-		XCTAssertEqual(machine.value(atAddress: 0xfffe), 0x02)
-		XCTAssertEqual(machine.value(for: .IFF2), 0)
+		assertNMI(machine: machine)
+	}
+
+	func testHaltNMIWait() {
+		let machine = CSTestMachineZ80()
+
+		// start the PC at 0x0100 and install a NOP and a HALT for it
+		machine.setValue(0x0100, for: .programCounter)
+		machine.setValue(0, for: .IFF1)
+		machine.setValue(1, for: .IFF2)
+		machine.setValue(0x00, atAddress: 0x0100)
+		machine.setValue(0x76, atAddress: 0x0101)
+
+		// put the stack at the top of memory
+		machine.setValue(0, for: .stackPointer)
+
+		// run for ten cycles, check that the processor is halted and assert an NMI
+		machine.runForNumber(ofCycles: 10)
+		XCTAssert(machine.isHalted, "Machine should be halted")
+		machine.nmiLine = true
+
+		// check that the machine ceases believing itsef to be halted after two cycles
+		machine.runForNumber(ofCycles: 1)
+		XCTAssert(machine.isHalted, "Machine should still be halted")
+		machine.runForNumber(ofCycles: 1)
+		XCTAssert(!machine.isHalted, "Machine should no longer be halted")
+
+		// assert wait
+		machine.waitLine = true
+
+		// run for twenty cycles, an arbitrary big number
+		machine.runForNumber(ofCycles: 20)
+
+		// release wait
+		machine.waitLine = false
+
+		// NMI should have run for two cycles, then waited, so now there should be nine cycles left
+		machine.runForNumber(ofCycles: 9)
+		assertNMI(machine: machine)
 	}
 
 	func testIRQDisabled() {
