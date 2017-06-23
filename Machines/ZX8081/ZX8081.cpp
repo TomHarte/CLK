@@ -109,9 +109,11 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			}
 			if(latched_video_byte_) {
 				size_t char_address = (size_t)((address & 0xff00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+				uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 				if(char_address < ram_base_) {
-					uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 					latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
+				} else {
+					latched_video_byte_ = ram_[address & ram_mask_] ^ mask;
 				}
 
 				video_->output_byte(latched_video_byte_);
