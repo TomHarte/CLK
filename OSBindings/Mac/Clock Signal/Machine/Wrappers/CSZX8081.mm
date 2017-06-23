@@ -101,4 +101,13 @@
 
 - (NSString *)userDefaultsPrefix {	return @"zx8081";	}
 
+#pragma mark - Options
+
+- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	@synchronized(self) {
+		_useFastLoadingHack = useFastLoadingHack;
+		_zx8081.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+	}
+}
+
 @end
