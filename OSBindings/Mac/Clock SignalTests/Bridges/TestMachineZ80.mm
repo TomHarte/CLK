@@ -167,6 +167,11 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_processor->set_interrupt_line(irqLine ? true : false);
 }
 
+- (void)setWaitLine:(BOOL)waitLine {
+	_waitLine = waitLine;
+	_processor->set_wait_line(waitLine ? true : false);
+}
+
 - (CPU::AllRAMProcessor *)processor {
 	return _processor;
 }

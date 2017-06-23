@@ -803,12 +803,15 @@ template <class T> class Processor {
 			assemble_fetch_decode_execute(ddcb_page_, 3);
 
 			MicroOp reset_program[] = Sequence(InternalOperation(3), {MicroOp::Reset});
+
+			// Justification for NMI timing: per Wilf Rigter on the ZX81 (http://www.user.dccnet.com/wrigter/index_files/ZX81WAIT.htm),
+			// wait cycles occur between T2 and T3 during NMI; extending the refresh cycle is also consistent with my guess
+			// for the action of other non-four-cycle opcode fetches
 			MicroOp nmi_program[] = {
 				{ MicroOp::BeginNMI },
 				BusOp(ReadOpcodeStart()),
-				BusOp(ReadOpcodeWait(1, false)),
 				BusOp(ReadOpcodeWait(1, true)),
-				BusOp(Refresh(2)),
+				BusOp(Refresh(3)),
 				Push(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
 				{ MicroOp::MoveToNextProgram }
