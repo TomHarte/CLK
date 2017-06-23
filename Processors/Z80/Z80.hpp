@@ -1955,25 +1955,6 @@ template <class T> class Processor {
 		bool get_wait_line() {
 			return wait_line_;
 		}
-
-		/*!
-			For receivers of perform_machine_cycle only. Temporarily rejects the current machine
-			cycle, causing time to be rewinded to its beginning.
-
-			Behaviour will be to cause the Z80 to repeat this machine cycle, having adjusted total
-			running time appropriately. This method is intended for use if a subclass receives
-			perform_machine_cycle, indicating that the cycle should be completed, and discovers
-			that it should have signalled IRQ, NMI or BUSREQ during the cycle. In that case it
-			can rewind time and post the signal with a proper time offset.
-		*/
-//		void reject_machine_cycle() {
-//		}
-
-		/*!
-			Returns the bus cycle that the Z80 is currently in the process of performing.
-		*/
-//		const PartialMachineCycle &get_current_bus_cycle(int &cycles_since_start) {
-//		}
 };
 
 }
