@@ -36,9 +36,6 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		set_hsync(true);
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
-			if(!get_halt_line()) {
-				set_wait_line(true);
-			}
 		}
 		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_);
 	} else if(previous_counter < vsync_end_cycle_ && horizontal_counter_ >= vsync_end_cycle_) {
@@ -55,6 +52,10 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 	if(is_zx81_) horizontal_counter_ %= 207;
 	tape_player_.run_for_cycles(cycle.length);
+
+	if(nmi_is_enabled_ && !get_halt_line() && get_non_maskable_interrupt_line()) {
+		set_wait_line(true);
+	}
 
 	if(!cycle.is_terminal()) {
 		return 0;
