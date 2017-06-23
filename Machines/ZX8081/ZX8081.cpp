@@ -35,6 +35,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	if(previous_counter < vsync_start_cycle_ && horizontal_counter_ >= vsync_start_cycle_) {
 		video_->run_for_cycles(vsync_start_cycle_ - previous_counter);
 		set_hsync(true);
+		line_counter_ = (line_counter_ + 1) & 7;
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
 		}
@@ -66,17 +67,20 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	bool is_opcode_read = false;
 	switch(cycle.operation) {
 		case CPU::Z80::PartialMachineCycle::Output:
-			set_vsync(false);
-			line_counter_ = 0;
-
 			if(!(address & 2)) nmi_is_enabled_ = false;
 			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
+			if((address&3) == 3) {
+				if(!nmi_is_enabled_) {
+					set_vsync(false);
+					line_counter_ = 0;
+				}
+			}
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Input: {
 			uint8_t value = 0xff;
 			if(!(address&1)) {
-				set_vsync(true);
+				if(!nmi_is_enabled_) set_vsync(true);
 
 				uint16_t mask = 0x100;
 				for(int c = 0; c < 8; c++) {
@@ -90,7 +94,6 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		} break;
 
 		case CPU::Z80::PartialMachineCycle::Interrupt:
-			line_counter_ = (line_counter_ + 1) & 7;
 			*cycle.value = 0xff;
 			horizontal_counter_ = 0;
 		break;
