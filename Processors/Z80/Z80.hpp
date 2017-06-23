@@ -76,14 +76,16 @@ struct PartialMachineCycle {
 		Internal,
 		BusAcknowledge,
 
-		ReadStart,
 		ReadWait,
-		WriteStart,
 		WriteWait,
-		InputStart,
 		InputWait,
+		OutputWait,
+		InterruptWait,
+
+		ReadStart,
+		WriteStart,
+		InputStart,
 		OutputStart,
-		OutputWait
 	} operation;
 	int length;
 	uint16_t *address;
@@ -95,6 +97,9 @@ struct PartialMachineCycle {
 	}
 	inline bool is_terminal() const {
 		return operation <= Operation::BusAcknowledge;
+	}
+	inline bool is_wait() const {
+		return operation >= Operation::ReadWait && operation <= Operation::InterruptWait;
 	}
 };
 
@@ -115,11 +120,12 @@ struct PartialMachineCycle {
 #define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, 1, &addr.full, &val, f}
 #define InputEnd(addr, val)			{PartialMachineCycle::Input, 1, &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, 2, &addr.full, &val}
+#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, 2, &addr.full, &val, false}
 #define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, 1, &addr.full, &val, f}
-#define OutputEnd(addr, val)		{PartialMachineCycle::Output, 1, &addr.full, &val}
+#define OutputEnd(addr, val)		{PartialMachineCycle::Output, 1, &addr.full, &val, false}
 
-#define IntAck(length, val)			{PartialMachineCycle::Interrupt, length, nullptr, &val}
+#define IntAck(length, val)			{PartialMachineCycle::Interrupt, length, nullptr, &val, false}
+#define IntWait(val)				{PartialMachineCycle::InterruptWait, 1, nullptr, &val, true}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -134,7 +140,7 @@ struct PartialMachineCycle {
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, len}}
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, len, nullptr, nullptr, false}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -800,6 +806,7 @@ template <class T> class Processor {
 				{ MicroOp::BeginNMI },
 				BusOp(ReadOpcodeStart()),
 				BusOp(ReadOpcodeWait(1, false)),
+				BusOp(ReadOpcodeWait(1, true)),
 				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
@@ -808,11 +815,13 @@ template <class T> class Processor {
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
 				BusOp(IntAck(4, operation_)),
+				BusOp(IntWait(operation_)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
 				BusOp(IntAck(5, operation_)),
+				BusOp(IntWait(operation_)),
 				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
@@ -821,6 +830,7 @@ template <class T> class Processor {
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
 				BusOp(IntAck(5, temp16_.bytes.low)),
+				BusOp(IntWait(temp16_.bytes.low)),
 				BusOp(Refresh(2)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
@@ -872,7 +882,7 @@ template <class T> class Processor {
 			while(1) {
 
 				while(bus_request_line_) {
-					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1};
+					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1, nullptr, nullptr, false};
 					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
