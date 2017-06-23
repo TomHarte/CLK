@@ -86,9 +86,9 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 }
 
 std::shared_ptr<File> Storage::Data::ZX8081::FileFromData(const std::vector<uint8_t> &data) {
-	std::shared_ptr<Storage::Data::ZX8081::File> result = ZX80FileFromData(data);
+	std::shared_ptr<Storage::Data::ZX8081::File> result = ZX81FileFromData(data);
 	if(result) return result;
-	return ZX81FileFromData(data);
+	return ZX80FileFromData(data);
 }
 
 #pragma mark - String conversion
