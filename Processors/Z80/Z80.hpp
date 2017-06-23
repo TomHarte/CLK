@@ -192,7 +192,7 @@ template <class T> class Processor {
 		};
 		uint8_t request_status_;
 		uint8_t last_request_status_;
-		bool irq_line_;
+		bool irq_line_, nmi_line_;
 		bool bus_request_line_;
 		bool wait_line_;
 
@@ -771,6 +771,7 @@ template <class T> class Processor {
 			request_status_(Interrupt::PowerOn),
 			last_request_status_(Interrupt::PowerOn),
 			irq_line_(false),
+			nmi_line_(false),
 			bus_request_line_(false),
 			pc_increment_(1),
 			scheduled_program_counter_(nullptr) {
@@ -1888,6 +1889,10 @@ template <class T> class Processor {
 			}
 		}
 
+		bool get_interrupt_line() {
+			return irq_line_;
+		}
+
 		/*!
 			Sets the logical value of the non-maskable interrupt line.
 			
@@ -1895,6 +1900,7 @@ template <class T> class Processor {
 		*/
 		void set_non_maskable_interrupt_line(bool value, int offset = 0) {
 			// NMIs are edge triggered and cannot be masked.
+			nmi_line_ = value;
 			if(value) {
 				request_status_ |= Interrupt::NMI;
 				if(offset < 0) {
@@ -1903,11 +1909,19 @@ template <class T> class Processor {
 			}
 		}
 
+		bool get_non_maskable_interrupt_line() {
+			return nmi_line_;
+		}
+
 		/*!
 			Sets the logical value of the bus request line.
 		*/
 		void set_bus_request_line(bool value) {
 			bus_request_line_ = value;
+		}
+
+		bool get_bus_request_line() {
+			return bus_request_line_;
 		}
 
 		/*!
@@ -1933,6 +1947,10 @@ template <class T> class Processor {
 		*/
 		inline void set_wait_line(bool value) {
 			wait_line_ = value;
+		}
+
+		bool get_wait_line() {
+			return wait_line_;
 		}
 
 		/*!
