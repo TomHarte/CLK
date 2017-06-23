@@ -64,7 +64,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 
 		// Count the number of pulses at the start of this vector
 		size_t number_of_pulses = 0;
-		while(waves[number_of_pulses + wave_offset] == WaveType::Pulse && number_of_pulses < waves.size()) {
+		while(number_of_pulses + wave_offset < waves.size() && waves[number_of_pulses + wave_offset] == WaveType::Pulse) {
 			number_of_pulses++;
 		}
 
