@@ -62,6 +62,8 @@ class Machine:
 		void set_key_state(uint16_t key, bool isPressed);
 		void clear_all_keys();
 
+		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
+
 	private:
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
@@ -90,6 +92,8 @@ class Machine:
 		bool nmi_is_enabled_;
 		int vsync_start_cycle_, vsync_end_cycle_;
 		uint8_t latched_video_byte_;
+
+		bool use_fast_tape_hack_;
 };
 
 }

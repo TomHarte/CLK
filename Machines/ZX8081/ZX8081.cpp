@@ -21,7 +21,8 @@ Machine::Machine() :
 	vsync_(false),
 	hsync_(false),
 	nmi_is_enabled_(false),
-	tape_player_(ZX8081ClockRate) {
+	tape_player_(ZX8081ClockRate),
+	use_fast_tape_hack_(false) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
 	clear_all_keys();
@@ -118,7 +119,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// Check for use of the fast tape hack.
-/*			if(address == tape_trap_address_) { // TODO: && fast_tape_hack_enabled_
+			if(use_fast_tape_hack_ && address == tape_trap_address_) {
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
@@ -127,7 +128,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 					return 0;
 				}
-			}*/
+			}
 			is_opcode_read = true;
 
 		case CPU::Z80::PartialMachineCycle::Read:
