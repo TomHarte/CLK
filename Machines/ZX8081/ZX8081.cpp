@@ -53,7 +53,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	}
 
 	if(is_zx81_) horizontal_counter_ %= 207;
-	tape_player_.run_for_cycles(cycle.length);
+	if(!use_fast_tape_hack_) tape_player_.run_for_cycles(cycle.length);
 
 	if(nmi_is_enabled_ && !get_halt_line() && get_non_maskable_interrupt_line()) {
 		set_wait_line(true);
