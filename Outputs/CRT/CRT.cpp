@@ -113,7 +113,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define source_output_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfOutputStart + 2])
 #define source_output_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 2])
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
-#define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 2]
+#define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
 void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type) {
 	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
