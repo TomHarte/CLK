@@ -97,7 +97,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			// setup phaseAndAmplitudeVarying.y as colour burst amplitude;
 			// setup phaseAndAmplitudeVarying.z as 1 / (colour burst amplitude), or 0.0 if amplitude is 0.0;
 			"phaseAndAmplitudeVarying.x = (extendedOutputPosition.x + (phaseTimeAndAmplitude.x / 64.0)) * 0.5 * 3.141592654;"
-			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with phaseTimeAndAmplitude.y / 255.0;"
+			"phaseAndAmplitudeVarying.y = phaseTimeAndAmplitude.y / 255.0;"
 			"phaseAndAmplitudeVarying.z = (phaseAndAmplitudeVarying.y > 0.0) ? 1.0 / phaseAndAmplitudeVarying.y : 0.0;"
 
 			// determine output position by scaling the output position according to the texture size
