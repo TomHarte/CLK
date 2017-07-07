@@ -47,7 +47,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 		"uniform float outputVerticalOffset;"
 		"uniform float textureHeightDivisor;"
 
-		"out vec2 phaseAndAmplitudeVarying;"
+		"out vec3 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
 		"out vec2 iInputPositionVarying;"
 		"out vec2 delayLinePositionVarying;"
@@ -94,9 +94,11 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			"delayLinePositionVarying = mappedInputPosition - vec2(0.0, 1.0);"
 
 			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
-			// setup phaseAndAmplitudeVarying.x as colour burst amplitude
+			// setup phaseAndAmplitudeVarying.y as colour burst amplitude;
+			// setup phaseAndAmplitudeVarying.z as 1 / (colour burst amplitude), or 0.0 if amplitude is 0.0;
 			"phaseAndAmplitudeVarying.x = (extendedOutputPosition.x + (phaseTimeAndAmplitude.x / 64.0)) * 0.5 * 3.141592654;"
-			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with (phaseTimeAndAmplitude.y/256.0)
+			"phaseAndAmplitudeVarying.y = 0.33;" // TODO: reinstate connection with phaseTimeAndAmplitude.y / 255.0;"
+			"phaseAndAmplitudeVarying.z = (phaseAndAmplitudeVarying.y > 0.0) ? 1.0 / phaseAndAmplitudeVarying.y : 0.0;"
 
 			// determine output position by scaling the output position according to the texture size
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0);"
@@ -133,7 +135,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 
 		"in vec2 inputPositionsVarying[11];"
 		"in vec2 iInputPositionVarying;"
-		"in vec2 phaseAndAmplitudeVarying;"
+		"in vec3 phaseAndAmplitudeVarying;"
 
 		"out vec4 fragColour;"
 
@@ -161,7 +163,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 
 		"in vec2 inputPositionsVarying[11];"
 		"in vec2 iInputPositionVarying;"
-		"in vec2 phaseAndAmplitudeVarying;"
+		"in vec3 phaseAndAmplitudeVarying;"
 
 		"out vec3 fragColour;"
 
@@ -185,7 +187,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 	return make_shader(
 		"#version 150\n"
 
-		"in vec2 phaseAndAmplitudeVarying;"
+		"in vec3 phaseAndAmplitudeVarying;"
 		"in vec2 inputPositionsVarying[11];"
 
 		"out vec3 fragColour;"
@@ -203,7 +205,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 			"float luminance = dot(samples, vec4(0.25));"
 
 			// define chroma to be whatever was here, minus luma
-			"float chrominance = 0.5 * (samples.z - luminance) / phaseAndAmplitudeVarying.y;"
+			"float chrominance = 0.5 * (samples.z - luminance) * phaseAndAmplitudeVarying.z;"
 			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
 
 			// split choma colours here, as the most direct place, writing out
