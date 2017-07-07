@@ -202,7 +202,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 				"texture(texID, inputPositionsVarying[5]).r,"
 				"texture(texID, inputPositionsVarying[6]).r"
 			");"
-			"float luminance = dot(samples, vec4(0.25));"
+			"float luminance = mix(dot(samples, vec4(0.25)), dot(samples, vec4(0.0, 0.16, 0.66, 0.16)), step(phaseAndAmplitudeVarying.z, 0.0));"
 
 			// define chroma to be whatever was here, minus luma
 			"float chrominance = 0.5 * (samples.z - luminance) * phaseAndAmplitudeVarying.z;"
