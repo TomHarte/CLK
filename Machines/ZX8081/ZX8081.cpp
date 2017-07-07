@@ -22,7 +22,8 @@ Machine::Machine() :
 	hsync_(false),
 	nmi_is_enabled_(false),
 	tape_player_(ZX8081ClockRate),
-	use_fast_tape_hack_(false) {
+	use_fast_tape_hack_(false),
+	tape_advance_delay_(0) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
 	clear_all_keys();
@@ -53,7 +54,11 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	}
 
 	if(is_zx81_) horizontal_counter_ %= 207;
-	tape_player_.run_for_cycles(cycle.length);
+	if(!tape_advance_delay_) {
+		tape_player_.run_for_cycles(cycle.length);
+	} else {
+		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, 0);
+	}
 
 	if(nmi_is_enabled_ && !get_halt_line() && get_non_maskable_interrupt_line()) {
 		set_wait_line(true);
@@ -124,14 +129,22 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// Check for use of the fast tape hack.
-			if(use_fast_tape_hack_ && address == tape_trap_address_) {
+			if(use_fast_tape_hack_ && address == tape_trap_address_ && tape_player_.has_tape()) {
+				Storage::Time time = tape_player_.get_tape()->get_current_time();
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
 					ram_[hl & ram_mask_] = (uint8_t)next_byte;
 					*cycle.value = 0x00;
 					set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
+
+					// Assume that having read one byte quickly, we're probably going to be asked to read
+					// another shortly. Therefore, temporarily disable the tape motor for 1000 cycles in order
+					// to avoid fighting with real time. This is a stop-gap fix.
+					tape_advance_delay_ = 1000;
 					return 0;
+				} else {
+					tape_player_.get_tape()->seek(time);
 				}
 			}
 			is_opcode_read = true;
