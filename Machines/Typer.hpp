@@ -51,7 +51,6 @@ class TypeRecipient: public Typer::Delegate {
 
 		void typer_reset(Typer *typer) {
 			clear_all_keys();
-			typer_.reset();
 		}
 
 	protected:
