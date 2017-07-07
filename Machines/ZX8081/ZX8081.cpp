@@ -113,7 +113,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				set_interrupt_line(false);
 			}
 			if(latched_video_byte_) {
-				size_t char_address = (size_t)((address & 0xff00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+				size_t char_address = (size_t)((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 				uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 				if(char_address < ram_base_) {
 					latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
@@ -156,7 +156,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				uint8_t value = ram_[address & ram_mask_];
 
 				// If this is an M1 cycle reading from above the 32kb mark and HALT is not
-				// currently active, perform a video output and return a NOP. Otherwise,
+				// currently active, latch for video output and return a NOP. Otherwise,
 				// just return the value as read.
 				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					latched_video_byte_ = value;
