@@ -8,9 +8,10 @@
 
 #include "CRT.hpp"
 #include "CRTOpenGL.hpp"
-#include <stdarg.h>
-#include <math.h>
+#include <cstdarg>
+#include <cmath>
 #include <algorithm>
+#include <cassert>
 
 using namespace Outputs::CRT;
 
@@ -194,7 +195,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 					openGL_output_builder_.array_builder.flush(
 						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
-								[output_y, input_buffer] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
+								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
+									assert(number_of_write_areas == input_size * SourceVertexSize);
 									for(size_t run = 0; run < number_of_write_areas; run++) {
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
