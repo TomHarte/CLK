@@ -15,7 +15,7 @@ Typer::Typer(const char *string, int delay, int frequency, Delegate *delegate) :
 		counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0) {
 	size_t string_size = strlen(string) + 3;
 	string_ = (char *)malloc(string_size);
-	snprintf(string_, strlen(string) + 3, "%c%s%c", Typer::BeginString, string, Typer::EndString);
+	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
 void Typer::update(int duration) {
