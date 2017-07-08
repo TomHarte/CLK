@@ -39,7 +39,6 @@ TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
 		write_areas_start_y_(0),
 		is_full_(false),
 		did_submit_(false),
-		has_write_area_(false),
 		number_of_write_areas_(0) {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
@@ -87,7 +86,6 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
 	write_area_.x = starting_x + 1;
 	write_area_.y = starting_y;
 	write_area_.length = (uint16_t)required_length;
-	has_write_area_ = true;
 
 	return pointer_to_location(write_area_.x, write_area_.y);
 }
@@ -97,17 +95,16 @@ bool TextureBuilder::is_full() {
 }
 
 void TextureBuilder::retain_latest() {
-	if(is_full_ || !has_write_area_) return;
+	if(is_full_) return;
 	if(number_of_write_areas_ < write_areas_.size())
 		write_areas_[number_of_write_areas_] = write_area_;
 	else
 		write_areas_.push_back(write_area_);
 	number_of_write_areas_++;
-	has_write_area_ = false;
 }
 
 void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
-	if(is_full_ || !has_write_area_) return;
+	if(is_full_) return;
 
 	write_area_.length = (uint16_t)actual_length;
 
@@ -174,6 +171,5 @@ void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea>
 	}
 
 	did_submit_ = false;
-	has_write_area_ = false;
 	number_of_write_areas_ = 0;
 }
