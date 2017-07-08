@@ -187,7 +187,7 @@ class CRT {
 			@param amplitude The amplitude of the colour burst in 1/256ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude);
+		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude = 102);
 
 		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 

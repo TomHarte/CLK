@@ -194,7 +194,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 					}
 					openGL_output_builder_.array_builder.flush(
-						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
+						[=] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
 								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
 									assert(number_of_write_areas * SourceVertexSize == input_size);
@@ -333,13 +333,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 }
 
 void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
-	Scan scan {
-		.type = Scan::Type::ColourBurst,
-		.number_of_cycles = number_of_cycles,
-		.phase = (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
-		.amplitude = 32
-	};
-	output_scan(&scan);
+	output_colour_burst(number_of_cycles, (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {
