@@ -259,7 +259,7 @@ template <class T> class MOS6560 {
 				if(this_state_ != output_state_) {
 					switch(output_state_) {
 						case State::Sync:			crt_->output_sync(cycles_in_state_ * 4);														break;
-						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0, 0);	break;
+						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);		break;
 						case State::Border:			output_border(cycles_in_state_ * 4);															break;
 						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4, 1);														break;
 					}
