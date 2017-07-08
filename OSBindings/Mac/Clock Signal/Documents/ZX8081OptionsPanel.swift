@@ -44,5 +44,6 @@ class ZX8081OptionsPanel: MachinePanel {
 		let automaticTapeMotorControlIsEnabled = standardUserDefaults.bool(forKey: self.automaticTapeMotorControlDefaultsKey)
 		self.automaticTapeMotorControlButton.state = automaticTapeMotorControlIsEnabled ? NSOnState : NSOffState
 		self.playOrPauseTapeButton.isEnabled = !automaticTapeMotorControlIsEnabled
+		self.zx8081.useAutomaticTapeMotorControl = automaticTapeMotorControlIsEnabled
 	}
 }

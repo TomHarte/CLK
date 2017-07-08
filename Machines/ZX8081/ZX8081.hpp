@@ -72,7 +72,9 @@ class Machine:
 	private:
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
+
 		uint16_t tape_trap_address_, tape_return_address_;
+		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
 
 		std::vector<uint8_t> ram_;
 		uint16_t ram_mask_, ram_base_;
