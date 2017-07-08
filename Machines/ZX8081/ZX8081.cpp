@@ -23,7 +23,9 @@ Machine::Machine() :
 	nmi_is_enabled_(false),
 	tape_player_(ZX8081ClockRate),
 	use_fast_tape_hack_(false),
-	tape_advance_delay_(0) {
+	tape_advance_delay_(0),
+	tape_is_automatically_playing_(false),
+	tape_is_playing_(false) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
 	clear_all_keys();
@@ -55,7 +57,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 	if(is_zx81_) horizontal_counter_ %= 207;
 	if(!tape_advance_delay_) {
-		tape_player_.run_for_cycles(cycle.length);
+		if(tape_is_automatically_playing_ || tape_is_playing_) tape_player_.run_for_cycles(cycle.length);
 	} else {
 		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, 0);
 	}
@@ -147,6 +149,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 					tape_player_.get_tape()->seek(time);
 				}
 			}
+
+			// Check for automatic tape control.
+			tape_is_automatically_playing_ = use_automatic_tape_motor_control_ && (address >= automatic_tape_motor_start_address_) && (address < automatic_tape_motor_end_address_);
 			is_opcode_read = true;
 
 		case CPU::Z80::PartialMachineCycle::Read:
@@ -209,12 +214,16 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		tape_return_address_ = 0x380;
 		vsync_start_cycle_ = 16;
 		vsync_end_cycle_ = 32;
+		automatic_tape_motor_start_address_ = 0x0340;
+		automatic_tape_motor_end_address_ = 0x03c3;
 	} else {
 		rom_ = zx80_rom_;
 		tape_trap_address_ = 0x220;
 		tape_return_address_ = 0x248;
 		vsync_start_cycle_ = 13;
 		vsync_end_cycle_ = 33;
+		automatic_tape_motor_start_address_ = 0x0206;
+		automatic_tape_motor_end_address_ = 0x024d;
 	}
 	rom_mask_ = (uint16_t)(rom_.size() - 1);
 

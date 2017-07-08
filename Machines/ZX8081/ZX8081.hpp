@@ -63,11 +63,18 @@ class Machine:
 		void clear_all_keys();
 
 		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
+		inline void set_use_automatic_tape_motor_control(bool enabled) {
+			use_automatic_tape_motor_control_ = enabled;
+			if(!enabled) tape_is_automatically_playing_ = false;
+		}
+		inline void set_tape_is_playing(bool is_playing) { tape_is_playing_ = is_playing; }
 
 	private:
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
+
 		uint16_t tape_trap_address_, tape_return_address_;
+		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
 
 		std::vector<uint8_t> ram_;
 		uint16_t ram_mask_, ram_base_;
@@ -94,6 +101,8 @@ class Machine:
 		uint8_t latched_video_byte_;
 
 		bool use_fast_tape_hack_;
+		bool use_automatic_tape_motor_control_;
+		bool tape_is_playing_, tape_is_automatically_playing_;
 		int tape_advance_delay_;
 };
 
