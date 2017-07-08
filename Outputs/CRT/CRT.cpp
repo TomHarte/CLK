@@ -140,6 +140,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
 		uint8_t *next_run = nullptr;
 		if(is_output_segment && !openGL_output_builder_.composite_output_buffer_is_full()) {
+			openGL_output_builder_.texture_builder.retain_latest();
 			next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
 		}
 
@@ -196,7 +197,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
 								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
-									assert(number_of_write_areas == input_size * SourceVertexSize);
+									assert(number_of_write_areas * SourceVertexSize == input_size);
 									for(size_t run = 0; run < number_of_write_areas; run++) {
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
@@ -313,6 +314,7 @@ void CRT::output_blank(unsigned int number_of_cycles) {
 }
 
 void CRT::output_level(unsigned int number_of_cycles) {
+	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(1);
 	Scan scan {
 		.type = Scan::Type::Level,
 		.number_of_cycles = number_of_cycles,

@@ -74,7 +74,6 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
 		starting_y = write_areas_[number_of_write_areas_ - 1].y;
 	}
 
-	WriteArea next_write_area;
 	if(starting_x + required_length + 2 > InputBufferBuilderWidth) {
 		starting_x = 0;
 		starting_y++;
@@ -85,33 +84,36 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
 		}
 	}
 
-	next_write_area.x = starting_x + 1;
-	next_write_area.y = starting_y;
-	next_write_area.length = (uint16_t)required_length;
-	if(number_of_write_areas_ < write_areas_.size())
-		write_areas_[number_of_write_areas_] = next_write_area;
-	else
-		write_areas_.push_back(next_write_area);
-	number_of_write_areas_++;
+	write_area_.x = starting_x + 1;
+	write_area_.y = starting_y;
+	write_area_.length = (uint16_t)required_length;
 	has_write_area_ = true;
 
-	return pointer_to_location(next_write_area.x, next_write_area.y);
+	return pointer_to_location(write_area_.x, write_area_.y);
 }
 
 bool TextureBuilder::is_full() {
 	return is_full_;
 }
 
+void TextureBuilder::retain_latest() {
+	if(is_full_ || !has_write_area_) return;
+	if(number_of_write_areas_ < write_areas_.size())
+		write_areas_[number_of_write_areas_] = write_area_;
+	else
+		write_areas_.push_back(write_area_);
+	number_of_write_areas_++;
+	has_write_area_ = false;
+}
+
 void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
 	if(is_full_ || !has_write_area_) return;
 
-	has_write_area_ = false;
-	WriteArea &write_area = write_areas_[number_of_write_areas_-1];
-	write_area.length = (uint16_t)actual_length;
+	write_area_.length = (uint16_t)actual_length;
 
 	// book end the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn
-	uint8_t *start_pointer = pointer_to_location(write_area.x, write_area.y);
+	uint8_t *start_pointer = pointer_to_location(write_area_.x, write_area_.y);
 	memcpy(	&start_pointer[-bytes_per_pixel_],
 			start_pointer,
 			bytes_per_pixel_);

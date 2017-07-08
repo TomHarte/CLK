@@ -24,6 +24,32 @@ namespace CRT {
 	Owns an OpenGL texture resource and provides mechanisms to fill it from bottom left to top right
 	with runs of data, ensuring each run is neighboured immediately to the left and right by copies of its
 	first and last pixels.
+
+	Intended usage:
+
+		(i)		allocate a write area with allocate_write_area, supplying a maximum size.
+		(ii)	call reduce_previous_allocation_to to announce the actual size written.
+		
+	This will cause you to have added source data to the target texture. You can then either use that data
+	or allow it to expire.
+	
+		(iii)	call retain_latest to add the most recently written write area to the flush queue.
+
+	The flush queue contains provisional data, that can sit in the CPU's memory space indefinitely. This facility
+	is provided because it is expected that a texture will be built alontside some other collection of data —
+	that data in the flush queue is expected to become useful in coordination with something else but should
+	be retained at least until then.
+	
+		(iv)	call flush to move data to the submit queue.
+
+	When you flush, you'll receive a record of the bounds of all newly-flushed areas of source data. That gives
+	an opportunity to correlate the data with whatever else it is being tied to. It will continue to sit in
+	the CPU's memory space but has now passed beyond any further modification or reporting.
+
+		(v)		call submit to move data to the GPU and free up its CPU-side resources.
+
+	The data is now on the GPU, for whatever use the caller desires.
+
 */
 class TextureBuilder {
 	public:
@@ -40,6 +66,9 @@ class TextureBuilder {
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
 		void reduce_previous_allocation_to(size_t actual_length);
+
+		/// Allocated runs are provisional; they will not appear in the next flush queue unless retained.
+		void retain_latest();
 
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
@@ -64,7 +93,10 @@ class TextureBuilder {
 		std::vector<uint8_t> image_;
 		GLuint texture_name_;
 
-		// the current list of write areas
+		// the current write area
+		WriteArea write_area_;
+
+		// the list of write areas that have ascended to the flush queue
 		std::vector<WriteArea> write_areas_;
 		size_t number_of_write_areas_;
 		bool is_full_;
