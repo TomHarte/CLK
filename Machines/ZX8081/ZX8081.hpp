@@ -94,6 +94,7 @@ class Machine:
 		uint8_t latched_video_byte_;
 
 		bool use_fast_tape_hack_;
+		int tape_advance_delay_;
 };
 
 }

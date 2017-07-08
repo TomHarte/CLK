@@ -79,10 +79,10 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			// the gap that follows the bit due to the simplified "high is high, everything else is low"
 			// logic applied to pulse detection. So those two things will merge. Meaning we're looking for
 			// 17 and/or 7 pulses.
-			int gaps_to_swallow = (int)wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
+			size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
-				case 17:	push_symbol(SymbolType::One, 17 + gaps_to_swallow);	break;
-				case 7:		push_symbol(SymbolType::Zero, 7 + gaps_to_swallow);	break;
+				case 18:	case 17:	push_symbol(SymbolType::One, (int)(number_of_pulses + gaps_to_swallow));	break;
+				case 8:		case 7:		push_symbol(SymbolType::Zero, (int)(number_of_pulses + gaps_to_swallow));	break;
 				default:	push_symbol(SymbolType::Unrecognised, 1);			break;
 			}
 		}

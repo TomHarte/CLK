@@ -22,7 +22,7 @@ TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 void Storage::Tape::Tape::seek(Time &seek_time) {
 	current_time_.set_zero();
 	next_time_.set_zero();
-	while(next_time_ < seek_time) get_next_pulse();
+	while(next_time_ <= seek_time) get_next_pulse();
 }
 
 void Storage::Tape::Tape::reset() {
