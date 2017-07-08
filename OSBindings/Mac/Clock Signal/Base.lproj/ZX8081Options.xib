@@ -38,12 +38,12 @@
                             <font key="font" metaFont="system"/>
                         </buttonCell>
                         <connections>
-                            <action selector="setAutomaticTapeConrol:" target="ota-g7-hOL" id="7ak-HW-rQM"/>
+                            <action selector="setAutomaticTapeMotorConrol:" target="ota-g7-hOL" id="bpF-1P-tga"/>
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tkN-gI-RmT">
                         <rect key="frame" x="20" y="19" width="221" height="19"/>
-                        <buttonCell key="cell" type="roundRect" title="Play Tape" bezelStyle="roundedRect" alignment="center" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cTq-f9-Gzx">
+                        <buttonCell key="cell" type="roundRect" title="Play Tape" bezelStyle="roundedRect" alignment="center" enabled="NO" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cTq-f9-Gzx">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="cellTitle"/>
                         </buttonCell>
@@ -66,8 +66,9 @@
                 </constraints>
             </view>
             <connections>
+                <outlet property="automaticTapeMotorControlButton" destination="qSb-72-6Os" id="bB6-FP-TKM"/>
                 <outlet property="fastLoadingButton" destination="sBT-cU-h7s" id="uWa-EB-mbd"/>
-                <outlet property="tapeControlButton" destination="tkN-gI-RmT" id="KW5-gA-RN3"/>
+                <outlet property="playOrPauseTapeButton" destination="tkN-gI-RmT" id="UnJ-nb-3mv"/>
             </connections>
             <point key="canvasLocation" x="28.5" y="15"/>
         </window>
