@@ -55,7 +55,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 	if(is_zx81_) horizontal_counter_ %= 207;
 	if(!tape_advance_delay_) {
-		tape_player_.run_for_cycles(cycle.length);
+		if(tape_is_automatically_playing_ || tape_is_playing_) tape_player_.run_for_cycles(cycle.length);
 	} else {
 		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, 0);
 	}
