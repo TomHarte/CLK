@@ -25,7 +25,8 @@ Machine::Machine() :
 	use_fast_tape_hack_(false),
 	tape_advance_delay_(0),
 	tape_is_automatically_playing_(false),
-	tape_is_playing_(false) {
+	tape_is_playing_(false),
+	has_latched_video_byte_(false) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
 	clear_all_keys();
@@ -114,7 +115,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				set_interrupt_line(true, -2);
 				set_interrupt_line(false);
 			}
-			if(latched_video_byte_) {
+			if(has_latched_video_byte_) {
 				size_t char_address = (size_t)((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 				uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 				if(char_address < ram_base_) {
@@ -124,7 +125,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				}
 
 				video_->output_byte(latched_video_byte_);
-				latched_video_byte_ = 0;
+				has_latched_video_byte_ = false;
 			}
 		break;
 
@@ -165,6 +166,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				// just return the value as read.
 				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					latched_video_byte_ = value;
+					has_latched_video_byte_ = true;
 					*cycle.value = 0;
 				} else *cycle.value = value;
 			}
