@@ -54,7 +54,7 @@ Tape::Pulse ZX80O81P::virtual_get_next_pulse() {
 	// Start with 1 second of silence.
 	if(!is_past_silence_ || has_finished_data()) {
 		pulse.type = Pulse::Type::Low;
-		pulse.length.length = 10;
+		pulse.length.length = 1;
 		pulse.length.clock_rate = 1;
 		is_past_silence_ = true;
 		has_ended_final_byte_ = has_finished_data();

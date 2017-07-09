@@ -8,9 +8,10 @@
 
 #include "CRT.hpp"
 #include "CRTOpenGL.hpp"
-#include <stdarg.h>
-#include <math.h>
+#include <cstdarg>
+#include <cmath>
 #include <algorithm>
+#include <cassert>
 
 using namespace Outputs::CRT;
 
@@ -144,6 +145,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 
 		if(next_run) {
 			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
+			openGL_output_builder_.texture_builder.retain_latest();
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
@@ -192,9 +194,10 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 					}
 					openGL_output_builder_.array_builder.flush(
-						[output_y, this] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
+						[=] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
-								[output_y, input_buffer] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
+								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
+									assert(number_of_write_areas * SourceVertexSize == input_size);
 									for(size_t run = 0; run < number_of_write_areas; run++) {
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
 										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
@@ -311,6 +314,7 @@ void CRT::output_blank(unsigned int number_of_cycles) {
 }
 
 void CRT::output_level(unsigned int number_of_cycles) {
+	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(1);
 	Scan scan {
 		.type = Scan::Type::Level,
 		.number_of_cycles = number_of_cycles,
@@ -329,13 +333,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 }
 
 void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
-	Scan scan {
-		.type = Scan::Type::ColourBurst,
-		.number_of_cycles = number_of_cycles,
-		.phase = (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)),
-		.amplitude = 32
-	};
-	output_scan(&scan);
+	output_colour_burst(number_of_cycles, (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {

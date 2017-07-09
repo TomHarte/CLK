@@ -14,4 +14,7 @@
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 
+@property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
+@property (nonatomic, assign) BOOL tapeIsPlaying;
+
 @end

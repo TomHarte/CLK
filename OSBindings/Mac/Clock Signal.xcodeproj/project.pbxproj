@@ -96,6 +96,7 @@
 		4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */; };
 		4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B9252CD1E74D28200B76AF1 /* Atari ROMs */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
+		4B95FA9D1F11893B0008E395 /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
@@ -609,6 +610,7 @@
 		4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AtariStaticAnalyserTests.mm; sourceTree = "<group>"; };
 		4B9252CD1E74D28200B76AF1 /* Atari ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Atari ROMs"; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
+		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20OptionsPanel.swift; sourceTree = "<group>"; };
@@ -1312,6 +1314,7 @@
 				4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */,
 				4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */,
 				4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */,
+				4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */,
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
 				4B8FE2171DA19D5F0090D3CE /* ElectronOptions.xib */,
 				4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */,
@@ -2566,6 +2569,7 @@
 				4BD4A8CD1E077E8A0020D856 /* PCMSegment.cpp in Sources */,
 				4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
+				4B95FA9D1F11893B0008E395 /* ZX8081OptionsPanel.swift in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,

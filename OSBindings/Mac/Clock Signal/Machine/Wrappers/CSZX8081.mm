@@ -110,4 +110,18 @@
 	}
 }
 
+- (void)setTapeIsPlaying:(BOOL)tapeIsPlaying {
+	@synchronized(self) {
+		_tapeIsPlaying = tapeIsPlaying;
+		_zx8081.set_tape_is_playing(tapeIsPlaying ? true : false);
+	}
+}
+
+- (void)setUseAutomaticTapeMotorControl:(BOOL)useAutomaticTapeMotorControl {
+	@synchronized(self) {
+		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
+		_zx8081.set_use_automatic_tape_motor_control(useAutomaticTapeMotorControl ? true : false);
+	}
+}
+
 @end
