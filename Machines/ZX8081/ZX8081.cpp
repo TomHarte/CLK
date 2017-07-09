@@ -77,11 +77,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::Output:
 			if(!(address & 2)) nmi_is_enabled_ = false;
 			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
-			if((address&3) == 3) {
-				if(!nmi_is_enabled_) {
-					set_vsync(false);
-					line_counter_ = 0;
-				}
+			if((address&3) == 3) line_counter_ = 0;
+			if(!nmi_is_enabled_) {
+				set_vsync(false);
 			}
 		break;
 
