@@ -50,9 +50,10 @@ void Video::flush(bool next_sync) {
 			// sync, or if we're past its end anyway. Otherwise let it be.
 			unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
 			if(data_length < cycles_since_update_ || next_sync) {
-				crt_->output_data(data_length, 1);
+				unsigned int output_length = std::min(data_length, cycles_since_update_);
+				crt_->output_data(output_length, 1);
 				line_data_pointer_ = line_data_ = nullptr;
-				cycles_since_update_ -= data_length;
+				cycles_since_update_ -= output_length;
 			} else return;
 		}
 
@@ -86,19 +87,20 @@ void Video::output_byte(uint8_t byte) {
 
 	// If a buffer was obtained, serialise the new pixels.
 	if(line_data_) {
+		// If the buffer is full, output it now and obtain a new one
+		if(line_data_pointer_ - line_data_ == 320) {
+			crt_->output_data(320, 1);
+			cycles_since_update_ -= 320;
+			line_data_pointer_ = line_data_ = crt_->allocate_write_area(320);
+			if(!line_data_) return;
+		}
+
 		uint8_t mask = 0x80;
 		for(int c = 0; c < 8; c++) {
 			line_data_pointer_[c] = (byte & mask) ? 0xff : 0x00;
 			mask >>= 1;
 		}
 		line_data_pointer_ += 8;
-
-		// If that fills the buffer, output it now.
-		if(line_data_pointer_ - line_data_ == 320) {
-			crt_->output_data(320, 1);
-			line_data_pointer_ = line_data_ = nullptr;
-			cycles_since_update_ -= 160;
-		}
 	}
 }
 
