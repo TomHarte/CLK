@@ -68,7 +68,8 @@ class TextureBuilder {
 		void reduce_previous_allocation_to(size_t actual_length);
 
 		/// Allocated runs are provisional; they will not appear in the next flush queue unless retained.
-		void retain_latest();
+		/// @returns @c true if a retain succeeded; @c false otherwise.
+		bool retain_latest();
 
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
@@ -99,8 +100,8 @@ class TextureBuilder {
 		// the list of write areas that have ascended to the flush queue
 		std::vector<WriteArea> write_areas_;
 		size_t number_of_write_areas_;
-		bool is_full_;
-		bool did_submit_;
+		bool is_full_, was_full_;
+		uint16_t first_unsubmitted_y_;
 		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);
 
 		// Usually: the start position for the current batch of write areas.
