@@ -25,7 +25,11 @@ namespace CRT {
 	with runs of data, ensuring each run is neighboured immediately to the left and right by copies of its
 	first and last pixels.
 
-	Intended usage:
+	Although this class is not itself inherently thread safe, it is built to permit one serialised stream
+	of calls to provide source data, with an interceding (but also serialised) submission to the GPU at any time.
+
+
+	Intended usage by the data generator:
 
 		(i)		allocate a write area with allocate_write_area, supplying a maximum size.
 		(ii)	call reduce_previous_allocation_to to announce the actual size written.
@@ -46,9 +50,13 @@ namespace CRT {
 	an opportunity to correlate the data with whatever else it is being tied to. It will continue to sit in
 	the CPU's memory space but has now passed beyond any further modification or reporting.
 
-		(v)		call submit to move data to the GPU and free up its CPU-side resources.
 
-	The data is now on the GPU, for whatever use the caller desires.
+	Intended usage by the GPU owner:
+
+		(i)		call submit to move data to the GPU and free up its CPU-side resources.
+
+	The latest data is now on the GPU, regardless of where the data provider may be in its process — only data
+	that has entered the submission queue is uploaded.
 
 */
 class TextureBuilder {
@@ -68,7 +76,8 @@ class TextureBuilder {
 		void reduce_previous_allocation_to(size_t actual_length);
 
 		/// Allocated runs are provisional; they will not appear in the next flush queue unless retained.
-		void retain_latest();
+		/// @returns @c true if a retain succeeded; @c false otherwise.
+		bool retain_latest();
 
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
@@ -99,8 +108,8 @@ class TextureBuilder {
 		// the list of write areas that have ascended to the flush queue
 		std::vector<WriteArea> write_areas_;
 		size_t number_of_write_areas_;
-		bool is_full_;
-		bool did_submit_;
+		bool is_full_, was_full_;
+		uint16_t first_unsubmitted_y_;
 		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);
 
 		// Usually: the start position for the current batch of write areas.

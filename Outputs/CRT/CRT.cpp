@@ -140,12 +140,15 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
 		uint8_t *next_run = nullptr;
 		if(is_output_segment && !openGL_output_builder_.composite_output_buffer_is_full()) {
-			next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
+			bool did_retain_source_data = openGL_output_builder_.texture_builder.retain_latest();
+			if(did_retain_source_data) {
+				next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
+			}
 		}
 
 		if(next_run) {
-			// output_y and texture locations will be written later; we won't necessarily know what it is outside of the locked region
-			openGL_output_builder_.texture_builder.retain_latest();
+			// output_y and texture locations will be written later; we won't necessarily know what they are
+			// outside of the locked region
 			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
