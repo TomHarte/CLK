@@ -25,7 +25,8 @@ Machine::Machine() :
 	use_fast_tape_hack_(false),
 	tape_advance_delay_(0),
 	tape_is_automatically_playing_(false),
-	tape_is_playing_(false) {
+	tape_is_playing_(false),
+	has_latched_video_byte_(false) {
 	set_clock_rate(ZX8081ClockRate);
 	tape_player_.set_motor_control(true);
 	clear_all_keys();
@@ -76,11 +77,11 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::Output:
 			if(!(address & 2)) nmi_is_enabled_ = false;
 			if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
-			if((address&3) == 3) {
-				if(!nmi_is_enabled_) {
-					set_vsync(false);
-					line_counter_ = 0;
-				}
+			if(!nmi_is_enabled_) {
+				// Line counter reset is held low while vsync is active; simulate that lazily by performing
+				// an instant reset upon the transition from active to inactive.
+				if(vsync_) line_counter_ = 0;
+				set_vsync(false);
 			}
 		break;
 
@@ -114,8 +115,8 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				set_interrupt_line(true, -2);
 				set_interrupt_line(false);
 			}
-			if(latched_video_byte_) {
-				size_t char_address = (size_t)((address & 0xff00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+			if(has_latched_video_byte_) {
+				size_t char_address = (size_t)((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 				uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 				if(char_address < ram_base_) {
 					latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
@@ -124,7 +125,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				}
 
 				video_->output_byte(latched_video_byte_);
-				latched_video_byte_ = 0;
+				has_latched_video_byte_ = false;
 			}
 		break;
 
@@ -161,10 +162,11 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 				uint8_t value = ram_[address & ram_mask_];
 
 				// If this is an M1 cycle reading from above the 32kb mark and HALT is not
-				// currently active, perform a video output and return a NOP. Otherwise,
+				// currently active, latch for video output and return a NOP. Otherwise,
 				// just return the value as read.
 				if(is_opcode_read && address&0x8000 && !(value & 0x40) && !get_halt_line()) {
 					latched_video_byte_ = value;
+					has_latched_video_byte_ = true;
 					*cycle.value = 0;
 				} else *cycle.value = value;
 			}
