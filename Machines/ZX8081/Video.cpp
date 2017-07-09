@@ -76,6 +76,7 @@ void Video::set_sync(bool sync) {
 
 void Video::output_byte(uint8_t byte) {
 	// Complete whatever was going on.
+	if(sync_) return;
 	flush();
 
 	// Grab a buffer if one isn't already available.
