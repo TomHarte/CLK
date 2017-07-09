@@ -79,6 +79,9 @@ class TextureBuilder {
 		/// @returns @c true if a retain succeeded; @c false otherwise.
 		bool retain_latest();
 
+		// Undoes the most recent retain_latest. Undefined behaviour if a submission has occurred in the interim.
+		void discard_latest();
+
 		/// @returns @c true if all future calls to @c allocate_write_area will fail on account of the input texture
 		/// being full; @c false if calls may succeed.
 		bool is_full();
