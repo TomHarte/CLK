@@ -47,6 +47,14 @@ void StaticAnalyser::ZX8081::AddTargets(
 				target.zx8081.memory_model = ZX8081MemoryModel::Unexpanded;
 			}
 			target.tapes = tapes;
+
+			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
+			if(target.zx8081.isZX81) {
+				target.loadingCommand = "J\"\"\n";
+			} else {
+				target.loadingCommand = "W\n";
+			}
+
 			destination.push_back(target);
 		}
 	}

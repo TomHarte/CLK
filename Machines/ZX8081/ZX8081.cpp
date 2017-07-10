@@ -253,6 +253,10 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	if(target.tapes.size()) {
 		tape_player_.set_tape(target.tapes.front());
 	}
+
+	if(target.loadingCommand.length()) {
+		set_typer_for_string(target.loadingCommand.c_str());
+	}
 }
 
 void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
