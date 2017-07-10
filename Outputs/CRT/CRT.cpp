@@ -143,6 +143,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			bool did_retain_source_data = openGL_output_builder_.texture_builder.retain_latest();
 			if(did_retain_source_data) {
 				next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
+				if(!next_run) {
+					openGL_output_builder_.texture_builder.discard_latest();
+				}
 			}
 		}
 

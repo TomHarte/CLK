@@ -128,6 +128,11 @@ bool TextureBuilder::retain_latest() {
 	return true;
 }
 
+void TextureBuilder::discard_latest() {
+	if(was_full_) return;
+	number_of_write_areas_--;
+}
+
 bool TextureBuilder::is_full() {
 	return is_full_;
 }
