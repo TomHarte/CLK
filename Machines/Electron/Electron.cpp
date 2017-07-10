@@ -96,7 +96,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		slot = (ROMSlot)(((int)slot + 1)&15);
 	}
 
-	if(target.loadingCommand.length()) {	// TODO: and automatic loading option enabled
+	if(target.loadingCommand.length()) {
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
