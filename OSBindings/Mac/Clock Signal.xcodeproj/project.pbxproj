@@ -74,6 +74,7 @@
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
+		4B6A84BC1F130DA6001F28C9 /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A84BB1F130DA6001F28C9 /* Typer.cpp */; };
 		4B6C73BD1D387AE500AFCFCA /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */; };
 		4B77069D1EC904570053B588 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B77069B1EC904570053B588 /* Z80.cpp */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
@@ -578,6 +579,7 @@
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
 		4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TapeUEF.hpp; sourceTree = "<group>"; };
 		4B69FB451C4D950F00B5F0AA /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		4B6A84BB1F130DA6001F28C9 /* Typer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Typer.cpp; path = ZX8081/Typer.cpp; sourceTree = "<group>"; };
 		4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
 		4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B77069B1EC904570053B588 /* Z80.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Z80.cpp; path = Z80/Z80.cpp; sourceTree = "<group>"; };
@@ -1107,6 +1109,7 @@
 				4B1497911EE4B5A800CE2596 /* ZX8081.hpp */,
 				4BD3A3091EE755C800B5B501 /* Video.cpp */,
 				4BD3A30A1EE755C800B5B501 /* Video.hpp */,
+				4B6A84BB1F130DA6001F28C9 /* Typer.cpp */,
 			);
 			name = ZX8081;
 			sourceTree = "<group>";
@@ -2562,6 +2565,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
+				4B6A84BC1F130DA6001F28C9 /* Typer.cpp in Sources */,
 				4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
