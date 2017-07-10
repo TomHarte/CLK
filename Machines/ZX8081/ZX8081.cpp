@@ -181,6 +181,8 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		default: break;
 	}
 
+	if(typer_) typer_->update(cycle.length);
+
 	return 0;
 }
 
