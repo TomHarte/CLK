@@ -60,7 +60,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 
 	if(data.size() < data_pointer + 0x405e - 0x4009) return nullptr;
 
-	if(data[data_pointer]) return nullptr;
+//	if(data[data_pointer]) return nullptr;
 
 	uint16_t vars = short_at(data_pointer + 0x4010 - 0x4009, data);
 	uint16_t end_of_file = short_at(data_pointer + 0x4014 - 0x4009, data);
