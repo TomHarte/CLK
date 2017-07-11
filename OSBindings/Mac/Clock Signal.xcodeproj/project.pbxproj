@@ -51,6 +51,7 @@
 		4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */; };
 		4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */; };
 		4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */; };
+		4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BF5AE1F146264005B6C36 /* CSW.cpp */; };
 		4B3F1B461E0388D200DB26EE /* PCMPatchedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */; };
 		4B44EBF51DC987AF00A7820C /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */; };
 		4B44EBF71DC9883B00A7820C /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */; };
@@ -539,6 +540,8 @@
 		4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MOS6532Bridge.mm; sourceTree = "<group>"; };
 		4B3BA0CC1D318B44005DD7A7 /* TestMachine6502.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine6502.h; sourceTree = "<group>"; };
 		4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine6502.mm; sourceTree = "<group>"; };
+		4B3BF5AE1F146264005B6C36 /* CSW.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSW.cpp; sourceTree = "<group>"; };
+		4B3BF5AF1F146264005B6C36 /* CSW.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CSW.hpp; sourceTree = "<group>"; };
 		4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMPatchedTrack.cpp; sourceTree = "<group>"; };
 		4B3F1B451E0388D200DB26EE /* PCMPatchedTrack.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMPatchedTrack.hpp; sourceTree = "<group>"; };
 		4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = AllSuiteA.bin; path = AllSuiteA/AllSuiteA.bin; sourceTree = "<group>"; };
@@ -1394,17 +1397,19 @@
 		4B69FB411C4D941400B5F0AA /* Formats */ = {
 			isa = PBXGroup;
 			children = (
-				4B69FB451C4D950F00B5F0AA /* libz.tbd */,
-				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
-				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
 				4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */,
-				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
-				4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */,
-				4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */,
+				4B3BF5AE1F146264005B6C36 /* CSW.cpp */,
 				4B59199A1DAC6C46005BB85C /* OricTAP.cpp */,
-				4B59199B1DAC6C46005BB85C /* OricTAP.hpp */,
+				4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */,
+				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
 				4B1497861EE4A1DA00CE2596 /* ZX80O81P.cpp */,
+				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
+				4B3BF5AF1F146264005B6C36 /* CSW.hpp */,
+				4B59199B1DAC6C46005BB85C /* OricTAP.hpp */,
+				4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */,
+				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
 				4B1497871EE4A1DA00CE2596 /* ZX80O81P.hpp */,
+				4B69FB451C4D950F00B5F0AA /* libz.tbd */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2593,6 +2598,7 @@
 				4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
+				4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */,
 				4B2A332A1DB8544D002876E3 /* MemoryFuzzer.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B2A332F1DB86869002876E3 /* OricOptionsPanel.swift in Sources */,

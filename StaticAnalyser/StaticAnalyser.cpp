@@ -30,6 +30,7 @@
 
 // Tapes
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"
+#include "../Storage/Tape/Formats/CSW.hpp"
 #include "../Storage/Tape/Formats/OricTAP.hpp"
 #include "../Storage/Tape/Formats/TapePRG.hpp"
 #include "../Storage/Tape/Formats/TapeUEF.hpp"
@@ -42,6 +43,8 @@ enum class TargetPlatform: TargetPlatformType {
 	Commodore	=	1 << 2,
 	Oric		=	1 << 3,
 	ZX8081		=	1 << 4,
+
+	AllTape		= Acorn | Commodore | Oric | ZX8081,
 };
 
 using namespace StaticAnalyser;
@@ -94,6 +97,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
 		Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
 		Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
+		Format("csw", tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
 		Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
 		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
 		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK

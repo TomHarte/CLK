@@ -24,9 +24,9 @@ namespace Tape {
 class ZX80O81P: public Tape, public Storage::FileHolder {
 	public:
 		/*!
-			Constructs an @c ZX80O containing content from the file with name @c file_name.
+			Constructs a @c ZX80O containing content from the file with name @c file_name.
 
-			@throws ErrorNotZX80O if this file could not be opened and recognised as a valid ZX80-format .O.
+			@throws ErrorNotZX80O81P if this file could not be opened and recognised as a valid ZX80-format .O.
 		*/
 		ZX80O81P(const char *file_name);
 
