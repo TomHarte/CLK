@@ -58,6 +58,8 @@ class Tape {
 		/// Advances or reverses the tape to the last time before or at @c time from which a pulse starts.
 		virtual void seek(Time &time);
 
+		virtual ~Tape() {};
+
 	private:
 		Time current_time_, next_time_;
 

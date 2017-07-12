@@ -12,6 +12,8 @@
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
 
+#include <zlib.h>
+
 namespace Storage {
 namespace Tape {
 
@@ -26,6 +28,7 @@ class CSW: public Tape, public Storage::FileHolder {
 			@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 		*/
 		CSW(const char *file_name);
+		~CSW();
 
 		enum {
 			ErrorNotCSW
@@ -37,6 +40,14 @@ class CSW: public Tape, public Storage::FileHolder {
 	private:
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
+
+		Pulse pulse_;
+		enum CompressionType {
+			RLE,
+			ZRLE
+		} compression_type_;
+		uint32_t number_of_waves_;
+		z_stream inflation_stream_;
 };
 
 }
