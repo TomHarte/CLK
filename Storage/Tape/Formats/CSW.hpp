@@ -13,6 +13,7 @@
 #include "../../FileHolder.hpp"
 
 #include <zlib.h>
+#include <vector>
 
 namespace Storage {
 namespace Tape {
@@ -28,7 +29,6 @@ class CSW: public Tape, public Storage::FileHolder {
 			@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 		*/
 		CSW(const char *file_name);
-		~CSW();
 
 		enum {
 			ErrorNotCSW
@@ -46,8 +46,14 @@ class CSW: public Tape, public Storage::FileHolder {
 			RLE,
 			ZRLE
 		} compression_type_;
-		uint32_t number_of_waves_;
-		z_stream inflation_stream_;
+
+		uint8_t get_next_byte();
+		void invert_pulse();
+
+		std::vector<uint8_t> source_data_;
+		size_t source_data_pointer_;
+
+		long rle_start_;
 };
 
 }

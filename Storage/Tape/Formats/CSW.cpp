@@ -11,7 +11,8 @@
 using namespace Storage::Tape;
 
 CSW::CSW(const char *file_name) :
-	Storage::FileHolder(file_name) {
+	Storage::FileHolder(file_name),
+	source_data_pointer_(0) {
 	if(file_stats_.st_size < 0x20) throw ErrorNotCSW;
 
 	// Check signature.
@@ -31,6 +32,7 @@ CSW::CSW(const char *file_name) :
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
 
 	// The header now diverges based on version.
+	uint32_t number_of_waves = 0;
 	if(major_version == 1) {
 		pulse_.length.clock_rate = fgetc16le();
 
@@ -42,7 +44,7 @@ CSW::CSW(const char *file_name) :
 		fseek(file_, 0x20, SEEK_SET);
 	} else {
 		pulse_.length.clock_rate = fgetc32le();
-		number_of_waves_ = fgetc32le();
+		number_of_waves = fgetc32le();
 		switch(fgetc(file_)) {
 			case 1: compression_type_ = RLE;	break;
 			case 2: compression_type_ = ZRLE;	break;
@@ -57,31 +59,54 @@ CSW::CSW(const char *file_name) :
 	}
 
 	if(compression_type_ == ZRLE) {
-		inflation_stream_.zalloc = Z_NULL;
-		inflation_stream_.zfree = Z_NULL;
-		inflation_stream_.opaque = Z_NULL;
-		inflation_stream_.avail_in = 0;
-		inflation_stream_.next_in = Z_NULL;
-		int result = inflateInit(&inflation_stream_);
-		if(result != Z_OK) throw ErrorNotCSW;
+		source_data_.resize((size_t)number_of_waves);
+
+		std::vector<uint8_t> file_data;
+		size_t remaining_data = (size_t)file_stats_.st_size - (size_t)ftell(file_);
+		file_data.resize(remaining_data);
+		fread(file_data.data(), sizeof(uint8_t), remaining_data, file_);
+
+		uLongf output_length = (uLongf)remaining_data;
+		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
+	} else {
+		rle_start_ = ftell(file_);
+	}
+
+	invert_pulse();
+}
+
+uint8_t CSW::get_next_byte() {
+	switch(compression_type_) {
+		case RLE: return (uint8_t)fgetc(file_);
+		case ZRLE: {
+			if(source_data_pointer_ == source_data_.size()) return 0xff;
+			uint8_t result = source_data_[source_data_pointer_];
+			source_data_pointer_++;
+			return result;
+		}
 	}
 }
 
-CSW::~CSW() {
-	if(compression_type_ == ZRLE) {
-		inflateEnd(&inflation_stream_);
-	}
+void CSW::invert_pulse() {
+	pulse_.type = (pulse_.type == Pulse::High) ? Pulse::Low : Pulse::High;
 }
-
 
 bool CSW::is_at_end() {
-	return true;
+	switch(compression_type_) {
+		case RLE: return (bool)feof(file_);
+		case ZRLE: return source_data_pointer_ == source_data_.size();
+	}
 }
 
 void CSW::virtual_reset() {
+	switch(compression_type_) {
+		case RLE:	fseek(file_, rle_start_, SEEK_SET);	break;
+		case ZRLE:	source_data_pointer_ = 0;			break;
+	}
 }
 
 Tape::Pulse CSW::virtual_get_next_pulse() {
-	Tape::Pulse pulse;
-	return pulse;
+	invert_pulse();
+	pulse_.length.length = get_next_byte();
+	return pulse_;
 }
