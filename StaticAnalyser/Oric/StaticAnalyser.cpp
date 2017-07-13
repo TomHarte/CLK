@@ -84,8 +84,9 @@ void StaticAnalyser::Oric::AddTargets(
 	int basic10_votes = 0;
 	int basic11_votes = 0;
 
-	for(auto tape : tapes) {
+	for(auto &tape : tapes) {
 		std::list<File> tape_files = GetFiles(tape);
+		tape->reset();
 		if(tape_files.size()) {
 			for(auto file : tape_files) {
 				if(file.data_type == File::MachineCode) {

@@ -51,7 +51,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 	// Look for a file name.
 	size_t data_pointer = 0;
 	int c = 11;
-	while(c--) {
+	while(c < data.size() && c--) {
 		if(data[data_pointer] & 0x80) break;
 		data_pointer++;
 	}

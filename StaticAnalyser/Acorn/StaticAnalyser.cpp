@@ -75,6 +75,7 @@ void StaticAnalyser::Acorn::AddTargets(
 	if(tapes.size() > 0) {
 		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
 		std::list<File> files = GetFiles(tape);
+		tape->reset();
 
 		// continue if there are any files
 		if(files.size()) {
