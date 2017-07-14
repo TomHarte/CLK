@@ -48,6 +48,7 @@ class CSW: public Tape, public Storage::FileHolder {
 		} compression_type_;
 
 		uint8_t get_next_byte();
+		uint32_t get_next_int32le();
 		void invert_pulse();
 
 		std::vector<uint8_t> source_data_;

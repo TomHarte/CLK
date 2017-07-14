@@ -87,6 +87,22 @@ uint8_t CSW::get_next_byte() {
 	}
 }
 
+uint32_t CSW::get_next_int32le() {
+	switch(compression_type_) {
+		case RLE: return fgetc32le();
+		case ZRLE: {
+			if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
+			uint32_t result = (uint32_t)(
+				(source_data_[source_data_pointer_ + 0] << 0) |
+				(source_data_[source_data_pointer_ + 1] << 8) |
+				(source_data_[source_data_pointer_ + 2] << 16) |
+				(source_data_[source_data_pointer_ + 3] << 24));
+			source_data_pointer_ += 4;
+			return result;
+		}
+	}
+}
+
 void CSW::invert_pulse() {
 	pulse_.type = (pulse_.type == Pulse::High) ? Pulse::Low : Pulse::High;
 }
@@ -108,5 +124,6 @@ void CSW::virtual_reset() {
 Tape::Pulse CSW::virtual_get_next_pulse() {
 	invert_pulse();
 	pulse_.length.length = get_next_byte();
+	if(!pulse_.length.length) pulse_.length.length = get_next_int32le();
 	return pulse_;
 }
