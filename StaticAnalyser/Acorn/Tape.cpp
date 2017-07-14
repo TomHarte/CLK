@@ -60,6 +60,8 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 	stored_header_crc = (uint16_t)((stored_header_crc >> 8) | (stored_header_crc << 8));
 	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;
 
+	if(!new_chunk->header_crc_matched) return nullptr;
+
 	parser.reset_crc();
 	new_chunk->data.reserve(new_chunk->block_length);
 	for(int c = 0; c < new_chunk->block_length; c++) {
