@@ -66,8 +66,9 @@ CSW::CSW(const char *file_name) :
 		file_data.resize(remaining_data);
 		fread(file_data.data(), sizeof(uint8_t), remaining_data, file_);
 
-		uLongf output_length = (uLongf)remaining_data;
+		uLongf output_length = (uLongf)number_of_waves;
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
+		source_data_.resize((size_t)output_length);
 	} else {
 		rle_start_ = ftell(file_);
 	}
