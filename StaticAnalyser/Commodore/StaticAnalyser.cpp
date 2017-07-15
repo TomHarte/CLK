@@ -68,6 +68,7 @@ void StaticAnalyser::Commodore::AddTargets(
 	// check tapes
 	for(auto &tape : tapes) {
 		std::list<File> tape_files = GetFiles(tape);
+		tape->reset();
 		if(tape_files.size()) {
 			files.splice(files.end(), tape_files);
 			target.tapes = tapes;

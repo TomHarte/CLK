@@ -78,8 +78,11 @@ void Tape::process_input_pulse(Storage::Tape::Tape::Pulse pulse) {
 	crossings_[3] = Tape::Unrecognised;
 	if(pulse.type != Storage::Tape::Tape::Pulse::Zero) {
 		float pulse_length = (float)pulse.length.length / (float)pulse.length.clock_rate;
-		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) crossings_[3] = Tape::Short;
-		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) crossings_[3] = Tape::Long;
+		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 1200.0) {
+			crossings_[3] = pulse_length > 1.0 / 3000.0 ? Tape::Long : Tape::Short;
+		}
+//		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) crossings_[3] = Tape::Short;
+//		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) crossings_[3] = Tape::Long;
 	}
 
 	if(crossings_[0] == Tape::Long && crossings_[1] == Tape::Long) {

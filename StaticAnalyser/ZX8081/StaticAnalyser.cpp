@@ -35,6 +35,7 @@ void StaticAnalyser::ZX8081::AddTargets(
 
 	if(!tapes.empty()) {
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(tapes.front());
+		tapes.front()->reset();
 		if(!files.empty()) {
 			StaticAnalyser::Target target;
 			target.machine = Target::ZX8081;
