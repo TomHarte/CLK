@@ -56,7 +56,7 @@ struct Data {
 	bool duplicate_matched;
 };
 
-class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
+class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
 	public:
 		Parser();
 
@@ -126,7 +126,7 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 			indicates a high to low transition, inspects the time since the last transition, to produce
 			a long, medium, short or unrecognised wave period.
 		*/
-		void process_pulse(Storage::Tape::Tape::Pulse pulse);
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
 		bool previous_was_high_;
 		float wave_period_;
 

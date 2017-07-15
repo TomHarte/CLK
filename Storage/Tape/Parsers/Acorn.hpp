@@ -11,20 +11,17 @@
 
 #include "TapeParser.hpp"
 #include "../../../NumberTheory/CRC.hpp"
+#include "../../Disk/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
 namespace Tape {
 namespace Acorn {
 
-enum class WaveType {
-	Short, Long, Unrecognised
-};
-
 enum class SymbolType {
 	One, Zero
 };
 
-class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
+class Parser: public Storage::Tape::PLLParser<SymbolType> {
 	public:
 		Parser();
 
@@ -35,9 +32,9 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 		void reset_crc();
 		uint16_t get_crc();
 
+		bool did_update_shifter(int new_value, int length);
+
 	private:
-		void process_pulse(Storage::Tape::Tape::Pulse pulse);
-		void inspect_waves(const std::vector<WaveType> &waves);
 		NumberTheory::CRC16 crc_;
 };
 

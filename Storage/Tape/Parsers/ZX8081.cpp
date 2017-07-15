@@ -12,7 +12,7 @@ using namespace Storage::Tape::ZX8081;
 
 Parser::Parser() : pulse_was_high_(false), pulse_time_(0) {}
 
-void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
+void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	pulse_time_ += pulse.length;
 	bool pulse_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 

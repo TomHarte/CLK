@@ -10,8 +10,12 @@
 
 using namespace Storage::Tape::Acorn;
 
+namespace {
+const int PLLClockRate = 1920000;
+}
+
 Parser::Parser() :
-	::Storage::Tape::Parser<WaveType, SymbolType>(),
+	::Storage::Tape::PLLParser<SymbolType>(PLLClockRate, PLLClockRate / 4800, 100),
 	crc_(0x1021, 0x0000) {}
 
 int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape) {
@@ -52,38 +56,14 @@ int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 void Parser::reset_crc()	{	crc_.reset();				}
 uint16_t Parser::get_crc()	{	return crc_.get_value();	}
 
-void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
-	switch(pulse.type) {
-		default: break;
-		case Storage::Tape::Tape::Pulse::High:
-		case Storage::Tape::Tape::Pulse::Low:
-			float pulse_length = pulse.length.get_float();
-			if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 1200.0) {
-				push_wave(pulse_length > 1.0 / 3000.0 ? WaveType::Long : WaveType::Short); return;
-			}
-		break;
+bool Parser::did_update_shifter(int new_value, int length) {
+	if(length < 4) return false;
+
+	switch(new_value & 0xf) {
+		case 0x5:	printf("0"); push_symbol(SymbolType::Zero);	return true;
+		case 0xf:	printf("1"); push_symbol(SymbolType::One);	return true;
+		default:
+			printf("?");
+		return false;
 	}
-
-	push_wave(WaveType::Unrecognised);
-}
-
-void Parser::inspect_waves(const std::vector<WaveType> &waves) {
-	if(waves.size() < 2) return;
-
-	if(waves[0] == WaveType::Long && waves[1] == WaveType::Long) {
-		push_symbol(SymbolType::Zero, 2);
-		return;
-	}
-
-	if(waves.size() < 4) return;
-
-	if(	waves[0] == WaveType::Short &&
-		waves[1] == WaveType::Short &&
-		waves[2] == WaveType::Short &&
-		waves[3] == WaveType::Short) {
-		push_symbol(SymbolType::One, 4);
-		return;
-	}
-
-	remove_waves(1);
 }

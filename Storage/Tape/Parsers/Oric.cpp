@@ -45,7 +45,7 @@ bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Ta
 	return false;
 }
 
-void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
+void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 {
 	const float maximum_short_length = 0.000512f;
 	const float maximum_medium_length = 0.000728f;
