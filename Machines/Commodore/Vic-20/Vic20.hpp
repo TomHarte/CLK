@@ -199,7 +199,7 @@ class Machine:
 		uint8_t user_basic_memory_[0x0400];
 		uint8_t screen_memory_[0x1000];
 		uint8_t colour_memory_[0x0400];
-		std::unique_ptr<uint8_t> drive_rom_;
+		std::vector<uint8_t> drive_rom_;
 
 		uint8_t *processor_read_memory_map_[64];
 		uint8_t *processor_write_memory_map_[64];

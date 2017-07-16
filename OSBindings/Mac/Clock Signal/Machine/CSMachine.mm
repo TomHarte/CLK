@@ -21,8 +21,8 @@
 
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
 	__weak CSMachine *machine;
-	void speaker_did_complete_samples(Outputs::Speaker *speaker, const int16_t *buffer, int buffer_size) {
-		[machine speaker:speaker didCompleteSamples:buffer length:buffer_size];
+	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
+		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 	}
 };
 

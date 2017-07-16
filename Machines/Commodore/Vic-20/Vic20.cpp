@@ -246,8 +246,8 @@ void Machine::set_rom(ROMSlot slot, size_t length, const uint8_t *data) {
 		case Characters:	target = character_rom_;	max_length = 0x1000;	break;
 		case BASIC:			target = basic_rom_;								break;
 		case Drive:
-			drive_rom_.reset(new uint8_t[length]);
-			memcpy(drive_rom_.get(), data, length);
+			drive_rom_.resize(length);
+			memcpy(drive_rom_.data(), data, length);
 			install_disk_rom();
 		return;
 	}
@@ -313,10 +313,10 @@ void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
 #pragma mark - Disc
 
 void Machine::install_disk_rom() {
-	if(drive_rom_ && c1540_) {
-		c1540_->set_rom(drive_rom_.get());
+	if(!drive_rom_.empty() && c1540_) {
+		c1540_->set_rom(drive_rom_);
 		c1540_->run_for_cycles(2000000);
-		drive_rom_.reset();
+		drive_rom_.clear();
 	}
 }
 
