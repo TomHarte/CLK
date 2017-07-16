@@ -51,9 +51,12 @@ class DigitalPhaseLockedLoop {
 	private:
 		Delegate *delegate_;
 
-		void post_phase_error(int error);
+		void post_phase_offset(int phase, int offset);
 		std::vector<int> phase_error_history_;
 		size_t phase_error_pointer_;
+
+		std::vector<int> offset_history_;
+		int offset_;
 
 		int phase_;
 		int window_length_;
