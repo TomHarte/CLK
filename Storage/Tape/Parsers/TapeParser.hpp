@@ -158,9 +158,9 @@ template <typename SymbolType> class PLLParser:
 	public Parser<SymbolType> {
 	public:
 		/// Instantiates a new parser with the supplied @c tape.
-		PLLParser(int clock_rate, int clocks_per_bit, int tolerance) :
+		PLLParser(int clock_rate, int clocks_per_bit) :
 			clock_rate_(clock_rate),
-			pll_(clocks_per_bit, tolerance, 15),
+			pll_(clocks_per_bit, 15),
 			input_bit_counter_(0),
 			input_pattern_(0),
 			was_high_(false) {
