@@ -108,7 +108,7 @@ void BinaryTapePlayer::set_delegate(Delegate *delegate) {
 	delegate_ = delegate;
 }
 
-void BinaryTapePlayer::process_input_pulse(Storage::Tape::Tape::Pulse pulse) {
+void BinaryTapePlayer::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	bool new_input_level = pulse.type == Tape::Pulse::High;
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;

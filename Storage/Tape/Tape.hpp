@@ -87,7 +87,7 @@ class TapePlayer: public TimedEventLoop {
 
 	protected:
 		virtual void process_next_event();
-		virtual void process_input_pulse(Tape::Pulse pulse) = 0;
+		virtual void process_input_pulse(const Tape::Pulse &pulse) = 0;
 
 	private:
 		inline void get_next_pulse();
@@ -121,7 +121,7 @@ class BinaryTapePlayer: public TapePlayer {
 
 	protected:
 		Delegate *delegate_;
-		virtual void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
+		virtual void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse);
 		bool input_level_;
 		bool motor_is_running_;
 };

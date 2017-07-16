@@ -72,7 +72,7 @@ uint8_t Tape::get_data_register() {
 	return (uint8_t)(data_register_ >> 2);
 }
 
-void Tape::process_input_pulse(Storage::Tape::Tape::Pulse pulse) {
+void Tape::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	shifter_.process_pulse(pulse);
 }
 
