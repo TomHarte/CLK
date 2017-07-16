@@ -204,8 +204,10 @@ template <typename SymbolType> class PLLParser:
 	private:
 		Storage::DigitalPhaseLockedLoop pll_;
 		int clock_rate_;
+
 		int input_pattern_;
 		int input_bit_counter_;
+
 		bool was_high_;
 };
 

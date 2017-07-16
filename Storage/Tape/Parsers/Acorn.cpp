@@ -15,7 +15,7 @@ const int PLLClockRate = 1920000;
 }
 
 Parser::Parser() :
-	::Storage::Tape::PLLParser<SymbolType>(PLLClockRate, PLLClockRate / 4800, 100),
+	::Storage::Tape::PLLParser<SymbolType>(PLLClockRate, PLLClockRate / 4800, PLLClockRate / 24000),
 	crc_(0x1021, 0x0000) {}
 
 int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape) {
