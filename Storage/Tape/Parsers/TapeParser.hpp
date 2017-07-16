@@ -160,7 +160,7 @@ template <typename SymbolType> class PLLParser:
 		/// Instantiates a new parser with the supplied @c tape.
 		PLLParser(int clock_rate, int clocks_per_bit, int tolerance) :
 			clock_rate_(clock_rate),
-			pll_(clocks_per_bit, tolerance, 3),
+			pll_(clocks_per_bit, tolerance, 15),
 			input_bit_counter_(0),
 			input_pattern_(0),
 			was_high_(false) {

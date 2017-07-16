@@ -61,8 +61,10 @@ void DigitalPhaseLockedLoop::post_phase_offset(int phase, int offset) {
 		total_divisor += multiple;
 		total_spacing += offset;
 	}
-	window_length_ = total_spacing / total_divisor;
-	window_length_ = std::max(std::min(window_length_, clocks_per_bit_ + tolerance_), clocks_per_bit_ - tolerance_);
+	if(total_divisor) {
+		window_length_ = total_spacing / total_divisor;
+		window_length_ = std::max(std::min(window_length_, clocks_per_bit_ + tolerance_), clocks_per_bit_ - tolerance_);
+	}
 
 	int error = phase - (window_length_ >> 1);
 
