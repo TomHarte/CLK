@@ -131,7 +131,7 @@ class Machine:
 		/*!
 			Sets the ROM image to use for this drive; it is assumed that the buffer provided will be at least 16 kb in size.
 		*/
-		void set_rom(const uint8_t *rom);
+		void set_rom(const std::vector<uint8_t> &rom);
 
 		/*!
 			Sets the serial bus to which this drive should attach itself.
