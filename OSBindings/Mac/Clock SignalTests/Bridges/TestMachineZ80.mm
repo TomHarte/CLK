@@ -102,7 +102,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
 	int _timeSeekingReadOpcode;
-	int _lastOpcodeTime;
 }
 
 #pragma mark - Lifecycle
@@ -184,9 +183,6 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
-	int length = timeStamp - _lastOpcodeTime;
-	_lastOpcodeTime = timeStamp;
-
 	if(self.captureBusActivity) {
 		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
 		switch(operation) {
