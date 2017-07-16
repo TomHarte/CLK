@@ -17,7 +17,9 @@ Tape::Tape() :
 		delegate_(nullptr),
 		output_({.bits_remaining_until_empty = 0, .cycles_into_pulse = 0}),
 		last_posted_interrupt_status_(0),
-		interrupt_status_(0) {}
+		interrupt_status_(0) {
+	shifter_.set_delegate(this);
+}
 
 void Tape::push_tape_bit(uint16_t bit) {
 	data_register_ = (uint16_t)((data_register_ >> 1) | (bit << 10));
@@ -71,30 +73,11 @@ uint8_t Tape::get_data_register() {
 }
 
 void Tape::process_input_pulse(Storage::Tape::Tape::Pulse pulse) {
-	crossings_[0] = crossings_[1];
-	crossings_[1] = crossings_[2];
-	crossings_[2] = crossings_[3];
+	shifter_.process_pulse(pulse);
+}
 
-	crossings_[3] = Tape::Unrecognised;
-	if(pulse.type != Storage::Tape::Tape::Pulse::Zero) {
-		float pulse_length = (float)pulse.length.length / (float)pulse.length.clock_rate;
-		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 1200.0) {
-			crossings_[3] = pulse_length > 1.0 / 3000.0 ? Tape::Long : Tape::Short;
-		}
-//		if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 2400.0) crossings_[3] = Tape::Short;
-//		if(pulse_length >= 0.35 / 1200.0 && pulse_length < 0.7 / 1200.0) crossings_[3] = Tape::Long;
-	}
-
-	if(crossings_[0] == Tape::Long && crossings_[1] == Tape::Long) {
-		push_tape_bit(0);
-		crossings_[0] = crossings_[1] = Tape::Recognised;
-	} else {
-		if(crossings_[0] == Tape::Short && crossings_[1] == Tape::Short && crossings_[2] == Tape::Short && crossings_[3] == Tape::Short) {
-			push_tape_bit(1);
-			crossings_[0] = crossings_[1] =
-			crossings_[2] = crossings_[3] = Tape::Recognised;
-		}
-	}
+void Tape::acorn_shifter_output_bit(int value) {
+	push_tape_bit((uint16_t)value);
 }
 
 void Tape::run_for_cycles(unsigned int number_of_cycles) {

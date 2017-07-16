@@ -10,13 +10,16 @@
 #define Electron_Tape_h
 
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Storage/Tape/Parsers/Acorn.hpp"
 #include "Interrupts.hpp"
 
 #include <cstdint>
 
 namespace Electron {
 
-class Tape: public Storage::Tape::TapePlayer {
+class Tape:
+	public Storage::Tape::TapePlayer,
+	public Storage::Tape::Acorn::Shifter::Delegate {
 	public:
 		Tape();
 
@@ -38,6 +41,8 @@ class Tape: public Storage::Tape::TapePlayer {
 		inline void set_is_running(bool is_running) { is_running_ = is_running; }
 		inline void set_is_enabled(bool is_enabled) { is_enabled_ = is_enabled; }
 		void set_is_in_input_mode(bool is_in_input_mode);
+
+		void acorn_shifter_output_bit(int value);
 
 	private:
 		void process_input_pulse(Storage::Tape::Tape::Pulse pulse);
@@ -62,9 +67,7 @@ class Tape: public Storage::Tape::TapePlayer {
 		uint8_t interrupt_status_, last_posted_interrupt_status_;
 		Delegate *delegate_;
 
-		enum {
-			Long, Short, Unrecognised, Recognised
-		} crossings_[4];
+		::Storage::Tape::Acorn::Shifter shifter_;
 };
 
 }
