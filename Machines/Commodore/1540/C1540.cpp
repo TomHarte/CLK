@@ -69,8 +69,8 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	return 1;
 }
 
-void Machine::set_rom(const uint8_t *rom) {
-	memcpy(rom_, rom, sizeof(rom_));
+void Machine::set_rom(const std::vector<uint8_t> &rom) {
+	memcpy(rom_, rom.data(), std::min(sizeof(rom_), rom.size()));
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {

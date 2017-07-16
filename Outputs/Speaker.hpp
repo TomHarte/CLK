@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <list>
+#include <vector>
 
 #include "../SignalProcessing/Stepper.hpp"
 #include "../SignalProcessing/FIRFilter.hpp"
@@ -34,7 +35,7 @@ class Speaker {
 	public:
 		class Delegate {
 			public:
-				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
+				virtual void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) = 0;
 		};
 
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) {
@@ -53,10 +54,7 @@ class Speaker {
 
 		void set_output_rate(float cycles_per_second, int buffer_size) {
 			output_cycles_per_second_ = cycles_per_second;
-			if(buffer_size_ != buffer_size) {
-				buffer_in_progress_.reset(new int16_t[buffer_size]);
-				buffer_size_ = buffer_size;
-			}
+			buffer_in_progress_.resize((size_t)buffer_size);
 			set_needs_updated_filter_coefficients();
 		}
 
@@ -104,9 +102,8 @@ class Speaker {
 		}
 		std::shared_ptr<std::list<std::function<void(void)>>> queued_functions_;
 
-		std::unique_ptr<int16_t> buffer_in_progress_;
+		std::vector<int16_t> buffer_in_progress_;
 		float high_frequency_cut_off_;
-		int buffer_size_;
 		int buffer_in_progress_pointer_;
 		int number_of_taps_, requested_number_of_taps_;
 		bool coefficients_are_dirty_;
@@ -151,17 +148,17 @@ template <class T> class Filter: public Speaker {
 				// if input and output rates exactly match, just accumulate results and pass on
 				if(input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ < 0.0) {
 					while(cycles_remaining) {
-						unsigned int cycles_to_read = (unsigned int)(buffer_size_ - buffer_in_progress_pointer_);
+						unsigned int cycles_to_read = (unsigned int)(buffer_in_progress_.size() - (size_t)buffer_in_progress_pointer_);
 						if(cycles_to_read > cycles_remaining) cycles_to_read = cycles_remaining;
 
-						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_.get()[buffer_in_progress_pointer_]);
+						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_[(size_t)buffer_in_progress_pointer_]);
 						buffer_in_progress_pointer_ += cycles_to_read;
 
 						// announce to delegate if full
-						if(buffer_in_progress_pointer_ == buffer_size_) {
+						if(buffer_in_progress_pointer_ == buffer_in_progress_.size()) {
 							buffer_in_progress_pointer_ = 0;
 							if(delegate_) {
-								delegate_->speaker_did_complete_samples(this, buffer_in_progress_.get(), buffer_size_);
+								delegate_->speaker_did_complete_samples(this, buffer_in_progress_);
 							}
 						}
 
@@ -175,19 +172,19 @@ template <class T> class Filter: public Speaker {
 				if(input_cycles_per_second_ > output_cycles_per_second_ || (input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ >= 0.0)) {
 					while(cycles_remaining) {
 						unsigned int cycles_to_read = (unsigned int)std::min((int)cycles_remaining, number_of_taps_ - input_buffer_depth_);
-						static_cast<T *>(this)->get_samples(cycles_to_read, &input_buffer_.get()[input_buffer_depth_]);
+						static_cast<T *>(this)->get_samples(cycles_to_read, &input_buffer_[(size_t)input_buffer_depth_]);
 						cycles_remaining -= cycles_to_read;
 						input_buffer_depth_ += cycles_to_read;
 
 						if(input_buffer_depth_ == number_of_taps_) {
-							buffer_in_progress_.get()[buffer_in_progress_pointer_] = filter_->apply(input_buffer_.get());
+							buffer_in_progress_[(size_t)buffer_in_progress_pointer_] = filter_->apply(input_buffer_.data());
 							buffer_in_progress_pointer_++;
 
 							// announce to delegate if full
-							if(buffer_in_progress_pointer_ == buffer_size_) {
+							if(buffer_in_progress_pointer_ == buffer_in_progress_.size()) {
 								buffer_in_progress_pointer_ = 0;
 								if(delegate_) {
-									delegate_->speaker_did_complete_samples(this, buffer_in_progress_.get(), buffer_size_);
+									delegate_->speaker_did_complete_samples(this, buffer_in_progress_);
 								}
 							}
 
@@ -196,7 +193,7 @@ template <class T> class Filter: public Speaker {
 							// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
 							uint64_t steps = stepper_->step();
 							if(steps < number_of_taps_) {
-								int16_t *input_buffer = input_buffer_.get();
+								int16_t *input_buffer = input_buffer_.data();
 								memmove(input_buffer, &input_buffer[steps], sizeof(int16_t) * ((size_t)number_of_taps_ - (size_t)steps));
 								input_buffer_depth_ -= steps;
 							} else {
@@ -218,7 +215,7 @@ template <class T> class Filter: public Speaker {
 		std::unique_ptr<SignalProcessing::Stepper> stepper_;
 		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
-		std::unique_ptr<int16_t> input_buffer_;
+		std::vector<int16_t> input_buffer_;
 		int input_buffer_depth_;
 
 		void update_filter_coefficients() {
@@ -244,7 +241,7 @@ template <class T> class Filter: public Speaker {
 			}
 			filter_.reset(new SignalProcessing::FIRFilter((unsigned int)number_of_taps_, (float)input_cycles_per_second_, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
 
-			input_buffer_.reset(new int16_t[number_of_taps_]);
+			input_buffer_.resize((size_t)number_of_taps_);
 			input_buffer_depth_ = 0;
 		}
 };
