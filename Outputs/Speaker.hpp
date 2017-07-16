@@ -35,7 +35,7 @@ class Speaker {
 	public:
 		class Delegate {
 			public:
-				virtual void speaker_did_complete_samples(Speaker *speaker, const int16_t *buffer, int buffer_size) = 0;
+				virtual void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) = 0;
 		};
 
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) {
@@ -54,10 +54,7 @@ class Speaker {
 
 		void set_output_rate(float cycles_per_second, int buffer_size) {
 			output_cycles_per_second_ = cycles_per_second;
-			if(buffer_size_ != buffer_size) {
-				buffer_in_progress_.resize((size_t)buffer_size);
-				buffer_size_ = buffer_size;
-			}
+			buffer_in_progress_.resize((size_t)buffer_size);
 			set_needs_updated_filter_coefficients();
 		}
 
@@ -107,7 +104,6 @@ class Speaker {
 
 		std::vector<int16_t> buffer_in_progress_;
 		float high_frequency_cut_off_;
-		int buffer_size_;
 		int buffer_in_progress_pointer_;
 		int number_of_taps_, requested_number_of_taps_;
 		bool coefficients_are_dirty_;
@@ -152,17 +148,17 @@ template <class T> class Filter: public Speaker {
 				// if input and output rates exactly match, just accumulate results and pass on
 				if(input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ < 0.0) {
 					while(cycles_remaining) {
-						unsigned int cycles_to_read = (unsigned int)(buffer_size_ - buffer_in_progress_pointer_);
+						unsigned int cycles_to_read = (unsigned int)(buffer_in_progress_.size() - (size_t)buffer_in_progress_pointer_);
 						if(cycles_to_read > cycles_remaining) cycles_to_read = cycles_remaining;
 
 						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_[(size_t)buffer_in_progress_pointer_]);
 						buffer_in_progress_pointer_ += cycles_to_read;
 
 						// announce to delegate if full
-						if(buffer_in_progress_pointer_ == buffer_size_) {
+						if(buffer_in_progress_pointer_ == buffer_in_progress_.size()) {
 							buffer_in_progress_pointer_ = 0;
 							if(delegate_) {
-								delegate_->speaker_did_complete_samples(this, buffer_in_progress_.data(), buffer_size_);
+								delegate_->speaker_did_complete_samples(this, buffer_in_progress_);
 							}
 						}
 
@@ -185,10 +181,10 @@ template <class T> class Filter: public Speaker {
 							buffer_in_progress_pointer_++;
 
 							// announce to delegate if full
-							if(buffer_in_progress_pointer_ == buffer_size_) {
+							if(buffer_in_progress_pointer_ == buffer_in_progress_.size()) {
 								buffer_in_progress_pointer_ = 0;
 								if(delegate_) {
-									delegate_->speaker_did_complete_samples(this, buffer_in_progress_.data(), buffer_size_);
+									delegate_->speaker_did_complete_samples(this, buffer_in_progress_);
 								}
 							}
 
