@@ -166,7 +166,7 @@ void Controller::set_expected_bit_length(Time bit_length) {
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
 	int clocks_per_bit = (int)cycles_per_bit_.get_unsigned_int();
-	pll_.reset(new DigitalPhaseLockedLoop(clocks_per_bit, clocks_per_bit / 5, 3));
+	pll_.reset(new DigitalPhaseLockedLoop(clocks_per_bit, 3));
 	pll_->set_delegate(this);
 }
 

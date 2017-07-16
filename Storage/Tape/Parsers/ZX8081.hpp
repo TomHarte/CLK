@@ -29,7 +29,7 @@ enum class SymbolType {
 	One, Zero, FileGap, Unrecognised
 };
 
-class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
+class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
 	public:
 		Parser();
 
@@ -50,7 +50,7 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 		Time pulse_time_;
 		void post_pulse();
 
-		void process_pulse(Storage::Tape::Tape::Pulse pulse);
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
 		void mark_end();
 
 		void inspect_waves(const std::vector<WaveType> &waves);

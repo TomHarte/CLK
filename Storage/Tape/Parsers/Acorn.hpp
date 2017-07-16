@@ -11,20 +11,43 @@
 
 #include "TapeParser.hpp"
 #include "../../../NumberTheory/CRC.hpp"
+#include "../../Disk/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
 namespace Tape {
 namespace Acorn {
 
-enum class WaveType {
-	Short, Long, Unrecognised
+class Shifter: public Storage::DigitalPhaseLockedLoop::Delegate {
+	public:
+		Shifter();
+
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
+
+		class Delegate {
+			public:
+				virtual void acorn_shifter_output_bit(int value) = 0;
+		};
+		void set_delegate(Delegate *delegate) {
+			delegate_ = delegate;
+		}
+
+		void digital_phase_locked_loop_output_bit(int value);
+
+	private:
+		Storage::DigitalPhaseLockedLoop pll_;
+		bool was_high_;
+
+		unsigned int input_pattern_;
+		unsigned int input_bit_counter_;
+
+		Delegate *delegate_;
 };
 
 enum class SymbolType {
 	One, Zero
 };
 
-class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
+class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate  {
 	public:
 		Parser();
 
@@ -35,10 +58,13 @@ class Parser: public Storage::Tape::Parser<WaveType, SymbolType> {
 		void reset_crc();
 		uint16_t get_crc();
 
+		void acorn_shifter_output_bit(int value);
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
+
 	private:
-		void process_pulse(Storage::Tape::Tape::Pulse pulse);
-		void inspect_waves(const std::vector<WaveType> &waves);
+		bool did_update_shifter(int new_value, int length);
 		NumberTheory::CRC16 crc_;
+		Shifter shifter_;
 };
 
 }

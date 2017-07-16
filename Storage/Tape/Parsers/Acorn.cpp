@@ -10,9 +10,13 @@
 
 using namespace Storage::Tape::Acorn;
 
-Parser::Parser() :
-	::Storage::Tape::Parser<WaveType, SymbolType>(),
-	crc_(0x1021, 0x0000) {}
+namespace {
+const int PLLClockRate = 1920000;
+}
+
+Parser::Parser() : crc_(0x1021, 0x0000) {
+	shifter_.set_delegate(this);
+}
 
 int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	SymbolType symbol = get_next_symbol(tape);
@@ -52,38 +56,38 @@ int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 void Parser::reset_crc()	{	crc_.reset();				}
 uint16_t Parser::get_crc()	{	return crc_.get_value();	}
 
-void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse) {
-	switch(pulse.type) {
-		default: break;
-		case Storage::Tape::Tape::Pulse::High:
-		case Storage::Tape::Tape::Pulse::Low:
-			float pulse_length = pulse.length.get_float();
-			if(pulse_length >= 0.35 / 2400.0 && pulse_length < 0.7 / 1200.0) {
-				push_wave(pulse_length > 1.0 / 3000.0 ? WaveType::Long : WaveType::Short); return;
-			}
-		break;
-	}
-
-	push_wave(WaveType::Unrecognised);
+void Parser::acorn_shifter_output_bit(int value) {
+	push_symbol(value ? SymbolType::One : SymbolType::Zero);
 }
 
-void Parser::inspect_waves(const std::vector<WaveType> &waves) {
-	if(waves.size() < 2) return;
+void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+	shifter_.process_pulse(pulse);
+}
 
-	if(waves[0] == WaveType::Long && waves[1] == WaveType::Long) {
-		push_symbol(SymbolType::Zero, 2);
-		return;
+
+Shifter::Shifter() :
+	pll_(PLLClockRate / 4800, 15),
+	was_high_(false),
+	input_pattern_(0),
+	input_bit_counter_(0) {
+	pll_.set_delegate(this);
+}
+
+void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+	pll_.run_for_cycles((int)((float)PLLClockRate * pulse.length.get_float()));
+
+	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	if(is_high != was_high_) {
+		pll_.add_pulse();
 	}
+	was_high_ = is_high;
+}
 
-	if(waves.size() < 4) return;
-
-	if(	waves[0] == WaveType::Short &&
-		waves[1] == WaveType::Short &&
-		waves[2] == WaveType::Short &&
-		waves[3] == WaveType::Short) {
-		push_symbol(SymbolType::One, 4);
-		return;
+void Shifter::digital_phase_locked_loop_output_bit(int value) {
+	input_pattern_ = ((input_pattern_ << 1) | (unsigned int)value) & 0xf;
+	switch(input_pattern_) {
+		case 0x5:	delegate_->acorn_shifter_output_bit(0); input_pattern_ = 0;	break;
+		case 0xf:	delegate_->acorn_shifter_output_bit(1); input_pattern_ = 0;	break;
+		default:	break;;
 	}
-
-	remove_waves(1);
 }

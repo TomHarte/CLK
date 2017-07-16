@@ -12,7 +12,7 @@
 using namespace Storage::Tape::Commodore;
 
 Parser::Parser() :
-	Storage::Tape::Parser<WaveType, SymbolType>(),
+	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>(),
 	wave_period_(0.0f),
 	previous_was_high_(false),
 	parity_byte_(0) {}
@@ -262,7 +262,7 @@ uint16_t Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape
 	indicates a high to low transition, inspects the time since the last transition, to produce
 	a long, medium, short or unrecognised wave period.
 */
-void Parser::process_pulse(Storage::Tape::Tape::Pulse pulse)
+void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 {
 	// The Complete Commodore Inner Space Anthology, P 97, gives half-cycle lengths of:
 	// short: 182µs		=>	0.000364s cycle

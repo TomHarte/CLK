@@ -20,10 +20,9 @@ class DigitalPhaseLockedLoop {
 			Instantiates a @c DigitalPhaseLockedLoop.
 
 			@param clocks_per_bit The expected number of cycles between each bit of input.
-			@param tolerance The maximum tolerance for bit windows — extremes will be clocks_per_bit ± tolerance.
 			@param length_of_history The number of historic pulses to consider in locking to phase.
 		*/
-		DigitalPhaseLockedLoop(int clocks_per_bit, int tolerance, size_t length_of_history);
+		DigitalPhaseLockedLoop(int clocks_per_bit, size_t length_of_history);
 
 		/*!
 			Runs the loop, impliedly posting no pulses during that period.
@@ -51,9 +50,11 @@ class DigitalPhaseLockedLoop {
 	private:
 		Delegate *delegate_;
 
-		void post_phase_error(int error);
-		std::vector<int> phase_error_history_;
-		size_t phase_error_pointer_;
+		void post_phase_offset(int phase, int offset);
+
+		std::vector<int> offset_history_;
+		size_t offset_history_pointer_;
+		int offset_;
 
 		int phase_;
 		int window_length_;
