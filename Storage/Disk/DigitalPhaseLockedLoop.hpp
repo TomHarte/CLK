@@ -52,7 +52,7 @@ class DigitalPhaseLockedLoop {
 		Delegate *delegate_;
 
 		void post_phase_error(int error);
-		std::unique_ptr<std::vector<int>> phase_error_history_;
+		std::vector<int> phase_error_history_;
 		size_t phase_error_pointer_;
 
 		int phase_;
