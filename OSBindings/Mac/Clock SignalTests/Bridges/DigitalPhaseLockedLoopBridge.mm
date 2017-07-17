@@ -19,42 +19,35 @@ class DigitalPhaseLockedLoopDelegate: public Storage::DigitalPhaseLockedLoop::De
 	public:
 		__weak DigitalPhaseLockedLoopBridge *bridge;
 
-		void digital_phase_locked_loop_output_bit(int value)
-		{
+		void digital_phase_locked_loop_output_bit(int value) {
 			[bridge pushBit:value ? 1 : 0];
 		}
 };
 
-@implementation DigitalPhaseLockedLoopBridge
-{
+@implementation DigitalPhaseLockedLoopBridge {
 	std::unique_ptr<Storage::DigitalPhaseLockedLoop> _digitalPhaseLockedLoop;
 	DigitalPhaseLockedLoopDelegate _delegate;
 }
 
-- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit tolerance:(NSUInteger)tolerance historyLength:(NSUInteger)historyLength
-{
+- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit historyLength:(NSUInteger)historyLength {
 	self = [super init];
-	if(self)
-	{
-		_digitalPhaseLockedLoop.reset(new Storage::DigitalPhaseLockedLoop((unsigned int)clocksPerBit, (unsigned int)tolerance, (unsigned int)historyLength));
+	if(self) {
+		_digitalPhaseLockedLoop.reset(new Storage::DigitalPhaseLockedLoop((unsigned int)clocksPerBit, (unsigned int)historyLength));
 		_delegate.bridge = self;
 		_digitalPhaseLockedLoop->set_delegate(&_delegate);
 	}
 	return self;
 }
 
-- (void)runForCycles:(NSUInteger)cycles
-{
+- (void)runForCycles:(NSUInteger)cycles {
 	_digitalPhaseLockedLoop->run_for_cycles((unsigned int)cycles);
 }
 
-- (void)addPulse
-{
+- (void)addPulse {
 	_digitalPhaseLockedLoop->add_pulse();
 }
 
-- (void)pushBit:(int)value
-{
+- (void)pushBit:(int)value {
 	_stream = (_stream << 1) | value;
 }
 
