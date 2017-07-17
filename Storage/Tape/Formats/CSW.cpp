@@ -59,14 +59,20 @@ CSW::CSW(const char *file_name) :
 	}
 
 	if(compression_type_ == ZRLE) {
-		source_data_.resize((size_t)number_of_waves);
+		// The only clue given by CSW as to the output size in bytes is that there will be
+		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
+		// is pessimistic.
+		source_data_.resize((size_t)number_of_waves * 5);
 
 		std::vector<uint8_t> file_data;
 		size_t remaining_data = (size_t)file_stats_.st_size - (size_t)ftell(file_);
 		file_data.resize(remaining_data);
 		fread(file_data.data(), sizeof(uint8_t), remaining_data, file_);
 
-		uLongf output_length = (uLongf)number_of_waves;
+		// uncompress will tell how many compressed bytes there actually were, so use its
+		// modification of output_length to throw away all the memory that isn't actually
+		// needed.
+		uLongf output_length = (uLongf)(number_of_waves * 5);
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
 		source_data_.resize((size_t)output_length);
 	} else {
