@@ -10,6 +10,10 @@
 
 using namespace Storage::Tape;
 
+namespace {
+const unsigned int StandardTZXClock = 3500000;
+}
+
 TZX::TZX(const char *file_name) :
 	Storage::FileHolder(file_name),
 	is_high_(false) {
@@ -31,8 +35,89 @@ TZX::TZX(const char *file_name) :
 
 void TZX::virtual_reset() {
 	clear();
-	fseek(file_, SEEK_SET, 0x0a);
+	fseek(file_, 0x0a, SEEK_SET);
 }
 
 void TZX::get_next_pulses() {
+	while(empty()) {
+		uint8_t chunk_id = (uint8_t)fgetc(file_);
+		if(feof(file_)) {
+			set_is_at_end(true);
+			return;
+		}
+
+		switch(chunk_id) {
+			case 0x19:	get_generalised_data_block();	break;
+
+			case 0x30: {
+				// Text description. Ripe for ignoring.
+				int length = fgetc(file_);
+				fseek(file_, length, SEEK_CUR);
+			} break;
+
+			default:
+				// In TZX each chunk has a different way of stating or implying its length,
+				// so there is no route past an unimplemented chunk.
+				printf("!!Unknown %02x!!", chunk_id);
+				set_is_at_end(true);
+			return;
+		}
+	}
+}
+
+void TZX::get_generalised_data_block() {
+	uint32_t block_length = fgetc32le();
+	uint16_t pause_after_block = fgetc16le();
+
+	uint32_t total_pilot_symbols = fgetc32le();
+	uint8_t maximum_pulses_per_pilot_symbol = (uint8_t)fgetc(file_);
+	uint8_t symbols_in_pilot_table = (uint8_t)fgetc(file_);
+
+	uint32_t total_data_symbols = fgetc32le();
+	uint8_t maximum_pulses_per_data_symbol = (uint8_t)fgetc(file_);
+	uint8_t symbols_in_data_table = (uint8_t)fgetc(file_);
+
+	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table);
+	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table);
+	emplace_back(Tape::Pulse::Zero, Storage::Time((unsigned int)pause_after_block, 1000u));
+}
+
+void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols) {
+	if(!output_symbols) return;
+
+	// Construct the symbol table.
+	struct Symbol {
+		uint8_t flags;
+		std::vector<uint16_t> pulse_lengths;
+	};
+	std::vector<Symbol> symbol_table;
+	for(int c = 0; c < number_of_symbols; c++) {
+		Symbol symbol;
+		symbol.flags = (uint8_t)fgetc(file_);
+		for(int ic = 0; ic < max_pulses_per_symbol; ic++) {
+			symbol.pulse_lengths.push_back(fgetc16le());
+		}
+	}
+
+	// Hence produce the output.
+	for(int c = 0; c < output_symbols; c++) {
+		uint8_t symbol_value = (uint8_t)fgetc(file_);
+		Symbol &symbol = symbol_table[symbol_value];
+
+		// Mutate initial output level.
+		switch(symbol.flags & 3) {
+			case 0: break;
+			case 1: is_high_ ^= true;	break;
+			case 2: is_high_ = true;	break;
+			case 3: is_high_ = false;	break;
+		}
+
+		// Output waves.
+		for(auto length : symbol.pulse_lengths) {
+			if(!length) break;
+
+			is_high_ ^= true;
+			emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time((unsigned int)length, StandardTZXClock));
+		}
+	}
 }
