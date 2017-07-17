@@ -12,9 +12,7 @@ using namespace Storage::Tape;
 
 TZX::TZX(const char *file_name) :
 	Storage::FileHolder(file_name),
-	is_high_(false),
-	is_at_end_(false),
-	pulse_pointer_(0) {
+	is_high_(false) {
 
 	// Check for signature followed by a 0x1a
 	char identifier[7];
@@ -29,21 +27,12 @@ TZX::TZX(const char *file_name) :
 
 	// Reject if an incompatible version
 	if(major_version != 1 || minor_version > 20)  throw ErrorNotTZX;
-
-	// seed initial block contents
-	parse_next_chunk();
-}
-
-bool TZX::is_at_end() {
-	return true;
-}
-
-Tape::Pulse TZX::virtual_get_next_pulse() {
-	return Tape::Pulse();
 }
 
 void TZX::virtual_reset() {
+	clear();
+	fseek(file_, SEEK_SET, 0x0a);
 }
 
-void TZX::parse_next_chunk() {
+void TZX::get_next_pulses() {
 }
