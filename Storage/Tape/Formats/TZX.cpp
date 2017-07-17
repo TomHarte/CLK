@@ -35,6 +35,7 @@ TZX::TZX(const char *file_name) :
 
 void TZX::virtual_reset() {
 	clear();
+	set_is_at_end(false);
 	fseek(file_, 0x0a, SEEK_SET);
 }
 
