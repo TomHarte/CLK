@@ -34,6 +34,7 @@
 #include "../Storage/Tape/Formats/OricTAP.hpp"
 #include "../Storage/Tape/Formats/TapePRG.hpp"
 #include "../Storage/Tape/Formats/TapeUEF.hpp"
+#include "../Storage/Tape/Formats/TZX.hpp"
 #include "../Storage/Tape/Formats/ZX80O81P.hpp"
 
 typedef int TargetPlatformType;
@@ -124,6 +125,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
 		Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
 		Format("tap", tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
+		Format("tzx", tapes, Tape::TZX, TargetPlatform::ZX8081)						// TZX
 		Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
 
 #undef Format
