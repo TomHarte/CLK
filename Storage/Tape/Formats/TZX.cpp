@@ -48,7 +48,11 @@ void TZX::get_next_pulses() {
 		}
 
 		switch(chunk_id) {
-			case 0x19:	get_generalised_data_block();	break;
+			case 0x10:	get_standard_speed_data_block();	break;
+			case 0x11:	get_turbo_speed_data_block();		break;
+			case 0x12:	get_pure_tone_data_block();			break;
+			case 0x13:	get_pulse_sequence();				break;
+			case 0x19:	get_generalised_data_block();		break;
 
 			case 0x30: {
 				// Text description. Ripe for ignoring.
@@ -140,10 +144,57 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			// Output waves.
 			for(auto length : symbol.pulse_lengths) {
 				if(!length) break;
-
-				is_high_ ^= true;
-				emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time((unsigned int)length, StandardTZXClock));
+				post_pulse(length);
 			}
 		}
+	}
+}
+
+void TZX::post_pulse(unsigned int length) {
+	is_high_ ^= true;
+	emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time(length, StandardTZXClock));
+}
+
+void TZX::get_standard_speed_data_block() {
+	__unused uint16_t pause_after_block = fgetc16le();
+	uint16_t data_length = fgetc16le();
+	if(!data_length) return;
+
+	uint8_t first_byte = (uint8_t)fgetc(file_);
+	__unused int pilot_tone_pulses = (first_byte < 128) ? 8063  : 3223;
+	ungetc(first_byte, file_);
+
+	// TODO: output pilot_tone_pulses pulses
+	// TODO: output data_length bytes, in the Spectrum encoding
+	fseek(file_, data_length, SEEK_CUR);
+	// TODO: output a pause of length paused_after_block ms
+}
+
+void TZX::get_turbo_speed_data_block() {
+	__unused uint16_t length_of_pilot_pulse = fgetc16le();
+	__unused uint16_t length_of_sync_first_pulse = fgetc16le();
+	__unused uint16_t length_of_sync_second_pulse = fgetc16le();
+	__unused uint16_t length_of_zero_bit_pulse = fgetc16le();
+	__unused uint16_t length_of_one_bit_pulse = fgetc16le();
+	__unused uint16_t length_of_pilot_tone = fgetc16le();
+	__unused uint8_t number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	__unused uint16_t pause_after_block = fgetc16le();
+	uint16_t data_length = fgetc16le();
+
+	// TODO output as described
+	fseek(file_, data_length, SEEK_CUR);
+}
+
+void TZX::get_pure_tone_data_block() {
+	__unused uint16_t length_of_pulse = fgetc16le();
+	__unused uint16_t nunber_of_pulses = fgetc16le();
+
+	while(nunber_of_pulses--) post_pulse(length_of_pulse);
+}
+
+void TZX::get_pulse_sequence() {
+	uint8_t number_of_pulses = (uint8_t)fgetc(file_);
+	while(number_of_pulses--) {
+		post_pulse(fgetc16le());
 	}
 }
