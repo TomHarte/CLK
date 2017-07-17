@@ -38,7 +38,7 @@ class TZX: public PulseQueuedTape, public Storage::FileHolder {
 		bool is_high_;
 
 		void get_generalised_data_block();
-		void get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols);
+		void get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data);
 };
 
 }

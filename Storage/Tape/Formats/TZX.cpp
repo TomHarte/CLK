@@ -77,12 +77,12 @@ void TZX::get_generalised_data_block() {
 	uint8_t maximum_pulses_per_data_symbol = (uint8_t)fgetc(file_);
 	uint8_t symbols_in_data_table = (uint8_t)fgetc(file_);
 
-	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table);
-	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table);
+	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table, false);
+	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table, true);
 	emplace_back(Tape::Pulse::Zero, Storage::Time((unsigned int)pause_after_block, 1000u));
 }
 
-void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols) {
+void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data) {
 	if(!output_symbols) return;
 
 	// Construct the symbol table.
@@ -97,27 +97,48 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 		for(int ic = 0; ic < max_pulses_per_symbol; ic++) {
 			symbol.pulse_lengths.push_back(fgetc16le());
 		}
+		symbol_table.push_back(symbol);
 	}
 
 	// Hence produce the output.
+	BitStream stream(file_, false);
+	int base = 2;
+	int bits = 1;
+	while(base < number_of_symbols) {
+		base <<= 1;
+		bits++;
+	}
 	for(int c = 0; c < output_symbols; c++) {
-		uint8_t symbol_value = (uint8_t)fgetc(file_);
+		uint8_t symbol_value;
+		int count;
+		if(is_data) {
+			symbol_value = stream.get_bits(bits);
+			count = 1;
+		} else {
+			symbol_value = (uint8_t)fgetc(file_);
+			count = fgetc16le();
+		}
+		if(symbol_value > number_of_symbols) {
+			continue;
+		}
 		Symbol &symbol = symbol_table[symbol_value];
 
-		// Mutate initial output level.
-		switch(symbol.flags & 3) {
-			case 0: break;
-			case 1: is_high_ ^= true;	break;
-			case 2: is_high_ = true;	break;
-			case 3: is_high_ = false;	break;
-		}
+		while(count--) {
+			// Mutate initial output level.
+			switch(symbol.flags & 3) {
+				case 0: break;
+				case 1: is_high_ ^= true;	break;
+				case 2: is_high_ = true;	break;
+				case 3: is_high_ = false;	break;
+			}
 
-		// Output waves.
-		for(auto length : symbol.pulse_lengths) {
-			if(!length) break;
+			// Output waves.
+			for(auto length : symbol.pulse_lengths) {
+				if(!length) break;
 
-			is_high_ ^= true;
-			emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time((unsigned int)length, StandardTZXClock));
+				is_high_ ^= true;
+				emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time((unsigned int)length, StandardTZXClock));
+			}
 		}
 	}
 }
