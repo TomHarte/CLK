@@ -19,7 +19,7 @@ namespace ZX8081 {
 
 struct File {
 	std::vector<uint8_t> data;
-	std::string name;
+	std::wstring name;
 	bool isZX81;
 };
 

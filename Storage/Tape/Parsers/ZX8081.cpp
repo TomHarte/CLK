@@ -29,14 +29,11 @@ void Parser::post_pulse() {
 
 	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);
-	}
-	else if(pulse_time > expected_pulse_length * 1.25f) {
+	} else if(pulse_time > expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Gap);
-	}
-	else if(pulse_time >= expected_pulse_length * 0.75f && pulse_time <= expected_pulse_length * 1.25f) {
+	} else if(pulse_time >= expected_pulse_length * 0.75f && pulse_time <= expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Pulse);
-	}
-	else {
+	} else {
 		push_wave(WaveType::Unrecognised);
 	}
 }
