@@ -67,6 +67,7 @@ void TZX::get_next_pulses() {
 
 void TZX::get_generalised_data_block() {
 	uint32_t block_length = fgetc32le();
+	long endpoint = ftell(file_) + (long)block_length;
 	uint16_t pause_after_block = fgetc16le();
 
 	uint32_t total_pilot_symbols = fgetc32le();
@@ -80,6 +81,9 @@ void TZX::get_generalised_data_block() {
 	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table, false);
 	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table, true);
 	emplace_back(Tape::Pulse::Zero, Storage::Time((unsigned int)pause_after_block, 1000u));
+
+	// This should be unnecessary, but intends to preserve sanity.
+	fseek(file_, endpoint, SEEK_SET);
 }
 
 void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data) {
