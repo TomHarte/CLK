@@ -95,11 +95,8 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	while(c--) {
 		if(is_at_end(tape)) return -1;
 		SymbolType symbol = get_next_symbol(tape);
-		if(symbol == SymbolType::FileGap) {
-			return_symbol(symbol);
-			return -1;
-		}
 		if(symbol != SymbolType::One && symbol != SymbolType::Zero) {
+			return_symbol(symbol);
 			return -1;
 		}
 		result = (result << 1) | (symbol == SymbolType::One ? 1 : 0);
@@ -110,10 +107,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	if(is_at_end(tape)) return nullptr;
 	SymbolType symbol = get_next_symbol(tape);
-	if(symbol != SymbolType::FileGap) {
-		return nullptr;
-	}
-	while(symbol == SymbolType::FileGap && !is_at_end(tape)) {
+	while((symbol == SymbolType::FileGap || symbol == SymbolType::Unrecognised) && !is_at_end(tape)) {
 		symbol = get_next_symbol(tape);
 	}
 	if(is_at_end(tape)) return nullptr;
