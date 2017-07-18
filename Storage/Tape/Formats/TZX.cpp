@@ -16,7 +16,7 @@ const unsigned int StandardTZXClock = 3500000;
 
 TZX::TZX(const char *file_name) :
 	Storage::FileHolder(file_name),
-	is_high_(false) {
+	next_is_high_(false) {
 
 	// Check for signature followed by a 0x1a
 	char identifier[7];
@@ -36,6 +36,7 @@ TZX::TZX(const char *file_name) :
 void TZX::virtual_reset() {
 	clear();
 	set_is_at_end(false);
+	next_is_high_ = false;
 	fseek(file_, 0x0a, SEEK_SET);
 }
 
@@ -136,9 +137,9 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			// Mutate initial output level.
 			switch(symbol.flags & 3) {
 				case 0: break;
-				case 1: is_high_ ^= true;	break;
-				case 2: is_high_ = true;	break;
-				case 3: is_high_ = false;	break;
+				case 1: next_is_high_ ^= true;	break;
+				case 2: next_is_high_ = false;	break;
+				case 3: next_is_high_ = true;	break;
 			}
 
 			// Output waves.
@@ -151,8 +152,8 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 }
 
 void TZX::post_pulse(unsigned int length) {
-	is_high_ ^= true;
-	emplace_back(is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time(length, StandardTZXClock));
+	emplace_back(next_is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time(length, StandardTZXClock));
+	next_is_high_ ^= true;
 }
 
 void TZX::get_standard_speed_data_block() {
