@@ -85,7 +85,7 @@ void TapePlayer::process_next_event() {
 #pragma mark - Binary Player
 
 BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
-	TapePlayer(input_clock_rate), motor_is_running_(false)
+	TapePlayer(input_clock_rate), motor_is_running_(false), input_level_(false)
 {}
 
 void BinaryTapePlayer::set_motor_control(bool enabled) {
@@ -97,7 +97,7 @@ void BinaryTapePlayer::set_tape_output(bool set) {
 }
 
 bool BinaryTapePlayer::get_input() {
-	return input_level_;
+	return motor_is_running_ && input_level_;
 }
 
 void BinaryTapePlayer::run_for_cycles(int number_of_cycles) {
