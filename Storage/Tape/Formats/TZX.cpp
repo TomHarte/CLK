@@ -31,10 +31,19 @@ TZX::TZX(const char *file_name) :
 
 	// Reject if an incompatible version
 	if(major_version != 1 || minor_version > 20)  throw ErrorNotTZX;
+
+	virtual_reset();
 }
 
 void TZX::virtual_reset() {
 	clear();
+
+	// This is a workaround for arguably dodgy ZX80/ZX81 TZXs; they launch straight
+	// into data but both machines require a gap before data begins. So impose
+	// an initial gap, in the form of a very long wave.
+	emplace_back(Tape::Pulse::Low, Storage::Time(1, 4));
+	emplace_back(Tape::Pulse::High, Storage::Time(1, 4));
+
 	set_is_at_end(false);
 	next_is_high_ = false;
 	fseek(file_, 0x0a, SEEK_SET);
@@ -152,7 +161,7 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 }
 
 void TZX::post_pulse(unsigned int length) {
-	emplace_back(next_is_high_ ? Tape::Pulse::High : Tape::Pulse::Low, Storage::Time(length, StandardTZXClock));
+	emplace_back(next_is_high_ ? Tape::Pulse::Low : Tape::Pulse::High, Storage::Time(length, StandardTZXClock));
 	next_is_high_ ^= true;
 }
 
