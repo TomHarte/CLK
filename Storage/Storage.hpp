@@ -25,15 +25,13 @@ struct Time {
 	Time() : length(0), clock_rate(1) {}
 	Time(unsigned int unsigned_int_value) : length(unsigned_int_value), clock_rate(1) {}
 	Time(int int_value) : Time((unsigned int)int_value) {}
-	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) { simplify(); }
+	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
 	Time(int length, int clock_rate) : Time((unsigned int)length, (unsigned int)clock_rate) {}
 	Time(uint64_t length, uint64_t clock_rate) {
 		install_result(length, clock_rate);
-		simplify();
 	}
 	Time(float value) {
 		install_float(value);
-		simplify();
 	}
 
 	/*!
@@ -94,6 +92,10 @@ struct Time {
 
 	inline Time &operator += (const Time &other) {
 		if(!other.length) return *this;
+		if(!length) {
+			*this = other;
+			return *this;
+		}
 
 		uint64_t result_length;
 		uint64_t result_clock_rate;
@@ -207,11 +209,22 @@ struct Time {
 
 	private:
 		inline void install_result(uint64_t long_length, uint64_t long_clock_rate) {
+			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
+				length = (unsigned int)long_length;
+				clock_rate = (unsigned int)long_clock_rate;
+				return;
+			}
+
 			// TODO: switch to appropriate values if the result is too large or small to fit, even with trimmed accuracy.
 			if(!long_length) {
 				length = 0;
 				clock_rate = 1;
 				return;
+			}
+
+			while(!(long_length&0xf) && !(long_clock_rate&0xf)) {
+				long_length >>= 4;
+				long_clock_rate >>= 4;
 			}
 
 			while(!(long_length&1) && !(long_clock_rate&1)) {
