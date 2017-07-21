@@ -12,11 +12,12 @@ using namespace Storage::Tape;
 
 namespace {
 const unsigned int StandardTZXClock = 3500000;
+const unsigned int TZXClockMSMultiplier = 3500;
 }
 
 TZX::TZX(const char *file_name) :
 	Storage::FileHolder(file_name),
-	next_is_high_(false) {
+	current_level_(false) {
 
 	// Check for signature followed by a 0x1a
 	char identifier[7];
@@ -37,16 +38,14 @@ TZX::TZX(const char *file_name) :
 
 void TZX::virtual_reset() {
 	clear();
+	set_is_at_end(false);
+	fseek(file_, 0x0a, SEEK_SET);
 
 	// This is a workaround for arguably dodgy ZX80/ZX81 TZXs; they launch straight
 	// into data but both machines require a gap before data begins. So impose
 	// an initial gap, in the form of a very long wave.
-	emplace_back(Tape::Pulse::Low, Storage::Time(1, 4));
-	emplace_back(Tape::Pulse::High, Storage::Time(1, 4));
-
-	set_is_at_end(false);
-	next_is_high_ = false;
-	fseek(file_, 0x0a, SEEK_SET);
+	current_level_ = false;
+	post_gap(500);
 }
 
 void TZX::get_next_pulses() {
@@ -95,7 +94,7 @@ void TZX::get_generalised_data_block() {
 
 	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table, false);
 	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table, true);
-	emplace_back(Tape::Pulse::Zero, Storage::Time((unsigned int)pause_after_block, 1000u));
+	post_gap(pause_after_block);
 
 	// This should be unnecessary, but intends to preserve sanity.
 	fseek(file_, endpoint, SEEK_SET);
@@ -146,9 +145,9 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			// Mutate initial output level.
 			switch(symbol.flags & 3) {
 				case 0: break;
-				case 1: next_is_high_ ^= true;	break;
-				case 2: next_is_high_ = false;	break;
-				case 3: next_is_high_ = true;	break;
+				case 1: current_level_ ^= true;	break;
+				case 2: current_level_ = true;	break;
+				case 3: current_level_ = false;	break;
 			}
 
 			// Output waves.
@@ -158,11 +157,6 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			}
 		}
 	}
-}
-
-void TZX::post_pulse(unsigned int length) {
-	emplace_back(next_is_high_ ? Tape::Pulse::Low : Tape::Pulse::High, Storage::Time(length, StandardTZXClock));
-	next_is_high_ ^= true;
 }
 
 void TZX::get_standard_speed_data_block() {
@@ -207,4 +201,25 @@ void TZX::get_pulse_sequence() {
 	while(number_of_pulses--) {
 		post_pulse(fgetc16le());
 	}
+}
+
+#pragma mark - Output
+
+void TZX::post_pulse(unsigned int length) {
+	post_pulse(Storage::Time(length, StandardTZXClock));
+}
+
+void TZX::post_gap(unsigned int milliseconds) {
+	if(!milliseconds) return;
+	if(milliseconds > 1 && !current_level_) {
+		post_pulse(Storage::Time(TZXClockMSMultiplier, StandardTZXClock));
+		post_pulse(Storage::Time((milliseconds - 1u)*TZXClockMSMultiplier, StandardTZXClock));
+	} else {
+		post_pulse(Storage::Time(milliseconds*TZXClockMSMultiplier, StandardTZXClock));
+	}
+}
+
+void TZX::post_pulse(const Storage::Time &time) {
+	emplace_back(current_level_ ? Tape::Pulse::High : Tape::Pulse::Low, time);
+	current_level_ ^= true;
 }

@@ -35,7 +35,7 @@ class TZX: public PulseQueuedTape, public Storage::FileHolder {
 		void virtual_reset();
 		void get_next_pulses();
 
-		bool next_is_high_;
+		bool current_level_;
 
 		void get_standard_speed_data_block();
 		void get_turbo_speed_data_block();
@@ -46,6 +46,9 @@ class TZX: public PulseQueuedTape, public Storage::FileHolder {
 		void get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data);
 
 		void post_pulse(unsigned int length);
+		void post_gap(unsigned int milliseconds);
+
+		void post_pulse(const Storage::Time &time);
 };
 
 }
