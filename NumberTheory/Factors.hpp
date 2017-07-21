@@ -9,15 +9,15 @@
 #ifndef Factors_hpp
 #define Factors_hpp
 
+#include <utility>
+
 namespace NumberTheory {
 	/*!
 		@returns The greatest common divisor of @c a and @c b as computed by Euclid's algorithm.
 	*/
 	template<class T> T greatest_common_divisor(T a, T b) {
 		if(a < b) {
-			T swap = b;
-			b = a;
-			a = swap;
+			std::swap(a, b);
 		}
 
 		while(1) {
