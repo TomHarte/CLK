@@ -130,7 +130,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// Check for use of the fast tape hack.
 			if(use_fast_tape_hack_ && address == tape_trap_address_ && tape_player_.has_tape()) {
-				Storage::Time time = tape_player_.get_tape()->get_current_time();
+				uint64_t prior_offset = tape_player_.get_tape()->get_offset();
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
@@ -144,7 +144,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 					tape_advance_delay_ = 1000;
 					return 0;
 				} else {
-					tape_player_.get_tape()->seek(time);
+					tape_player_.get_tape()->set_offset(prior_offset);
 				}
 			}
 

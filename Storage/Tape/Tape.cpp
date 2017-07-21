@@ -20,22 +20,43 @@ TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 #pragma mark - Seeking
 
 void Storage::Tape::Tape::seek(Time &seek_time) {
-	current_time_.set_zero();
-	next_time_.set_zero();
-	while(next_time_ <= seek_time) get_next_pulse();
+	Time next_time(0);
+	reset();
+	while(next_time <= seek_time) {
+		get_next_pulse();
+		next_time += pulse_.length;
+	}
+}
+
+Storage::Time Tape::get_current_time() {
+	Time time(0);
+	uint64_t steps = get_offset();
+	reset();
+	while(steps--) {
+		get_next_pulse();
+		time += pulse_.length;
+	}
+	return time;
 }
 
 void Storage::Tape::Tape::reset() {
-	current_time_.set_zero();
-	next_time_.set_zero();
+	offset_ = 0;
 	virtual_reset();
 }
 
 Tape::Pulse Tape::get_next_pulse() {
-	Tape::Pulse pulse = virtual_get_next_pulse();
-	current_time_ = next_time_;
-	next_time_ += pulse.length;
-	return pulse;
+	pulse_ = virtual_get_next_pulse();
+	offset_++;
+	return pulse_;
+}
+
+uint64_t Tape::get_offset() {
+	return offset_;
+}
+
+void Tape::set_offset(uint64_t offset) {
+	reset();
+	while(offset--) get_next_pulse();
 }
 
 #pragma mark - Player
