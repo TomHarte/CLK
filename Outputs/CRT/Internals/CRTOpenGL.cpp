@@ -102,7 +102,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// make sure there's a target to draw to
-	if(!framebuffer_ || framebuffer_->get_height() != output_height || framebuffer_->get_width() != output_width) {
+	if(!framebuffer_ || (unsigned int)framebuffer_->get_height() != output_height || (unsigned int)framebuffer_->get_width() != output_width) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit, GL_LINEAR));
 		if(framebuffer_) {
 			new_framebuffer->bind_framebuffer();

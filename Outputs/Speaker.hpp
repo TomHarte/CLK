@@ -104,8 +104,8 @@ class Speaker {
 
 		std::vector<int16_t> buffer_in_progress_;
 		float high_frequency_cut_off_;
-		int buffer_in_progress_pointer_;
-		int number_of_taps_, requested_number_of_taps_;
+		size_t buffer_in_progress_pointer_;
+		size_t number_of_taps_, requested_number_of_taps_;
 		bool coefficients_are_dirty_;
 		Delegate *delegate_;
 
