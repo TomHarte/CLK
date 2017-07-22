@@ -59,7 +59,7 @@ class Speaker {
 		}
 
 		void set_output_quality(int number_of_taps) {
-			requested_number_of_taps_ = number_of_taps;
+			requested_number_of_taps_ = (size_t)number_of_taps;
 			set_needs_updated_filter_coefficients();
 		}
 
@@ -171,7 +171,7 @@ template <class T> class Filter: public Speaker {
 				// if the output rate is less than the input rate, use the filter
 				if(input_cycles_per_second_ > output_cycles_per_second_ || (input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ >= 0.0)) {
 					while(cycles_remaining) {
-						unsigned int cycles_to_read = (unsigned int)std::min((int)cycles_remaining, number_of_taps_ - input_buffer_depth_);
+						unsigned int cycles_to_read = (unsigned int)std::min((size_t)cycles_remaining, number_of_taps_ - input_buffer_depth_);
 						static_cast<T *>(this)->get_samples(cycles_to_read, &input_buffer_[(size_t)input_buffer_depth_]);
 						cycles_remaining -= cycles_to_read;
 						input_buffer_depth_ += cycles_to_read;
@@ -216,14 +216,14 @@ template <class T> class Filter: public Speaker {
 		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
 		std::vector<int16_t> input_buffer_;
-		int input_buffer_depth_;
+		size_t input_buffer_depth_;
 
 		void update_filter_coefficients() {
 			// make a guess at a good number of taps if this hasn't been provided explicitly
 			if(requested_number_of_taps_) {
 				number_of_taps_ = requested_number_of_taps_;
 			} else {
-				number_of_taps_ = (int)ceilf((input_cycles_per_second_ + output_cycles_per_second_) / output_cycles_per_second_);
+				number_of_taps_ = (size_t)ceilf((input_cycles_per_second_ + output_cycles_per_second_) / output_cycles_per_second_);
 				number_of_taps_ *= 2;
 				number_of_taps_ |= 1;
 			}
@@ -235,9 +235,9 @@ template <class T> class Filter: public Speaker {
 
 			float high_pass_frequency;
 			if(high_frequency_cut_off_ > 0.0) {
-				high_pass_frequency = std::min((float)output_cycles_per_second_ / 2.0f, high_frequency_cut_off_);
+				high_pass_frequency = std::min(output_cycles_per_second_ / 2.0f, high_frequency_cut_off_);
 			} else {
-				high_pass_frequency = (float)output_cycles_per_second_ / 2.0f;
+				high_pass_frequency = output_cycles_per_second_ / 2.0f;
 			}
 			filter_.reset(new SignalProcessing::FIRFilter((unsigned int)number_of_taps_, (float)input_cycles_per_second_, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
 
