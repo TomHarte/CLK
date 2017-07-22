@@ -9,10 +9,10 @@
 #include "Vic20.hpp"
 
 uint16_t *Commodore::Vic20::Machine::sequence_for_character(Utility::Typer *typer, char character) {
-#define KEYS(...)	{__VA_ARGS__, TerminateSequence}
-#define SHIFT(...)	{KeyLShift, __VA_ARGS__, TerminateSequence}
+#define KEYS(...)	{__VA_ARGS__, EndSequence}
+#define SHIFT(...)	{KeyLShift, __VA_ARGS__, EndSequence}
 #define X			{NotMapped}
-	static Key key_sequences[][3] = {
+	static KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -80,7 +80,5 @@ uint16_t *Commodore::Vic20::Machine::sequence_for_character(Utility::Typer *type
 #undef SHIFT
 #undef X
 
-	if(character > sizeof(key_sequences) / sizeof(*key_sequences)) return nullptr;
-	if(key_sequences[character][0] == NotMapped) return nullptr;
-	return (uint16_t *)key_sequences[character];
+	return table_lookup_sequence_for_character(key_sequences, sizeof(key_sequences), character);
 }

@@ -403,7 +403,7 @@ void WD1770::posit_event(Event new_event_type) {
 			goto verify;
 		}
 		step(step_direction_ ? 1 : -1);
-		int time_to_wait;
+		unsigned int time_to_wait;
 		switch(command_ & 3) {
 			default:
 			case 0: time_to_wait = 6;	break;

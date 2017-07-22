@@ -331,7 +331,7 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	GLfloat offsets[5];
 	unsigned int taps = 11;
 //	unsigned int taps = 21;
-	while(1) {
+//	while(1) {
 		float coefficients[21];
 		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
 		luminance_filter.get_coefficients(coefficients);
@@ -341,12 +341,12 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 		memset(weights, 0, sizeof(float)*12);
 		memset(offsets, 0, sizeof(float)*5);
 
-		int halfSize = (taps >> 1);
-		for(int c = 0; c < taps; c++) {
-			if(c < 5) offsets[c] = (halfSize - c);
+		unsigned int half_size = (taps >> 1);
+		for(unsigned int c = 0; c < taps; c++) {
+			if(c < 5) offsets[c] = (half_size - c);
 			weights[c] = coefficients[c];
 		}
-		break;
+//		break;
 
 //		int halfSize = (taps >> 1);
 //		while(c < halfSize && sample < 5) {
@@ -368,8 +368,8 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 //			}
 //			break;
 //		}
-		taps -= 2;
-	}
+//		taps -= 2;
+//	}
 
 	set_uniform("weights", 4, 3, weights);
 	set_uniform("offsets", 1, 5, offsets);

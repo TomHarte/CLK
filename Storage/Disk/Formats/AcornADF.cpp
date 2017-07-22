@@ -64,7 +64,7 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
-	for(int sector = 0; sector < sectors_per_track; sector++) {
+	for(unsigned int sector = 0; sector < sectors_per_track; sector++) {
 		Storage::Encodings::MFM::Sector new_sector;
 		new_sector.track = (uint8_t)position;
 		new_sector.side = (uint8_t)head;

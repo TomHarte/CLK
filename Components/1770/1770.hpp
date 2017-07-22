@@ -123,7 +123,7 @@ class WD1770: public Storage::Disk::Controller {
 		void posit_event(Event type);
 		int interesting_event_mask_;
 		int resume_point_;
-		int delay_time_;
+		unsigned int delay_time_;
 
 		// Output
 		int last_bit_;

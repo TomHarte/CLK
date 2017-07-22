@@ -57,8 +57,6 @@ enum Key: uint16_t {
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
 	KeyBreak		= 0xfffd,
-
-	TerminateSequence = 0xffff, NotMapped		= 0xfffe,
 };
 
 /*!

@@ -25,7 +25,6 @@ class PRG: public Tape, public Storage::FileHolder {
 			Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
 
 			@param file_name The name of the file to load.
-			@param type The type of data the file should contain.
 			@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 		*/
 		PRG(const char *file_name);

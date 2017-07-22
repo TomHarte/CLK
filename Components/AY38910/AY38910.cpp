@@ -76,7 +76,7 @@ void AY38910::set_clock_rate(double clock_rate) {
 }
 
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target) {
-	int c = 0;
+	unsigned int c = 0;
 	while((master_divider_&7) && c < number_of_samples) {
 		target[c] = output_volume_;
 		master_divider_++;

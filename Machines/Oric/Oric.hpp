@@ -48,8 +48,6 @@ enum Key: uint16_t {
 	KeyForwardSlash	= 0x0700 | 0x08,	Key0			= 0x0700 | 0x04,	KeyL			= 0x0700 | 0x02,	Key8			= 0x0700 | 0x01,
 
 	KeyNMI			= 0xfffd,
-
-	TerminateSequence = 0xffff, NotMapped = 0xfffe
 };
 
 enum ROM {

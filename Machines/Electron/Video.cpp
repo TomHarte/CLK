@@ -425,9 +425,9 @@ void VideoOutput::setup_screen_map() {
 			screen_map_.emplace_back(DrawAction::Blank, cycles_per_line >> 1);
 			screen_map_.emplace_back(DrawAction::Sync, (cycles_per_line * 5) >> 1);
 		}
-		for(int c = 0; c < first_graphics_line - 3; c++) emplace_blank_line();
-		for(int c = 0; c < 256; c++) emplace_pixel_line();
-		for(int c = 256 + first_graphics_line; c < 312; c++) emplace_blank_line();
+		for(int l = 0; l < first_graphics_line - 3; l++) emplace_blank_line();
+		for(int l = 0; l < 256; l++) emplace_pixel_line();
+		for(int l = 256 + first_graphics_line; l < 312; l++) emplace_blank_line();
 		if(c&1) emplace_blank_line();
 	}
 }

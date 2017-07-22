@@ -229,14 +229,14 @@ class TIA {
 				} queue_[4];
 				int queue_read_pointer_, queue_write_pointer_;
 
-				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int pixel_position, int adder, int reverse_mask) {
-					if(pixel_position == 32 || !graphic[graphic_index]) return;
+				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int output_pixel_position, int output_adder, int output_reverse_mask) {
+					if(output_pixel_position == 32 || !graphic[graphic_index]) return;
 					int output_cursor = 0;
-					while(pixel_position < 32 && output_cursor < count) {
-						int shift = (pixel_position >> 2) ^ reverse_mask;
+					while(output_pixel_position < 32 && output_cursor < count) {
+						int shift = (output_pixel_position >> 2) ^ output_reverse_mask;
 						target[output_cursor] |= ((graphic[graphic_index] >> shift)&1) * collision_identity;
 						output_cursor++;
-						pixel_position += adder;
+						output_pixel_position += output_adder;
 					}
 				}
 
