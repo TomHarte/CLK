@@ -47,8 +47,8 @@ void DigitalPhaseLockedLoop::add_pulse() {
 	}
 }
 
-void DigitalPhaseLockedLoop::post_phase_offset(int phase, int offset) {
-	offset_history_[offset_history_pointer_] = offset;
+void DigitalPhaseLockedLoop::post_phase_offset(int new_phase, int new_offset) {
+	offset_history_[offset_history_pointer_] = new_offset;
 	offset_history_pointer_ = (offset_history_pointer_ + 1) % offset_history_.size();
 
 	// use an unweighted average of the stored offsets to compute current window size,
@@ -65,7 +65,7 @@ void DigitalPhaseLockedLoop::post_phase_offset(int phase, int offset) {
 		window_length_ = total_spacing / total_divisor;
 	}
 
-	int error = phase - (window_length_ >> 1);
+	int error = new_phase - (window_length_ >> 1);
 
 	// use a simple spring mechanism as a lowpass filter for phase
 	phase_ -= (error + 1) >> 1;
