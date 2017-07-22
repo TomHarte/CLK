@@ -141,12 +141,12 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	shifter.add_index_address_mark();
 
 	// add the post-index mark
-	for(int c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
+	for(size_t c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
 
 	// add sectors
 	for(const Sector &sector : sectors) {
 		// gap
-		for(int c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
+		for(size_t c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// sector header
 		shifter.add_ID_address_mark();
@@ -158,8 +158,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_crc();
 
 		// gap
-		for(int c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
-		for(int c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
+		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
+		for(size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// data
 		shifter.add_data_address_mark();
@@ -170,8 +170,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_crc();
 
 		// gap
-		for(int c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
-		for(int c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
+		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
+		for(size_t c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
 	}
 
 	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
