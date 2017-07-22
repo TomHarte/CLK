@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <cstdio>
 #include <cstdint>
+#include <string>
 
 namespace Storage {
 
@@ -24,7 +25,7 @@ class FileHolder {
 		virtual ~FileHolder();
 
 	protected:
-		FileHolder(const char *file_name);
+		FileHolder(const std::string &file_name);
 
 		/*!
 			Reads @c length bytes from the file and compares them to the first
@@ -64,6 +65,12 @@ class FileHolder {
 			and returning the two assembled in big endian order.
 		*/
 		uint16_t fgetc16be();
+
+		/*!
+			Determines and returns the file extension — everything from the final character
+			back to the first dot. The string is converted to lowercase before being returned.
+		*/
+		std::string extension();
 
 		/*!
 			Ensures the file is at least @c length bytes long, appending 0s until it is
@@ -117,6 +124,8 @@ class FileHolder {
 		FILE *file_;
 		struct stat file_stats_;
 		bool is_read_only_;
+
+		const std::string name_;
 };
 
 }

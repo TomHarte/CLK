@@ -184,6 +184,7 @@
 			<array>
 				<string>p</string>
 				<string>81</string>
+				<string>p81</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette</string>
