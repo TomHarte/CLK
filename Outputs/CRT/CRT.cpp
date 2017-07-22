@@ -38,7 +38,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
 	// generate timing values implied by the given arguments
-	sync_capacitor_charge_threshold_ = ((int)(syncCapacityLineChargeThreshold * cycles_per_line) * 3) / 4;
+	sync_capacitor_charge_threshold_ = ((unsigned int)(syncCapacityLineChargeThreshold * cycles_per_line) * 3) / 4;
 
 	// create the two flywheels
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
@@ -364,8 +364,8 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	unsigned int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
-	if(first_cycle_after_sync < horizontal_retrace_period) first_cycle_after_sync = (int)horizontal_retrace_period;
-	if(first_cycle_after_sync + number_of_cycles > horizontal_scan_period) number_of_cycles = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
+	if((unsigned int)first_cycle_after_sync < horizontal_retrace_period) first_cycle_after_sync = (int)horizontal_retrace_period;
+	if((unsigned int)(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
 
 	float start_x = (float)((unsigned)first_cycle_after_sync - horizontal_retrace_period) / (float)horizontal_scan_period;
 	float width = (float)number_of_cycles / (float)horizontal_scan_period;
