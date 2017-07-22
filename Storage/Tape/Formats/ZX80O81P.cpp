@@ -19,8 +19,8 @@ ZX80O81P::ZX80O81P(const char *file_name) :
 	fread(data_.data(), 1, (size_t)file_stats_.st_size, file_);
 
 	// If it's a ZX81 file, prepend a file name.
-	char type = (char)tolower(file_name[strlen(file_name) - 1]);
-	if(type == 'p' || type == '1') {
+	std::string type = extension();
+	if(type == "p" || type == "81") {
 		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.
 		data_.insert(data_.begin(), 0x80);
 	}
