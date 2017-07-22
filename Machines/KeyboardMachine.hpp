@@ -13,7 +13,15 @@ namespace KeyboardMachine {
 
 class Machine {
 	public:
+		/*!
+			Indicates that the key @c key has been either pressed or released, according to
+			the state of @c isPressed.
+		*/
 		virtual void set_key_state(uint16_t key, bool isPressed) = 0;
+
+		/*!
+			Instructs that all keys should now be treated as released.
+		*/
 		virtual void clear_all_keys() = 0;
 };
 

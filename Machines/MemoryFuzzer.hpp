@@ -15,7 +15,10 @@
 
 namespace Memory {
 
+/// Stores @c size random bytes from @c buffer onwards.
 void Fuzz(uint8_t *buffer, size_t size);
+
+// Replaces all existing vector contents with random bytes.
 void Fuzz(std::vector<uint8_t> &buffer);
 
 }
