@@ -619,7 +619,7 @@ template <class T> class Processor {
 				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
-				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read3(memptr_, a_)),
+				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read3(memptr_, a_), Inc16(memptr_)),
 				/* 0x3b DEC SP */		Instr(4, {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
