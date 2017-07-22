@@ -65,6 +65,8 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 		case CSTestMachineZ80RegisterProgramCounter:	return CPU::Z80::Register::ProgramCounter;
 		case CSTestMachineZ80RegisterStackPointer:		return CPU::Z80::Register::StackPointer;
+
+		case CSTestMachineZ80RegisterMemPtr:			return CPU::Z80::Register::MemPtr;
 	}
 }
 
