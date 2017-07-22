@@ -38,6 +38,12 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
+	/* TODO:
+		LD (addr),A
+			MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = A
+			Note for *BM1: MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = 0
+	*/
+
 	// LD A, (rp)
 	func testLDArp() {
 		let bcProgram: [UInt8] = [
@@ -60,7 +66,18 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
-	// LD (addr), rp
+	/* TODO:
+		LD (rp),A  where rp -- BC or DE
+			MEMPTR_low = (rp + 1) & #FF,  MEMPTR_hi = A
+			Note for *BM1: MEMPTR_low = (rp + 1) & #FF,  MEMPTR_hi = 0
+	*/
+
+	/* TODO:
+		LD (addr), rp
+			MEMPTR = addr + 1
+	*/
+
+	// LD rp, (addr)
 	func testLDnnrp() {
 		var hlBaseProgram: [UInt8] = [
 			0x22, 0x00, 0x00
@@ -117,4 +134,134 @@ class Z80MemptrTests: XCTestCase {
 			XCTAssertEqual(test(program: iyProgram, length: 20, initialValue: 0xffff), expectedResult)
 		}
 	}
+
+	/* TODO:
+		EX (SP),rp
+			MEMPTR = rp value after the operation
+	*/
+
+	/* TODO:
+		ADD/ADC/SBC rp1,rp2
+			MEMPTR = rp1_before_operation + 1
+	*/
+
+	/* TODO:
+		RLD/RRD
+			MEMPTR = HL + 1
+	*/
+
+	/* TODO:
+		JR/DJNZ/RET/RETI/RST (jumping to addr)
+			MEMPTR = addr
+	*/
+
+	/* TODO:
+		JP(except JP rp)/CALL addr (even in case of conditional call/jp, independantly on condition satisfied or not)
+			MEMPTR = addr
+	*/
+
+	/* TODO:
+		IN A,(port)
+			MEMPTR = (A_before_operation << 8) + port + 1
+	*/
+
+	/* TODO:
+		IN A,(C)
+			MEMPTR = BC + 1
+	*/
+
+	/* TODO:
+		OUT (port),A
+			MEMPTR_low = (port + 1) & #FF,  MEMPTR_hi = A
+			Note for *BM1: MEMPTR_low = (port + 1) & #FF,  MEMPTR_hi = 0
+	*/
+
+	/* TODO:
+		OUT (C),A
+			MEMPTR = BC + 1
+	*/
+
+	/* TODO:
+		LDIR/LDDR
+			when BC == 1: MEMPTR is not changed
+			when BC <> 1: MEMPTR = PC + 1, where PC = instruction address
+	*/
+
+	/* TODO:
+		CPI
+			MEMPTR = MEMPTR + 1
+	*/
+
+	/* TODO:
+		CPD
+			MEMPTR = MEMPTR - 1
+	*/
+
+	/* TODO:
+		CPIR
+			when BC=1 or A=(HL): exactly as CPI
+			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
+			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 + 1 
+			  (if there were not interrupts during the execution) 
+	*/
+
+	/* TODO:
+		CPDR
+			when BC=1 or A=(HL): exactly as CPD
+			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
+			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 - 1 
+			  (if there were not interrupts during the execution)
+	*/
+
+	/* TODO:
+		INI
+			MEMPTR = BC_before_decrementing_B + 1
+	*/
+
+	/* TODO:
+		IND
+			MEMPTR = BC_before_decrementing_B - 1
+	*/
+
+	/* TODO:
+		INIR
+			exactly as INI on each execution.
+			I.e. resulting MEMPTR = ((1 << 8) + C) + 1 
+	*/
+
+	/* TODO:
+		INDR
+			exactly as IND on each execution.
+			I.e. resulting MEMPTR = ((1 << 8) + C) - 1 
+	*/
+
+	/* TODO:
+		OUTI
+			MEMPTR = BC_after_decrementing_B + 1
+	*/
+
+	/* TODO:
+		OUTD
+			MEMPTR = BC_after_decrementing_B - 1
+	*/
+
+	/* TODO:
+		OTIR
+			exactly as OUTI on each execution. I.e. resulting MEMPTR = C + 1 
+	*/
+
+	/* TODO:
+		OTDR
+			exactly as OUTD on each execution. I.e. resulting MEMPTR = C - 1
+	*/
+
+	/* TODO:
+		Any instruction with (INDEX+d):
+			MEMPTR = INDEX+d
+	*/
+
+	/* TODO:
+		Interrupt call to addr:
+			As usual CALL. I.e. MEMPTR = addr
+	*/
 }
