@@ -51,7 +51,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 	// Look for a file name.
 	size_t data_pointer = 0;
 	std::vector<uint8_t> name_data;
-	int c = 11;
+	size_t c = 11;
 	while(c < data.size() && c--) {
 		name_data.push_back(data[data_pointer] & 0x3f);
 		if(data[data_pointer] & 0x80) break;
@@ -121,7 +121,7 @@ std::wstring Storage::Data::ZX8081::StringFromData(const std::vector<uint8_t> &d
 	return string;
 }
 
-std::vector<uint8_t> DataFromString(const std::wstring &string, bool is_zx81) {
+std::vector<uint8_t> Storage::Data::ZX8081::DataFromString(const std::wstring &string, bool is_zx81) {
 	std::vector<uint8_t> data;
 
 	// TODO
