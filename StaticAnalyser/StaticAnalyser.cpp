@@ -104,7 +104,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK
 		Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
 		Format("o", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
-		Format("p", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
+		Format("p", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P
+		Format("p81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)					// P81
 
 		// PRG
 		if(!strcmp(lowercase_extension, "prg"))
