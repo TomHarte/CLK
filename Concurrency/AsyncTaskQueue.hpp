@@ -26,7 +26,6 @@ namespace Concurrency {
 	causing it to block until all previously-enqueued functions are complete.
 */
 class AsyncTaskQueue {
-
 	public:
 		AsyncTaskQueue();
 		~AsyncTaskQueue();

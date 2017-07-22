@@ -14,20 +14,35 @@
 
 namespace WD {
 
+/*!
+	Provides an emulation of various Western Digital drive controllers, including the
+	WD1770, WD1772, FDC1773 and FDC1793.
+*/
 class WD1770: public Storage::Disk::Controller {
 	public:
 		enum Personality {
-			P1770,	// implies automatic motor-on management with Type 2 commands offering a spin-up disable
+			P1770,	// implies automatic motor-on management, with Type 2 commands offering a spin-up disable
 			P1772,	// as per the 1770, with different stepping rates
 			P1773,	// implements the side number-testing logic of the 1793; omits spin-up/loading logic
 			P1793	// implies Type 2 commands use side number testing logic; spin-up/loading is by HLD and HLT
 		};
+
+		/*!
+			Constructs an instance of the drive controller that behaves according to personality @c p.
+			@param p The type of controller to emulate.
+		*/
 		WD1770(Personality p);
 
+		/// Sets the value of the double-density input; when @c is_double_density is @c true, reads and writes double-density format data.
 		void set_is_double_density(bool is_double_density);
+
+		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
 		void set_register(int address, uint8_t value);
+
+		/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
 		uint8_t get_register(int address);
 
+		/// Runs the controller for @c number_of_cycles cycles.
 		void run_for_cycles(unsigned int number_of_cycles);
 
 		enum Flag: uint8_t {
@@ -47,8 +62,12 @@ class WD1770: public Storage::Disk::Controller {
 			Busy			= 0x01
 		};
 
+		/// @returns The current value of the IRQ line output.
 		inline bool get_interrupt_request_line()		{	return status_.interrupt_request;	}
+
+		/// @returns The current value of the DRQ line output.
 		inline bool get_data_request_line()				{	return status_.data_request;		}
+
 		class Delegate {
 			public:
 				virtual void wd1770_did_change_output(WD1770 *wd1770) = 0;
