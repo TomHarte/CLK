@@ -55,7 +55,11 @@ uint64_t Tape::get_offset() {
 }
 
 void Tape::set_offset(uint64_t offset) {
-	reset();
+	if(offset == offset_) return;
+	if(offset < offset_) {
+		reset();
+	}
+	offset -= offset_;
 	while(offset--) get_next_pulse();
 }
 
