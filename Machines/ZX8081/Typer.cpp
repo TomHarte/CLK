@@ -148,9 +148,10 @@ uint16_t *ZX8081::Machine::sequence_for_character(Utility::Typer *typer, char ch
 #undef SHIFT
 #undef X
 
-	if(character > sizeof(zx81_key_sequences) / sizeof(*zx81_key_sequences)) return nullptr;
+	size_t ucharacter = (size_t)character;
+	if(ucharacter > sizeof(zx81_key_sequences) / sizeof(*zx81_key_sequences)) return nullptr;
 
 	KeyTable *table = is_zx81_ ? &zx81_key_sequences : &zx80_key_sequences;
-	if((*table)[character][0] == NotMapped) return nullptr;
-	return (uint16_t *)(*table)[character];
+	if((*table)[ucharacter][0] == NotMapped) return nullptr;
+	return (uint16_t *)(*table)[ucharacter];
 }
