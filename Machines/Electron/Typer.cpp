@@ -17,11 +17,11 @@ int Electron::Machine::get_typer_frequency() {
 }
 
 uint16_t *Electron::Machine::sequence_for_character(Utility::Typer *typer, char character) {
-#define KEYS(...)	{__VA_ARGS__, TerminateSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, TerminateSequence}
-#define CTRL(...)	{KeyControl, __VA_ARGS__, TerminateSequence}
+#define KEYS(...)	{__VA_ARGS__, EndSequence}
+#define SHIFT(...)	{KeyShift, __VA_ARGS__, EndSequence}
+#define CTRL(...)	{KeyControl, __VA_ARGS__, EndSequence}
 #define X			{NotMapped}
-	static Key key_sequences[][3] = {
+	static KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -91,7 +91,5 @@ uint16_t *Electron::Machine::sequence_for_character(Utility::Typer *typer, char 
 #undef SHIFT
 #undef X
 
-	if(character > sizeof(key_sequences) / sizeof(*key_sequences)) return nullptr;
-	if(key_sequences[character][0] == NotMapped) return nullptr;
-	return (uint16_t *)key_sequences[character];
+	return table_lookup_sequence_for_character(key_sequences, sizeof(key_sequences), character);
 }

@@ -9,11 +9,10 @@
 #include "ZX8081.hpp"
 
 uint16_t *ZX8081::Machine::sequence_for_character(Utility::Typer *typer, char character) {
-#define KEYS(...)	{__VA_ARGS__, TerminateSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, TerminateSequence}
+#define KEYS(...)	{__VA_ARGS__, EndSequence}
+#define SHIFT(...)	{KeyShift, __VA_ARGS__, EndSequence}
 #define X			{NotMapped}
-	typedef Key KeyTable[126][3];
-	KeyTable zx81_key_sequences = {
+	static KeySequence zx81_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -79,7 +78,7 @@ uint16_t *ZX8081::Machine::sequence_for_character(Utility::Typer *typer, char ch
 		/* | */		X,							/* } */		X,
 	};
 
-	KeyTable zx80_key_sequences = {
+	static KeySequence zx80_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -148,10 +147,8 @@ uint16_t *ZX8081::Machine::sequence_for_character(Utility::Typer *typer, char ch
 #undef SHIFT
 #undef X
 
-	size_t ucharacter = (size_t)character;
-	if(ucharacter > sizeof(zx81_key_sequences) / sizeof(*zx81_key_sequences)) return nullptr;
-
-	KeyTable *table = is_zx81_ ? &zx81_key_sequences : &zx80_key_sequences;
-	if((*table)[ucharacter][0] == NotMapped) return nullptr;
-	return (uint16_t *)(*table)[ucharacter];
+	if(is_zx81_)
+		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
+	else
+		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
 }

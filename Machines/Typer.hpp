@@ -23,7 +23,11 @@ class Typer {
 
 				virtual uint16_t *sequence_for_character(Typer *typer, char character);
 
+				typedef uint16_t KeySequence[16];
+				uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character);
+
 				const uint16_t EndSequence = 0xffff;
+				const uint16_t NotMapped = 0xfffe;
 		};
 
 		Typer(const char *string, int delay, int frequency, Delegate *delegate);
