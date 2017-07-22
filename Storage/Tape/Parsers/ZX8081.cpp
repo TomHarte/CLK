@@ -58,6 +58,11 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 		return;
 	}
 
+	if(waves[0] == WaveType::Unrecognised) {
+		push_symbol(SymbolType::Unrecognised, 1);
+		return;
+	}
+
 	if(waves.size() >= 4) {
 		size_t wave_offset = 0;
 		// If the very first thing is a gap, swallow it.
@@ -92,14 +97,18 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	int c = 8;
 	int result = 0;
-	while(c--) {
+	while(c) {
 		if(is_at_end(tape)) return -1;
+
 		SymbolType symbol = get_next_symbol(tape);
 		if(symbol != SymbolType::One && symbol != SymbolType::Zero) {
+			if(c == 8) continue;
 			return_symbol(symbol);
 			return -1;
 		}
+
 		result = (result << 1) | (symbol == SymbolType::One ? 1 : 0);
+		c--;
 	}
 	return result;
 }
