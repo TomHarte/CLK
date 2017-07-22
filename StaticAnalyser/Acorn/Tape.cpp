@@ -38,7 +38,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 
 	// read out name
 	char name[11];
-	int name_ptr = 0;
+	size_t name_ptr = 0;
 	while(!tape->is_at_end() && name_ptr < sizeof(name)) {
 		name[name_ptr] = (char)parser.get_next_byte(tape);
 		if(!name[name_ptr]) break;
@@ -80,7 +80,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 	return parser.get_error_flag() ? nullptr : std::move(new_chunk);
 }
 
-std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
+static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 	// find next chunk with a block number of 0
 	while(chunks.size() && chunks.front().block_number) {
 		chunks.pop_front();
