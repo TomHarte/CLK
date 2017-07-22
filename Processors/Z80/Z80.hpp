@@ -40,7 +40,9 @@ enum Register {
 	IYh,	IYl,	IY,
 	R,		I,		Refresh,
 
-	IFF1,	IFF2,	IM
+	IFF1,	IFF2,	IM,
+
+	MemPtr
 };
 
 /*
@@ -1796,6 +1798,8 @@ template <class T> class Processor {
 				case Register::IFF2:					return iff2_ ? 1 : 0;
 				case Register::IM:						return (uint16_t)interrupt_mode_;
 
+				case Register::MemPtr:					return memptr_.full;
+
 				default: return 0;
 			}
 		}
@@ -1854,6 +1858,8 @@ template <class T> class Processor {
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
 				case Register::IM:				interrupt_mode_ = value % 3;			break;
+
+				case Register::MemPtr:			memptr_.full = value;					break;
 
 				default: break;
 			}
