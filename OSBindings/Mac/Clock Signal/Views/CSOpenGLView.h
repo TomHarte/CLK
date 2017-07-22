@@ -43,7 +43,7 @@
 	@c CSOpenGLViewResponderDelegate methods and as -[CSOpenGLViewDelegate openGLView:didUpdateToTime:].
 	@param event The @c NSEvent describing the flagsChanged.
 */
-- (void)flagsChanged:(nonnull NSEvent *)newModifiers;
+- (void)flagsChanged:(nonnull NSEvent *)event;
 
 @end
 
