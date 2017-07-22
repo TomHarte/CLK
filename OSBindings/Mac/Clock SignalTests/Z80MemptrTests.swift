@@ -23,7 +23,7 @@ class Z80MemptrTests: XCTestCase {
 		return machine.value(for: .memPtr)
 	}
 
-	// LD A,(addr)
+	// LD A, (addr)
 	func testLDAnn() {
 		var program: [UInt8] = [
 			0x3a, 0x00, 0x00
@@ -35,6 +35,28 @@ class Z80MemptrTests: XCTestCase {
 
 			let result = test(program: program, length: 13, initialValue: 0xffff)
 			XCTAssertEqual(result, expectedResult)
+		}
+	}
+
+	// LD A, (rp)
+	func testLDArp() {
+		let bcProgram: [UInt8] = [
+			0x0a
+		]
+		let deProgram: [UInt8] = [
+			0x1a
+		]
+		for addr in 0 ..< 65536 {
+			machine.setValue(UInt16(addr), for: .BC)
+			machine.setValue(UInt16(addr), for: .DE)
+
+			let expectedResult = UInt16((addr + 1) & 0xffff)
+
+			let bcResult = test(program: bcProgram, length: 7, initialValue: 0xffff)
+			let deResult = test(program: deProgram, length: 7, initialValue: 0xffff)
+
+			XCTAssertEqual(bcResult, expectedResult)
+			XCTAssertEqual(deResult, expectedResult)
 		}
 	}
 

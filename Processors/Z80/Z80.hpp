@@ -574,7 +574,7 @@ template <class T> class Processor {
 
 				/* 0x07 RLCA */			StdInstr({MicroOp::RLCA}),
 				/* 0x08 EX AF, AF' */	StdInstr({MicroOp::ExAFAFDash}),	/* 0x09 ADD HL, BC */	ADD16(index, bc_),
-				/* 0x0a LD A, (BC) */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Read3(memptr_, a_)),
+				/* 0x0a LD A, (BC) */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
 
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
@@ -590,7 +590,7 @@ template <class T> class Processor {
 				/* 0x17 RLA */			StdInstr({MicroOp::RLA}),
 				/* 0x18 JR */			StdInstr(ReadInc(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
-				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_)),
+				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
 
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
