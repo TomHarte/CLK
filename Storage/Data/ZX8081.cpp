@@ -50,8 +50,10 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 
 	// Look for a file name.
 	size_t data_pointer = 0;
+	std::vector<uint8_t> name_data;
 	int c = 11;
 	while(c < data.size() && c--) {
+		name_data.push_back(data[data_pointer] & 0x3f);
 		if(data[data_pointer] & 0x80) break;
 		data_pointer++;
 	}
@@ -80,6 +82,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 	// TODO: check that the line numbers declared above exist (?)
 
 	std::shared_ptr<File> file(new File);
+	file->name = StringFromData(name_data, true);
 	file->data = data;
 	file->isZX81 = true;
 	return file;

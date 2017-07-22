@@ -71,6 +71,49 @@ class FileHolder {
 		*/
 		void ensure_file_is_at_least_length(long length);
 
+		class BitStream {
+			public:
+				BitStream(FILE *f, bool lsb_first) :
+					file_(f),
+					lsb_first_(lsb_first),
+					next_value_(0),
+					bits_remaining_(0) {}
+
+				uint8_t get_bits(int q) {
+					uint8_t result = 0;
+					while(q--) {
+						result = (uint8_t)((result << 1) | get_bit());
+					}
+					return result;
+				}
+
+			private:
+				FILE *file_;
+				bool lsb_first_;
+				uint8_t next_value_;
+				int bits_remaining_;
+
+				uint8_t get_bit() {
+					if(!bits_remaining_) {
+						bits_remaining_ = 8;
+						next_value_ = (uint8_t)fgetc(file_);
+					}
+
+					uint8_t bit;
+					if(lsb_first_) {
+						bit = next_value_ & 1;
+						next_value_ >>= 1;
+					} else {
+						bit = next_value_ >> 7;
+						next_value_ <<= 1;
+					}
+
+					bits_remaining_--;
+
+					return bit;
+				}
+		};
+
 		FILE *file_;
 		struct stat file_stats_;
 		bool is_read_only_;

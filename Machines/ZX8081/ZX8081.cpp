@@ -24,11 +24,8 @@ Machine::Machine() :
 	tape_player_(ZX8081ClockRate),
 	use_fast_tape_hack_(false),
 	tape_advance_delay_(0),
-	tape_is_automatically_playing_(false),
-	tape_is_playing_(false),
 	has_latched_video_byte_(false) {
 	set_clock_rate(ZX8081ClockRate);
-	tape_player_.set_motor_control(true);
 	clear_all_keys();
 }
 
@@ -58,7 +55,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 	if(is_zx81_) horizontal_counter_ %= 207;
 	if(!tape_advance_delay_) {
-		if(tape_is_automatically_playing_ || tape_is_playing_) tape_player_.run_for_cycles(cycle.length);
+		tape_player_.run_for_cycles(cycle.length);
 	} else {
 		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, 0);
 	}
@@ -133,7 +130,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
 			// Check for use of the fast tape hack.
 			if(use_fast_tape_hack_ && address == tape_trap_address_ && tape_player_.has_tape()) {
-				Storage::Time time = tape_player_.get_tape()->get_current_time();
+				uint64_t prior_offset = tape_player_.get_tape()->get_offset();
 				int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 				if(next_byte != -1) {
 					uint16_t hl = get_value_of_register(CPU::Z80::Register::HL);
@@ -147,12 +144,14 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 					tape_advance_delay_ = 1000;
 					return 0;
 				} else {
-					tape_player_.get_tape()->seek(time);
+					tape_player_.get_tape()->set_offset(prior_offset);
 				}
 			}
 
 			// Check for automatic tape control.
-			tape_is_automatically_playing_ = use_automatic_tape_motor_control_ && (address >= automatic_tape_motor_start_address_) && (address < automatic_tape_motor_end_address_);
+			if(use_automatic_tape_motor_control_) {
+				tape_player_.set_motor_control((address >= automatic_tape_motor_start_address_) && (address < automatic_tape_motor_end_address_));
+			}
 			is_opcode_read = true;
 
 		case CPU::Z80::PartialMachineCycle::Read:

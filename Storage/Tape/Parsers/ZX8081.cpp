@@ -13,30 +13,33 @@ using namespace Storage::Tape::ZX8081;
 Parser::Parser() : pulse_was_high_(false), pulse_time_(0) {}
 
 void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	pulse_time_ += pulse.length;
+	// If this is anything other than a transition from low to high, just add it to the
+	// count of time.
 	bool pulse_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-
-	if(pulse_is_high == pulse_was_high_) return;
+	bool pulse_did_change = pulse_is_high != pulse_was_high_;
 	pulse_was_high_ = pulse_is_high;
+	if(!pulse_did_change || !pulse_is_high) {
+		pulse_time_ += pulse.length;
+		return;
+	}
+
+	// Otherwise post a new pulse.
 	post_pulse();
+	pulse_time_ = pulse.length;
 }
 
 void Parser::post_pulse() {
-	const float expected_pulse_length = 150.0f / 1000000.0f;
+	const float expected_pulse_length = 300.0f / 1000000.0f;
 	const float expected_gap_length = 1300.0f / 1000000.0f;
 	float pulse_time = pulse_time_.get_float();
-	pulse_time_.set_zero();
 
 	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);
-	}
-	else if(pulse_time > expected_pulse_length * 1.25f) {
+	} else if(pulse_time > expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Gap);
-	}
-	else if(pulse_time >= expected_pulse_length * 0.75f && pulse_time <= expected_pulse_length * 1.25f) {
+	} else if(pulse_time >= expected_pulse_length * 0.75f && pulse_time <= expected_pulse_length * 1.25f) {
 		push_wave(WaveType::Pulse);
-	}
-	else {
+	} else {
 		push_wave(WaveType::Unrecognised);
 	}
 }
@@ -55,7 +58,12 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 		return;
 	}
 
-	if(waves.size() >= 9) {
+	if(waves[0] == WaveType::Unrecognised) {
+		push_symbol(SymbolType::Unrecognised, 1);
+		return;
+	}
+
+	if(waves.size() >= 4) {
 		size_t wave_offset = 0;
 		// If the very first thing is a gap, swallow it.
 		if(waves[0] == WaveType::Gap) {
@@ -70,10 +78,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 
 		// If those pulses were followed by a gap then they might be
 		// a recognised symbol.
-		if(number_of_pulses > 17 || number_of_pulses < 7) {
-			push_symbol(SymbolType::Unrecognised, 1);
-		}
-		else if(number_of_pulses + wave_offset < waves.size() &&
+		if(number_of_pulses + wave_offset < waves.size() &&
 			(waves[number_of_pulses + wave_offset] == WaveType::LongGap || waves[number_of_pulses + wave_offset] == WaveType::Gap)) {
 			// A 1 is 18 up/down waves, a 0 is 8. But the final down will be indistinguishable from
 			// the gap that follows the bit due to the simplified "high is high, everything else is low"
@@ -81,9 +86,9 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			// 17 and/or 7 pulses.
 			size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
-				case 18:	case 17:	push_symbol(SymbolType::One, (int)(number_of_pulses + gaps_to_swallow));	break;
-				case 8:		case 7:		push_symbol(SymbolType::Zero, (int)(number_of_pulses + gaps_to_swallow));	break;
-				default:	push_symbol(SymbolType::Unrecognised, 1);			break;
+				case 8:		push_symbol(SymbolType::One, (int)(number_of_pulses + gaps_to_swallow));	break;
+				case 3:		push_symbol(SymbolType::Zero, (int)(number_of_pulses + gaps_to_swallow));	break;
+				default:	push_symbol(SymbolType::Unrecognised, 1);									break;
 			}
 		}
 	}
@@ -92,17 +97,18 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	int c = 8;
 	int result = 0;
-	while(c--) {
+	while(c) {
 		if(is_at_end(tape)) return -1;
+
 		SymbolType symbol = get_next_symbol(tape);
-		if(symbol == SymbolType::FileGap) {
+		if(symbol != SymbolType::One && symbol != SymbolType::Zero) {
+			if(c == 8) continue;
 			return_symbol(symbol);
 			return -1;
 		}
-		if(symbol != SymbolType::One && symbol != SymbolType::Zero) {
-			return -1;
-		}
+
 		result = (result << 1) | (symbol == SymbolType::One ? 1 : 0);
+		c--;
 	}
 	return result;
 }
@@ -113,7 +119,7 @@ std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shar
 	if(symbol != SymbolType::FileGap) {
 		return nullptr;
 	}
-	while(symbol == SymbolType::FileGap && !is_at_end(tape)) {
+	while((symbol == SymbolType::FileGap || symbol == SymbolType::Unrecognised) && !is_at_end(tape)) {
 		symbol = get_next_symbol(tape);
 	}
 	if(is_at_end(tape)) return nullptr;
@@ -131,6 +137,8 @@ std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shar
 
 std::shared_ptr<Storage::Data::ZX8081::File> Parser::get_next_file(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	std::shared_ptr<std::vector<uint8_t>> file_data = get_next_file_data(tape);
-	if(!file_data) return nullptr;
+	if(!file_data) {
+		return nullptr;
+	}
 	return Storage::Data::ZX8081::FileFromData(*file_data);
 }

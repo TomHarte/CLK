@@ -18,7 +18,7 @@ CSW::CSW(const char *file_name) :
 	// Check signature.
 	char identifier[22];
 	char signature[] = "Compressed Square Wave";
-	fread(identifier, 1, 22, file_);
+	fread(identifier, 1, strlen(signature), file_);
 	if(memcmp(identifier, signature, strlen(signature))) throw ErrorNotCSW;
 
 	// Check terminating byte.

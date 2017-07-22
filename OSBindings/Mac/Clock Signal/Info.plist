@@ -212,6 +212,20 @@
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>tzx</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
+			<key>CFBundleTypeName</key>
+			<string>Tape Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>

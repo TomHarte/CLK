@@ -69,9 +69,11 @@ class Machine:
 		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
 		inline void set_use_automatic_tape_motor_control(bool enabled) {
 			use_automatic_tape_motor_control_ = enabled;
-			if(!enabled) tape_is_automatically_playing_ = false;
+			if(!enabled) {
+				tape_player_.set_motor_control(false);
+			}
 		}
-		inline void set_tape_is_playing(bool is_playing) { tape_is_playing_ = is_playing; }
+		inline void set_tape_is_playing(bool is_playing) { tape_player_.set_motor_control(is_playing); }
 
 		// for Utility::TypeRecipient::Delegate
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
@@ -113,7 +115,6 @@ class Machine:
 
 		bool use_fast_tape_hack_;
 		bool use_automatic_tape_motor_control_;
-		bool tape_is_playing_, tape_is_automatically_playing_;
 		int tape_advance_delay_;
 };
 

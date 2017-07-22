@@ -52,16 +52,33 @@ class Tape {
 		/// @returns @c true if the tape has progressed beyond all recorded content; @c false otherwise.
 		virtual bool is_at_end() = 0;
 
-		/// @returns the amount of time preceeding the most recently-returned pulse.
-		virtual Time get_current_time() { return current_time_; }
+		/*!
+			Returns a numerical representation of progression into the tape. Precision is arbitrary but
+			required to be at least to the whole pulse. Greater numbers are later than earlier numbers,
+			but not necessarily continuous.
+		*/
+		virtual uint64_t get_offset();
 
-		/// Advances or reverses the tape to the last time before or at @c time from which a pulse starts.
+		/*!
+			Moves the tape to the first time at which the specified offset would be returned by get_offset.
+		*/
+		virtual void set_offset(uint64_t);
+
+		/*!
+			Calculates and returns the amount of time that has elapsed since the time began. Potentially expensive.
+		*/
+		virtual Time get_current_time();
+
+		/*!
+			Seeks to @c time. Potentially expensive.
+		*/
 		virtual void seek(Time &time);
 
 		virtual ~Tape() {};
 
 	private:
-		Time current_time_, next_time_;
+		uint64_t offset_;
+		Tape::Pulse pulse_;
 
 		virtual Pulse virtual_get_next_pulse() = 0;
 		virtual void virtual_reset() = 0;
