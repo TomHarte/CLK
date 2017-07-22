@@ -187,15 +187,35 @@ class Z80MemptrTests: XCTestCase {
 			when BC <> 1: MEMPTR = PC + 1, where PC = instruction address
 	*/
 
-	/* TODO:
-		CPI
-			MEMPTR = MEMPTR + 1
-	*/
+	func testCPI() {
+		// CPI: MEMPTR = MEMPTR + 1
+		let program: [UInt8] = [
+			0xed, 0xa1
+		]
+		machine.setData(Data(bytes: program), atAddress: 0x0000)
+		machine.setValue(0, for: .memPtr)
 
-	/* TODO:
-		CPD
-			MEMPTR = MEMPTR - 1
-	*/
+		for c in 1 ..< 65536 {
+			machine.setValue(0x0000, for: .programCounter)
+			machine.runForNumber(ofCycles: 16)
+			XCTAssertEqual(UInt16(c), machine.value(for: .memPtr))
+		}
+	}
+
+	func testCPD() {
+		// CPD: MEMPTR = MEMPTR - 1
+		let program: [UInt8] = [
+			0xed, 0xa9
+		]
+		machine.setData(Data(bytes: program), atAddress: 0x0000)
+		machine.setValue(0, for: .memPtr)
+
+		for c in 1 ..< 65536 {
+			machine.setValue(0x0000, for: .programCounter)
+			machine.runForNumber(ofCycles: 16)
+			XCTAssertEqual(UInt16(65536 - c), machine.value(for: .memPtr))
+		}
+	}
 
 	/* TODO:
 		CPIR
