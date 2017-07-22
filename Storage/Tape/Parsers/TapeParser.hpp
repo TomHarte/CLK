@@ -35,7 +35,7 @@ template <typename SymbolType> class Parser {
 			while(!has_next_symbol_ && !tape->is_at_end()) {
 				process_pulse(tape->get_next_pulse());
 			}
-			if(tape->is_at_end()) mark_end();
+			if(!has_next_symbol_ && tape->is_at_end()) mark_end();
 			has_next_symbol_ = false;
 			return next_symbol_;
 		}
