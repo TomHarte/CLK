@@ -102,10 +102,10 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return horizontal_flywheel_->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_x1()			(*(uint16_t *)&next_run[OutputVertexOffsetOfHorizontal + 0])
-#define output_x2()			(*(uint16_t *)&next_run[OutputVertexOffsetOfHorizontal + 2])
-#define output_position_y()	(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 0])
-#define output_tex_y()		(*(uint16_t *)&next_run[OutputVertexOffsetOfVertical + 2])
+#define output_x1()			(*(uint16_t *)&next_output_run[OutputVertexOffsetOfHorizontal + 0])
+#define output_x2()			(*(uint16_t *)&next_output_run[OutputVertexOffsetOfHorizontal + 2])
+#define output_position_y()	(*(uint16_t *)&next_output_run[OutputVertexOffsetOfVertical + 0])
+#define output_tex_y()		(*(uint16_t *)&next_output_run[OutputVertexOffsetOfVertical + 2])
 
 #define source_input_position_x1()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 0])
 #define source_input_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 2])
@@ -192,8 +192,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
 
 					// Construct the output run
-					uint8_t *next_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
-					if(next_run) {
+					uint8_t *next_output_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
+					if(next_output_run) {
 						output_x1() = output_run_.x1;
 						output_position_y() = output_run_.y;
 						output_tex_y() = output_y;
