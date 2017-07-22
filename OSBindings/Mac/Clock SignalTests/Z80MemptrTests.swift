@@ -60,4 +60,61 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
+	// LD (addr), rp
+	func testLDnnrp() {
+		var hlBaseProgram: [UInt8] = [
+			0x22, 0x00, 0x00
+		]
+
+		var bcEDProgram: [UInt8] = [
+			0xed, 0x43, 0x00, 0x00
+		]
+		var deEDProgram: [UInt8] = [
+			0xed, 0x53, 0x00, 0x00
+		]
+		var hlEDProgram: [UInt8] = [
+			0xed, 0x63, 0x00, 0x00
+		]
+		var spEDProgram: [UInt8] = [
+			0xed, 0x73, 0x00, 0x00
+		]
+
+		var ixProgram: [UInt8] = [
+			0xdd, 0x22, 0x00, 0x00
+		]
+		var iyProgram: [UInt8] = [
+			0xfd, 0x22, 0x00, 0x00
+		]
+
+		for addr in 0 ..< 65536 {
+			hlBaseProgram[1] = UInt8(addr & 0x00ff)
+			hlBaseProgram[2] = UInt8(addr >> 8)
+
+			bcEDProgram[2] = UInt8(addr & 0x00ff)
+			bcEDProgram[3] = UInt8(addr >> 8)
+			deEDProgram[2] = UInt8(addr & 0x00ff)
+			deEDProgram[3] = UInt8(addr >> 8)
+			hlEDProgram[2] = UInt8(addr & 0x00ff)
+			hlEDProgram[3] = UInt8(addr >> 8)
+			spEDProgram[2] = UInt8(addr & 0x00ff)
+			spEDProgram[3] = UInt8(addr >> 8)
+
+			ixProgram[2] = UInt8(addr & 0x00ff)
+			ixProgram[3] = UInt8(addr >> 8)
+			iyProgram[2] = UInt8(addr & 0x00ff)
+			iyProgram[3] = UInt8(addr >> 8)
+
+			let expectedResult = UInt16((addr + 1) & 0xffff)
+
+			XCTAssertEqual(test(program: hlBaseProgram, length: 16, initialValue: 0xffff), expectedResult)
+
+			XCTAssertEqual(test(program: bcEDProgram, length: 20, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: deEDProgram, length: 20, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: hlEDProgram, length: 20, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: spEDProgram, length: 20, initialValue: 0xffff), expectedResult)
+
+			XCTAssertEqual(test(program: ixProgram, length: 20, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: iyProgram, length: 20, initialValue: 0xffff), expectedResult)
+		}
+	}
 }
