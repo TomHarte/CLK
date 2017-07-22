@@ -25,6 +25,7 @@ class Z80MemptrTests: XCTestCase {
 
 	// LD A, (addr)
 	func testLDAnn() {
+		// MEMPTR = addr+1
 		var program: [UInt8] = [
 			0x3a, 0x00, 0x00
 		]
@@ -46,6 +47,7 @@ class Z80MemptrTests: XCTestCase {
 
 	// LD A, (rp)
 	func testLDArp() {
+		// MEMPTR = rp+1
 		let bcProgram: [UInt8] = [
 			0x0a
 		]
@@ -79,6 +81,7 @@ class Z80MemptrTests: XCTestCase {
 
 	// LD rp, (addr)
 	func testLDnnrp() {
+		// MEMPTR = addr+1
 		var hlBaseProgram: [UInt8] = [
 			0x22, 0x00, 0x00
 		]
@@ -135,10 +138,34 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
-	/* TODO:
-		EX (SP),rp
-			MEMPTR = rp value after the operation
-	*/
+	// EX (SP), rp
+	func testEXSPrp() {
+		// MEMPTR = rp at end
+		var hlProgram: [UInt8] = [
+			0xe3, 0x00, 0x00, 0x00
+		]
+		var ixProgram: [UInt8] = [
+			0xdd, 0xe3, 0x00, 0x00
+		]
+		var iyProgram: [UInt8] = [
+			0xfd, 0xe3, 0x00, 0x00
+		]
+
+		machine.setValue(2, for: .stackPointer)
+
+		for addr in 0 ..< 65536 {
+			hlProgram[2] = UInt8(addr & 0x00ff)
+			hlProgram[3] = UInt8(addr >> 8)
+			ixProgram[2] = UInt8(addr & 0x00ff)
+			ixProgram[3] = UInt8(addr >> 8)
+			iyProgram[2] = UInt8(addr & 0x00ff)
+			iyProgram[3] = UInt8(addr >> 8)
+
+			XCTAssertEqual(test(program: hlProgram, length: 19, initialValue: 0xffff), UInt16(addr))
+			XCTAssertEqual(test(program: ixProgram, length: 23, initialValue: 0xffff), UInt16(addr))
+			XCTAssertEqual(test(program: iyProgram, length: 23, initialValue: 0xffff), UInt16(addr))
+		}
+	}
 
 	/* TODO:
 		ADD/ADC/SBC rp1,rp2
@@ -187,8 +214,9 @@ class Z80MemptrTests: XCTestCase {
 			when BC <> 1: MEMPTR = PC + 1, where PC = instruction address
 	*/
 
+	// CPI
 	func testCPI() {
-		// CPI: MEMPTR = MEMPTR + 1
+		// MEMPTR = MEMPTR + 1
 		let program: [UInt8] = [
 			0xed, 0xa1
 		]
@@ -202,8 +230,9 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
+	// CPD
 	func testCPD() {
-		// CPD: MEMPTR = MEMPTR - 1
+		// MEMPTR = MEMPTR - 1
 		let program: [UInt8] = [
 			0xed, 0xa9
 		]
