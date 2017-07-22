@@ -45,10 +45,8 @@ void Parser::post_pulse() {
 }
 
 void Parser::mark_end() {
-	// Push the last thing detected, and post an 'unrecognised' to ensure
-	// the queue empties out.
-	post_pulse();
-	push_wave(WaveType::Unrecognised);
+	// Post a long gap to cap any bit that's in the process of recognition.
+	push_wave(WaveType::LongGap);
 }
 
 void Parser::inspect_waves(const std::vector<WaveType> &waves) {
@@ -76,14 +74,11 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			number_of_pulses++;
 		}
 
-		// If those pulses were followed by a gap then they might be
-		// a recognised symbol.
-		if(number_of_pulses + wave_offset < waves.size() &&
-			(waves[number_of_pulses + wave_offset] == WaveType::LongGap || waves[number_of_pulses + wave_offset] == WaveType::Gap)) {
-			// A 1 is 18 up/down waves, a 0 is 8. But the final down will be indistinguishable from
-			// the gap that follows the bit due to the simplified "high is high, everything else is low"
-			// logic applied to pulse detection. So those two things will merge. Meaning we're looking for
-			// 17 and/or 7 pulses.
+		// If those pulses were followed by something not recognised as a pulse, check for a bit
+		if(number_of_pulses + wave_offset < waves.size()) {
+			// A 1 is 9 waves, a 0 is 4. Counting upward zero transitions, the first in either group will
+			// act simply to terminate the gap beforehand and won't be logged as a pulse. So counts to
+			// check are 8 and 3.
 			size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
 				case 8:		push_symbol(SymbolType::One, (int)(number_of_pulses + gaps_to_swallow));	break;
