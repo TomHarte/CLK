@@ -563,6 +563,7 @@
 		4B4DC8271D2C2470003C5BF8 /* C1540.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = C1540.hpp; sourceTree = "<group>"; };
 		4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialBus.cpp; sourceTree = "<group>"; };
 		4B4DC82A1D2C27A4003C5BF8 /* SerialBus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SerialBus.hpp; sourceTree = "<group>"; };
+		4B4EA7E01F24349400C216B4 /* ClockReceiver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ClockReceiver.hpp; sourceTree = "<group>"; };
 		4B5073051DDD3B9400C48FBD /* ArrayBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ArrayBuilder.cpp; sourceTree = "<group>"; };
 		4B5073061DDD3B9400C48FBD /* ArrayBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ArrayBuilder.hpp; sourceTree = "<group>"; };
 		4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ArrayBuilderTests.mm; sourceTree = "<group>"; };
@@ -1988,6 +1989,7 @@
 		4BC9DF4A1D04691600F44158 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				4B4EA7E01F24349400C216B4 /* ClockReceiver.hpp */,
 				4BD468F81D8DF4290084958B /* 1770 */,
 				4BC9DF4B1D04691600F44158 /* 6522 */,
 				4B1E85791D174DEC001EF87D /* 6532 */,
