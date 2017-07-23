@@ -25,8 +25,7 @@
 
 - (instancetype)init {
 	self = [super init];
-	if(self)
-	{
+	if(self) {
 		[self setOSROM:[self rom:@"os"]];
 		[self setBASICROM:[self rom:@"basic"]];
 		[self setDFSROM:[self rom:@"DFS-1770-2.20"]];
@@ -38,8 +37,7 @@
 	return self;
 }
 
-- (NSData *)rom:(NSString *)name
-{
+- (NSData *)rom:(NSString *)name {
 	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/Electron"];
 }
 

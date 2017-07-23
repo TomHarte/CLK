@@ -11,6 +11,7 @@
 
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker.hpp"
+#include "../Components/ClockReceiver.hpp"
 
 namespace CRTMachine {
 
@@ -41,8 +42,8 @@ class Machine {
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() = 0;
 
-		/// Runs the machine for @c number_of_cycle cycles.
-		virtual void run_for_cycles(int number_of_cycles) = 0;
+		/// Runs the machine for @c cycles.
+		virtual void run_for(const Cycles &cycles) = 0;
 
 		// TODO: sever the clock-rate stuff.
 		double get_clock_rate() {

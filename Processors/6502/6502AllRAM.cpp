@@ -36,8 +36,8 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			return 1;
 		}
 
-		void run_for_cycles(int number_of_cycles) {
-			Processor<ConcreteAllRAMProcessor>::run_for_cycles(number_of_cycles);
+		void run_for(const Cycles &cycles) {
+			Processor<ConcreteAllRAMProcessor>::run_for(cycles);
 		}
 
 		bool is_jammed() {

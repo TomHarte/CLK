@@ -174,7 +174,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return mos6560_->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return mos6560_->get_speaker(); }
-		virtual void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Machine>::run_for(Cycles(number_of_cycles)); }
+		virtual void run_for(const Cycles &cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

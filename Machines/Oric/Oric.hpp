@@ -85,7 +85,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for_cycles(int number_of_cycles);
+		virtual void run_for(const Cycles &cyclesß);
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
 		void mos6522_did_change_interrupt_status(void *mos6522);

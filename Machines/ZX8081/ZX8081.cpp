@@ -205,8 +205,8 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return nullptr;
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::Z80::Processor<Machine>::run_for_cycles(number_of_cycles);
+void Machine::run_for(const Cycles &cycles) {
+	CPU::Z80::Processor<Machine>::run_for_cycles(int(cycles));
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {

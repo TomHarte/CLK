@@ -13,6 +13,7 @@
 #include "PIA.hpp"
 #include "Speaker.hpp"
 #include "TIA.hpp"
+#include "../../Components/ClockReceiver.hpp"
 
 namespace Atari2600 {
 
@@ -24,7 +25,7 @@ class Bus {
 			cycles_since_video_update_(0),
 			cycles_since_6532_update_(0) {}
 
-		virtual void run_for_cycles(int number_of_cycles) = 0;
+		virtual void run_for(const Cycles &cycles) = 0;
 		virtual void set_reset_line(bool state) = 0;
 
 		// the RIOT, TIA and speaker

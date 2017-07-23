@@ -198,8 +198,8 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return via_.ay8910;
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for(Cycles(number_of_cycles));
+void Machine::run_for(const Cycles &cycles) {
+	CPU::MOS6502::Processor<Machine>::run_for(cycles);
 }
 
 #pragma mark - The 6522
