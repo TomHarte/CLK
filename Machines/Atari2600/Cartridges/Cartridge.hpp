@@ -22,7 +22,7 @@ template<class T> class Cartridge:
 		Cartridge(const std::vector<uint8_t> &rom) :
 			rom_(rom) {}
 
-		void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Cartridge<T>>::run_for_cycles(number_of_cycles); }
+		void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Cartridge<T>>::run_for(Cycles(number_of_cycles)); }
 		void set_reset_line(bool state) { CPU::MOS6502::Processor<Cartridge<T>>::set_reset_line(state); }
 		void advance_cycles(unsigned int cycles) {}
 

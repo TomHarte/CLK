@@ -199,7 +199,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 }
 
 void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+	CPU::MOS6502::Processor<Machine>::run_for(Cycles(number_of_cycles));
 }
 
 #pragma mark - The 6522
