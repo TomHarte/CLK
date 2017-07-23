@@ -142,7 +142,7 @@ void Machine::flush() {
 }
 
 void Machine::update_video() {
-	video_output_->run_for_cycles(cycles_since_video_update_);
+	video_output_->run_for(Cycles(cycles_since_video_update_));
 	cycles_since_video_update_ = 0;
 }
 

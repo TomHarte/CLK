@@ -74,13 +74,14 @@ std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
 	return crt_;
 }
 
-void VideoOutput::run_for_cycles(int number_of_cycles) {
+void VideoOutput::run_for(const Cycles &cycles) {
 	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 
 #define clamp(action)	\
 	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;
 
+	int number_of_cycles = int(cycles);
 	while(number_of_cycles) {
 		int h_counter = counter_ & 63;
 		int cycles_run_for = 0;
