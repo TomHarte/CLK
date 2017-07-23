@@ -34,23 +34,23 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	horizontal_counter_ += cycle.length;
 
 	if(previous_counter < vsync_start_cycle_ && horizontal_counter_ >= vsync_start_cycle_) {
-		video_->run_for_cycles(vsync_start_cycle_ - previous_counter);
+		video_->run_for(Cycles(vsync_start_cycle_ - previous_counter));
 		set_hsync(true);
 		line_counter_ = (line_counter_ + 1) & 7;
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
 		}
-		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_);
+		video_->run_for(Cycles(horizontal_counter_ - vsync_start_cycle_));
 	} else if(previous_counter < vsync_end_cycle_ && horizontal_counter_ >= vsync_end_cycle_) {
-		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
+		video_->run_for(Cycles(vsync_end_cycle_ - previous_counter));
 		set_hsync(false);
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(false);
 			set_wait_line(false);
 		}
-		video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle_);
+		video_->run_for(Cycles(horizontal_counter_ - vsync_end_cycle_));
 	} else {
-		video_->run_for_cycles(cycle.length);
+		video_->run_for(Cycles(cycle.length));
 	}
 
 	if(is_zx81_) horizontal_counter_ %= 207;

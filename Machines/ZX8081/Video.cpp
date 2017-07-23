@@ -29,9 +29,9 @@ Video::Video() :
 	crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
-void Video::run_for_cycles(int number_of_cycles) {
+void Video::run_for(const HalfCycles &half_cycles) {
 	// Just keep a running total of the amount of time that remains owed to the CRT.
-	cycles_since_update_ += (unsigned int)number_of_cycles << 1;
+	cycles_since_update_ += (unsigned int)int(half_cycles);
 }
 
 void Video::flush() {

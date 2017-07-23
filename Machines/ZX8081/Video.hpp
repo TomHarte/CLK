@@ -10,6 +10,7 @@
 #define Machines_ZX8081_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
+#include "../../Components/ClockReceiver.hpp"
 
 namespace ZX8081 {
 
@@ -23,15 +24,15 @@ namespace ZX8081 {
 	a 1-bit graphic and output over the next 4 cycles, picking between the white level
 	and the black level.
 */
-class Video {
+class Video: public ClockReceiver<Video> {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video();
 		/// @returns The CRT this video feed is feeding.
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 
-		/// Advances time by @c number_of_cycles cycles.
-		void run_for_cycles(int number_of_cycles);
+		/// Advances time by @c cycles.
+		void run_for(const HalfCycles &);
 		/// Forces output to catch up to the current output position.
 		void flush();
 
