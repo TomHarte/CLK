@@ -50,7 +50,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		}
 		video_->run_for(Cycles(horizontal_counter_ - vsync_end_cycle_));
 	} else {
-		video_->run_for(Cycles(cycle.length));
+		video_->run_for(cycle.length);
 	}
 
 	if(is_zx81_) horizontal_counter_ %= 207;
@@ -206,7 +206,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 }
 
 void Machine::run_for(const Cycles &cycles) {
-	CPU::Z80::Processor<Machine>::run_for_cycles(int(cycles));
+	CPU::Z80::Processor<Machine>::run_for(cycles);
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
