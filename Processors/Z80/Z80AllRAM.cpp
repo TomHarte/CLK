@@ -63,8 +63,8 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			return 0;
 		}
 
-		void run_for_cycles(int cycles) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::run_for_cycles(cycles);
+		void run_for(const Cycles &cycles) {
+			CPU::Z80::Processor<ConcreteAllRAMProcessor>::run_for(cycles);
 		}
 
 		uint16_t get_value_of_register(Register r) {
