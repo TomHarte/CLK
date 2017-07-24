@@ -13,7 +13,14 @@
 class Cycles {
 	public:
 		Cycles(int l) : length_(l) {}
+		Cycles(const Cycles &cycles) : length_(int(cycles)) {}
+		Cycles() : length_(0) {}
 		operator int() const { return length_; }
+
+		Cycles &operator =(const Cycles &cycles) {
+			length_ = cycles.length_;
+			return *this;
+		}
 
 	private:
 		int length_;
@@ -24,6 +31,14 @@ class HalfCycles {
 	public:
 		HalfCycles(int l) : length_(l) {}
 		HalfCycles(const Cycles &cycles) : length_(int(cycles) << 1) {}
+		HalfCycles(const HalfCycles &half_cycles) : length_(int(half_cycles)) {}
+		HalfCycles() : length_(0) {}
+
+		HalfCycles &operator =(const HalfCycles &half_cycles) {
+			length_ = half_cycles.length_;
+			return *this;
+		}
+
 		operator int() const { return length_; }
 
 	private:
