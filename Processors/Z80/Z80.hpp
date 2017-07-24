@@ -1697,7 +1697,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		}
 
 		/*!
-			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+			Called to announce the end of a run_for period, allowing deferred work to take place.
 
 			Users of the Z80 template may override this.
 		*/
