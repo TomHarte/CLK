@@ -79,11 +79,11 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 	set_drive(drive);
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for(Cycles(number_of_cycles));
+void Machine::run_for(const Cycles &cycles) {
+	CPU::MOS6502::Processor<Machine>::run_for(cycles);
 	set_motor_on(drive_VIA_.get_motor_enabled());
 	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
-		Storage::Disk::Controller::run_for(Cycles(number_of_cycles));
+		Storage::Disk::Controller::run_for(cycles);
 }
 
 #pragma mark - 6522 delegate

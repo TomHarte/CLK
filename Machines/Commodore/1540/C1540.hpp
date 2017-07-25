@@ -138,7 +138,7 @@ class Machine:
 		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		// to satisfy CPU::MOS6502::Processor

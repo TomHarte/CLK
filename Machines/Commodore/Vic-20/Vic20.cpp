@@ -188,7 +188,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 	tape_->run_for(Cycles(1));
-	if(c1540_) c1540_->run_for_cycles(1);
+	if(c1540_) c1540_->run_for(Cycles(1));
 
 	return 1;
 }
@@ -315,7 +315,7 @@ void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
 void Machine::install_disk_rom() {
 	if(!drive_rom_.empty() && c1540_) {
 		c1540_->set_rom(drive_rom_);
-		c1540_->run_for_cycles(2000000);
+		c1540_->run_for(Cycles(2000000));
 		drive_rom_.clear();
 	}
 }
