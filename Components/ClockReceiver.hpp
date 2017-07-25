@@ -54,17 +54,18 @@ template <class T> class WrappedInt {
 			return *static_cast<T *>(this);
 		}
 
-		inline T operator +(const T &rhs) const		{	return T(length_ + rhs.length_);	}
-		inline T operator -(const T &rhs) const		{	return T(length_ - rhs.length_);	}
+		inline T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
+		inline T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
 
 		inline bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
 		inline bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
-		inline bool operator <=(const T &rhs) const	{	return length_ <= rhs.length_;		}
-		inline bool operator >=(const T &rhs) const	{	return length_ >= rhs.length_;		}
-		inline bool operator ==(const T &rhs) const	{	return length_ == rhs.length_;		}
-		inline bool operator !=(const T &rhs) const	{	return length_ != rhs.length_;		}
+		inline bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
+		inline bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
+		inline bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
+		inline bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
 
 		inline bool operator !() const					{	return !length_;					}
+		inline operator bool() const					{	return !!length_;					}
 
 		inline int as_int() const { return length_; }
 
