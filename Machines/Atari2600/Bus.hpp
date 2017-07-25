@@ -55,7 +55,7 @@ class Bus {
 		// RIOT backlog accumulation counter
 		unsigned int cycles_since_6532_update_;
 		inline void update_6532() {
-			mos6532_.run_for_cycles(cycles_since_6532_update_);
+			mos6532_.run_for(Cycles((int)cycles_since_6532_update_));
 			cycles_since_6532_update_ = 0;
 		}
 };
