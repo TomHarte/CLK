@@ -179,8 +179,8 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	user_port_via_->run_for_cycles(1);
-	keyboard_via_->run_for_cycles(1);
+	user_port_via_->run_for(Cycles(1));
+	keyboard_via_->run_for(Cycles(1));
 	if(typer_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xEB1E) {
 		if(!typer_->type_next_character()) {
 			clear_all_keys();

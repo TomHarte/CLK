@@ -63,8 +63,8 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 			drive_VIA_.set_register(address, *value);
 	}
 
-	serial_port_VIA_->run_for_cycles(1);
-	drive_VIA_.run_for_cycles(1);
+	serial_port_VIA_->run_for(Cycles(1));
+	drive_VIA_.run_for(Cycles(1));
 
 	return 1;
 }

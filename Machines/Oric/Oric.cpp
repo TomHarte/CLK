@@ -130,7 +130,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	via_.run_for_cycles(1);
+	via_.run_for(Cycles(1));
 	if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 	cycles_since_video_update_++;
 	return 1;
@@ -235,15 +235,15 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 }
 
 void Machine::VIA::flush() {
-	ay8910->run_for(Cycles((int)cycles_since_ay_update_));
+	ay8910->run_for(Cycles(cycles_since_ay_update_));
 	ay8910->flush();
 	cycles_since_ay_update_ = 0;
 }
 
-void Machine::VIA::run_for_cycles(unsigned int number_of_cycles) {
-	cycles_since_ay_update_ += number_of_cycles;
-	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
-	tape->run_for(Cycles((int)number_of_cycles));
+void Machine::VIA::run_for(const Cycles &cycles) {
+	cycles_since_ay_update_ += cycles.as_int();
+	MOS::MOS6522<VIA>::run_for(cycles);
+	tape->run_for(cycles);
 }
 
 void Machine::VIA::update_ay() {

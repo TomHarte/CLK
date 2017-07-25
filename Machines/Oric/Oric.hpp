@@ -143,7 +143,7 @@ class Machine:
 				void set_control_line_output(Port port, Line line, bool value);
 				void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
 				uint8_t get_port_input(Port port);
-				inline void run_for_cycles(unsigned int number_of_cycles);
+				inline void run_for(const Cycles &cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
 				std::unique_ptr<TapePlayer> tape;
@@ -154,7 +154,7 @@ class Machine:
 			private:
 				void update_ay();
 				bool ay_bdir_, ay_bc1_;
-				unsigned int cycles_since_ay_update_;
+				int cycles_since_ay_update_;
 		};
 		VIA via_;
 		std::shared_ptr<Keyboard> keyboard_;
