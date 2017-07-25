@@ -11,6 +11,7 @@
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker.hpp"
+#include "../ClockReceiver.hpp"
 
 namespace MOS {
 
@@ -40,7 +41,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 
 	@c set_register and @c get_register provide register access.
 */
-template <class T> class MOS6560 {
+template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
 	public:
 		MOS6560() :
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
@@ -149,7 +150,9 @@ template <class T> class MOS6560 {
 		/*!
 			Runs for cycles. Derr.
 		*/
-		inline void run_for_cycles(unsigned int number_of_cycles) {
+		inline void run_for(const Cycles &cycles) {
+			int number_of_cycles = cycles.as_int();
+
 			// keep track of the amount of time since the speaker was updated; lazy updates are applied
 			cycles_since_speaker_update_ += number_of_cycles;
 

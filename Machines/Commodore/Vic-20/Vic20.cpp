@@ -99,7 +99,7 @@ Machine::~Machine() {
 
 unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	if(!is_running_at_zero_cost_) mos6560_->run_for_cycles(1);
+	if(!is_running_at_zero_cost_) mos6560_->run_for(Cycles(1));
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation)) {
