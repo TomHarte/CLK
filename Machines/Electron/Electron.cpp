@@ -353,7 +353,7 @@ void Machine::flush() {
 
 inline void Machine::update_display() {
 	if(cycles_since_display_update_) {
-		video_output_->run_for_cycles((int)cycles_since_display_update_);
+		video_output_->run_for(Cycles((int)cycles_since_display_update_));
 		cycles_since_display_update_ = 0;
 	}
 }

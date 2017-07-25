@@ -10,6 +10,7 @@
 #define Machines_Electron_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
+#include "../../Components/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
 namespace Electron {
@@ -21,7 +22,7 @@ namespace Electron {
 	running either at 40 or 80 columns. Memory is shared between video and CPU; when the video
 	is accessing it the CPU may not.
 */
-class VideoOutput {
+class VideoOutput: public ClockReceiver<VideoOutput> {
 	public:
 		/*!
 			Instantiates a VideoOutput that will read its pixels from @c memory. The pointer supplied
@@ -32,8 +33,8 @@ class VideoOutput {
 		/// @returns the CRT to which output is being painted.
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 
-		/// Produces the next @c number_of_cycles cycles of video output.
-		void run_for_cycles(int number_of_cycles);
+		/// Produces the next @c cycles of video output.
+		void run_for(const Cycles &cycles);
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
@@ -53,14 +54,14 @@ class VideoOutput {
 		/*!
 			@returns the next interrupt that should be generated as a result of the video hardware.
 			The time until signalling returned is the number of cycles after the final one triggered
-			by the most recent call to @c run_for_cycles.
+			by the most recent call to @c run_for.
 
 			This result may be mutated by calls to @c set_register.
 		*/
 		Interrupt get_next_interrupt();
 
 		/*!
-			@returns the number of cycles after (final cycle of last run_for_cycles batch + @c from_time)
+			@returns the number of cycles after (final cycle of last run_for batch + @c from_time)
 			before the video circuits will allow the CPU to access RAM.
 		*/
 		unsigned int get_cycles_until_next_ram_availability(int from_time);
