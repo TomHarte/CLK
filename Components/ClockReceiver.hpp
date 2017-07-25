@@ -11,8 +11,8 @@
 
 template <class T> class WrappedInt {
 	public:
-		WrappedInt(int l) : length_(l) {}
-		WrappedInt() : length_(0) {}
+		inline WrappedInt(int l) : length_(l) {}
+		inline WrappedInt() : length_(0) {}
 
 		inline T &operator =(const T &rhs) {
 			length_ = rhs.length_;
@@ -69,8 +69,8 @@ template <class T> class WrappedInt {
 
 		inline int as_int() const { return length_; }
 		inline T divide(const T &divisor) {
-			T result(length_ / divisor);
-			length_ %= divisor;
+			T result(length_ / divisor.length_);
+			length_ %= divisor.length_;
 			return result;
 		}
 
@@ -84,19 +84,19 @@ template <class T> class WrappedInt {
 /*! Describes an integer number of whole cycles — pairs of clock signal transitions. */
 class Cycles: public WrappedInt<Cycles> {
 	public:
-		Cycles(int l) : WrappedInt<Cycles>(l) {}
-		Cycles() : WrappedInt<Cycles>() {}
-		Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
+		inline Cycles(int l) : WrappedInt<Cycles>(l) {}
+		inline Cycles() : WrappedInt<Cycles>() {}
+		inline Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
 };
 
 /*! Describes an integer number of half cycles — single clock signal transitions. */
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
-		HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
-		HalfCycles() : WrappedInt<HalfCycles>() {}
+		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
+		inline HalfCycles() : WrappedInt<HalfCycles>() {}
 
-		HalfCycles(const Cycles &cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
-		HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
+		inline HalfCycles(const Cycles &cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
+		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 };
 
 /*!
@@ -107,11 +107,11 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 */
 template <class T> class ClockReceiver {
 	public:
-		void run_for(const Cycles &cycles) {
+		inline void run_for(const Cycles &cycles) {
 			static_cast<T *>(this)->run_for(HalfCycles(cycles));
 		}
 
-		void run_for(const HalfCycles &half_cycles) {
+		inline void run_for(const HalfCycles &half_cycles) {
 			int cycles = half_cycles.as_int() + half_cycle_carry;
 			half_cycle_carry = cycles & 1;
 			run_for(Cycles(cycles >> 1));
