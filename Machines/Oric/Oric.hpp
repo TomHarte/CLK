@@ -104,7 +104,7 @@ class Machine:
 		// RAM and ROM
 		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536], rom_[16384];
-		int cycles_since_video_update_;
+		Cycles cycles_since_video_update_;
 		inline void update_video();
 
 		// ROM bookkeeping
@@ -154,7 +154,7 @@ class Machine:
 			private:
 				void update_ay();
 				bool ay_bdir_, ay_bc1_;
-				int cycles_since_ay_update_;
+				Cycles cycles_since_ay_update_;
 		};
 		VIA via_;
 		std::shared_ptr<Keyboard> keyboard_;

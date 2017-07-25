@@ -12,7 +12,6 @@
 using namespace Oric;
 
 Machine::Machine() :
-		cycles_since_video_update_(0),
 		use_fast_tape_hack_(false),
 		typer_delay_(2500000),
 		keyboard_read_count_(0),
@@ -142,7 +141,7 @@ void Machine::flush() {
 }
 
 void Machine::update_video() {
-	video_output_->run_for(Cycles(cycles_since_video_update_));
+	video_output_->run_for(cycles_since_video_update_);
 	cycles_since_video_update_ = 0;
 }
 
@@ -206,7 +205,6 @@ void Machine::run_for(const Cycles &cycles) {
 
 Machine::VIA::VIA() :
 		MOS::MOS6522<Machine::VIA>(),
-		cycles_since_ay_update_(0),
 		tape(new TapePlayer) {}
 
 void Machine::VIA::set_control_line_output(Port port, Line line, bool value) {
@@ -235,19 +233,19 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 }
 
 void Machine::VIA::flush() {
-	ay8910->run_for(Cycles(cycles_since_ay_update_));
+	ay8910->run_for(cycles_since_ay_update_);
 	ay8910->flush();
 	cycles_since_ay_update_ = 0;
 }
 
 void Machine::VIA::run_for(const Cycles &cycles) {
-	cycles_since_ay_update_ += cycles.as_int();
+	cycles_since_ay_update_ += cycles;
 	MOS::MOS6522<VIA>::run_for(cycles);
 	tape->run_for(cycles);
 }
 
 void Machine::VIA::update_ay() {
-	ay8910->run_for(Cycles((int)cycles_since_ay_update_));
+	ay8910->run_for(cycles_since_ay_update_);
 	cycles_since_ay_update_ = 0;
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }
