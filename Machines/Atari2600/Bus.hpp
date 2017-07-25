@@ -48,7 +48,7 @@ class Bus {
 		// video backlog accumulation counter
 		unsigned int cycles_since_video_update_;
 		inline void update_video() {
-			tia_->run_for_cycles((int)cycles_since_video_update_);
+			tia_->run_for(Cycles((int)cycles_since_video_update_));
 			cycles_since_video_update_ = 0;
 		}
 
