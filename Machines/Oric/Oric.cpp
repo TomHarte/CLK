@@ -131,7 +131,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	}
 
 	via_.run_for_cycles(1);
-	if(microdisc_is_enabled_) microdisc_.run_for_cycles(8);
+	if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 	cycles_since_video_update_++;
 	return 1;
 }

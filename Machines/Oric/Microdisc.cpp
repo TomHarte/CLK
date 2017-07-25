@@ -104,12 +104,12 @@ void Microdisc::set_head_load_request(bool head_load) {
 	}
 }
 
-void Microdisc::run_for_cycles(unsigned int number_of_cycles) {
+void Microdisc::run_for(const Cycles &cycles) {
 	if(head_load_request_counter_ < head_load_request_counter_target) {
-		head_load_request_counter_ += number_of_cycles;
+		head_load_request_counter_ += cycles.as_int();
 		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
 	}
-	WD::WD1770::run_for(Cycles((int)number_of_cycles));
+	WD::WD1770::run_for(cycles);
 }
 
 bool Microdisc::get_drive_is_ready() {
