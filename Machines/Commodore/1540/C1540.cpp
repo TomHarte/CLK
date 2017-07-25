@@ -83,7 +83,7 @@ void Machine::run_for_cycles(int number_of_cycles) {
 	CPU::MOS6502::Processor<Machine>::run_for(Cycles(number_of_cycles));
 	set_motor_on(drive_VIA_.get_motor_enabled());
 	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
-		Storage::Disk::Controller::run_for_cycles(number_of_cycles);
+		Storage::Disk::Controller::run_for(Cycles(number_of_cycles));
 }
 
 #pragma mark - 6522 delegate

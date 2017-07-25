@@ -13,6 +13,7 @@
 
 #include <memory>
 #include "../SignalProcessing/Stepper.hpp"
+#include "../Components/ClockReceiver.hpp"
 
 namespace Storage {
 
@@ -36,7 +37,7 @@ namespace Storage {
 		@c reset_timer to initiate a distinctly-timed stream or @c jump_to_next_event to short-circuit the timing
 		loop and fast forward immediately to the next event.
 	*/
-	class TimedEventLoop {
+	class TimedEventLoop: public ClockReceiver<TimedEventLoop> {
 		public:
 			/*!
 				Constructs a timed event loop that will be clocked at @c input_clock_rate.
@@ -46,7 +47,7 @@ namespace Storage {
 			/*!
 				Advances the event loop by @c number_of_cycles cycles.
 			*/
-			void run_for_cycles(int number_of_cycles);
+			void run_for(const Cycles &cycles);
 
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.

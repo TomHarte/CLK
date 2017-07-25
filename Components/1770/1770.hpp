@@ -11,6 +11,7 @@
 
 #include "../../Storage/Disk/DiskController.hpp"
 #include "../../NumberTheory/CRC.hpp"
+#include "../ClockReceiver.hpp"
 
 namespace WD {
 
@@ -18,7 +19,7 @@ namespace WD {
 	Provides an emulation of various Western Digital drive controllers, including the
 	WD1770, WD1772, FDC1773 and FDC1793.
 */
-class WD1770: public Storage::Disk::Controller {
+class WD1770: public ClockReceiver<WD1770>, public Storage::Disk::Controller {
 	public:
 		enum Personality {
 			P1770,	// implies automatic motor-on management, with Type 2 commands offering a spin-up disable
@@ -43,7 +44,7 @@ class WD1770: public Storage::Disk::Controller {
 		uint8_t get_register(int address);
 
 		/// Runs the controller for @c number_of_cycles cycles.
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for(const Cycles &cycles);
 
 		enum Flag: uint8_t {
 			NotReady		= 0x80,

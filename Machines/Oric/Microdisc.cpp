@@ -109,7 +109,7 @@ void Microdisc::run_for_cycles(unsigned int number_of_cycles) {
 		head_load_request_counter_ += number_of_cycles;
 		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
 	}
-	WD::WD1770::run_for_cycles(number_of_cycles);
+	WD::WD1770::run_for(Cycles((int)number_of_cycles));
 }
 
 bool Microdisc::get_drive_is_ready() {

@@ -11,6 +11,7 @@
 
 #include <memory>
 #include "../TimedEventLoop.hpp"
+#include "../../Components/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Tape {
@@ -91,7 +92,7 @@ class Tape {
 	Will call @c process_input_pulse instantaneously upon reaching *the end* of a pulse. Therefore a subclass
 	can decode pulses into data within process_input_pulse, using the supplied pulse's @c length and @c type.
 */
-class TapePlayer: public TimedEventLoop {
+class TapePlayer: public ClockReceiver<TapePlayer>, public TimedEventLoop {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
@@ -99,7 +100,7 @@ class TapePlayer: public TimedEventLoop {
 		bool has_tape();
 		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 		void run_for_input_pulse();
 
 	protected:
@@ -121,14 +122,14 @@ class TapePlayer: public TimedEventLoop {
 
 	They can also provide a delegate to be notified upon any change in the input level.
 */
-class BinaryTapePlayer: public TapePlayer {
+class BinaryTapePlayer: public ClockReceiver<BinaryTapePlayer>, public TapePlayer {
 	public:
 		BinaryTapePlayer(unsigned int input_clock_rate);
 		void set_motor_control(bool enabled);
 		void set_tape_output(bool set);
 		bool get_input();
 
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 
 		class Delegate {
 			public:

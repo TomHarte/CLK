@@ -294,7 +294,7 @@ uint8_t Parser::get_byte_for_shift_value(uint16_t value) {
 
 uint8_t Parser::get_next_byte() {
 	bit_count_ = 0;
-	while(bit_count_ < 16) run_for_cycles(1);
+	while(bit_count_ < 16) run_for(Cycles(1));
 	uint8_t byte = get_byte_for_shift_value((uint16_t)shift_register_);
 	crc_generator_.add(byte);
 	return byte;
@@ -309,7 +309,7 @@ std::vector<uint8_t> Parser::get_track() {
 
 	// align to the next index hole
 	index_count_ = 0;
-	while(!index_count_) run_for_cycles(1);
+	while(!index_count_) run_for(Cycles(1));
 
 	// capture every other bit until the next index hole
 	index_count_ = 0;
@@ -319,7 +319,7 @@ std::vector<uint8_t> Parser::get_track() {
 		bool found_sync = false;
 		while(!index_count_ && !found_sync && bit_count_ < 16) {
 			int previous_bit_count = bit_count_;
-			run_for_cycles(1);
+			run_for(Cycles(1));
 
 			if(!distance_until_permissible_sync && bit_count_ != previous_bit_count) {
 				uint16_t low_shift_register = (shift_register_&0xffff);
@@ -393,7 +393,7 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 		// look for an ID address mark
 		bool id_found = false;
 		while(!id_found) {
-			run_for_cycles(1);
+			run_for(Cycles(1));
 			if(is_mfm_) {
 				while(shift_register_ == MFMSync) {
 					uint8_t mark = get_next_byte();
@@ -424,7 +424,7 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 		// look for data mark
 		bool data_found = false;
 		while(!data_found) {
-			run_for_cycles(1);
+			run_for(Cycles(1));
 			if(is_mfm_) {
 				while(shift_register_ == MFMSync) {
 					uint8_t mark = get_next_byte();

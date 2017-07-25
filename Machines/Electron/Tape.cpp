@@ -84,7 +84,7 @@ void Tape::run_for_cycles(unsigned int number_of_cycles) {
 	if(is_enabled_) {
 		if(is_in_input_mode_) {
 			if(is_running_) {
-				TapePlayer::run_for_cycles((int)number_of_cycles);
+				TapePlayer::run_for(Cycles((int)number_of_cycles));
 			}
 		} else {
 			output_.cycles_into_pulse += number_of_cycles;

@@ -243,7 +243,7 @@ void Machine::VIA::flush() {
 void Machine::VIA::run_for_cycles(unsigned int number_of_cycles) {
 	cycles_since_ay_update_ += number_of_cycles;
 	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
-	tape->run_for_cycles((int)number_of_cycles);
+	tape->run_for(Cycles((int)number_of_cycles));
 }
 
 void Machine::VIA::update_ay() {

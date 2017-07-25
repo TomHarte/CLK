@@ -329,7 +329,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	}
 
 	if(typer_) typer_->update((int)cycles);
-	if(plus3_) plus3_->run_for_cycles(4*cycles);
+	if(plus3_) plus3_->run_for(Cycles(4*(int)cycles));
 	if(shift_restart_counter_) {
 		shift_restart_counter_ -= cycles;
 		if(shift_restart_counter_ <= 0) {

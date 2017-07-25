@@ -75,7 +75,7 @@ void Controller::run_for(const Cycles &cycles) {
 					}
 				}
 			}
-			TimedEventLoop::run_for_cycles(cycles_to_run_for);
+			TimedEventLoop::run_for(Cycles(cycles_to_run_for));
 		}
 	}
 }

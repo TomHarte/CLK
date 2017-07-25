@@ -187,7 +187,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 			typer_.reset();
 		}
 	}
-	tape_->run_for_cycles(1);
+	tape_->run_for(Cycles(1));
 	if(c1540_) c1540_->run_for_cycles(1);
 
 	return 1;
