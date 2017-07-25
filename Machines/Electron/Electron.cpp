@@ -15,7 +15,6 @@ using namespace Electron;
 Machine::Machine() :
 		interrupt_control_(0),
 		interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
-		cycles_since_display_update_(0),
 		cycles_since_audio_update_(0),
 		use_fast_tape_hack_(false),
 		cycles_until_display_interrupt_(0) {
@@ -136,7 +135,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += video_output_->get_cycles_until_next_ram_availability((int)(cycles_since_display_update_ + 1));
+		cycles += video_output_->get_cycles_until_next_ram_availability(cycles_since_display_update_.as_int() + 1);
 	} else {
 		switch(address & 0xff0f) {
 			case 0xfe00:
@@ -316,7 +315,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	cycles_since_display_update_ += cycles;
+	cycles_since_display_update_ += Cycles((int)cycles);
 	cycles_since_audio_update_ += cycles;
 	if(cycles_since_audio_update_ > 16384) update_audio();
 	tape_.run_for(Cycles((int)cycles));
@@ -353,7 +352,7 @@ void Machine::flush() {
 
 inline void Machine::update_display() {
 	if(cycles_since_display_update_) {
-		video_output_->run_for(Cycles((int)cycles_since_display_update_));
+		video_output_->run_for(cycles_since_display_update_);
 		cycles_since_display_update_ = 0;
 	}
 }

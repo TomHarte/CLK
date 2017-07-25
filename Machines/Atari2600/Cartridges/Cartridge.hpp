@@ -39,8 +39,8 @@ template<class T> class Cartridge:
 				cycles_run_for = (unsigned int)tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
 
 			cycles_since_speaker_update_ += cycles_run_for;
-			cycles_since_video_update_ += cycles_run_for;
-			cycles_since_6532_update_ += (cycles_run_for / 3);
+			cycles_since_video_update_ += (int)cycles_run_for;
+			cycles_since_6532_update_ += (int)(cycles_run_for / 3);
 			static_cast<T *>(this)->advance_cycles(cycles_run_for / 3);
 
 			if(operation != CPU::MOS6502::BusOperation::Ready) {

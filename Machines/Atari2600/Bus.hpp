@@ -21,9 +21,7 @@ class Bus {
 	public:
 		Bus() :
 			tia_input_value_{0xff, 0xff},
-			cycles_since_speaker_update_(0),
-			cycles_since_video_update_(0),
-			cycles_since_6532_update_(0) {}
+			cycles_since_speaker_update_(0) {}
 
 		virtual void run_for(const Cycles &cycles) = 0;
 		virtual void set_reset_line(bool state) = 0;
@@ -46,16 +44,16 @@ class Bus {
 		}
 
 		// video backlog accumulation counter
-		unsigned int cycles_since_video_update_;
+		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			tia_->run_for(Cycles((int)cycles_since_video_update_));
+			tia_->run_for(cycles_since_video_update_);
 			cycles_since_video_update_ = 0;
 		}
 
 		// RIOT backlog accumulation counter
-		unsigned int cycles_since_6532_update_;
+		Cycles cycles_since_6532_update_;
 		inline void update_6532() {
-			mos6532_.run_for(Cycles((int)cycles_since_6532_update_));
+			mos6532_.run_for(cycles_since_6532_update_);
 			cycles_since_6532_update_ = 0;
 		}
 };

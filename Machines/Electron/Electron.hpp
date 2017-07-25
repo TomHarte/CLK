@@ -128,7 +128,7 @@ class Machine:
 		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
-		unsigned int cycles_since_display_update_;
+		Cycles cycles_since_display_update_;
 		unsigned int cycles_since_audio_update_;
 		int cycles_until_display_interrupt_;
 		Interrupt next_display_interrupt_;
