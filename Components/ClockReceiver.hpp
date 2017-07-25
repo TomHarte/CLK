@@ -9,6 +9,10 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
+/*!
+	Provides a class that wraps a plain int, providing most of the basic arithmetic and
+	Boolean operators, but forcing callers and receivers to be explicit as to usage.
+*/
 template <class T> class WrappedInt {
 	public:
 		inline WrappedInt(int l) : length_(l) {}
@@ -68,9 +72,24 @@ template <class T> class WrappedInt {
 		inline operator bool() const					{	return !!length_;					}
 
 		inline int as_int() const { return length_; }
+
+		/*!
+			Severs from @c this the effect of dividing by @c divisor — @c this will end up with
+			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
+		*/
 		inline T divide(const T &divisor) {
 			T result(length_ / divisor.length_);
 			length_ %= divisor.length_;
+			return result;
+		}
+
+		/*!
+			Flushes the value in @c this. The current value is returned, and the internal value
+			is reset to zero.
+		*/
+		inline T flush() {
+			T result(length_);
+			length_ = 0;
 			return result;
 		}
 
@@ -81,7 +100,7 @@ template <class T> class WrappedInt {
 		int length_;
 };
 
-/*! Describes an integer number of whole cycles — pairs of clock signal transitions. */
+/// Describes an integer number of whole cycles — pairs of clock signal transitions.
 class Cycles: public WrappedInt<Cycles> {
 	public:
 		inline Cycles(int l) : WrappedInt<Cycles>(l) {}
@@ -89,7 +108,7 @@ class Cycles: public WrappedInt<Cycles> {
 		inline Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
 };
 
-/*! Describes an integer number of half cycles — single clock signal transitions. */
+/// Describes an integer number of half cycles — single clock signal transitions.
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
 		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
@@ -102,23 +121,51 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 /*!
 	ClockReceiver is a template for components that receove a clock, measured either
 	in cycles or in half cycles. They are expected to implement either of the run_for
-	methods; buying into the template means that the other run_for will automatically
-	map appropriately to the implemented one, so callers may use either.
+	methods and to declare that they are `using` the other; buying into the template
+	means that the other run_for will automatically map appropriately to the implemented
+	one, so callers may use either.
+
+	Alignment rule:
+
+		run_for(Cycles) may be called only at the start of a cycle. E.g. the following
+		sequence will have undefined results:
+
+			run_for(HalfCycles(1))
+			run_for(Cycles(1))
+
+		An easy way to ensure this as a caller is to pick only one of run_for(Cycles) and
+		run_for(HalfCycles) to use.
+
+	Reasoning:
+
+		Users of this template may with to implement run_for(Cycles) and run_for(HalfCycles)
+		where there is a need to implement at half-cycle precision but a faster execution
+		path can be offered for full-cycle precision. Those users are permitted to assume
+		phase in run_for(Cycles) and should do so to be compatible with callers that use
+		only run_for(Cycles).
+
+	Corollary:
+
+		Starting from nothing, the first run_for(HalfCycles(1)) will do the **first** half
+		of a full cycle. The second will do the second half. Etc.
+
 */
 template <class T> class ClockReceiver {
 	public:
+		ClockReceiver() : half_cycle_carry_(0) {}
+
 		inline void run_for(const Cycles &cycles) {
 			static_cast<T *>(this)->run_for(HalfCycles(cycles));
 		}
 
 		inline void run_for(const HalfCycles &half_cycles) {
-			int cycles = half_cycles.as_int() + half_cycle_carry;
-			half_cycle_carry = cycles & 1;
-			run_for(Cycles(cycles >> 1));
+			int cycles = half_cycles.as_int() + half_cycle_carry_;
+			half_cycle_carry_ = cycles & 1;
+			static_cast<T *>(this)->run_for(Cycles(cycles >> 1));
 		}
 
 	private:
-		int half_cycle_carry;
+		int half_cycle_carry_;
 };
 
 #endif /* ClockReceiver_hpp */
