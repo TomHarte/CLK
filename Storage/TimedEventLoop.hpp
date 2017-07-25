@@ -23,7 +23,7 @@ namespace Storage {
 
 		Subclasses are responsible for calling @c set_next_event_time_interval to establish the time
 		until a next event; @c process_next_event will be called when that event occurs, with progression
-		determined via @c run_for_cycles.
+		determined via @c run_for.
 
 		Due to the aggregation of total timing information between events — e.g. if an event loop has
 		a clock rate of 1000 ticks per second and a steady stream of events that occur 10,000 times a second,
