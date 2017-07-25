@@ -14,6 +14,7 @@
 #include "PCMSegment.hpp"
 #include "PCMPatchedTrack.hpp"
 #include "../TimedEventLoop.hpp"
+#include "../../Components/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -27,13 +28,13 @@ namespace Disk {
 
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
-class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
+class Controller: public ClockReceiver<Controller>, public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	protected:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
 			spinning inserted disks at @c revolutions_per_minute.
 		*/
-		Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute);
+		Controller(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 		/*!
 			Communicates to the PLL the expected length of a bit as a fraction of a second.
@@ -43,7 +44,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		/*!
 			Advances the drive by @c number_of_cycles cycles.
 		*/
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 
 		/*!
 			Sets the current drive.
@@ -113,14 +114,14 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 
 	private:
 		Time bit_length_;
-		unsigned int clock_rate_;
-		unsigned int clock_rate_multiplier_;
+		int clock_rate_;
+		int clock_rate_multiplier_;
 		Time rotational_multiplier_;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;
 		std::shared_ptr<Track> track_;
-		unsigned int cycles_since_index_hole_;
+		int cycles_since_index_hole_;
 
 		inline void get_next_event(const Time &duration_already_passed);
 		Track::Event current_event_;

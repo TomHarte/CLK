@@ -11,10 +11,11 @@
 
 #include <memory>
 #include <vector>
+#include "../../Components/ClockReceiver.hpp"
 
 namespace Storage {
 
-class DigitalPhaseLockedLoop {
+class DigitalPhaseLockedLoop: public ClockReceiver<DigitalPhaseLockedLoop> {
 	public:
 		/*!
 			Instantiates a @c DigitalPhaseLockedLoop.
@@ -29,7 +30,7 @@ class DigitalPhaseLockedLoop {
 
 			@c number_of_cycles The time to run the loop for.
 		*/
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 
 		/*!
 			Announces a pulse at the current time.

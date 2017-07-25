@@ -20,9 +20,9 @@ DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, size_t length
 		offset_history_(length_of_history, 0),
 		offset_(0) {}
 
-void DigitalPhaseLockedLoop::run_for_cycles(int number_of_cycles) {
-	offset_ += number_of_cycles;
-	phase_ += number_of_cycles;
+void DigitalPhaseLockedLoop::run_for(const Cycles &cycles) {
+	offset_ += cycles.as_int();
+	phase_ += cycles.as_int();
 	if(phase_ >= window_length_) {
 		int windows_crossed = phase_ / window_length_;
 

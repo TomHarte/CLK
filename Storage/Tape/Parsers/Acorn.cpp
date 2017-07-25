@@ -74,7 +74,7 @@ Shifter::Shifter() :
 }
 
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	pll_.run_for_cycles((int)((float)PLLClockRate * pulse.length.get_float()));
+	pll_.run_for(Cycles((int)((float)PLLClockRate * pulse.length.get_float())));
 
 	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(is_high != was_high_) {
