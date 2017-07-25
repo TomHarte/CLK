@@ -830,7 +830,7 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 		}
 
 		/*!
-			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+			Called to announce the end of a run_for period, allowing deferred work to take place.
 
 			Users of the 6502 template may override this.
 		*/
