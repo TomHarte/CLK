@@ -17,7 +17,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
 		inline int perform_machine_cycle(const PartialMachineCycle &cycle) {
-			timestamp_ += cycle.length;
+			timestamp_ += cycle.length.as_int();
 			if(!cycle.is_terminal()) {
 				return 0;
 			}
