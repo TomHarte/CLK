@@ -9,40 +9,68 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
-/*! Describes an integer number of whole cycles — pairs of clock signal transitions. */
-class Cycles {
+template <class T> class WrappedInt {
 	public:
-		Cycles(int l) : length_(l) {}
-		Cycles(const Cycles &cycles) : length_(int(cycles)) {}
-		Cycles() : length_(0) {}
-		operator int() const { return length_; }
+		WrappedInt(int l) : length_(l) {}
+		WrappedInt() : length_(0) {}
 
-		Cycles &operator =(const Cycles &cycles) {
-			length_ = cycles.length_;
+		inline T &operator =(const T &rhs) {
+			length_ = rhs.length_;
 			return *this;
 		}
 
-	private:
+		inline T &operator +=(const T &rhs) {
+			length_ += rhs.length_;
+			return *static_cast<T *>(this);
+		}
+
+		inline T &operator -=(const T &rhs) {
+			length_ -= rhs.length_;
+			return *static_cast<T *>(this);
+		}
+
+		inline T &operator %=(const T &rhs) {
+			length_ %= rhs.length_;
+			return *static_cast<T *>(this);
+		}
+
+		inline T operator +(const T &rhs) const		{	return T(length_ + rhs.length_);	}
+		inline T operator -(const T &rhs) const		{	return T(length_ - rhs.length_);	}
+
+		inline bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
+		inline bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
+		inline bool operator <=(const T &rhs) const	{	return length_ <= rhs.length_;		}
+		inline bool operator >=(const T &rhs) const	{	return length_ >= rhs.length_;		}
+		inline bool operator ==(const T &rhs) const	{	return length_ == rhs.length_;		}
+		inline bool operator !=(const T &rhs) const	{	return length_ != rhs.length_;		}
+
+		inline bool operator !() const					{	return !length_;					}
+
+		inline int as_int() const { return length_; }
+
+		// operator int() is deliberately not provided, to avoid accidental subtitution of
+		// classes that use this template.
+
+	protected:
 		int length_;
 };
 
-/*! Describes an integer number of half cycles — single clock signal transitions. */
-class HalfCycles {
+/*! Describes an integer number of whole cycles — pairs of clock signal transitions. */
+class Cycles: public WrappedInt<Cycles> {
 	public:
-		HalfCycles(int l) : length_(l) {}
-		HalfCycles(const Cycles &cycles) : length_(int(cycles) << 1) {}
-		HalfCycles(const HalfCycles &half_cycles) : length_(int(half_cycles)) {}
-		HalfCycles() : length_(0) {}
+		Cycles(int l) : WrappedInt<Cycles>(l) {}
+		Cycles() : WrappedInt<Cycles>() {}
+		Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
+};
 
-		HalfCycles &operator =(const HalfCycles &half_cycles) {
-			length_ = half_cycles.length_;
-			return *this;
-		}
+/*! Describes an integer number of half cycles — single clock signal transitions. */
+class HalfCycles: public WrappedInt<HalfCycles> {
+	public:
+		HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
+		HalfCycles() : WrappedInt<HalfCycles>() {}
 
-		operator int() const { return length_; }
-
-	private:
-		int length_;
+		HalfCycles(const Cycles &cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
+		HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 };
 
 /*!
@@ -58,7 +86,7 @@ template <class T> class ClockReceiver {
 		}
 
 		void run_for(const HalfCycles &half_cycles) {
-			int cycles = int(half_cycles) + half_cycle_carry;
+			int cycles = half_cycles.as_int() + half_cycle_carry;
 			half_cycle_carry = cycles & 1;
 			run_for(Cycles(cycles >> 1));
 		}

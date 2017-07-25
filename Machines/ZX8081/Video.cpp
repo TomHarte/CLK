@@ -31,7 +31,7 @@ Video::Video() :
 
 void Video::run_for(const HalfCycles &half_cycles) {
 	// Just keep a running total of the amount of time that remains owed to the CRT.
-	cycles_since_update_ += (unsigned int)int(half_cycles);
+	cycles_since_update_ += (unsigned int)half_cycles.as_int();
 }
 
 void Video::flush() {

@@ -103,17 +103,18 @@ class Machine:
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
 
-		int horizontal_counter_;
 		bool is_zx81_;
 		bool nmi_is_enabled_;
-		int vsync_start_cycle_, vsync_end_cycle_;
+
+		HalfCycles vsync_start_, vsync_end_;
+		HalfCycles horizontal_counter_;
 
 		uint8_t latched_video_byte_;
 		bool has_latched_video_byte_;
 
 		bool use_fast_tape_hack_;
 		bool use_automatic_tape_motor_control_;
-		int tape_advance_delay_;
+		HalfCycles tape_advance_delay_;
 };
 
 }

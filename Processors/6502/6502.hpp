@@ -340,7 +340,7 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 	if(number_of_cycles <= 0) break;
 
 			checkSchedule();
-			int number_of_cycles = int(cycles) + cycles_left_to_run_;
+			int number_of_cycles = cycles.as_int() + cycles_left_to_run_;
 
 			while(number_of_cycles > 0) {
 

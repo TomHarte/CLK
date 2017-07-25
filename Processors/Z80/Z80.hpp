@@ -183,7 +183,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
 		uint8_t halt_mask_;
 
-		int number_of_cycles_;
+		Cycles number_of_cycles_;
 
 		enum Interrupt: uint8_t {
 			IRQ			= 0x01,
@@ -429,7 +429,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				target.instructions[c] = &target.all_operations[destination];
 				for(size_t t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
-					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length == 0) {
+					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
 						t++;
 						continue;
 					}
@@ -766,7 +766,6 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 	public:
 		Processor() :
 			halt_mask_(0xff),
-			number_of_cycles_(0),
 			interrupt_mode_(0),
 			wait_line_(false),
 			request_status_(Interrupt::PowerOn),
@@ -879,7 +878,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		scheduled_program_counter_ = base_page_.fetch_decode_execute_data;	\
 	}
 
-			number_of_cycles_ += int(cycles);
+			number_of_cycles_ += cycles;
 			if(!scheduled_program_counter_) {
 				advance_operation();
 			}
@@ -888,7 +887,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 
 				while(bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1, nullptr, nullptr, false};
-					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
+					number_of_cycles_ -= Cycles(static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1);
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
 						return;
