@@ -12,18 +12,20 @@
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/Acorn.hpp"
 #include "Interrupts.hpp"
+#include "../../Components/ClockReceiver.hpp"
 
 #include <cstdint>
 
 namespace Electron {
 
 class Tape:
+	public ClockReceiver<Tape>,
 	public Storage::Tape::TapePlayer,
 	public Storage::Tape::Acorn::Shifter::Delegate {
 	public:
 		Tape();
 
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for(const Cycles &cycles);
 
 		uint8_t get_data_register();
 		void set_data_register(uint8_t value);

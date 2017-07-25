@@ -319,7 +319,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	cycles_since_display_update_ += cycles;
 	cycles_since_audio_update_ += cycles;
 	if(cycles_since_audio_update_ > 16384) update_audio();
-	tape_.run_for_cycles(cycles);
+	tape_.run_for(Cycles((int)cycles));
 
 	cycles_until_display_interrupt_ -= cycles;
 	if(cycles_until_display_interrupt_ < 0) {
