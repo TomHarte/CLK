@@ -154,7 +154,7 @@ template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
 			int number_of_cycles = cycles.as_int();
 
 			// keep track of the amount of time since the speaker was updated; lazy updates are applied
-			cycles_since_speaker_update_ += number_of_cycles;
+			cycles_since_speaker_update_ += (unsigned int)number_of_cycles;
 
 			while(number_of_cycles--) {
 				// keep an old copy of the vertical count because that test is a cycle later than the actual changes
