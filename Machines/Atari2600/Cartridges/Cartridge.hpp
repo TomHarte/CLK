@@ -29,19 +29,19 @@ template<class T> class Cartridge:
 		// to satisfy CPU::MOS6502::Processor
 		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			uint8_t returnValue = 0xff;
-			unsigned int cycles_run_for = 3;
+			int cycles_run_for = 3;
 
 			// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
 			// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
 			// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 			// skips to the end of the line.
 			if(operation == CPU::MOS6502::BusOperation::Ready)
-				cycles_run_for = (unsigned int)tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
+				cycles_run_for = tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
 
-			cycles_since_speaker_update_ += cycles_run_for;
-			cycles_since_video_update_ += (int)cycles_run_for;
-			cycles_since_6532_update_ += (int)(cycles_run_for / 3);
-			static_cast<T *>(this)->advance_cycles(cycles_run_for / 3);
+			cycles_since_speaker_update_ += Cycles(cycles_run_for);
+			cycles_since_video_update_ += Cycles(cycles_run_for);
+			cycles_since_6532_update_ += Cycles(cycles_run_for / 3);
+			static_cast<T *>(this)->advance_cycles((unsigned int)cycles_run_for / 3);
 
 			if(operation != CPU::MOS6502::BusOperation::Ready) {
 				// give the cartridge a chance to respond to the bus access
@@ -158,7 +158,7 @@ template<class T> class Cartridge:
 
 			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(false);
 
-			return cycles_run_for / 3;
+			return (unsigned int)(cycles_run_for / 3);
 		}
 
 		void flush() {

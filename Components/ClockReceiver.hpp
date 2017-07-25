@@ -68,6 +68,11 @@ template <class T> class WrappedInt {
 		inline operator bool() const					{	return !!length_;					}
 
 		inline int as_int() const { return length_; }
+		inline T divide(const T &divisor) {
+			T result(length_ / divisor);
+			length_ %= divisor;
+			return result;
+		}
 
 		// operator int() is deliberately not provided, to avoid accidental subtitution of
 		// classes that use this template.

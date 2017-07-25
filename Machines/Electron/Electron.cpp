@@ -316,8 +316,8 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	}
 
 	cycles_since_display_update_ += Cycles((int)cycles);
-	cycles_since_audio_update_ += cycles;
-	if(cycles_since_audio_update_ > 16384) update_audio();
+	cycles_since_audio_update_ += Cycles((int)cycles);
+	if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
 	tape_.run_for(Cycles((int)cycles));
 
 	cycles_until_display_interrupt_ -= cycles;
@@ -365,9 +365,7 @@ inline void Machine::queue_next_display_interrupt() {
 
 inline void Machine::update_audio() {
 	if(cycles_since_audio_update_) {
-		unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
-		cycles_since_audio_update_ %= Speaker::clock_rate_divider;
-		speaker_->run_for(Cycles((int)difference));
+		speaker_->run_for(cycles_since_audio_update_.divide(Cycles(Speaker::clock_rate_divider)));
 	}
 }
 
