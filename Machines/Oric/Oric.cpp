@@ -235,7 +235,7 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 }
 
 void Machine::VIA::flush() {
-	ay8910->run_for_cycles(cycles_since_ay_update_);
+	ay8910->run_for(Cycles((int)cycles_since_ay_update_));
 	ay8910->flush();
 	cycles_since_ay_update_ = 0;
 }
@@ -247,7 +247,7 @@ void Machine::VIA::run_for_cycles(unsigned int number_of_cycles) {
 }
 
 void Machine::VIA::update_ay() {
-	ay8910->run_for_cycles(cycles_since_ay_update_);
+	ay8910->run_for(Cycles((int)cycles_since_ay_update_));
 	cycles_since_ay_update_ = 0;
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }

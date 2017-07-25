@@ -368,7 +368,7 @@ inline void Machine::update_audio() {
 	if(cycles_since_audio_update_) {
 		unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
 		cycles_since_audio_update_ %= Speaker::clock_rate_divider;
-		speaker_->run_for_cycles(difference);
+		speaker_->run_for(Cycles((int)difference));
 	}
 }
 

@@ -408,7 +408,7 @@ template <class T> class MOS6560 {
 		std::shared_ptr<Speaker> speaker_;
 		unsigned int cycles_since_speaker_update_;
 		void update_audio() {
-			speaker_->run_for_cycles(cycles_since_speaker_update_ >> 2);
+			speaker_->run_for(Cycles((int)cycles_since_speaker_update_ >> 2));
 			cycles_since_speaker_update_ &= 3;
 		}
 

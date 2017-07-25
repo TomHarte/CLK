@@ -42,7 +42,7 @@ class Bus {
 		inline void update_audio() {
 			unsigned int audio_cycles = cycles_since_speaker_update_ / (CPUTicksPerAudioTick * 3);
 			cycles_since_speaker_update_ %= (CPUTicksPerAudioTick * 3);
-			speaker_->run_for_cycles(audio_cycles);
+			speaker_->run_for(Cycles((int)audio_cycles));
 		}
 
 		// video backlog accumulation counter
