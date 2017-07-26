@@ -16,10 +16,10 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 	public:
 		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
-		inline int perform_machine_cycle(const PartialMachineCycle &cycle) {
+		inline Cycles perform_machine_cycle(const PartialMachineCycle &cycle) {
 			timestamp_ += cycle.length.as_int();
 			if(!cycle.is_terminal()) {
-				return 0;
+				return Cycles(0);
 			}
 
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
@@ -60,7 +60,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
 			}
 
-			return 0;
+			return Cycles(0);
 		}
 
 		void run_for(const Cycles &cycles) {

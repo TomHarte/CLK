@@ -29,7 +29,7 @@ Machine::Machine() :
 	clear_all_keys();
 }
 
-int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+Cycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	HalfCycles previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
 
@@ -65,7 +65,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	}
 
 	if(!cycle.is_terminal()) {
-		return 0;
+		return Cycles(0);
 	}
 
 	uint16_t address = cycle.address ? *cycle.address : 0;
@@ -182,7 +182,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 
 	if(typer_) typer_->update(cycle.length.as_int());
 
-	return 0;
+	return Cycles(0);
 }
 
 void Machine::flush() {

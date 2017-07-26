@@ -888,7 +888,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 
 				while(bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1, nullptr, nullptr, false};
-					number_of_cycles_ -= Cycles(static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1);
+					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + Cycles(1);
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
 						return;
@@ -1703,8 +1703,8 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		*/
 		void flush() {}
 
-		int perform_machine_cycle(const PartialMachineCycle &cycle) {
-			return 0;
+		Cycles perform_machine_cycle(const PartialMachineCycle &cycle) {
+			return Cycles(0);
 		}
 
 		/*!
