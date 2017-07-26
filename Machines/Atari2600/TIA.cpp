@@ -198,8 +198,8 @@ void TIA::set_blank(bool blank) {
 void TIA::reset_horizontal_counter() {
 }
 
-int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset) {
-	return (cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line) % cycles_per_line;
+int TIA::get_cycles_until_horizontal_blank(const Cycles &from_offset) {
+	return (cycles_per_line - (horizontal_counter_ + from_offset.as_int()) % cycles_per_line) % cycles_per_line;
 }
 
 void TIA::set_background_colour(uint8_t colour) {
