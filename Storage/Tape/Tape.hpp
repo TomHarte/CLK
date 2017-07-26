@@ -10,8 +10,9 @@
 #define Tape_hpp
 
 #include <memory>
+
+#include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../TimedEventLoop.hpp"
-#include "../../Components/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Tape {

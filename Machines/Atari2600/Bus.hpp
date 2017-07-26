@@ -13,7 +13,8 @@
 #include "PIA.hpp"
 #include "Speaker.hpp"
 #include "TIA.hpp"
-#include "../../Components/ClockReceiver.hpp"
+
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 

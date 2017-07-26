@@ -11,7 +11,7 @@
 
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker.hpp"
-#include "../Components/ClockReceiver.hpp"
+#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace CRTMachine {
 

@@ -10,7 +10,7 @@
 #define Machines_ZX8081_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace ZX8081 {
 

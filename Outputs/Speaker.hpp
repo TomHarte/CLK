@@ -9,9 +9,9 @@
 #ifndef Speaker_hpp
 #define Speaker_hpp
 
-#include <stdint.h>
-#include <stdio.h>
-#include <time.h>
+#include <cstdint>
+#include <cstdio>
+#include <ctime>
 
 #include <memory>
 #include <list>
@@ -20,7 +20,7 @@
 #include "../SignalProcessing/Stepper.hpp"
 #include "../SignalProcessing/FIRFilter.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
-#include "../Components/ClockReceiver.hpp"
+#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace Outputs {
 

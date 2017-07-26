@@ -10,7 +10,7 @@
 #define Machines_Electron_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
 namespace Electron {

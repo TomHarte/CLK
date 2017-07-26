@@ -13,7 +13,7 @@
 #include <cstdint>
 
 #include "../RegisterSizes.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace MOS6502 {

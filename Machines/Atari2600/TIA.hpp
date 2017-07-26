@@ -10,8 +10,9 @@
 #define TIA_hpp
 
 #include <cstdint>
+
 #include "../CRTMachine.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 

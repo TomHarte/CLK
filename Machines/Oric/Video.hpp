@@ -10,7 +10,7 @@
 #define Machines_Oric_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Oric {
 

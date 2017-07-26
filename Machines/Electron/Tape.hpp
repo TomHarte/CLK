@@ -9,12 +9,12 @@
 #ifndef Electron_Tape_h
 #define Electron_Tape_h
 
+#include <cstdint>
+
+#include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/Acorn.hpp"
 #include "Interrupts.hpp"
-#include "../../Components/ClockReceiver.hpp"
-
-#include <cstdint>
 
 namespace Electron {
 

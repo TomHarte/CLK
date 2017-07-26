@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "../RegisterSizes.hpp"
-#include "../../Components/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace Z80 {

@@ -11,9 +11,10 @@
 
 #include "Storage.hpp"
 
-#include <memory>
+#include "../ClockReceiver/ClockReceiver.hpp"
 #include "../SignalProcessing/Stepper.hpp"
-#include "../Components/ClockReceiver.hpp"
+
+#include <memory>
 
 namespace Storage {
 
