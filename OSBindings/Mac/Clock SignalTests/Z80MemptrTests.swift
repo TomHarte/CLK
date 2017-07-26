@@ -172,10 +172,24 @@ class Z80MemptrTests: XCTestCase {
 			MEMPTR = rp1_before_operation + 1
 	*/
 
-	/* TODO:
-		RLD/RRD
-			MEMPTR = HL + 1
-	*/
+	// RLD/RRD
+	func testRLDRRD() {
+		// MEMPTR = HL + 1
+		let rldProgram: [UInt8] = [
+			0xed, 0x6f
+		]
+		let rrdProgram: [UInt8] = [
+			0xed, 0x67
+		]
+
+		for addr in 0 ..< 65536 {
+			let expectedResult = UInt16((addr + 1) & 0xffff)
+			machine.setValue(UInt16(addr), for: .HL)
+
+			XCTAssertEqual(test(program: rldProgram, length: 18, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: rrdProgram, length: 18, initialValue: 0xffff), expectedResult)
+		}
+	}
 
 	/* TODO:
 		JR/DJNZ/RET/RETI/RST (jumping to addr)
