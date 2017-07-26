@@ -339,7 +339,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 		}
 	}
 
-	return Cycles(cycles);
+	return Cycles((int)cycles);
 }
 
 void Machine::flush() {
