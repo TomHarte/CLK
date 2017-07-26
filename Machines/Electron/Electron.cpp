@@ -352,8 +352,7 @@ void Machine::flush() {
 
 inline void Machine::update_display() {
 	if(cycles_since_display_update_) {
-		video_output_->run_for(cycles_since_display_update_);
-		cycles_since_display_update_ = 0;
+		video_output_->run_for(cycles_since_display_update_.flush());
 	}
 }
 

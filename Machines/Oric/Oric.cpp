@@ -141,8 +141,7 @@ void Machine::flush() {
 }
 
 void Machine::update_video() {
-	video_output_->run_for(cycles_since_video_update_);
-	cycles_since_video_update_ = 0;
+	video_output_->run_for(cycles_since_video_update_.flush());
 }
 
 void Machine::setup_output(float aspect_ratio) {
@@ -233,9 +232,8 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 }
 
 void Machine::VIA::flush() {
-	ay8910->run_for(cycles_since_ay_update_);
+	ay8910->run_for(cycles_since_ay_update_.flush());
 	ay8910->flush();
-	cycles_since_ay_update_ = 0;
 }
 
 void Machine::VIA::run_for(const Cycles &cycles) {
@@ -245,8 +243,7 @@ void Machine::VIA::run_for(const Cycles &cycles) {
 }
 
 void Machine::VIA::update_ay() {
-	ay8910->run_for(cycles_since_ay_update_);
-	cycles_since_ay_update_ = 0;
+	ay8910->run_for(cycles_since_ay_update_.flush());
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }
 
