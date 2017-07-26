@@ -82,7 +82,8 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x20, 0x04, 0x02,	// [6] JSR $0204
 			0x00,
 			0x60,				// [6] RTS
-			]
+		]
+		machine.addTrapAddress(0x0203)
 		self.runTest(code, expectedRunLength: 12)
 	}
 
@@ -171,6 +172,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x87, 0x09,			// [3] SAX $09
 			0x60,				// [6] RTS
 		]
+		machine.addTrapAddress(0x0203)
 		self.runTest(code, expectedRunLength: 66)
 	}
 
@@ -220,7 +222,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		if self.endTime == 0 {
-			self.endTime = machine.timestamp - 9
+			self.endTime = machine.timestamp - 1
 		}
 	}
 }
