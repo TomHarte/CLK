@@ -57,7 +57,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			}
 
 			if(delegate_ != nullptr) {
-				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
+				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_ >> 1);
 			}
 
 			return Cycles(0);

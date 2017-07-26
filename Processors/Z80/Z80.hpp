@@ -88,7 +88,7 @@ struct PartialMachineCycle {
 		InputStart,
 		OutputStart,
 	} operation;
-	Cycles length;
+	HalfCycles length;
 	uint16_t *address;
 	uint8_t *value;
 	bool was_requested;
@@ -105,43 +105,43 @@ struct PartialMachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, Cycles(2), &pc_.full, &operation_, false}
-#define ReadOpcodeWait(length, f)	{PartialMachineCycle::ReadOpcodeWait, Cycles(length), &pc_.full, &operation_, f}
-#define Refresh(len)				{PartialMachineCycle::Refresh, Cycles(len), &refresh_addr_.full, nullptr, false}
+#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, HalfCycles(4), &pc_.full, &operation_, false}
+#define ReadOpcodeWait(f)			{PartialMachineCycle::ReadOpcodeWait, HalfCycles(2), &pc_.full, &operation_, f}
+#define Refresh(len)				{PartialMachineCycle::Refresh, HalfCycles(len), &refresh_addr_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, Cycles(2), &addr.full, &val, false}
-#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, Cycles(l), &addr.full, &val, f}
-#define ReadEnd(addr, val)			{PartialMachineCycle::Read, Cycles(1), &addr.full, &val, false}
+#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, HalfCycles(4), &addr.full, &val, false}
+#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, HalfCycles(l), &addr.full, &val, f}
+#define ReadEnd(addr, val)			{PartialMachineCycle::Read, HalfCycles(2), &addr.full, &val, false}
 
-#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart, Cycles(2), &addr.full, &val, false}
-#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, Cycles(l), &addr.full, &val, f}
-#define WriteEnd(addr, val)			{PartialMachineCycle::Write, Cycles(1), &addr.full, &val, false}
+#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart,HalfCycles(4), &addr.full, &val, false}
+#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, HalfCycles(l), &addr.full, &val, f}
+#define WriteEnd(addr, val)			{PartialMachineCycle::Write, HalfCycles(2), &addr.full, &val, false}
 
-#define InputStart(addr, val)		{PartialMachineCycle::InputStart, Cycles(2), &addr.full, &val, false}
-#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, Cycles(1), &addr.full, &val, f}
-#define InputEnd(addr, val)			{PartialMachineCycle::Input, Cycles(1), &addr.full, &val, false}
+#define InputStart(addr, val)		{PartialMachineCycle::InputStart, HalfCycles(4), &addr.full, &val, false}
+#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, HalfCycles(2), &addr.full, &val, f}
+#define InputEnd(addr, val)			{PartialMachineCycle::Input, HalfCycles(2), &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, Cycles(2), &addr.full, &val, false}
-#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, Cycles(1), &addr.full, &val, f}
-#define OutputEnd(addr, val)		{PartialMachineCycle::Output, Cycles(1), &addr.full, &val, false}
+#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, HalfCycles(4), &addr.full, &val, false}
+#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, HalfCycles(2), &addr.full, &val, f}
+#define OutputEnd(addr, val)		{PartialMachineCycle::Output, HalfCycles(2), &addr.full, &val, false}
 
-#define IntAck(length, val)			{PartialMachineCycle::Interrupt, Cycles(length), nullptr, &val, false}
-#define IntWait(val)				{PartialMachineCycle::InterruptWait, Cycles(1), nullptr, &val, true}
+#define IntAck(length, val)			{PartialMachineCycle::Interrupt, HalfCycles(length), nullptr, &val, false}
+#define IntWait(val)				{PartialMachineCycle::InterruptWait, HalfCycles(2), nullptr, &val, true}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
 
 // Compound bus operations, as micro-ops
-#define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(1, addr, val, false)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(1, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(4, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
 
-#define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
-#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, false)), BusOp(WriteWait(1, addr, val, true)), BusOp(WriteEnd(addr, val))
+#define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
+#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(4, addr, val, false)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, len, nullptr, nullptr, false}}
+#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), nullptr, nullptr, false}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -150,7 +150,7 @@ struct PartialMachineCycle {
 #define Instr(r, ...)				Sequence(BusOp(Refresh(r)), __VA_ARGS__)
 
 /// A standard instruction is one with the most normal timing: two cycles of refresh, then the work.
-#define StdInstr(...)				Instr(2, __VA_ARGS__)
+#define StdInstr(...)				Instr(4, __VA_ARGS__)
 
 // Assumption made: those instructions that are rated with an opcode fetch greater than four cycles spend the extra time
 // providing a lengthened refresh cycle. I assume this because the CPU doesn't have foresight and presumably spends the
@@ -183,7 +183,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
 		uint8_t halt_mask_;
 
-		Cycles number_of_cycles_;
+		HalfCycles number_of_cycles_;
 
 		enum Interrupt: uint8_t {
 			IRQ			= 0x01,
@@ -328,7 +328,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 
 #define Write16(addr, val)		WriteInc(addr, val.bytes.low), Write3(addr, val.bytes.high)
 
-#define INDEX()					{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &index}
+#define INDEX()					{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), InternalOperation(10), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()				{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()			(add_offsets ? memptr_ : index)
 
@@ -339,13 +339,13 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 #define Pop7(x)					Read3(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read4(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
 
 /* The following are actual instructions */
-#define NOP						Sequence(BusOp(Refresh(2)))
+#define NOP						Sequence(BusOp(Refresh(4)))
 
 #define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.bytes.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define RET(cc)					Instr(3, {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define RST()					Instr(3, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RET(cc)					Instr(6, {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RST()					Instr(6, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)				StdInstr({MicroOp::Move8, &b, &a})
 
 #define LD_GROUP(r, ri)	\
@@ -398,9 +398,9 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
 				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
 
-#define ADD16(d, s) StdInstr(InternalOperation(4), InternalOperation(3), {MicroOp::ADD16, &s.full, &d.full})
-#define ADC16(d, s) StdInstr(InternalOperation(4), InternalOperation(3), {MicroOp::ADC16, &s.full, &d.full})
-#define SBC16(d, s) StdInstr(InternalOperation(4), InternalOperation(3), {MicroOp::SBC16, &s.full, &d.full})
+#define ADD16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::ADD16, &s.full, &d.full})
+#define ADC16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::ADC16, &s.full, &d.full})
+#define SBC16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::SBC16, &s.full, &d.full})
 
 #define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
 
@@ -465,27 +465,27 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
 				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, bc_)),
 				/* 0x44 NEG */			StdInstr({MicroOp::NEG}),		/* 0x45 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x46 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x47 LD I, A */		Instr(3, {MicroOp::Move8, &a_, &ir_.bytes.high}),
+				/* 0x46 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x47 LD I, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.bytes.high}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
 				/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, bc_)),
 				/* 0x4c NEG */			StdInstr({MicroOp::NEG}),		/* 0x4d RETI */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x4e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x4f LD R, A */		Instr(3, {MicroOp::Move8, &a_, &ir_.bytes.low}),
+				/* 0x4e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x4f LD R, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.bytes.low}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
 				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, de_)),
 				/* 0x54 NEG */			StdInstr({MicroOp::NEG}),		/* 0x55 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x56 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x57 LD A, I */		Instr(3, {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
+				/* 0x56 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x57 LD A, I */		Instr(6, {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
 				/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, de_)),
 				/* 0x5c NEG */			StdInstr({MicroOp::NEG}),		/* 0x5d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x5e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x5f LD A, R */		Instr(3, {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
+				/* 0x5e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x5f LD A, R */		Instr(6, {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
 				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, hl_)),
 				/* 0x64 NEG */			StdInstr({MicroOp::NEG}),		/* 0x65 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x66 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x67 RRD */			StdInstr(Read3(hl_, temp8_), InternalOperation(4), {MicroOp::RRD}, Write3(hl_, temp8_)),
+				/* 0x66 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x67 RRD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RRD}, Write3(hl_, temp8_)),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.low),
 				/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, hl_)),
 				/* 0x6c NEG */			StdInstr({MicroOp::NEG}),		/* 0x6d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
-				/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(4), {MicroOp::RLD}, Write3(hl_, temp8_)),
+				/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write3(hl_, temp8_)),
 				/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_)),
 				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, sp_)),
 				/* 0x74 NEG */			StdInstr({MicroOp::NEG}),		/* 0x75 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
@@ -497,24 +497,24 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				NOP_ROW(),	/* 0x80 */
 				NOP_ROW(),	/* 0x90 */
 				/* 0xa0 LDI */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDI}),
-				/* 0xa1 CPI */		StdInstr(Read3(hl_, temp8_), InternalOperation(5), {MicroOp::CPI}),
-				/* 0xa2 INI */		Instr(3, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INI}),
-				/* 0xa3 OTI */		Instr(3, Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_)),
+				/* 0xa1 CPI */		StdInstr(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPI}),
+				/* 0xa2 INI */		Instr(6, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INI}),
+				/* 0xa3 OTI */		Instr(6, Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_)),
 				NOP, NOP, NOP, NOP,
 				/* 0xa8 LDD */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDD}),
-				/* 0xa9 CPD */		StdInstr(Read3(hl_, temp8_), InternalOperation(5), {MicroOp::CPD}),
-				/* 0xaa IND */		Instr(3, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::IND}),
-				/* 0xab OTD */		Instr(3, Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_)),
+				/* 0xa9 CPD */		StdInstr(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPD}),
+				/* 0xaa IND */		Instr(6, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::IND}),
+				/* 0xab OTD */		Instr(6, Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_)),
 				NOP, NOP, NOP, NOP,
-				/* 0xb0 LDIR */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDIR}, InternalOperation(5)),
-				/* 0xb1 CPIR */		StdInstr(Read3(hl_, temp8_), InternalOperation(5), {MicroOp::CPIR}, InternalOperation(5)),
-				/* 0xb2 INIR */		Instr(3, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INIR}, InternalOperation(5)),
-				/* 0xb3 OTIR */		Instr(3, Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(5)),
+				/* 0xb0 LDIR */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDIR}, InternalOperation(10)),
+				/* 0xb1 CPIR */		StdInstr(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPIR}, InternalOperation(10)),
+				/* 0xb2 INIR */		Instr(6, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INIR}, InternalOperation(10)),
+				/* 0xb3 OTIR */		Instr(6, Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
 				NOP, NOP, NOP, NOP,
-				/* 0xb8 LDDR */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDDR}, InternalOperation(5)),
-				/* 0xb9 CPDR */		StdInstr(Read3(hl_, temp8_), InternalOperation(5), {MicroOp::CPDR}, InternalOperation(5)),
-				/* 0xba INDR */		Instr(3, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INDR}, InternalOperation(5)),
-				/* 0xbb OTDR */		Instr(3, Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(5)),
+				/* 0xb8 LDDR */		StdInstr(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDDR}, InternalOperation(10)),
+				/* 0xb9 CPDR */		StdInstr(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPDR}, InternalOperation(10)),
+				/* 0xba INDR */		Instr(6, Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INDR}, InternalOperation(10)),
+				/* 0xbb OTDR */		Instr(6, Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
 				NOP, NOP, NOP, NOP,
 				NOP_ROW(),	/* 0xc0 */
 				NOP_ROW(),	/* 0xd0 */
@@ -559,10 +559,10 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				StdInstr(ReadInc(pc_, r))
 
 #define INC_INC_DEC_LD(rf, r)	\
-				Instr(4, {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
+				Instr(8, {MicroOp::Increment16, &rf.full}), INC_DEC_LD(r)
 
 #define DEC_INC_DEC_LD(rf, r)	\
-				Instr(4, {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
+				Instr(8, {MicroOp::Decrement16, &rf.full}), INC_DEC_LD(r)
 
 			InstructionTable base_program_table = {
 				/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16Inc(pc_, bc_)),
@@ -579,7 +579,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
 
 				/* 0x0f RRCA */			StdInstr({MicroOp::RRCA}),
-				/* 0x10 DJNZ */			Instr(3, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+				/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x11 LD DE, nn */	StdInstr(Read16Inc(pc_, de_)),
 				/* 0x12 LD (DE), A */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Write3(memptr_, a_)),
 
@@ -587,7 +587,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				INC_INC_DEC_LD(de_, de_.bytes.high),
 
 				/* 0x17 RLA */			StdInstr({MicroOp::RLA}),
-				/* 0x18 JR */			StdInstr(ReadInc(pc_, temp8_), InternalOperation(5), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+				/* 0x18 JR */			StdInstr(ReadInc(pc_, temp8_), InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
 				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_)),
 
@@ -611,7 +611,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0x2f CPL */			StdInstr({MicroOp::CPL}),
 				/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	StdInstr(Read16Inc(pc_, sp_)),
 				/* 0x32 LD (nn), A */	StdInstr(Read16Inc(pc_, temp16_), Write3(temp16_, a_)),
-				/* 0x33 INC SP */		Instr(4, {MicroOp::Increment16, &sp_.full}),
+				/* 0x33 INC SP */		Instr(8, {MicroOp::Increment16, &sp_.full}),
 				/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 				/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 				/* 0x36 LD (HL), n */	StdInstr(ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
@@ -619,7 +619,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
 				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read3(memptr_, a_)),
-				/* 0x3b DEC SP */		Instr(4, {MicroOp::Decrement16, &sp_.full}),
+				/* 0x3b DEC SP */		Instr(8, {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
 				INC_DEC_LD(a_),
@@ -682,7 +682,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 
 				/* 0xc0 RET NZ */	RET(TestNZ),							/* 0xc1 POP BC */	StdInstr(Pop(bc_)),
 				/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	StdInstr(Read16(pc_, temp16_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
-				/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Instr(3, Push(bc_)),
+				/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Instr(6, Push(bc_)),
 				/* 0xc6 ADD A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADD8, &temp8_}),
 				/* 0xc7 RST 00h */	RST(),
 				/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(pc_)),
@@ -692,7 +692,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0xcf RST 08h */	RST(),
 				/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	StdInstr(Pop(de_)),
 				/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */StdInstr(ReadInc(pc_, temp16_.bytes.low), {MicroOp::Move8, &a_, &temp16_.bytes.high}, Output(temp16_, a_)),
-				/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Instr(3, Push(de_)),
+				/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Instr(6, Push(de_)),
 				/* 0xd6 SUB n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SUB8, &temp8_}),
 				/* 0xd7 RST 10h */	RST(),
 				/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		StdInstr({MicroOp::EXX}),
@@ -702,7 +702,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0xdf RST 18h */	RST(),
 				/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	StdInstr(Pop(index)),
 				/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */StdInstr(Pop7(memptr_), Push8(index), {MicroOp::Move16, &memptr_.full, &index.full}),
-				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Instr(3, Push(index)),
+				/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Instr(6, Push(index)),
 				/* 0xe6 AND n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::And, &temp8_}),
 				/* 0xe7 RST 20h */	RST(),
 				/* 0xe8 RET PE */	RET(TestPE),							/* 0xe9 JP (HL) */	StdInstr({MicroOp::Move16, &index.full, &pc_.full}),
@@ -712,10 +712,10 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 				/* 0xef RST 28h */	RST(),
 				/* 0xf0 RET p */	RET(TestP),								/* 0xf1 POP AF */	StdInstr(Pop(temp16_), {MicroOp::DisassembleAF}),
 				/* 0xf2 JP P */		JP(TestP),								/* 0xf3 DI */		StdInstr({MicroOp::DI}),
-				/* 0xf4 CALL P */	CALL(TestP),							/* 0xf5 PUSH AF */	Instr(3, {MicroOp::AssembleAF}, Push(temp16_)),
+				/* 0xf4 CALL P */	CALL(TestP),							/* 0xf5 PUSH AF */	Instr(6, {MicroOp::AssembleAF}, Push(temp16_)),
 				/* 0xf6 OR n */		StdInstr(ReadInc(pc_, temp8_), {MicroOp::Or, &temp8_}),
 				/* 0xf7 RST 30h */	RST(),
-				/* 0xf8 RET M */	RET(TestM),								/* 0xf9 LD SP, HL */Instr(4, {MicroOp::Move16, &index.full, &sp_.full}),
+				/* 0xf8 RET M */	RET(TestM),								/* 0xf9 LD SP, HL */Instr(8, {MicroOp::Move16, &index.full, &sp_.full}),
 				/* 0xfa JP M */		JP(TestM),								/* 0xfb EI */		StdInstr({MicroOp::EI}),
 				/* 0xfc CALL M */	CALL(TestM),							/* 0xfd [FD page] */StdInstr({MicroOp::SetInstructionPage, &fd_page_}),
 				/* 0xfe CP n */		StdInstr(ReadInc(pc_, temp8_), {MicroOp::CP8, &temp8_}),
@@ -738,13 +738,13 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		void assemble_fetch_decode_execute(InstructionPage &target, int length) {
 			const MicroOp normal_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart()),
-				BusOp(ReadOpcodeWait(1, true)),
+				BusOp(ReadOpcodeWait(true)),
 				{ MicroOp::DecodeOperation }
 			};
 			const MicroOp short_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart()),
-				BusOp(ReadOpcodeWait(1, false)),
-				BusOp(ReadOpcodeWait(1, true)),
+				BusOp(ReadOpcodeWait(false)),
+				BusOp(ReadOpcodeWait(true)),
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
@@ -802,7 +802,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 			assemble_fetch_decode_execute(fdcb_page_, 3);
 			assemble_fetch_decode_execute(ddcb_page_, 3);
 
-			MicroOp reset_program[] = Sequence(InternalOperation(3), {MicroOp::Reset});
+			MicroOp reset_program[] = Sequence(InternalOperation(6), {MicroOp::Reset});
 
 			// Justification for NMI timing: per Wilf Rigter on the ZX81 (http://www.user.dccnet.com/wrigter/index_files/ZX81WAIT.htm),
 			// wait cycles occur between T2 and T3 during NMI; extending the refresh cycle is also consistent with my guess
@@ -810,32 +810,32 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 			MicroOp nmi_program[] = {
 				{ MicroOp::BeginNMI },
 				BusOp(ReadOpcodeStart()),
-				BusOp(ReadOpcodeWait(1, true)),
-				BusOp(Refresh(3)),
+				BusOp(ReadOpcodeWait(true)),
+				BusOp(Refresh(6)),
 				Push(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				BusOp(IntAck(4, operation_)),
+				BusOp(IntAck(8, operation_)),
 				BusOp(IntWait(operation_)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(5, operation_)),
+				BusOp(IntAck(10, operation_)),
 				BusOp(IntWait(operation_)),
-				BusOp(Refresh(2)),
+				BusOp(Refresh(4)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
 				{ MicroOp::MoveToNextProgram }
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(5, temp16_.bytes.low)),
+				BusOp(IntAck(10, temp16_.bytes.low)),
 				BusOp(IntWait(temp16_.bytes.low)),
-				BusOp(Refresh(2)),
+				BusOp(Refresh(4)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
 				Read16(temp16_, pc_),
@@ -859,7 +859,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 
 			@param cycles The number of cycles to run for.
 		*/
-		void run_for(const Cycles &cycles) {
+		void run_for(const HalfCycles &cycles) {
 
 #define advance_operation() \
 	pc_increment_ = 1;	\
@@ -887,8 +887,8 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 			while(1) {
 
 				while(bus_request_line_) {
-					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1, nullptr, nullptr, false};
-					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + Cycles(1);
+					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
+					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
 						return;
@@ -1703,8 +1703,8 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 		*/
 		void flush() {}
 
-		Cycles perform_machine_cycle(const PartialMachineCycle &cycle) {
-			return Cycles(0);
+		HalfCycles perform_machine_cycle(const PartialMachineCycle &cycle) {
+			return HalfCycles(0);
 		}
 
 		/*!
