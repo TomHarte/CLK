@@ -97,7 +97,7 @@ Machine::~Machine() {
 	delete[] rom_;
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
 	if(!is_running_at_zero_cost_) mos6560_->run_for(Cycles(1));
 
@@ -190,7 +190,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	tape_->run_for(Cycles(1));
 	if(c1540_) c1540_->run_for(Cycles(1));
 
-	return 1;
+	return Cycles(1);
 }
 
 #pragma mark - 6522 delegate

@@ -142,7 +142,7 @@ class Machine:
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

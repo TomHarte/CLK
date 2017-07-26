@@ -77,7 +77,7 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data) {
 	}
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	if(address > ram_top_) {
 		if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
@@ -132,7 +132,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	via_.run_for(Cycles(1));
 	if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 	cycles_since_video_update_++;
-	return 1;
+	return Cycles(1);
 }
 
 void Machine::flush() {

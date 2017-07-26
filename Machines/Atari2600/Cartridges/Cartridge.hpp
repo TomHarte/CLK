@@ -27,7 +27,7 @@ template<class T> class Cartridge:
 		void advance_cycles(int cycles) {}
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			uint8_t returnValue = 0xff;
 			int cycles_run_for = 3;
 
@@ -158,7 +158,7 @@ template<class T> class Cartridge:
 
 			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(false);
 
-			return (unsigned int)(cycles_run_for / 3);
+			return Cycles(cycles_run_for / 3);
 		}
 
 		void flush() {

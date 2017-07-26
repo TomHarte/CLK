@@ -34,7 +34,7 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -66,7 +66,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	serial_port_VIA_->run_for(Cycles(1));
 	drive_VIA_.run_for(Cycles(1));
 
-	return 1;
+	return Cycles(1);
 }
 
 void Machine::set_rom(const std::vector<uint8_t> &rom) {

@@ -122,7 +122,7 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable
 
 #pragma mark - The bus
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	unsigned int cycles = 1;
 
 	if(address < 0x8000) {
@@ -339,7 +339,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	return cycles;
+	return Cycles(cycles);
 }
 
 void Machine::flush() {

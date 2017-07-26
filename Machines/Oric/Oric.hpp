@@ -77,7 +77,7 @@ class Machine:
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void flush();
 
 		// to satisfy CRTMachine::Machine

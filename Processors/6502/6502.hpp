@@ -181,7 +181,7 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 		}
 
 		bool is_jammed_;
-		int cycles_left_to_run_;
+		Cycles cycles_left_to_run_;
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
@@ -264,7 +264,6 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 	protected:
 		Processor() :
 				is_jammed_(false),
-				cycles_left_to_run_(0),
 				ready_line_is_enabled_(false),
 				ready_is_active_(false),
 				inverse_interrupt_flag_(0),
@@ -338,14 +337,14 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
-	if(number_of_cycles <= 0) break;
+	if(number_of_cycles <= Cycles(0)) break;
 
 			checkSchedule();
-			int number_of_cycles = cycles.as_int() + cycles_left_to_run_;
+			Cycles number_of_cycles = cycles + cycles_left_to_run_;
 
-			while(number_of_cycles > 0) {
+			while(number_of_cycles > Cycles(0)) {
 
-				while (ready_is_active_ && number_of_cycles > 0) {
+				while (ready_is_active_ && number_of_cycles > Cycles(0)) {
 					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
