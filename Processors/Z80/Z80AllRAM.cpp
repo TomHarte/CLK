@@ -94,6 +94,10 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		void set_wait_line(bool value) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_wait_line(value);
 		}
+
+		uint32_t get_timestamp() {
+			return timestamp_ >> 1;
+		}
 };
 
 }
