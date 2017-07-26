@@ -92,7 +92,7 @@ class Tape {
 	Will call @c process_input_pulse instantaneously upon reaching *the end* of a pulse. Therefore a subclass
 	can decode pulses into data within process_input_pulse, using the supplied pulse's @c length and @c type.
 */
-class TapePlayer: public ClockReceiver<TapePlayer>, public TimedEventLoop {
+class TapePlayer: public TimedEventLoop {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
@@ -101,6 +101,8 @@ class TapePlayer: public ClockReceiver<TapePlayer>, public TimedEventLoop {
 		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
 		void run_for(const Cycles &cycles);
+		using TimedEventLoop::run_for;
+
 		void run_for_input_pulse();
 
 	protected:

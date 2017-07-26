@@ -48,6 +48,7 @@ namespace Storage {
 				Advances the event loop by @c number_of_cycles cycles.
 			*/
 			void run_for(const Cycles &cycles);
+			using ClockReceiver<TimedEventLoop>::run_for;
 
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.

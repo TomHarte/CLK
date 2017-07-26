@@ -19,13 +19,13 @@
 namespace Electron {
 
 class Tape:
-	public ClockReceiver<Tape>,
 	public Storage::Tape::TapePlayer,
 	public Storage::Tape::Acorn::Shifter::Delegate {
 	public:
 		Tape();
 
 		void run_for(const Cycles &cycles);
+		using Storage::Tape::TapePlayer::run_for;
 
 		uint8_t get_data_register();
 		void set_data_register(uint8_t value);
