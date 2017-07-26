@@ -10,11 +10,13 @@
 #define TIA_hpp
 
 #include <cstdint>
+
 #include "../CRTMachine.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 
-class TIA {
+class TIA: public ClockReceiver<TIA> {
 	public:
 		TIA();
 		// The supplied hook is for unit testing only; if instantiated with a line_end_function then it will
@@ -27,10 +29,10 @@ class TIA {
 		};
 
 		/*!
-			Advances the TIA by @c number_of_cycles cycles. Any queued setters take effect in the
-			first cycle performed.
+			Advances the TIA by @c cycles. Any queued setters take effect in the first cycle performed.
 		*/
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
+		using ClockReceiver<TIA>::run_for;
 		void set_output_mode(OutputMode output_mode);
 
 		void set_sync(bool sync);
@@ -41,7 +43,7 @@ class TIA {
 			@returns the number of cycles between (current TIA time) + from_offset to the current or
 			next horizontal blanking period. Returns numbers in the range [0, 227].
 		*/
-		int get_cycles_until_horizontal_blank(unsigned int from_offset);
+		int get_cycles_until_horizontal_blank(const Cycles &from_offset);
 
 		void set_background_colour(uint8_t colour);
 

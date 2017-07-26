@@ -104,7 +104,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (void)runForNumberOfCycles:(int)numberOfCycles {
 	@synchronized(self) {
-		self.machine->run_for_cycles(numberOfCycles);
+		self.machine->run_for(Cycles(numberOfCycles));
 	}
 }
 

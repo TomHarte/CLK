@@ -86,7 +86,7 @@ class Machine:
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void flush();
 
 		// to satisfy CRTMachine::Machine
@@ -94,7 +94,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual void run_for(const Cycles &cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);
@@ -128,8 +128,8 @@ class Machine:
 		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
-		unsigned int cycles_since_display_update_;
-		unsigned int cycles_since_audio_update_;
+		Cycles cycles_since_display_update_;
+		Cycles cycles_since_audio_update_;
 		int cycles_until_display_interrupt_;
 		Interrupt next_display_interrupt_;
 		VideoOutput::Range video_access_range_;

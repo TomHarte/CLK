@@ -11,6 +11,7 @@
 
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker.hpp"
+#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace CRTMachine {
 
@@ -23,13 +24,26 @@ class Machine {
 	public:
 		Machine() : clock_is_unlimited_(false) {}
 
+		/*!
+			Causes the machine to set up its CRT and, if it has one, speaker. The caller guarantees
+			that an OpenGL context is bound.
+		*/
 		virtual void setup_output(float aspect_ratio) = 0;
+
+		/*!
+			Gives the machine a chance to release all owned resources. The caller guarantees that the
+			OpenGL context is bound.
+		*/
 		virtual void close_output() = 0;
 
+		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;
+
+		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() = 0;
 
-		virtual void run_for_cycles(int number_of_cycles) = 0;
+		/// Runs the machine for @c cycles.
+		virtual void run_for(const Cycles &cycles) = 0;
 
 		// TODO: sever the clock-rate stuff.
 		double get_clock_rate() {

@@ -15,16 +15,13 @@
 #import "NSData+StdVector.h"
 #import "NSBundle+DataResource.h"
 
-@implementation CSOric
-{
+@implementation CSOric {
 	Oric::Machine _oric;
 }
 
-- (instancetype)init
-{
+- (instancetype)init {
 	self = [super init];
-	if(self)
-	{
+	if(self) {
 		NSData *basic10 = [self rom:@"basic10"];
 		NSData *basic11 = [self rom:@"basic11"];
 		NSData *colour = [self rom:@"colour"];
@@ -38,23 +35,19 @@
 	return self;
 }
 
-- (NSData *)rom:(NSString *)name
-{
+- (NSData *)rom:(NSString *)name {
 	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/Oric"];
 }
 
-- (CRTMachine::Machine * const)machine
-{
+- (CRTMachine::Machine * const)machine {
 	return &_oric;
 }
 
 #pragma mark - CSKeyboardMachine
 
-- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed
-{
+- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	@synchronized(self) {
-		switch(key)
-		{
+		switch(key) {
 			case VK_ANSI_0:		_oric.set_key_state(Oric::Key::Key0, isPressed);	break;
 			case VK_ANSI_1:		_oric.set_key_state(Oric::Key::Key1, isPressed);	break;
 			case VK_ANSI_2:		_oric.set_key_state(Oric::Key::Key2, isPressed);	break;
@@ -137,8 +130,7 @@
 	}
 }
 
-- (void)clearAllKeys
-{
+- (void)clearAllKeys {
 	_oric.clear_all_keys();
 }
 

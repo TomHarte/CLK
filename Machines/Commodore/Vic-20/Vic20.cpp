@@ -97,9 +97,9 @@ Machine::~Machine() {
 	delete[] rom_;
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	// run the phase-1 part of this cycle, in which the VIC accesses memory
-	if(!is_running_at_zero_cost_) mos6560_->run_for_cycles(1);
+	if(!is_running_at_zero_cost_) mos6560_->run_for(Cycles(1));
 
 	// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 	if(isReadOperation(operation)) {
@@ -179,18 +179,18 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	user_port_via_->run_for_cycles(1);
-	keyboard_via_->run_for_cycles(1);
+	user_port_via_->run_for(Cycles(1));
+	keyboard_via_->run_for(Cycles(1));
 	if(typer_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xEB1E) {
 		if(!typer_->type_next_character()) {
 			clear_all_keys();
 			typer_.reset();
 		}
 	}
-	tape_->run_for_cycles(1);
-	if(c1540_) c1540_->run_for_cycles(1);
+	tape_->run_for(Cycles(1));
+	if(c1540_) c1540_->run_for(Cycles(1));
 
-	return 1;
+	return Cycles(1);
 }
 
 #pragma mark - 6522 delegate
@@ -315,7 +315,7 @@ void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
 void Machine::install_disk_rom() {
 	if(!drive_rom_.empty() && c1540_) {
 		c1540_->set_rom(drive_rom_);
-		c1540_->run_for_cycles(2000000);
+		c1540_->run_for(Cycles(2000000));
 		drive_rom_.clear();
 	}
 }

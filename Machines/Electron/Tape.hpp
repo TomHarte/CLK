@@ -9,11 +9,12 @@
 #ifndef Electron_Tape_h
 #define Electron_Tape_h
 
+#include <cstdint>
+
+#include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/Acorn.hpp"
 #include "Interrupts.hpp"
-
-#include <cstdint>
 
 namespace Electron {
 
@@ -23,7 +24,8 @@ class Tape:
 	public:
 		Tape();
 
-		void run_for_cycles(unsigned int number_of_cycles);
+		void run_for(const Cycles &cycles);
+		using Storage::Tape::TapePlayer::run_for;
 
 		uint8_t get_data_register();
 		void set_data_register(uint8_t value);

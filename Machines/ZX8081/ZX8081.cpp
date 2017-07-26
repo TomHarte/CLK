@@ -29,35 +29,35 @@ Machine::Machine() :
 	clear_all_keys();
 }
 
-int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-	int previous_counter = horizontal_counter_;
+Cycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+	HalfCycles previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
 
-	if(previous_counter < vsync_start_cycle_ && horizontal_counter_ >= vsync_start_cycle_) {
-		video_->run_for_cycles(vsync_start_cycle_ - previous_counter);
+	if(previous_counter < vsync_start_ && horizontal_counter_ >= vsync_start_) {
+		video_->run_for(vsync_start_ - previous_counter);
 		set_hsync(true);
 		line_counter_ = (line_counter_ + 1) & 7;
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(true);
 		}
-		video_->run_for_cycles(horizontal_counter_ - vsync_start_cycle_);
-	} else if(previous_counter < vsync_end_cycle_ && horizontal_counter_ >= vsync_end_cycle_) {
-		video_->run_for_cycles(vsync_end_cycle_ - previous_counter);
+		video_->run_for(horizontal_counter_ - vsync_start_);
+	} else if(previous_counter < vsync_end_ && horizontal_counter_ >= vsync_end_) {
+		video_->run_for(vsync_end_ - previous_counter);
 		set_hsync(false);
 		if(nmi_is_enabled_) {
 			set_non_maskable_interrupt_line(false);
 			set_wait_line(false);
 		}
-		video_->run_for_cycles(horizontal_counter_ - vsync_end_cycle_);
+		video_->run_for(horizontal_counter_ - vsync_end_);
 	} else {
-		video_->run_for_cycles(cycle.length);
+		video_->run_for(cycle.length);
 	}
 
-	if(is_zx81_) horizontal_counter_ %= 207;
+	if(is_zx81_) horizontal_counter_ %= HalfCycles(Cycles(207));
 	if(!tape_advance_delay_) {
-		tape_player_.run_for_cycles(cycle.length);
+		tape_player_.run_for(cycle.length);
 	} else {
-		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, 0);
+		tape_advance_delay_ = std::max(tape_advance_delay_ - cycle.length, HalfCycles(0));
 	}
 
 	if(nmi_is_enabled_ && !get_halt_line() && get_non_maskable_interrupt_line()) {
@@ -65,7 +65,7 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	}
 
 	if(!cycle.is_terminal()) {
-		return 0;
+		return Cycles(0);
 	}
 
 	uint16_t address = cycle.address ? *cycle.address : 0;
@@ -180,9 +180,9 @@ int Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		default: break;
 	}
 
-	if(typer_) typer_->update(cycle.length);
+	if(typer_) typer_->update(cycle.length.as_int());
 
-	return 0;
+	return Cycles(0);
 }
 
 void Machine::flush() {
@@ -205,8 +205,8 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return nullptr;
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::Z80::Processor<Machine>::run_for_cycles(number_of_cycles);
+void Machine::run_for(const Cycles &cycles) {
+	CPU::Z80::Processor<Machine>::run_for(cycles);
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
@@ -215,16 +215,16 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		rom_ = zx81_rom_;
 		tape_trap_address_ = 0x37c;
 		tape_return_address_ = 0x380;
-		vsync_start_cycle_ = 16;
-		vsync_end_cycle_ = 32;
+		vsync_start_ = HalfCycles(32);
+		vsync_end_ = HalfCycles(64);
 		automatic_tape_motor_start_address_ = 0x0340;
 		automatic_tape_motor_end_address_ = 0x03c3;
 	} else {
 		rom_ = zx80_rom_;
 		tape_trap_address_ = 0x220;
 		tape_return_address_ = 0x248;
-		vsync_start_cycle_ = 13;
-		vsync_end_cycle_ = 33;
+		vsync_start_ = HalfCycles(26);
+		vsync_end_ = HalfCycles(66);
 		automatic_tape_motor_start_address_ = 0x0206;
 		automatic_tape_motor_end_address_ = 0x024d;
 	}

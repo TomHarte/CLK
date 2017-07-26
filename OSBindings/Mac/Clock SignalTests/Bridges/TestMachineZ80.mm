@@ -129,7 +129,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
-	_processor->run_for_cycles(cycles);
+	_processor->run_for(Cycles(cycles));
 }
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {

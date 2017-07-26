@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "../RegisterSizes.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace Z80 {
@@ -89,7 +90,7 @@ struct PartialMachineCycle {
 		InputStart,
 		OutputStart,
 	} operation;
-	int length;
+	Cycles length;
 	uint16_t *address;
 	uint8_t *value;
 	bool was_requested;
@@ -106,28 +107,28 @@ struct PartialMachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, 2, &pc_.full, &operation_, false}
-#define ReadOpcodeWait(length, f)	{PartialMachineCycle::ReadOpcodeWait, length, &pc_.full, &operation_, f}
-#define Refresh(len)				{PartialMachineCycle::Refresh, len, &refresh_addr_.full, nullptr, false}
+#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, Cycles(2), &pc_.full, &operation_, false}
+#define ReadOpcodeWait(length, f)	{PartialMachineCycle::ReadOpcodeWait, Cycles(length), &pc_.full, &operation_, f}
+#define Refresh(len)				{PartialMachineCycle::Refresh, Cycles(len), &refresh_addr_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, 2, &addr.full, &val, false}
-#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, l, &addr.full, &val, f}
-#define ReadEnd(addr, val)			{PartialMachineCycle::Read, 1, &addr.full, &val, false}
+#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, Cycles(2), &addr.full, &val, false}
+#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, Cycles(l), &addr.full, &val, f}
+#define ReadEnd(addr, val)			{PartialMachineCycle::Read, Cycles(1), &addr.full, &val, false}
 
-#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart, 2, &addr.full, &val, false}
-#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, l, &addr.full, &val, f}
-#define WriteEnd(addr, val)			{PartialMachineCycle::Write, 1, &addr.full, &val, false}
+#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart, Cycles(2), &addr.full, &val, false}
+#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, Cycles(l), &addr.full, &val, f}
+#define WriteEnd(addr, val)			{PartialMachineCycle::Write, Cycles(1), &addr.full, &val, false}
 
-#define InputStart(addr, val)		{PartialMachineCycle::InputStart, 2, &addr.full, &val, false}
-#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, 1, &addr.full, &val, f}
-#define InputEnd(addr, val)			{PartialMachineCycle::Input, 1, &addr.full, &val, false}
+#define InputStart(addr, val)		{PartialMachineCycle::InputStart, Cycles(2), &addr.full, &val, false}
+#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, Cycles(1), &addr.full, &val, f}
+#define InputEnd(addr, val)			{PartialMachineCycle::Input, Cycles(1), &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, 2, &addr.full, &val, false}
-#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, 1, &addr.full, &val, f}
-#define OutputEnd(addr, val)		{PartialMachineCycle::Output, 1, &addr.full, &val, false}
+#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, Cycles(2), &addr.full, &val, false}
+#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, Cycles(1), &addr.full, &val, f}
+#define OutputEnd(addr, val)		{PartialMachineCycle::Output, Cycles(1), &addr.full, &val, false}
 
-#define IntAck(length, val)			{PartialMachineCycle::Interrupt, length, nullptr, &val, false}
-#define IntWait(val)				{PartialMachineCycle::InterruptWait, 1, nullptr, &val, true}
+#define IntAck(length, val)			{PartialMachineCycle::Interrupt, Cycles(length), nullptr, &val, false}
+#define IntWait(val)				{PartialMachineCycle::InterruptWait, Cycles(1), nullptr, &val, true}
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -165,7 +166,7 @@ struct PartialMachineCycle {
 	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 */
-template <class T> class Processor {
+template <class T> class Processor: public ClockReceiver<Processor<T>> {
 	private:
 		uint8_t a_;
 		RegisterPair bc_, de_, hl_;
@@ -184,7 +185,7 @@ template <class T> class Processor {
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
 		uint8_t halt_mask_;
 
-		int number_of_cycles_;
+		Cycles number_of_cycles_;
 
 		enum Interrupt: uint8_t {
 			IRQ			= 0x01,
@@ -430,7 +431,7 @@ template <class T> class Processor {
 				target.instructions[c] = &target.all_operations[destination];
 				for(size_t t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
-					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length == 0) {
+					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
 						t++;
 						continue;
 					}
@@ -767,7 +768,6 @@ template <class T> class Processor {
 	public:
 		Processor() :
 			halt_mask_(0xff),
-			number_of_cycles_(0),
 			interrupt_mode_(0),
 			wait_line_(false),
 			request_status_(Interrupt::PowerOn),
@@ -851,6 +851,7 @@ template <class T> class Processor {
 			copy_program(irq_mode2_program, irq_program_[2]);
 		}
 
+		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 
@@ -858,9 +859,9 @@ template <class T> class Processor {
 
 			If it is a read operation then @c value will be seeded with the value 0xff.
 
-			@param number_of_cycles The number of cycles to run the Z80 for.
+			@param cycles The number of cycles to run for.
 		*/
-		void run_for_cycles(int number_of_cycles) {
+		void run_for(const Cycles &cycles) {
 
 #define advance_operation() \
 	pc_increment_ = 1;	\
@@ -880,7 +881,7 @@ template <class T> class Processor {
 		scheduled_program_counter_ = base_page_.fetch_decode_execute_data;	\
 	}
 
-			number_of_cycles_ += number_of_cycles;
+			number_of_cycles_ += cycles;
 			if(!scheduled_program_counter_) {
 				advance_operation();
 			}
@@ -889,7 +890,7 @@ template <class T> class Processor {
 
 				while(bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, 1, nullptr, nullptr, false};
-					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + 1;
+					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + Cycles(1);
 					if(!number_of_cycles_) {
 						static_cast<T *>(this)->flush();
 						return;
@@ -1698,14 +1699,14 @@ template <class T> class Processor {
 		}
 
 		/*!
-			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+			Called to announce the end of a run_for period, allowing deferred work to take place.
 
 			Users of the Z80 template may override this.
 		*/
 		void flush() {}
 
-		int perform_machine_cycle(const PartialMachineCycle &cycle) {
-			return 0;
+		Cycles perform_machine_cycle(const PartialMachineCycle &cycle) {
+			return Cycles(0);
 		}
 
 		/*!

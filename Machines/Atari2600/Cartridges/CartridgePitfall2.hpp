@@ -22,7 +22,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 			rom_ptr_ = rom_.data();
 		}
 
-		void advance_cycles(unsigned int cycles) {
+		void advance_cycles(int cycles) {
 			cycles_since_audio_update_ += cycles;
 		}
 
@@ -105,8 +105,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 
 		inline uint8_t update_audio() {
 			const unsigned int clock_divisor = 57;
-			unsigned int cycles_to_run_for = cycles_since_audio_update_ / clock_divisor;
-			cycles_since_audio_update_ %= clock_divisor;
+			int cycles_to_run_for = cycles_since_audio_update_.divide(clock_divisor).as_int();
 
 			int table_position = 0;
 			for(int c = 0; c < 3; c++) {
@@ -126,7 +125,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		uint8_t random_number_generator_;
 		uint8_t *rom_ptr_;
 		uint8_t audio_channel_[3];
-		unsigned int cycles_since_audio_update_;
+		Cycles cycles_since_audio_update_;
 };
 
 }

@@ -78,13 +78,13 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 			// find end of lead-in
 			while(shift_register_ == 0x3ff && index_count_ < 2) {
-				run_for_cycles(1);
+				run_for(Cycles(1));
 			}
 
 			// continue for a further nine bits
 			bit_count_ = 0;
 			while(bit_count_ < 9 && index_count_ < 2) {
-				run_for_cycles(1);
+				run_for(Cycles(1));
 			}
 
 			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
@@ -92,14 +92,14 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 		unsigned int get_next_byte() {
 			bit_count_ = 0;
-			while(bit_count_ < 10) run_for_cycles(1);
+			while(bit_count_ < 10) run_for(Cycles(1));
 			return Storage::Encodings::CommodoreGCR::decoding_from_dectet(shift_register_);
 		}
 
 		void proceed_to_shift_value(unsigned int shift_value) {
 			index_count_ = 0;
 			while(shift_register_ != shift_value && index_count_ < 2) {
-				run_for_cycles(1);
+				run_for(Cycles(1));
 			}
 		}
 

@@ -15,7 +15,6 @@ using namespace Electron;
 Machine::Machine() :
 		interrupt_control_(0),
 		interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
-		cycles_since_display_update_(0),
 		cycles_since_audio_update_(0),
 		use_fast_tape_hack_(false),
 		cycles_until_display_interrupt_(0) {
@@ -123,7 +122,7 @@ void Machine::set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable
 
 #pragma mark - The bus
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	unsigned int cycles = 1;
 
 	if(address < 0x8000) {
@@ -136,7 +135,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 
 		// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 		// it's also accessible only outside of the pixel regions
-		cycles += video_output_->get_cycles_until_next_ram_availability((int)(cycles_since_display_update_ + 1));
+		cycles += video_output_->get_cycles_until_next_ram_availability(cycles_since_display_update_.as_int() + 1);
 	} else {
 		switch(address & 0xff0f) {
 			case 0xfe00:
@@ -316,10 +315,10 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	cycles_since_display_update_ += cycles;
-	cycles_since_audio_update_ += cycles;
-	if(cycles_since_audio_update_ > 16384) update_audio();
-	tape_.run_for_cycles(cycles);
+	cycles_since_display_update_ += Cycles((int)cycles);
+	cycles_since_audio_update_ += Cycles((int)cycles);
+	if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
+	tape_.run_for(Cycles((int)cycles));
 
 	cycles_until_display_interrupt_ -= cycles;
 	if(cycles_until_display_interrupt_ < 0) {
@@ -329,7 +328,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 	}
 
 	if(typer_) typer_->update((int)cycles);
-	if(plus3_) plus3_->run_for_cycles(4*cycles);
+	if(plus3_) plus3_->run_for(Cycles(4*(int)cycles));
 	if(shift_restart_counter_) {
 		shift_restart_counter_ -= cycles;
 		if(shift_restart_counter_ <= 0) {
@@ -340,7 +339,7 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	return cycles;
+	return Cycles((int)cycles);
 }
 
 void Machine::flush() {
@@ -353,8 +352,7 @@ void Machine::flush() {
 
 inline void Machine::update_display() {
 	if(cycles_since_display_update_) {
-		video_output_->run_for_cycles((int)cycles_since_display_update_);
-		cycles_since_display_update_ = 0;
+		video_output_->run_for(cycles_since_display_update_.flush());
 	}
 }
 
@@ -366,9 +364,7 @@ inline void Machine::queue_next_display_interrupt() {
 
 inline void Machine::update_audio() {
 	if(cycles_since_audio_update_) {
-		unsigned int difference = cycles_since_audio_update_ / Speaker::clock_rate_divider;
-		cycles_since_audio_update_ %= Speaker::clock_rate_divider;
-		speaker_->run_for_cycles(difference);
+		speaker_->run_for(cycles_since_audio_update_.divide(Cycles(Speaker::clock_rate_divider)));
 	}
 }
 

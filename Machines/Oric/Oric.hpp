@@ -77,7 +77,7 @@ class Machine:
 		void configure_as_target(const StaticAnalyser::Target &target);
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void flush();
 
 		// to satisfy CRTMachine::Machine
@@ -85,7 +85,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for_cycles(int number_of_cycles);
+		virtual void run_for(const Cycles &cyclesß);
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
 		void mos6522_did_change_interrupt_status(void *mos6522);
@@ -104,7 +104,7 @@ class Machine:
 		// RAM and ROM
 		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536], rom_[16384];
-		int cycles_since_video_update_;
+		Cycles cycles_since_video_update_;
 		inline void update_video();
 
 		// ROM bookkeeping
@@ -143,7 +143,7 @@ class Machine:
 				void set_control_line_output(Port port, Line line, bool value);
 				void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
 				uint8_t get_port_input(Port port);
-				inline void run_for_cycles(unsigned int number_of_cycles);
+				inline void run_for(const Cycles &cycles);
 
 				std::shared_ptr<GI::AY38910> ay8910;
 				std::unique_ptr<TapePlayer> tape;
@@ -154,7 +154,7 @@ class Machine:
 			private:
 				void update_ay();
 				bool ay_bdir_, ay_bc1_;
-				unsigned int cycles_since_ay_update_;
+				Cycles cycles_since_ay_update_;
 		};
 		VIA via_;
 		std::shared_ptr<Keyboard> keyboard_;

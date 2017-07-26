@@ -12,7 +12,6 @@
 using namespace Oric;
 
 Machine::Machine() :
-		cycles_since_video_update_(0),
 		use_fast_tape_hack_(false),
 		typer_delay_(2500000),
 		keyboard_read_count_(0),
@@ -78,7 +77,7 @@ void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data) {
 	}
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	if(address > ram_top_) {
 		if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
@@ -130,10 +129,10 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 		}
 	}
 
-	via_.run_for_cycles(1);
-	if(microdisc_is_enabled_) microdisc_.run_for_cycles(8);
+	via_.run_for(Cycles(1));
+	if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 	cycles_since_video_update_++;
-	return 1;
+	return Cycles(1);
 }
 
 void Machine::flush() {
@@ -142,8 +141,7 @@ void Machine::flush() {
 }
 
 void Machine::update_video() {
-	video_output_->run_for_cycles(cycles_since_video_update_);
-	cycles_since_video_update_ = 0;
+	video_output_->run_for(cycles_since_video_update_.flush());
 }
 
 void Machine::setup_output(float aspect_ratio) {
@@ -198,15 +196,14 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return via_.ay8910;
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+void Machine::run_for(const Cycles &cycles) {
+	CPU::MOS6502::Processor<Machine>::run_for(cycles);
 }
 
 #pragma mark - The 6522
 
 Machine::VIA::VIA() :
 		MOS::MOS6522<Machine::VIA>(),
-		cycles_since_ay_update_(0),
 		tape(new TapePlayer) {}
 
 void Machine::VIA::set_control_line_output(Port port, Line line, bool value) {
@@ -235,20 +232,18 @@ uint8_t Machine::VIA::get_port_input(Port port) {
 }
 
 void Machine::VIA::flush() {
-	ay8910->run_for_cycles(cycles_since_ay_update_);
+	ay8910->run_for(cycles_since_ay_update_.flush());
 	ay8910->flush();
-	cycles_since_ay_update_ = 0;
 }
 
-void Machine::VIA::run_for_cycles(unsigned int number_of_cycles) {
-	cycles_since_ay_update_ += number_of_cycles;
-	MOS::MOS6522<VIA>::run_for_cycles(number_of_cycles);
-	tape->run_for_cycles((int)number_of_cycles);
+void Machine::VIA::run_for(const Cycles &cycles) {
+	cycles_since_ay_update_ += cycles;
+	MOS::MOS6522<VIA>::run_for(cycles);
+	tape->run_for(cycles);
 }
 
 void Machine::VIA::update_ay() {
-	ay8910->run_for_cycles(cycles_since_ay_update_);
-	cycles_since_ay_update_ = 0;
+	ay8910->run_for(cycles_since_ay_update_.flush());
 	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }
 

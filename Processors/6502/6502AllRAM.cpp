@@ -20,7 +20,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			set_power_on(false);
 		}
 
-		inline int perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
+		inline Cycles perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
 			timestamp_++;
 
 			if(operation == BusOperation::ReadOpcode) {
@@ -33,11 +33,11 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 				memory_[address] = *value;
 			}
 
-			return 1;
+			return Cycles(1);
 		}
 
-		void run_for_cycles(int number_of_cycles) {
-			Processor<ConcreteAllRAMProcessor>::run_for_cycles(number_of_cycles);
+		void run_for(const Cycles &cycles) {
+			Processor<ConcreteAllRAMProcessor>::run_for(cycles);
 		}
 
 		bool is_jammed() {

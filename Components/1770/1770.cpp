@@ -124,10 +124,11 @@ uint8_t WD1770::get_register(int address) {
 	}
 }
 
-void WD1770::run_for_cycles(unsigned int number_of_cycles) {
-	Storage::Disk::Controller::run_for_cycles((int)number_of_cycles);
+void WD1770::run_for(const Cycles &cycles) {
+	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {
+		unsigned int number_of_cycles = (unsigned int)cycles.as_int();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
 			posit_event(Event::Timer);

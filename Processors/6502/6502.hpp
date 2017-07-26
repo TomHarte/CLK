@@ -13,6 +13,7 @@
 #include <cstdint>
 
 #include "../RegisterSizes.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace MOS6502 {
@@ -127,7 +128,7 @@ class ProcessorBase {
 	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
 	jammed state.
 */
-template <class T> class Processor: public ProcessorBase {
+template <class T> class Processor: public ProcessorBase, public ClockReceiver<Processor<T>> {
 	private:
 		const MicroOp *scheduled_program_counter_;
 
@@ -180,7 +181,7 @@ template <class T> class Processor: public ProcessorBase {
 		}
 
 		bool is_jammed_;
-		int cycles_left_to_run_;
+		Cycles cycles_left_to_run_;
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
@@ -263,7 +264,6 @@ template <class T> class Processor: public ProcessorBase {
 	protected:
 		Processor() :
 				is_jammed_(false),
-				cycles_left_to_run_(0),
 				ready_line_is_enabled_(false),
 				ready_is_active_(false),
 				inverse_interrupt_flag_(0),
@@ -283,6 +283,7 @@ template <class T> class Processor: public ProcessorBase {
 		}
 
 	public:
+		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the 6502 for a supplied number of cycles.
 
@@ -290,9 +291,9 @@ template <class T> class Processor: public ProcessorBase {
 			The 6502 will call that method for all bus accesses. The 6502 is guaranteed to perform one bus operation call per cycle.
 			If it is a read operation then @c value will be seeded with the value 0xff.
 
-			@param number_of_cycles The number of cycles to run the 6502 for.
+			@param cycles The number of cycles to run the 6502 for.
 		*/
-		void run_for_cycles(int number_of_cycles) {
+		void run_for(const Cycles &cycles) {
 			static const MicroOp doBranch[] = {
 				CycleReadFromPC,
 				CycleAddSignedOperandToPC,
@@ -336,14 +337,14 @@ template <class T> class Processor: public ProcessorBase {
 	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
 	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
-	if(number_of_cycles <= 0) break;
+	if(number_of_cycles <= Cycles(0)) break;
 
 			checkSchedule();
-			number_of_cycles += cycles_left_to_run_;
+			Cycles number_of_cycles = cycles + cycles_left_to_run_;
 
-			while(number_of_cycles > 0) {
+			while(number_of_cycles > Cycles(0)) {
 
-				while (ready_is_active_ && number_of_cycles > 0) {
+				while (ready_is_active_ && number_of_cycles > Cycles(0)) {
 					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
@@ -829,7 +830,7 @@ template <class T> class Processor: public ProcessorBase {
 		}
 
 		/*!
-			Called to announce the end of a run_for_cycles period, allowing deferred work to take place.
+			Called to announce the end of a run_for period, allowing deferred work to take place.
 
 			Users of the 6502 template may override this.
 		*/

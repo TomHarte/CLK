@@ -34,7 +34,7 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
 }
 
-unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -63,10 +63,10 @@ unsigned int Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation
 			drive_VIA_.set_register(address, *value);
 	}
 
-	serial_port_VIA_->run_for_cycles(1);
-	drive_VIA_.run_for_cycles(1);
+	serial_port_VIA_->run_for(Cycles(1));
+	drive_VIA_.run_for(Cycles(1));
 
-	return 1;
+	return Cycles(1);
 }
 
 void Machine::set_rom(const std::vector<uint8_t> &rom) {
@@ -79,11 +79,11 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 	set_drive(drive);
 }
 
-void Machine::run_for_cycles(int number_of_cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles);
+void Machine::run_for(const Cycles &cycles) {
+	CPU::MOS6502::Processor<Machine>::run_for(cycles);
 	set_motor_on(drive_VIA_.get_motor_enabled());
 	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
-		Storage::Disk::Controller::run_for_cycles(number_of_cycles);
+		Storage::Disk::Controller::run_for(cycles);
 }
 
 #pragma mark - 6522 delegate

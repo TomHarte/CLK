@@ -11,8 +11,10 @@
 
 #include "Storage.hpp"
 
-#include <memory>
+#include "../ClockReceiver/ClockReceiver.hpp"
 #include "../SignalProcessing/Stepper.hpp"
+
+#include <memory>
 
 namespace Storage {
 
@@ -22,7 +24,7 @@ namespace Storage {
 
 		Subclasses are responsible for calling @c set_next_event_time_interval to establish the time
 		until a next event; @c process_next_event will be called when that event occurs, with progression
-		determined via @c run_for_cycles.
+		determined via @c run_for.
 
 		Due to the aggregation of total timing information between events — e.g. if an event loop has
 		a clock rate of 1000 ticks per second and a steady stream of events that occur 10,000 times a second,
@@ -36,7 +38,7 @@ namespace Storage {
 		@c reset_timer to initiate a distinctly-timed stream or @c jump_to_next_event to short-circuit the timing
 		loop and fast forward immediately to the next event.
 	*/
-	class TimedEventLoop {
+	class TimedEventLoop: public ClockReceiver<TimedEventLoop> {
 		public:
 			/*!
 				Constructs a timed event loop that will be clocked at @c input_clock_rate.
@@ -46,7 +48,8 @@ namespace Storage {
 			/*!
 				Advances the event loop by @c number_of_cycles cycles.
 			*/
-			void run_for_cycles(int number_of_cycles);
+			void run_for(const Cycles &cycles);
+			using ClockReceiver<TimedEventLoop>::run_for;
 
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.

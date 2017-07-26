@@ -13,6 +13,8 @@
 #include <typeinfo>
 #include <cstdio>
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 namespace MOS {
 
 /*!
@@ -26,7 +28,7 @@ namespace MOS {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6522 {
+template <class T> class MOS6522: public ClockReceiver<MOS6522<T>> {
 	private:
 		enum InterruptFlag: uint8_t {
 			CA2ActiveEdge	= 1 << 0,
@@ -250,32 +252,22 @@ template <class T> class MOS6522 {
 			timer_is_running_[0] = false;\
 	}
 
-		/*!
-			Runs for a specified number of half cycles.
+		/*! Runs for a specified number of half cycles. */
+		inline void run_for(const HalfCycles &half_cycles) {
+			int number_of_half_cycles = half_cycles.as_int();
 
-			Although the original chip accepts only a phase-2 input, timer reloads are specified as occuring
-			1.5 cycles after the timer hits zero. It therefore may be necessary to emulate at half-cycle precision.
-
-			The first emulated half-cycle will be the period between the trailing edge of a phase-2 input and the
-			next rising edge. So it should align with a full system's phase-1. The next emulated half-cycle will be
-			that which occurs during phase-2.
-
-			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
-			intermingle usage.
-		*/
-		inline void run_for_half_cycles(unsigned int number_of_cycles) {
 			if(is_phase2_) {
 				phase2();
-				number_of_cycles--;
+				number_of_half_cycles--;
 			}
 
-			while(number_of_cycles >= 2) {
+			while(number_of_half_cycles >= 2) {
 				phase1();
 				phase2();
-				number_of_cycles -= 2;
+				number_of_half_cycles -= 2;
 			}
 
-			if(number_of_cycles) {
+			if(number_of_half_cycles) {
 				phase1();
 				is_phase2_ = true;
 			} else {
@@ -283,13 +275,9 @@ template <class T> class MOS6522 {
 			}
 		}
 
-		/*!
-			Runs for a specified number of cycles.
-
-			Callers should decide whether they are going to use @c run_for_half_cycles or @c run_for_cycles, and not
-			intermingle usage.
-		*/
-		inline void run_for_cycles(unsigned int number_of_cycles) {
+		/*! Runs for a specified number of cycles. */
+		inline void run_for(const Cycles &cycles) {
+			int number_of_cycles = cycles.as_int();
 			while(number_of_cycles--) {
 				phase1();
 				phase2();

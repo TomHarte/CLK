@@ -47,7 +47,7 @@ static void receive_line(uint8_t *next_line)
 	_tia->set_playfield(0, 0x10);
 	_tia->set_playfield(1, 0xf0);
 	_tia->set_playfield(2, 0x0e);
-	_tia->run_for_cycles(228);
+	_tia->run_for(Cycles(228));
 
 	XCTAssert(line != nullptr, @"228 cycles should have ended the line");
 
@@ -70,7 +70,7 @@ static void receive_line(uint8_t *next_line)
 	_tia->set_playfield(1, 0xf0);
 	_tia->set_playfield(2, 0x0e);
 
-	_tia->run_for_cycles(228);
+	_tia->run_for(Cycles(228));
 	XCTAssert(line != nullptr, @"228 cycles should have ended the line");
 
 	uint8_t expected_line[] = {
@@ -90,7 +90,7 @@ static void receive_line(uint8_t *next_line)
 	_tia->set_player_graphic(0, 0xff);
 	_tia->set_player_position(0);
 
-	_tia->run_for_cycles(228);
+	_tia->run_for(Cycles(228));
 	uint8_t first_expected_line[] = {
 		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,
 		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,
@@ -103,7 +103,7 @@ static void receive_line(uint8_t *next_line)
 	XCTAssert(!memcmp(first_expected_line, line, sizeof(first_expected_line)));
 	line = nullptr;
 
-	_tia->run_for_cycles(228);
+	_tia->run_for(Cycles(228));
 	uint8_t second_expected_line[] = {
 		0, 4, 4, 4,		4, 4, 4, 4,		4, 0, 0, 0,		0, 0, 0, 0,
 		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,		0, 0, 0, 0,

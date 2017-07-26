@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 namespace MOS {
 
 /*!
@@ -25,7 +27,7 @@ namespace MOS {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6532 {
+template <class T> class MOS6532: public ClockReceiver<MOS6532<T>> {
 	public:
 		inline void set_ram(uint16_t address, uint8_t value)	{	ram_[address&0x7f] = value;		}
 		inline uint8_t get_ram(uint16_t address)				{	return ram_[address & 0x7f];	}
@@ -104,7 +106,10 @@ template <class T> class MOS6532 {
 			return 0xff;
 		}
 
-		inline void run_for_cycles(unsigned int number_of_cycles) {
+		using ClockReceiver<MOS6532<T>>::run_for;
+		inline void run_for(const Cycles &cycles) {
+			unsigned int number_of_cycles = (unsigned int)cycles.as_int();
+
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 			if(timer_.value >= number_of_cycles) {
 				timer_.value -= number_of_cycles;
