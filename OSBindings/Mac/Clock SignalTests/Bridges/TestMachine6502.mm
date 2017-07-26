@@ -11,8 +11,6 @@
 #include "6502AllRAM.hpp"
 #import "TestMachine+ForSubclassEyesOnly.h"
 
-const uint8_t CSTestMachine6502JamOpcode = CPU::MOS6502::JamOpcode;
-
 #pragma mark - Register enum map
 
 static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg) {
