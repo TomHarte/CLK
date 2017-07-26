@@ -21,11 +21,6 @@ typedef NS_ENUM(NSInteger, CSTestMachine6502Register) {
 
 extern const uint8_t CSTestMachine6502JamOpcode;
 
-@class CSTestMachine6502;
-@protocol CSTestMachine6502JamHandler <NSObject>
-- (void)testMachine:(CSTestMachine6502 *)machine didJamAtAddress:(uint16_t)address;
-@end
-
 @interface CSTestMachine6502 : CSTestMachine
 
 - (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
@@ -40,7 +35,6 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 
 @property (nonatomic, readonly) BOOL isJammed;
 @property (nonatomic, readonly) uint32_t timestamp;
-@property (nonatomic, weak) id <CSTestMachine6502JamHandler> jamHandler;
 @property (nonatomic, assign) BOOL irqLine;
 @property (nonatomic, assign) BOOL nmiLine;
 

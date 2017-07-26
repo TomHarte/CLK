@@ -9,13 +9,13 @@
 import Foundation
 import XCTest
 
-class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
+class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 
 	func testBCD() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "BCDTEST_beeb", ofType: nil) {
 			if let bcdTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 				let machine = CSTestMachine6502()
-				machine.jamHandler = self
+				machine.trapHandler = self
 
 				machine.setData(bcdTest, atAddress: 0x2900)
 
@@ -29,8 +29,8 @@ class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
 
 				machine.setValue(0x200, for: .programCounter)
 
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffee)	// OSWRCH
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xffff)	// end of test
+				machine.setValue(0x60, forAddress:0xffee)
+				machine.addTrapAddress(0xffee) // OSWRCH, an RTS
 
 				while(machine.value(for: .programCounter) != 0x203) {
 					machine.runForNumber(ofCycles: 1000)
@@ -41,18 +41,11 @@ class BCDTest: XCTestCase, CSTestMachine6502JamHandler {
 	}
 
 	fileprivate var output: String = ""
-	func testMachine(_ machine: CSTestMachine6502!, didJamAtAddress address: UInt16) {
+	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
+		let machine6502 = testMachine as! CSTestMachine6502
 
-		switch address {
-			case 0xffee:
-				let character = machine.value(for: .A)
-				output.append(Character(UnicodeScalar(character)!))
-
-				machine.returnFromSubroutine()
-
-			default:
-				let hexAddress = String(format:"%04x", address)
-				NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
-		}
+		// Only OSWRCH is trapped, so...
+		let character = machine6502.value(for: .A)
+		output.append(Character(UnicodeScalar(character)!))
 	}
 }
