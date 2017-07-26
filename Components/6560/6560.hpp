@@ -147,6 +147,7 @@ template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
 			}
 		}
 
+		using ClockReceiver<MOS6560<T>>::run_for;
 		/*!
 			Runs for cycles. Derr.
 		*/

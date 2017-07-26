@@ -33,6 +33,7 @@ class Video: public ClockReceiver<Video> {
 
 		/// Advances time by @c cycles.
 		void run_for(const HalfCycles &);
+		using ClockReceiver<Video>::run_for;
 		/// Forces output to catch up to the current output position.
 		void flush();
 

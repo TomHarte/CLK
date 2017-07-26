@@ -284,6 +284,7 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 		}
 
 	public:
+		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the 6502 for a supplied number of cycles.
 

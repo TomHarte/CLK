@@ -31,6 +31,7 @@ class DigitalPhaseLockedLoop: public ClockReceiver<DigitalPhaseLockedLoop> {
 			@c number_of_cycles The time to run the loop for.
 		*/
 		void run_for(const Cycles &cycles);
+		using ClockReceiver<DigitalPhaseLockedLoop>::run_for;
 
 		/*!
 			Announces a pulse at the current time.

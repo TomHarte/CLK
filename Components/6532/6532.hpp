@@ -105,6 +105,7 @@ template <class T> class MOS6532: public ClockReceiver<MOS6532<T>> {
 			return 0xff;
 		}
 
+		using ClockReceiver<MOS6532<T>>::run_for;
 		inline void run_for(const Cycles &cycles) {
 			unsigned int number_of_cycles = (unsigned int)cycles.as_int();
 

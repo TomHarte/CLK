@@ -14,7 +14,6 @@
 #include "PCMSegment.hpp"
 #include "PCMPatchedTrack.hpp"
 #include "../TimedEventLoop.hpp"
-#include "../../Components/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -28,7 +27,7 @@ namespace Disk {
 
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
-class Controller: public ClockReceiver<Controller>, public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
+class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
 	protected:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
@@ -45,6 +44,7 @@ class Controller: public ClockReceiver<Controller>, public DigitalPhaseLockedLoo
 			Advances the drive by @c number_of_cycles cycles.
 		*/
 		void run_for(const Cycles &cycles);
+		using TimedEventLoop::run_for;
 
 		/*!
 			Sets the current drive.

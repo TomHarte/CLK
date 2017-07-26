@@ -849,6 +849,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 			copy_program(irq_mode2_program, irq_program_[2]);
 		}
 
+		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 

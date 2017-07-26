@@ -31,6 +31,7 @@ class TIA: public ClockReceiver<TIA> {
 			Advances the TIA by @c cycles. Any queued setters take effect in the first cycle performed.
 		*/
 		void run_for(const Cycles &cycles);
+		using ClockReceiver<TIA>::run_for;
 		void set_output_mode(OutputMode output_mode);
 
 		void set_sync(bool sync);

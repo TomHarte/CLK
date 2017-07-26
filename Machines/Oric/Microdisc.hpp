@@ -10,11 +10,10 @@
 #define Microdisc_hpp
 
 #include "../../Components/1770/1770.hpp"
-#include "../../Components/ClockReceiver.hpp"
 
 namespace Oric {
 
-class Microdisc: public ClockReceiver<Microdisc>, public WD::WD1770 {
+class Microdisc: public WD::WD1770 {
 	public:
 		Microdisc();
 
@@ -26,6 +25,7 @@ class Microdisc: public ClockReceiver<Microdisc>, public WD::WD1770 {
 		bool get_interrupt_request_line();
 
 		void run_for(const Cycles &cycles);
+		using WD::WD1770::run_for;
 
 		enum PagingFlags {
 			BASICDisable	=	(1 << 0),

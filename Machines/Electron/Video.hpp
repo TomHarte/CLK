@@ -35,6 +35,7 @@ class VideoOutput: public ClockReceiver<VideoOutput> {
 
 		/// Produces the next @c cycles of video output.
 		void run_for(const Cycles &cycles);
+		using ClockReceiver<VideoOutput>::run_for;
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,

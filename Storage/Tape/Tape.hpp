@@ -100,8 +100,8 @@ class TapePlayer: public TimedEventLoop {
 		bool has_tape();
 		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
-		void run_for(const Cycles &cycles);
 		using TimedEventLoop::run_for;
+		void run_for(const Cycles &cycles);
 
 		void run_for_input_pulse();
 
@@ -124,13 +124,14 @@ class TapePlayer: public TimedEventLoop {
 
 	They can also provide a delegate to be notified upon any change in the input level.
 */
-class BinaryTapePlayer: public ClockReceiver<BinaryTapePlayer>, public TapePlayer {
+class BinaryTapePlayer: public TapePlayer {
 	public:
 		BinaryTapePlayer(unsigned int input_clock_rate);
 		void set_motor_control(bool enabled);
 		void set_tape_output(bool set);
 		bool get_input();
 
+		using TapePlayer::run_for;
 		void run_for(const Cycles &cycles);
 
 		class Delegate {
