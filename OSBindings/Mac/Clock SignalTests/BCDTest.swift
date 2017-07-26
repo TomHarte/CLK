@@ -29,8 +29,8 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 
 				machine.setValue(0x200, for: .programCounter)
 
-				machine.addTrapAddress(0xffee) // OSWRCH
-				machine.addTrapAddress(0xffff) // end of test
+				machine.setValue(0x60, forAddress:0xffee)
+				machine.addTrapAddress(0xffee) // OSWRCH, an RTS
 
 				while(machine.value(for: .programCounter) != 0x203) {
 					machine.runForNumber(ofCycles: 1000)
@@ -44,16 +44,8 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let machine6502 = testMachine as! CSTestMachine6502
 
-		switch address {
-			case 0xffee:
-				let character = machine6502.value(for: .A)
-				output.append(Character(UnicodeScalar(character)!))
-
-				machine6502.returnFromSubroutine()
-
-			default:
-				let hexAddress = String(format:"%04x", address)
-				NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
-		}
+		// Only OSWRCH is trapped, so...
+		let character = machine6502.value(for: .A)
+		output.append(Character(UnicodeScalar(character)!))
 	}
 }
