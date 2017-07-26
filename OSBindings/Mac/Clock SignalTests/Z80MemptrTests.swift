@@ -167,10 +167,28 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
-	/* TODO:
-		ADD/ADC/SBC rp1,rp2
-			MEMPTR = rp1_before_operation + 1
-	*/
+	// ADD/ADC/SBC dest, src
+	func testADDADCSBCrr() {
+		// MEMPTR = dest prior to modification + 1
+		let addProgram: [UInt8] = [
+			0x09
+		]
+		let adcProgram: [UInt8] = [
+			0xed, 0x4a
+		]
+		let sbcProgram: [UInt8] = [
+			0xed, 0x42
+		]
+
+		for addr in 0 ..< 65536 {
+			let expectedResult = UInt16((addr + 1) & 0xffff)
+			machine.setValue(UInt16(addr), for: .HL)
+
+			XCTAssertEqual(test(program: addProgram, length: 11, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: adcProgram, length: 15, initialValue: 0xffff), expectedResult)
+			XCTAssertEqual(test(program: sbcProgram, length: 15, initialValue: 0xffff), expectedResult)
+		}
+	}
 
 	// RLD/RRD
 	func testRLDRRD() {

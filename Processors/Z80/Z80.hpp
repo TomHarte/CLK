@@ -1199,9 +1199,9 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 #pragma mark - 16-bit arithmetic
 
 						case MicroOp::ADD16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = sourceValue + destinationValue;
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
@@ -1211,12 +1211,13 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 							subtract_flag_ = 0;
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 						case MicroOp::ADC16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
 
@@ -1231,12 +1232,13 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 						case MicroOp::SBC16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
 							int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
@@ -1254,6 +1256,7 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 #pragma mark - Conditionals
