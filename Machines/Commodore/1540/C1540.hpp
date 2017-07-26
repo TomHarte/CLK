@@ -138,11 +138,11 @@ class Machine:
 		*/
 		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
-		void run_for_cycles(int number_of_cycles);
+		void run_for(const Cycles &cycles);
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

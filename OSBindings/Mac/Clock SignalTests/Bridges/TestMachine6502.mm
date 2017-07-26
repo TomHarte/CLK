@@ -13,20 +13,6 @@
 
 const uint8_t CSTestMachine6502JamOpcode = CPU::MOS6502::JamOpcode;
 
-#pragma mark - C++ jam handler
-
-//class MachineJamHandler: public CPU::MOS6502::AllRAMProcessor::JamHandler {
-//	public:
-//		MachineJamHandler(CSTestMachine6502 *targetMachine) : _targetMachine(targetMachine) {}
-//
-//		void processor_did_jam(CPU::MOS6502::AllRAMProcessor::Processor *processor, uint16_t address) override {
-//			[_targetMachine.jamHandler testMachine:_targetMachine didJamAtAddress:address];
-//		}
-//
-//	private:
-//		CSTestMachine6502 *_targetMachine;
-//};
-
 #pragma mark - Register enum map
 
 static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg) {
@@ -45,7 +31,6 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 @implementation CSTestMachine6502 {
 	CPU::MOS6502::AllRAMProcessor *_processor;
-//	MachineJamHandler *_cppJamHandler;
 }
 
 #pragma mark - Lifecycle
@@ -117,7 +102,7 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 }
 
 - (void)runForNumberOfCycles:(int)cycles {
-	_processor->run_for_cycles(cycles);
+	_processor->run_for(Cycles(cycles));
 }
 
 @end

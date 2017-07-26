@@ -14,17 +14,17 @@
 #include "Speaker.hpp"
 #include "TIA.hpp"
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 namespace Atari2600 {
 
 class Bus {
 	public:
 		Bus() :
 			tia_input_value_{0xff, 0xff},
-			cycles_since_speaker_update_(0),
-			cycles_since_video_update_(0),
-			cycles_since_6532_update_(0) {}
+			cycles_since_speaker_update_(0) {}
 
-		virtual void run_for_cycles(int number_of_cycles) = 0;
+		virtual void run_for(const Cycles &cycles) = 0;
 		virtual void set_reset_line(bool state) = 0;
 
 		// the RIOT, TIA and speaker
@@ -37,25 +37,21 @@ class Bus {
 
 	protected:
 		// speaker backlog accumlation counter
-		unsigned int cycles_since_speaker_update_;
+		Cycles cycles_since_speaker_update_;
 		inline void update_audio() {
-			unsigned int audio_cycles = cycles_since_speaker_update_ / (CPUTicksPerAudioTick * 3);
-			cycles_since_speaker_update_ %= (CPUTicksPerAudioTick * 3);
-			speaker_->run_for_cycles(audio_cycles);
+			speaker_->run_for(cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
 		}
 
 		// video backlog accumulation counter
-		unsigned int cycles_since_video_update_;
+		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			tia_->run_for_cycles((int)cycles_since_video_update_);
-			cycles_since_video_update_ = 0;
+			tia_->run_for(cycles_since_video_update_.flush());
 		}
 
 		// RIOT backlog accumulation counter
-		unsigned int cycles_since_6532_update_;
+		Cycles cycles_since_6532_update_;
 		inline void update_6532() {
-			mos6532_.run_for_cycles(cycles_since_6532_update_);
-			cycles_since_6532_update_ = 0;
+			mos6532_.run_for(cycles_since_6532_update_.flush());
 		}
 };
 

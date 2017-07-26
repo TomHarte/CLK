@@ -80,14 +80,14 @@ void Tape::acorn_shifter_output_bit(int value) {
 	push_tape_bit((uint16_t)value);
 }
 
-void Tape::run_for_cycles(unsigned int number_of_cycles) {
+void Tape::run_for(const Cycles &cycles) {
 	if(is_enabled_) {
 		if(is_in_input_mode_) {
 			if(is_running_) {
-				TapePlayer::run_for_cycles((int)number_of_cycles);
+				TapePlayer::run_for(cycles);
 			}
 		} else {
-			output_.cycles_into_pulse += number_of_cycles;
+			output_.cycles_into_pulse += (unsigned int)cycles.as_int();
 			while(output_.cycles_into_pulse > 1664) {	// 1664 = the closest you can get to 1200 baud if you're looking for something
 				output_.cycles_into_pulse -= 1664;		// that divides the 125,000Hz clock that the sound divider runs off.
 				push_tape_bit(1);

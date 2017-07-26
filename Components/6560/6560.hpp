@@ -11,6 +11,7 @@
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace MOS {
 
@@ -40,7 +41,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 
 	@c set_register and @c get_register provide register access.
 */
-template <class T> class MOS6560 {
+template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
 	public:
 		MOS6560() :
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
@@ -146,13 +147,15 @@ template <class T> class MOS6560 {
 			}
 		}
 
+		using ClockReceiver<MOS6560<T>>::run_for;
 		/*!
 			Runs for cycles. Derr.
 		*/
-		inline void run_for_cycles(unsigned int number_of_cycles) {
+		inline void run_for(const Cycles &cycles) {
 			// keep track of the amount of time since the speaker was updated; lazy updates are applied
-			cycles_since_speaker_update_ += number_of_cycles;
+			cycles_since_speaker_update_ += cycles;
 
+			int number_of_cycles = cycles.as_int();
 			while(number_of_cycles--) {
 				// keep an old copy of the vertical count because that test is a cycle later than the actual changes
 				int previous_vertical_counter = vertical_counter_;
@@ -406,10 +409,9 @@ template <class T> class MOS6560 {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		std::shared_ptr<Speaker> speaker_;
-		unsigned int cycles_since_speaker_update_;
+		Cycles cycles_since_speaker_update_;
 		void update_audio() {
-			speaker_->run_for_cycles(cycles_since_speaker_update_ >> 2);
-			cycles_since_speaker_update_ &= 3;
+			speaker_->run_for(Cycles(cycles_since_speaker_update_.divide(Cycles(4))));
 		}
 
 		// register state

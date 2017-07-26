@@ -42,7 +42,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 }
 
 - (void)runForCycles:(NSUInteger)numberOfCycles {
-	_c1540.run_for_cycles((int)numberOfCycles);
+	_c1540.run_for(Cycles((int)numberOfCycles));
 }
 
 - (void)setAttentionLine:(BOOL)attentionLine {

@@ -11,17 +11,17 @@
 
 using namespace Storage::Disk;
 
-Controller::Controller(unsigned int clock_rate, unsigned int clock_rate_multiplier, unsigned int revolutions_per_minute) :
+Controller::Controller(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 		clock_rate_(clock_rate * clock_rate_multiplier),
 		clock_rate_multiplier_(clock_rate_multiplier),
-		rotational_multiplier_(60u, revolutions_per_minute),
+		rotational_multiplier_(60, revolutions_per_minute),
 
 		cycles_since_index_hole_(0),
 		motor_is_on_(false),
 
 		is_reading_(true),
 
-		TimedEventLoop(clock_rate * clock_rate_multiplier) {
+		TimedEventLoop((unsigned int)(clock_rate * clock_rate_multiplier)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);
 	set_expected_bit_length(one);
@@ -40,13 +40,13 @@ void Controller::setup_track() {
 	get_next_event(offset);
 }
 
-void Controller::run_for_cycles(int number_of_cycles) {
+void Controller::run_for(const Cycles &cycles) {
 	Time zero(0);
 
 	if(drive_ && drive_->has_disk() && motor_is_on_) {
 		if(!track_) setup_track();
 
-		number_of_cycles *= clock_rate_multiplier_;
+		int number_of_cycles = clock_rate_multiplier_ * cycles.as_int();
 		while(number_of_cycles) {
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
@@ -60,7 +60,7 @@ void Controller::run_for_cycles(int number_of_cycles) {
 
 			number_of_cycles -= cycles_to_run_for;
 			if(is_reading_) {
-				pll_->run_for_cycles(cycles_to_run_for);
+				pll_->run_for(Cycles(cycles_to_run_for));
 			} else {
 				if(cycles_until_bits_written_ > zero) {
 					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
@@ -75,7 +75,7 @@ void Controller::run_for_cycles(int number_of_cycles) {
 					}
 				}
 			}
-			TimedEventLoop::run_for_cycles(cycles_to_run_for);
+			TimedEventLoop::run_for(Cycles(cycles_to_run_for));
 		}
 	}
 }
@@ -171,7 +171,7 @@ void Controller::set_expected_bit_length(Time bit_length) {
 }
 
 void Controller::digital_phase_locked_loop_output_bit(int value) {
-	process_input_bit(value, cycles_since_index_hole_);
+	process_input_bit(value, (unsigned int)cycles_since_index_hole_);
 }
 
 #pragma mark - Drive actions

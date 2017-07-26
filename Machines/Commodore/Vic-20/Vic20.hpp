@@ -166,7 +166,7 @@ class Machine:
 		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
 
 		// to satisfy CPU::MOS6502::Processor
-		unsigned int perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
 		void flush() { mos6560_->flush(); }
 
 		// to satisfy CRTMachine::Machine
@@ -174,7 +174,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return mos6560_->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return mos6560_->get_speaker(); }
-		virtual void run_for_cycles(int number_of_cycles) { CPU::MOS6502::Processor<Machine>::run_for_cycles(number_of_cycles); }
+		virtual void run_for(const Cycles &cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);

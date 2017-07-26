@@ -9,9 +9,9 @@
 #ifndef Speaker_hpp
 #define Speaker_hpp
 
-#include <stdint.h>
-#include <stdio.h>
-#include <time.h>
+#include <cstdint>
+#include <cstdio>
+#include <ctime>
 
 #include <memory>
 #include <list>
@@ -20,6 +20,7 @@
 #include "../SignalProcessing/Stepper.hpp"
 #include "../SignalProcessing/FIRFilter.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
+#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace Outputs {
 
@@ -132,17 +133,17 @@ class Speaker {
 	`get_samples(unsigned int quantity, int16_t *target)` and ideally also `skip_samples(unsigned int quantity)`
 	to provide source data.
 
-	Call `run_for_cycles(n)` to request that the next n cycles of input data are collected.
+	Call `run_for` to request that the next period of input data is collected.
 */
-template <class T> class Filter: public Speaker {
+template <class T> class Filter: public Speaker, public ClockReceiver<Filter<T>> {
 	public:
 		~Filter() {
 			_queue->flush();
 		}
 
-		void run_for_cycles(unsigned int input_cycles) {
+		void run_for(const Cycles &cycles) {
 			enqueue([=]() {
-				unsigned int cycles_remaining = input_cycles;
+				unsigned int cycles_remaining = (unsigned int)cycles.as_int();
 				if(coefficients_are_dirty_) update_filter_coefficients();
 
 				// if input and output rates exactly match, just accumulate results and pass on

@@ -165,13 +165,14 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 /*	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
 }
 
-void TIA::run_for_cycles(int number_of_cycles)
-{
+void TIA::run_for(const Cycles &cycles) {
+	int number_of_cycles = cycles.as_int();
+
 	// if part way through a line, definitely perform a partial, at most up to the end of the line
 	if(horizontal_counter_) {
-		int cycles = std::min(number_of_cycles, cycles_per_line - horizontal_counter_);
-		output_for_cycles(cycles);
-		number_of_cycles -= cycles;
+		int output_cycles = std::min(number_of_cycles, cycles_per_line - horizontal_counter_);
+		output_for_cycles(output_cycles);
+		number_of_cycles -= output_cycles;
 	}
 
 	// output full lines for as long as possible
@@ -197,8 +198,8 @@ void TIA::set_blank(bool blank) {
 void TIA::reset_horizontal_counter() {
 }
 
-int TIA::get_cycles_until_horizontal_blank(unsigned int from_offset) {
-	return (cycles_per_line - (horizontal_counter_ + (int)from_offset) % cycles_per_line) % cycles_per_line;
+int TIA::get_cycles_until_horizontal_blank(const Cycles &from_offset) {
+	return (cycles_per_line - (horizontal_counter_ + from_offset.as_int()) % cycles_per_line) % cycles_per_line;
 }
 
 void TIA::set_background_colour(uint8_t colour) {

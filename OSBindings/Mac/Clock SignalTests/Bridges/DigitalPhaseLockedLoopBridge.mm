@@ -40,7 +40,7 @@ class DigitalPhaseLockedLoopDelegate: public Storage::DigitalPhaseLockedLoop::De
 }
 
 - (void)runForCycles:(NSUInteger)cycles {
-	_digitalPhaseLockedLoop->run_for_cycles((unsigned int)cycles);
+	_digitalPhaseLockedLoop->run_for(Cycles((int)cycles));
 }
 
 - (void)addPulse {
