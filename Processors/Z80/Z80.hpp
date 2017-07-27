@@ -164,7 +164,7 @@ struct PartialMachineCycle {
 	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 */
-template <class T> class Processor: public ClockReceiver<Processor<T>> {
+template <class T> class Processor {
 	private:
 		uint8_t a_;
 		RegisterPair bc_, de_, hl_;
@@ -849,7 +849,6 @@ template <class T> class Processor: public ClockReceiver<Processor<T>> {
 			copy_program(irq_mode2_program, irq_program_[2]);
 		}
 
-		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the Z80 for a supplied number of cycles.
 

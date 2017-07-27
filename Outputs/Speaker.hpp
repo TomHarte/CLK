@@ -135,7 +135,7 @@ class Speaker {
 
 	Call `run_for` to request that the next period of input data is collected.
 */
-template <class T> class Filter: public Speaker, public ClockReceiver<Filter<T>> {
+template <class T> class Filter: public Speaker {
 	public:
 		~Filter() {
 			_queue->flush();

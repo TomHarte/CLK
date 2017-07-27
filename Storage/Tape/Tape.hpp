@@ -101,7 +101,6 @@ class TapePlayer: public TimedEventLoop {
 		bool has_tape();
 		std::shared_ptr<Storage::Tape::Tape> get_tape();
 
-		using TimedEventLoop::run_for;
 		void run_for(const Cycles &cycles);
 
 		void run_for_input_pulse();
@@ -132,7 +131,6 @@ class BinaryTapePlayer: public TapePlayer {
 		void set_tape_output(bool set);
 		bool get_input();
 
-		using TapePlayer::run_for;
 		void run_for(const Cycles &cycles);
 
 		class Delegate {

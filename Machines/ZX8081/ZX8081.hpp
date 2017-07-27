@@ -100,7 +100,7 @@ class Machine:
 		void set_hsync(bool sync);
 		void update_sync();
 
-		Storage::Tape::BinaryTapePlayer tape_player_;
+		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
 
 		bool is_zx81_;
