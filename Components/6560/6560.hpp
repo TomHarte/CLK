@@ -41,7 +41,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 
 	@c set_register and @c get_register provide register access.
 */
-template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
+template <class T> class MOS6560 {
 	public:
 		MOS6560() :
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
@@ -147,7 +147,6 @@ template <class T> class MOS6560: public ClockReceiver<MOS6560<T>> {
 			}
 		}
 
-		using ClockReceiver<MOS6560<T>>::run_for;
 		/*!
 			Runs for cycles. Derr.
 		*/

@@ -12,11 +12,10 @@
 #include <cstdint>
 
 #include "../CRTMachine.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 
-class TIA: public ClockReceiver<TIA> {
+class TIA {
 	public:
 		TIA();
 		// The supplied hook is for unit testing only; if instantiated with a line_end_function then it will
@@ -32,7 +31,6 @@ class TIA: public ClockReceiver<TIA> {
 			Advances the TIA by @c cycles. Any queued setters take effect in the first cycle performed.
 		*/
 		void run_for(const Cycles &cycles);
-		using ClockReceiver<TIA>::run_for;
 		void set_output_mode(OutputMode output_mode);
 
 		void set_sync(bool sync);

@@ -22,7 +22,7 @@ namespace Electron {
 	running either at 40 or 80 columns. Memory is shared between video and CPU; when the video
 	is accessing it the CPU may not.
 */
-class VideoOutput: public ClockReceiver<VideoOutput> {
+class VideoOutput {
 	public:
 		/*!
 			Instantiates a VideoOutput that will read its pixels from @c memory. The pointer supplied
@@ -35,7 +35,6 @@ class VideoOutput: public ClockReceiver<VideoOutput> {
 
 		/// Produces the next @c cycles of video output.
 		void run_for(const Cycles &cycles);
-		using ClockReceiver<VideoOutput>::run_for;
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,

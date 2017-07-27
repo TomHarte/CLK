@@ -128,7 +128,7 @@ class ProcessorBase {
 	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
 	jammed state.
 */
-template <class T> class Processor: public ProcessorBase, public ClockReceiver<Processor<T>> {
+template <class T> class Processor: public ProcessorBase {
 	private:
 		const MicroOp *scheduled_program_counter_;
 
@@ -283,7 +283,6 @@ template <class T> class Processor: public ProcessorBase, public ClockReceiver<P
 		}
 
 	public:
-		using ClockReceiver<Processor<T>>::run_for;
 		/*!
 			Runs the 6502 for a supplied number of cycles.
 

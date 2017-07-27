@@ -9,6 +9,8 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
+#include <cstdio>
+
 /*!
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
@@ -118,13 +120,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 };
 
-/*!
-	ClockReceiver is a template for components that receove a clock, measured either
-	in cycles or in half cycles. They are expected to implement either of the run_for
-	methods and to declare that they are `using` the other; buying into the template
-	means that the other run_for will automatically map appropriately to the implemented
-	one, so callers may use either.
-
+/*
 	Alignment rule:
 
 		run_for(Cycles) may be called only at the start of a cycle. E.g. the following
@@ -150,22 +146,24 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		of a full cycle. The second will do the second half. Etc.
 
 */
-template <class T> class ClockReceiver {
+
+/*!
+	If a component implements only run_for(Cycles), an owner can wrap it in HalfClockReceiver
+	automatically to gain run_for(HalfCycles).
+*/
+template <class T> class HalfClockReceiver: public T {
 	public:
-		ClockReceiver() : half_cycle_carry_(0) {}
+		using T::T;
 
-		inline void run_for(const Cycles &cycles) {
-			static_cast<T *>(this)->run_for(HalfCycles(cycles));
-		}
-
+		using T::run_for;
 		inline void run_for(const HalfCycles &half_cycles) {
 			int cycles = half_cycles.as_int() + half_cycle_carry_;
 			half_cycle_carry_ = cycles & 1;
-			static_cast<T *>(this)->run_for(Cycles(cycles >> 1));
+			T::run_for(Cycles(cycles >> 1));
 		}
 
 	private:
-		int half_cycle_carry_;
+		int half_cycle_carry_ = 0;
 };
 
 #endif /* ClockReceiver_hpp */

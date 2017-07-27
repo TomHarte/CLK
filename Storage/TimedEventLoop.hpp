@@ -10,7 +10,6 @@
 #define TimedEventLoop_hpp
 
 #include "Storage.hpp"
-
 #include "../ClockReceiver/ClockReceiver.hpp"
 #include "../SignalProcessing/Stepper.hpp"
 
@@ -38,7 +37,7 @@ namespace Storage {
 		@c reset_timer to initiate a distinctly-timed stream or @c jump_to_next_event to short-circuit the timing
 		loop and fast forward immediately to the next event.
 	*/
-	class TimedEventLoop: public ClockReceiver<TimedEventLoop> {
+	class TimedEventLoop {
 		public:
 			/*!
 				Constructs a timed event loop that will be clocked at @c input_clock_rate.
@@ -49,7 +48,6 @@ namespace Storage {
 				Advances the event loop by @c number_of_cycles cycles.
 			*/
 			void run_for(const Cycles &cycles);
-			using ClockReceiver<TimedEventLoop>::run_for;
 
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.
