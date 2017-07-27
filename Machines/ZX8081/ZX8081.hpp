@@ -47,7 +47,7 @@ class Machine:
 	public:
 		Machine();
 
-		Cycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
+		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
 		void flush();
 
 		void setup_output(float aspect_ratio);

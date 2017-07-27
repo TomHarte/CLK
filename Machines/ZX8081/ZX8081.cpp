@@ -29,7 +29,7 @@ Machine::Machine() :
 	clear_all_keys();
 }
 
-Cycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	HalfCycles previous_counter = horizontal_counter_;
 	horizontal_counter_ += cycle.length;
 
@@ -182,7 +182,7 @@ Cycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle
 
 	if(typer_) typer_->update(cycle.length.as_int());
 
-	return Cycles(0);
+	return HalfCycles(0);
 }
 
 void Machine::flush() {
