@@ -24,7 +24,7 @@ namespace ZX8081 {
 	a 1-bit graphic and output over the next 4 cycles, picking between the white level
 	and the black level.
 */
-class Video: public ClockReceiver<Video> {
+class Video {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video();
@@ -33,7 +33,6 @@ class Video: public ClockReceiver<Video> {
 
 		/// Advances time by @c cycles.
 		void run_for(const HalfCycles &);
-		using ClockReceiver<Video>::run_for;
 		/// Forces output to catch up to the current output position.
 		void flush();
 

@@ -13,8 +13,6 @@
 #include <typeinfo>
 #include <cstdio>
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-
 namespace MOS {
 
 /*!
@@ -28,7 +26,7 @@ namespace MOS {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6522: public ClockReceiver<MOS6522<T>> {
+template <class T> class MOS6522 {
 	private:
 		enum InterruptFlag: uint8_t {
 			CA2ActiveEdge	= 1 << 0,

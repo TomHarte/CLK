@@ -11,6 +11,7 @@
 
 #include "../../Processors/6502/6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
