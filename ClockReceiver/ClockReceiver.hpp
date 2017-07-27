@@ -9,8 +9,6 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
-#include <cstdio>
-
 /*!
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
