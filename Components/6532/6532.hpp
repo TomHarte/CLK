@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 namespace MOS {
 
 /*!

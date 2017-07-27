@@ -13,6 +13,8 @@
 #include <typeinfo>
 #include <cstdio>
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 namespace MOS {
 
 /*!

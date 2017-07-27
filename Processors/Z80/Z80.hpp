@@ -41,7 +41,9 @@ enum Register {
 	IYh,	IYl,	IY,
 	R,		I,		Refresh,
 
-	IFF1,	IFF2,	IM
+	IFF1,	IFF2,	IM,
+
+	MemPtr
 };
 
 /*
@@ -463,7 +465,7 @@ template <class T> class Processor {
 				NOP_ROW(),	/* 0x20 */
 				NOP_ROW(),	/* 0x30 */
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.high),
-				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, bc_)),
+				/* 0x42 SBC HL, BC */	SBC16(hl_, bc_),				/* 0x43 LD (nn), BC */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, bc_)),
 				/* 0x44 NEG */			StdInstr({MicroOp::NEG}),		/* 0x45 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x46 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x47 LD I, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.bytes.high}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(bc_.bytes.low),
@@ -471,7 +473,7 @@ template <class T> class Processor {
 				/* 0x4c NEG */			StdInstr({MicroOp::NEG}),		/* 0x4d RETI */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x4e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x4f LD R, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.bytes.low}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.high),
-				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, de_)),
+				/* 0x52 SBC HL, DE */	SBC16(hl_, de_),				/* 0x53 LD (nn), DE */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, de_)),
 				/* 0x54 NEG */			StdInstr({MicroOp::NEG}),		/* 0x55 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x56 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x57 LD A, I */		Instr(6, {MicroOp::Move8, &ir_.bytes.high, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(de_.bytes.low),
@@ -479,7 +481,7 @@ template <class T> class Processor {
 				/* 0x5c NEG */			StdInstr({MicroOp::NEG}),		/* 0x5d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x5e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x5f LD A, R */		Instr(6, {MicroOp::Move8, &ir_.bytes.low, &a_}, {MicroOp::SetAFlags}),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.high),
-				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, hl_)),
+				/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, hl_)),
 				/* 0x64 NEG */			StdInstr({MicroOp::NEG}),		/* 0x65 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x66 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x67 RRD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RRD}, Write3(hl_, temp8_)),
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(hl_.bytes.low),
@@ -487,7 +489,7 @@ template <class T> class Processor {
 				/* 0x6c NEG */			StdInstr({MicroOp::NEG}),		/* 0x6d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write3(hl_, temp8_)),
 				/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_)),
-				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, sp_)),
+				/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, sp_)),
 				/* 0x74 NEG */			StdInstr({MicroOp::NEG}),		/* 0x75 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 				/* 0x76 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x77 XX */			NOP,
 				/* 0x40 IN B, (C);	0x41 OUT (C), B */	IN_OUT(a_),
@@ -573,7 +575,7 @@ template <class T> class Processor {
 
 				/* 0x07 RLCA */			StdInstr({MicroOp::RLCA}),
 				/* 0x08 EX AF, AF' */	StdInstr({MicroOp::ExAFAFDash}),	/* 0x09 ADD HL, BC */	ADD16(index, bc_),
-				/* 0x0a LD A, (BC) */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Read3(memptr_, a_)),
+				/* 0x0a LD A, (BC) */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
 
 				/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 				DEC_INC_DEC_LD(bc_, bc_.bytes.low),
@@ -589,14 +591,14 @@ template <class T> class Processor {
 				/* 0x17 RLA */			StdInstr({MicroOp::RLA}),
 				/* 0x18 JR */			StdInstr(ReadInc(pc_, temp8_), InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 				/* 0x19 ADD HL, DE */	ADD16(index, de_),
-				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_)),
+				/* 0x1a LD A, (DE) */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
 
 				/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 				DEC_INC_DEC_LD(de_, de_.bytes.low),
 
 				/* 0x1f RRA */			StdInstr({MicroOp::RRA}),
 				/* 0x20 JR NZ */		JR(TestNZ),							 /* 0x21 LD HL, nn */	StdInstr(Read16Inc(pc_, index)),
-				/* 0x22 LD (nn), HL */	StdInstr(Read16Inc(pc_, temp16_), Write16(temp16_, index)),
+				/* 0x22 LD (nn), HL */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, index)),
 
 				/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */
 				INC_INC_DEC_LD(index, index.bytes.high),
@@ -618,7 +620,7 @@ template <class T> class Processor {
 				/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 				/* 0x38 JR C */			JR(TestC),
 				/* 0x39 ADD HL, SP */	ADD16(index, sp_),
-				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read3(memptr_, a_)),
+				/* 0x3a LD A, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read3(memptr_, a_), Inc16(memptr_)),
 				/* 0x3b DEC SP */		Instr(8, {MicroOp::Decrement16, &sp_.full}),
 
 				/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
@@ -1196,9 +1198,9 @@ template <class T> class Processor {
 #pragma mark - 16-bit arithmetic
 
 						case MicroOp::ADD16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = sourceValue + destinationValue;
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
@@ -1208,12 +1210,13 @@ template <class T> class Processor {
 							subtract_flag_ = 0;
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 						case MicroOp::ADC16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
 							int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
 
@@ -1228,12 +1231,13 @@ template <class T> class Processor {
 							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 						case MicroOp::SBC16: {
-							memptr_.full = *(uint16_t *)operation->source;
-							uint16_t sourceValue = memptr_.full;
-							uint16_t destinationValue = *(uint16_t *)operation->destination;
+							memptr_.full = *(uint16_t *)operation->destination;
+							uint16_t sourceValue = *(uint16_t *)operation->source;
+							uint16_t destinationValue = memptr_.full;
 							int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
 							int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
@@ -1251,6 +1255,7 @@ template <class T> class Processor {
 							parity_overflow_result_ = (uint8_t)(overflow >> 13);
 
 							*(uint16_t *)operation->destination = (uint16_t)result;
+							memptr_.full++;
 						} break;
 
 #pragma mark - Conditionals
@@ -1796,6 +1801,8 @@ template <class T> class Processor {
 				case Register::IFF2:					return iff2_ ? 1 : 0;
 				case Register::IM:						return (uint16_t)interrupt_mode_;
 
+				case Register::MemPtr:					return memptr_.full;
+
 				default: return 0;
 			}
 		}
@@ -1854,6 +1861,8 @@ template <class T> class Processor {
 				case Register::IFF1:			iff1_ = !!value;						break;
 				case Register::IFF2:			iff2_ = !!value;						break;
 				case Register::IM:				interrupt_mode_ = value % 3;			break;
+
+				case Register::MemPtr:			memptr_.full = value;					break;
 
 				default: break;
 			}

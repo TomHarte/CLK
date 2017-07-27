@@ -42,7 +42,8 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 	CSTestMachineZ80RegisterHLDash,
 	CSTestMachineZ80RegisterIX,		CSTestMachineZ80RegisterIY,
 	CSTestMachineZ80RegisterI,		CSTestMachineZ80RegisterR,
-	CSTestMachineZ80RegisterIFF1,	CSTestMachineZ80RegisterIFF2,	CSTestMachineZ80RegisterIM
+	CSTestMachineZ80RegisterIFF1,	CSTestMachineZ80RegisterIFF2,	CSTestMachineZ80RegisterIM,
+	CSTestMachineZ80RegisterMemPtr
 };
 
 @interface CSTestMachineZ80 : CSTestMachine
