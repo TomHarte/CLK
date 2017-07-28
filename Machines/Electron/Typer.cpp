@@ -8,12 +8,12 @@
 
 #include "Electron.hpp"
 
-int Electron::Machine::get_typer_delay() {
-	return get_is_resetting() ? 625*25*128 : 0;	// wait one second if resetting
+HalfCycles Electron::Machine::get_typer_delay() {
+	return get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
 }
 
-int Electron::Machine::get_typer_frequency() {
-	return 625*128*2;	// accept a new character every two frames
+HalfCycles Electron::Machine::get_typer_frequency() {
+	return Cycles(625*128*2);	// accept a new character every two frames
 }
 
 uint16_t *Electron::Machine::sequence_for_character(Utility::Typer *typer, char character) {

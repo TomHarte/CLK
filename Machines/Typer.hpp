@@ -11,6 +11,7 @@
 
 #include <memory>
 #include "KeyboardMachine.hpp"
+#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace Utility {
 
@@ -30,9 +31,9 @@ class Typer {
 				const uint16_t NotMapped = 0xfffe;
 		};
 
-		Typer(const char *string, int delay, int frequency, Delegate *delegate);
+		Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegate *delegate);
 		~Typer();
-		void update(int duration);
+		void run_for(HalfCycles duration);
 		bool type_next_character();
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text
@@ -40,8 +41,8 @@ class Typer {
 
 	private:
 		char *string_;
-		int frequency_;
-		int counter_;
+		HalfCycles frequency_;
+		HalfCycles counter_;
 		int phase_;
 		Delegate *delegate_;
 		size_t string_pointer_;
@@ -58,8 +59,8 @@ class TypeRecipient: public Typer::Delegate {
 		}
 
 	protected:
-		virtual int get_typer_delay() { return 0; }
-		virtual int get_typer_frequency() { return 0; }
+		virtual HalfCycles get_typer_delay() { return HalfCycles(0); }
+		virtual HalfCycles get_typer_frequency() { return HalfCycles(0); }
 		std::unique_ptr<Typer> typer_;
 };
 

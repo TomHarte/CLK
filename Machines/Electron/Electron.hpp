@@ -101,8 +101,8 @@ class Machine:
 		virtual void tape_did_change_interrupt_status(Tape *tape);
 
 		// for Utility::TypeRecipient
-		virtual int get_typer_delay();
-		virtual int get_typer_frequency();
+		virtual HalfCycles get_typer_delay();
+		virtual HalfCycles get_typer_frequency();
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
 
 	private:

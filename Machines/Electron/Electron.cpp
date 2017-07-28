@@ -327,7 +327,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 		queue_next_display_interrupt();
 	}
 
-	if(typer_) typer_->update((int)cycles);
+	if(typer_) typer_->run_for(Cycles((int)cycles));
 	if(plus3_) plus3_->run_for(Cycles(4*(int)cycles));
 	if(shift_restart_counter_) {
 		shift_restart_counter_ -= cycles;

@@ -11,14 +11,14 @@
 
 using namespace Utility;
 
-Typer::Typer(const char *string, int delay, int frequency, Delegate *delegate) :
+Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegate *delegate) :
 		counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0) {
 	size_t string_size = strlen(string) + 3;
 	string_ = (char *)malloc(string_size);
 	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
-void Typer::update(int duration) {
+void Typer::run_for(HalfCycles duration) {
 	if(string_) {
 		if(counter_ < 0 && counter_ + duration >= 0) {
 			if(!type_next_character()) {
