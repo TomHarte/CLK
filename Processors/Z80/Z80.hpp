@@ -104,7 +104,7 @@ struct PartialMachineCycle {
 		return operation <= Operation::BusAcknowledge;
 	}
 	inline bool is_wait() const {
-		return operation >= Operation::ReadWait && operation <= Operation::InterruptWait;
+		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
 };
 
@@ -1894,7 +1894,7 @@ template <class T> class Processor {
 			how many cycles before now the line changed state. The value may not be longer than the
 			current machine cycle. If called at any other time, this must be zero.
 		*/
-		void set_interrupt_line(bool value, int offset = 0) {
+		void set_interrupt_line(bool value, HalfCycles offset = 0) {
 			if(irq_line_ == value) return;
 
 			// IRQ requests are level triggered and masked.
@@ -1908,7 +1908,7 @@ template <class T> class Processor {
 			// If this change happened at least one cycle ago then: (i) we're promised that this is a machine
 			// cycle per the contract on supplying an offset; and (ii) that means it happened before the lines
 			// were sampled. So adjust the most recent sample.
-			if(offset < 0) {
+			if(offset <= HalfCycles(-2)) {
 				last_request_status_ = (last_request_status_ & ~Interrupt::IRQ) | (request_status_ & Interrupt::IRQ);
 			}
 		}

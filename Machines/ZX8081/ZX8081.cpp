@@ -99,8 +99,12 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 		} break;
 
 		case CPU::Z80::PartialMachineCycle::Interrupt:
+			// resetting event is M1 and IOREQ both simultaneously having leading edges;
+			// that happens 2 cycles before the end of INTACK. So the timer was reset and
+			// now has advanced twice.
+			horizontal_counter_ = HalfCycles(2);
+
 			*cycle.value = 0xff;
-			horizontal_counter_ = 0;
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Refresh:
@@ -109,7 +113,7 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 			// final two cycles of an opcode fetch. Therefore communicate a transient signalling
 			// of the IRQ line if necessary.
 			if(!(address & 0x40)) {
-				set_interrupt_line(true, -2);
+				set_interrupt_line(true, Cycles(-2));
 				set_interrupt_line(false);
 			}
 			if(has_latched_video_byte_) {
@@ -126,8 +130,7 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 			}
 		break;
 
-		case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
-		case CPU::Z80::PartialMachineCycle::ReadOpcodeWait:
+		case CPU::Z80::PartialMachineCycle::ReadOpcode:
 			// Check for use of the fast tape hack.
 			if(use_fast_tape_hack_ && address == tape_trap_address_ && tape_player_.has_tape()) {
 				uint64_t prior_offset = tape_player_.get_tape()->get_offset();
