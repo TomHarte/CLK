@@ -195,8 +195,8 @@ class FUSETests: XCTestCase {
 			machine.runForNumber(ofCycles: Int32(targetState.tStates))
 
 			// Verify that exactly the right number of cycles was hit; this is a primitive cycle length tester.
-			let cyclesRun = machine.completedCycles
-			XCTAssert(cyclesRun == Int32(targetState.tStates), "Instruction length off; was \(machine.completedCycles) but should be \(targetState.tStates): \(name)")
+			let halfCyclesRun = machine.completedHalfCycles
+			XCTAssert(halfCyclesRun == Int32(targetState.tStates) * 2, "Instruction length off; was \(machine.completedHalfCycles) but should be \(targetState.tStates * 2): \(name)")
 
 			let finalState = RegisterState(machine: machine)
 

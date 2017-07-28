@@ -22,7 +22,7 @@ class AllRAMProcessor:
 		static AllRAMProcessor *Processor();
 
 		struct MemoryAccessDelegate {
-			virtual void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) = 0;
+			virtual void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) = 0;
 		};
 		inline void set_memory_access_delegate(MemoryAccessDelegate *delegate) {
 			delegate_ = delegate;
@@ -37,8 +37,6 @@ class AllRAMProcessor:
 		virtual void set_interrupt_line(bool value) = 0;
 		virtual void set_non_maskable_interrupt_line(bool value) = 0;
 		virtual void set_wait_line(bool value) = 0;
-
-		virtual uint32_t get_timestamp() = 0;
 
 	protected:
 		MemoryAccessDelegate *delegate_;

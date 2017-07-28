@@ -17,14 +17,14 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
 
 		inline Cycles perform_machine_cycle(const PartialMachineCycle &cycle) {
-			timestamp_ += cycle.length.as_int();
+			timestamp_ += cycle.length;
 			if(!cycle.is_terminal()) {
 				return Cycles(0);
 			}
 
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
-				case PartialMachineCycle::ReadOpcodeStart:
+				case PartialMachineCycle::ReadOpcode:
 					check_address_for_trap(address);
 				case PartialMachineCycle::Read:
 					*cycle.value = memory_[address];
@@ -57,7 +57,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			}
 
 			if(delegate_ != nullptr) {
-				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_ >> 1);
+				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
 			}
 
 			return Cycles(0);
@@ -93,10 +93,6 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 
 		void set_wait_line(bool value) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_wait_line(value);
-		}
-
-		uint32_t get_timestamp() {
-			return timestamp_ >> 1;
 		}
 };
 

@@ -61,7 +61,9 @@ class Z80MachineCycleTests: XCTestCase {
 				// array access
 				break
 			} else {
-				if length != busCycles[index].length || cycle.operation != busCycles[index].operation {
+				XCTAssert(length & Int32(1) == 0, "While performing \(machine.busOperationCaptures) Z80 ended on a half cycle")
+
+				if length != busCycles[index].length*2 || cycle.operation != busCycles[index].operation {
 					matches = false
 					break;
 				}

@@ -67,8 +67,7 @@ enum Flag: uint8_t {
 */
 struct PartialMachineCycle {
 	enum Operation {
-		ReadOpcodeStart = 0,
-		ReadOpcodeWait,
+		ReadOpcode = 0,
 		Read,
 		Write,
 		Input,
@@ -79,16 +78,19 @@ struct PartialMachineCycle {
 		Internal,
 		BusAcknowledge,
 
+		ReadOpcodeWait,
 		ReadWait,
 		WriteWait,
 		InputWait,
 		OutputWait,
 		InterruptWait,
 
+		ReadOpcodeStart,
 		ReadStart,
 		WriteStart,
 		InputStart,
 		OutputStart,
+		InterruptStart,
 	} operation;
 	HalfCycles length;
 	uint16_t *address;
@@ -107,28 +109,32 @@ struct PartialMachineCycle {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, HalfCycles(4), &pc_.full, &operation_, false}
+#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, HalfCycles(3), &pc_.full, &operation_, false}
 #define ReadOpcodeWait(f)			{PartialMachineCycle::ReadOpcodeWait, HalfCycles(2), &pc_.full, &operation_, f}
+#define ReadOpcodeEnd()				{PartialMachineCycle::ReadOpcode, HalfCycles(1), &pc_.full, &operation_, false}
+
 #define Refresh(len)				{PartialMachineCycle::Refresh, HalfCycles(len), &refresh_addr_.full, nullptr, false}
 
-#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, HalfCycles(4), &addr.full, &val, false}
+#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, HalfCycles(3), &addr.full, &val, false}
 #define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, HalfCycles(l), &addr.full, &val, f}
-#define ReadEnd(addr, val)			{PartialMachineCycle::Read, HalfCycles(2), &addr.full, &val, false}
+#define ReadEnd(addr, val)			{PartialMachineCycle::Read, HalfCycles(3), &addr.full, &val, false}
 
-#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart,HalfCycles(4), &addr.full, &val, false}
+#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart,HalfCycles(3), &addr.full, &val, false}
 #define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, HalfCycles(l), &addr.full, &val, f}
-#define WriteEnd(addr, val)			{PartialMachineCycle::Write, HalfCycles(2), &addr.full, &val, false}
+#define WriteEnd(addr, val)			{PartialMachineCycle::Write, HalfCycles(3), &addr.full, &val, false}
 
-#define InputStart(addr, val)		{PartialMachineCycle::InputStart, HalfCycles(4), &addr.full, &val, false}
+#define InputStart(addr, val)		{PartialMachineCycle::InputStart, HalfCycles(3), &addr.full, &val, false}
 #define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, HalfCycles(2), &addr.full, &val, f}
-#define InputEnd(addr, val)			{PartialMachineCycle::Input, HalfCycles(2), &addr.full, &val, false}
+#define InputEnd(addr, val)			{PartialMachineCycle::Input, HalfCycles(3), &addr.full, &val, false}
 
-#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, HalfCycles(4), &addr.full, &val, false}
+#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, HalfCycles(3), &addr.full, &val, false}
 #define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, HalfCycles(2), &addr.full, &val, f}
-#define OutputEnd(addr, val)		{PartialMachineCycle::Output, HalfCycles(2), &addr.full, &val, false}
+#define OutputEnd(addr, val)		{PartialMachineCycle::Output, HalfCycles(3), &addr.full, &val, false}
 
-#define IntAck(length, val)			{PartialMachineCycle::Interrupt, HalfCycles(length), nullptr, &val, false}
+#define IntAckStart(length, val)	{PartialMachineCycle::InterruptStart, HalfCycles(length), nullptr, &val, false}
 #define IntWait(val)				{PartialMachineCycle::InterruptWait, HalfCycles(2), nullptr, &val, true}
+#define IntAckEnd(val)				{PartialMachineCycle::Interrupt, HalfCycles(3), nullptr, &val, false}
+
 
 // A wrapper to express a bus operation as a micro-op
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
@@ -741,12 +747,14 @@ template <class T> class Processor {
 			const MicroOp normal_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart()),
 				BusOp(ReadOpcodeWait(true)),
+				BusOp(ReadOpcodeEnd()),
 				{ MicroOp::DecodeOperation }
 			};
 			const MicroOp short_fetch_decode_execute[] = {
 				BusOp(ReadOpcodeStart()),
 				BusOp(ReadOpcodeWait(false)),
 				BusOp(ReadOpcodeWait(true)),
+				BusOp(ReadOpcodeEnd()),
 				{ MicroOp::DecodeOperation }
 			};
 			copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
@@ -813,6 +821,7 @@ template <class T> class Processor {
 				{ MicroOp::BeginNMI },
 				BusOp(ReadOpcodeStart()),
 				BusOp(ReadOpcodeWait(true)),
+				BusOp(ReadOpcodeEnd()),
 				BusOp(Refresh(6)),
 				Push(pc_),
 				{ MicroOp::JumpTo66, nullptr, nullptr},
@@ -820,14 +829,16 @@ template <class T> class Processor {
 			};
 			MicroOp irq_mode0_program[] = {
 				{ MicroOp::BeginIRQMode0 },
-				BusOp(IntAck(8, operation_)),
+				BusOp(IntAckStart(5, operation_)),
 				BusOp(IntWait(operation_)),
+				BusOp(IntAckEnd(operation_)),
 				{ MicroOp::DecodeOperationNoRChange }
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(10, operation_)),
+				BusOp(IntAckStart(7, operation_)),
 				BusOp(IntWait(operation_)),
+				BusOp(IntAckEnd(operation_)),
 				BusOp(Refresh(4)),
 				Push(pc_),
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
@@ -835,8 +846,9 @@ template <class T> class Processor {
 			};
 			MicroOp irq_mode2_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAck(10, temp16_.bytes.low)),
+				BusOp(IntAckStart(7, temp16_.bytes.low)),
 				BusOp(IntWait(temp16_.bytes.low)),
+				BusOp(IntAckEnd(temp16_.bytes.low)),
 				BusOp(Refresh(4)),
 				Push(pc_),
 				{ MicroOp::Move8, &ir_.bytes.high, &temp16_.bytes.high },
