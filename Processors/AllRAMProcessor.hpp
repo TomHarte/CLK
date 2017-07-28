@@ -13,12 +13,14 @@
 #include <set>
 #include <vector>
 
+#include "../ClockReceiver/ClockReceiver.hpp"
+
 namespace CPU {
 
 class AllRAMProcessor {
 	public:
 		AllRAMProcessor(size_t memory_size);
-		virtual uint32_t get_timestamp();
+		HalfCycles get_timestamp();
 		void set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data);
 		void get_data_at_address(uint16_t startAddress, size_t length, uint8_t *data);
 
@@ -31,7 +33,7 @@ class AllRAMProcessor {
 
 	protected:
 		std::vector<uint8_t> memory_;
-		uint32_t timestamp_;
+		HalfCycles timestamp_;
 
 		inline void check_address_for_trap(uint16_t address) {
 			if(traps_[address]) {

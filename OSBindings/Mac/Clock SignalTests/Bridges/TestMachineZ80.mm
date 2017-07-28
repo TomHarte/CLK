@@ -14,7 +14,7 @@
 - (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation
 	address:(uint16_t)address
 	value:(uint8_t)value
-	timeStamp:(int)time_stamp;
+	timeStamp:(HalfCycles)time_stamp;
 @end
 
 #pragma mark - C++ delegate handlers
@@ -23,7 +23,7 @@ class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegat
 	public:
 		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, int time_stamp) {
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) {
 			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
@@ -154,8 +154,8 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	return _processor->get_halt_line() ? YES : NO;
 }
 
-- (int)completedCycles {
-	return _processor->get_timestamp();
+- (int)completedHalfCycles {
+	return _processor->get_timestamp().as_int();
 }
 
 - (void)setNmiLine:(BOOL)nmiLine {
@@ -184,7 +184,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	_processor->set_memory_access_delegate(captureBusActivity ? _busOperationHandler : nullptr);
 }
 
-- (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(int)timeStamp {
+- (void)testMachineDidPerformBusOperation:(CPU::Z80::PartialMachineCycle::Operation)operation address:(uint16_t)address value:(uint8_t)value timeStamp:(HalfCycles)timeStamp {
 	if(self.captureBusActivity) {
 		CSTestMachineZ80BusOperationCapture *capture = [[CSTestMachineZ80BusOperationCapture alloc] init];
 		switch(operation) {
@@ -216,7 +216,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 		}
 		capture.address = address;
 		capture.value = value;
-		capture.timeStamp = timeStamp;
+		capture.timeStamp = timeStamp.as_int();
 
 		[_busOperationCaptures addObject:capture];
 	}

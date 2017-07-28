@@ -21,7 +21,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		}
 
 		inline Cycles perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
-			timestamp_++;
+			timestamp_ += Cycles(1);
 
 			if(operation == BusOperation::ReadOpcode) {
 				check_address_for_trap(address);

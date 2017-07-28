@@ -25,7 +25,7 @@ void AllRAMProcessor::get_data_at_address(uint16_t startAddress, size_t length, 
 	memcpy(data, &memory_[startAddress], endAddress - startAddress);
 }
 
-uint32_t AllRAMProcessor::get_timestamp() {
+HalfCycles AllRAMProcessor::get_timestamp() {
 	return timestamp_;
 }
 

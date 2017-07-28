@@ -34,6 +34,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0xbd, 0x00, 0x00,	// [4] LDA $0000, x (no wrap)
 			0xbd, 0x02, 0x00,	// [5] LDA $0002, x (wrap)
 			0xb9, 0x00, 0x00,	// [4] LDA $0000, y (no wrap)
+
 			0xb9, 0x10, 0x00,	// [5] LDA $0010, y (wrap)
 			0xa1, 0x44,			// [6] LDA ($44, x)
 			0xb1, 0x00,			// [5] LDA ($00), y (no wrap)
@@ -222,7 +223,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		if self.endTime == 0 {
-			self.endTime = machine.timestamp - 1
+			self.endTime = (machine.timestamp / 2) - 1
 		}
 	}
 }
