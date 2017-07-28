@@ -10,7 +10,7 @@
 
 using namespace Storage::Tape;
 
-PulseQueuedTape::PulseQueuedTape() : pulse_pointer_(0) {}
+PulseQueuedTape::PulseQueuedTape() : pulse_pointer_(0), is_at_end_(false) {}
 
 bool PulseQueuedTape::is_at_end() {
 	return is_at_end_;
