@@ -9,6 +9,43 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
+/*
+	Informal pattern for all classes that run from a clock cycle:
+
+		Each will implement either or both of run_for(Cycles) and run_for(HalfCycles), as
+		is appropriate.
+
+		Callers that are accumulating HalfCycles but want to talk to receivers that implement
+		only run_for(Cycles) can use HalfCycle.flush_cycles if they have appropriate storage, or
+		can wrap the receiver in HalfClockReceiver in order automatically to bind half-cycle
+		storage to it.
+
+	Alignment rule:
+
+		run_for(Cycles) may be called only after an even number of half cycles. E.g. the following
+		sequence will have undefined results:
+
+			run_for(HalfCycles(1))
+			run_for(Cycles(1))
+
+		An easy way to ensure this as a caller is to pick only one of run_for(Cycles) and
+		run_for(HalfCycles) to use.
+
+	Reasoning:
+
+		Users of this template may with to implement run_for(Cycles) and run_for(HalfCycles)
+		where there is a need to implement at half-cycle precision but a faster execution
+		path can be offered for full-cycle precision. Those users are permitted to assume
+		phase in run_for(Cycles) and should do so to be compatible with callers that use
+		only run_for(Cycles).
+
+	Corollary:
+
+		Starting from nothing, the first run_for(HalfCycles(1)) will do the **first** half
+		of a full cycle. The second will do the second half. Etc.
+
+*/
+
 /*!
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
@@ -69,7 +106,7 @@ template <class T> class WrappedInt {
 		inline bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
 
 		inline bool operator !() const					{	return !length_;					}
-		inline operator bool() const					{	return !!length_;					}
+		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
 		inline int as_int() const { return length_; }
 
@@ -116,34 +153,19 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 
 		inline HalfCycles(const Cycles &cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
 		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
+
+		/// @returns The number of whole cycles completely covered by this span of half cycles.
+		inline Cycles cycles() {
+			return Cycles(length_ >> 1);
+		}
+
+		///Flushes the whole cycles in @c this, subtracting that many from the total stored here.
+		inline Cycles flush_cycles() {
+			Cycles result(length_ >> 1);
+			length_ &= 1;
+			return result;
+		}
 };
-
-/*
-	Alignment rule:
-
-		run_for(Cycles) may be called only at the start of a cycle. E.g. the following
-		sequence will have undefined results:
-
-			run_for(HalfCycles(1))
-			run_for(Cycles(1))
-
-		An easy way to ensure this as a caller is to pick only one of run_for(Cycles) and
-		run_for(HalfCycles) to use.
-
-	Reasoning:
-
-		Users of this template may with to implement run_for(Cycles) and run_for(HalfCycles)
-		where there is a need to implement at half-cycle precision but a faster execution
-		path can be offered for full-cycle precision. Those users are permitted to assume
-		phase in run_for(Cycles) and should do so to be compatible with callers that use
-		only run_for(Cycles).
-
-	Corollary:
-
-		Starting from nothing, the first run_for(HalfCycles(1)) will do the **first** half
-		of a full cycle. The second will do the second half. Etc.
-
-*/
 
 /*!
 	If a component implements only run_for(Cycles), an owner can wrap it in HalfClockReceiver
@@ -155,13 +177,12 @@ template <class T> class HalfClockReceiver: public T {
 
 		using T::run_for;
 		inline void run_for(const HalfCycles &half_cycles) {
-			int cycles = half_cycles.as_int() + half_cycle_carry_;
-			half_cycle_carry_ = cycles & 1;
-			T::run_for(Cycles(cycles >> 1));
+			half_cycles_ += half_cycles;
+			T::run_for(half_cycles_.flush_cycles());
 		}
 
 	private:
-		int half_cycle_carry_ = 0;
+		HalfCycles half_cycles_;
 };
 
 #endif /* ClockReceiver_hpp */

@@ -351,7 +351,7 @@ void Machine::flush() {
 #pragma mark - Deferred scheduling
 
 inline void Machine::update_display() {
-	if(cycles_since_display_update_) {
+	if(cycles_since_display_update_ > 0) {
 		video_output_->run_for(cycles_since_display_update_.flush());
 	}
 }
@@ -363,7 +363,7 @@ inline void Machine::queue_next_display_interrupt() {
 }
 
 inline void Machine::update_audio() {
-	if(cycles_since_audio_update_) {
+	if(cycles_since_audio_update_ > 0) {
 		speaker_->run_for(cycles_since_audio_update_.divide(Cycles(Speaker::clock_rate_divider)));
 	}
 }
