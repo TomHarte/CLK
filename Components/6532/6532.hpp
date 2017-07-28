@@ -106,7 +106,7 @@ template <class T> class MOS6532 {
 			return 0xff;
 		}
 
-		inline void run_for(const Cycles &cycles) {
+		inline void run_for(const Cycles cycles) {
 			unsigned int number_of_cycles = (unsigned int)cycles.as_int();
 
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour

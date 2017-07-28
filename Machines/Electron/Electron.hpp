@@ -95,7 +95,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for(const Cycles &cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
+		virtual void run_for(const Cycles cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);

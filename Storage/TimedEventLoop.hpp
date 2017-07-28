@@ -47,7 +47,7 @@ namespace Storage {
 			/*!
 				Advances the event loop by @c number_of_cycles cycles.
 			*/
-			void run_for(const Cycles &cycles);
+			void run_for(const Cycles cycles);
 
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.

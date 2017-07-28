@@ -150,7 +150,7 @@ template <class T> class MOS6560 {
 		/*!
 			Runs for cycles. Derr.
 		*/
-		inline void run_for(const Cycles &cycles) {
+		inline void run_for(const Cycles cycles) {
 			// keep track of the amount of time since the speaker was updated; lazy updates are applied
 			cycles_since_speaker_update_ += cycles;
 

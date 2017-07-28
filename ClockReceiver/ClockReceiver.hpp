@@ -153,7 +153,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
 		inline HalfCycles() : WrappedInt<HalfCycles>() {}
 
-		inline HalfCycles(const Cycles &cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
+		inline HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
 		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
@@ -178,7 +178,7 @@ template <class T> class HalfClockReceiver: public T {
 		using T::T;
 
 		using T::run_for;
-		inline void run_for(const HalfCycles &half_cycles) {
+		inline void run_for(const HalfCycles half_cycles) {
 			half_cycles_ += half_cycles;
 			T::run_for(half_cycles_.flush_cycles());
 		}

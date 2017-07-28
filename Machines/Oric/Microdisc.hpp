@@ -24,7 +24,7 @@ class Microdisc: public WD::WD1770 {
 
 		bool get_interrupt_request_line();
 
-		void run_for(const Cycles &cycles);
+		void run_for(const Cycles cycles);
 		using WD::WD1770::run_for;
 
 		enum PagingFlags {

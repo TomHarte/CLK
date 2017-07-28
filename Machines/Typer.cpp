@@ -18,7 +18,7 @@ Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegat
 	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
-void Typer::run_for(HalfCycles duration) {
+void Typer::run_for(const HalfCycles duration) {
 	if(string_) {
 		if(counter_ < 0 && counter_ + duration >= 0) {
 			if(!type_next_character()) {

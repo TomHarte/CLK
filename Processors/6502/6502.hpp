@@ -292,7 +292,7 @@ template <class T> class Processor: public ProcessorBase {
 
 			@param cycles The number of cycles to run the 6502 for.
 		*/
-		void run_for(const Cycles &cycles) {
+		void run_for(const Cycles cycles) {
 			static const MicroOp doBranch[] = {
 				CycleReadFromPC,
 				CycleAddSignedOperandToPC,

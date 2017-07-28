@@ -196,7 +196,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return via_.ay8910;
 }
 
-void Machine::run_for(const Cycles &cycles) {
+void Machine::run_for(const Cycles cycles) {
 	CPU::MOS6502::Processor<Machine>::run_for(cycles);
 }
 
@@ -236,7 +236,7 @@ void Machine::VIA::flush() {
 	ay8910->flush();
 }
 
-void Machine::VIA::run_for(const Cycles &cycles) {
+void Machine::VIA::run_for(const Cycles cycles) {
 	cycles_since_ay_update_ += cycles;
 	MOS::MOS6522<VIA>::run_for(cycles);
 	tape->run_for(cycles);

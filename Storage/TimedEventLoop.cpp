@@ -15,7 +15,7 @@ using namespace Storage;
 TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
-void TimedEventLoop::run_for(const Cycles &cycles) {
+void TimedEventLoop::run_for(const Cycles cycles) {
 	cycles_until_event_ -= cycles.as_int();
 	while(cycles_until_event_ <= 0) {
 		process_next_event();

@@ -63,7 +63,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 			return HalfCycles(0);
 		}
 
-		void run_for(const Cycles &cycles) {
+		void run_for(const Cycles cycles) {
 			CPU::Z80::Processor<ConcreteAllRAMProcessor>::run_for(cycles);
 		}
 

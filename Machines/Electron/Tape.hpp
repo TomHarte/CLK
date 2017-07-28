@@ -24,7 +24,7 @@ class Tape:
 	public:
 		Tape();
 
-		void run_for(const Cycles &cycles);
+		void run_for(const Cycles cycles);
 		using Storage::Tape::TapePlayer::run_for;
 
 		uint8_t get_data_register();

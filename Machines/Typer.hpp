@@ -33,7 +33,7 @@ class Typer {
 
 		Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegate *delegate);
 		~Typer();
-		void run_for(HalfCycles duration);
+		void run_for(const HalfCycles duration);
 		bool type_next_character();
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text

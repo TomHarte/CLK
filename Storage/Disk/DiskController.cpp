@@ -40,7 +40,7 @@ void Controller::setup_track() {
 	get_next_event(offset);
 }
 
-void Controller::run_for(const Cycles &cycles) {
+void Controller::run_for(const Cycles cycles) {
 	Time zero(0);
 
 	if(drive_ && drive_->has_disk() && motor_is_on_) {

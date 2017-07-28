@@ -74,7 +74,7 @@ std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
 	return crt_;
 }
 
-void VideoOutput::run_for(const Cycles &cycles) {
+void VideoOutput::run_for(const Cycles cycles) {
 	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
 	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
 

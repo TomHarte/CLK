@@ -43,7 +43,7 @@ class WD1770: public Storage::Disk::Controller {
 		uint8_t get_register(int address);
 
 		/// Runs the controller for @c number_of_cycles cycles.
-		void run_for(const Cycles &cycles);
+		void run_for(const Cycles cycles);
 		using Storage::Disk::Controller::run_for;
 
 		enum Flag: uint8_t {

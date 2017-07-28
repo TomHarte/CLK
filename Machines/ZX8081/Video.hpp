@@ -32,7 +32,7 @@ class Video {
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 
 		/// Advances time by @c cycles.
-		void run_for(const HalfCycles &);
+		void run_for(const HalfCycles);
 		/// Forces output to catch up to the current output position.
 		void flush();
 

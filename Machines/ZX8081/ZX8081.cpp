@@ -208,7 +208,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 	return nullptr;
 }
 
-void Machine::run_for(const Cycles &cycles) {
+void Machine::run_for(const Cycles cycles) {
 	CPU::Z80::Processor<Machine>::run_for(cycles);
 }
 

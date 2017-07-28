@@ -34,7 +34,7 @@ class VideoOutput {
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 
 		/// Produces the next @c cycles of video output.
-		void run_for(const Cycles &cycles);
+		void run_for(const Cycles cycles);
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
