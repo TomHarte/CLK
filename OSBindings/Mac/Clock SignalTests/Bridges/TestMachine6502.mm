@@ -78,7 +78,7 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 }
 
 - (uint32_t)timestamp {
-	return _processor->get_timestamp();
+	return _processor->get_timestamp().as_int();
 }
 
 - (void)setIrqLine:(BOOL)irqLine {
