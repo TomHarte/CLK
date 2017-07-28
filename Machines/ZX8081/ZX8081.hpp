@@ -75,8 +75,8 @@ class Machine:
 
 		// for Utility::TypeRecipient::Delegate
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
-		int get_typer_delay() { return 7000000; }
-		int get_typer_frequency() { return 390000; }
+		HalfCycles get_typer_delay() { return Cycles(7000000); }
+		HalfCycles get_typer_frequency() { return Cycles(390000); }
 
 	private:
 		std::shared_ptr<Video> video_;

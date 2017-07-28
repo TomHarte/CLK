@@ -183,8 +183,7 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 		default: break;
 	}
 
-	// This will lose some precision; TODO: bring inside the [Half]ClockReceiver domain.
-	if(typer_) typer_->update(cycle.length.as_int() / 2);
+	if(typer_) typer_->run_for(cycle.length);
 
 	return HalfCycles(0);
 }
