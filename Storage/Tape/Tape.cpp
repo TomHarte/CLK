@@ -92,7 +92,7 @@ void TapePlayer::get_next_pulse() {
 	set_next_event_time_interval(current_pulse_.length);
 }
 
-void TapePlayer::run_for(const Cycles &cycles) {
+void TapePlayer::run_for(const Cycles cycles) {
 	if(has_tape()) {
 		TimedEventLoop::run_for(cycles);
 	}
@@ -125,7 +125,7 @@ bool BinaryTapePlayer::get_input() {
 	return motor_is_running_ && input_level_;
 }
 
-void BinaryTapePlayer::run_for(const Cycles &cycles) {
+void BinaryTapePlayer::run_for(const Cycles cycles) {
 	if(motor_is_running_) TapePlayer::run_for(cycles);
 }
 

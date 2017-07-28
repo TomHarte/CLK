@@ -43,7 +43,7 @@ class Machine {
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() = 0;
 
 		/// Runs the machine for @c cycles.
-		virtual void run_for(const Cycles &cycles) = 0;
+		virtual void run_for(const Cycles cycles) = 0;
 
 		// TODO: sever the clock-rate stuff.
 		double get_clock_rate() {

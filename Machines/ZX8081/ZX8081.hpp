@@ -56,7 +56,7 @@ class Machine:
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		std::shared_ptr<Outputs::Speaker> get_speaker();
 
-		void run_for(const Cycles &cycles);
+		void run_for(const Cycles cycles);
 
 		void configure_as_target(const StaticAnalyser::Target &target);
 

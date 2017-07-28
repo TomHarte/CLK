@@ -872,7 +872,7 @@ template <class T> class Processor {
 
 			@param cycles The number of cycles to run for.
 		*/
-		void run_for(const HalfCycles &cycles) {
+		void run_for(const HalfCycles cycles) {
 
 #define advance_operation() \
 	pc_increment_ = 1;	\

@@ -124,7 +124,7 @@ uint8_t WD1770::get_register(int address) {
 	}
 }
 
-void WD1770::run_for(const Cycles &cycles) {
+void WD1770::run_for(const Cycles cycles) {
 	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {

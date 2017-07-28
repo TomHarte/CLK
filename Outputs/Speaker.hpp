@@ -141,7 +141,7 @@ template <class T> class Filter: public Speaker {
 			_queue->flush();
 		}
 
-		void run_for(const Cycles &cycles) {
+		void run_for(const Cycles cycles) {
 			enqueue([=]() {
 				unsigned int cycles_remaining = (unsigned int)cycles.as_int();
 				if(coefficients_are_dirty_) update_filter_coefficients();

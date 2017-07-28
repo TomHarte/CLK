@@ -44,7 +44,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return bus_->tia_->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return bus_->speaker_; }
-		virtual void run_for(const Cycles &cycles) { bus_->run_for(cycles); }
+		virtual void run_for(const Cycles cycles) { bus_->run_for(cycles); }
 
 		// to satisfy Outputs::CRT::Delegate
 		virtual void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs);

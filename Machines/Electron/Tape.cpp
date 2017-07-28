@@ -80,7 +80,7 @@ void Tape::acorn_shifter_output_bit(int value) {
 	push_tape_bit((uint16_t)value);
 }
 
-void Tape::run_for(const Cycles &cycles) {
+void Tape::run_for(const Cycles cycles) {
 	if(is_enabled_) {
 		if(is_in_input_mode_) {
 			if(is_running_) {
