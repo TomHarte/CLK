@@ -15,7 +15,7 @@
 
 using namespace Outputs::CRT;
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate) {
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int vertical_sync_half_lines, bool should_alternate) {
 	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
 	const unsigned int syncCapacityLineChargeThreshold = 2;
@@ -54,11 +54,11 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType) {
 	switch(displayType) {
 		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, true);	// i.e. 283.7516
+			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
 		break;
 
 		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, false);	// i.e. 227.5
+			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
 		break;
 	}
 }
@@ -82,9 +82,16 @@ CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
 	openGL_output_builder_(buffer_depth),
 	is_alernate_line_(false) {}
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate, unsigned int buffer_depth) :
+CRT::CRT(	unsigned int cycles_per_line,
+			unsigned int common_output_divisor,
+			unsigned int height_of_display,
+			ColourSpace colour_space,
+			unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator,
+			unsigned int vertical_sync_half_lines,
+			bool should_alternate,
+			unsigned int buffer_depth) :
 		CRT(common_output_divisor, buffer_depth) {
-	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, should_alternate);
+	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) :

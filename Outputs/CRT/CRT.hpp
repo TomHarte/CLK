@@ -119,6 +119,9 @@ class CRT {
 			@param colour_cycle_denominator Specifies the denominator for the per-line frequency of the colour subcarrier.
 			The colour subcarrier is taken to have colour_cycle_numerator/colour_cycle_denominator cycles per line.
 
+			@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
+			in multiples of half a line.
+
 			@param buffer_depth The depth per pixel of source data buffers to create for this machine. Machines
 			may provide per-clock-cycle data in the depth that they consider convenient, supplying a sampling
 			function to convert between their data format and either a composite or RGB signal, allowing that
@@ -127,7 +130,14 @@ class CRT {
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate, unsigned int buffer_depth);
+		CRT(unsigned int cycles_per_line,
+			unsigned int common_output_divisor,
+			unsigned int height_of_display,
+			ColourSpace colour_space,
+			unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator,
+			unsigned int vertical_sync_half_lines,
+			bool should_alternate,
+			unsigned int buffer_depth);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -136,11 +146,14 @@ class CRT {
 			Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
-		CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth);
+		CRT(unsigned int cycles_per_line,
+			unsigned int common_output_divisor,
+			DisplayType displayType,
+			unsigned int buffer_depth);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
-		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate);
+		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int vertical_sync_half_lines, bool should_alternate);
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
