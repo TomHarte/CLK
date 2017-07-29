@@ -44,7 +44,6 @@ class CRT {
 		bool is_receiving_sync_;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
 		int sync_capacitor_charge_level_;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
 		unsigned int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int sync_period_;
 
 		struct Scan {
 			enum Type {
@@ -94,6 +93,7 @@ class CRT {
 		}
 
 		// sync counter, for determining vertical sync
+		bool is_accumulating_sync_;
 		unsigned int cycles_of_sync_;
 		unsigned int cycles_since_sync_;
 		unsigned int cycles_per_line_;
