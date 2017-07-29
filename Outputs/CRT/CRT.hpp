@@ -40,11 +40,6 @@ class CRT {
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
 		uint16_t vertical_flywheel_output_divider_;
 
-		// elements of sync separation
-		bool is_receiving_sync_;				// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		int sync_capacitor_charge_level_;		// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-
 		struct Scan {
 			enum Type {
 				Sync, Level, Data, Blank, ColourBurst
@@ -93,9 +88,13 @@ class CRT {
 		}
 
 		// sync counter, for determining vertical sync
-		bool is_accumulating_sync_;
-		unsigned int cycles_of_sync_;
-		unsigned int cycles_since_sync_;
+		bool is_receiving_sync_;						// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
+		bool is_accumulating_sync_;						// true if a sync level has triggered the suspicion that a vertical sync might be in progress
+		bool is_refusing_sync_;							// true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync
+		unsigned int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		unsigned int cycles_of_sync_;					// the number of cycles since the potential vertical sync began
+		unsigned int cycles_since_sync_;				// the number of cycles since last in sync, for defeating the possibility of this being a vertical sync
+
 		unsigned int cycles_per_line_;
 
 	public:

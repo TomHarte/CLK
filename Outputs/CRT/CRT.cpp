@@ -70,7 +70,6 @@ void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_
 }
 
 CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
-	sync_capacitor_charge_level_(0),
 	is_receiving_sync_(false),
 	common_output_divisor_(common_output_divisor),
 	is_writing_composite_run_(false),
@@ -288,13 +287,15 @@ void CRT::output_scan(const Scan *const scan) {
 	if(this_is_sync) {
 		// if this is sync then either begin or continue a sync accumulation phase
 		is_accumulating_sync_ = true;
+		cycles_since_sync_ = 0;
 	} else {
 		// if this is not sync then check how long it has been since sync. If it's more than
 		// half a line then end sync accumulation and zero out the accumulating count
 		cycles_since_sync_ += scan->number_of_cycles;
-		if(cycles_since_sync_ > (cycles_per_line_ >> 1)) {
+		if(cycles_since_sync_ > (cycles_per_line_ >> 2)) {
 			cycles_of_sync_ = 0;
 			is_accumulating_sync_ = false;
+			is_refusing_sync_ = false;
 		}
 	}
 
@@ -303,18 +304,21 @@ void CRT::output_scan(const Scan *const scan) {
 
 	// if sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
 	// divide this line at the crossing point and indicate vertical sync there
-	if(is_accumulating_sync_) {
+	if(is_accumulating_sync_ && !is_refusing_sync_) {
 		cycles_of_sync_ += scan->number_of_cycles;
 
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
-			unsigned int overshoot = std::max(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
-			number_of_cycles -= overshoot;
-			advance_cycles(number_of_cycles, hsync_requested, false, scan->type);
+			is_refusing_sync_ = true;
+			unsigned int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
+			if(overshoot) {
+				number_of_cycles -= overshoot;
+				advance_cycles(number_of_cycles, hsync_requested, false, scan->type);
+				hsync_requested = false;
+				number_of_cycles = overshoot;
+			}
 
 			cycles_of_sync_ = 0;
 			is_accumulating_sync_ = false;
-			number_of_cycles = overshoot;
-			hsync_requested = false;
 			vsync_requested = true;
 		}
 	}
