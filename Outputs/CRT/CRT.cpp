@@ -15,10 +15,9 @@
 
 using namespace Outputs::CRT;
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate) {
+void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int vertical_sync_half_lines, bool should_alternate) {
 	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
-	const unsigned int syncCapacityLineChargeThreshold = 2;
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
 	const unsigned int scanlinesVerticalRetraceTime = 10;		// source: ibid
 
@@ -37,8 +36,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	cycles_per_line_ = cycles_per_line;
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
-	// generate timing values implied by the given arguments
-	sync_capacitor_charge_threshold_ = ((unsigned int)(syncCapacityLineChargeThreshold * cycles_per_line) * 3) / 4;
+	sync_capacitor_charge_threshold_ = (vertical_sync_half_lines * cycles_per_line) >> 1;
 
 	// create the two flywheels
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
@@ -54,11 +52,11 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType) {
 	switch(displayType) {
 		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, true);	// i.e. 283.7516
+			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
 		break;
 
 		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, false);	// i.e. 227.5
+			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
 		break;
 	}
 }
@@ -72,9 +70,7 @@ void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_
 }
 
 CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
-	sync_capacitor_charge_level_(0),
 	is_receiving_sync_(false),
-	sync_period_(0),
 	common_output_divisor_(common_output_divisor),
 	is_writing_composite_run_(false),
 	delegate_(nullptr),
@@ -82,9 +78,16 @@ CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
 	openGL_output_builder_(buffer_depth),
 	is_alernate_line_(false) {}
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, bool should_alternate, unsigned int buffer_depth) :
+CRT::CRT(	unsigned int cycles_per_line,
+			unsigned int common_output_divisor,
+			unsigned int height_of_display,
+			ColourSpace colour_space,
+			unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator,
+			unsigned int vertical_sync_half_lines,
+			bool should_alternate,
+			unsigned int buffer_depth) :
 		CRT(common_output_divisor, buffer_depth) {
-	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, should_alternate);
+	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
 CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) :
@@ -257,31 +260,6 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 #pragma mark - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
-	const bool this_is_sync = (scan->type == Scan::Type::Sync);
-	const bool is_leading_edge = (!is_receiving_sync_ && this_is_sync);
-	is_receiving_sync_ = this_is_sync;
-
-	// Accumulate: (i) a total of the amount of time in sync; and (ii) the amount of time since sync.
-	if(this_is_sync) { cycles_of_sync_ += scan->number_of_cycles; cycles_since_sync_ = 0; }
-	else cycles_since_sync_ += scan->number_of_cycles;
-
-	bool vsync_requested = false;
-	// If it has been at least half a line since sync ended, then it is safe to decide whether what ended
-	// was vertical sync.
-	if(cycles_since_sync_ > (cycles_per_line_ >> 1)) {
-		// If it was vertical sync, set that flag. If it wasn't, clear the summed amount of sync to avoid
-		// a mistaken vertical sync due to an aggregate of horizontals.
-		vsync_requested = (cycles_of_sync_ > sync_capacitor_charge_threshold_);
-		if(vsync_requested || cycles_of_sync_ < (cycles_per_line_ >> 2))
-			cycles_of_sync_ = 0;
-	}
-
-	// This introduces a blackout period close to the expected vertical sync point in which horizontal syncs are not
-	// recognised, effectively causing the horizontal flywheel to freewheel during that period. This attempts to seek
-	// the problem that vertical sync otherwise often starts halfway through a scanline, which confuses the horizontal
-	// flywheel. I'm currently unclear whether this is an accurate solution to this problem.
-	const bool hsync_requested = is_leading_edge && !vertical_flywheel_->is_near_expected_sync();
-
 	// simplified colour burst logic: if it's within the back porch we'll take it
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {
@@ -293,11 +271,59 @@ void CRT::output_scan(const Scan *const scan) {
 				colour_burst_phase_ = (colour_burst_phase_ & ~63) + colour_burst_phase_adjustment_;
 		}
 	}
+	// TODO: inspect raw data for potential colour burst if required; the DPLL and some zero crossing logic
+	// will probably be sufficient but some test data would be helpful
 
-	// TODO: inspect raw data for potential colour burst if required
+	// sync logic: mark whether this is currently sync and check for a leading edge
+	const bool this_is_sync = (scan->type == Scan::Type::Sync);
+	const bool is_leading_edge = (!is_receiving_sync_ && this_is_sync);
+	is_receiving_sync_ = this_is_sync;
 
-	sync_period_ = is_receiving_sync_ ? (sync_period_ + scan->number_of_cycles) : 0;
-	advance_cycles(scan->number_of_cycles, hsync_requested, vsync_requested, scan->type);
+	// horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
+	// the second limb is to avoid slightly horizontal sync shifting from the common pattern of
+	// equalisation pulses as the inverse of ordinary horizontal sync
+	bool hsync_requested = is_leading_edge && !vertical_flywheel_->is_near_expected_sync();
+
+	if(this_is_sync) {
+		// if this is sync then either begin or continue a sync accumulation phase
+		is_accumulating_sync_ = true;
+		cycles_since_sync_ = 0;
+	} else {
+		// if this is not sync then check how long it has been since sync. If it's more than
+		// half a line then end sync accumulation and zero out the accumulating count
+		cycles_since_sync_ += scan->number_of_cycles;
+		if(cycles_since_sync_ > (cycles_per_line_ >> 2)) {
+			cycles_of_sync_ = 0;
+			is_accumulating_sync_ = false;
+			is_refusing_sync_ = false;
+		}
+	}
+
+	unsigned int number_of_cycles = scan->number_of_cycles;
+	bool vsync_requested = false;
+
+	// if sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
+	// divide this line at the crossing point and indicate vertical sync there
+	if(is_accumulating_sync_ && !is_refusing_sync_) {
+		cycles_of_sync_ += scan->number_of_cycles;
+
+		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
+			is_refusing_sync_ = true;
+			unsigned int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
+			if(overshoot) {
+				number_of_cycles -= overshoot;
+				advance_cycles(number_of_cycles, hsync_requested, false, scan->type);
+				hsync_requested = false;
+				number_of_cycles = overshoot;
+			}
+
+			cycles_of_sync_ = 0;
+			is_accumulating_sync_ = false;
+			vsync_requested = true;
+		}
+	}
+
+	advance_cycles(number_of_cycles, hsync_requested, vsync_requested, scan->type);
 }
 
 /*
