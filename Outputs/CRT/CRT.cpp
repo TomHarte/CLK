@@ -308,7 +308,6 @@ void CRT::output_scan(const Scan *const scan) {
 		cycles_of_sync_ += scan->number_of_cycles;
 
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
-			is_refusing_sync_ = true;
 			unsigned int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
 			if(overshoot) {
 				number_of_cycles -= overshoot;
@@ -317,8 +316,7 @@ void CRT::output_scan(const Scan *const scan) {
 				number_of_cycles = overshoot;
 			}
 
-			cycles_of_sync_ = 0;
-			is_accumulating_sync_ = false;
+			is_refusing_sync_ = true;
 			vsync_requested = true;
 		}
 	}
