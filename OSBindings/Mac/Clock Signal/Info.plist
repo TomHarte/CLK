@@ -224,6 +224,24 @@
 			<string>Tape Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>cdt</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cassette</string>
+			<key>CFBundleTypeName</key>
+			<string>Amstrad CPC Tape Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>

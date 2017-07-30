@@ -40,30 +40,28 @@
 typedef int TargetPlatformType;
 enum class TargetPlatform: TargetPlatformType {
 	Acorn		=	1 << 0,
-	Atari2600	=	1 << 1,
-	Commodore	=	1 << 2,
-	Oric		=	1 << 3,
-	ZX8081		=	1 << 4,
+	AmstradCPC	=	1 << 1,
+	Atari2600	=	1 << 2,
+	Commodore	=	1 << 3,
+	Oric		=	1 << 4,
+	ZX8081		=	1 << 5,
 
-	AllTape		= Acorn | Commodore | Oric | ZX8081,
+	AllTape		= Acorn | Commodore | Oric | ZX8081 | AmstradCPC,
 };
 
 using namespace StaticAnalyser;
 
-std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
-{
+std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 	std::list<Target> targets;
 
 	// Get the extension, if any; it will be assumed that extensions are reliable, so an extension is a broad-phase
 	// test as to file format.
 	const char *mixed_case_extension = strrchr(file_name, '.');
 	char *lowercase_extension = nullptr;
-	if(mixed_case_extension)
-	{
+	if(mixed_case_extension) {
 		lowercase_extension = strdup(mixed_case_extension+1);
 		char *parser = lowercase_extension;
-		while(*parser)
-		{
+		while(*parser) {
 			*parser = (char)tolower(*parser);
 			parser++;
 		}
@@ -86,18 +84,17 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 	} catch(...) {}
 
 #define Format(extension, list, class, platforms) \
-	if(!strcmp(lowercase_extension, extension))	\
-	{	\
+	if(!strcmp(lowercase_extension, extension))	{	\
 		TryInsert(list, class, platforms)	\
 	}
 
-	if(lowercase_extension)
-	{
+	if(lowercase_extension) {
 		Format("80", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 80
 		Format("81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 81
 		Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
 		Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
 		Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
+		Format("cdt", tapes, Tape::TZX,	TargetPlatform::AmstradCPC)						// CDT
 		Format("csw", tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
 		Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
 		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
@@ -108,14 +105,11 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name)
 		Format("p81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)					// P81
 
 		// PRG
-		if(!strcmp(lowercase_extension, "prg"))
-		{
+		if(!strcmp(lowercase_extension, "prg")) {
 			// try instantiating as a ROM; failing that accept as a tape
 			try {
 				Insert(cartridges, Cartridge::PRG, TargetPlatform::Commodore)
-			}
-			catch(...)
-			{
+			} catch(...) {
 				try {
 					Insert(tapes, Tape::PRG, TargetPlatform::Commodore)
 				} catch(...) {}
