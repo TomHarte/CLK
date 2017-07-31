@@ -51,6 +51,9 @@ class Machine:
 
 		uint8_t ram_[65536];
 		std::vector<uint8_t> os_, basic_;
+
+		uint8_t *read_pointers_[4];
+		uint8_t *write_pointers_[4];
 };
 
 }

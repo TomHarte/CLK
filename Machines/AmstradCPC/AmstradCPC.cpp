@@ -27,17 +27,11 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 	switch(cycle.operation) {
 		case CPU::Z80::PartialMachineCycle::ReadOpcode:
 		case CPU::Z80::PartialMachineCycle::Read:
-			switch(address >> 14) {
-				case 0: *cycle.value = os_[address & 16383];	break;
-				case 1:	case 2:
-					*cycle.value = ram_[address];
-				break;
-				case 3: *cycle.value = basic_[address & 16383];	break;
-			}
+			*cycle.value = read_pointers_[address >> 14][address & 16383];
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Write:
-			ram_[address] = *cycle.value;
+			write_pointers_[address >> 14][address & 16383] = *cycle.value;
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Output:
@@ -46,7 +40,11 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 				switch(*cycle.value >> 6) {
 					case 0: printf("Select pen %02x\n", *cycle.value & 0x1f);		break;
 					case 1: printf("Select colour %02x\n", *cycle.value & 0x1f);	break;
-					case 2: printf("Set mode %d, other flags %02x\n", *cycle.value & 3, (*cycle.value >> 2)&7);	break;
+					case 2:
+						printf("Set mode %d, other flags %02x\n", *cycle.value & 3, (*cycle.value >> 2)&7);
+						read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : os_.data();
+						read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
+					break;
 					case 3: printf("RAM paging?\n"); break;
 				}
 			}
@@ -69,10 +67,28 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 					case 3:	printf("PIO control: %02x\n", *cycle.value);	break;
 				}
 			}
-//			printf("Output %02x -> %04x?\n", *cycle.value, address);
 		break;
 		case CPU::Z80::PartialMachineCycle::Input:
-			printf("Input %04x?\n", address);
+			// Check for a CRTC access
+			if(!(address & 0x4000)) {
+				switch((address >> 8) & 3) {
+					case 0:	case 1: printf("Illegal CRTC read?\n");	break;
+					case 2: printf("CRTC status\n");	break;
+					case 3:	printf("CRTC data in\n");	break;
+				}
+			}
+
+			// Check for a PIO access
+			if(!(address & 0x800)) {
+				switch((address >> 8) & 3) {
+					case 0:	printf("[In] PSG data\n");		break;
+					case 1:	printf("[In] Vsync, etc\n");	break;
+					case 2:	printf("[In] Key row, etc\n");	break;
+					case 3:	printf("[In] PIO control\n");	break;
+				}
+			}
+
+			*cycle.value = 0xff;
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Interrupt:
@@ -123,4 +139,13 @@ void Machine::run_for(const Cycles cycles) {
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
+	read_pointers_[0] = os_.data();
+	read_pointers_[1] = &ram_[16384];
+	read_pointers_[2] = &ram_[32768];
+	read_pointers_[3] = basic_.data();
+
+	write_pointers_[0] = &ram_[0];
+	write_pointers_[1] = &ram_[16384];
+	write_pointers_[2] = &ram_[32768];
+	write_pointers_[3] = &ram_[49152];
 }
