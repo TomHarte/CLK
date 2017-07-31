@@ -12,6 +12,7 @@
 
 // Analysers
 #include "Acorn/StaticAnalyser.hpp"
+#include "AmstradCPC/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
@@ -129,11 +130,12 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 
 		// Hand off to platform-specific determination of whether these things are actually compatible and,
 		// if so, how to load them. (TODO)
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)		Acorn::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)	Atari::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)	Commodore::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)		Oric::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)	ZX8081::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)			Acorn::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)		Atari::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)		Commodore::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)			Oric::AddTargets(disks, tapes, cartridges, targets);
+		if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)		ZX8081::AddTargets(disks, tapes, cartridges, targets);
 
 		free(lowercase_extension);
 	}

@@ -46,6 +46,7 @@
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
+		4B38F3441F2EB3E900D9235D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3421F2EB3E900D9235D /* StaticAnalyser.cpp */; };
 		4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
 		4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */; };
 		4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */; };
@@ -532,6 +533,8 @@
 		4B30512F1D98ACC600B4FED8 /* Plus3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Plus3.hpp; path = Electron/Plus3.hpp; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
+		4B38F3421F2EB3E900D9235D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/AmstradCPC/StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4B38F3431F2EB3E900D9235D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/AmstradCPC/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AsyncTaskQueue.cpp; path = ../../Concurrency/AsyncTaskQueue.cpp; sourceTree = "<group>"; };
 		4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AsyncTaskQueue.hpp; path = ../../Concurrency/AsyncTaskQueue.hpp; sourceTree = "<group>"; };
 		4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = C1540Tests.swift; sourceTree = "<group>"; };
@@ -1247,6 +1250,15 @@
 				4B2409541C45AB05004DA684 /* Speaker.hpp */,
 			);
 			name = Outputs;
+			sourceTree = "<group>";
+		};
+		4B38F3451F2EB41800D9235D /* AmstradCPC */ = {
+			isa = PBXGroup;
+			children = (
+				4B38F3421F2EB3E900D9235D /* StaticAnalyser.cpp */,
+				4B38F3431F2EB3E900D9235D /* StaticAnalyser.hpp */,
+			);
+			name = AmstradCPC;
 			sourceTree = "<group>";
 		};
 		4B3940E81DA83C8700427841 /* Concurrency */ = {
@@ -2157,6 +2169,7 @@
 				4B5A12581DD55873007A2231 /* Disassembler */,
 				4BCF1FAC1DADD41F0039D2E7 /* Oric */,
 				4B14978C1EE4AC6200CE2596 /* ZX80/81 */,
+				4B38F3451F2EB41800D9235D /* AmstradCPC */,
 			);
 			name = StaticAnalyser;
 			sourceTree = "<group>";
@@ -2676,6 +2689,7 @@
 				4B8805FE1DD02552003085B1 /* Tape.cpp in Sources */,
 				4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */,
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
+				4B38F3441F2EB3E900D9235D /* StaticAnalyser.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
