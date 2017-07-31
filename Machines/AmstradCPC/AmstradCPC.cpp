@@ -41,7 +41,35 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 		break;
 
 		case CPU::Z80::PartialMachineCycle::Output:
-			printf("Output %02x -> %04x?\n", *cycle.value, address);
+			// Check for a gate array access.
+			if((address & 0xc000) == 0x4000) {
+				switch(*cycle.value >> 6) {
+					case 0: printf("Select pen %02x\n", *cycle.value & 0x1f);		break;
+					case 1: printf("Select colour %02x\n", *cycle.value & 0x1f);	break;
+					case 2: printf("Set mode %d, other flags %02x\n", *cycle.value & 3, (*cycle.value >> 2)&7);	break;
+					case 3: printf("RAM paging?\n"); break;
+				}
+			}
+
+			// Check for a CRTC access
+			if(!(address & 0x4000)) {
+				switch((address >> 8) & 3) {
+					case 0:	printf("Select CRTC register %d\n", *cycle.value);	break;
+					case 1:	printf("Set CRTC value %d\n", *cycle.value);	break;
+					case 2: case 3:	printf("Illegal CRTC write?\n");	break;
+				}
+			}
+
+			// Check for a PIO access
+			if(!(address & 0x800)) {
+				switch((address >> 8) & 3) {
+					case 0:	printf("PSG data: %d\n", *cycle.value);	break;
+					case 1:	printf("Vsync, etc: %02x\n", *cycle.value);	break;
+					case 2:	printf("Key row, etc: %02x\n", *cycle.value);	break;
+					case 3:	printf("PIO control: %02x\n", *cycle.value);	break;
+				}
+			}
+//			printf("Output %02x -> %04x?\n", *cycle.value, address);
 		break;
 		case CPU::Z80::PartialMachineCycle::Input:
 			printf("Input %04x?\n", address);
