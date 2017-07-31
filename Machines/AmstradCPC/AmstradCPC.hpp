@@ -14,6 +14,7 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/6845/CRTC6845.hpp"
 
 namespace AmstradCPC {
 
@@ -47,7 +48,9 @@ class Machine:
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		Motorola::CRTC6845 crtc_;
 		HalfCycles clock_offset_;
+		HalfCycles crtc_offset_;
 
 		uint8_t ram_[65536];
 		std::vector<uint8_t> os_, basic_;

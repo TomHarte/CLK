@@ -20,6 +20,15 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 	clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 	set_wait_line(clock_offset_ >= HalfCycles(2));
 
+	// Update the CRTC on the final two cycles of the clock period;
+	// this gives properly serialised memory accesses without having
+	// to emulate a buffer.
+	crtc_offset_ += cycle.length;
+	while(crtc_offset_ >= HalfCycles(8)) {
+		crtc_.run_for(Cycles(2));
+		crtc_offset_ -= HalfCycles(8);
+	}
+
 	// Stop now if no action is strictly required.
 	if(!cycle.is_terminal()) return HalfCycles(0);
 
@@ -52,8 +61,8 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 			// Check for a CRTC access
 			if(!(address & 0x4000)) {
 				switch((address >> 8) & 3) {
-					case 0:	printf("Select CRTC register %d\n", *cycle.value);	break;
-					case 1:	printf("Set CRTC value %d\n", *cycle.value);	break;
+					case 0:	crtc_.select_register(*cycle.value);	break;
+					case 1:	crtc_.set_register(*cycle.value);		break;
 					case 2: case 3:	printf("Illegal CRTC write?\n");	break;
 				}
 			}
@@ -73,8 +82,8 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 			if(!(address & 0x4000)) {
 				switch((address >> 8) & 3) {
 					case 0:	case 1: printf("Illegal CRTC read?\n");	break;
-					case 2: printf("CRTC status\n");	break;
-					case 3:	printf("CRTC data in\n");	break;
+					case 2: *cycle.value = crtc_.get_status();		break;
+					case 3:	*cycle.value = crtc_.get_register();	break;
 				}
 			}
 
