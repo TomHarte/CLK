@@ -22,6 +22,8 @@ class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine {
 	public:
+		Machine();
+
 		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
 		void flush();
 
@@ -37,6 +39,7 @@ class Machine:
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		HalfCycles clock_offset_;
 };
 
 }

@@ -10,7 +10,16 @@
 
 using namespace AmstradCPC;
 
+Machine::Machine() {
+	// primary clock is 4Mhz
+	set_clock_rate(4000000);
+}
+
 HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+	// Amstrad CPC timing scheme: assert WAIT for three out of four cycles
+	clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
+	set_wait_line(clock_offset_ >= HalfCycles(2));
+
 	return HalfCycles(0);
 }
 
@@ -38,6 +47,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 }
 
 void Machine::run_for(const Cycles cycles) {
+	CPU::Z80::Processor<Machine>::run_for(cycles);
 }
 
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {

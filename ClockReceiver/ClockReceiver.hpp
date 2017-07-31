@@ -95,8 +95,16 @@ template <class T> class WrappedInt {
 			return *static_cast<T *>(this);
 		}
 
+		inline T &operator &=(const T &rhs) {
+			length_ &= rhs.length_;
+			return *static_cast<T *>(this);
+		}
+
 		inline T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
 		inline T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
+
+		inline T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
+		inline T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
 
 		inline T operator -() const						{	return T(- length_);				}
 
