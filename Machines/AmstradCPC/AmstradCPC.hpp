@@ -17,6 +17,12 @@
 
 namespace AmstradCPC {
 
+enum ROMType: uint8_t {
+	OS464, OS664, OS6128,
+	BASIC464, BASIC664, BASIC6128,
+	AMSDOS
+};
+
 class Machine:
 	public CPU::Z80::Processor<Machine>,
 	public CRTMachine::Machine,
@@ -36,6 +42,8 @@ class Machine:
 		void run_for(const Cycles cycles);
 
 		void configure_as_target(const StaticAnalyser::Target &target);
+
+		void set_rom(ROMType type, std::vector<uint8_t> data);
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;

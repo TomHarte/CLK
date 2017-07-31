@@ -26,6 +26,9 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 void Machine::flush() {
 }
 
+void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
+}
+
 void Machine::setup_output(float aspect_ratio) {
 	crt_.reset(new Outputs::CRT::CRT(256, 1, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
@@ -36,6 +39,7 @@ void Machine::setup_output(float aspect_ratio) {
 }
 
 void Machine::close_output() {
+	crt_.reset();
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {
