@@ -18,13 +18,19 @@ void Machine::flush() {
 }
 
 void Machine::setup_output(float aspect_ratio) {
+	crt_.reset(new Outputs::CRT::CRT(256, 1, Outputs::CRT::DisplayType::PAL50, 1));
+	crt_->set_rgb_sampling_function(
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"{"
+			"return vec3(1.0);"
+		"}");
 }
 
 void Machine::close_output() {
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {
-	return nullptr;
+	return crt_;
 }
 
 std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {

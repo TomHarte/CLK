@@ -34,6 +34,9 @@ class Machine:
 		void run_for(const Cycles cycles);
 
 		void configure_as_target(const StaticAnalyser::Target &target);
+
+	private:
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
 };
 
 }
