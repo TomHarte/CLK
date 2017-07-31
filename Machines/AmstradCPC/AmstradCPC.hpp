@@ -48,6 +48,9 @@ class Machine:
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		HalfCycles clock_offset_;
+
+		uint8_t ram_[65536];
+		std::vector<uint8_t> os_, basic_;
 };
 
 }

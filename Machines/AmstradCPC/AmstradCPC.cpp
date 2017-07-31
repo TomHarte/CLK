@@ -20,6 +20,40 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 	clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 	set_wait_line(clock_offset_ >= HalfCycles(2));
 
+	// Stop now if no action is strictly required.
+	if(!cycle.is_terminal()) return HalfCycles(0);
+
+	uint16_t address = cycle.address ? *cycle.address : 0x0000;
+	switch(cycle.operation) {
+		case CPU::Z80::PartialMachineCycle::ReadOpcode:
+		case CPU::Z80::PartialMachineCycle::Read:
+			switch(address >> 14) {
+				case 0: *cycle.value = os_[address & 16383];	break;
+				case 1:	case 2:
+					*cycle.value = ram_[address];
+				break;
+				case 3: *cycle.value = basic_[address & 16383];	break;
+			}
+		break;
+
+		case CPU::Z80::PartialMachineCycle::Write:
+			ram_[address] = *cycle.value;
+		break;
+
+		case CPU::Z80::PartialMachineCycle::Output:
+			printf("Output %02x -> %04x?\n", *cycle.value, address);
+		break;
+		case CPU::Z80::PartialMachineCycle::Input:
+			printf("Input %04x?\n", address);
+		break;
+
+		case CPU::Z80::PartialMachineCycle::Interrupt:
+			*cycle.value = 0xff;
+		break;
+
+		default: break;
+	}
+
 	return HalfCycles(0);
 }
 
@@ -27,6 +61,12 @@ void Machine::flush() {
 }
 
 void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
+	// Keep only the two ROMs that are currently of interest.
+	switch(type) {
+		case ROMType::OS464:		os_ = data;		break;
+		case ROMType::BASIC464:		basic_ = data;	break;
+		default: break;
+	}
 }
 
 void Machine::setup_output(float aspect_ratio) {
