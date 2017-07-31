@@ -36,7 +36,10 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	cycles_per_line_ = cycles_per_line;
 	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
-	sync_capacitor_charge_threshold_ = (vertical_sync_half_lines * cycles_per_line) >> 1;
+	// allow sync to be detected (and acted upon) a line earlier than the specified requirement,
+	// as a simple way of avoiding not-quite-exact comparison issues while still being true enough to
+	// the gist for simple debugging
+	sync_capacitor_charge_threshold_ = ((vertical_sync_half_lines - 2) * cycles_per_line) >> 1;
 
 	// create the two flywheels
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
