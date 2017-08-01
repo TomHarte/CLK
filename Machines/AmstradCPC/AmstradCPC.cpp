@@ -16,7 +16,7 @@
 
 using namespace AmstradCPC;
 
-struct CRTCBusHandler {
+class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram) :
 			cycles_(0),
@@ -249,7 +249,24 @@ struct CRTCBusHandler {
 		int interrupt_reset_counter_;
 };
 
-struct i8255PortHandler : public Intel::i8255::PortHandler {
+class i8255PortHandler : public Intel::i8255::PortHandler {
+	public:
+		void set_value(int port, uint8_t value) {
+			switch(port) {
+				case 0:	printf("PSG data: %d\n", value);		break;
+				case 1:	printf("Vsync, etc: %02x\n", value);	break;
+				case 2:	printf("Key row, etc: %02x\n", value);	break;
+			}
+		}
+
+		uint8_t get_value(int port) {
+			switch(port) {
+				case 0:	printf("PSG data\n");			break;
+				case 1:	printf("[In] Vsync, etc\n");	break;
+				case 2:	printf("[In] Key row, etc\n");	break;
+			}
+			return 0xff;
+		}
 };
 
 class ConcreteMachine:
