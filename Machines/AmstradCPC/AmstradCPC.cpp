@@ -253,20 +253,40 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		void set_value(int port, uint8_t value) {
 			switch(port) {
-				case 0:	printf("PSG data: %d\n", value);		break;
+				case 0:
+					ay_->set_data_input(value);
+				break;
 				case 1:	printf("Vsync, etc: %02x\n", value);	break;
-				case 2:	printf("Key row, etc: %02x\n", value);	break;
+				case 2:
+					// TODO: set key row: (value & 15)
+					// TODO: set casette motor control: ((value >> 4) & 1)
+					// TODO: set casette output: ((value >> 5) & 1)
+					ay_->set_control_lines(
+						(GI::AY38910::ControlLines)(
+							((value & 0x80) ? GI::AY38910::BCDIR : 0) |
+							((value & 0x40) ? GI::AY38910::BC1 : 0)
+						));
+				break;
 			}
 		}
 
 		uint8_t get_value(int port) {
 			switch(port) {
-				case 0:	printf("PSG data\n");			break;
+				case 0:
+					return ay_->get_data_output();
+				break;
 				case 1:	printf("[In] Vsync, etc\n");	break;
 				case 2:	printf("[In] Key row, etc\n");	break;
 			}
 			return 0xff;
 		}
+
+		void set_ay(std::shared_ptr<GI::AY38910> ay) {
+			ay_ = ay;
+		}
+
+	private:
+		std::shared_ptr<GI::AY38910> ay_;
 };
 
 class ConcreteMachine:
@@ -276,7 +296,8 @@ class ConcreteMachine:
 		ConcreteMachine() :
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
 			crtc_(crtc_bus_handler_),
-			crtc_bus_handler_(ram_) {
+			crtc_bus_handler_(ram_),
+			i8255_(i8255_port_handler_) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
@@ -368,14 +389,19 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		void flush() {}
+		void flush() {
+//			i8255_port_handler_.flush();
+		}
 
 		void setup_output(float aspect_ratio) {
 			crtc_bus_handler_.setup_output(aspect_ratio);
+			ay_.reset(new GI::AY38910);
+			i8255_port_handler_.set_ay(ay_);
 		}
 
 		void close_output() {
 			crtc_bus_handler_.close_output();
+			ay_.reset();
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
@@ -383,7 +409,7 @@ class ConcreteMachine:
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() {
-			return nullptr;
+			return ay_;
 		}
 
 		void run_for(const Cycles cycles) {
@@ -416,11 +442,13 @@ class ConcreteMachine:
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
 
+		std::shared_ptr<GI::AY38910> ay_;
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
+		HalfCycles half_cycles_since_ay_update_;
 
 		uint8_t ram_[65536];
 		std::vector<uint8_t> os_, basic_;
