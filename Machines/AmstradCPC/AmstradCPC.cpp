@@ -124,20 +124,20 @@ void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
 }
 
 void Machine::setup_output(float aspect_ratio) {
-	crt_.reset(new Outputs::CRT::CRT(256, 1, Outputs::CRT::DisplayType::PAL50, 1));
-	crt_->set_rgb_sampling_function(
+	crtc_bus_handler_.crt_.reset(new Outputs::CRT::CRT(256, 1, Outputs::CRT::DisplayType::PAL50, 1));
+	crtc_bus_handler_.crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
-			"return vec3(1.0);"
+			"return vec3(float(texture(texID, coordinate).r) / 255.0);"
 		"}");
 }
 
 void Machine::close_output() {
-	crt_.reset();
+	crtc_bus_handler_.crt_.reset();
 }
 
 std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {
-	return crt_;
+	return crtc_bus_handler_.crt_;
 }
 
 std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {

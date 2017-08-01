@@ -25,8 +25,11 @@ enum ROMType: uint8_t {
 };
 
 struct CRTCBusHandler {
-	inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
-	}
+	public:
+		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		}
+
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
 };
 
 class Machine:
@@ -52,8 +55,6 @@ class Machine:
 		void set_rom(ROMType type, std::vector<uint8_t> data);
 
 	private:
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
-
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
 
