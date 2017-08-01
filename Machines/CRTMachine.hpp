@@ -57,7 +57,7 @@ class Machine {
 				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
 				virtual void machine_did_change_clock_is_unlimited(Machine *machine) = 0;
 		};
-		void set_delegate(Delegate *delegate) { this->delegate_ = delegate; }
+		void set_delegate(Delegate *delegate) { delegate_ = delegate; }
 
 	protected:
 		void set_clock_rate(double clock_rate) {

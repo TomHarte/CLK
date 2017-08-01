@@ -69,7 +69,8 @@ Shifter::Shifter() :
 	pll_(PLLClockRate / 4800, 15),
 	was_high_(false),
 	input_pattern_(0),
-	input_bit_counter_(0) {
+	input_bit_counter_(0),
+	delegate_(nullptr) {
 	pll_.set_delegate(this);
 }
 
