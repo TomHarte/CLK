@@ -98,7 +98,12 @@ template <class T> class CRTC6845 {
 
 							// check for entry into the overflow area
 							if(line_counter_ == registers_[4]) {
-								is_in_adjustment_period_ = true;
+								if(registers_[5]) {
+									is_in_adjustment_period_ = true;
+								} else {
+									line_address_ = (uint16_t)((registers_[12] << 8) | registers_[13]);
+									bus_state_.refresh_address = line_address_;
+								}
 								bus_state_.row_address = 0;
 								line_counter_ = 0;
 							}
@@ -108,7 +113,7 @@ template <class T> class CRTC6845 {
 					}
 				}
 
-				bus_state_.display_enable = line_is_visible_ && line_is_visible_;
+				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
 				bus_handler_.perform_bus_cycle(bus_state_);
 			}
 		}
