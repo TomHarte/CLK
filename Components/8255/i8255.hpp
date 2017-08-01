@@ -22,7 +22,7 @@ class PortHandler {
 // ignoring operation mode. But at least it establishes proper ownership and hand-off of decision making.
 template <class T> class i8255 {
 	public:
-		i8255() : control_(0), outputs_{0, 0, 0} {}
+		i8255(T &port_handler) : control_(0), outputs_{0, 0, 0}, port_handler_(port_handler) {}
 
 		void set_register(int address, uint8_t value) {
 			switch(address & 3) {
@@ -63,7 +63,7 @@ template <class T> class i8255 {
 
 		uint8_t control_;
 		uint8_t outputs_[3];
-		T port_handler_;
+		T &port_handler_;
 };
 
 }
