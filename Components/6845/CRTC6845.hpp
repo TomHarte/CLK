@@ -55,6 +55,11 @@ template <class T> class CRTC6845 {
 					character_is_visible_ = false;
 				}
 
+				// update refresh address
+				if(character_is_visible_) {
+					bus_state_.refresh_address++;
+				}
+
 				// check for end-of-line
 				if(character_counter_ == registers_[0]+1) {
 					character_counter_ = 0;
