@@ -22,7 +22,7 @@ namespace CRTMachine {
 */
 class Machine {
 	public:
-		Machine() : clock_is_unlimited_(false) {}
+		Machine() : clock_is_unlimited_(false), delegate_(nullptr) {}
 
 		/*!
 			Causes the machine to set up its CRT and, if it has one, speaker. The caller guarantees
