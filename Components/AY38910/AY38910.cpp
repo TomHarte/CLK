@@ -244,12 +244,12 @@ void AY38910::set_control_lines(ControlLines control_lines) {
 	switch((int)control_lines) {
 		default:					new_state = Inactive;		break;
 
-		case (int)(BCDIR | BC2 | BC1):
-		case BCDIR:
+		case (int)(BDIR | BC2 | BC1):
+		case BDIR:
 		case BC1:					new_state = LatchAddress;	break;
 
 		case (int)(BC2 | BC1):		new_state = Read;			break;
-		case (int)(BCDIR | BC2):	new_state = Write;			break;
+		case (int)(BDIR | BC2):		new_state = Write;			break;
 	}
 
 	if(new_state != control_state_) {

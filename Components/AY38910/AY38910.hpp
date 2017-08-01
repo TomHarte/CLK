@@ -29,7 +29,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		enum ControlLines {
 			BC1		= (1 << 0),
 			BC2		= (1 << 1),
-			BCDIR	= (1 << 2)
+			BDIR	= (1 << 2)
 		};
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
