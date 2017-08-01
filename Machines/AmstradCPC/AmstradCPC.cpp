@@ -16,7 +16,13 @@ using namespace AmstradCPC;
 
 struct CRTCBusHandler {
 	public:
-		CRTCBusHandler() : cycles_(0), was_enabled_(false), was_sync_(false), pixel_data_(nullptr), pixel_pointer_(nullptr) {}
+		CRTCBusHandler(uint8_t *ram) :
+			cycles_(0),
+			was_enabled_(false),
+			was_sync_(false),
+			pixel_data_(nullptr),
+			pixel_pointer_(nullptr),
+			ram_(ram) {}
 
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 			cycles_++;
@@ -28,7 +34,16 @@ struct CRTCBusHandler {
 					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320);
 				}
 				if(pixel_pointer_) {
-					*pixel_pointer_++ = 0xff;
+					// the CPC shuffles output lines as:
+					//	MA12 MA11	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
+					uint16_t address =
+						(uint16_t)(
+							((state.refresh_address & 0x3FF) << 1) |
+							((state.row_address & 7) << 11) |
+							((state.refresh_address & 0x1800) << 3)
+						);
+
+					*pixel_pointer_++ = ram_[address];
 
 					// flush the current buffer if full
 					if(pixel_pointer_ == pixel_data_ + 320) {
@@ -81,6 +96,8 @@ struct CRTCBusHandler {
 		bool was_enabled_, was_sync_;
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		uint8_t *pixel_data_, *pixel_pointer_;
+
+		uint8_t *ram_;
 };
 
 class ConcreteMachine:
@@ -89,7 +106,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
-			crtc_(crtc_bus_handler_) {
+			crtc_(crtc_bus_handler_),
+			crtc_bus_handler_(ram_) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
