@@ -249,16 +249,30 @@ class CRTCBusHandler {
 		int interrupt_reset_counter_;
 };
 
+struct KeyboardState {
+	KeyboardState() : rows{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
+	uint8_t rows[10];
+};
+
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
+		i8255PortHandler(const KeyboardState &key_state) : key_state_(key_state) {}
+
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 0:
 					ay_->set_data_input(value);
 				break;
 				case 1:	printf("Vsync, etc: %02x\n", value);	break;
-				case 2:
-					// TODO: set key row: (value & 15)
+				case 2: {
+					// TODO: the AY really should allow port communications to be active. Work needed.
+//					printf("%d\n", value & 15);
+					int key_row = value & 15;
+					if(key_row < 10) {
+						ay_->set_port_input(false, key_state_.rows[key_row]);
+					} else {
+						ay_->set_port_input(false, 0xff);
+					}
 					// TODO: set casette motor control: ((value >> 4) & 1)
 					// TODO: set casette output: ((value >> 5) & 1)
 					ay_->set_control_lines(
@@ -267,7 +281,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 							((value & 0x40) ? GI::AY38910::BC1 : 0) |
 							GI::AY38910::BC2
 						));
-				break;
+				} break;
 			}
 		}
 
@@ -288,6 +302,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		std::shared_ptr<GI::AY38910> ay_;
+		const KeyboardState &key_state_;
 };
 
 class ConcreteMachine:
@@ -298,7 +313,8 @@ class ConcreteMachine:
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
 			crtc_(crtc_bus_handler_),
 			crtc_bus_handler_(ram_),
-			i8255_(i8255_port_handler_) {
+			i8255_(i8255_port_handler_),
+			i8255_port_handler_(key_state_) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
@@ -440,9 +456,12 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) {
+//			if(isPressed) key_state_.rows[key >> 4] &= ~(key&7); else key_state_.rows[key >> 4] |= (key&7);
+key_state_.rows[key >> 4] &= ~(key&7);
 		}
 
 		void clear_all_keys() {
+			memset(key_state_.rows, 0xff, 10);
 		}
 
 	private:
@@ -462,6 +481,8 @@ class ConcreteMachine:
 
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
+
+		KeyboardState key_state_;
 };
 
 Machine *Machine::AmstradCPC() {
