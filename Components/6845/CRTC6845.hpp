@@ -41,6 +41,12 @@ template <class T> class CRTC6845 {
 					}
 				}
 
+				// check for end of line
+				bool is_end_of_line = character_counter_ == registers_[0];
+
+				// increment counter
+				character_counter_++;
+
 				// check for start of horizontal sync
 				if(character_counter_ == registers_[2]) {
 					hsync_down_counter_ = registers_[3] & 15;
@@ -49,16 +55,17 @@ template <class T> class CRTC6845 {
 
 				// check for end of visible characters
 				if(character_counter_ == registers_[1]) {
-					character_is_visible_ = false;
-				}
-
-				// update refresh address
-				if(character_is_visible_) {
 					bus_state_.refresh_address++;
+					character_is_visible_ = false;
+				} else {
+					// update refresh address
+					if(character_is_visible_) {
+						bus_state_.refresh_address++;
+					}
 				}
 
 				// check for end-of-line
-				if(character_counter_ == registers_[0]) {
+				if(is_end_of_line) {
 					character_counter_ = 0;
 					character_is_visible_ = true;
 
@@ -114,9 +121,6 @@ template <class T> class CRTC6845 {
 							bus_state_.refresh_address = line_address_;
 						}
 					}
-				} else {
-					// advance horizontal counter
-					character_counter_++;
 				}
 
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
