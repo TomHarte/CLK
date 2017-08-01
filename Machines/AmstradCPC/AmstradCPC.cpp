@@ -43,11 +43,13 @@ struct CRTCBusHandler {
 							((state.refresh_address & 0x3000) << 2)
 						);
 
-					*pixel_pointer_++ = ram_[address];
+					pixel_pointer_[0] = ram_[address];
+					pixel_pointer_[1] = ram_[address+1];
+					pixel_pointer_ += 2;
 
 					// flush the current buffer if full
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(320, 16);
+						crt_->output_data(320, 8);
 						pixel_pointer_ = pixel_data_ = nullptr;
 					}
 				}
@@ -59,7 +61,7 @@ struct CRTCBusHandler {
 					crt_->output_sync((unsigned int)(cycles_ * 16));
 				} else {
 					if(was_enabled_) {
-						crt_->output_data((unsigned int)(cycles_ * 16), 16);
+						crt_->output_data((unsigned int)(cycles_ * 16), 8);
 						pixel_pointer_ = pixel_data_ = nullptr;
 					} else {
 						uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
