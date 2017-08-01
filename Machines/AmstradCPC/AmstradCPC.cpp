@@ -10,7 +10,9 @@
 
 using namespace AmstradCPC;
 
-Machine::Machine() {
+Machine::Machine() :
+	crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
+	crtc_(crtc_bus_handler_) {
 	// primary clock is 4Mhz
 	set_clock_rate(4000000);
 }
@@ -20,14 +22,13 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 	clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 	set_wait_line(clock_offset_ >= HalfCycles(2));
 
-	// Update the CRTC on the final two cycles of the clock period;
-	// this gives properly serialised memory accesses without having
-	// to emulate a buffer.
-	crtc_offset_ += cycle.length;
-	while(crtc_offset_ >= HalfCycles(8)) {
-		crtc_.run_for(Cycles(2));
-		crtc_offset_ -= HalfCycles(8);
-	}
+	// Update the CRTC once every eight half cycles; aiming for half-cycle 4 as
+	// per the initial seed to the crtc_counter_, but any time in the final four
+	// will do as it's safe to conclude that nobody else has touched video RAM
+	// during that whole window
+	crtc_counter_ += cycle.length;
+	int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
+	if(crtc_cycles) crtc_.run_for(Cycles(1));
 
 	// Stop now if no action is strictly required.
 	if(!cycle.is_terminal()) return HalfCycles(0);

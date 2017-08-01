@@ -12,12 +12,31 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
 #include <cstdint>
+#include <cstdio>
 
 namespace Motorola {
+namespace CRTC {
 
-class CRTC6845 {
+struct BusState {
+	bool display_enable;
+	bool hsync;
+	bool vsync;
+	bool cursor;
+	uint16_t refresh_address;
+	uint16_t row_address;
+};
+
+template <class T> class CRTC6845 {
 	public:
+		CRTC6845(T &bus_handler) : bus_handler_(bus_handler) {}
+
 		void run_for(Cycles cycles) {
+			int cyles_remaining = cycles.as_int();
+			while(cyles_remaining--) {
+				// TODO: update state (!)
+
+				bus_handler_.perform_bus_cycle(bus_state_);
+			}
 		}
 
 		void select_register(uint8_t r) {
@@ -34,13 +53,18 @@ class CRTC6845 {
 
 		void set_register(uint8_t value) {
 			registers_[selected_register_] = value;
+			if(!selected_register_) printf("Horizontal total: %d\n", value);
 		}
 
 	private:
+		T &bus_handler_;
+		BusState bus_state_;
+
 		uint8_t registers_[16];
 		int selected_register_;
 };
 
+}
 }
 
 #endif /* CRTC6845_hpp */

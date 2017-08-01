@@ -24,6 +24,11 @@ enum ROMType: uint8_t {
 	AMSDOS
 };
 
+struct CRTCBusHandler {
+	inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+	}
+};
+
 class Machine:
 	public CPU::Z80::Processor<Machine>,
 	public CRTMachine::Machine,
@@ -48,9 +53,12 @@ class Machine:
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
-		Motorola::CRTC6845 crtc_;
+
+		CRTCBusHandler crtc_bus_handler_;
+		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
+
 		HalfCycles clock_offset_;
-		HalfCycles crtc_offset_;
+		HalfCycles crtc_counter_;
 
 		uint8_t ram_[65536];
 		std::vector<uint8_t> os_, basic_;
