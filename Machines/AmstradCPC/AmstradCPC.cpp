@@ -439,6 +439,12 @@ class ConcreteMachine:
 			}
 		}
 
+		void set_key_state(uint16_t key, bool isPressed) {
+		}
+
+		void clear_all_keys() {
+		}
+
 	private:
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;

@@ -7,7 +7,8 @@
 //
 
 #import "CSMachine.h"
+#import "CSKeyboardMachine.h"
 
-@interface CSAmstradCPC : CSMachine
+@interface CSAmstradCPC : CSMachine <CSKeyboardMachine>
 
 @end
