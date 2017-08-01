@@ -264,7 +264,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					ay_->set_control_lines(
 						(GI::AY38910::ControlLines)(
 							((value & 0x80) ? GI::AY38910::BCDIR : 0) |
-							((value & 0x40) ? GI::AY38910::BC1 : 0)
+							((value & 0x40) ? GI::AY38910::BC1 : 0) |
+							GI::AY38910::BC2
 						));
 				break;
 			}
