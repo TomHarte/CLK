@@ -231,6 +231,10 @@ uint8_t AY38910::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
 }
 
+void AY38910::set_port_input(bool port_b, uint8_t value) {
+	registers_[port_b ? 15 : 14] = value;
+}
+
 void AY38910::set_data_input(uint8_t r) {
 	data_input_ = r;
 }
@@ -252,7 +256,7 @@ void AY38910::set_control_lines(ControlLines control_lines) {
 		case (int)(BDIR | BC2):		new_state = Write;			break;
 	}
 
-	if(new_state != control_state_) {
+//	if(new_state != control_state_) {
 		control_state_ = new_state;
 		switch(new_state) {
 			default: break;
@@ -260,5 +264,5 @@ void AY38910::set_control_lines(ControlLines control_lines) {
 			case Write:			set_register_value(data_input_);		break;
 			case Read:			data_output_ = get_register_value();	break;
 		}
-	}
+//	}
 }
