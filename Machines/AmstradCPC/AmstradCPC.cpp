@@ -16,18 +16,41 @@ using namespace AmstradCPC;
 
 struct CRTCBusHandler {
 	public:
-		CRTCBusHandler() : cycles_(0), was_enabled_(false), was_sync_(false) {}
+		CRTCBusHandler() : cycles_(0), was_enabled_(false), was_sync_(false), pixel_data_(nullptr), pixel_pointer_(nullptr) {}
 
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 			cycles_++;
+
 			bool is_sync = state.hsync || state.vsync;
+			// collect some more pixels if output is ongoing
+			if(!is_sync && state.display_enable) {
+				if(!pixel_data_) {
+					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320);
+				}
+				if(pixel_pointer_) {
+					*pixel_pointer_++ = 0xff;
+
+					// flush the current buffer if full
+					if(pixel_pointer_ == pixel_data_ + 320) {
+						crt_->output_data(320, 16);
+						pixel_pointer_ = pixel_data_ = nullptr;
+					}
+				}
+			}
+
+			// if a transition between sync/border/pixels just occurred, announce it
 			if(state.display_enable != was_enabled_ || is_sync != was_sync_) {
 				if(was_sync_) {
-					crt_->output_sync((unsigned int)(cycles_ * 2) * 8);
+					crt_->output_sync((unsigned int)(cycles_ * 16));
 				} else {
-					uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
-					if(colour_pointer) *colour_pointer = was_enabled_ ? 0xff : 0x00;
-					crt_->output_level((unsigned int)(cycles_ * 2) * 8);
+					if(was_enabled_) {
+						crt_->output_data((unsigned int)(cycles_ * 16), 16);
+						pixel_pointer_ = pixel_data_ = nullptr;
+					} else {
+						uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+						if(colour_pointer) *colour_pointer = 0x00;
+						crt_->output_level((unsigned int)(cycles_ * 16));
+					}
 				}
 
 				cycles_ = 0;
@@ -37,7 +60,7 @@ struct CRTCBusHandler {
 		}
 
 		void setup_output(float aspect_ratio) {
-			crt_.reset(new Outputs::CRT::CRT(1024, 8, Outputs::CRT::DisplayType::PAL50, 1));
+			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::CRT::DisplayType::PAL50, 1));
 			crt_->set_rgb_sampling_function(
 				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 				"{"
@@ -57,6 +80,7 @@ struct CRTCBusHandler {
 		int cycles_;
 		bool was_enabled_, was_sync_;
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		uint8_t *pixel_data_, *pixel_pointer_;
 };
 
 class ConcreteMachine:
