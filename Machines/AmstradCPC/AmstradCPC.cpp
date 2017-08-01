@@ -124,7 +124,7 @@ void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
 }
 
 void Machine::setup_output(float aspect_ratio) {
-	crtc_bus_handler_.crt_.reset(new Outputs::CRT::CRT(256, 1, Outputs::CRT::DisplayType::PAL50, 1));
+	crtc_bus_handler_.crt_.reset(new Outputs::CRT::CRT(1024, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crtc_bus_handler_.crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
