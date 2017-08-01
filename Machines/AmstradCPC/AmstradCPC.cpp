@@ -9,6 +9,8 @@
 #include "AmstradCPC.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
+
+#include "../../Components/8255/i8255.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/6845/CRTC6845.hpp"
 
@@ -247,6 +249,9 @@ struct CRTCBusHandler {
 		int interrupt_reset_counter_;
 };
 
+struct i8255PortHandler : public Intel::i8255::PortHandler {
+};
+
 class ConcreteMachine:
 	public CPU::Z80::Processor<ConcreteMachine>,
 	public Machine {
@@ -314,12 +319,7 @@ class ConcreteMachine:
 
 					// Check for a PIO access
 					if(!(address & 0x800)) {
-						switch((address >> 8) & 3) {
-							case 0:	printf("PSG data: %d\n", *cycle.value);	break;
-							case 1:	printf("Vsync, etc: %02x\n", *cycle.value);	break;
-							case 2:	printf("Key row, etc: %02x\n", *cycle.value);	break;
-							case 3:	printf("PIO control: %02x\n", *cycle.value);	break;
-						}
+						i8255_.set_register((address >> 8) & 3, *cycle.value);
 					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -334,12 +334,7 @@ class ConcreteMachine:
 
 					// Check for a PIO access
 					if(!(address & 0x800)) {
-						switch((address >> 8) & 3) {
-							case 0:	printf("[In] PSG data\n");		break;
-							case 1:	printf("[In] Vsync, etc\n");	break;
-							case 2:	printf("[In] Key row, etc\n");	break;
-							case 3:	printf("[In] PIO control\n");	break;
-						}
+						*cycle.value = i8255_.get_register((address >> 8) & 3);
 					}
 
 					*cycle.value = 0xff;
@@ -403,6 +398,9 @@ class ConcreteMachine:
 	private:
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
+
+		i8255PortHandler i8255_port_handler_;
+		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;

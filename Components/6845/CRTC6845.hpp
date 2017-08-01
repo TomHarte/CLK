@@ -26,6 +26,11 @@ struct BusState {
 	uint16_t row_address;
 };
 
+class BusHandler {
+	public:
+		void perform_bus_cycle(const BusState &) {}
+};
+
 template <class T> class CRTC6845 {
 	public:
 		CRTC6845(T &bus_handler) : bus_handler_(bus_handler) {}
