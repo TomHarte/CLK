@@ -8,16 +8,88 @@
 
 #include "AmstradCPC.hpp"
 
+#include "../../Processors/Z80/Z80.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/6845/CRTC6845.hpp"
+
 using namespace AmstradCPC;
 
-Machine::Machine() :
+struct CRTCBusHandler {
+	public:
+		CRTCBusHandler() : cycles_(0), was_enabled_(false), was_sync_(false) {}
+
+		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+			cycles_++;
+			bool is_sync = state.hsync || state.vsync;
+			if(state.display_enable != was_enabled_ || is_sync != was_sync_) {
+				if(was_sync_) {
+					crt_->output_sync((unsigned int)(cycles_ * 2) * 8);
+				} else {
+					uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+					if(colour_pointer) *colour_pointer = was_enabled_ ? 0xff : 0x00;
+					crt_->output_level((unsigned int)(cycles_ * 2) * 8);
+				}
+
+				cycles_ = 0;
+				was_sync_ = is_sync;
+				was_enabled_ = state.display_enable;
+			}
+		}
+
+		std::shared_ptr<Outputs::CRT::CRT> crt_;
+
+	private:
+		int cycles_;
+		bool was_enabled_, was_sync_;
+};
+
+class ConcreteMachine:
+	public CPU::Z80::Processor<ConcreteMachine>,
+	public Machine {
+	public:
+		ConcreteMachine();
+
+		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
+		void flush();
+
+		void setup_output(float aspect_ratio);
+		void close_output();
+
+		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		std::shared_ptr<Outputs::Speaker> get_speaker();
+
+		void run_for(const Cycles cycles);
+
+		void configure_as_target(const StaticAnalyser::Target &target);
+
+		void set_rom(ROMType type, std::vector<uint8_t> data);
+
+	private:
+		CRTCBusHandler crtc_bus_handler_;
+		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
+
+		HalfCycles clock_offset_;
+		HalfCycles crtc_counter_;
+
+		uint8_t ram_[65536];
+		std::vector<uint8_t> os_, basic_;
+
+		uint8_t *read_pointers_[4];
+		uint8_t *write_pointers_[4];
+};
+
+Machine *Machine::AmstradCPC() {
+	return new ConcreteMachine;
+}
+
+ConcreteMachine::ConcreteMachine() :
 	crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
 	crtc_(crtc_bus_handler_) {
 	// primary clock is 4Mhz
 	set_clock_rate(4000000);
 }
 
-HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+HalfCycles ConcreteMachine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 	// Amstrad CPC timing scheme: assert WAIT for three out of four cycles
 	clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 	set_wait_line(clock_offset_ >= HalfCycles(2));
@@ -111,10 +183,10 @@ HalfCycles Machine::perform_machine_cycle(const CPU::Z80::PartialMachineCycle &c
 	return HalfCycles(0);
 }
 
-void Machine::flush() {
+void ConcreteMachine::flush() {
 }
 
-void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
+void ConcreteMachine::set_rom(ROMType type, std::vector<uint8_t> data) {
 	// Keep only the two ROMs that are currently of interest.
 	switch(type) {
 		case ROMType::OS464:		os_ = data;		break;
@@ -123,7 +195,7 @@ void Machine::set_rom(ROMType type, std::vector<uint8_t> data) {
 	}
 }
 
-void Machine::setup_output(float aspect_ratio) {
+void ConcreteMachine::setup_output(float aspect_ratio) {
 	crtc_bus_handler_.crt_.reset(new Outputs::CRT::CRT(1024, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crtc_bus_handler_.crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
@@ -132,23 +204,23 @@ void Machine::setup_output(float aspect_ratio) {
 		"}");
 }
 
-void Machine::close_output() {
+void ConcreteMachine::close_output() {
 	crtc_bus_handler_.crt_.reset();
 }
 
-std::shared_ptr<Outputs::CRT::CRT> Machine::get_crt() {
+std::shared_ptr<Outputs::CRT::CRT> ConcreteMachine::get_crt() {
 	return crtc_bus_handler_.crt_;
 }
 
-std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
+std::shared_ptr<Outputs::Speaker> ConcreteMachine::get_speaker() {
 	return nullptr;
 }
 
-void Machine::run_for(const Cycles cycles) {
-	CPU::Z80::Processor<Machine>::run_for(cycles);
+void ConcreteMachine::run_for(const Cycles cycles) {
+	CPU::Z80::Processor<ConcreteMachine>::run_for(cycles);
 }
 
-void Machine::configure_as_target(const StaticAnalyser::Target &target) {
+void ConcreteMachine::configure_as_target(const StaticAnalyser::Target &target) {
 	read_pointers_[0] = os_.data();
 	read_pointers_[1] = &ram_[16384];
 	read_pointers_[2] = &ram_[32768];

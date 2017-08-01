@@ -15,16 +15,20 @@
 #import "NSBundle+DataResource.h"
 
 @implementation CSAmstradCPC {
-	AmstradCPC::Machine _amstradCPC;
+	std::unique_ptr<AmstradCPC::Machine> _amstradCPC;
 }
 
 - (CRTMachine::Machine * const)machine {
-	return &_amstradCPC;
+	if(!_amstradCPC) {
+		_amstradCPC.reset(AmstradCPC::Machine::AmstradCPC());
+	}
+	return _amstradCPC.get();
 }
 
 - (instancetype)init {
 	self = [super init];
 	if(self) {
+		[self machine];
 		NSDictionary *roms = @{
 			@(AmstradCPC::ROMType::OS464) : @"os464",
 			@(AmstradCPC::ROMType::OS664) : @"os664",
@@ -40,7 +44,7 @@
 			NSString *name = roms[key];
 			NSData *data = [self rom:name];
 			if(data) {
-				_amstradCPC.set_rom(type, data.stdVector8);
+				_amstradCPC->set_rom(type, data.stdVector8);
 			} else {
 				NSLog(@"Amstrad CPC ROM missing: %@", name);
 			}
