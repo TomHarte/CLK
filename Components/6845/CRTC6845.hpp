@@ -79,7 +79,6 @@ template <class T> class CRTC6845 {
 						}
 					} else {
 						// advance vertical counter
-						bus_state_.row_address++;
 						if(bus_state_.row_address == registers_[9]) {
 							line_address_ = bus_state_.refresh_address;
 							bus_state_.row_address = 0;
@@ -109,6 +108,7 @@ template <class T> class CRTC6845 {
 								line_counter_ = 0;
 							}
 						} else {
+							bus_state_.row_address++;
 							bus_state_.refresh_address = line_address_;
 						}
 					}
