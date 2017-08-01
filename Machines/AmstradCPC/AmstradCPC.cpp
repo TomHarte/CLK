@@ -35,12 +35,12 @@ struct CRTCBusHandler {
 				}
 				if(pixel_pointer_) {
 					// the CPC shuffles output lines as:
-					//	MA12 MA11	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
+					//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
 					uint16_t address =
 						(uint16_t)(
-							((state.refresh_address & 0x3FF) << 1) |
-							((state.row_address & 7) << 11) |
-							((state.refresh_address & 0x1800) << 3)
+							((state.refresh_address & 0x3ff) << 1) |
+							((state.row_address & 0x7) << 11) |
+							((state.refresh_address & 0x3000) << 2)
 						);
 
 					*pixel_pointer_++ = ram_[address];
