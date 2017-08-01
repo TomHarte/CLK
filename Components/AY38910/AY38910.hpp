@@ -38,7 +38,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		/// Gets the value that would appear on the data lines if only the AY is outputting.
 		uint8_t get_data_output();
 
-		/// Sets the
+		/// Sets the current control line state, as a bit field.
 		void set_control_lines(ControlLines control_lines);
 
 		/*!
