@@ -22,6 +22,7 @@ struct CRTCBusHandler {
 			was_sync_(false),
 			pixel_data_(nullptr),
 			pixel_pointer_(nullptr),
+			was_hsync_(false),
 			ram_(ram) {}
 
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
@@ -43,14 +44,38 @@ struct CRTCBusHandler {
 							((state.refresh_address & 0x3000) << 2)
 						);
 
-					pixel_pointer_[0] = ram_[address];
-					pixel_pointer_[1] = ram_[address+1];
-					pixel_pointer_ += 2;
+					switch(mode_) {
+						case 0:
+							((uint16_t *)pixel_pointer_)[0] = mode0_output_[ram_[address]];
+							((uint16_t *)pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
+							pixel_pointer_ += 4;
+						break;
+
+						case 1:
+							((uint32_t *)pixel_pointer_)[0] = mode1_output_[ram_[address]];
+							((uint32_t *)pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
+							pixel_pointer_ += 8;
+						break;
+
+						case 2:
+							((uint64_t *)pixel_pointer_)[0] = mode2_output_[ram_[address]];
+							((uint64_t *)pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
+							pixel_pointer_ += 16;
+						break;
+
+						case 3:
+							((uint32_t *)pixel_pointer_)[0] = mode3_output_[ram_[address]];
+							((uint32_t *)pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
+							pixel_pointer_ += 8;
+						break;
+
+					}
 
 					// flush the current buffer if full
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(320, 8);
+						crt_->output_data(cycles_ * 16, pixel_divider_);
 						pixel_pointer_ = pixel_data_ = nullptr;
+						cycles_ = 0;
 					}
 				}
 			}
@@ -58,15 +83,15 @@ struct CRTCBusHandler {
 			// if a transition between sync/border/pixels just occurred, announce it
 			if(state.display_enable != was_enabled_ || is_sync != was_sync_) {
 				if(was_sync_) {
-					crt_->output_sync((unsigned int)(cycles_ * 16));
+					crt_->output_sync(cycles_ * 16);
 				} else {
 					if(was_enabled_) {
-						crt_->output_data((unsigned int)(cycles_ * 16), 8);
+						crt_->output_data(cycles_ * 16, pixel_divider_);
 						pixel_pointer_ = pixel_data_ = nullptr;
 					} else {
 						uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
-						if(colour_pointer) *colour_pointer = 0x00;
-						crt_->output_level((unsigned int)(cycles_ * 16));
+						if(colour_pointer) *colour_pointer = border_;
+						crt_->output_level(cycles_ * 16);
 					}
 				}
 
@@ -74,6 +99,20 @@ struct CRTCBusHandler {
 				was_sync_ = is_sync;
 				was_enabled_ = state.display_enable;
 			}
+
+			// check for a leading hsync, now that pixels have safely been flushed
+			if(!was_hsync_ && state.hsync) {
+				if(mode_ != next_mode_) {
+					mode_ = next_mode_;
+					switch(mode_) {
+						default:
+						case 0:		pixel_divider_ = 4;	break;
+						case 1:		pixel_divider_ = 2;	break;
+						case 2:		pixel_divider_ = 1;	break;
+					}
+				}
+			}
+			was_hsync_ = state.hsync;
 		}
 
 		void setup_output(float aspect_ratio) {
@@ -81,8 +120,10 @@ struct CRTCBusHandler {
 			crt_->set_rgb_sampling_function(
 				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 				"{"
-					"return vec3(float(texture(texID, coordinate).r) / 255.0);"
+					"uint sample = texture(texID, coordinate).r;"
+					"return vec3(float(sample & 3u), float((sample >> 2) & 3u), float((sample >> 4) & 3u)) / 3.0;"
 				"}");
+				// TODO: better vectorise the above.
 		}
 
 		void close_output() {
@@ -93,13 +134,72 @@ struct CRTCBusHandler {
 			return crt_;
 		}
 
+		void set_next_mode(int mode) {
+			next_mode_ = mode;
+		}
+
+		void select_pen(int pen) {
+			pen_ = pen;
+		}
+
+		void set_colour(uint8_t colour) {
+			if(pen_ & 16) {
+				printf("border: %d -> %02x\n", colour, mapped_palette_value(colour));
+				border_ = mapped_palette_value(colour);
+				// TODO: should flush any border currently in progress
+			} else {
+				palette_[pen_] = mapped_palette_value(colour);
+
+				for(int c = 0; c < 16; c++) {
+					printf("%02x ", palette_[c]);
+				}
+				printf("\n");
+
+				// TODO: no need for a full regeneration, of every mode, every time
+				for(int c = 0; c < 256; c++) {
+					// prepare mode 0
+//					uint8_t *pixels = (uint8_t *)&mode0_output_[c];
+//					pixels[0] = palette_[((c & 0x80) >> 4) | ((c & 0x08) >> 3)];
+//					pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
+
+					// prepare mode 1
+					uint8_t *pixels = (uint8_t *)&mode1_output_[c];
+					pixels[0] = palette_[((c & 0x80) >> 6) | ((c & 0x08) >> 3)];
+					pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
+					pixels[2] = palette_[((c & 0x20) >> 4) | ((c & 0x02) >> 1)];
+					pixels[3] = palette_[((c & 0x10) >> 3) | ((c & 0x01) >> 0)];
+
+//					mode2_output_[c] = 0xffffff;
+				}
+			}
+		}
+
 	private:
-		int cycles_;
-		bool was_enabled_, was_sync_;
+		uint8_t mapped_palette_value(uint8_t colour) {
+			uint8_t r = (colour / 3) % 3;
+			uint8_t g = (colour / 9) % 3;
+			uint8_t b = colour % 3;
+			return (uint8_t)(r | (g << 2) | (b << 4));
+		}
+
+		unsigned int cycles_;
+		bool was_enabled_, was_sync_, was_hsync_;
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		uint8_t *pixel_data_, *pixel_pointer_;
 
 		uint8_t *ram_;
+
+		int next_mode_, mode_;
+
+		unsigned int pixel_divider_;
+		uint16_t mode0_output_[256];
+		uint32_t mode1_output_[256];
+		uint64_t mode2_output_[256];
+		uint32_t mode3_output_[256];
+
+		int pen_;
+		uint8_t palette_[16];
+		uint8_t border_;
 };
 
 class ConcreteMachine:
@@ -145,12 +245,13 @@ class ConcreteMachine:
 					// Check for a gate array access.
 					if((address & 0xc000) == 0x4000) {
 						switch(*cycle.value >> 6) {
-							case 0: printf("Select pen %02x\n", *cycle.value & 0x1f);		break;
-							case 1: printf("Select colour %02x\n", *cycle.value & 0x1f);	break;
+							case 0: crtc_bus_handler_.select_pen(*cycle.value & 0x1f);		break;
+							case 1: crtc_bus_handler_.set_colour(*cycle.value & 0x1f);		break;
 							case 2:
 								printf("Set mode %d, other flags %02x\n", *cycle.value & 3, (*cycle.value >> 2)&7);
 								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : os_.data();
 								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
+								crtc_bus_handler_.set_next_mode(*cycle.value & 3);
 							break;
 							case 3: printf("RAM paging?\n"); break;
 						}
