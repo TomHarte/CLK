@@ -34,11 +34,11 @@ struct CRTCBusHandler {
 			bool is_sync = state.hsync || state.vsync;
 			if(state.display_enable != was_enabled_ || is_sync != was_sync_) {
 				if(was_sync_) {
-					crt_->output_sync((unsigned int)(cycles_ * 2));
+					crt_->output_sync((unsigned int)(cycles_ * 2) * 8);
 				} else {
 					uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
 					if(colour_pointer) *colour_pointer = was_enabled_ ? 0xff : 0x00;
-					crt_->output_level((unsigned int)(cycles_ * 2));
+					crt_->output_level((unsigned int)(cycles_ * 2) * 8);
 				}
 
 				cycles_ = 0;
