@@ -14,6 +14,8 @@
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/6845/CRTC6845.hpp"
 
+#include "../../Storage/Tape/Tape.hpp"
+
 using namespace AmstradCPC;
 
 class InterruptTimer {
@@ -334,8 +336,8 @@ struct KeyboardState {
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
-		i8255PortHandler(const KeyboardState &key_state, const CRTCBusHandler &crtc_bus_handler, AYDeferrer &ay) :
-			key_state_(key_state), crtc_bus_handler_(crtc_bus_handler), ay_(ay) {}
+		i8255PortHandler(const KeyboardState &key_state, const CRTCBusHandler &crtc_bus_handler, AYDeferrer &ay, Storage::Tape::BinaryTapePlayer &tape_player) :
+			key_state_(key_state), crtc_bus_handler_(crtc_bus_handler), ay_(ay), tape_player_(tape_player) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -354,8 +356,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					} else {
 						ay_.ay()->set_port_input(false, 0xff);
 					}
-					// TODO: set casette motor control: ((value >> 4) & 1)
-					// TODO: set casette output: ((value >> 5) & 1)
+					tape_player_.set_motor_control(!!((value >> 4) & 1));
+					tape_player_.set_tape_output(!!((value >> 5) & 1));
 					ay_.ay()->set_control_lines(
 						(GI::AY38910::ControlLines)(
 							((value & 0x80) ? GI::AY38910::BDIR : 0) |
@@ -369,7 +371,10 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0: return ay_.ay()->get_data_output();
-				case 1:	return (crtc_bus_handler_.get_vsync() ? 1 : 0) | 0xfe;
+				case 1:	return
+					(crtc_bus_handler_.get_vsync() ? 0x01 : 0x00) |
+					(tape_player_.get_input() ? 0x80 : 0x00) |
+					0x7e;
 				case 2:
 //					printf("[In] Key row, etc\n");
 				break;
@@ -381,6 +386,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		AYDeferrer &ay_;
 		const KeyboardState &key_state_;
 		const CRTCBusHandler &crtc_bus_handler_;
+		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
 
 class ConcreteMachine:
@@ -392,7 +398,8 @@ class ConcreteMachine:
 			crtc_(crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
-			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_) {
+			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_, tape_player_),
+			tape_player_(8000000) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
@@ -410,6 +417,10 @@ class ConcreteMachine:
 			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
 			if(crtc_cycles) crtc_.run_for(Cycles(1));
 			set_interrupt_line(interrupt_timer_.get_request());
+
+			// TODO (in the player, not here): adapt it to accept an input clock rate and
+			// run_for as HalfCycles
+			tape_player_.run_for(cycle.length.as_int());
 
 			// Pump the AY.
 			ay_.run_for(cycle.length);
@@ -524,6 +535,10 @@ class ConcreteMachine:
 			write_pointers_[1] = &ram_[16384];
 			write_pointers_[2] = &ram_[32768];
 			write_pointers_[3] = &ram_[49152];
+
+			if(!target.tapes.empty()) {
+				tape_player_.set_tape(target.tapes.front());
+			}
 		}
 
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
@@ -554,6 +569,7 @@ class ConcreteMachine:
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		InterruptTimer interrupt_timer_;
+		Storage::Tape::BinaryTapePlayer tape_player_;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
