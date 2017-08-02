@@ -144,9 +144,7 @@ template <class T> class Filter: public Speaker {
 
 		void run_for(const Cycles cycles) {
 			enqueue([=]() {
-				printf("... %d ...\n", (unsigned int)cycles.as_int());
 				unsigned int cycles_remaining = (unsigned int)cycles.as_int();
-				printf("!!!\n", (unsigned int)cycles.as_int());
 				if(coefficients_are_dirty_) update_filter_coefficients();
 
 				// if input and output rates exactly match, just accumulate results and pass on
