@@ -175,6 +175,17 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			length_ &= 1;
 			return result;
 		}
+
+		/*!
+			Severs from @c this the effect of dividing by @c divisor — @c this will end up with
+			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
+		*/
+		inline Cycles divide_cycles(const Cycles &divisor) {
+			HalfCycles half_divisor = HalfCycles(divisor);
+			Cycles result(length_ / half_divisor.length_);
+			length_ %= half_divisor.length_;
+			return result;
+		}
 };
 
 /*!
