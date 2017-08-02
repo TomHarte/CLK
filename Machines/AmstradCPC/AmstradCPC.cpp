@@ -62,6 +62,38 @@ class InterruptTimer {
 		int timer_;
 };
 
+class AYDeferrer {
+	public:
+		inline void setup_output() {
+			ay_.reset(new GI::AY38910);
+			ay_->set_input_rate(1000000);
+		}
+
+		inline void close_output() {
+			ay_.reset();
+		}
+
+		inline void run_for(HalfCycles half_cycles) {
+			cycles_since_update_ += half_cycles;
+		}
+
+		inline void flush() {
+			ay_->run_for(cycles_since_update_.divide_cycles(Cycles(4)));
+		}
+
+		std::shared_ptr<Outputs::Speaker> get_speaker() {
+			return ay_;
+		}
+
+		GI::AY38910 *ay() {
+			return ay_.get();
+		}
+
+	private:
+		std::shared_ptr<GI::AY38910> ay_;
+		HalfCycles cycles_since_update_;
+};
+
 class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
@@ -301,13 +333,14 @@ struct KeyboardState {
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
-		i8255PortHandler(const KeyboardState &key_state, const CRTCBusHandler &crtc_bus_handler) :
-			key_state_(key_state), crtc_bus_handler_(crtc_bus_handler) {}
+		i8255PortHandler(const KeyboardState &key_state, const CRTCBusHandler &crtc_bus_handler, AYDeferrer &ay) :
+			key_state_(key_state), crtc_bus_handler_(crtc_bus_handler), ay_(ay) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 0:
-					ay_->set_data_input(value);
+					ay_.flush();
+					ay_.ay()->set_data_input(value);
 				break;
 				case 1:
 //					printf("Vsync, etc: %02x\n", value);
@@ -316,13 +349,13 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					// TODO: the AY really should allow port communications to be active. Work needed.
 					int key_row = value & 15;
 					if(key_row < 10) {
-						ay_->set_port_input(false, key_state_.rows[key_row]);
+						ay_.ay()->set_port_input(false, key_state_.rows[key_row]);
 					} else {
-						ay_->set_port_input(false, 0xff);
+						ay_.ay()->set_port_input(false, 0xff);
 					}
 					// TODO: set casette motor control: ((value >> 4) & 1)
 					// TODO: set casette output: ((value >> 5) & 1)
-					ay_->set_control_lines(
+					ay_.ay()->set_control_lines(
 						(GI::AY38910::ControlLines)(
 							((value & 0x80) ? GI::AY38910::BDIR : 0) |
 							((value & 0x40) ? GI::AY38910::BC1 : 0) |
@@ -334,7 +367,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
-				case 0: return ay_->get_data_output();
+				case 0: return ay_.ay()->get_data_output();
 				case 1:	return (crtc_bus_handler_.get_vsync() ? 1 : 0) | 0xfe;
 				case 2:
 //					printf("[In] Key row, etc\n");
@@ -343,12 +376,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			return 0xff;
 		}
 
-		void set_ay(std::shared_ptr<GI::AY38910> ay) {
-			ay_ = ay;
-		}
-
 	private:
-		std::shared_ptr<GI::AY38910> ay_;
+		AYDeferrer &ay_;
 		const KeyboardState &key_state_;
 		const CRTCBusHandler &crtc_bus_handler_;
 };
@@ -362,7 +391,7 @@ class ConcreteMachine:
 			crtc_(crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
-			i8255_port_handler_(key_state_, crtc_bus_handler_) {
+			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
@@ -380,6 +409,9 @@ class ConcreteMachine:
 			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
 			if(crtc_cycles) crtc_.run_for(Cycles(1));
 			set_interrupt_line(interrupt_timer_.get_request());
+
+			// Pump the AY.
+			ay_.run_for(cycle.length);
 
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
@@ -455,18 +487,17 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-//			i8255_port_handler_.flush();
+			ay_.flush();
 		}
 
 		void setup_output(float aspect_ratio) {
 			crtc_bus_handler_.setup_output(aspect_ratio);
-			ay_.reset(new GI::AY38910);
-			i8255_port_handler_.set_ay(ay_);
+			ay_.setup_output();
 		}
 
 		void close_output() {
 			crtc_bus_handler_.close_output();
-			ay_.reset();
+			ay_.close_output();
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
@@ -474,7 +505,7 @@ class ConcreteMachine:
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() {
-			return ay_;
+			return ay_.get_speaker();
 		}
 
 		void run_for(const Cycles cycles) {
@@ -517,7 +548,7 @@ class ConcreteMachine:
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
 
-		std::shared_ptr<GI::AY38910> ay_;
+		AYDeferrer ay_;
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
