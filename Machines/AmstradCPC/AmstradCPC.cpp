@@ -16,9 +16,55 @@
 
 using namespace AmstradCPC;
 
+class InterruptTimer {
+	public:
+		InterruptTimer() : timer_(0), interrupt_request_(false) {}
+
+		inline void increment() {
+			timer_++;
+			if(timer_ == 52) {
+				timer_ = 0;
+				interrupt_request_ = true;
+			}
+
+			if(reset_counter_) {
+				reset_counter_--;
+				if(!reset_counter_) {
+					if(timer_ < 32) {
+						interrupt_request_ = true;
+					}
+					timer_ = 0;
+				}
+			}
+		}
+
+		inline void signal_vsync() {
+			reset_counter_ = 2;
+		}
+
+		inline void reset_request() {
+			interrupt_request_ = false;
+			timer_ &= ~32;
+		}
+
+		inline bool get_request() {
+			return interrupt_request_;
+		}
+
+		inline void reset_count() {
+			timer_ = 0;
+		}
+
+	private:
+
+		int reset_counter_;
+		bool interrupt_request_;
+		int timer_;
+};
+
 class CRTCBusHandler {
 	public:
-		CRTCBusHandler(uint8_t *ram) :
+		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
 			cycles_(0),
 			was_enabled_(false),
 			was_sync_(false),
@@ -26,8 +72,7 @@ class CRTCBusHandler {
 			pixel_pointer_(nullptr),
 			was_hsync_(false),
 			ram_(ram),
-			interrupt_counter_(0),
-			interrupt_request_(false),
+			interrupt_timer_(interrupt_timer),
 			pixel_divider_(1) {}
 
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
@@ -121,38 +166,15 @@ class CRTCBusHandler {
 					}
 				}
 
-				interrupt_counter_++;
-				if(interrupt_counter_ == 52) {
-					interrupt_request_ = true;
-					interrupt_counter_ = false;
-				}
-
-				if(interrupt_reset_counter_) {
-					interrupt_reset_counter_--;
-					if(!interrupt_reset_counter_) {
-						if(interrupt_counter_ < 32) {
-							interrupt_request_ = true;
-						}
-						interrupt_counter_ = 0;
-					}
-				}
+				interrupt_timer_.increment();
 			}
 
 			if(!was_vsync_ && state.vsync) {
-				interrupt_reset_counter_ = 2;
+				interrupt_timer_.signal_vsync();
 			}
 
 			was_vsync_ = state.vsync;
 			was_hsync_ = state.hsync;
-		}
-
-		bool get_interrupt_request() {
-			return interrupt_request_;
-		}
-
-		void reset_interrupt_request() {
-			interrupt_request_ = false;
-			interrupt_counter_ &= ~32;
 		}
 
 		void setup_output(float aspect_ratio) {
@@ -226,10 +248,6 @@ class CRTCBusHandler {
 			}
 		}
 
-		void reset_interrupt_counter() {
-			interrupt_counter_ = 0;
-		}
-
 	private:
 		uint8_t mapped_palette_value(uint8_t colour) {
 #define COL(r, g, b) (r << 4) | (g << 2) | b
@@ -266,9 +284,7 @@ class CRTCBusHandler {
 		uint8_t palette_[16];
 		uint8_t border_;
 
-		int interrupt_counter_;
-		bool interrupt_request_;
-		int interrupt_reset_counter_;
+		InterruptTimer &interrupt_timer_;
 };
 
 struct KeyboardState {
@@ -337,7 +353,7 @@ class ConcreteMachine:
 		ConcreteMachine() :
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
 			crtc_(crtc_bus_handler_),
-			crtc_bus_handler_(ram_),
+			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
 			i8255_port_handler_(key_state_, crtc_bus_handler_) {
 			// primary clock is 4Mhz
@@ -356,7 +372,7 @@ class ConcreteMachine:
 			crtc_counter_ += cycle.length;
 			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
 			if(crtc_cycles) crtc_.run_for(Cycles(1));
-			set_interrupt_line(crtc_bus_handler_.get_interrupt_request());
+			set_interrupt_line(interrupt_timer_.get_request());
 
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
@@ -381,7 +397,7 @@ class ConcreteMachine:
 							case 2:
 								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : os_.data();
 								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
-								if(*cycle.value & 15) crtc_bus_handler_.reset_interrupt_counter();
+								if(*cycle.value & 15) interrupt_timer_.reset_count();
 								crtc_bus_handler_.set_next_mode(*cycle.value & 3);
 							break;
 							case 3: printf("RAM paging?\n"); break;
@@ -422,7 +438,7 @@ class ConcreteMachine:
 
 				case CPU::Z80::PartialMachineCycle::Interrupt:
 					*cycle.value = 0xff;
-					crtc_bus_handler_.reset_interrupt_request();
+					interrupt_timer_.reset_request();
 				break;
 
 				default: break;
@@ -497,6 +513,8 @@ class ConcreteMachine:
 		std::shared_ptr<GI::AY38910> ay_;
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
+
+		InterruptTimer interrupt_timer_;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
