@@ -166,6 +166,8 @@ void AY38910::evaluate_output_volume() {
 	);
 }
 
+#pragma mark - Register manipulation
+
 void AY38910::select_register(uint8_t r) {
 	selected_register_ = r & 0xf;
 }
@@ -227,16 +229,22 @@ uint8_t AY38910::get_register_value() {
 	return registers_[selected_register_] | register_masks[selected_register_];
 }
 
+#pragma mark - Port handling
+
 uint8_t AY38910::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
 }
 
 void AY38910::set_port_input(bool port_b, uint8_t value) {
 	registers_[port_b ? 15 : 14] = value;
+	update_bus();
 }
+
+#pragma mark - Bus handling
 
 void AY38910::set_data_input(uint8_t r) {
 	data_input_ = r;
+	update_bus();
 }
 
 uint8_t AY38910::get_data_output() {
@@ -244,25 +252,25 @@ uint8_t AY38910::get_data_output() {
 }
 
 void AY38910::set_control_lines(ControlLines control_lines) {
-	ControlState new_state;
 	switch((int)control_lines) {
-		default:					new_state = Inactive;		break;
+		default:					control_state_ = Inactive;		break;
 
 		case (int)(BDIR | BC2 | BC1):
 		case BDIR:
-		case BC1:					new_state = LatchAddress;	break;
+		case BC1:					control_state_ = LatchAddress;	break;
 
-		case (int)(BC2 | BC1):		new_state = Read;			break;
-		case (int)(BDIR | BC2):		new_state = Write;			break;
+		case (int)(BC2 | BC1):		control_state_ = Read;			break;
+		case (int)(BDIR | BC2):		control_state_ = Write;			break;
 	}
 
-//	if(new_state != control_state_) {
-		control_state_ = new_state;
-		switch(new_state) {
-			default: break;
-			case LatchAddress:	select_register(data_input_);			break;
-			case Write:			set_register_value(data_input_);		break;
-			case Read:			data_output_ = get_register_value();	break;
-		}
-//	}
+	update_bus();
+}
+
+void AY38910::update_bus() {
+	switch(control_state_) {
+		default: break;
+		case LatchAddress:	select_register(data_input_);			break;
+		case Write:			set_register_value(data_input_);		break;
+		case Read:			data_output_ = get_register_value();	break;
+	}
 }

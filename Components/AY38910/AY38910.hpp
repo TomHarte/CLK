@@ -94,6 +94,8 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		int16_t output_volume_;
 		inline void evaluate_output_volume();
+
+		inline void update_bus();
 };
 
 };
