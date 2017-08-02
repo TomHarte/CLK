@@ -224,7 +224,7 @@ class CRTCBusHandler {
 					"uint sample = texture(texID, coordinate).r;"
 					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 				"}");
-				// TODO: better vectorise the above.
+			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 		}
 
 		void close_output() {
