@@ -69,80 +69,76 @@
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	@synchronized(self) {
-		switch(key)
-		{
+		switch(key) {
 			case VK_ANSI_0:		_amstradCPC->set_key_state(AmstradCPC::Key::Key0, isPressed);	break;
-/*			case VK_ANSI_1:		_electron.set_key_state(Electron::Key::Key1, isPressed);	break;
-			case VK_ANSI_2:		_electron.set_key_state(Electron::Key::Key2, isPressed);	break;
-			case VK_ANSI_3:		_electron.set_key_state(Electron::Key::Key3, isPressed);	break;
-			case VK_ANSI_4:		_electron.set_key_state(Electron::Key::Key4, isPressed);	break;
-			case VK_ANSI_5:		_electron.set_key_state(Electron::Key::Key5, isPressed);	break;
-			case VK_ANSI_6:		_electron.set_key_state(Electron::Key::Key6, isPressed);	break;
-			case VK_ANSI_7:		_electron.set_key_state(Electron::Key::Key7, isPressed);	break;
-			case VK_ANSI_8:		_electron.set_key_state(Electron::Key::Key8, isPressed);	break;
-			case VK_ANSI_9:		_electron.set_key_state(Electron::Key::Key9, isPressed);	break;
+			case VK_ANSI_1:		_amstradCPC->set_key_state(AmstradCPC::Key::Key1, isPressed);	break;
+			case VK_ANSI_2:		_amstradCPC->set_key_state(AmstradCPC::Key::Key2, isPressed);	break;
+			case VK_ANSI_3:		_amstradCPC->set_key_state(AmstradCPC::Key::Key3, isPressed);	break;
+			case VK_ANSI_4:		_amstradCPC->set_key_state(AmstradCPC::Key::Key4, isPressed);	break;
+			case VK_ANSI_5:		_amstradCPC->set_key_state(AmstradCPC::Key::Key5, isPressed);	break;
+			case VK_ANSI_6:		_amstradCPC->set_key_state(AmstradCPC::Key::Key6, isPressed);	break;
+			case VK_ANSI_7:		_amstradCPC->set_key_state(AmstradCPC::Key::Key7, isPressed);	break;
+			case VK_ANSI_8:		_amstradCPC->set_key_state(AmstradCPC::Key::Key8, isPressed);	break;
+			case VK_ANSI_9:		_amstradCPC->set_key_state(AmstradCPC::Key::Key9, isPressed);	break;
 
-			case VK_ANSI_Q:		_electron.set_key_state(Electron::Key::KeyQ, isPressed);	break;
-			case VK_ANSI_W:		_electron.set_key_state(Electron::Key::KeyW, isPressed);	break;
-			case VK_ANSI_E:		_electron.set_key_state(Electron::Key::KeyE, isPressed);	break;
-			case VK_ANSI_R:		_electron.set_key_state(Electron::Key::KeyR, isPressed);	break;
-			case VK_ANSI_T:		_electron.set_key_state(Electron::Key::KeyT, isPressed);	break;
-			case VK_ANSI_Y:		_electron.set_key_state(Electron::Key::KeyY, isPressed);	break;
-			case VK_ANSI_U:		_electron.set_key_state(Electron::Key::KeyU, isPressed);	break;
-			case VK_ANSI_I:		_electron.set_key_state(Electron::Key::KeyI, isPressed);	break;
-			case VK_ANSI_O:		_electron.set_key_state(Electron::Key::KeyO, isPressed);	break;
-			case VK_ANSI_P:		_electron.set_key_state(Electron::Key::KeyP, isPressed);	break;
-			case VK_ANSI_A:		_electron.set_key_state(Electron::Key::KeyA, isPressed);	break;
-			case VK_ANSI_S:		_electron.set_key_state(Electron::Key::KeyS, isPressed);	break;
-			case VK_ANSI_D:		_electron.set_key_state(Electron::Key::KeyD, isPressed);	break;
-			case VK_ANSI_F:		_electron.set_key_state(Electron::Key::KeyF, isPressed);	break;
-			case VK_ANSI_G:		_electron.set_key_state(Electron::Key::KeyG, isPressed);	break;
-			case VK_ANSI_H:		_electron.set_key_state(Electron::Key::KeyH, isPressed);	break;
-			case VK_ANSI_J:		_electron.set_key_state(Electron::Key::KeyJ, isPressed);	break;
-			case VK_ANSI_K:		_electron.set_key_state(Electron::Key::KeyK, isPressed);	break;
-			case VK_ANSI_L:		_electron.set_key_state(Electron::Key::KeyL, isPressed);	break;
-			case VK_ANSI_Z:		_electron.set_key_state(Electron::Key::KeyZ, isPressed);	break;
-			case VK_ANSI_X:		_electron.set_key_state(Electron::Key::KeyX, isPressed);	break;
-			case VK_ANSI_C:		_electron.set_key_state(Electron::Key::KeyC, isPressed);	break;
-			case VK_ANSI_V:		_electron.set_key_state(Electron::Key::KeyV, isPressed);	break;
-			case VK_ANSI_B:		_electron.set_key_state(Electron::Key::KeyB, isPressed);	break;
-			case VK_ANSI_N:		_electron.set_key_state(Electron::Key::KeyN, isPressed);	break;
-			case VK_ANSI_M:		_electron.set_key_state(Electron::Key::KeyM, isPressed);	break;
+			case VK_ANSI_Q:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyQ, isPressed);	break;
+			case VK_ANSI_W:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyW, isPressed);	break;
+			case VK_ANSI_E:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyE, isPressed);	break;
+			case VK_ANSI_R:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyR, isPressed);	break;
+			case VK_ANSI_T:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyT, isPressed);	break;
+			case VK_ANSI_Y:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyY, isPressed);	break;
+			case VK_ANSI_U:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyU, isPressed);	break;
+			case VK_ANSI_I:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyI, isPressed);	break;
+			case VK_ANSI_O:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyO, isPressed);	break;
+			case VK_ANSI_P:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyP, isPressed);	break;
+			case VK_ANSI_A:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyA, isPressed);	break;
+			case VK_ANSI_S:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyS, isPressed);	break;
+			case VK_ANSI_D:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyD, isPressed);	break;
+			case VK_ANSI_F:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyF, isPressed);	break;
+			case VK_ANSI_G:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyG, isPressed);	break;
+			case VK_ANSI_H:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyH, isPressed);	break;
+			case VK_ANSI_J:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyJ, isPressed);	break;
+			case VK_ANSI_K:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyK, isPressed);	break;
+			case VK_ANSI_L:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyL, isPressed);	break;
+			case VK_ANSI_Z:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyZ, isPressed);	break;
+			case VK_ANSI_X:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyX, isPressed);	break;
+			case VK_ANSI_C:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyC, isPressed);	break;
+			case VK_ANSI_V:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyV, isPressed);	break;
+			case VK_ANSI_B:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyB, isPressed);	break;
+			case VK_ANSI_N:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyN, isPressed);	break;
+			case VK_ANSI_M:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyM, isPressed);	break;
 
-			case VK_Space:			_electron.set_key_state(Electron::Key::KeySpace, isPressed);		break;
-			case VK_ANSI_Grave:
-			case VK_ANSI_Backslash:
-									_electron.set_key_state(Electron::Key::KeyCopy, isPressed);			break;
-			case VK_Return:			_electron.set_key_state(Electron::Key::KeyReturn, isPressed);		break;
-			case VK_ANSI_Minus:		_electron.set_key_state(Electron::Key::KeyMinus, isPressed);		break;
+			case VK_Space:			_amstradCPC->set_key_state(AmstradCPC::Key::KeySpace, isPressed);		break;
+			case VK_ANSI_Grave:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyCopy, isPressed);			break;
+			case VK_Return:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyReturn, isPressed);		break;
+			case VK_ANSI_Minus:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyMinus, isPressed);		break;
 
-			case VK_RightArrow:		_electron.set_key_state(Electron::Key::KeyRight, isPressed);		break;
-			case VK_LeftArrow:		_electron.set_key_state(Electron::Key::KeyLeft, isPressed);			break;
-			case VK_DownArrow:		_electron.set_key_state(Electron::Key::KeyDown, isPressed);			break;
-			case VK_UpArrow:		_electron.set_key_state(Electron::Key::KeyUp, isPressed);			break;
+			case VK_RightArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyRight, isPressed);		break;
+			case VK_LeftArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyLeft, isPressed);			break;
+			case VK_DownArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyDown, isPressed);			break;
+			case VK_UpArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyUp, isPressed);			break;
 
-			case VK_Delete:			_electron.set_key_state(Electron::Key::KeyDelete, isPressed);		break;
-			case VK_Escape:			_electron.set_key_state(Electron::Key::KeyEscape, isPressed);		break;
+			case VK_Delete:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyDelete, isPressed);		break;
+			case VK_Escape:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyEscape, isPressed);		break;
 
-			case VK_ANSI_Comma:		_electron.set_key_state(Electron::Key::KeyComma, isPressed);		break;
-			case VK_ANSI_Period:	_electron.set_key_state(Electron::Key::KeyFullStop, isPressed);		break;
+			case VK_ANSI_Comma:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyComma, isPressed);		break;
+			case VK_ANSI_Period:	_amstradCPC->set_key_state(AmstradCPC::Key::KeyFullStop, isPressed);		break;
 
 			case VK_ANSI_Semicolon:
-									_electron.set_key_state(Electron::Key::KeySemiColon, isPressed);	break;
-			case VK_ANSI_Quote:		_electron.set_key_state(Electron::Key::KeyColon, isPressed);		break;
+									_amstradCPC->set_key_state(AmstradCPC::Key::KeySemicolon, isPressed);	break;
+			case VK_ANSI_Quote:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyColon, isPressed);		break;
 
-			case VK_ANSI_Slash:		_electron.set_key_state(Electron::Key::KeySlash, isPressed);		break;
+			case VK_ANSI_Slash:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyForwardSlash, isPressed);		break;
+			case VK_ANSI_Backslash:	_amstradCPC->set_key_state(AmstradCPC::Key::KeyBackSlash, isPressed);		break;
 
-			case VK_Shift:			_electron.set_key_state(Electron::Key::KeyShift, isPressed);		break;
-			case VK_Control:		_electron.set_key_state(Electron::Key::KeyControl, isPressed);		break;
-			case VK_Command:
-			case VK_Option:			_electron.set_key_state(Electron::Key::KeyFunc, isPressed);			break;
+			case VK_Shift:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyShift, isPressed);		break;
+			case VK_Control:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyControl, isPressed);		break;
 
-			case VK_F12:			_electron.set_key_state(Electron::Key::KeyBreak, isPressed);		break;
+			case VK_F12:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyFDot, isPressed);		break;
 
 			default:
 //				printf("%02x\n", key);
-			break;*/
+			break;
 		}
 	}
 }
