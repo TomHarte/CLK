@@ -79,6 +79,7 @@ class AYDeferrer {
 
 		inline void flush() {
 			ay_->run_for(cycles_since_update_.divide_cycles(Cycles(4)));
+			ay_->flush();
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() {
