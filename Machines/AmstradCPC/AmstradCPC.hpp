@@ -22,14 +22,14 @@ enum ROMType: uint8_t {
 
 enum Key: uint16_t {
 #define Line(l, k1, k2, k3, k4, k5, k6, k7, k8)	\
-	k1 = (l << 4) | 0x08,\
-	k2 = (l << 4) | 0x07,\
-	k3 = (l << 4) | 0x06,\
-	k4 = (l << 4) | 0x05,\
-	k5 = (l << 4) | 0x04,\
-	k6 = (l << 4) | 0x03,\
-	k7 = (l << 4) | 0x02,\
-	k8 = (l << 4) | 0x01,
+	k1 = (l << 4) | 0x07,\
+	k2 = (l << 4) | 0x06,\
+	k3 = (l << 4) | 0x05,\
+	k4 = (l << 4) | 0x04,\
+	k5 = (l << 4) | 0x03,\
+	k6 = (l << 4) | 0x02,\
+	k7 = (l << 4) | 0x01,\
+	k8 = (l << 4) | 0x00,
 
 	Line(0, KeyFDot, KeyEnter, KeyF3, KeyF6, KeyF9, KeyDown, KeyRight, KeyUp)
 	Line(1, KeyF0, KeyF2, KeyF1, KeyF5, KeyF8, KeyF7, KeyCopy, KeyLeft)

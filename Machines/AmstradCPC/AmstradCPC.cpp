@@ -27,7 +27,8 @@ class CRTCBusHandler {
 			was_hsync_(false),
 			ram_(ram),
 			interrupt_counter_(0),
-			interrupt_request_(false) {}
+			interrupt_request_(false),
+			pixel_divider_(1) {}
 
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 			bool is_sync = state.hsync || state.vsync;
@@ -197,18 +198,27 @@ class CRTCBusHandler {
 				// TODO: no need for a full regeneration, of every mode, every time
 				for(int c = 0; c < 256; c++) {
 					// prepare mode 0
-//					uint8_t *pixels = (uint8_t *)&mode0_output_[c];
-//					pixels[0] = palette_[((c & 0x80) >> 4) | ((c & 0x08) >> 3)];
-//					pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
+					uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+					mode0_pixels[0] = palette_[((c & 0x80) >> 4) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) >> 1)];
+					mode0_pixels[1] = palette_[((c & 0x40) >> 3) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) >> 0)];
 
 					// prepare mode 1
-					uint8_t *pixels = (uint8_t *)&mode1_output_[c];
-					pixels[0] = palette_[((c & 0x80) >> 6) | ((c & 0x08) >> 3)];
-					pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
-					pixels[2] = palette_[((c & 0x20) >> 4) | ((c & 0x02) >> 1)];
-					pixels[3] = palette_[((c & 0x10) >> 3) | ((c & 0x01) >> 0)];
+					uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+					mode1_pixels[0] = palette_[((c & 0x80) >> 6) | ((c & 0x08) >> 3)];
+					mode1_pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
+					mode1_pixels[2] = palette_[((c & 0x20) >> 4) | ((c & 0x02) >> 1)];
+					mode1_pixels[3] = palette_[((c & 0x10) >> 3) | ((c & 0x01) >> 0)];
 
-//					mode2_output_[c] = 0xffffff;
+					// prepare mode 2
+					uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
+					mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
+					mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
+					mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
+					mode2_pixels[3] = palette_[((c & 0x10) >> 4)];
+					mode2_pixels[4] = palette_[((c & 0x08) >> 3)];
+					mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
+					mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
+					mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
 				}
 			}
 		}
@@ -263,7 +273,9 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				case 0:
 					ay_->set_data_input(value);
 				break;
-				case 1:	printf("Vsync, etc: %02x\n", value);	break;
+				case 1:
+//					printf("Vsync, etc: %02x\n", value);
+				break;
 				case 2: {
 					// TODO: the AY really should allow port communications to be active. Work needed.
 					int key_row = value & 15;
@@ -287,8 +299,12 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0: return ay_->get_data_output();
-				case 1:	printf("[In] Vsync, etc\n");	break;
-				case 2:	printf("[In] Key row, etc\n");	break;
+				case 1:
+//					printf("[In] Vsync, etc\n");
+				break;
+				case 2:
+//					printf("[In] Key row, etc\n");
+				break;
 			}
 			return 0xff;
 		}
@@ -453,7 +469,9 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) {
-			if(isPressed) key_state_.rows[key >> 4] &= ~(key&7); else key_state_.rows[key >> 4] |= (key&7);
+			int line = key >> 4;
+			uint8_t mask = (uint8_t)(1 << (key & 7));
+			if(isPressed) key_state_.rows[line] &= ~mask; else key_state_.rows[line] |= mask;
 		}
 
 		void clear_all_keys() {
