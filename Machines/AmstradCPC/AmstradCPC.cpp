@@ -199,15 +199,15 @@ class CRTCBusHandler {
 				for(int c = 0; c < 256; c++) {
 					// prepare mode 0
 					uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
-					mode0_pixels[0] = palette_[((c & 0x80) >> 4) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) >> 1)];
-					mode0_pixels[1] = palette_[((c & 0x40) >> 3) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) >> 0)];
+					mode0_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)];
+					mode0_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3)];
 
 					// prepare mode 1
 					uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
-					mode1_pixels[0] = palette_[((c & 0x80) >> 6) | ((c & 0x08) >> 3)];
-					mode1_pixels[1] = palette_[((c & 0x40) >> 5) | ((c & 0x04) >> 2)];
-					mode1_pixels[2] = palette_[((c & 0x20) >> 4) | ((c & 0x02) >> 1)];
-					mode1_pixels[3] = palette_[((c & 0x10) >> 3) | ((c & 0x01) >> 0)];
+					mode1_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
+					mode1_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
+					mode1_pixels[2] = palette_[((c & 0x20) >> 5) | ((c & 0x02) >> 0)];
+					mode1_pixels[3] = palette_[((c & 0x10) >> 4) | ((c & 0x01) << 1)];
 
 					// prepare mode 2
 					uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
