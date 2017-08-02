@@ -177,21 +177,42 @@ void TZX::get_standard_speed_data_block() {
 }
 
 void TZX::get_turbo_speed_data_block() {
-	__unused uint16_t length_of_pilot_pulse = fgetc16le();
-	__unused uint16_t length_of_sync_first_pulse = fgetc16le();
-	__unused uint16_t length_of_sync_second_pulse = fgetc16le();
-	__unused uint16_t length_of_zero_bit_pulse = fgetc16le();
-	__unused uint16_t length_of_one_bit_pulse = fgetc16le();
-	__unused uint16_t length_of_pilot_tone = fgetc16le();
-	__unused uint8_t number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
-	__unused uint16_t pause_after_block = fgetc16le();
+	uint16_t length_of_pilot_pulse = fgetc16le();
+	uint16_t length_of_sync_first_pulse = fgetc16le();
+	uint16_t length_of_sync_second_pulse = fgetc16le();
+	uint16_t length_of_zero_bit_pulse = fgetc16le();
+	uint16_t length_of_one_bit_pulse = fgetc16le();
+	uint16_t length_of_pilot_tone = fgetc16le();
+	uint8_t number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	uint16_t pause_after_block = fgetc16le();
 	long data_length = fgetc16le();
 	data_length |= (long)(fgetc(file_) << 16);
 
-	printf("Skipping %lu bytes of turbo speed data\n", data_length);
+	// Output pilot tone.
+	while(length_of_pilot_tone--) {
+		post_pulse(length_of_pilot_pulse);
+	}
 
-	// TODO output as described
-	fseek(file_, data_length, SEEK_CUR);
+	// Output sync pulses.
+	post_pulse(length_of_sync_first_pulse);
+	post_pulse(length_of_sync_second_pulse);
+
+	// Output data.
+	while(data_length--) {
+		uint8_t next_byte = (uint8_t)fgetc(file_);
+
+		int c = data_length ? 8 : number_of_bits_in_final_byte;
+		while(c--) {
+			uint16_t pulse_length = (next_byte & 0x80) ? length_of_one_bit_pulse : length_of_zero_bit_pulse;
+			next_byte <<= 1;
+
+			post_pulse(pulse_length);
+			post_pulse(pulse_length);
+		}
+	}
+
+	// Output gap.
+	post_gap(pause_after_block);
 }
 
 void TZX::get_pure_tone_data_block() {
