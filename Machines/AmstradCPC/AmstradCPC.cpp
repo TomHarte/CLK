@@ -266,7 +266,6 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				case 1:	printf("Vsync, etc: %02x\n", value);	break;
 				case 2: {
 					// TODO: the AY really should allow port communications to be active. Work needed.
-//					printf("%d\n", value & 15);
 					int key_row = value & 15;
 					if(key_row < 10) {
 						ay_->set_port_input(false, key_state_.rows[key_row]);
@@ -287,9 +286,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
-				case 0:
-					return ay_->get_data_output();
-				break;
+				case 0: return ay_->get_data_output();
 				case 1:	printf("[In] Vsync, etc\n");	break;
 				case 2:	printf("[In] Key row, etc\n");	break;
 			}
@@ -378,6 +375,8 @@ class ConcreteMachine:
 					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
+					*cycle.value = 0xff;
+
 					// Check for a CRTC access
 					if(!(address & 0x4000)) {
 						switch((address >> 8) & 3) {
@@ -391,8 +390,6 @@ class ConcreteMachine:
 					if(!(address & 0x800)) {
 						*cycle.value = i8255_.get_register((address >> 8) & 3);
 					}
-
-					*cycle.value = 0xff;
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Interrupt:
@@ -456,8 +453,7 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) {
-//			if(isPressed) key_state_.rows[key >> 4] &= ~(key&7); else key_state_.rows[key >> 4] |= (key&7);
-key_state_.rows[key >> 4] &= ~(key&7);
+			if(isPressed) key_state_.rows[key >> 4] &= ~(key&7); else key_state_.rows[key >> 4] |= (key&7);
 		}
 
 		void clear_all_keys() {
