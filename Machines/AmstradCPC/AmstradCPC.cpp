@@ -161,7 +161,7 @@ class CRTCBusHandler {
 				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 				"{"
 					"uint sample = texture(texID, coordinate).r;"
-					"return vec3(float(sample & 3u), float((sample >> 2) & 3u), float((sample >> 4) & 3u)) / 3.0;"
+					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 				"}");
 				// TODO: better vectorise the above.
 		}
@@ -183,23 +183,15 @@ class CRTCBusHandler {
 		}
 
 		void select_pen(int pen) {
-			printf("Pen %d:\n", pen);
 			pen_ = pen;
 		}
 
 		void set_colour(uint8_t colour) {
-			printf("Colour %d\n", colour);
 			if(pen_ & 16) {
-				printf("border: %d -> %02x\n", colour, mapped_palette_value(colour));
 				border_ = mapped_palette_value(colour);
 				// TODO: should flush any border currently in progress
 			} else {
 				palette_[pen_] = mapped_palette_value(colour);
-
-//				for(int c = 0; c < 16; c++) {
-//					printf("%02x ", palette_[c]);
-//				}
-//				printf("\n");
 
 				// TODO: no need for a full regeneration, of every mode, every time
 				for(int c = 0; c < 256; c++) {
@@ -235,10 +227,19 @@ class CRTCBusHandler {
 
 	private:
 		uint8_t mapped_palette_value(uint8_t colour) {
-			uint8_t r = (colour / 3) % 3;
-			uint8_t g = (colour / 9) % 3;
-			uint8_t b = colour % 3;
-			return (uint8_t)(r | (g << 2) | (b << 4));
+#define COL(r, g, b) (r << 4) | (g << 2) | b
+			static const uint8_t mapping[32] = {
+				COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
+				COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
+				COL(2, 0, 1),	COL(2, 2, 1),	COL(2, 2, 0),	COL(2, 2, 2),
+				COL(2, 0, 0),	COL(2, 0, 2),	COL(2, 1, 0),	COL(2, 1, 1),
+				COL(0, 0, 1),	COL(0, 2, 1),	COL(0, 2, 0),	COL(0, 2, 2),
+				COL(0, 0, 0),	COL(0, 0, 2),	COL(0, 1, 0),	COL(0, 1, 2),
+				COL(1, 0, 1),	COL(1, 2, 1),	COL(1, 2, 0),	COL(1, 2, 2),
+				COL(1, 0, 0),	COL(1, 0, 2),	COL(1, 1, 0),	COL(1, 1, 2),
+			};
+#undef COL
+			return mapping[colour];
 		}
 
 		unsigned int cycles_;
