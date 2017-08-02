@@ -56,12 +56,14 @@ void TZX::get_next_pulses() {
 			return;
 		}
 
+//		printf("TZX %ld\n", ftell(file_));
 		switch(chunk_id) {
 			case 0x10:	get_standard_speed_data_block();	break;
 			case 0x11:	get_turbo_speed_data_block();		break;
 			case 0x12:	get_pure_tone_data_block();			break;
 			case 0x13:	get_pulse_sequence();				break;
 			case 0x19:	get_generalised_data_block();		break;
+			case 0x20:	get_pause();						break;
 
 			case 0x30: {
 				// Text description. Ripe for ignoring.
@@ -183,7 +185,10 @@ void TZX::get_turbo_speed_data_block() {
 	__unused uint16_t length_of_pilot_tone = fgetc16le();
 	__unused uint8_t number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
 	__unused uint16_t pause_after_block = fgetc16le();
-	uint16_t data_length = fgetc16le();
+	long data_length = fgetc16le();
+	data_length |= (long)(fgetc(file_) << 16);
+
+	printf("Skipping %lu bytes of turbo speed data\n", data_length);
 
 	// TODO output as described
 	fseek(file_, data_length, SEEK_CUR);
@@ -200,6 +205,15 @@ void TZX::get_pulse_sequence() {
 	uint8_t number_of_pulses = (uint8_t)fgetc(file_);
 	while(number_of_pulses--) {
 		post_pulse(fgetc16le());
+	}
+}
+
+void TZX::get_pause() {
+	uint16_t duration = fgetc16le();
+	if(!duration) {
+		// TODO (maybe): post a 'pause the tape' suggestion
+	} else {
+		post_gap(duration);
 	}
 }
 

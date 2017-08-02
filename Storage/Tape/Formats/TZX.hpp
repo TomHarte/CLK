@@ -42,6 +42,7 @@ class TZX: public PulseQueuedTape, public Storage::FileHolder {
 		void get_pure_tone_data_block();
 		void get_pulse_sequence();
 		void get_generalised_data_block();
+		void get_pause();
 
 		void get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data);
 
