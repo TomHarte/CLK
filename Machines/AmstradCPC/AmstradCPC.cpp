@@ -178,13 +178,19 @@ class CRTCBusHandler {
 			next_mode_ = mode;
 		}
 
+		bool get_vsync() const {
+			return was_vsync_;
+		}
+
 		void select_pen(int pen) {
+			printf("Pen %d:\n", pen);
 			pen_ = pen;
 		}
 
 		void set_colour(uint8_t colour) {
+			printf("Colour %d\n", colour);
 			if(pen_ & 16) {
-//				printf("border: %d -> %02x\n", colour, mapped_palette_value(colour));
+				printf("border: %d -> %02x\n", colour, mapped_palette_value(colour));
 				border_ = mapped_palette_value(colour);
 				// TODO: should flush any border currently in progress
 			} else {
@@ -266,7 +272,8 @@ struct KeyboardState {
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
-		i8255PortHandler(const KeyboardState &key_state) : key_state_(key_state) {}
+		i8255PortHandler(const KeyboardState &key_state, const CRTCBusHandler &crtc_bus_handler) :
+			key_state_(key_state), crtc_bus_handler_(crtc_bus_handler) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -299,9 +306,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0: return ay_->get_data_output();
-				case 1:
-//					printf("[In] Vsync, etc\n");
-				break;
+				case 1:	return (crtc_bus_handler_.get_vsync() ? 1 : 0) | 0xfe;
 				case 2:
 //					printf("[In] Key row, etc\n");
 				break;
@@ -316,6 +321,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	private:
 		std::shared_ptr<GI::AY38910> ay_;
 		const KeyboardState &key_state_;
+		const CRTCBusHandler &crtc_bus_handler_;
 };
 
 class ConcreteMachine:
@@ -327,7 +333,7 @@ class ConcreteMachine:
 			crtc_(crtc_bus_handler_),
 			crtc_bus_handler_(ram_),
 			i8255_(i8255_port_handler_),
-			i8255_port_handler_(key_state_) {
+			i8255_port_handler_(key_state_, crtc_bus_handler_) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 		}
