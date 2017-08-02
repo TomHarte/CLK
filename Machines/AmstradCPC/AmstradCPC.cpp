@@ -93,9 +93,9 @@ class CRTCBusHandler {
 						break;
 
 						case 3:
-							((uint32_t *)pixel_pointer_)[0] = mode3_output_[ram_[address]];
-							((uint32_t *)pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
-							pixel_pointer_ += 8;
+							((uint16_t *)pixel_pointer_)[0] = mode3_output_[ram_[address]];
+							((uint16_t *)pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
+							pixel_pointer_ += 4;
 						break;
 
 					}
@@ -217,6 +217,11 @@ class CRTCBusHandler {
 					mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
 					mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
 					mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
+
+					// prepare mode 3
+					uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+					mode3_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
+					mode3_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
 				}
 			}
 		}
@@ -255,7 +260,7 @@ class CRTCBusHandler {
 		uint16_t mode0_output_[256];
 		uint32_t mode1_output_[256];
 		uint64_t mode2_output_[256];
-		uint32_t mode3_output_[256];
+		uint16_t mode3_output_[256];
 
 		int pen_;
 		uint8_t palette_[16];
