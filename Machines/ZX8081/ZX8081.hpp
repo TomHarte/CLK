@@ -32,7 +32,6 @@ enum Key: uint16_t {
 
 class Machine:
 	public CRTMachine::Machine,
-	public Utility::TypeRecipient,
 	public ConfigurationTarget::Machine {
 	public:
 		static Machine *ZX8081();
