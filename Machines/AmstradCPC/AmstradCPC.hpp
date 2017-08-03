@@ -11,6 +11,7 @@
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
 
 namespace AmstradCPC {
 
@@ -50,19 +51,14 @@ enum Key: uint16_t {
 */
 class Machine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine {
 	public:
 		/// Creates an returns an Amstrad CPC on the heap.
 		static Machine *AmstradCPC();
 
 		/// Sets the contents of rom @c type to @c data. Assumed to be a setup step; has no effect once a machine is running.
 		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;
-
-		/// Indicates that @c key is either pressed or released, according to @c is_pressed.
-		virtual void set_key_state(uint16_t key, bool is_pressed) = 0;
-
-		/// Indicates that all keys are now released.
-		virtual void clear_all_keys() = 0;
 };
 
 }

@@ -11,6 +11,7 @@
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -34,13 +35,12 @@ enum Key: uint16_t {
 
 class Machine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine {
 	public:
 		static Machine *ZX8081();
 
 		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;
-		virtual void set_key_state(uint16_t key, bool isPressed) = 0;
-		virtual void clear_all_keys() = 0;
 
 		virtual void set_use_fast_tape_hack(bool activate) = 0;
 		virtual void set_tape_is_playing(bool is_playing) = 0;
