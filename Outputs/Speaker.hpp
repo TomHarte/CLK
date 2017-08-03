@@ -87,6 +87,7 @@ class Speaker {
 			Ensures any deferred processing occurs now.
 		*/
 		void flush() {
+			if(!queued_functions_) return;
 			std::shared_ptr<std::list<std::function<void(void)>>> queued_functions = queued_functions_;
 			queued_functions_.reset();
 			_queue->enqueue([queued_functions] {

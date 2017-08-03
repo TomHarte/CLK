@@ -52,10 +52,11 @@ enum class ZX8081MemoryModel {
 */
 struct Target {
 	enum  {
+		AmstradCPC,
 		Atari2600,
 		Electron,
-		Vic20,
 		Oric,
+		Vic20,
 		ZX8081
 	} machine;
 	float probability;

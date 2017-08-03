@@ -244,7 +244,7 @@ void Machine::VIA::run_for(const Cycles cycles) {
 
 void Machine::VIA::update_ay() {
 	ay8910->run_for(cycles_since_ay_update_.flush());
-	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BCDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+	ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 }
 
 #pragma mark - TapePlayer

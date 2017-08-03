@@ -56,12 +56,14 @@ void TZX::get_next_pulses() {
 			return;
 		}
 
+//		printf("TZX %ld\n", ftell(file_));
 		switch(chunk_id) {
 			case 0x10:	get_standard_speed_data_block();	break;
 			case 0x11:	get_turbo_speed_data_block();		break;
 			case 0x12:	get_pure_tone_data_block();			break;
 			case 0x13:	get_pulse_sequence();				break;
 			case 0x19:	get_generalised_data_block();		break;
+			case 0x20:	get_pause();						break;
 
 			case 0x30: {
 				// Text description. Ripe for ignoring.
@@ -160,33 +162,67 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 }
 
 void TZX::get_standard_speed_data_block() {
-	__unused uint16_t pause_after_block = fgetc16le();
-	uint16_t data_length = fgetc16le();
-	if(!data_length) return;
+	DataBlock data_block;
+	data_block.length_of_pilot_pulse = 2168;
+	data_block.length_of_sync_first_pulse = 667;
+	data_block.length_of_sync_second_pulse = 735;
+	data_block.length_of_zero_bit_pulse = 855;
+	data_block.length_of_one_bit_pulse = 1710;
+	data_block.number_of_bits_in_final_byte = 8;
+
+	data_block.pause_after_block = fgetc16le();
+	data_block.data_length = fgetc16le();
+	if(!data_block.data_length) return;
 
 	uint8_t first_byte = (uint8_t)fgetc(file_);
-	__unused int pilot_tone_pulses = (first_byte < 128) ? 8063  : 3223;
+	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
 	ungetc(first_byte, file_);
 
-	// TODO: output pilot_tone_pulses pulses
-	// TODO: output data_length bytes, in the Spectrum encoding
-	fseek(file_, data_length, SEEK_CUR);
-	// TODO: output a pause of length paused_after_block ms
+	get_data_block(data_block);
 }
 
 void TZX::get_turbo_speed_data_block() {
-	__unused uint16_t length_of_pilot_pulse = fgetc16le();
-	__unused uint16_t length_of_sync_first_pulse = fgetc16le();
-	__unused uint16_t length_of_sync_second_pulse = fgetc16le();
-	__unused uint16_t length_of_zero_bit_pulse = fgetc16le();
-	__unused uint16_t length_of_one_bit_pulse = fgetc16le();
-	__unused uint16_t length_of_pilot_tone = fgetc16le();
-	__unused uint8_t number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
-	__unused uint16_t pause_after_block = fgetc16le();
-	uint16_t data_length = fgetc16le();
+	DataBlock data_block;
+	data_block.length_of_pilot_pulse = fgetc16le();
+	data_block.length_of_sync_first_pulse = fgetc16le();
+	data_block.length_of_sync_second_pulse = fgetc16le();
+	data_block.length_of_zero_bit_pulse = fgetc16le();
+	data_block.length_of_one_bit_pulse = fgetc16le();
+	data_block.length_of_pilot_tone = fgetc16le();
+	data_block.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	data_block.pause_after_block = fgetc16le();
+	data_block.data_length = fgetc16le();
+	data_block.data_length |= (long)(fgetc(file_) << 16);
 
-	// TODO output as described
-	fseek(file_, data_length, SEEK_CUR);
+	get_data_block(data_block);
+}
+
+void TZX::get_data_block(const DataBlock &data_block) {
+	// Output pilot tone.
+	for(unsigned int c = 0; c < data_block.length_of_pilot_tone; c++) {
+		post_pulse(data_block.length_of_pilot_pulse);
+	}
+
+	// Output sync pulses.
+	post_pulse(data_block.length_of_sync_first_pulse);
+	post_pulse(data_block.length_of_sync_second_pulse);
+
+	// Output data.
+	for(unsigned int c = 0; c < data_block.data_length; c++) {
+		uint8_t next_byte = (uint8_t)fgetc(file_);
+
+		unsigned int bits = (c != data_block.data_length-1) ? 8 : data_block.number_of_bits_in_final_byte;
+		while(bits--) {
+			unsigned int pulse_length = (next_byte & 0x80) ? data_block.length_of_one_bit_pulse : data_block.length_of_zero_bit_pulse;
+			next_byte <<= 1;
+
+			post_pulse(pulse_length);
+			post_pulse(pulse_length);
+		}
+	}
+
+	// Output gap.
+	post_gap(data_block.pause_after_block);
 }
 
 void TZX::get_pure_tone_data_block() {
@@ -200,6 +236,15 @@ void TZX::get_pulse_sequence() {
 	uint8_t number_of_pulses = (uint8_t)fgetc(file_);
 	while(number_of_pulses--) {
 		post_pulse(fgetc16le());
+	}
+}
+
+void TZX::get_pause() {
+	uint16_t duration = fgetc16le();
+	if(!duration) {
+		// TODO (maybe): post a 'pause the tape' suggestion
+	} else {
+		post_gap(duration);
 	}
 }
 

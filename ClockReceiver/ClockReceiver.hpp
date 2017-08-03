@@ -95,8 +95,16 @@ template <class T> class WrappedInt {
 			return *static_cast<T *>(this);
 		}
 
+		inline T &operator &=(const T &rhs) {
+			length_ &= rhs.length_;
+			return *static_cast<T *>(this);
+		}
+
 		inline T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
 		inline T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
+
+		inline T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
+		inline T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
 
 		inline T operator -() const						{	return T(- length_);				}
 
@@ -165,6 +173,17 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		inline Cycles flush_cycles() {
 			Cycles result(length_ >> 1);
 			length_ &= 1;
+			return result;
+		}
+
+		/*!
+			Severs from @c this the effect of dividing by @c divisor — @c this will end up with
+			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
+		*/
+		inline Cycles divide_cycles(const Cycles &divisor) {
+			HalfCycles half_divisor = HalfCycles(divisor);
+			Cycles result(length_ / half_divisor.length_);
+			length_ %= half_divisor.length_;
 			return result;
 		}
 };

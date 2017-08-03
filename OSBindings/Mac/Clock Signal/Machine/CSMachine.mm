@@ -43,8 +43,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (instancetype)init {
 	self = [super init];
-	if(self)
-	{
+	if(self) {
 		_machineDelegate.machine = self;
 		self.machine->set_delegate(&_machineDelegate);
 		_speakerDelegate.machine = self;

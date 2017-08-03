@@ -29,7 +29,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		enum ControlLines {
 			BC1		= (1 << 0),
 			BC2		= (1 << 1),
-			BCDIR	= (1 << 2)
+			BDIR	= (1 << 2)
 		};
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
@@ -38,7 +38,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		/// Gets the value that would appear on the data lines if only the AY is outputting.
 		uint8_t get_data_output();
 
-		/// Sets the
+		/// Sets the current control line state, as a bit field.
 		void set_control_lines(ControlLines control_lines);
 
 		/*!
@@ -46,6 +46,12 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
 		*/
 		uint8_t get_port_output(bool port_b);
+
+		/*!
+			Sets the value that would appear on the requested interface port if it were in output mode.
+			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
+		*/
+		void set_port_input(bool port_b, uint8_t value);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
 		void get_samples(unsigned int number_of_samples, int16_t *target);
@@ -88,6 +94,8 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		int16_t output_volume_;
 		inline void evaluate_output_volume();
+
+		inline void update_bus();
 };
 
 };
