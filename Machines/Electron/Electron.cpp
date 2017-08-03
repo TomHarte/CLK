@@ -8,6 +8,8 @@
 
 #include "Electron.hpp"
 
+#include "CharacterMapper.hpp"
+
 using namespace Electron;
 
 #pragma mark - Lifecycle
@@ -96,7 +98,8 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	}
 
 	if(target.loadingCommand.length()) {
-		set_typer_for_string(target.loadingCommand.c_str());
+		std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+		set_typer_for_string(target.loadingCommand.c_str(), std::move(mapper));
 	}
 
 	if(target.acorn.should_shift_restart) {
@@ -394,4 +397,14 @@ inline void Machine::evaluate_interrupts() {
 void Machine::tape_did_change_interrupt_status(Tape *tape) {
 	interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 	evaluate_interrupts();
+}
+
+#pragma mark - Typer timing
+
+HalfCycles Electron::Machine::get_typer_delay() {
+	return get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+}
+
+HalfCycles Electron::Machine::get_typer_frequency() {
+	return Cycles(625*128*2);	// accept a new character every two frames
 }

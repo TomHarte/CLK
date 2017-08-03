@@ -15,45 +15,90 @@
 
 namespace Utility {
 
+/*!
+	An interface that provides a mapping from logical characters to the sequence of keys
+	necessary to type that character on a given machine.
+*/
+class CharacterMapper {
+	public:
+		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
+		virtual uint16_t *sequence_for_character(char character) = 0;
+
+		/// Terminates a key sequence.
+		static const uint16_t EndSequence = 0xffff;
+
+		/*!
+			If returned as the first entry in a key sequence, indicates that the requested character
+			cannot be mapped.
+		*/
+		static const uint16_t NotMapped = 0xfffe;
+
+	protected:
+		typedef uint16_t KeySequence[16];
+
+		/*!
+			Provided in the base class as a convenience: given the lookup table of key sequences @c sequences,
+			with @c length entries, returns the sequence for character @c character if it exists; otherwise
+			returns @c nullptr.
+		*/
+		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character);
+};
+
+/*!
+	Provides a stateful mechanism for typing a sequence of characters. Each character is mapped to a key sequence
+	by a character mapper. That key sequence is then replayed to a delegate.
+
+	Being given a delay and frequency at construction, the run_for interface can be used to produce time-based
+	typing. Alternatively, an owner may decline to use run_for and simply call type_next_character each time a
+	fresh key transition is ready to be consumed.
+*/
 class Typer {
 	public:
 		class Delegate: public KeyboardMachine::Machine {
 			public:
-				virtual bool typer_set_next_character(Typer *typer, char character, int phase);
 				virtual void typer_reset(Typer *typer) = 0;
-
-				virtual uint16_t *sequence_for_character(Typer *typer, char character);
-
-				typedef uint16_t KeySequence[16];
-				uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character);
-
-				const uint16_t EndSequence = 0xffff;
-				const uint16_t NotMapped = 0xfffe;
 		};
 
-		Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegate *delegate);
+		Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
 		~Typer();
+
 		void run_for(const HalfCycles duration);
 		bool type_next_character();
+
+		bool is_completed();
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text
 		const char EndString = 0x03;	// i.e. ASCII end of text
 
 	private:
 		char *string_;
+		size_t string_pointer_;
+
 		HalfCycles frequency_;
 		HalfCycles counter_;
 		int phase_;
+
 		Delegate *delegate_;
-		size_t string_pointer_;
+		std::unique_ptr<CharacterMapper> character_mapper_;
+
+		bool try_type_next_character();
 };
 
+/*!
+	Provides a default base class for type recipients: classes that want to attach a single typer at a time and
+	which may or may not want to nominate an initial delay and typing frequency.
+*/
 class TypeRecipient: public Typer::Delegate {
 	public:
-		void set_typer_for_string(const char *string) {
-			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), this));
+		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
+		void set_typer_for_string(const char *string, std::unique_ptr<CharacterMapper> character_mapper) {
+			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this));
 		}
 
+		/*!
+			Provided in order to conform to that part of the Typer::Delegate interface that goes above and
+			beyond KeyboardMachine::Machine; responds to the end of typing by clearing all keys.
+		*/
 		void typer_reset(Typer *typer) {
 			clear_all_keys();
 		}

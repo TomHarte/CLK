@@ -11,8 +11,13 @@
 
 using namespace Utility;
 
-Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, Delegate *delegate) :
-		counter_(-delay), frequency_(frequency), string_pointer_(0), delegate_(delegate), phase_(0) {
+Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
+		counter_(-delay),
+		frequency_(frequency),
+		string_pointer_(0),
+		delegate_(delegate),
+		phase_(0),
+		character_mapper_(std::move(character_mapper)) {
 	size_t string_size = strlen(string) + 3;
 	string_ = (char *)malloc(string_size);
 	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
@@ -36,10 +41,26 @@ void Typer::run_for(const HalfCycles duration) {
 	}
 }
 
+bool Typer::try_type_next_character() {
+	uint16_t *sequence = character_mapper_->sequence_for_character(string_[string_pointer_]);
+
+	if(!sequence || sequence[0] == CharacterMapper::NotMapped) {
+		return false;
+	}
+
+	if(!phase_) delegate_->clear_all_keys();
+	else {
+		delegate_->set_key_state(sequence[phase_ - 1], true);
+		return sequence[phase_] == CharacterMapper::EndSequence;
+	}
+
+	return true;
+}
+
 bool Typer::type_next_character() {
 	if(string_ == nullptr) return false;
 
-	if(delegate_->typer_set_next_character(this, string_[string_pointer_], phase_)) {
+	if(!try_type_next_character()) {
 		phase_ = 0;
 		if(!string_[string_pointer_]) {
 			free(string_);
@@ -59,26 +80,9 @@ Typer::~Typer() {
 	free(string_);
 }
 
-#pragma mark - Delegate
+#pragma mark - Character mapper
 
-bool Typer::Delegate::typer_set_next_character(Utility::Typer *typer, char character, int phase) {
-	uint16_t *sequence = sequence_for_character(typer, character);
-	if(!sequence) return true;
-
-	if(!phase) clear_all_keys();
-	else {
-		set_key_state(sequence[phase - 1], true);
-		return sequence[phase] == Typer::Delegate::EndSequence;
-	}
-
-	return false;
-}
-
-uint16_t *Typer::Delegate::sequence_for_character(Typer *typer, char character) {
-	return nullptr;
-}
-
-uint16_t *Typer::Delegate::table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character) {
+uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character) {
 	size_t ucharacter = (size_t)((unsigned char)character);
 	if(ucharacter > (length / sizeof(KeySequence))) return nullptr;
 	if(sequences[ucharacter][0] == NotMapped) return nullptr;

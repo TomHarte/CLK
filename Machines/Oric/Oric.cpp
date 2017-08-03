@@ -7,7 +7,11 @@
 //
 
 #include "Oric.hpp"
+
+#include "CharacterMapper.hpp"
 #include "../MemoryFuzzer.hpp"
+
+#include <memory>
 
 using namespace Oric;
 
@@ -32,8 +36,9 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		via_.tape->set_tape(target.tapes.front());
 	}
 
-	if(target.loadingCommand.length()) {	// TODO: and automatic loading option enabled
-		set_typer_for_string(target.loadingCommand.c_str());
+	if(target.loadingCommand.length()) {
+		std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
+		set_typer_for_string(target.loadingCommand.c_str(), std::move(mapper));
 	}
 
 	if(target.oric.has_microdisc) {
