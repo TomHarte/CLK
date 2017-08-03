@@ -94,7 +94,7 @@ class Machine:
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player);
 
 		// for Utility::TypeRecipient::Delegate
-		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
+		void set_typer_for_string(const char *string);
 
 		// for Microdisc::Delegate
 		void microdisc_did_change_paging_flags(class Microdisc *microdisc);

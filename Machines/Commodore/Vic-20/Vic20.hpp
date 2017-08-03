@@ -181,6 +181,7 @@ class Machine:
 
 		// for Utility::TypeRecipient
 		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
+		void set_typer_for_string(const char *string);
 
 		// for Tape::Delegate
 		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);

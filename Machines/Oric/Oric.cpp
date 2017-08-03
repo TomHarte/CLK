@@ -7,7 +7,11 @@
 //
 
 #include "Oric.hpp"
+
+#include "CharacterMapper.hpp"
 #include "../MemoryFuzzer.hpp"
+
+#include <memory>
 
 using namespace Oric;
 
@@ -32,7 +36,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		via_.tape->set_tape(target.tapes.front());
 	}
 
-	if(target.loadingCommand.length()) {	// TODO: and automatic loading option enabled
+	if(target.loadingCommand.length()) {
 		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
@@ -63,6 +67,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		scan_keyboard_address_ = 0xf43c;
 		tape_speed_address_ = 0x67;
 	}
+}
+
+void Machine::set_typer_for_string(const char *string) {
+	std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
+	Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 }
 
 void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data) {

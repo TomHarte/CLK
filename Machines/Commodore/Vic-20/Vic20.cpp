@@ -12,6 +12,7 @@
 #include "../../../Storage/Tape/Formats/TapePRG.hpp"
 #include "../../../Storage/Tape/Parsers/Commodore.hpp"
 #include "../../../StaticAnalyser/StaticAnalyser.hpp"
+#include "CharacterMapper.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -304,6 +305,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			set_memory_size(ThirtyTwoKB);
 		break;
 	}
+}
+
+void Machine::set_typer_for_string(const char *string) {
+	std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+	Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
