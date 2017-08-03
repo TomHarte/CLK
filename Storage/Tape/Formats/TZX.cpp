@@ -62,14 +62,22 @@ void TZX::get_next_pulses() {
 			case 0x11:	get_turbo_speed_data_block();		break;
 			case 0x12:	get_pure_tone_data_block();			break;
 			case 0x13:	get_pulse_sequence();				break;
+			case 0x14:	get_pure_data_block();				break;
 			case 0x19:	get_generalised_data_block();		break;
 			case 0x20:	get_pause();						break;
 
-			case 0x30: {
-				// Text description. Ripe for ignoring.
-				int length = fgetc(file_);
-				fseek(file_, length, SEEK_CUR);
-			} break;
+			case 0x21:	ignore_group_start();				break;
+			case 0x22:	ignore_group_end();					break;
+			case 0x23:	ignore_jump_to_block();				break;
+			case 0x24:	ignore_loop_start();				break;
+			case 0x25:	ignore_loop_end();					break;
+			case 0x26:	ignore_call_sequence();				break;
+			case 0x27:	ignore_return_from_sequence();		break;
+			case 0x28:	ignore_select_block();				break;
+
+			case 0x30:	ignore_text_description();			break;
+			case 0x31:	ignore_message_block();				break;
+			case 0x33:	get_hardware_type();				break;
 
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
@@ -166,13 +174,13 @@ void TZX::get_standard_speed_data_block() {
 	data_block.length_of_pilot_pulse = 2168;
 	data_block.length_of_sync_first_pulse = 667;
 	data_block.length_of_sync_second_pulse = 735;
-	data_block.length_of_zero_bit_pulse = 855;
-	data_block.length_of_one_bit_pulse = 1710;
-	data_block.number_of_bits_in_final_byte = 8;
+	data_block.data.length_of_zero_bit_pulse = 855;
+	data_block.data.length_of_one_bit_pulse = 1710;
+	data_block.data.number_of_bits_in_final_byte = 8;
 
-	data_block.pause_after_block = fgetc16le();
-	data_block.data_length = fgetc16le();
-	if(!data_block.data_length) return;
+	data_block.data.pause_after_block = fgetc16le();
+	data_block.data.data_length = fgetc16le();
+	if(!data_block.data.data_length) return;
 
 	uint8_t first_byte = (uint8_t)fgetc(file_);
 	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
@@ -186,13 +194,13 @@ void TZX::get_turbo_speed_data_block() {
 	data_block.length_of_pilot_pulse = fgetc16le();
 	data_block.length_of_sync_first_pulse = fgetc16le();
 	data_block.length_of_sync_second_pulse = fgetc16le();
-	data_block.length_of_zero_bit_pulse = fgetc16le();
-	data_block.length_of_one_bit_pulse = fgetc16le();
+	data_block.data.length_of_zero_bit_pulse = fgetc16le();
+	data_block.data.length_of_one_bit_pulse = fgetc16le();
 	data_block.length_of_pilot_tone = fgetc16le();
-	data_block.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
-	data_block.pause_after_block = fgetc16le();
-	data_block.data_length = fgetc16le();
-	data_block.data_length |= (long)(fgetc(file_) << 16);
+	data_block.data.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	data_block.data.pause_after_block = fgetc16le();
+	data_block.data.data_length = fgetc16le();
+	data_block.data.data_length |= (long)(fgetc(file_) << 16);
 
 	get_data_block(data_block);
 }
@@ -207,13 +215,17 @@ void TZX::get_data_block(const DataBlock &data_block) {
 	post_pulse(data_block.length_of_sync_first_pulse);
 	post_pulse(data_block.length_of_sync_second_pulse);
 
+	get_data(data_block.data);
+}
+
+void TZX::get_data(const Data &data) {
 	// Output data.
-	for(unsigned int c = 0; c < data_block.data_length; c++) {
+	for(unsigned int c = 0; c < data.data_length; c++) {
 		uint8_t next_byte = (uint8_t)fgetc(file_);
 
-		unsigned int bits = (c != data_block.data_length-1) ? 8 : data_block.number_of_bits_in_final_byte;
+		unsigned int bits = (c != data.data_length-1) ? 8 : data.number_of_bits_in_final_byte;
 		while(bits--) {
-			unsigned int pulse_length = (next_byte & 0x80) ? data_block.length_of_one_bit_pulse : data_block.length_of_zero_bit_pulse;
+			unsigned int pulse_length = (next_byte & 0x80) ? data.length_of_one_bit_pulse : data.length_of_zero_bit_pulse;
 			next_byte <<= 1;
 
 			post_pulse(pulse_length);
@@ -222,14 +234,26 @@ void TZX::get_data_block(const DataBlock &data_block) {
 	}
 
 	// Output gap.
-	post_gap(data_block.pause_after_block);
+	post_gap(data.pause_after_block);
 }
 
 void TZX::get_pure_tone_data_block() {
-	__unused uint16_t length_of_pulse = fgetc16le();
-	__unused uint16_t nunber_of_pulses = fgetc16le();
+	uint16_t length_of_pulse = fgetc16le();
+	uint16_t nunber_of_pulses = fgetc16le();
 
 	while(nunber_of_pulses--) post_pulse(length_of_pulse);
+}
+
+void TZX::get_pure_data_block() {
+	Data data;
+	data.length_of_zero_bit_pulse = fgetc16le();
+	data.length_of_one_bit_pulse = fgetc16le();
+	data.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	data.pause_after_block = fgetc16le();
+	data.data_length = fgetc16le();
+	data.data_length |= (long)(fgetc(file_) << 16);
+
+	get_data(data);
 }
 
 void TZX::get_pulse_sequence() {
@@ -267,4 +291,66 @@ void TZX::post_gap(unsigned int milliseconds) {
 void TZX::post_pulse(const Storage::Time &time) {
 	emplace_back(current_level_ ? Tape::Pulse::High : Tape::Pulse::Low, time);
 	current_level_ ^= true;
+}
+
+#pragma mark - Flow control; currently ignored
+
+void TZX::ignore_group_start() {
+	printf("Ignoring TZX group\n");
+	uint8_t length = (uint8_t)fgetc(file_);
+	fseek(file_, length, SEEK_CUR);
+}
+
+void TZX::ignore_group_end() {
+}
+
+void TZX::ignore_jump_to_block() {
+	__unused uint16_t target = fgetc16le();
+	printf("Ignoring TZX jump\n");
+}
+
+void TZX::ignore_loop_start() {
+	__unused uint16_t number_of_repetitions = fgetc16le();
+	printf("Ignoring TZX loop\n");
+}
+
+void TZX::ignore_loop_end() {
+}
+
+void TZX::ignore_call_sequence() {
+	__unused uint16_t number_of_entries = fgetc16le();
+	fseek(file_, number_of_entries * sizeof(uint16_t), SEEK_CUR);
+	printf("Ignoring TZX call sequence\n");
+}
+
+void TZX::ignore_return_from_sequence() {
+	printf("Ignoring TZX return from sequence\n");
+}
+
+void TZX::ignore_select_block() {
+	__unused uint16_t length_of_block = fgetc16le();
+	fseek(file_, length_of_block, SEEK_CUR);
+	printf("Ignoring TZX select block\n");
+}
+
+#pragma mark - Messaging
+
+void TZX::ignore_text_description() {
+	uint8_t length = (uint8_t)fgetc(file_);
+	fseek(file_, length, SEEK_CUR);
+	printf("Ignoring TZX text description\n");
+}
+
+void TZX::ignore_message_block() {
+	__unused uint8_t time_for_display = (uint8_t)fgetc(file_);
+	uint8_t length = (uint8_t)fgetc(file_);
+	fseek(file_, length, SEEK_CUR);
+	printf("Ignoring TZX message\n");
+}
+
+void TZX::get_hardware_type() {
+	// TODO: pick a way to retain and communicate this.
+	uint8_t number_of_machines = (uint8_t)fgetc(file_);
+	fseek(file_, number_of_machines * 3, SEEK_CUR);
+	printf("Ignoring TZX hardware types (%d)\n", number_of_machines);
 }
