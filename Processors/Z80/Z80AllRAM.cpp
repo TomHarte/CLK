@@ -12,9 +12,9 @@
 using namespace CPU::Z80;
 namespace {
 
-class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<ConcreteAllRAMProcessor> {
+class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
-		ConcreteAllRAMProcessor() : AllRAMProcessor() {}
+		ConcreteAllRAMProcessor() : AllRAMProcessor(), z80_(*this) {}
 
 		inline HalfCycles perform_machine_cycle(const PartialMachineCycle &cycle) {
 			timestamp_ += cycle.length;
@@ -64,36 +64,39 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		}
 
 		void run_for(const Cycles cycles) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::run_for(cycles);
+			z80_.run_for(cycles);
 		}
 
 		uint16_t get_value_of_register(Register r) {
-			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::get_value_of_register(r);
+			return z80_.get_value_of_register(r);
 		}
 
 		void set_value_of_register(Register r, uint16_t value) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_value_of_register(r, value);
+			z80_.set_value_of_register(r, value);
 		}
 
 		bool get_halt_line() {
-			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::get_halt_line();
+			return z80_.get_halt_line();
 		}
 
 		void reset_power_on() {
-			return CPU::Z80::Processor<ConcreteAllRAMProcessor>::reset_power_on();
+			return z80_.reset_power_on();
 		}
 
 		void set_interrupt_line(bool value) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_interrupt_line(value);
+			z80_.set_interrupt_line(value);
 		}
 
 		void set_non_maskable_interrupt_line(bool value) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_non_maskable_interrupt_line(value);
+			z80_.set_non_maskable_interrupt_line(value);
 		}
 
 		void set_wait_line(bool value) {
-			CPU::Z80::Processor<ConcreteAllRAMProcessor>::set_wait_line(value);
+			z80_.set_wait_line(value);
 		}
+
+	private:
+		CPU::Z80::Processor<ConcreteAllRAMProcessor> z80_;
 };
 
 }

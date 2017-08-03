@@ -16,7 +16,7 @@
 
 #include "../../Storage/Tape/Tape.hpp"
 
-using namespace AmstradCPC;
+namespace AmstradCPC {
 
 /*!
 	Models the CPC's interrupt timer. Inputs are vsync, hsync, interrupt acknowledge and reset, and its output
@@ -478,10 +478,11 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
 class ConcreteMachine:
-	public CPU::Z80::Processor<ConcreteMachine>,
+	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
 		ConcreteMachine() :
+			z80_(*this),
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
 			crtc_(crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
@@ -496,7 +497,7 @@ class ConcreteMachine:
 		inline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			// Amstrad CPC timing scheme: assert WAIT for three out of four cycles
 			clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
-			set_wait_line(clock_offset_ >= HalfCycles(2));
+			z80_.set_wait_line(clock_offset_ >= HalfCycles(2));
 
 			// Update the CRTC once every eight half cycles; aiming for half-cycle 4 as
 			// per the initial seed to the crtc_counter_, but any time in the final four
@@ -505,7 +506,7 @@ class ConcreteMachine:
 			crtc_counter_ += cycle.length;
 			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
 			if(crtc_cycles) crtc_.run_for(Cycles(1));
-			set_interrupt_line(interrupt_timer_.get_request());
+			z80_.set_interrupt_line(interrupt_timer_.get_request());
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
@@ -629,7 +630,7 @@ class ConcreteMachine:
 
 		/// Wires virtual-dispatched CRTMachine run_for requests to the static Z80 method.
 		void run_for(const Cycles cycles) {
-			CPU::Z80::Processor<ConcreteMachine>::run_for(cycles);
+			z80_.run_for(cycles);
 		}
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
@@ -674,6 +675,8 @@ class ConcreteMachine:
 		}
 
 	private:
+		CPU::Z80::Processor<ConcreteMachine> z80_;
+
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
 
@@ -697,7 +700,11 @@ class ConcreteMachine:
 		KeyboardState key_state_;
 };
 
+}
+
+using namespace AmstradCPC;
+
 // See header; constructs and returns an instance of the Amstrad CPC.
 Machine *Machine::AmstradCPC() {
-	return new ConcreteMachine;
+	return new AmstradCPC::ConcreteMachine;
 }

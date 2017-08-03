@@ -960,6 +960,7 @@
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
 		4BC3B7511CD1956900F86E85 /* OutputShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OutputShader.hpp; sourceTree = "<group>"; };
+		4BC542621F32B985001FF613 /* Typer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Typer.hpp; path = ZX8081/Typer.hpp; sourceTree = "<group>"; };
 		4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Commodore/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BC5E4911D7ED365008CF980 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Commodore/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
@@ -1131,11 +1132,12 @@
 		4B1497931EE4B5AC00CE2596 /* ZX8081 */ = {
 			isa = PBXGroup;
 			children = (
-				4B1497901EE4B5A800CE2596 /* ZX8081.cpp */,
-				4B1497911EE4B5A800CE2596 /* ZX8081.hpp */,
-				4BD3A3091EE755C800B5B501 /* Video.cpp */,
-				4BD3A30A1EE755C800B5B501 /* Video.hpp */,
 				4B6A84BB1F130DA6001F28C9 /* Typer.cpp */,
+				4BD3A3091EE755C800B5B501 /* Video.cpp */,
+				4B1497901EE4B5A800CE2596 /* ZX8081.cpp */,
+				4BC542621F32B985001FF613 /* Typer.hpp */,
+				4BD3A30A1EE755C800B5B501 /* Video.hpp */,
+				4B1497911EE4B5A800CE2596 /* ZX8081.hpp */,
 			);
 			name = ZX8081;
 			sourceTree = "<group>";
