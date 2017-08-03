@@ -12,6 +12,9 @@
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 
+#include <cstdint>
+#include <vector>
+
 namespace ZX8081 {
 
 enum ROMType: uint8_t {

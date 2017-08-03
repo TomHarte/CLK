@@ -17,9 +17,6 @@
 
 #include "Video.hpp"
 
-#include <cstdint>
-#include <vector>
-
 namespace {
 	// The clock rate is 3.25Mhz.
 	const unsigned int ZX8081ClockRate = 3250000;
