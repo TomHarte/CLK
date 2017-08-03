@@ -13,15 +13,6 @@
 #include "../CRTMachine.hpp"
 #include "../Typer.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Tape/Parsers/ZX8081.hpp"
-
-#include "Video.hpp"
-
-#include <cstdint>
-#include <vector>
-
 namespace ZX8081 {
 
 enum ROMType: uint8_t {
@@ -40,81 +31,19 @@ enum Key: uint16_t {
 };
 
 class Machine:
-	public CPU::Z80::Processor<Machine>,
 	public CRTMachine::Machine,
 	public Utility::TypeRecipient,
 	public ConfigurationTarget::Machine {
 	public:
-		Machine();
+		static Machine *ZX8081();
 
-		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle);
-		void flush();
+		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;
+		virtual void set_key_state(uint16_t key, bool isPressed) = 0;
+		virtual void clear_all_keys() = 0;
 
-		void setup_output(float aspect_ratio);
-		void close_output();
-
-		std::shared_ptr<Outputs::CRT::CRT> get_crt();
-		std::shared_ptr<Outputs::Speaker> get_speaker();
-
-		void run_for(const Cycles cycles);
-
-		void configure_as_target(const StaticAnalyser::Target &target);
-
-		void set_rom(ROMType type, std::vector<uint8_t> data);
-		void set_key_state(uint16_t key, bool isPressed);
-		void clear_all_keys();
-
-		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
-		inline void set_use_automatic_tape_motor_control(bool enabled) {
-			use_automatic_tape_motor_control_ = enabled;
-			if(!enabled) {
-				tape_player_.set_motor_control(false);
-			}
-		}
-		inline void set_tape_is_playing(bool is_playing) { tape_player_.set_motor_control(is_playing); }
-
-		// for Utility::TypeRecipient::Delegate
-		uint16_t *sequence_for_character(Utility::Typer *typer, char character);
-		HalfCycles get_typer_delay() { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() { return Cycles(390000); }
-
-	private:
-		std::shared_ptr<Video> video_;
-		std::vector<uint8_t> zx81_rom_, zx80_rom_;
-
-		uint16_t tape_trap_address_, tape_return_address_;
-		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
-
-		std::vector<uint8_t> ram_;
-		uint16_t ram_mask_, ram_base_;
-
-		std::vector<uint8_t> rom_;
-		uint16_t rom_mask_;
-
-		bool vsync_, hsync_;
-		int line_counter_;
-
-		uint8_t key_states_[8];
-
-		void set_vsync(bool sync);
-		void set_hsync(bool sync);
-		void update_sync();
-
-		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
-		Storage::Tape::ZX8081::Parser parser_;
-
-		bool is_zx81_;
-		bool nmi_is_enabled_;
-
-		HalfCycles vsync_start_, vsync_end_;
-		HalfCycles horizontal_counter_;
-
-		uint8_t latched_video_byte_;
-		bool has_latched_video_byte_;
-
-		bool use_fast_tape_hack_;
-		bool use_automatic_tape_motor_control_;
-		HalfCycles tape_advance_delay_;
+		virtual void set_use_fast_tape_hack(bool activate) = 0;
+		virtual void set_tape_is_playing(bool is_playing) = 0;
+		virtual void set_use_automatic_tape_motor_control(bool enabled) = 0;
 };
 
 }
