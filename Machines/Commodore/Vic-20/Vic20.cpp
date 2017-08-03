@@ -291,8 +291,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	}
 
 	if(target.loadingCommand.length()) {
-		std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-		set_typer_for_string(target.loadingCommand.c_str(), std::move(mapper));
+		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
 	switch(target.vic20.memory_model) {
@@ -306,6 +305,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 			set_memory_size(ThirtyTwoKB);
 		break;
 	}
+}
+
+void Machine::set_typer_for_string(const char *string) {
+	std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+	Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 }
 
 void Machine::tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {

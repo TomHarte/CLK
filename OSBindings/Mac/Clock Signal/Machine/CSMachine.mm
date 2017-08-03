@@ -131,9 +131,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 }
 
 - (void)paste:(NSString *)paste {
-//	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(self.machine);
-//	if(typeRecipient)
-//		typeRecipient->set_typer_for_string([paste UTF8String]);
+	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(self.machine);
+	if(typeRecipient)
+		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
 
 - (void)applyTarget:(StaticAnalyser::Target)target {

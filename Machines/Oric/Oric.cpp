@@ -37,8 +37,7 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	}
 
 	if(target.loadingCommand.length()) {
-		std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
-		set_typer_for_string(target.loadingCommand.c_str(), std::move(mapper));
+		set_typer_for_string(target.loadingCommand.c_str());
 	}
 
 	if(target.oric.has_microdisc) {
@@ -68,6 +67,11 @@ void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 		scan_keyboard_address_ = 0xf43c;
 		tape_speed_address_ = 0x67;
 	}
+}
+
+void Machine::set_typer_for_string(const char *string) {
+	std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
+	Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 }
 
 void Machine::set_rom(ROM rom, const std::vector<uint8_t> &data) {

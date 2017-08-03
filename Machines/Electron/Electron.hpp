@@ -103,6 +103,7 @@ class Machine:
 		// for Utility::TypeRecipient
 		virtual HalfCycles get_typer_delay();
 		virtual HalfCycles get_typer_frequency();
+		virtual void set_typer_for_string(const char *string);
 
 	private:
 		inline void update_display();

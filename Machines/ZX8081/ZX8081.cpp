@@ -273,9 +273,13 @@ class ConcreteMachine:
 			}
 
 			if(target.loadingCommand.length()) {
-				std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81_));
-				set_typer_for_string(target.loadingCommand.c_str(), std::move(mapper));
+				set_typer_for_string(target.loadingCommand.c_str());
 			}
+		}
+
+		void set_typer_for_string(const char *string) {
+			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81_));
+			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
