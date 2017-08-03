@@ -108,6 +108,14 @@ struct PartialMachineCycle {
 	}
 };
 
+class BusHandler {
+	public:
+		void flush() {}
+		HalfCycles perform_machine_cycle(const PartialMachineCycle &cycle) {
+			return HalfCycles(0);
+		}
+};
+
 // Elemental bus operations
 #define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, HalfCycles(3), &pc_.full, &operation_, false}
 #define ReadOpcodeWait(f)			{PartialMachineCycle::ReadOpcodeWait, HalfCycles(2), &pc_.full, &operation_, f}
@@ -174,6 +182,8 @@ struct PartialMachineCycle {
 */
 template <class T> class Processor {
 	private:
+		T &bus_handler_;
+
 		uint8_t a_;
 		RegisterPair bc_, de_, hl_;
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
@@ -295,7 +305,6 @@ template <class T> class Processor {
 			PartialMachineCycle machine_cycle;
 		};
 		const MicroOp *scheduled_program_counter_;
-
 
 		struct InstructionPage {
 			std::vector<MicroOp *> instructions;
@@ -774,7 +783,7 @@ template <class T> class Processor {
 		}
 
 	public:
-		Processor() :
+		Processor(T &bus_handler) :
 			halt_mask_(0xff),
 			interrupt_mode_(0),
 			wait_line_(false),
@@ -784,7 +793,8 @@ template <class T> class Processor {
 			nmi_line_(false),
 			bus_request_line_(false),
 			pc_increment_(1),
-			scheduled_program_counter_(nullptr) {
+			scheduled_program_counter_(nullptr),
+			bus_handler_(bus_handler) {
 			set_flags(0xff);
 
 			MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, temp16_.bytes.high));
@@ -901,9 +911,9 @@ template <class T> class Processor {
 
 				while(bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
-					number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
+					number_of_cycles_ -= bus_handler_.perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
 					if(!number_of_cycles_) {
-						static_cast<T *>(this)->flush();
+						bus_handler_.flush();
 						return;
 					}
 				}
@@ -922,7 +932,7 @@ template <class T> class Processor {
 						case MicroOp::BusOperation:
 							if(number_of_cycles_ < operation->machine_cycle.length) {
 								scheduled_program_counter_--;
-								static_cast<T *>(this)->flush();
+								bus_handler_.flush();
 								return;
 							}
 							if(operation->machine_cycle.was_requested) {
@@ -934,7 +944,7 @@ template <class T> class Processor {
 							}
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
-							number_of_cycles_ -= static_cast<T *>(this)->perform_machine_cycle(operation->machine_cycle);
+							number_of_cycles_ -= bus_handler_.perform_machine_cycle(operation->machine_cycle);
 						break;
 						case MicroOp::MoveToNextProgram:
 							advance_operation();
