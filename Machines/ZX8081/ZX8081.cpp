@@ -13,6 +13,7 @@
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 #include "../MemoryFuzzer.hpp"
+#include "../Typer.hpp"
 
 #include "Video.hpp"
 
