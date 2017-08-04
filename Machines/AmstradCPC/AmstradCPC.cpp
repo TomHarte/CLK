@@ -147,7 +147,8 @@ class CRTCBusHandler {
 			interrupt_timer_(interrupt_timer),
 			pixel_divider_(1),
 			mode_(2),
-			next_mode_(2) {
+			next_mode_(2),
+			cycles_into_hsync_(0) {
 				build_mode_tables();
 			}
 
@@ -156,8 +157,19 @@ class CRTCBusHandler {
 			to produce based on the current palette and mode.
 		*/
 		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+			// The gate array waits 2µs to react to the CRTC's vsync signal, and then
+			// caps output at 4µs. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
+			// respectively.
+			if(state.hsync) {
+				cycles_into_hsync_++;
+			} else {
+				cycles_into_hsync_ = 0;
+			}
+
+			bool is_hsync = (cycles_into_hsync_ >= 2 && cycles_into_hsync_ < 6);
+
 			// Sync is taken to override pixels, and is combined as a simple OR.
-			bool is_sync = state.hsync || state.vsync;
+			bool is_sync = is_hsync || state.vsync;
 
 			// If a transition between sync/border/pixels just occurred, flush whatever was
 			// in progress to the CRT and reset counting.
@@ -238,7 +250,7 @@ class CRTCBusHandler {
 				}
 			}
 
-			// check for a trailing hsync; if one occurred then that's the trigger potentially to change
+			// check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change
 			// modes, and should also be sent on to the interrupt timer
 			if(was_hsync_ && !state.hsync) {
 				if(mode_ != next_mode_) {
@@ -377,7 +389,10 @@ class CRTCBusHandler {
 		}
 
 		unsigned int cycles_;
+
 		bool was_enabled_, was_sync_, was_hsync_, was_vsync_;
+		int cycles_into_hsync_;
+
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 		uint8_t *pixel_data_, *pixel_pointer_;
 
