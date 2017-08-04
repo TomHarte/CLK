@@ -171,9 +171,7 @@ class CRTCBusHandler {
 							pixel_pointer_ = pixel_data_ = nullptr;
 						}
 					} else {
-						uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
-						if(colour_pointer) *colour_pointer = border_;
-						crt_->output_level(cycles_ * 16);
+						output_border(cycles_);
 					}
 				}
 
@@ -309,8 +307,13 @@ class CRTCBusHandler {
 		/// Palette management: sets the colour of the selected pen.
 		void set_colour(uint8_t colour) {
 			if(pen_ & 16) {
+				// If border is[/was] currently being output, flush what should have been
+				// drawn in the old colour.
+				if(!was_sync_ && !was_enabled_) {
+					output_border(cycles_);
+					cycles_ = 0;
+				}
 				border_ = mapped_palette_value(colour);
-				// TODO: should flush any border currently in progress
 			} else {
 				palette_[pen_] = mapped_palette_value(colour);
 				// TODO: no need for a full regeneration, of every mode, every time
@@ -319,6 +322,12 @@ class CRTCBusHandler {
 		}
 
 	private:
+		void output_border(unsigned int length) {
+			uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+			if(colour_pointer) *colour_pointer = border_;
+			crt_->output_level(length * 16);
+		}
+
 		void build_mode_tables() {
 			for(int c = 0; c < 256; c++) {
 				// prepare mode 0
@@ -357,7 +366,7 @@ class CRTCBusHandler {
 				COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
 				COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
 				COL(2, 0, 1),	COL(2, 2, 1),	COL(2, 2, 0),	COL(2, 2, 2),
-				COL(2, 0, 0),	COL(2, 0, 2),	COL(2, 1, 0),	COL(2, 1, 1),
+				COL(2, 0, 0),	COL(2, 0, 2),	COL(2, 1, 0),	COL(2, 1, 2),
 				COL(0, 0, 1),	COL(0, 2, 1),	COL(0, 2, 0),	COL(0, 2, 2),
 				COL(0, 0, 0),	COL(0, 0, 2),	COL(0, 1, 0),	COL(0, 1, 2),
 				COL(1, 0, 1),	COL(1, 2, 1),	COL(1, 2, 0),	COL(1, 2, 2),
