@@ -30,9 +30,9 @@ class InterruptTimer {
 		InterruptTimer() : timer_(0), interrupt_request_(false) {}
 
 		/*!
-			Indicates that a new hsync pulse has been recognised. Per documentation
-			difficulties, it is not presently clear to me whether this should be
-			the leading or trailing edge of horizontal sync.
+			Indicates that a new hsync pulse has been recognised. This should be
+			supplied on the falling edge of the CRTC HSYNC signal, which is the
+			trailing edge because it is active high.
 		*/
 		inline void signal_hsync() {
 			// Increment the timer and if it has hit 52 then reset it and
@@ -49,7 +49,7 @@ class InterruptTimer {
 			if(reset_counter_) {
 				reset_counter_--;
 				if(!reset_counter_) {
-					if(timer_ < 32) {
+					if(timer_ & 32) {
 						interrupt_request_ = true;
 					}
 					timer_ = 0;
@@ -76,6 +76,7 @@ class InterruptTimer {
 		/// Resets the timer.
 		inline void reset_count() {
 			timer_ = 0;
+			interrupt_request_ = false;
 		}
 
 	private:
@@ -504,8 +505,8 @@ class ConcreteMachine:
 			// will do as it's safe to conclude that nobody else has touched video RAM
 			// during that whole window
 			crtc_counter_ += cycle.length;
-			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
-			if(crtc_cycles) crtc_.run_for(Cycles(1));
+			Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
+			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
 			z80_.set_interrupt_line(interrupt_timer_.get_request());
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
@@ -541,7 +542,7 @@ class ConcreteMachine:
 								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
 
 								// Reset the interrupt timer if requested.
-								if(*cycle.value & 15) interrupt_timer_.reset_count();
+								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
 
 								// Post the next mode.
 								crtc_bus_handler_.set_next_mode(*cycle.value & 3);

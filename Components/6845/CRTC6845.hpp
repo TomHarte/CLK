@@ -106,7 +106,8 @@ template <class T> class CRTC6845 {
 							// check for start of vertical sync
 							if(line_counter_ == registers_[7]) {
 								bus_state_.vsync = true;
-								vsync_down_counter_ = 16;	// TODO
+								vsync_down_counter_ = registers_[3] >> 4;
+								if(!vsync_down_counter_) vsync_down_counter_ = 16;
 							}
 
 							// check for entry into the overflow area
