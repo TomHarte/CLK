@@ -504,8 +504,8 @@ class ConcreteMachine:
 			// will do as it's safe to conclude that nobody else has touched video RAM
 			// during that whole window
 			crtc_counter_ += cycle.length;
-			int crtc_cycles = crtc_counter_.divide(HalfCycles(8)).as_int();
-			if(crtc_cycles) crtc_.run_for(Cycles(1));
+			Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
+			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
 			z80_.set_interrupt_line(interrupt_timer_.get_request());
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
