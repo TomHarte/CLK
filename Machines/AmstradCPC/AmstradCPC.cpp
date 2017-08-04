@@ -541,7 +541,7 @@ class ConcreteMachine:
 								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
 
 								// Reset the interrupt timer if requested.
-								if(*cycle.value & 15) interrupt_timer_.reset_count();
+								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
 
 								// Post the next mode.
 								crtc_bus_handler_.set_next_mode(*cycle.value & 3);
