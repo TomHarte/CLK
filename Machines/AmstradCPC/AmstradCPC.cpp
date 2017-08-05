@@ -633,7 +633,7 @@ class ConcreteMachine:
 		/// Another Z80 entry point; indicates that a partcular run request has concluded.
 		void flush() {
 			// Just flush the AY.
-			ay_.update()
+			ay_.update();
 			ay_.flush();
 		}
 
