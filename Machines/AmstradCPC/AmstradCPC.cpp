@@ -108,9 +108,13 @@ class AYDeferrer {
 			cycles_since_update_ += half_cycles;
 		}
 
+		/// Enqueues an update-to-now into the AY's deferred queue.
+		inline void update() {
+			ay_->run_for(cycles_since_update_.divide_cycles(Cycles(4)));
+		}
+
 		/// Issues a request to the AY to perform all processing up to the current time.
 		inline void flush() {
-			ay_->run_for(cycles_since_update_.divide_cycles(Cycles(4)));
 			ay_->flush();
 		}
 
@@ -443,6 +447,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			switch(port) {
 				case 0:
 					// Port A is connected to the AY's data bus.
+					ay_.update();
 					ay_.ay()->set_data_input(value);
 				break;
 				case 1:
@@ -628,6 +633,7 @@ class ConcreteMachine:
 		/// Another Z80 entry point; indicates that a partcular run request has concluded.
 		void flush() {
 			// Just flush the AY.
+			ay_.update()
 			ay_.flush();
 		}
 
