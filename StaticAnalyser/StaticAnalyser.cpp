@@ -24,6 +24,7 @@
 
 // Disks
 #include "../Storage/Disk/Formats/AcornADF.hpp"
+#include "../Storage/Disk/Formats/CPCDSK.hpp"
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
 #include "../Storage/Disk/Formats/OricMFMDSK.hpp"
@@ -99,7 +100,8 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 		Format("csw", tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
 		Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
 		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
-		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK
+		Format("dsk", disks, Disk::CPCDSK, TargetPlatform::AmstradCPC)					// DSK (Amstrad CPC)
+		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK (Oric)
 		Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
 		Format("o", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
 		Format("p", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P

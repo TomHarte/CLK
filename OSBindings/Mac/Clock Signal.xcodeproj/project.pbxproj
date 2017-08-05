@@ -92,6 +92,7 @@
 		4B8378DF1F33675F005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378DD1F33675F005CA9E4 /* CharacterMapper.cpp */; };
 		4B8378E21F336920005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E01F336920005CA9E4 /* CharacterMapper.cpp */; };
 		4B8378E51F3378C4005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E31F3378C4005CA9E4 /* CharacterMapper.cpp */; };
+		4B838F1F1F35FDCD0016B5E6 /* CPCDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */; };
 		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
 		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
 		4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
@@ -618,6 +619,8 @@
 		4B8378E11F336920005CA9E4 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CharacterMapper.hpp; path = Oric/CharacterMapper.hpp; sourceTree = "<group>"; };
 		4B8378E31F3378C4005CA9E4 /* CharacterMapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CharacterMapper.cpp; sourceTree = "<group>"; };
 		4B8378E41F3378C4005CA9E4 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CharacterMapper.hpp; sourceTree = "<group>"; };
+		4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPCDSK.cpp; sourceTree = "<group>"; };
+		4B838F1E1F35FDCD0016B5E6 /* CPCDSK.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPCDSK.hpp; sourceTree = "<group>"; };
 		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
 		4B8805EF1DCFC99C003085B1 /* Acorn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Acorn.hpp; path = Parsers/Acorn.hpp; sourceTree = "<group>"; };
 		4B8805F21DCFD22A003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Parsers/Commodore.cpp; sourceTree = "<group>"; };
@@ -1551,6 +1554,8 @@
 				4B5FADBC1DE31D1500AEC565 /* OricMFMDSK.hpp */,
 				4BF829611D8F536B001BAE39 /* SSD.cpp */,
 				4BF829621D8F536B001BAE39 /* SSD.hpp */,
+				4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */,
+				4B838F1E1F35FDCD0016B5E6 /* CPCDSK.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2751,6 +2756,7 @@
 				4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */,
 				4BEA52661DF3472B007E74F2 /* Speaker.cpp in Sources */,
 				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
+				4B838F1F1F35FDCD0016B5E6 /* CPCDSK.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B4C83701D4F623200CD541F /* D64.cpp in Sources */,
 				4B5073071DDD3B9400C48FBD /* ArrayBuilder.cpp in Sources */,
