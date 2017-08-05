@@ -8,7 +8,6 @@
 
 #include "SSD.hpp"
 
-#include <sys/stat.h>
 #include "../Encodings/MFM.hpp"
 
 using namespace Storage::Disk;
