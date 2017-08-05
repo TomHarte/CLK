@@ -71,8 +71,8 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 	// Grab the track information.
 	fseek(file_, 5, SEEK_CUR);	// skip track number, side number, sector size — each is given per sector
 	int number_of_sectors = fgetc(file_);
-	uint8_t gap3_length = (uint8_t)fgetc(file_);
-	uint8_t filler_byte = (uint8_t)fgetc(file_);
+	__unused uint8_t gap3_length = (uint8_t)fgetc(file_);
+	__unused uint8_t filler_byte = (uint8_t)fgetc(file_);
 
 	// Grab the sector information
 	struct SectorInfo {
