@@ -10,9 +10,10 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 
-#include "../../Components/8255/i8255.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/6845/CRTC6845.hpp"
+#include "../../Components/8255/i8255.hpp"
+#include "../../Components/8272/i8272.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -601,6 +602,11 @@ class ConcreteMachine:
 					if(!(address & 0x800)) {
 						i8255_.set_register((address >> 8) & 3, *cycle.value);
 					}
+
+					// Check for an FDC access
+					if(has_fdc_ && (address & 0x580) == 0x100) {
+						i8272_.set_register(address & 1, *cycle.value);
+					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
 					// Default to nothing answering
@@ -618,6 +624,11 @@ class ConcreteMachine:
 					// Check for a PIO access
 					if(!(address & 0x800)) {
 						*cycle.value = i8255_.get_register((address >> 8) & 3);
+					}
+
+					// Check for an FDC access
+					if(has_fdc_ && (address & 0x580) == 0x100) {
+						*cycle.value = i8272_.get_register(address & 1);
 					}
 				break;
 
@@ -736,6 +747,8 @@ class ConcreteMachine:
 		AYDeferrer ay_;
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
+
+		Intel::i8272 i8272_;
 
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;
