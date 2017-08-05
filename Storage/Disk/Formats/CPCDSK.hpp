@@ -12,6 +12,8 @@
 #include "../Disk.hpp"
 #include "../../FileHolder.hpp"
 
+#include <vector>
+
 namespace Storage {
 namespace Disk {
 
@@ -43,6 +45,12 @@ class CPCDSK: public Disk, public Storage::FileHolder {
 		unsigned int head_count_;
 		unsigned int head_position_count_;
 		bool is_extended_;
+
+		// Used only for non-extended disks.
+		long size_of_a_track_;
+
+		// Used only for extended disks.
+		std::vector<size_t> track_sizes_;
 };
 
 }
