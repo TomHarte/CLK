@@ -583,7 +583,7 @@ class ConcreteMachine:
 					}
 
 					// Check for an upper ROM selection
-					if(has_fdc_ && address == 0xdf00) {
+					if(has_fdc_ && !(address&0x2000)) {
 						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : rom_model_ + 1;
 						if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
 					}
