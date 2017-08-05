@@ -567,8 +567,10 @@ class ConcreteMachine:
 							case 1: crtc_bus_handler_.set_colour(*cycle.value & 0x1f);		break;
 							case 2:
 								// Perform ROM paging.
-								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : os_.data();
-								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
+								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : roms_[rom_model_].data();
+
+								upper_rom_is_paged_ = !(*cycle.value & 8);
+								read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : &ram_[49152];
 
 								// Reset the interrupt timer if requested.
 								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
@@ -578,6 +580,12 @@ class ConcreteMachine:
 							break;
 							case 3: printf("RAM paging?\n"); break;
 						}
+					}
+
+					// Check for an upper ROM selection
+					if(has_fdc_ && address == 0xdf00) {
+						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : rom_model_ + 1;
+						if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
 					}
 
 					// Check for a CRTC access
@@ -666,11 +674,28 @@ class ConcreteMachine:
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			// Establish reset memory map as per machine model (or, for now, as a hard-wired 464)
-			read_pointers_[0] = os_.data();
+			switch(target.amstradcpc.model) {
+				case StaticAnalyser::AmstradCPCModel::CPC464:
+					rom_model_ = ROMType::OS464;
+					has_fdc_ = false;
+				break;
+				case StaticAnalyser::AmstradCPCModel::CPC664:
+					rom_model_ = ROMType::OS664;
+					has_fdc_ = true;
+				break;
+				case StaticAnalyser::AmstradCPCModel::CPC6128:
+					rom_model_ = ROMType::OS6128;
+					has_fdc_ = true;
+				break;
+			}
+
+			// Establish default memory map
+			upper_rom_is_paged_ = true;
+			upper_rom_ = rom_model_ + 1;
+			read_pointers_[0] = roms_[rom_model_].data();
 			read_pointers_[1] = &ram_[16384];
 			read_pointers_[2] = &ram_[32768];
-			read_pointers_[3] = basic_.data();
+			read_pointers_[3] = roms_[upper_rom_].data();
 
 			write_pointers_[0] = &ram_[0];
 			write_pointers_[1] = &ram_[16384];
@@ -681,16 +706,13 @@ class ConcreteMachine:
 			if(!target.tapes.empty()) {
 				tape_player_.set_tape(target.tapes.front());
 			}
+
+			// TODO: disks.
 		}
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
-			// Keep only the two ROMs that are currently of interest.
-			switch(type) {
-				case ROMType::OS464:		os_ = data;		break;
-				case ROMType::BASIC464:		basic_ = data;	break;
-				default: break;
-			}
+			roms_[(int)type] = data;
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -722,8 +744,12 @@ class ConcreteMachine:
 		HalfCycles crtc_counter_;
 		HalfCycles half_cycles_since_ay_update_;
 
-		uint8_t ram_[65536];
-		std::vector<uint8_t> os_, basic_;
+		uint8_t ram_[128 * 1024];
+		std::vector<uint8_t> roms_[7];
+		int rom_model_;
+		bool has_fdc_;
+		bool upper_rom_is_paged_;
+		int upper_rom_;
 
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
