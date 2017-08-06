@@ -85,7 +85,7 @@ class MFMController: public Controller {
 				(ii) the index hole passes; or
 				(iii) the queue of data to be written has been exhausted.
 		*/
-		virtual void posit_event(Event type) = 0;
+		virtual void posit_event(int type) = 0;
 
 	private:
 		// Storage::Disk::Controller

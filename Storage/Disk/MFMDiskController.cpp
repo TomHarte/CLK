@@ -20,11 +20,11 @@ MFMController::MFMController(Cycles clock_rate, int clock_rate_multiplier, int r
 }
 
 void MFMController::process_index_hole() {
-	posit_event(Event::IndexHole);
+	posit_event((int)Event::IndexHole);
 }
 
 void MFMController::process_write_completed() {
-	posit_event(Event::DataWritten);
+	posit_event((int)Event::DataWritten);
 }
 
 void MFMController::set_is_double_density(bool is_double_density) {
@@ -107,7 +107,7 @@ void MFMController::process_input_bit(int value, unsigned int cycles_since_index
 		if(token_type != Token::Byte) {
 			latest_token_.type = token_type;
 			bits_since_token_ = 0;
-			posit_event(Event::Token);
+			posit_event((int)Event::Token);
 			return;
 		}
 	}
@@ -145,7 +145,7 @@ void MFMController::process_input_bit(int value, unsigned int cycles_since_index
 		}
 
 		crc_generator_.add(latest_token_.byte_value);
-		posit_event(Event::Token);
+		posit_event((int)Event::Token);
 		return;
 	}
 }
