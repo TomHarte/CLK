@@ -396,6 +396,7 @@
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */; };
 		4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC951C1F368D83008F4C34 /* i8272.cpp */; };
+		4BBC95221F36B16C008F4C34 /* MFMDiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC95201F36B16C008F4C34 /* MFMDiskController.cpp */; };
 		4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF49AE1ED2880200AB3669 /* FUSETests.swift */; };
 		4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */; };
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
@@ -957,6 +958,8 @@
 		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = i8272.cpp; path = 8272/i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8272.hpp; path = 8272/i8272.hpp; sourceTree = "<group>"; };
+		4BBC95201F36B16C008F4C34 /* MFMDiskController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MFMDiskController.cpp; sourceTree = "<group>"; };
+		4BBC95211F36B16C008F4C34 /* MFMDiskController.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MFMDiskController.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
 		4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureBuilder.cpp; sourceTree = "<group>"; };
 		4BBF99091C8FBA6F0075DAFB /* TextureBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TextureBuilder.hpp; sourceTree = "<group>"; };
@@ -1528,6 +1531,7 @@
 				4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */,
 				4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */,
 				4B30512B1D989E2200B4FED8 /* Drive.cpp */,
+				4BBC95201F36B16C008F4C34 /* MFMDiskController.cpp */,
 				4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */,
 				4B121F961E060CF000BFDA12 /* PCMSegment.cpp */,
 				4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */,
@@ -1535,6 +1539,7 @@
 				4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */,
 				4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */,
 				4B30512C1D989E2200B4FED8 /* Drive.hpp */,
+				4BBC95211F36B16C008F4C34 /* MFMDiskController.hpp */,
 				4B3F1B451E0388D200DB26EE /* PCMPatchedTrack.hpp */,
 				4B121F971E060CF000BFDA12 /* PCMSegment.hpp */,
 				4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */,
@@ -2745,6 +2750,7 @@
 				4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
 				4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */,
+				4BBC95221F36B16C008F4C34 /* MFMDiskController.cpp in Sources */,
 				4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B8378DF1F33675F005CA9E4 /* CharacterMapper.cpp in Sources */,
