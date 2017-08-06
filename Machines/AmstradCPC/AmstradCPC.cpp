@@ -739,7 +739,13 @@ class ConcreteMachine:
 				tape_player_.set_tape(target.tapes.front());
 			}
 
-			// TODO: disks.
+			// Insert up to four disks.
+			int c = 0;
+			for(auto &disk : target.disks) {
+				fdc_.set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
 		}
 
 		// See header; provides the system ROMs.

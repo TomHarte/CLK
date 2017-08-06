@@ -25,6 +25,8 @@ class i8272: public Storage::Disk::MFMController {
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
+
 	private:
 		void posit_event(int type);
 		uint8_t main_status_;

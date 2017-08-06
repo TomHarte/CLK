@@ -69,6 +69,9 @@ uint8_t i8272::get_register(int address) {
 	}
 }
 
+void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+}
+
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
