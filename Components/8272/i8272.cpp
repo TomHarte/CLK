@@ -16,6 +16,7 @@ namespace {
 const uint8_t StatusRQM = 0x80;	// Set: ready to send or receive from processor.
 const uint8_t StatusDIO = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
 const uint8_t StatusNDM = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
+const uint8_t StatusCB = 0x10;	// Set: the FDC is busy.
 const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
 const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
 const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
@@ -54,13 +55,13 @@ void i8272::run_for(Cycles cycles) {
 			while(steps--) {
 				if(
 					(drives_[c].target_head_position == (int)drives_[c].head_position) ||
-					(drives_[c].drive.get_is_track_zero() && drives_[c].target_head_position == -1)) {
+					(drives_[c].drive->get_is_track_zero() && drives_[c].target_head_position == -1)) {
 					drives_[c].phase = Drive::CompletedSeeking;
 					if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 					main_status_ &= ~(1 << c);
 				} else {
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					drives_[c].drive.step(direction);
+					drives_[c].drive->step(direction);
 					drives_[c].head_position += direction;
 				}
 			}
@@ -89,14 +90,14 @@ uint8_t i8272::get_register(int address) {
 		if(result_.empty()) posit_event((int)Event8272::ResultEmpty);
 		return result;
 	} else {
-		printf("8272 get main status\n");
+//		printf("8272 get main status\n");
 		return main_status_;
 	}
 }
 
 void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(drive < 4 && drive >= 0) {
-		drives_[drive].drive.set_disk(disk);
+		drives_[drive].drive->set_disk(disk);
 	}
 }
 
@@ -107,8 +108,12 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define FIND_HEADER()	\
 	{	\
-		find_header: WAIT_FOR_EVENT(Event::Token); \
-		if(get_latest_token().type != Token::ID) goto find_header;	\
+		find_header: WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
+		if(event_type == (int)Event::IndexHole) index_hole_limit_--;	\
+		else if(get_latest_token().type == Token::ID) goto header_found;	\
+		\
+		if(index_hole_limit_) goto find_header;	\
+		header_found:	0;\
 	}
 	
 #define READ_HEADER()	\
@@ -123,14 +128,15 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	set_data_mode(Scanning);
 
 
-void i8272::posit_event(int type) {
-	if(!(interesting_event_mask_ & type)) return;
-	interesting_event_mask_ &= ~type;
+void i8272::posit_event(int event_type) {
+	if(!(interesting_event_mask_ & event_type)) return;
+	interesting_event_mask_ &= ~event_type;
 
 	BEGIN_SECTION();
 
 	wait_for_command:
 		set_data_mode(Storage::Disk::MFMController::DataMode::Scanning);
+		main_status_ &= ~(StatusCB | StatusNDM);
 		command_.clear();
 
 	wait_for_complete_command_sequence:
@@ -203,10 +209,39 @@ void i8272::posit_event(int type) {
 		}
 
 	read_data:
+		printf("Read data, sector %02x\n", command_[4]);
+		main_status_ |= StatusCB;
+		if(!dma_mode_) main_status_ |= StatusNDM;
+		set_drive(drives_[command_[1]&3].drive);
+		set_is_double_density(command_[0] & 0x40);
+
+		index_hole_limit_ = 2;
+	find_next_sector:
 		FIND_HEADER();
+		if(!index_hole_limit_) goto read_data_not_found;
 		READ_HEADER();
-		printf("Read data unimplemented!!\n");
+		if(header_[2] != command_[4]) goto find_next_sector;
+
+		printf("Unimplemented!!\n");
 		goto wait_for_command;
+
+	read_data_not_found:
+		printf("Not found\n");
+
+		status_[1] |= 0x4;
+		status_[0] = (status_[0] & ~0xc0) | 0x40;
+
+	read_data_end:
+		result_.push_back(header_[3]);
+		result_.push_back(header_[2]);
+		result_.push_back(header_[1]);
+		result_.push_back(header_[0]);
+
+		result_.push_back(status_[2]);
+		result_.push_back(status_[1]);
+		result_.push_back(status_[0]);
+
+		goto post_result;
 
 	read_deleted_data:
 		printf("Read deleted data unimplemented!!\n");
@@ -304,6 +339,7 @@ void i8272::posit_event(int type) {
 
 	post_result:
 		main_status_ |= StatusRQM | StatusDIO;
+		main_status_ &= ~StatusNDM;
 		WAIT_FOR_EVENT(Event8272::ResultEmpty);
 		main_status_ &= ~StatusDIO;
 		goto wait_for_command;

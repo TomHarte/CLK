@@ -63,13 +63,14 @@ class i8272: public Storage::Disk::MFMController {
 			int permitted_steps;
 			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
 
-			Storage::Disk::Drive drive;
+			std::shared_ptr<Storage::Disk::Drive> drive;
 
-			Drive() : head_position(0), phase(NotSeeking) {};
+			Drive() : head_position(0), phase(NotSeeking), drive(new Storage::Disk::Drive) {};
 		} drives_[4];
 
 		uint8_t header_[6];
 		int distance_into_header_;
+		int index_hole_limit_;
 };
 
 }
