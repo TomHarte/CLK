@@ -27,18 +27,43 @@ i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_m
 	main_status_(StatusRQM),
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
-	delay_time_(0) {
+	delay_time_(0),
+	status_{0, 0, 0, 0} {
 	posit_event((int)Event8272::CommandByte);
 }
 
 void i8272::run_for(Cycles cycles) {
 	Storage::Disk::MFMController::run_for(cycles);
+
+	// check for an expired timer
 	if(delay_time_ > 0) {
 		if(cycles.as_int() >= delay_time_) {
 			delay_time_ = 0;
 			posit_event((int)Event8272::Timer);
 		} else {
 			delay_time_ -= cycles.as_int();
+		}
+	}
+
+	// update seek status of any drives presently seeking
+	for(int c = 0; c < 4; c++) {
+		if(drives_[c].phase == Drive::Seeking) {
+			drives_[c].step_rate_counter += cycles.as_int();
+			int steps = drives_[c].step_rate_counter / (8000 * step_rate_time_);
+			drives_[c].step_rate_counter %= (8000 * step_rate_time_);
+			while(steps--) {
+				if(
+					(drives_[c].target_head_position == (int)drives_[c].head_position) ||
+					(drives_[c].drive.get_is_track_zero() && drives_[c].target_head_position == -1)) {
+					drives_[c].phase = Drive::CompletedSeeking;
+					status_[0] = (uint8_t)c | 0x20;
+					main_status_ &= ~(1 << c);
+				} else {
+					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
+					drives_[c].drive.step(direction);
+					drives_[c].head_position += direction;
+				}
+			}
 		}
 	}
 }
@@ -70,6 +95,9 @@ uint8_t i8272::get_register(int address) {
 }
 
 void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+	if(drive < 4 && drive >= 0) {
+		drives_[drive].drive.set_disk(disk);
+	}
 }
 
 #define BEGIN_SECTION()	switch(resume_point_) { default:
@@ -197,12 +225,32 @@ void i8272::posit_event(int type) {
 		goto wait_for_command;
 
 	recalibrate:
-		printf("Recalibrate unimplemented!!\n");
+		printf("Recalibrate\n");
+		drives_[command_[1]&3].phase = Drive::Seeking;
+		drives_[command_[1]&3].permitted_steps = 77;
+		drives_[command_[1]&3].target_head_position = -1;
+		drives_[command_[1]&3].step_rate_counter = 0;
+		main_status_ |= (1 << command_[1]&3);
 		goto wait_for_command;
 
 	sense_interrupt_status:
 		printf("Sense interrupt status\n");
-		result_.push_back(head_position_);
+		// Find the first drive that is in the CompletedSeeking state and return for that;
+		// if none has done so then return 0xff for the sake of returning something.
+		// TODO: verify that fallback.
+		{
+			int found_drive = -1;
+			for(int c = 0; c < 4; c++) {
+				if(drives_[c].phase == Drive::CompletedSeeking) {
+					found_drive = c;
+					break;
+				}
+			}
+			if(found_drive != -1) {
+				drives_[found_drive].phase = Drive::NotSeeking;
+				result_.push_back(drives_[found_drive].head_position);
+			}
+		}
 		result_.push_back(status_[0]);
 		goto post_result;
 
@@ -220,7 +268,12 @@ void i8272::posit_event(int type) {
 		goto post_result;
 
 	seek:
-		printf("Seek unimplemented!!\n");
+		printf("Seek\n");
+		drives_[command_[1]&3].phase = Drive::Seeking;
+		drives_[command_[1]&3].permitted_steps = -1;
+		drives_[command_[1]&3].target_head_position = command_[2];
+		drives_[command_[1]&3].step_rate_counter = 0;
+		main_status_ |= (1 << command_[1]&3);
 		goto wait_for_command;
 
 	invalid:

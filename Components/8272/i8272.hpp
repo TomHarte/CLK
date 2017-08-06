@@ -10,6 +10,7 @@
 #define i8272_hpp
 
 #include "../../Storage/Disk/MFMDiskController.hpp"
+#include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -50,7 +51,22 @@ class i8272: public Storage::Disk::MFMController {
 		int head_load_time_;
 		bool dma_mode_;
 
-		uint8_t head_position_;
+		struct Drive {
+			uint8_t head_position;
+
+			enum Phase {
+				NotSeeking,
+				Seeking,
+				CompletedSeeking
+			} phase;
+			int step_rate_counter;
+			int permitted_steps;
+			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
+
+			Storage::Disk::Drive drive;
+
+			Drive() : head_position(0), phase(NotSeeking) {};
+		} drives_[4];
 };
 
 }
