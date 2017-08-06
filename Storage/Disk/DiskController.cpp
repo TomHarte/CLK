@@ -11,8 +11,8 @@
 
 using namespace Storage::Disk;
 
-Controller::Controller(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
-		clock_rate_(clock_rate * clock_rate_multiplier),
+Controller::Controller(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
+		clock_rate_(clock_rate.as_int() * clock_rate_multiplier),
 		clock_rate_multiplier_(clock_rate_multiplier),
 		rotational_multiplier_(60, revolutions_per_minute),
 
@@ -21,7 +21,7 @@ Controller::Controller(int clock_rate, int clock_rate_multiplier, int revolution
 
 		is_reading_(true),
 
-		TimedEventLoop((unsigned int)(clock_rate * clock_rate_multiplier)) {
+		TimedEventLoop((unsigned int)(clock_rate.as_int() * clock_rate_multiplier)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);
 	set_expected_bit_length(one);

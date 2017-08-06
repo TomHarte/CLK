@@ -12,6 +12,14 @@
 
 using namespace Intel;
 
+i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
+	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute) {
+}
+
+void i8272::run_for(Cycles cycles) {
+	Storage::Disk::MFMController::run_for(cycles);
+}
+
 void i8272::set_register(int address, uint8_t value) {
 	if(!address) return;
 
@@ -86,4 +94,7 @@ uint8_t i8272::get_register(int address) {
 		printf("8272 get status\n");
 		return 0x80;
 	}
+}
+
+void i8272::posit_event(Event type) {
 }

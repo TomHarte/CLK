@@ -11,6 +11,7 @@
 
 #include "DiskController.hpp"
 #include "../../NumberTheory/CRC.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -21,7 +22,7 @@ namespace Disk {
 */
 class MFMController: public Controller {
 	public:
-		MFMController(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 	protected:
 		void set_is_double_density(bool);

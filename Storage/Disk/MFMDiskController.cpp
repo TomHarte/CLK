@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-MFMController::MFMController(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
+MFMController::MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 	Storage::Disk::Controller(clock_rate, clock_rate_multiplier, revolutions_per_minute),
 	crc_generator_(0x1021, 0xffff),
 	data_mode_(DataMode::Scanning),

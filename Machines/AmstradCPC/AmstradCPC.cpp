@@ -429,6 +429,19 @@ struct KeyboardState {
 };
 
 /*!
+	Wraps the 8272 so as to provide proper clocking and RPM counts, and just directly
+	exposes motor control, applying the same value to all drives.
+*/
+class FDC: public Intel::i8272 {
+	public:
+		FDC() : i8272(Cycles(8000000), 16, 300) {}
+
+		void set_motor_on(bool on) {
+			Intel::i8272::set_motor_on(on);
+		}
+};
+
+/*!
 	Provides the mechanism of receipt for input and output of the 8255's various ports.
 */
 class i8255PortHandler : public Intel::i8255::PortHandler {
@@ -546,6 +559,9 @@ class ConcreteMachine:
 			// Pump the AY.
 			ay_.run_for(cycle.length);
 
+			// Clock the FDC, if connected, using a lazy scale by two
+			if(has_fdc_) fdc_.run_for(Cycles(cycle.length.as_int()));
+
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
 
@@ -605,7 +621,12 @@ class ConcreteMachine:
 
 					// Check for an FDC access
 					if(has_fdc_ && (address & 0x580) == 0x100) {
-						i8272_.set_register(address & 1, *cycle.value);
+						fdc_.set_register(address & 1, *cycle.value);
+					}
+
+					// Check for a disk motor access
+					if(has_fdc_ && !(address & 0x580)) {
+						fdc_.set_motor_on(!!(*cycle.value));
 					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -628,7 +649,7 @@ class ConcreteMachine:
 
 					// Check for an FDC access
 					if(has_fdc_ && (address & 0x580) == 0x100) {
-						*cycle.value = i8272_.get_register(address & 1);
+						*cycle.value = fdc_.get_register(address & 1);
 					}
 				break;
 
@@ -748,7 +769,7 @@ class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
-		Intel::i8272 i8272_;
+		FDC fdc_;
 
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;
