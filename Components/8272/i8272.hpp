@@ -27,13 +27,16 @@ class i8272: public Storage::Disk::MFMController {
 
 	private:
 		void posit_event(int type);
-		uint8_t status_;
+		uint8_t main_status_;
+		uint8_t status_[4];
+
 		std::vector<uint8_t> command_;
+		std::vector<uint8_t> result_;
 
 		enum class Event8272: int {
 			CommandByte	= (1 << 3),
 			Timer = (1 << 4),
-
+			ResultEmpty = (1 << 5),
 		};
 
 		int interesting_event_mask_;
@@ -44,6 +47,8 @@ class i8272: public Storage::Disk::MFMController {
 		int head_unload_time_;
 		int head_load_time_;
 		bool dma_mode_;
+
+		uint8_t head_position_;
 };
 
 }
