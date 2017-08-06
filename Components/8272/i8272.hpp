@@ -67,6 +67,9 @@ class i8272: public Storage::Disk::MFMController {
 
 			Drive() : head_position(0), phase(NotSeeking) {};
 		} drives_[4];
+
+		uint8_t header_[6];
+		int distance_into_header_;
 };
 
 }

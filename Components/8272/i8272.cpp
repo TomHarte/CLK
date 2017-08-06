@@ -56,7 +56,7 @@ void i8272::run_for(Cycles cycles) {
 					(drives_[c].target_head_position == (int)drives_[c].head_position) ||
 					(drives_[c].drive.get_is_track_zero() && drives_[c].target_head_position == -1)) {
 					drives_[c].phase = Drive::CompletedSeeking;
-					status_[0] = (uint8_t)c | 0x20;
+					if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 					main_status_ &= ~(1 << c);
 				} else {
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
@@ -104,6 +104,24 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define END_SECTION()	}
 
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
+
+#define FIND_HEADER()	\
+	{	\
+		find_header: WAIT_FOR_EVENT(Event::Token); \
+		if(get_latest_token().type != Token::ID) goto find_header;	\
+	}
+	
+#define READ_HEADER()	\
+	distance_into_header_ = 0;	\
+	set_data_mode(Reading);	\
+	{	\
+		read_header: WAIT_FOR_EVENT(Event::Token); \
+		header_[distance_into_header_] = get_latest_token().byte_value;	\
+		distance_into_header_++; \
+		if(distance_into_header_ != 7) goto read_header;	\
+	}	\
+	set_data_mode(Scanning);
+
 
 void i8272::posit_event(int type) {
 	if(!(interesting_event_mask_ & type)) return;
@@ -185,6 +203,8 @@ void i8272::posit_event(int type) {
 		}
 
 	read_data:
+		FIND_HEADER();
+		READ_HEADER();
 		printf("Read data unimplemented!!\n");
 		goto wait_for_command;
 
@@ -248,6 +268,7 @@ void i8272::posit_event(int type) {
 			if(found_drive != -1) {
 				drives_[found_drive].phase = Drive::NotSeeking;
 				result_.push_back(drives_[found_drive].head_position);
+				status_[0] = (uint8_t)found_drive | 0x20;
 				result_.push_back(status_[0]);
 			} else {
 				result_.push_back(0x80);
