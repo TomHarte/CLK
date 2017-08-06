@@ -236,8 +236,7 @@ void i8272::posit_event(int type) {
 	sense_interrupt_status:
 		printf("Sense interrupt status\n");
 		// Find the first drive that is in the CompletedSeeking state and return for that;
-		// if none has done so then return 0xff for the sake of returning something.
-		// TODO: verify that fallback.
+		// if none has done so then return a single 0x80.
 		{
 			int found_drive = -1;
 			for(int c = 0; c < 4; c++) {
@@ -249,9 +248,11 @@ void i8272::posit_event(int type) {
 			if(found_drive != -1) {
 				drives_[found_drive].phase = Drive::NotSeeking;
 				result_.push_back(drives_[found_drive].head_position);
+				result_.push_back(status_[0]);
+			} else {
+				result_.push_back(0x80);
 			}
 		}
-		result_.push_back(status_[0]);
 		goto post_result;
 
 	specify:
