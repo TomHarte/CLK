@@ -214,14 +214,18 @@ void i8272::posit_event(int event_type) {
 		if(!dma_mode_) main_status_ |= StatusNDM;
 		set_drive(drives_[command_[1]&3].drive);
 		set_is_double_density(command_[0] & 0x40);
+		cylinder_ = command_[2];
+		head_ = command_[3];
+		sector_ = command_[4];
+		size_ = command_[5];
 
 		index_hole_limit_ = 2;
 	find_next_sector:
 		FIND_HEADER();
 		if(!index_hole_limit_) goto read_data_not_found;
 		READ_HEADER();
-		printf("Comparing with %02x\n", header_[2]);
-		if(header_[2] != command_[4]) goto find_next_sector;
+		printf("Comparing with %02x\n", sector_);
+		if(header_[2] != sector_) goto find_next_sector;
 
 		printf("Unimplemented!!\n");
 		goto wait_for_command;
@@ -233,10 +237,14 @@ void i8272::posit_event(int event_type) {
 		status_[0] = (status_[0] & ~0xc0) | 0x40;
 
 	read_data_end:
-		result_.push_back(header_[3]);
-		result_.push_back(header_[2]);
-		result_.push_back(header_[1]);
-		result_.push_back(header_[0]);
+//		result_.push_back(header_[3]);
+//		result_.push_back(header_[2]);
+//		result_.push_back(header_[1]);
+//		result_.push_back(header_[0]);
+		result_.push_back(size_);
+		result_.push_back(sector_);
+		result_.push_back(head_);
+		result_.push_back(cylinder_);
 
 		result_.push_back(status_[2]);
 		result_.push_back(status_[1]);
