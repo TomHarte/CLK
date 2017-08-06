@@ -17,10 +17,10 @@ const uint8_t StatusRQM = 0x80;	// Set: ready to send or receive from processor.
 const uint8_t StatusDIO = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
 const uint8_t StatusNDM = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
 const uint8_t StatusCB = 0x10;	// Set: the FDC is busy.
-const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
-const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
-const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
-const uint8_t StatusD0B = 0x01;	// Set: drive 0 is seeking.
+//const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
+//const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
+//const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
+//const uint8_t StatusD0B = 0x01;	// Set: drive 0 is seeking.
 }
 
 i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
@@ -209,7 +209,7 @@ void i8272::posit_event(int event_type) {
 		}
 
 	read_data:
-		printf("Read data, sector %02x\n", command_[4]);
+		printf("Read data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
 		main_status_ |= StatusCB;
 		if(!dma_mode_) main_status_ |= StatusNDM;
 		set_drive(drives_[command_[1]&3].drive);
@@ -220,6 +220,7 @@ void i8272::posit_event(int event_type) {
 		FIND_HEADER();
 		if(!index_hole_limit_) goto read_data_not_found;
 		READ_HEADER();
+		printf("Comparing with %02x\n", header_[2]);
 		if(header_[2] != command_[4]) goto find_next_sector;
 
 		printf("Unimplemented!!\n");
@@ -338,8 +339,10 @@ void i8272::posit_event(int event_type) {
 		goto wait_for_command;
 
 	post_result:
+		// Set ready to send data to the processor, no longer in [non-DMA] execution phase.
 		main_status_ |= StatusRQM | StatusDIO;
-		main_status_ &= ~StatusNDM;
+		main_status_ &= ~(StatusNDM | StatusCB);
+
 		WAIT_FOR_EVENT(Event8272::ResultEmpty);
 		main_status_ &= ~StatusDIO;
 		goto wait_for_command;
