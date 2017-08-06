@@ -25,32 +25,66 @@ class MFMController: public Controller {
 		MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 	protected:
+		/// Indicates whether the controller should try to decode double-density MFM content, or single-density FM content.
 		void set_is_double_density(bool);
+
+		/// @returns @c true if currently decoding MFM content; @c false otherwise.
 		bool get_is_double_density();
 
 		enum DataMode {
+			/// When the controller is scanning it will obey all synchronisation marks found, even if in the middle of data.
 			Scanning,
+			/// When the controller is reading it will ignore synchronisation marks and simply return a new token every sixteen PLL clocks.
 			Reading,
+			/// When the controller is writing, it will replace the underlying data with that which has been enqueued, posting Event::DataWritten when the queue is empty.
 			Writing
 		};
+		/// Sets the current data mode.
 		void set_data_mode(DataMode);
 
+		/*!
+			Describes a token found in the incoming PLL bit stream. Tokens can be one of:
+
+				Index: the bit pattern usually encoded at the start of a track to denote the position of the index hole;
+				ID: the pattern that begins an ID section, i.e. a sector header, announcing sector number, track number, etc.
+				Data: the pattern that begins a data section, i.e. sector contents.
+				DeletedData: the pattern that begins a deleted data section, i.e. deleted sector contents.
+
+				Sync: MFM only; the same synchronisation mark is used in MFM to denote the bottom three of the four types
+				of token listed above; this class combines notification of that mark and the distinct index sync mark.
+				Both are followed by a byte to indicate type. When scanning an MFM stream, subclasses will receive an
+				announcement of sync followed by an announcement of one of the above four types of token.
+
+				Byte: reports reading of an ordinary byte, with expected timing bits.
+
+			When the data mode is set to 'reading', only Byte tokens are returned; detection of the other kinds of token
+			is suppressed. Controllers will likely want to switch data mode when receiving ID and sector contents, as
+			spurious sync signals can otherwise be found in ordinary data, causing framing errors.
+		*/
 		struct Token {
 			enum Type {
 				Index, ID, Data, DeletedData, Sync, Byte
 			} type;
 			uint8_t byte_value;
 		};
+		/// @returns The most-recently read token from the surface of the disk.
 		Token get_latest_token();
 
 		// Events
 		enum class Event: int {
-			Command			= (1 << 0),	// Indicates receipt of a new command.
-			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Use get_latest_token() for more details.
-			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
-			HeadLoad		= (1 << 3),	// Indicates the head has been loaded.
-			DataWritten		= (1 << 4),	// Indicates that all queued bits have been written
+			Token			= (1 << 0),	// Indicates recognition of a new token in the flux stream. Use get_latest_token() for more details.
+			IndexHole		= (1 << 1),	// Indicates the passing of a physical index hole.
+			DataWritten		= (1 << 2),	// Indicates that all queued bits have been written
 		};
+
+		/*!
+			Subclasses should implement this. It is called every time a new @c Event is discovered in the incoming data stream.
+			Therefore it is called to announce when:
+
+				(i) a new token is discovered in the incoming stream: an index, ID, data or deleted data, a sync mark or a new byte of data.
+				(ii) the index hole passes; or
+				(iii) the queue of data to be written has been exhausted.
+		*/
 		virtual void posit_event(Event type) = 0;
 
 	private:
