@@ -16,6 +16,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 	Storage::FileHolder(file_name), is_extended_(false) {
 	if(!check_signature("MV - CPC", 8)) {
 		is_extended_ = true;
+		fseek(file_, 0, SEEK_SET);
 		if(!check_signature("EXTENDED", 8))
 			throw ErrorNotCPCDSK;
 	}
