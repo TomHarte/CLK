@@ -406,8 +406,9 @@ void i8272::posit_event(int event_type) {
 
 	// Performs any invalid command.
 	invalid:
-			// A no-op, causing the FDC to go back into standby mode.
-			goto wait_for_command;
+			// A no-op, but posts ST0.
+			result_stack_.push_back(status_[0]);
+			goto post_result;
 
 	// Posts ST0, ST1, ST2, C, H, R and N as a result phase.
 	post_st012chrn:
