@@ -34,7 +34,7 @@ class i8272: public Storage::Disk::MFMController {
 		uint8_t status_[4];
 
 		std::vector<uint8_t> command_;
-		std::vector<uint8_t> result_;
+		std::vector<uint8_t> result_stack_;
 
 		enum class Event8272: int {
 			CommandByte	= (1 << 3),

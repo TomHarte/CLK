@@ -84,10 +84,12 @@ void i8272::set_register(int address, uint8_t value) {
 uint8_t i8272::get_register(int address) {
 	if(address) {
 		printf("8272 get data\n");
-		if(result_.empty()) return 0xff;
-		uint8_t result = result_.back();
-		result_.pop_back();
-		if(result_.empty()) posit_event((int)Event8272::ResultEmpty);
+
+		if(result_stack_.empty()) return 0xff;
+		uint8_t result = result_stack_.back();
+		result_stack_.pop_back();
+		if(result_stack_.empty()) posit_event((int)Event8272::ResultEmpty);
+
 		return result;
 	} else {
 //		printf("8272 get main status\n");
@@ -142,6 +144,7 @@ void i8272::posit_event(int event_type) {
 	wait_for_complete_command_sequence:
 		main_status_ |= StatusRQM;
 		WAIT_FOR_EVENT(Event8272::CommandByte)
+		main_status_ |= StatusCB;
 		main_status_ &= ~StatusRQM;
 
 		switch(command_[0] & 0x1f) {
@@ -210,7 +213,6 @@ void i8272::posit_event(int event_type) {
 
 	read_data:
 		printf("Read data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
-		main_status_ |= StatusCB;
 		if(!dma_mode_) main_status_ |= StatusNDM;
 		set_drive(drives_[command_[1]&3].drive);
 		set_is_double_density(command_[0] & 0x40);
@@ -224,7 +226,7 @@ void i8272::posit_event(int event_type) {
 		FIND_HEADER();
 		if(!index_hole_limit_) goto read_data_not_found;
 		READ_HEADER();
-		printf("Comparing with %02x\n", sector_);
+		printf("Comparing with %02x\n", header_[2]);
 		if(header_[2] != sector_) goto find_next_sector;
 
 		printf("Unimplemented!!\n");
@@ -234,21 +236,17 @@ void i8272::posit_event(int event_type) {
 		printf("Not found\n");
 
 		status_[1] |= 0x4;
-		status_[0] = (status_[0] & ~0xc0) | 0x40;
+		status_[0] = 0x40;	// (status_[0] & ~0xc0) |
 
 	read_data_end:
-//		result_.push_back(header_[3]);
-//		result_.push_back(header_[2]);
-//		result_.push_back(header_[1]);
-//		result_.push_back(header_[0]);
-		result_.push_back(size_);
-		result_.push_back(sector_);
-		result_.push_back(head_);
-		result_.push_back(cylinder_);
+		result_stack_.push_back(command_[5]);
+		result_stack_.push_back(command_[4]);
+		result_stack_.push_back(command_[3]);
+		result_stack_.push_back(command_[2]);
 
-		result_.push_back(status_[2]);
-		result_.push_back(status_[1]);
-		result_.push_back(status_[0]);
+		result_stack_.push_back(status_[2]);
+		result_stack_.push_back(status_[1]);
+		result_stack_.push_back(status_[0]);
 
 		goto post_result;
 
@@ -311,11 +309,12 @@ void i8272::posit_event(int event_type) {
 			}
 			if(found_drive != -1) {
 				drives_[found_drive].phase = Drive::NotSeeking;
-				result_.push_back(drives_[found_drive].head_position);
 				status_[0] = (uint8_t)found_drive | 0x20;
-				result_.push_back(status_[0]);
+
+				result_stack_.push_back(drives_[found_drive].head_position);
+				result_stack_.push_back(status_[0]);
 			} else {
-				result_.push_back(0x80);
+				result_stack_.push_back(0x80);
 			}
 		}
 		goto post_result;
@@ -330,7 +329,7 @@ void i8272::posit_event(int event_type) {
 
 	sense_drive_status:
 		printf("Sense drive status\n");
-		result_.push_back(status_[3]);
+		result_stack_.push_back(status_[3]);
 		goto post_result;
 
 	seek:
@@ -347,9 +346,9 @@ void i8272::posit_event(int event_type) {
 		goto wait_for_command;
 
 	post_result:
-		// Set ready to send data to the processor, no longer in [non-DMA] execution phase.
+		// Set ready to send data to the processor, no longer in non-DMA execution phase.
 		main_status_ |= StatusRQM | StatusDIO;
-		main_status_ &= ~(StatusNDM | StatusCB);
+		main_status_ &= ~StatusNDM;
 
 		WAIT_FOR_EVENT(Event8272::ResultEmpty);
 		main_status_ &= ~StatusDIO;
