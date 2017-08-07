@@ -83,6 +83,7 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		size_t length;
 		uint8_t status1;
 		uint8_t status2;
+		size_t actual_length;
 	};
 	std::vector<SectorInfo> sector_infos;
 	while(number_of_sectors--) {
@@ -95,33 +96,31 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		if(new_sector.length == 0x2000) new_sector.length = 0x1800;
 		new_sector.status1 = (uint8_t)fgetc(file_);
 		new_sector.status2 = (uint8_t)fgetc(file_);
-		fseek(file_, 2, SEEK_CUR);
+		new_sector.actual_length = fgetc16le();
 
 		sector_infos.push_back(new_sector);
 	}
 
 	// Get the sectors.
 	fseek(file_, file_offset + 0x100, SEEK_SET);
-	if(is_extended_) {
-		// TODO: everything about extended disk images
-	} else {
-		std::vector<Storage::Encodings::MFM::Sector> sectors;
-		for(auto &sector_info : sector_infos) {
-			Storage::Encodings::MFM::Sector new_sector;
-			new_sector.track = sector_info.track;
-			new_sector.side = sector_info.side;
-			new_sector.sector = sector_info.sector;
-			new_sector.data.resize(sector_info.length);
-			fread(new_sector.data.data(), sizeof(uint8_t), sector_info.length, file_);
+	std::vector<Storage::Encodings::MFM::Sector> sectors;
+	for(auto &sector_info : sector_infos) {
+		Storage::Encodings::MFM::Sector new_sector;
+		new_sector.track = sector_info.track;
+		new_sector.side = sector_info.side;
+		new_sector.sector = sector_info.sector;
 
-			// TODO: obey the status bytes, somehow (?)
+		size_t data_size = is_extended_ ? sector_info.actual_length : sector_info.length;
+		new_sector.data.resize(data_size);
+		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
-			sectors.push_back(std::move(new_sector));
-		}
+		// TODO: obey the status bytes, somehow (?)
 
-		// TODO: supply gay 3 length and filler byte
-		if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
+		sectors.push_back(std::move(new_sector));
 	}
+
+	// TODO: supply gay 3 length and filler byte
+	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
 
 	return nullptr;
 }
