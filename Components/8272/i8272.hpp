@@ -31,7 +31,7 @@ class i8272: public Storage::Disk::MFMController {
 	private:
 		void posit_event(int type);
 		uint8_t main_status_;
-		uint8_t status_[4];
+		uint8_t status_[3];
 
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;

@@ -29,7 +29,7 @@ i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_m
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
 	delay_time_(0),
-	status_{0, 0, 0, 0} {
+	status_{0, 0, 0} {
 	posit_event((int)Event8272::CommandByte);
 }
 
@@ -91,7 +91,7 @@ uint8_t i8272::get_register(int address) {
 
 		return result;
 	} else {
-//		printf("8272 get main status\n");
+//		printf("Main status: %02x\n", main_status_);
 		return main_status_;
 	}
 }
@@ -150,6 +150,7 @@ void i8272::posit_event(int event_type) {
 	wait_for_complete_command_sequence:
 		main_status_ |= StatusRQM;
 		WAIT_FOR_EVENT(Event8272::CommandByte)
+//		printf(".");
 		main_status_ |= StatusCB;
 		main_status_ &= ~StatusRQM;
 
@@ -325,12 +326,14 @@ void i8272::posit_event(int event_type) {
 	recalibrate:
 	seek:
 		printf((command_.size() > 2) ? "Seek\n" : "Recalibrate\n");
-		status_[0] = status_[1] = status_[2] = 0;
-		drives_[command_[1]&3].phase = Drive::Seeking;
-		drives_[command_[1]&3].steps_taken = 0;
-		drives_[command_[1]&3].target_head_position = (command_.size() > 2) ? command_[2] : -1;
-		drives_[command_[1]&3].step_rate_counter = 0;
-		main_status_ |= 1 << (command_[1]&3);
+		if(drives_[command_[1]&3].phase != Drive::Seeking) {
+			status_[0] = status_[1] = status_[2] = 0;
+			drives_[command_[1]&3].phase = Drive::Seeking;
+			drives_[command_[1]&3].steps_taken = 0;
+			drives_[command_[1]&3].target_head_position = (command_.size() > 2) ? command_[2] : -1;
+			drives_[command_[1]&3].step_rate_counter = 0;
+			main_status_ |= 1 << (command_[1]&3);
+		}
 		goto wait_for_command;
 
 	sense_interrupt_status:
@@ -367,8 +370,8 @@ void i8272::posit_event(int event_type) {
 		goto wait_for_command;
 
 	sense_drive_status:
-		printf("Sense drive status\n");
-		result_stack_.push_back(status_[3]);
+		printf("Sense drive status unimplemented!!\n");
+//		result_stack_.push_back(status_[3]);
 		goto post_result;
 
 	invalid:
