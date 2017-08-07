@@ -60,6 +60,7 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		unsigned int t = 0;
 		while(t < chronological_track && t < track_sizes_.size()) {
 			file_offset += track_sizes_[t];
+			t++;
 		}
 	} else {
 		// Tracks are a fixed size in the original DSK file format.
