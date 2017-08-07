@@ -53,15 +53,16 @@ void i8272::run_for(Cycles cycles) {
 			int steps = drives_[c].step_rate_counter / (8000 * step_rate_time_);
 			drives_[c].step_rate_counter %= (8000 * step_rate_time_);
 			while(steps--) {
-				if(
-					(drives_[c].target_head_position == (int)drives_[c].head_position) ||
-					(drives_[c].drive->get_is_track_zero() && drives_[c].target_head_position == -1)) {
+				// Perform a step.
+				int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
+				drives_[c].drive->step(direction);
+				drives_[c].head_position += direction;
+
+				// Check for completion.
+				if(seek_is_satisfied(c)) {
 					drives_[c].phase = Drive::CompletedSeeking;
 					if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
-				} else {
-					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					drives_[c].drive->step(direction);
-					drives_[c].head_position += direction;
+					break;
 				}
 			}
 		}
@@ -356,11 +357,18 @@ void i8272::posit_event(int event_type) {
 		// returning that its at track zero, and that it should reset the drive's current position once reached.
 			if(drives_[command_[1]&3].phase != Drive::Seeking) {
 				status_[0] = status_[1] = status_[2] = 0;
-				drives_[command_[1]&3].phase = Drive::Seeking;
-				drives_[command_[1]&3].steps_taken = 0;
-				drives_[command_[1]&3].target_head_position = (command_.size() > 2) ? command_[2] : -1;
-				drives_[command_[1]&3].step_rate_counter = 0;
-				main_status_ |= 1 << (command_[1]&3);
+				int drive = command_[1]&3;
+				drives_[drive].phase = Drive::Seeking;
+				drives_[drive].steps_taken = 0;
+				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
+				drives_[drive].step_rate_counter = 0;
+
+				// Check whether any steps are even needed.
+				if(seek_is_satisfied(drive)) {
+					drives_[drive].phase = Drive::CompletedSeeking;
+				} else {
+					main_status_ |= 1 << (command_[1]&3);
+				}
 			}
 			goto wait_for_command;
 
@@ -439,4 +447,9 @@ void i8272::posit_event(int event_type) {
 			goto wait_for_command;
 
 	END_SECTION()
+}
+
+bool i8272::seek_is_satisfied(int drive) {
+	return	(drives_[drive].target_head_position == drives_[drive].head_position) ||
+			(drives_[drive].target_head_position == -1 && drives_[drive].drive->get_is_track_zero());
 }

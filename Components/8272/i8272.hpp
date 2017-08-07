@@ -73,6 +73,8 @@ class i8272: public Storage::Disk::MFMController {
 		int index_hole_limit_;
 
 		uint8_t cylinder_, head_, sector_, size_;
+
+		bool seek_is_satisfied(int drive);
 };
 
 }
