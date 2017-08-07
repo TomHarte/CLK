@@ -59,6 +59,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 	private:
 		int selected_register_;
 		uint8_t registers_[16], output_registers_[16];
+		uint8_t port_inputs_[2];
 
 		int master_divider_;
 
