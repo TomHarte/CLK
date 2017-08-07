@@ -169,10 +169,11 @@ void AY38910::evaluate_output_volume() {
 #pragma mark - Register manipulation
 
 void AY38910::select_register(uint8_t r) {
-	selected_register_ = r & 0xf;
+	selected_register_ = r;
 }
 
 void AY38910::set_register_value(uint8_t value) {
+	if(selected_register_ > 15) return;
 	registers_[selected_register_] = value;
 	if(selected_register_ < 14) {
 		int selected_register = selected_register_;
@@ -226,7 +227,12 @@ uint8_t AY38910::get_register_value() {
 		0xe0, 0xe0, 0xe0, 0x00, 0x00, 0xf0, 0x00, 0x00
 	};
 
-	return registers_[selected_register_] | register_masks[selected_register_];
+	if(selected_register_ > 15) return 0xff;
+	switch(selected_register_) {
+		default:	return registers_[selected_register_] & ~register_masks[selected_register_];
+		case 14:	return (registers_[0x7] & 0x40) ? registers_[14] : port_inputs_[0];
+		case 15:	return (registers_[0x7] & 0x80) ? registers_[15] : port_inputs_[1];
+	}
 }
 
 #pragma mark - Port handling
@@ -236,7 +242,7 @@ uint8_t AY38910::get_port_output(bool port_b) {
 }
 
 void AY38910::set_port_input(bool port_b, uint8_t value) {
-	registers_[port_b ? 15 : 14] = value;
+	port_inputs_[port_b ? 1 : 0] = value;
 	update_bus();
 }
 
