@@ -108,27 +108,30 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
 
+#define PASTE(x, y) x##y
+#define CONCAT(x, y) PASTE(x, y)
+
 #define FIND_HEADER()	\
-	{	\
-		find_header: WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-		if(event_type == (int)Event::IndexHole) index_hole_limit_--;	\
-		else if(get_latest_token().type == Token::ID) goto header_found;	\
-		\
-		if(index_hole_limit_) goto find_header;	\
-		header_found:	0;\
-	}
-	
+	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
+	if(event_type == (int)Event::IndexHole) index_hole_limit_--;	\
+	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
+	\
+	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
+	CONCAT(header_found, __LINE__):	0;\
+
 #define READ_HEADER()	\
 	distance_into_header_ = 0;	\
 	set_data_mode(Reading);	\
-	{	\
-		read_header: WAIT_FOR_EVENT(Event::Token); \
-		header_[distance_into_header_] = get_latest_token().byte_value;	\
-		distance_into_header_++; \
-		if(distance_into_header_ != 7) goto read_header;	\
-	}	\
+	CONCAT(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
+	header_[distance_into_header_] = get_latest_token().byte_value;	\
+	distance_into_header_++; \
+	if(distance_into_header_ != 7) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
+#define SET_DRIVE_HEAD_MFM()	\
+	if(!dma_mode_) main_status_ |= StatusNDM;	\
+	set_drive(drives_[command_[1]&3].drive);	\
+	set_is_double_density(command_[0] & 0x40);
 
 void i8272::posit_event(int event_type) {
 	if(!(interesting_event_mask_ & event_type)) return;
@@ -213,9 +216,7 @@ void i8272::posit_event(int event_type) {
 
 	read_data:
 		printf("Read data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
-		if(!dma_mode_) main_status_ |= StatusNDM;
-		set_drive(drives_[command_[1]&3].drive);
-		set_is_double_density(command_[0] & 0x40);
+		SET_DRIVE_HEAD_MFM();
 		cylinder_ = command_[2];
 		head_ = command_[3];
 		sector_ = command_[4];
@@ -267,8 +268,37 @@ void i8272::posit_event(int event_type) {
 		goto wait_for_command;
 
 	read_id:
-		printf("Read ID unimplemented!!\n");
-		goto wait_for_command;
+		printf("Read ID\n");
+		SET_DRIVE_HEAD_MFM();
+
+		index_hole_limit_ = 2;
+	read_id_find_next_sector:
+		FIND_HEADER();
+		if(!index_hole_limit_) goto read_id_not_found;
+		READ_HEADER();
+
+		cylinder_ = header_[0];
+		head_ = header_[1];
+		sector_ = header_[2];
+		size_ = header_[3];
+
+		goto return_st012chrn;
+
+	read_id_not_found:
+		status_[1] |= 0x4;
+		status_[0] = 0x40;	// (status_[0] & ~0xc0) |
+
+	return_st012chrn:
+		result_stack_.push_back(size_);
+		result_stack_.push_back(sector_);
+		result_stack_.push_back(head_);
+		result_stack_.push_back(cylinder_);
+
+		result_stack_.push_back(status_[2]);
+		result_stack_.push_back(status_[1]);
+		result_stack_.push_back(status_[0]);
+
+		goto post_result;
 
 	format_track:
 		printf("Fromat track unimplemented!!\n");
