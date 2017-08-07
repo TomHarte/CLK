@@ -69,7 +69,7 @@ class i8272: public Storage::Disk::MFMController {
 		} drives_[4];
 
 		uint8_t header_[6];
-		int distance_into_header_;
+		int distance_into_section_;
 		int index_hole_limit_;
 
 		uint8_t cylinder_, head_, sector_, size_;

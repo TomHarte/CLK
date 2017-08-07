@@ -119,13 +119,17 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
 	CONCAT(header_found, __LINE__):	0;\
 
+#define FIND_DATA()	\
+	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
+	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data) goto CONCAT(find_data, __LINE__);
+
 #define READ_HEADER()	\
-	distance_into_header_ = 0;	\
+	distance_into_section_ = 0;	\
 	set_data_mode(Reading);	\
 	CONCAT(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
-	header_[distance_into_header_] = get_latest_token().byte_value;	\
-	distance_into_header_++; \
-	if(distance_into_header_ != 7) goto CONCAT(read_header, __LINE__);	\
+	header_[distance_into_section_] = get_latest_token().byte_value;	\
+	distance_into_section_++; \
+	if(distance_into_section_ != 7) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
 #define SET_DRIVE_HEAD_MFM()	\
@@ -230,26 +234,27 @@ void i8272::posit_event(int event_type) {
 		printf("Comparing with %02x\n", header_[2]);
 		if(header_[2] != sector_) goto find_next_sector;
 
-		printf("Unimplemented!!\n");
-		goto wait_for_command;
+		FIND_DATA();
+		distance_into_section_ = 0;
+		set_data_mode(Reading);
+
+	get_byte:
+		WAIT_FOR_EVENT(Event::Token);
+		result_stack_.push_back(get_latest_token().byte_value);
+		distance_into_section_++;
+		main_status_ |= StatusRQM | StatusDIO;
+		WAIT_FOR_EVENT(Event8272::ResultEmpty);
+		if(distance_into_section_ < (128 << size_)) goto get_byte;
+
+		set_data_mode(Scanning);
+		goto return_st012chrn;
 
 	read_data_not_found:
 		printf("Not found\n");
 
 		status_[1] |= 0x4;
 		status_[0] = 0x40;	// (status_[0] & ~0xc0) |
-
-	read_data_end:
-		result_stack_.push_back(command_[5]);
-		result_stack_.push_back(command_[4]);
-		result_stack_.push_back(command_[3]);
-		result_stack_.push_back(command_[2]);
-
-		result_stack_.push_back(status_[2]);
-		result_stack_.push_back(status_[1]);
-		result_stack_.push_back(status_[0]);
-
-		goto post_result;
+		goto return_st012chrn;
 
 	read_deleted_data:
 		printf("Read deleted data unimplemented!!\n");
