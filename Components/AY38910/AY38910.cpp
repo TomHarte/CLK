@@ -227,7 +227,7 @@ uint8_t AY38910::get_register_value() {
 	};
 
 	switch(selected_register_) {
-		default:	return registers_[selected_register_] | register_masks[selected_register_];
+		default:	return registers_[selected_register_] & ~register_masks[selected_register_];
 		case 14:	return (registers_[0x7] & 0x40) ? registers_[14] : port_inputs_[0];
 		case 15:	return (registers_[0x7] & 0x80) ? registers_[15] : port_inputs_[1];
 	}
