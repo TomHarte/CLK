@@ -244,6 +244,7 @@ void i8272::posit_event(int event_type) {
 		distance_into_section_++;
 		main_status_ |= StatusRQM | StatusDIO;
 		WAIT_FOR_EVENT(Event8272::ResultEmpty);
+		main_status_ &= ~StatusRQM;
 		if(distance_into_section_ < (128 << size_)) goto get_byte;
 
 		set_data_mode(Scanning);
