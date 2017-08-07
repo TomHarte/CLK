@@ -27,6 +27,8 @@ CPCDSK::CPCDSK(const char *file_name) :
 	head_count_ = (unsigned int)fgetc(file_);
 
 	if(is_extended_) {
+		// Skip two unused bytes and grab the track size table.
+		fseek(file_, 2, SEEK_CUR);
 		for(unsigned int c = 0; c < head_position_count_ * head_count_; c++) {
 			track_sizes_.push_back((size_t)(fgetc(file_) << 8));
 		}
