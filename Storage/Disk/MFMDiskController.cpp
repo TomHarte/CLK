@@ -49,6 +49,10 @@ MFMController::Token MFMController::get_latest_token() {
 	return latest_token_;
 }
 
+NumberTheory::CRC16 &MFMController::get_crc_generator() {
+	return crc_generator_;
+}
+
 void MFMController::process_input_bit(int value, unsigned int cycles_since_index_hole) {
 	if(data_mode_ == DataMode::Writing) return;
 

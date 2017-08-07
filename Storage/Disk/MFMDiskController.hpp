@@ -70,6 +70,9 @@ class MFMController: public Controller {
 		/// @returns The most-recently read token from the surface of the disk.
 		Token get_latest_token();
 
+		/// @returns The controller's CRC generator. This is automatically fed during reading.
+		NumberTheory::CRC16 &get_crc_generator();
+
 		// Events
 		enum class Event: int {
 			Token			= (1 << 0),	// Indicates recognition of a new token in the flux stream. Use get_latest_token() for more details.

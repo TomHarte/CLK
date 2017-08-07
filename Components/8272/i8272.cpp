@@ -131,7 +131,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	CONCAT(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
 	header_[distance_into_section_] = get_latest_token().byte_value;	\
 	distance_into_section_++; \
-	if(distance_into_section_ != 7) goto CONCAT(read_header, __LINE__);	\
+	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
 #define SET_DRIVE_HEAD_MFM()	\
@@ -281,6 +281,10 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event8272::ResultEmpty);
 			main_status_ &= ~StatusRQM;
 			if(distance_into_section_ < (128 << size_)) goto get_byte;
+
+		// read CRC, without transferring it
+			WAIT_FOR_EVENT(Event::Token);
+			WAIT_FOR_EVENT(Event::Token);
 
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
