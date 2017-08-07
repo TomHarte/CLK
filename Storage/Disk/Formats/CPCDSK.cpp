@@ -16,6 +16,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 	Storage::FileHolder(file_name), is_extended_(false) {
 	if(!check_signature("MV - CPC", 8)) {
 		is_extended_ = true;
+		fseek(file_, 0, SEEK_SET);
 		if(!check_signature("EXTENDED", 8))
 			throw ErrorNotCPCDSK;
 	}
@@ -26,6 +27,8 @@ CPCDSK::CPCDSK(const char *file_name) :
 	head_count_ = (unsigned int)fgetc(file_);
 
 	if(is_extended_) {
+		// Skip two unused bytes and grab the track size table.
+		fseek(file_, 2, SEEK_CUR);
 		for(unsigned int c = 0; c < head_position_count_ * head_count_; c++) {
 			track_sizes_.push_back((size_t)(fgetc(file_) << 8));
 		}
@@ -59,6 +62,7 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		unsigned int t = 0;
 		while(t < chronological_track && t < track_sizes_.size()) {
 			file_offset += track_sizes_[t];
+			t++;
 		}
 	} else {
 		// Tracks are a fixed size in the original DSK file format.
@@ -79,48 +83,71 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		uint8_t track;
 		uint8_t side;
 		uint8_t sector;
-		size_t length;
+		uint8_t length;
 		uint8_t status1;
 		uint8_t status2;
+		size_t actual_length;
 	};
 	std::vector<SectorInfo> sector_infos;
 	while(number_of_sectors--) {
-		SectorInfo new_sector;
+		SectorInfo sector_info;
 
-		new_sector.track = (uint8_t)fgetc(file_);
-		new_sector.side = (uint8_t)fgetc(file_);
-		new_sector.sector = (uint8_t)fgetc(file_);
-		new_sector.length = (size_t)(128 << fgetc(file_));
-		if(new_sector.length == 0x2000) new_sector.length = 0x1800;
-		new_sector.status1 = (uint8_t)fgetc(file_);
-		new_sector.status2 = (uint8_t)fgetc(file_);
-		fseek(file_, 2, SEEK_CUR);
+		sector_info.track = (uint8_t)fgetc(file_);
+		sector_info.side = (uint8_t)fgetc(file_);
+		sector_info.sector = (uint8_t)fgetc(file_);
+		sector_info.length = (uint8_t)fgetc(file_);
+		sector_info.status1 = (uint8_t)fgetc(file_);
+		sector_info.status2 = (uint8_t)fgetc(file_);
+		sector_info.actual_length = fgetc16le();
 
-		sector_infos.push_back(new_sector);
+		sector_infos.push_back(sector_info);
 	}
 
 	// Get the sectors.
 	fseek(file_, file_offset + 0x100, SEEK_SET);
-	if(is_extended_) {
-		// TODO: everything about extended disk images
-	} else {
-		std::vector<Storage::Encodings::MFM::Sector> sectors;
-		for(auto &sector_info : sector_infos) {
-			Storage::Encodings::MFM::Sector new_sector;
-			new_sector.track = sector_info.track;
-			new_sector.side = sector_info.side;
-			new_sector.sector = sector_info.sector;
-			new_sector.data.resize(sector_info.length);
-			fread(new_sector.data.data(), sizeof(uint8_t), sector_info.length, file_);
+	std::vector<Storage::Encodings::MFM::Sector> sectors;
+	for(auto &sector_info : sector_infos) {
+		Storage::Encodings::MFM::Sector new_sector;
+		new_sector.track = sector_info.track;
+		new_sector.side = sector_info.side;
+		new_sector.sector = sector_info.sector;
 
-			// TODO: obey the status bytes, somehow (?)
+		size_t data_size;
+		if(is_extended_) {
+			data_size = sector_info.actual_length;
+		} else {
+			data_size = (size_t)(128 << sector_info.length);
+			if(data_size == 0x2000) data_size = 0x1800;
+		}
+		new_sector.data.resize(data_size);
+		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
-			sectors.push_back(std::move(new_sector));
+		// TODO: obey the status bytes, somehow (?)
+		if(sector_info.status1 || sector_info.status2) {
+			if(sector_info.status1 & 0x08) {
+				// The CRC failed in the ID field.
+			}
+
+			if(sector_info.status2 & 0x20) {
+				// The CRC failed in the data field.
+			}
+
+			if(sector_info.status2 & 0x40) {
+				// This sector is marked as deleted.
+			}
+
+			if(sector_info.status2 & 0x01) {
+				// Data field wasn't found.
+			}
+
+			printf("Unhandled: status errors\n");
 		}
 
-		// TODO: supply gay 3 length and filler byte
-		if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
+		sectors.push_back(std::move(new_sector));
 	}
+
+	// TODO: supply gay 3 length and filler byte
+	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
 
 	return nullptr;
 }

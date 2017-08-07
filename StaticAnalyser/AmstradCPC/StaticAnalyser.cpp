@@ -19,5 +19,8 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 	target.disks = disks;
 	target.tapes = tapes;
 	target.cartridges = cartridges;
+
+	target.amstradcpc.model = target.disks.empty() ? AmstradCPCModel::CPC464 : AmstradCPCModel::CPC664;
+
 	destination.push_back(target);
 }

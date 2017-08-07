@@ -14,6 +14,7 @@
 #include "PCMSegment.hpp"
 #include "PCMPatchedTrack.hpp"
 #include "../TimedEventLoop.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -33,7 +34,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
 			spinning inserted disks at @c revolutions_per_minute.
 		*/
-		Controller(int clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		Controller(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 		/*!
 			Communicates to the PLL the expected length of a bit as a fraction of a second.

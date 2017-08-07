@@ -263,7 +263,7 @@ void WD1770::process_write_completed() {
 }
 
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = mask; return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; if(delay_time_) return; case __LINE__:
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; case __LINE__: if(delay_time_) return;
 #define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; interesting_event_mask_ = Event::Token; distance_into_section_ = 0; return; case __LINE__: if(latest_token_.type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = Event::Token; return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }

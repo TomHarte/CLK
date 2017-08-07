@@ -18,9 +18,10 @@
 
 namespace AmstradCPC {
 
-enum ROMType: uint8_t {
-	OS464,		OS664,		OS6128,
-	BASIC464,	BASIC664,	BASIC6128,
+enum ROMType: int {
+	OS464 = 0,	BASIC464,
+	OS664,		BASIC664,
+	OS6128,		BASIC6128,
 	AMSDOS
 };
 

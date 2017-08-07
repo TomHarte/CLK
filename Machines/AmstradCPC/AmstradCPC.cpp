@@ -10,9 +10,10 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 
-#include "../../Components/8255/i8255.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/6845/CRTC6845.hpp"
+#include "../../Components/8255/i8255.hpp"
+#include "../../Components/8272/i8272.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -428,6 +429,19 @@ struct KeyboardState {
 };
 
 /*!
+	Wraps the 8272 so as to provide proper clocking and RPM counts, and just directly
+	exposes motor control, applying the same value to all drives.
+*/
+class FDC: public Intel::i8272 {
+	public:
+		FDC() : i8272(Cycles(8000000), 16, 300) {}
+
+		void set_motor_on(bool on) {
+			Intel::i8272::set_motor_on(on);
+		}
+};
+
+/*!
 	Provides the mechanism of receipt for input and output of the 8255's various ports.
 */
 class i8255PortHandler : public Intel::i8255::PortHandler {
@@ -545,6 +559,9 @@ class ConcreteMachine:
 			// Pump the AY.
 			ay_.run_for(cycle.length);
 
+			// Clock the FDC, if connected, using a lazy scale by two
+			if(has_fdc_) fdc_.run_for(Cycles(cycle.length.as_int()));
+
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
 
@@ -567,8 +584,10 @@ class ConcreteMachine:
 							case 1: crtc_bus_handler_.set_colour(*cycle.value & 0x1f);		break;
 							case 2:
 								// Perform ROM paging.
-								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : os_.data();
-								read_pointers_[3] = (*cycle.value & 8) ? &ram_[49152] : basic_.data();
+								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : roms_[rom_model_].data();
+
+								upper_rom_is_paged_ = !(*cycle.value & 8);
+								read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : &ram_[49152];
 
 								// Reset the interrupt timer if requested.
 								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
@@ -578,6 +597,12 @@ class ConcreteMachine:
 							break;
 							case 3: printf("RAM paging?\n"); break;
 						}
+					}
+
+					// Check for an upper ROM selection
+					if(has_fdc_ && !(address&0x2000)) {
+						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : rom_model_ + 1;
+						if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
 					}
 
 					// Check for a CRTC access
@@ -592,6 +617,16 @@ class ConcreteMachine:
 					// Check for an 8255 PIO access
 					if(!(address & 0x800)) {
 						i8255_.set_register((address >> 8) & 3, *cycle.value);
+					}
+
+					// Check for an FDC access
+					if(has_fdc_ && (address & 0x580) == 0x100) {
+						fdc_.set_register(address & 1, *cycle.value);
+					}
+
+					// Check for a disk motor access
+					if(has_fdc_ && !(address & 0x580)) {
+						fdc_.set_motor_on(!!(*cycle.value));
 					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -610,6 +645,11 @@ class ConcreteMachine:
 					// Check for a PIO access
 					if(!(address & 0x800)) {
 						*cycle.value = i8255_.get_register((address >> 8) & 3);
+					}
+
+					// Check for an FDC access
+					if(has_fdc_ && (address & 0x580) == 0x100) {
+						*cycle.value = fdc_.get_register(address & 1);
 					}
 				break;
 
@@ -666,11 +706,28 @@ class ConcreteMachine:
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			// Establish reset memory map as per machine model (or, for now, as a hard-wired 464)
-			read_pointers_[0] = os_.data();
+			switch(target.amstradcpc.model) {
+				case StaticAnalyser::AmstradCPCModel::CPC464:
+					rom_model_ = ROMType::OS464;
+					has_fdc_ = false;
+				break;
+				case StaticAnalyser::AmstradCPCModel::CPC664:
+					rom_model_ = ROMType::OS664;
+					has_fdc_ = true;
+				break;
+				case StaticAnalyser::AmstradCPCModel::CPC6128:
+					rom_model_ = ROMType::OS6128;
+					has_fdc_ = true;
+				break;
+			}
+
+			// Establish default memory map
+			upper_rom_is_paged_ = true;
+			upper_rom_ = rom_model_ + 1;
+			read_pointers_[0] = roms_[rom_model_].data();
 			read_pointers_[1] = &ram_[16384];
 			read_pointers_[2] = &ram_[32768];
-			read_pointers_[3] = basic_.data();
+			read_pointers_[3] = roms_[upper_rom_].data();
 
 			write_pointers_[0] = &ram_[0];
 			write_pointers_[1] = &ram_[16384];
@@ -681,16 +738,19 @@ class ConcreteMachine:
 			if(!target.tapes.empty()) {
 				tape_player_.set_tape(target.tapes.front());
 			}
+
+			// Insert up to four disks.
+			int c = 0;
+			for(auto &disk : target.disks) {
+				fdc_.set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
 		}
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
-			// Keep only the two ROMs that are currently of interest.
-			switch(type) {
-				case ROMType::OS464:		os_ = data;		break;
-				case ROMType::BASIC464:		basic_ = data;	break;
-				default: break;
-			}
+			roms_[(int)type] = data;
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -715,6 +775,8 @@ class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
+		FDC fdc_;
+
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;
 
@@ -722,8 +784,12 @@ class ConcreteMachine:
 		HalfCycles crtc_counter_;
 		HalfCycles half_cycles_since_ay_update_;
 
-		uint8_t ram_[65536];
-		std::vector<uint8_t> os_, basic_;
+		uint8_t ram_[128 * 1024];
+		std::vector<uint8_t> roms_[7];
+		int rom_model_;
+		bool has_fdc_;
+		bool upper_rom_is_paged_;
+		int upper_rom_;
 
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];

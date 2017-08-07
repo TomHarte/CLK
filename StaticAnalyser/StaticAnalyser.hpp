@@ -46,6 +46,12 @@ enum class ZX8081MemoryModel {
 	SixtyFourKB
 };
 
+enum class AmstradCPCModel {
+	CPC464,
+	CPC664,
+	CPC6128
+};
+
 /*!
 	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
@@ -61,6 +67,8 @@ struct Target {
 	} machine;
 	float probability;
 
+	// TODO: this is too C-like a solution; make Target a base class and
+	// turn the following into information held by more specific subclasses.
 	union {
 		struct {
 			bool has_adfs;
@@ -87,6 +95,10 @@ struct Target {
 			ZX8081MemoryModel memory_model;
 			bool isZX81;
 		} zx8081;
+
+		struct {
+			AmstradCPCModel model;
+		} amstradcpc;
 	};
 
 	std::string loadingCommand;
