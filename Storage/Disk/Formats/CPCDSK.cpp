@@ -124,6 +124,22 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 
 		// TODO: obey the status bytes, somehow (?)
 		if(sector_info.status1 || sector_info.status2) {
+			if(sector_info.status1 & 0x08) {
+				// The CRC failed in the ID field.
+			}
+
+			if(sector_info.status2 & 0x20) {
+				// The CRC failed in the data field.
+			}
+
+			if(sector_info.status2 & 0x40) {
+				// This sector is marked as deleted.
+			}
+
+			if(sector_info.status2 & 0x01) {
+				// Data field wasn't found.
+			}
+
 			printf("Unhandled: status errors\n");
 		}
 
