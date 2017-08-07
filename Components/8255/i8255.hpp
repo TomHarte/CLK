@@ -46,9 +46,13 @@ template <class T> class i8255 {
 
 		uint8_t get_register(int address) {
 			switch(address & 3) {
-				case 0:	return port_handler_.get_value(0);
-				case 1:	return port_handler_.get_value(1);
-				case 2:	return port_handler_.get_value(2);
+				case 0:	return (control_ & 0x10) ? port_handler_.get_value(0) : outputs_[0];
+				case 1:	return (control_ & 0x02) ? port_handler_.get_value(1) : outputs_[1];
+				case 2:	{
+					if(!(control_ & 0x09)) return outputs_[2];
+					uint8_t input = port_handler_.get_value(2);
+					return ((control_ & 0x01) ? (input & 0x0f) : (outputs_[2] & 0x0f)) | ((control_ & 0x08) ? (input & 0xf0) : (outputs_[2] & 0xf0));
+				}
 				case 3:	return control_;
 			}
 			return 0xff;
