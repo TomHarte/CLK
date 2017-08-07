@@ -83,25 +83,24 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		uint8_t track;
 		uint8_t side;
 		uint8_t sector;
-		size_t length;
+		uint8_t length;
 		uint8_t status1;
 		uint8_t status2;
 		size_t actual_length;
 	};
 	std::vector<SectorInfo> sector_infos;
 	while(number_of_sectors--) {
-		SectorInfo new_sector;
+		SectorInfo sector_info;
 
-		new_sector.track = (uint8_t)fgetc(file_);
-		new_sector.side = (uint8_t)fgetc(file_);
-		new_sector.sector = (uint8_t)fgetc(file_);
-		new_sector.length = (size_t)(128 << fgetc(file_));
-		if(new_sector.length == 0x2000) new_sector.length = 0x1800;
-		new_sector.status1 = (uint8_t)fgetc(file_);
-		new_sector.status2 = (uint8_t)fgetc(file_);
-		new_sector.actual_length = fgetc16le();
+		sector_info.track = (uint8_t)fgetc(file_);
+		sector_info.side = (uint8_t)fgetc(file_);
+		sector_info.sector = (uint8_t)fgetc(file_);
+		sector_info.length = (uint8_t)fgetc(file_);
+		sector_info.status1 = (uint8_t)fgetc(file_);
+		sector_info.status2 = (uint8_t)fgetc(file_);
+		sector_info.actual_length = fgetc16le();
 
-		sector_infos.push_back(new_sector);
+		sector_infos.push_back(sector_info);
 	}
 
 	// Get the sectors.
@@ -113,11 +112,20 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		new_sector.side = sector_info.side;
 		new_sector.sector = sector_info.sector;
 
-		size_t data_size = is_extended_ ? sector_info.actual_length : sector_info.length;
+		size_t data_size;
+		if(is_extended_) {
+			data_size = sector_info.actual_length;
+		} else {
+			data_size = (size_t)(128 << sector_info.length);
+			if(data_size == 0x2000) data_size = 0x1800;
+		}
 		new_sector.data.resize(data_size);
 		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
 		// TODO: obey the status bytes, somehow (?)
+		if(sector_info.status1 || sector_info.status2) {
+			printf("Unhandled: status errors\n");
+		}
 
 		sectors.push_back(std::move(new_sector));
 	}
