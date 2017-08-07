@@ -26,8 +26,17 @@ template <class T> class i8255 {
 
 		void set_register(int address, uint8_t value) {
 			switch(address & 3) {
-				case 0:	outputs_[0] = value; port_handler_.set_value(0, value);	break;
-				case 1:	outputs_[1] = value; port_handler_.set_value(1, value);	break;
+				case 0:
+					if(!(control_ & 0x10)) {
+						// TODO: so what would output be when switching from input to output mode?
+						outputs_[0] = value; port_handler_.set_value(0, value);
+					}
+				break;
+				case 1:
+					if(!(control_ & 0x02)) {
+						outputs_[1] = value; port_handler_.set_value(1, value);
+					}
+				break;
 				case 2:	outputs_[2] = value; port_handler_.set_value(2, value);	break;
 				case 3:
 					if(value & 0x80) {
