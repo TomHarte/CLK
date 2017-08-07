@@ -60,7 +60,7 @@ class i8272: public Storage::Disk::MFMController {
 				CompletedSeeking
 			} phase;
 			int step_rate_counter;
-			int permitted_steps;
+			int steps_taken;
 			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
 
 			std::shared_ptr<Storage::Disk::Drive> drive;
