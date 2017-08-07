@@ -47,22 +47,24 @@ void i8272::run_for(Cycles cycles) {
 	}
 
 	// update seek status of any drives presently seeking
-	for(int c = 0; c < 4; c++) {
-		if(drives_[c].phase == Drive::Seeking) {
-			drives_[c].step_rate_counter += cycles.as_int();
-			int steps = drives_[c].step_rate_counter / (8000 * step_rate_time_);
-			drives_[c].step_rate_counter %= (8000 * step_rate_time_);
-			while(steps--) {
-				// Perform a step.
-				int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-				drives_[c].drive->step(direction);
-				drives_[c].head_position += direction;
+	if(main_status_ & 0xf) {
+		for(int c = 0; c < 4; c++) {
+			if(drives_[c].phase == Drive::Seeking) {
+				drives_[c].step_rate_counter += cycles.as_int();
+				int steps = drives_[c].step_rate_counter / (8000 * step_rate_time_);
+				drives_[c].step_rate_counter %= (8000 * step_rate_time_);
+				while(steps--) {
+					// Perform a step.
+					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
+					drives_[c].drive->step(direction);
+					drives_[c].head_position += direction;
 
-				// Check for completion.
-				if(seek_is_satisfied(c)) {
-					drives_[c].phase = Drive::CompletedSeeking;
-					if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
-					break;
+					// Check for completion.
+					if(seek_is_satisfied(c)) {
+						drives_[c].phase = Drive::CompletedSeeking;
+						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
+						break;
+					}
 				}
 			}
 		}
