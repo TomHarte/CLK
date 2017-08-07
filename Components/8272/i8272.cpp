@@ -135,7 +135,8 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define SET_DRIVE_HEAD_MFM()	\
 	if(!dma_mode_) main_status_ |= StatusNDM;	\
 	set_drive(drives_[command_[1]&3].drive);	\
-	set_is_double_density(command_[0] & 0x40);
+	set_is_double_density(command_[0] & 0x40);	\
+	invalidate_track();
 
 void i8272::posit_event(int event_type) {
 	if(!(interesting_event_mask_ & event_type)) return;
