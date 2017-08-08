@@ -96,6 +96,8 @@ template <class T> class CRTC6845 {
 						if(bus_state_.row_address == registers_[9]) {
 							line_address_ = bus_state_.refresh_address;
 							bus_state_.row_address = 0;
+
+							bool is_at_end_of_frame = line_counter_ == registers_[4];
 							line_counter_++;
 
 							// check for end of visible lines
@@ -111,7 +113,7 @@ template <class T> class CRTC6845 {
 							}
 
 							// check for entry into the overflow area
-							if(line_counter_ == registers_[4]) {
+							if(is_at_end_of_frame) {
 								if(registers_[5]) {
 									is_in_adjustment_period_ = true;
 								} else {
