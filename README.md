@@ -9,9 +9,10 @@ So its aims are:
 
 It currently contains emulations of the:
 * Acorn Electron;
+* Amstrad CPC;
 * Atari 2600;
-* Oric 1/Atmos;
-* Commodore Vic-20 (and Commodore 1540/1); and
+* Commodore Vic-20 (and Commodore 1540/1);
+* Oric 1/Atmos; and
 * Sinclair ZX80/81.
 
 ## Single-click Loading
