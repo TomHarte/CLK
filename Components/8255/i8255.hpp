@@ -18,12 +18,15 @@ class PortHandler {
 		uint8_t get_value(int port) { return 0xff; }
 };
 
-// TODO: most of the implementation below. Right now it just blindly passes data in all directions,
-// ignoring operation mode. But at least it establishes proper ownership and hand-off of decision making.
+// TODO: Modes 1 and 2.
 template <class T> class i8255 {
 	public:
 		i8255(T &port_handler) : control_(0), outputs_{0, 0, 0}, port_handler_(port_handler) {}
 
+		/*!
+			Stores the value @c value to the register at @c address. If this causes a change in 8255 output
+			then the PortHandler will be informed.
+		*/
 		void set_register(int address, uint8_t value) {
 			switch(address & 3) {
 				case 0:
@@ -53,6 +56,10 @@ template <class T> class i8255 {
 			}
 		}
 
+		/*!
+			Obtains the current value for the register at @c address. If this provides a reading
+			of input then the PortHandler will be queried.
+		*/
 		uint8_t get_register(int address) {
 			switch(address & 3) {
 				case 0:	return (control_ & 0x10) ? port_handler_.get_value(0) : outputs_[0];
