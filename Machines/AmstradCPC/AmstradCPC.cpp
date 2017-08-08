@@ -584,10 +584,10 @@ class ConcreteMachine:
 							case 1: crtc_bus_handler_.set_colour(*cycle.value & 0x1f);		break;
 							case 2:
 								// Perform ROM paging.
-								read_pointers_[0] = (*cycle.value & 4) ? &ram_[0] : roms_[rom_model_].data();
+								read_pointers_[0] = (*cycle.value & 4) ? write_pointers_[0] : roms_[rom_model_].data();
 
 								upper_rom_is_paged_ = !(*cycle.value & 8);
-								read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : &ram_[49152];
+								read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : write_pointers_[3];
 
 								// Reset the interrupt timer if requested.
 								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
@@ -595,7 +595,31 @@ class ConcreteMachine:
 								// Post the next mode.
 								crtc_bus_handler_.set_next_mode(*cycle.value & 3);
 							break;
-							case 3: printf("RAM paging?\n"); break;
+							case 3:
+								// Perform RAM paging, if 128kb is permitted.
+								if(has_128k_) {
+									bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
+									bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
+#define RAM_BANK(x) &ram_[x * 16384]
+#define RAM_CONFIG(a, b, c, d) write_pointers_[0] = RAM_BANK(a); write_pointers_[1] = RAM_BANK(b); write_pointers_[2] = RAM_BANK(c); write_pointers_[3] = RAM_BANK(d);
+									switch(*cycle.value & 7) {
+										case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
+										case 1:	RAM_CONFIG(0, 1, 2, 7);	break;
+										case 2:	RAM_CONFIG(4, 5, 6, 7);	break;
+										case 3:	RAM_CONFIG(0, 3, 2, 7);	break;
+										case 4:	RAM_CONFIG(0, 4, 2, 3);	break;
+										case 5:	RAM_CONFIG(0, 5, 2, 3);	break;
+										case 6:	RAM_CONFIG(0, 6, 2, 3);	break;
+										case 7:	RAM_CONFIG(0, 7, 2, 3);	break;
+									}
+#undef RAM_CONFIG
+#undef RAM_BANK
+									if(adjust_low_read_pointer) read_pointers_[0] = write_pointers_[0];
+									read_pointers_[1] = write_pointers_[1];
+									read_pointers_[2] = write_pointers_[2];
+									if(adjust_high_read_pointer) read_pointers_[3] = write_pointers_[3];
+								}
+							break;
 						}
 					}
 
@@ -709,14 +733,17 @@ class ConcreteMachine:
 			switch(target.amstradcpc.model) {
 				case StaticAnalyser::AmstradCPCModel::CPC464:
 					rom_model_ = ROMType::OS464;
+					has_128k_ = false;
 					has_fdc_ = false;
 				break;
 				case StaticAnalyser::AmstradCPCModel::CPC664:
 					rom_model_ = ROMType::OS664;
+					has_128k_ = false;
 					has_fdc_ = true;
 				break;
 				case StaticAnalyser::AmstradCPCModel::CPC6128:
 					rom_model_ = ROMType::OS6128;
+					has_128k_ = true;
 					has_fdc_ = true;
 				break;
 			}
@@ -724,15 +751,16 @@ class ConcreteMachine:
 			// Establish default memory map
 			upper_rom_is_paged_ = true;
 			upper_rom_ = rom_model_ + 1;
-			read_pointers_[0] = roms_[rom_model_].data();
-			read_pointers_[1] = &ram_[16384];
-			read_pointers_[2] = &ram_[32768];
-			read_pointers_[3] = roms_[upper_rom_].data();
 
 			write_pointers_[0] = &ram_[0];
 			write_pointers_[1] = &ram_[16384];
 			write_pointers_[2] = &ram_[32768];
 			write_pointers_[3] = &ram_[49152];
+
+			read_pointers_[0] = roms_[rom_model_].data();
+			read_pointers_[1] = write_pointers_[1];
+			read_pointers_[2] = write_pointers_[2];
+			read_pointers_[3] = roms_[upper_rom_].data();
 
 			// If there are any tapes supplied, use the first of them.
 			if(!target.tapes.empty()) {
@@ -785,12 +813,15 @@ class ConcreteMachine:
 		HalfCycles half_cycles_since_ay_update_;
 
 		uint8_t ram_[128 * 1024];
+
 		std::vector<uint8_t> roms_[7];
 		int rom_model_;
 		bool has_fdc_;
+		bool has_128k_;
 		bool upper_rom_is_paged_;
 		int upper_rom_;
 
+		uint8_t *ram_pages_[4];
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
 
