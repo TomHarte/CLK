@@ -188,23 +188,23 @@ void AY38910::set_register_value(uint8_t value) {
 						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
 					else
 						tone_periods_[channel] = (tone_periods_[channel] & ~0xff) | value;
-					tone_counters_[channel] = tone_periods_[channel];
+//					tone_counters_[channel] = tone_periods_[channel];
 				}
 				break;
 
 				case 6:
 					noise_period_ = value & 0x1f;
-					noise_counter_ = noise_period_;
+//					noise_counter_ = noise_period_;
 				break;
 
 				case 11:
 					envelope_period_ = (envelope_period_ & ~0xff) | value;
-					envelope_divider_ = envelope_period_;
+//					envelope_divider_ = envelope_period_;
 				break;
 
 				case 12:
 					envelope_period_ = (envelope_period_ & 0xff) | (int)(value << 8);
-					envelope_divider_ = envelope_period_;
+//					envelope_divider_ = envelope_period_;
 				break;
 
 				case 13:
