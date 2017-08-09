@@ -416,8 +416,17 @@ void i8272::posit_event(int event_type) {
 			goto wait_for_command;
 
 	sense_drive_status:
-		printf("Sense drive status unimplemented!!\n");
-		goto wait_for_command;
+			{
+				int drive = command_[1] & 3;
+				result_stack_.push_back(
+					(command_[1] & 7) |	// drive and head number
+					0x08 |				// single sided
+					(drives_[drive].drive->get_is_track_zero() ? 0x10 : 0x00)	|
+					(drives_[drive].drive->has_disk() ? 0x20 : 0x00)	|	// ready, approximately (TODO)
+					0x40	// write protected
+				);
+			}
+			goto post_result;
 
 	// Performs any invalid command.
 	invalid:
