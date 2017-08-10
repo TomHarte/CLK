@@ -85,7 +85,7 @@ void CRT::set_output_gamma(float gamma) {
 }
 
 void CRT::update_gamma() {
-	float gamma_ratio = output_gamma_ / input_gamma_;
+	float gamma_ratio = input_gamma_ / output_gamma_;
 	openGL_output_builder_.set_gamma(gamma_ratio);
 }
 
