@@ -58,15 +58,14 @@ template <class T> class CRTC6845 {
 					if(hsync_down_counter_) bus_state_.hsync = true;
 				}
 
+				// update refresh address
+				if(character_is_visible_) {
+					bus_state_.refresh_address++;
+				}
+
 				// check for end of visible characters
 				if(character_counter_ == registers_[1]) {
-					bus_state_.refresh_address++;
 					character_is_visible_ = false;
-				} else {
-					// update refresh address
-					if(character_is_visible_) {
-						bus_state_.refresh_address++;
-					}
 				}
 
 				// check for end-of-line
