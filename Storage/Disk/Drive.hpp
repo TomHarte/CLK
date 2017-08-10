@@ -65,6 +65,11 @@ class Drive {
 		*/
 		void set_track(const std::shared_ptr<Track> &track);
 
+		/*!
+			@returns @c true if the drive is ready; @c false otherwise.
+		*/
+		bool get_is_ready();
+
 	private:
 		std::shared_ptr<Track> track_;
 		std::shared_ptr<Disk> disk_;

@@ -46,6 +46,11 @@ bool Drive::get_is_read_only() {
 	return false;
 }
 
+bool Drive::get_is_ready() {
+	// TODO: a real test for this.
+	return disk_ != nullptr;
+}
+
 std::shared_ptr<Track> Drive::get_track() {
 	if(disk_) return disk_->get_track_at_position(head_, (unsigned int)head_position_);
 	if(track_) return track_;
