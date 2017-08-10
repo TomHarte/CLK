@@ -138,7 +138,7 @@ template <class T> class CRTC6845 {
 		}
 
 		void select_register(uint8_t r) {
-			selected_register_ = (int)r & 15;
+			selected_register_ = r;
 		}
 
 		uint8_t get_status() {
@@ -146,18 +146,25 @@ template <class T> class CRTC6845 {
 		}
 
 		uint8_t get_register() {
+			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
 
 		void set_register(uint8_t value) {
-			registers_[selected_register_] = value;
+			static uint8_t masks[] = {
+				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
+			};
+
+			if(selected_register_ < 16)
+				registers_[selected_register_] = value & masks[selected_register_];
 		}
 
 	private:
 		T &bus_handler_;
 		BusState bus_state_;
 
-		uint8_t registers_[16];
+		uint8_t registers_[18];
 		int selected_register_;
 
 		uint8_t character_counter_;
