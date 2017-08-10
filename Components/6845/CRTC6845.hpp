@@ -71,9 +71,6 @@ template <class T> class CRTC6845 {
 
 				// check for end-of-line
 				if(is_end_of_line) {
-					character_counter_ = 0;
-					character_is_visible_ = true;
-
 					// check for end of vertical sync
 					if(vsync_down_counter_) {
 						vsync_down_counter_--;
@@ -94,7 +91,8 @@ template <class T> class CRTC6845 {
 					} else {
 						// advance vertical counter
 						if(bus_state_.row_address == registers_[9]) {
-							line_address_ = bus_state_.refresh_address;
+							if(!character_is_visible_)
+								line_address_ = bus_state_.refresh_address;
 							bus_state_.row_address = 0;
 
 							bool is_at_end_of_frame = line_counter_ == registers_[4];
@@ -126,9 +124,12 @@ template <class T> class CRTC6845 {
 							}
 						} else {
 							bus_state_.row_address++;
-							bus_state_.refresh_address = line_address_;
 						}
+						bus_state_.refresh_address = line_address_;
 					}
+
+					character_counter_ = 0;
+					character_is_visible_ = true;
 				}
 
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
