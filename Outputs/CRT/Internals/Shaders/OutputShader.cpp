@@ -74,12 +74,13 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"out vec4 fragColour;"
 
 		"uniform %s texID;"
+		"uniform float gamma;"
 
 		"\n%s\n"
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(%s, 0.5);"//*cos(lateralVarying)
+			"fragColour = vec4(pow(%s, vec3(gamma)), 0.5);"//*cos(lateralVarying)
 		"}",
 	sampler_type, fragment_methods, colour_expression);
 
@@ -114,6 +115,10 @@ void OutputShader::set_timing(unsigned int height_of_display, unsigned int cycle
 
 	set_uniform("scanNormal", scan_normal[0], scan_normal[1]);
 	set_uniform("positionConversion", (GLfloat)horizontal_scan_period, (GLfloat)vertical_scan_period / (GLfloat)vertical_period_divider);
+}
+
+void OutputShader::set_gamma_ratio(float ratio) {
+	set_uniform("gamma", ratio);
 }
 
 void OutputShader::set_input_width_scaler(float input_scaler) {

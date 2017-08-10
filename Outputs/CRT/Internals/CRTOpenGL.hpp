@@ -34,6 +34,7 @@ class OpenGLOutputBuilder {
 		unsigned int colour_cycle_numerator_;
 		unsigned int colour_cycle_denominator_;
 		OutputDevice output_device_;
+		float gamma_;
 
 		// timing information to allow reasoning about input information
 		unsigned int input_frequency_;
@@ -89,6 +90,7 @@ class OpenGLOutputBuilder {
 
 		void set_timing_uniforms();
 		void set_colour_space_uniforms();
+		void set_gamma();
 
 		void establish_OpenGL_state();
 		void reset_all_OpenGL_state();
@@ -116,6 +118,11 @@ class OpenGLOutputBuilder {
 
 		inline void set_visible_area(Rect visible_area) {
 			visible_area_ = visible_area;
+		}
+
+		inline void set_gamma(float gamma) {
+			gamma_ = gamma;
+			set_gamma();
 		}
 
 		inline std::unique_lock<std::mutex> get_output_lock() {
