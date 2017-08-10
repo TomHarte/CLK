@@ -97,6 +97,9 @@ class CRT {
 
 		unsigned int cycles_per_line_;
 
+		float input_gamma_, output_gamma_;
+		void update_gamma();
+
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 			The requested number of buffers, each with the requested number of bytes per pixel,
@@ -237,6 +240,12 @@ class CRT {
 			}
 			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
 		}
+
+		/*!	Sets the gamma exponent for the simulated screen. */
+		void set_input_gamma(float gamma);
+
+		/*!	Sets the gamma exponent for the real, tangible screen on which content will be drawn. */
+		void set_output_gamma(float gamma);
 
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.

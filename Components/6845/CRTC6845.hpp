@@ -104,7 +104,7 @@ template <class T> class CRTC6845 {
 							bus_state_.row_address = 0;
 
 							bool is_at_end_of_frame = line_counter_ == registers_[4];
-							line_counter_++;
+							line_counter_ = (line_counter_ + 1) & 0x7f;
 
 							// check for end of visible lines
 							if(line_counter_ == registers_[6]) {
@@ -131,7 +131,7 @@ template <class T> class CRTC6845 {
 								line_counter_ = 0;
 							}
 						} else {
-							bus_state_.row_address++;
+							bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
 						}
 						bus_state_.refresh_address = line_address_;
 					}
@@ -141,6 +141,7 @@ template <class T> class CRTC6845 {
 				}
 
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+				bus_state_.refresh_address &= 0x3fff;
 				bus_handler_.perform_bus_cycle(bus_state_);
 			}
 		}
@@ -166,6 +167,11 @@ template <class T> class CRTC6845 {
 
 			if(selected_register_ < 16)
 				registers_[selected_register_] = value & masks[selected_register_];
+		}
+
+		void trigger_light_pen() {
+			registers_[17] = bus_state_.refresh_address & 0xff;
+			registers_[16] = bus_state_.refresh_address >> 8;
 		}
 
 	private:

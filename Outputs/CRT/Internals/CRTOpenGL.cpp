@@ -89,6 +89,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 		set_timing_uniforms();
 		set_colour_space_uniforms();
+		set_gamma();
 	}
 
 	if(fence_ != nullptr) {
@@ -373,6 +374,10 @@ void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	if(composite_input_shader_program_)					composite_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_separation_filter_program_)			composite_separation_filter_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
+}
+
+void OpenGLOutputBuilder::set_gamma() {
+	if(output_shader_program_) output_shader_program_->set_gamma_ratio(gamma_);
 }
 
 float OpenGLOutputBuilder::get_composite_output_width() const {
