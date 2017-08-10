@@ -169,6 +169,11 @@ template <class T> class CRTC6845 {
 				registers_[selected_register_] = value & masks[selected_register_];
 		}
 
+		void trigger_light_pen() {
+			registers_[17] = bus_state_.refresh_address & 0xff;
+			registers_[16] = bus_state_.refresh_address >> 8;
+		}
+
 	private:
 		Personality personality_;
 		T &bus_handler_;
