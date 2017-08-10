@@ -253,6 +253,8 @@ void i8272::posit_event(int event_type) {
 			sector_ = command_[4];
 			size_ = command_[5];
 
+		read_next_data:
+
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
@@ -285,6 +287,12 @@ void i8272::posit_event(int event_type) {
 		// read CRC, without transferring it
 			WAIT_FOR_EVENT(Event::Token);
 			WAIT_FOR_EVENT(Event::Token);
+
+		// check whether that's it
+			if(sector_ != command_[6]) {
+				sector_++;
+				goto read_next_data;
+			}
 
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
