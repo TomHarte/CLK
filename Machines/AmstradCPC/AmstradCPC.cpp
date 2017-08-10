@@ -528,7 +528,7 @@ class ConcreteMachine:
 		ConcreteMachine() :
 			z80_(*this),
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
-			crtc_(crtc_bus_handler_),
+			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
 			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_, tape_player_),

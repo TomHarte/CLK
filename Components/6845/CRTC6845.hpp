@@ -31,9 +31,18 @@ class BusHandler {
 		void perform_bus_cycle(const BusState &) {}
 };
 
+enum Personality {
+	HD6845S,	//
+	UM6845R,	//
+	MC6845,		//
+	AMS40226	//
+};
+
 template <class T> class CRTC6845 {
 	public:
-		CRTC6845(T &bus_handler) : bus_handler_(bus_handler) {}
+
+		CRTC6845(Personality p, T &bus_handler) :
+			personality_(p), bus_handler_(bus_handler) {}
 
 		void run_for(Cycles cycles) {
 			int cyles_remaining = cycles.as_int();
@@ -160,6 +169,7 @@ template <class T> class CRTC6845 {
 		}
 
 	private:
+		Personality personality_;
 		T &bus_handler_;
 		BusState bus_state_;
 
