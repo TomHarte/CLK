@@ -13,10 +13,10 @@
 using namespace Intel;
 
 namespace {
-const uint8_t StatusRQM = 0x80;	// Set: ready to send or receive from processor.
-const uint8_t StatusDIO = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
-const uint8_t StatusNDM = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
-const uint8_t StatusCB = 0x10;	// Set: the FDC is busy.
+const uint8_t StatusRequest = 0x80;	// Set: ready to send or receive from processor.
+const uint8_t StatusDirection = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
+const uint8_t StatusNonDMAExecuting = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
+const uint8_t StatusBusy = 0x10;	// Set: the FDC is busy.
 //const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
 //const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
 //const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
@@ -25,7 +25,7 @@ const uint8_t StatusCB = 0x10;	// Set: the FDC is busy.
 
 i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
-	main_status_(StatusRQM),
+	main_status_(0),
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
 	delay_time_(0),
@@ -76,7 +76,7 @@ void i8272::set_register(int address, uint8_t value) {
 	if(!address) return;
 
 	// if not ready for commands, do nothing
-	if(!(main_status_ & StatusRQM)) return;
+	if(!(main_status_ & StatusRequest)) return;
 
 	// accumulate latest byte in the command byte sequence
 	command_.push_back(value);
@@ -135,7 +135,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	set_data_mode(Scanning);
 
 #define SET_DRIVE_HEAD_MFM()	\
-	if(!dma_mode_) main_status_ |= StatusNDM;	\
+	if(!dma_mode_) main_status_ |= StatusNonDMAExecuting;	\
 	set_drive(drives_[command_[1]&3].drive);	\
 	set_is_double_density(command_[0] & 0x40);	\
 	invalidate_track();
@@ -150,94 +150,94 @@ void i8272::posit_event(int event_type) {
 	// into wait_for_complete_command_sequence.
 	wait_for_command:
 			set_data_mode(Storage::Disk::MFMController::DataMode::Scanning);
-			main_status_ &= ~(StatusCB | StatusNDM);
+			main_status_ &= ~(StatusBusy | StatusNonDMAExecuting);
 			command_.clear();
 
 	// Sets the data request bit, and waits for a byte. Then sets the busy bit. Continues accepting bytes
 	// until it has a quantity that make up an entire command, then resets the data request bit and
 	// branches to that command.
 	wait_for_complete_command_sequence:
-			main_status_ |= StatusRQM;
+			main_status_ |= StatusRequest;
 			WAIT_FOR_EVENT(Event8272::CommandByte)
-			main_status_ |= StatusCB;
+			main_status_ |= StatusBusy;
 
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto read_data;
 
 				case 0x0b:	// read deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto read_deleted_data;
 
 				case 0x05:	// write data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto write_data;
 
 				case 0x09:	// write deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto write_deleted_data;
 
 				case 0x02:	// read track
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto read_track;
 
 				case 0x0a:	// read ID
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto read_id;
 
 				case 0x0d:	// format track
 					if(command_.size() < 6) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto format_track;
 
 				case 0x11:	// scan low
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto scan_low;
 
 				case 0x19:	// scan low or equal
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto scan_low_or_equal;
 
 				case 0x1d:	// scan high or equal
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto scan_high_or_equal;
 
 				case 0x07:	// recalibrate
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto recalibrate;
 
 				case 0x08:	// sense interrupt status
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto sense_interrupt_status;
 
 				case 0x03:	// specify
 					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto specify;
 
 				case 0x04:	// sense drive status
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto sense_drive_status;
 
 				case 0x0f:	// seek
 					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto seek;
 
 				default:	// invalid
-					main_status_ &= ~StatusRQM;
+					main_status_ &= ~StatusRequest;
 					goto invalid;
 			}
 
@@ -252,6 +252,8 @@ void i8272::posit_event(int event_type) {
 			head_ = command_[3];
 			sector_ = command_[4];
 			size_ = command_[5];
+
+		read_next_data:
 
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
@@ -277,14 +279,20 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::Token);
 			result_stack_.push_back(get_latest_token().byte_value);
 			distance_into_section_++;
-			main_status_ |= StatusRQM | StatusDIO;
+			main_status_ |= StatusRequest | StatusDirection;
 			WAIT_FOR_EVENT(Event8272::ResultEmpty);
-			main_status_ &= ~StatusRQM;
+			main_status_ &= ~StatusRequest;
 			if(distance_into_section_ < (128 << size_)) goto get_byte;
 
 		// read CRC, without transferring it
 			WAIT_FOR_EVENT(Event::Token);
 			WAIT_FOR_EVENT(Event::Token);
+
+		// check whether that's it
+			if(sector_ != command_[6]) {
+				sector_++;
+				goto read_next_data;
+			}
 
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
@@ -416,8 +424,17 @@ void i8272::posit_event(int event_type) {
 			goto wait_for_command;
 
 	sense_drive_status:
-		printf("Sense drive status unimplemented!!\n");
-		goto wait_for_command;
+			{
+				int drive = command_[1] & 3;
+				result_stack_.push_back(
+					(command_[1] & 7) |	// drive and head number
+					0x08 |				// single sided
+					(drives_[drive].drive->get_is_track_zero() ? 0x10 : 0x00)	|
+					(drives_[drive].drive->has_disk() ? 0x20 : 0x00)	|	// ready, approximately (TODO)
+					0x40	// write protected
+				);
+			}
+			goto post_result;
 
 	// Performs any invalid command.
 	invalid:
@@ -442,15 +459,15 @@ void i8272::posit_event(int event_type) {
 	// last thing in it will be returned first.
 	post_result:
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
-			main_status_ |= StatusRQM | StatusDIO;
-			main_status_ &= ~StatusNDM;
+			main_status_ |= StatusRequest | StatusDirection;
+			main_status_ &= ~StatusNonDMAExecuting;
 
 			// The actual stuff of unwinding result_stack_ is handled by ::get_register; wait
 			// until the processor has read all result bytes.
 			WAIT_FOR_EVENT(Event8272::ResultEmpty);
 
 			// Reset data direction and end the command.
-			main_status_ &= ~StatusDIO;
+			main_status_ &= ~StatusDirection;
 			goto wait_for_command;
 
 	END_SECTION()
