@@ -27,9 +27,10 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 		// This is CPC data format.
 		Storage::Disk::CPM::ParameterBlock parameters;
 		parameters.sectors_per_track = 9;
-		parameters.sector_size = 512;
+		parameters.block_size = 1024;
 		parameters.first_sector = 0xc1;
 		parameters.catalogue_allocation_bitmap = 0xc000;
+		parameters.logic_extents_per_physical = 1;
 		parameters.reserved_tracks = 0;
 
 		Storage::Disk::CPM::GetCatalogue(target.disks.front(), parameters);
