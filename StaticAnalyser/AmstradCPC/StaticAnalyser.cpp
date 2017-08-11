@@ -67,7 +67,10 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 	target.amstradcpc.model = AmstradCPCModel::CPC6128;
 
 	if(!target.tapes.empty()) {
-		target.loadingCommand = "|tape\nrun\"\n\n";
+		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
+		// enter and responding to the follow-on prompt to press a key, so just type for
+		// a while. Yuck!
+		target.loadingCommand = "|tape\nrun\"\n1234567890";
 	}
 
 	if(!target.disks.empty()) {
