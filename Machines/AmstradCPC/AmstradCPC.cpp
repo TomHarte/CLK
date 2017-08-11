@@ -774,11 +774,11 @@ class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_delay() {
-			return Cycles(625*25*128);
+			return Cycles(4000000);
 		}
 
 		HalfCycles get_typer_frequency() {
-			return Cycles(625*128*2);
+			return Cycles(80000);
 		}
 
 		// See header; sets a key as either pressed or released.
