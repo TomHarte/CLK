@@ -228,25 +228,26 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 Parser::Parser(bool is_mfm) :
 		Storage::Disk::Controller(4000000, 1, 300),
 		crc_generator_(0x1021, 0xffff),
-		shift_register_(0), track_(0), is_mfm_(is_mfm) {
+		shift_register_(0), is_mfm_(is_mfm),
+		track_(0), head_(0) {
 	Storage::Time bit_length;
 	bit_length.length = 1;
 	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 	set_expected_bit_length(bit_length);
 
-	drive.reset(new Storage::Disk::Drive);
-	set_drive(drive);
+	drive_.reset(new Storage::Disk::Drive);
+	set_drive(drive_);
 	set_motor_on(true);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 		Parser(is_mfm) {
-	drive->set_disk(disk);
+	drive_->set_disk(disk);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
 		Parser(is_mfm) {
-	drive->set_disk_with_track(track);
+	drive_->set_disk_with_track(track);
 }
 
 void Parser::seek_to_track(uint8_t track) {
@@ -261,7 +262,20 @@ void Parser::seek_to_track(uint8_t track) {
 	}
 }
 
-std::shared_ptr<Sector> Parser::get_sector(uint8_t track, uint8_t sector) {
+std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t sector) {
+	// Check cache for sector.
+	int index = get_index(head, track, sector);
+	auto cached_sector = sectors_by_index_.find(index);
+	if(cached_sector != sectors_by_index_.end()) {
+		return cached_sector->second;
+	}
+
+	// Failing that, set the proper head and track, and search for the sector. get_sector automatically
+	// inserts everything found into sectors_by_index_.
+	if(head_ != head) {
+		drive_->set_head(head);
+		invalidate_track();
+	}
 	seek_to_track(track);
 	return get_sector(sector);
 }
@@ -384,8 +398,7 @@ std::vector<uint8_t> Parser::get_track() {
 }
 
 
-std::shared_ptr<Sector> Parser::get_next_sector()
-{
+std::shared_ptr<Sector> Parser::get_next_sector() {
 	std::shared_ptr<Sector> sector(new Sector);
 	index_count_ = 0;
 
@@ -455,6 +468,10 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 		if((data_crc >> 8) != get_next_byte()) continue;
 		if((data_crc & 0xff) != get_next_byte()) continue;
 
+		// Put this sector into the cache.
+		int index = get_index(head_, track_, sector->sector);
+		sectors_by_index_[index] = sector;
+
 		return sector;
 	}
 
@@ -465,7 +482,7 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 	std::shared_ptr<Sector> first_sector;
 	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
-	if(!first_sector) return first_sector;
+	if(!first_sector) return nullptr;
 	if(first_sector->sector == sector) return first_sector;
 
 	while(1) {
@@ -474,4 +491,8 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 		if(next_sector->sector == first_sector->sector) return nullptr;
 		if(next_sector->sector == sector) return next_sector;
 	}
+}
+
+int Parser::get_index(uint8_t head, uint8_t track, uint8_t sector) {
+	return head | (track << 8) | (sector << 16);
 }
