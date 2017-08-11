@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CharacterMapper_hpp
-#define CharacterMapper_hpp
+#ifndef Machines_ZX8081_CharacterMapper_hpp
+#define Machines_ZX8081_CharacterMapper_hpp
 
 #include "../Typer.hpp"
 
