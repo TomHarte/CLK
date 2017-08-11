@@ -38,7 +38,7 @@ static void InspectDataCatalogue(
 
 	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
 		// Check for whether this is [potentially] BASIC.
-		if(!((data_catalogue->files[c].data[18] >> 1) & 7)) {
+		if(data_catalogue->files[c].data.size() >= 128 && !((data_catalogue->files[c].data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
