@@ -280,7 +280,7 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 		if(first_sector) {
 			while(1) {
 				std::shared_ptr<Sector> next_sector = get_next_sector();
-				if(next_sector->sector == first_sector->sector) break;
+				if(!next_sector || next_sector->sector == first_sector->sector) break;
 			}
 		}
 		decoded_tracks_.insert(track_index);
