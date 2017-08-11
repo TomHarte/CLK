@@ -432,10 +432,10 @@ std::shared_ptr<Sector> Parser::get_next_sector() {
 		sector->track = get_next_byte();
 		sector->side = get_next_byte();
 		sector->sector = get_next_byte();
-		uint8_t size = get_next_byte();
+		sector->size = get_next_byte();
 		uint16_t header_crc = crc_generator_.get_value();
-		if((header_crc >> 8) != get_next_byte()) continue;
-		if((header_crc & 0xff) != get_next_byte()) continue;
+		if((header_crc >> 8) != get_next_byte()) sector->has_header_crc_error = true;
+		if((header_crc & 0xff) != get_next_byte()) sector->has_header_crc_error = true;
 
 		// look for data mark
 		bool data_found = false;
@@ -462,14 +462,14 @@ std::shared_ptr<Sector> Parser::get_next_sector() {
 		}
 		crc_generator_.add(DataAddressByte);
 
-		size_t data_size = (size_t)(128 << size);
+		size_t data_size = (size_t)(128 << sector->size);
 		sector->data.reserve(data_size);
 		for(size_t c = 0; c < data_size; c++) {
 			sector->data.push_back(get_next_byte());
 		}
 		uint16_t data_crc = crc_generator_.get_value();
-		if((data_crc >> 8) != get_next_byte()) continue;
-		if((data_crc & 0xff) != get_next_byte()) continue;
+		if((data_crc >> 8) != get_next_byte()) sector->has_data_crc_error = true;
+		if((data_crc & 0xff) != get_next_byte()) sector->has_data_crc_error = true;
 
 		// Put this sector into the cache.
 		int index = get_index(head_, track_, sector->sector);
