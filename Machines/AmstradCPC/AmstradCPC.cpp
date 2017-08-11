@@ -881,3 +881,5 @@ using namespace AmstradCPC;
 Machine *Machine::AmstradCPC() {
 	return new AmstradCPC::ConcreteMachine;
 }
+
+Machine::~Machine() {}
