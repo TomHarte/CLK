@@ -9,6 +9,16 @@
 #include "StaticAnalyser.hpp"
 #include "../../Storage/Disk/Parsers/CPM.hpp"
 
+static bool strcmp_insensitive(const char *a, const char *b) {
+	if(strlen(a) != strlen(b)) return false;
+	while(*a) {
+		if(tolower(*a) != towlower(*b)) return false;
+		a++;
+		b++;
+	}
+	return true;
+}
+
 static void InspectDataCatalogue(
 	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
 	StaticAnalyser::Target &target) {
@@ -18,27 +28,33 @@ static void InspectDataCatalogue(
 		return;
 	}
 
-	// If only one file is [potentially] BASIC, run that one; otherwise if only one has no suffix,
-	// pick that one.
+	// If only one file is [potentially] BASIC, run that one; otherwise if only one has a suffix
+	// that AMSDOS allows to be omitted, pick that one.
 	int basic_files = 0;
-	int nonsuffixed_files = 0;
+	int implicit_suffixed_files = 0;
+
 	size_t last_basic_file = 0;
-	size_t last_nonsuffixed_file = 0;
+	size_t last_implicit_suffixed_file = 0;
+
 	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
 		// Check for whether this is [potentially] BASIC.
-		if(!((data_catalogue->files[c].data[18] >> 1) & 7)) {
+		if(data_catalogue->files[c].data.size() >= 128 && !((data_catalogue->files[c].data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
 
 		// Check suffix for emptiness.
-		if(data_catalogue->files[c].type == "   ") {
-			nonsuffixed_files++;
-			last_nonsuffixed_file = c;
+		if(
+			data_catalogue->files[c].type == "   " ||
+			strcmp_insensitive(data_catalogue->files[c].type.c_str(), "BAS") ||
+			strcmp_insensitive(data_catalogue->files[c].type.c_str(), "BIN")
+		) {
+			implicit_suffixed_files++;
+			last_implicit_suffixed_file = c;
 		}
 	}
-	if(basic_files == 1 || nonsuffixed_files == 1) {
-		size_t selected_file = (basic_files == 1) ? last_basic_file : last_nonsuffixed_file;
+	if(basic_files == 1 || implicit_suffixed_files == 1) {
+		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
 		target.loadingCommand = "run\"" + data_catalogue->files[selected_file].name + "\n";
 		return;
 	}
