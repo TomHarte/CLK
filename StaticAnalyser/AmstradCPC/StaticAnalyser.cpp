@@ -18,17 +18,28 @@ static void InspectDataCatalogue(
 		return;
 	}
 
-	// If only one file is [potentially] BASIC, run that one.
+	// If only one file is [potentially] BASIC, run that one; otherwise if only one has no suffix,
+	// pick that one.
 	int basic_files = 0;
+	int nonsuffixed_files = 0;
 	size_t last_basic_file = 0;
+	size_t last_nonsuffixed_file = 0;
 	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
+		// Check for whether this is [potentially] BASIC.
 		if(!((data_catalogue->files[c].data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
+
+		// Check suffix for emptiness.
+		if(data_catalogue->files[c].type == "   ") {
+			nonsuffixed_files++;
+			last_nonsuffixed_file = c;
+		}
 	}
-	if(basic_files == 1) {
-		target.loadingCommand = "run\"" + data_catalogue->files[last_basic_file].name + "\n";
+	if(basic_files == 1 || nonsuffixed_files == 1) {
+		size_t selected_file = (basic_files == 1) ? last_basic_file : last_nonsuffixed_file;
+		target.loadingCommand = "run\"" + data_catalogue->files[selected_file].name + "\n";
 		return;
 	}
 
@@ -56,7 +67,10 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 	target.amstradcpc.model = AmstradCPCModel::CPC6128;
 
 	if(!target.tapes.empty()) {
-		target.loadingCommand = "|tape\nrun\"\n";
+		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
+		// enter and responding to the follow-on prompt to press a key, so just type for
+		// a while. Yuck!
+		target.loadingCommand = "|tape\nrun\"\n1234567890";
 	}
 
 	if(!target.disks.empty()) {

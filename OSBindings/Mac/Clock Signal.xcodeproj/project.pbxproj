@@ -120,6 +120,7 @@
 		4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */; };
 		4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B31D327F7E00DF5BA0 /* G64.cpp */; };
 		4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */; };
+		4BACC5B11F3DFF7C0037C015 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BACC5AF1F3DFF7C0037C015 /* CharacterMapper.cpp */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
 		4BB298F11B587D8400A49093 /*  start in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E51B587D8300A49093 /*  start */; };
@@ -670,6 +671,8 @@
 		4BAB62B41D327F7E00DF5BA0 /* G64.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = G64.hpp; sourceTree = "<group>"; };
 		4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMTrack.cpp; sourceTree = "<group>"; };
 		4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMTrack.hpp; sourceTree = "<group>"; };
+		4BACC5AF1F3DFF7C0037C015 /* CharacterMapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CharacterMapper.cpp; path = AmstradCPC/CharacterMapper.cpp; sourceTree = "<group>"; };
+		4BACC5B01F3DFF7C0037C015 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CharacterMapper.hpp; path = AmstradCPC/CharacterMapper.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ForceInline.h; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
 		4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.in.json; path = FUSE/tests.in.json; sourceTree = "<group>"; };
@@ -1297,6 +1300,8 @@
 			children = (
 				4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */,
 				4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */,
+				4BACC5AF1F3DFF7C0037C015 /* CharacterMapper.cpp */,
+				4BACC5B01F3DFF7C0037C015 /* CharacterMapper.hpp */,
 			);
 			name = AmstradCPC;
 			sourceTree = "<group>";
@@ -2724,6 +2729,7 @@
 				4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */,
 				4B0BE4281D3481E700D5256B /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
+				4BACC5B11F3DFF7C0037C015 /* CharacterMapper.cpp in Sources */,
 				4BD69F941D98760000243FE1 /* AcornADF.cpp in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,

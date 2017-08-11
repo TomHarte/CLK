@@ -2,24 +2,20 @@
 //  CharacterMapper.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 03/08/2017.
+//  Created by Thomas Harte on 11/08/2017.
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_ZX8081_CharacterMapper_hpp
-#define Machines_ZX8081_CharacterMapper_hpp
+#ifndef Machines_AmstradCPC_CharacterMapper_hpp
+#define Machines_AmstradCPC_CharacterMapper_hpp
 
 #include "../Typer.hpp"
 
-namespace ZX8081 {
+namespace AmstradCPC {
 
 class CharacterMapper: public ::Utility::CharacterMapper {
 	public:
-		CharacterMapper(bool is_zx81);
 		uint16_t *sequence_for_character(char character);
-
-	private:
-		bool is_zx81_;
 };
 
 }

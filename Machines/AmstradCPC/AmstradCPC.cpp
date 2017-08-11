@@ -8,12 +8,17 @@
 
 #include "AmstradCPC.hpp"
 
+#include "CharacterMapper.hpp"
+
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/8272/i8272.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+
+#include "../MemoryFuzzer.hpp"
+#include "../Typer.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -523,6 +528,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
 class ConcreteMachine:
+	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
@@ -536,6 +542,9 @@ class ConcreteMachine:
 			tape_player_(8000000) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
+
+			// ensure memory starts in a random state
+			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -557,11 +566,14 @@ class ConcreteMachine:
 			// run_for as HalfCycles
 			tape_player_.run_for(cycle.length.as_int());
 
-			// Pump the AY.
+			// Pump the AY
 			ay_.run_for(cycle.length);
 
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(has_fdc_) fdc_.run_for(Cycles(cycle.length.as_int()));
+
+			// Update typing activity
+			if(typer_) typer_->run_for(cycle.length);
 
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
@@ -742,11 +754,31 @@ class ConcreteMachine:
 				c++;
 				if(c == 4) break;
 			}
+
+			// Type whatever is required.
+			if(target.loadingCommand.length()) {
+				set_typer_for_string(target.loadingCommand.c_str());
+			}
 		}
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
 			roms_[(int)type] = data;
+		}
+
+#pragma mark - Keyboard
+
+		void set_typer_for_string(const char *string) {
+			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+		}
+
+		HalfCycles get_typer_delay() {
+			return Cycles(4000000);	// Wait 1 second before typing.
+		}
+
+		HalfCycles get_typer_frequency() {
+			return Cycles(80000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -849,3 +881,5 @@ using namespace AmstradCPC;
 Machine *Machine::AmstradCPC() {
 	return new AmstradCPC::ConcreteMachine;
 }
+
+Machine::~Machine() {}
