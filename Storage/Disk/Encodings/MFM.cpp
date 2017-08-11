@@ -114,22 +114,12 @@ class FMEncoder: public Encoder {
 		}
 };
 
-static uint8_t logarithmic_size_for_size(size_t size) {
-	switch(size) {
-		default:	return 0;
-		case 256:	return 1;
-		case 512:	return 2;
-		case 1024:	return 3;
-		case 2048:	return 4;
-		case 4196:	return 5;
-	}
-}
-
 template<class T> std::shared_ptr<Storage::Disk::Track>
 		GetTrackWithSectors(
 			const std::vector<Sector> &sectors,
 			size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
-			size_t pre_address_mark_bytes, size_t post_address_mark_bytes,
+			size_t pre_address_mark_bytes,
+			size_t post_address_mark_bytes, uint8_t post_address_mark_value,
 			size_t pre_data_mark_bytes, size_t post_data_bytes,
 			size_t inter_sector_gap,
 			size_t expected_track_bytes) {
@@ -153,21 +143,30 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_byte(sector.track);
 		shifter.add_byte(sector.side);
 		shifter.add_byte(sector.sector);
-		uint8_t size = logarithmic_size_for_size(sector.data.size());
-		shifter.add_byte(size);
-		shifter.add_crc();
+		shifter.add_byte(sector.size);
+		shifter.add_crc(sector.has_header_crc_error);
 
 		// gap
-		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
+		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(post_address_mark_value);
 		for(size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
-		// data
-		shifter.add_data_address_mark();
-		for(size_t c = 0; c < sector.data.size(); c++)
-		{
-			shifter.add_byte(sector.data[c]);
+		// data, if attached
+		if(!sector.data.empty()) {
+			if(sector.is_deleted)
+				shifter.add_deleted_data_address_mark();
+			else
+				shifter.add_data_address_mark();
+
+			size_t c = 0;
+			size_t declared_length = (size_t)(128 << sector.size);
+			for(c = 0; c < sector.data.size() && c < declared_length; c++) {
+				shifter.add_byte(sector.data[c]);
+			}
+			for(; c < declared_length; c++) {
+				shifter.add_byte(0x00);
+			}
+			shifter.add_crc(sector.has_data_crc_error);
 		}
-		shifter.add_crc();
 
 		// gap
 		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
@@ -189,28 +188,32 @@ void Encoder::output_short(uint16_t value) {
 	target_.push_back(value & 0xff);
 }
 
-void Encoder::add_crc() {
+void Encoder::add_crc(bool incorrectly) {
 	uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
-	add_byte(crc_value & 0xff);
+	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors) {
+const size_t Storage::Encodings::MFM::DefaultSectorGapLength = (size_t)~0;
+
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(
 		sectors,
 		16, 0x00,
-		6, 0,
-		17, 14,
+		6,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 0, sector_gap_filler_byte,
+		(sector_gap_length != DefaultSectorGapLength) ? 0 : 17, 14,
 		0,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<MFMEncoder>(
 		sectors,
 		50, 0x4e,
-		12, 22,
-		12, 18,
+		12,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 22, sector_gap_filler_byte,
+		(sector_gap_length != DefaultSectorGapLength) ? 0 : 12, 18,
 		32,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
 }
