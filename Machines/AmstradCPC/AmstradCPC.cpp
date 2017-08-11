@@ -774,11 +774,11 @@ class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_delay() {
-			return Cycles(4000000);
+			return Cycles(4000000);	// Wait 1 second before typing.
 		}
 
 		HalfCycles get_typer_frequency() {
-			return Cycles(80000);
+			return Cycles(80000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
