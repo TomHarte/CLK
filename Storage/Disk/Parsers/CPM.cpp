@@ -43,6 +43,8 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 	}
 
 	std::unique_ptr<Catalogue> result(new Catalogue);
+	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * (int)sector_size / parameters.block_size) >= 256;
+	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 16 : 8) * (size_t)parameters.block_size;
 
 	// From the catalogue, create files.
 	std::map<std::vector<uint8_t>, size_t> indices_by_name;
@@ -71,10 +73,10 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		}
 
 		// figure out where this data needs to be pasted in
-		int extent = catalogue[c + 12] + (catalogue[c + 14] << 5);
+		size_t extent = (size_t)(catalogue[c + 12] + (catalogue[c + 14] << 5));
 		int number_of_records = catalogue[c + 15];
 
-		size_t required_size = (size_t)(extent * 128 + number_of_records) * 128;
+		size_t required_size = extent * bytes_per_catalogue_entry + (size_t)number_of_records * 128;
 		if(result->files[index].data.size() < required_size) {
 			result->files[index].data.resize(required_size);
 		}
@@ -82,9 +84,17 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		int sectors_per_block = parameters.block_size / (int)sector_size;
 		int records_per_sector = (int)sector_size / 128;
 		int record = 0;
-		for(size_t block = 0; block < 16; block++) {
-			int block_number = catalogue[c + 16 + block];
-			if(!block_number) continue;
+		for(size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
+			int block_number;
+			if(has_long_allocation_units) {
+				block_number = catalogue[c + 16 + (block << 1)] + (catalogue[c + 16 + (block << 1) + 1] << 8);
+			} else {
+				block_number = catalogue[c + 16 + block];
+			}
+			if(!block_number) {
+				record += parameters.block_size / 128;
+				continue;
+			}
 			int first_sector = block_number * sectors_per_block;
 
 			sector = first_sector % parameters.sectors_per_track;
@@ -100,7 +110,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				}
 
 				int records_to_copy = std::min(number_of_records - record, records_per_sector);
-				memcpy(&result->files[index].data[(size_t)(extent * 16384 + record * 128)], sector_contents->data.data(), (size_t)records_to_copy * 128);
+				memcpy(&result->files[index].data[extent * bytes_per_catalogue_entry + (size_t)record * 128], sector_contents->data.data(), (size_t)records_to_copy * 128);
 				record += records_to_copy;
 			}
 		}
