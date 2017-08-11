@@ -60,6 +60,7 @@ std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, un
 		new_sector.track = (uint8_t)position;
 		new_sector.side = 0;
 		new_sector.sector = (uint8_t)sector;
+		new_sector.size = 1;
 
 		new_sector.data.resize(256);
 		fread(new_sector.data.data(), 1, 256, file_);

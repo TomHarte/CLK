@@ -75,8 +75,8 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 	// Grab the track information.
 	fseek(file_, 5, SEEK_CUR);	// skip track number, side number, sector size — each is given per sector
 	int number_of_sectors = fgetc(file_);
-	__unused uint8_t gap3_length = (uint8_t)fgetc(file_);
-	__unused uint8_t filler_byte = (uint8_t)fgetc(file_);
+	uint8_t gap3_length = (uint8_t)fgetc(file_);
+	uint8_t filler_byte = (uint8_t)fgetc(file_);
 
 	// Grab the sector information
 	struct SectorInfo {
@@ -111,6 +111,7 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		new_sector.track = sector_info.track;
 		new_sector.side = sector_info.side;
 		new_sector.sector = sector_info.sector;
+		new_sector.size = sector_info.length;
 
 		size_t data_size;
 		if(is_extended_) {
@@ -122,32 +123,34 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		new_sector.data.resize(data_size);
 		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
-		// TODO: obey the status bytes, somehow (?)
-		if(sector_info.status1 || sector_info.status2) {
-			if(sector_info.status1 & 0x08) {
-				// The CRC failed in the ID field.
-			}
+		if(sector_info.status1 & 0x08) {
+			// The CRC failed in the ID field.
+			new_sector.has_header_crc_error = true;
+		}
 
-			if(sector_info.status2 & 0x20) {
-				// The CRC failed in the data field.
-			}
+		if(sector_info.status2 & 0x20) {
+			// The CRC failed in the data field.
+			new_sector.has_data_crc_error = true;
+		}
 
-			if(sector_info.status2 & 0x40) {
-				// This sector is marked as deleted.
-			}
+		if(sector_info.status2 & 0x40) {
+			// This sector is marked as deleted.
+			new_sector.is_deleted = true;
+		}
 
-			if(sector_info.status2 & 0x01) {
-				// Data field wasn't found.
-			}
-
-			printf("Unhandled: status errors\n");
+		if(sector_info.status2 & 0x01) {
+			// Data field wasn't found.
+			new_sector.data.clear();
 		}
 
 		sectors.push_back(std::move(new_sector));
 	}
 
-	// TODO: supply gay 3 length and filler byte
-	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
+	// TODO: extensions to the extended format; John Elliot's addition of single-density support,
+	// and Simon Owen's weak/random sectors, subject to adding some logic to pick a potential
+	// FM/MFM encoding that can produce specified weak values.
+
+	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors, gap3_length, filler_byte);
 
 	return nullptr;
 }
