@@ -9,6 +9,7 @@
 #ifndef Factors_hpp
 #define Factors_hpp
 
+#include <numeric>
 #include <utility>
 
 namespace NumberTheory {
@@ -16,6 +17,9 @@ namespace NumberTheory {
 		@returns The greatest common divisor of @c a and @c b as computed by Euclid's algorithm.
 	*/
 	template<class T> T greatest_common_divisor(T a, T b) {
+#if __cplusplus > 201402L
+		return std::gcd(a, b);
+#else
 		// TODO: replace with the C++17 GCD function, once available.
 		if(a < b) {
 			std::swap(a, b);
@@ -29,6 +33,7 @@ namespace NumberTheory {
 			a = b;
 			b = remainder;
 		}
+#endif
 	}
 
 	/*!

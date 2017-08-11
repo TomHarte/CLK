@@ -82,7 +82,7 @@ void FileHolder::ensure_file_is_at_least_length(long length) {
 	long bytes_to_write = length - ftell(file_);
 	if(bytes_to_write > 0)
 	{
-		uint8_t *empty = new uint8_t[bytes_to_write];
+		uint8_t *empty = new uint8_t[(size_t)bytes_to_write];
 		memset(empty, 0, (size_t)bytes_to_write);
 		fwrite(empty, sizeof(uint8_t), (size_t)bytes_to_write, file_);
 		delete[] empty;
