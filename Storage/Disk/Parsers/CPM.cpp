@@ -68,8 +68,6 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 			index = result->files.size();
 			result->files.push_back(new_file);
 			indices_by_name[descriptor] = index;
-
-			printf("%s\n", new_file.name.c_str());
 		}
 
 		// figure out where this data needs to be pasted in
@@ -81,7 +79,6 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 			result->files[index].data.resize(required_size);
 		}
 
-		printf("%d records for extent %d: ", number_of_records, extent);
 		int sectors_per_block = parameters.block_size / (int)sector_size;
 		int records_per_sector = (int)sector_size / 128;
 		int record = 0;
@@ -103,11 +100,10 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				}
 
 				int records_to_copy = std::min(number_of_records - record, records_per_sector);
-				memcpy(&result->files[index].data[extent * 16384 + record * 128], sector_contents->data.data(), records_to_copy * 128);
+				memcpy(&result->files[index].data[(size_t)(extent * 16384 + record * 128)], sector_contents->data.data(), (size_t)records_to_copy * 128);
 				record += records_to_copy;
 			}
 		}
-		printf("\n");
 	}
 
 	return result;
