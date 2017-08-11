@@ -50,6 +50,8 @@ static void InspectDataCatalogue(
 static void InspectSystemCatalogue(
 	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
 	StaticAnalyser::Target &target) {
+	// If this is a system disk, then launch it as though it were CP/M.
+	target.loadingCommand = "|cpm\n";
 }
 
 void StaticAnalyser::AmstradCPC::AddTargets(
@@ -87,12 +89,12 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 			InspectDataCatalogue(data_catalogue, target);
 		} else {
 			Storage::Disk::CPM::ParameterBlock system_format;
-			data_format.sectors_per_track = 9;
-			data_format.tracks = 40;
-			data_format.block_size = 1024;
-			data_format.first_sector = 0x41;
-			data_format.catalogue_allocation_bitmap = 0xc000;
-			data_format.reserved_tracks = 2;
+			system_format.sectors_per_track = 9;
+			system_format.tracks = 40;
+			system_format.block_size = 1024;
+			system_format.first_sector = 0x41;
+			system_format.catalogue_allocation_bitmap = 0xc000;
+			system_format.reserved_tracks = 2;
 
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), system_format);
 			if(system_catalogue) {
