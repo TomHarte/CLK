@@ -31,6 +31,9 @@ static void InspectDataCatalogue(
 		target.loadingCommand = "run\"" + data_catalogue->files[last_basic_file].name + "\n";
 		return;
 	}
+
+	// Desperation.
+	target.loadingCommand = "cat\n";
 }
 
 static void InspectSystemCatalogue(
