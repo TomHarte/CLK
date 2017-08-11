@@ -22,9 +22,9 @@ namespace CPM {
 
 struct ParameterBlock {
 	int sectors_per_track;
+	int tracks;
 	int block_size;
 	int first_sector;
-	int logic_extents_per_physical;
 	uint16_t catalogue_allocation_bitmap;
 	int reserved_tracks;
 };
