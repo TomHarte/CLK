@@ -39,6 +39,10 @@ static void InspectDataCatalogue(
 	size_t last_implicit_suffixed_file = 0;
 
 	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
+		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
+		if(data_catalogue->files[c].type == "   " && data_catalogue->files[c].name == "        ")
+			continue;
+
 		// Check for whether this is [potentially] BASIC.
 		if(data_catalogue->files[c].data.size() >= 128 && !((data_catalogue->files[c].data[18] >> 1) & 7)) {
 			basic_files++;
