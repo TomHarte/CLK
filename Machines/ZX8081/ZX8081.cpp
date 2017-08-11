@@ -384,3 +384,5 @@ using namespace ZX8081;
 Machine *Machine::ZX8081() {
 	return new ZX8081::ConcreteMachine;
 }
+
+Machine::~Machine() {}

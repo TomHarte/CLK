@@ -56,10 +56,12 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 	switch(displayType) {
 		case DisplayType::PAL50:
 			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
+			set_input_gamma(2.8f);
 		break;
 
 		case DisplayType::NTSC60:
 			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
+			set_input_gamma(2.2f);
 		break;
 	}
 }
@@ -70,6 +72,21 @@ void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_
 	} else {
 		colour_burst_phase_adjustment_ = 0xff;
 	}
+}
+
+void CRT::set_input_gamma(float gamma) {
+	input_gamma_ = gamma;
+	update_gamma();
+}
+
+void CRT::set_output_gamma(float gamma) {
+	output_gamma_ = gamma;
+	update_gamma();
+}
+
+void CRT::update_gamma() {
+	float gamma_ratio = input_gamma_ / output_gamma_;
+	openGL_output_builder_.set_gamma(gamma_ratio);
 }
 
 CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :

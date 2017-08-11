@@ -51,7 +51,7 @@ bool Typer::try_type_next_character() {
 	if(!phase_) delegate_->clear_all_keys();
 	else {
 		delegate_->set_key_state(sequence[phase_ - 1], true);
-		return sequence[phase_] == CharacterMapper::EndSequence;
+		return sequence[phase_] != CharacterMapper::EndSequence;
 	}
 
 	return true;

@@ -39,6 +39,7 @@ class Machine:
 	public KeyboardMachine::Machine {
 	public:
 		static Machine *ZX8081();
+		virtual ~Machine();
 
 		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;
 

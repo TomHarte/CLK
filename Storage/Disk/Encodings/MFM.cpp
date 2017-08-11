@@ -114,22 +114,12 @@ class FMEncoder: public Encoder {
 		}
 };
 
-static uint8_t logarithmic_size_for_size(size_t size) {
-	switch(size) {
-		default:	return 0;
-		case 256:	return 1;
-		case 512:	return 2;
-		case 1024:	return 3;
-		case 2048:	return 4;
-		case 4196:	return 5;
-	}
-}
-
 template<class T> std::shared_ptr<Storage::Disk::Track>
 		GetTrackWithSectors(
 			const std::vector<Sector> &sectors,
 			size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
-			size_t pre_address_mark_bytes, size_t post_address_mark_bytes,
+			size_t pre_address_mark_bytes,
+			size_t post_address_mark_bytes, uint8_t post_address_mark_value,
 			size_t pre_data_mark_bytes, size_t post_data_bytes,
 			size_t inter_sector_gap,
 			size_t expected_track_bytes) {
@@ -153,21 +143,30 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_byte(sector.track);
 		shifter.add_byte(sector.side);
 		shifter.add_byte(sector.sector);
-		uint8_t size = logarithmic_size_for_size(sector.data.size());
-		shifter.add_byte(size);
-		shifter.add_crc();
+		shifter.add_byte(sector.size);
+		shifter.add_crc(sector.has_header_crc_error);
 
 		// gap
-		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(0x4e);
+		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(post_address_mark_value);
 		for(size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
-		// data
-		shifter.add_data_address_mark();
-		for(size_t c = 0; c < sector.data.size(); c++)
-		{
-			shifter.add_byte(sector.data[c]);
+		// data, if attached
+		if(!sector.data.empty()) {
+			if(sector.is_deleted)
+				shifter.add_deleted_data_address_mark();
+			else
+				shifter.add_data_address_mark();
+
+			size_t c = 0;
+			size_t declared_length = (size_t)(128 << sector.size);
+			for(c = 0; c < sector.data.size() && c < declared_length; c++) {
+				shifter.add_byte(sector.data[c]);
+			}
+			for(; c < declared_length; c++) {
+				shifter.add_byte(0x00);
+			}
+			shifter.add_crc(sector.has_data_crc_error);
 		}
-		shifter.add_crc();
 
 		// gap
 		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
@@ -189,28 +188,32 @@ void Encoder::output_short(uint16_t value) {
 	target_.push_back(value & 0xff);
 }
 
-void Encoder::add_crc() {
+void Encoder::add_crc(bool incorrectly) {
 	uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
-	add_byte(crc_value & 0xff);
+	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors) {
+const size_t Storage::Encodings::MFM::DefaultSectorGapLength = (size_t)~0;
+
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(
 		sectors,
 		16, 0x00,
-		6, 0,
-		17, 14,
+		6,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 0, sector_gap_filler_byte,
+		(sector_gap_length != DefaultSectorGapLength) ? 0 : 17, 14,
 		0,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<MFMEncoder>(
 		sectors,
 		50, 0x4e,
-		12, 22,
-		12, 18,
+		12,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 22, sector_gap_filler_byte,
+		(sector_gap_length != DefaultSectorGapLength) ? 0 : 12, 18,
 		32,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
 }
@@ -228,25 +231,26 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 Parser::Parser(bool is_mfm) :
 		Storage::Disk::Controller(4000000, 1, 300),
 		crc_generator_(0x1021, 0xffff),
-		shift_register_(0), track_(0), is_mfm_(is_mfm) {
+		shift_register_(0), is_mfm_(is_mfm),
+		track_(0), head_(0) {
 	Storage::Time bit_length;
 	bit_length.length = 1;
 	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 	set_expected_bit_length(bit_length);
 
-	drive.reset(new Storage::Disk::Drive);
-	set_drive(drive);
+	drive_.reset(new Storage::Disk::Drive);
+	set_drive(drive_);
 	set_motor_on(true);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 		Parser(is_mfm) {
-	drive->set_disk(disk);
+	drive_->set_disk(disk);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
 		Parser(is_mfm) {
-	drive->set_disk_with_track(track);
+	drive_->set_disk_with_track(track);
 }
 
 void Parser::seek_to_track(uint8_t track) {
@@ -261,7 +265,20 @@ void Parser::seek_to_track(uint8_t track) {
 	}
 }
 
-std::shared_ptr<Sector> Parser::get_sector(uint8_t track, uint8_t sector) {
+std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t sector) {
+	// Check cache for sector.
+	int index = get_index(head, track, sector);
+	auto cached_sector = sectors_by_index_.find(index);
+	if(cached_sector != sectors_by_index_.end()) {
+		return cached_sector->second;
+	}
+
+	// Failing that, set the proper head and track, and search for the sector. get_sector automatically
+	// inserts everything found into sectors_by_index_.
+	if(head_ != head) {
+		drive_->set_head(head);
+		invalidate_track();
+	}
 	seek_to_track(track);
 	return get_sector(sector);
 }
@@ -384,8 +401,7 @@ std::vector<uint8_t> Parser::get_track() {
 }
 
 
-std::shared_ptr<Sector> Parser::get_next_sector()
-{
+std::shared_ptr<Sector> Parser::get_next_sector() {
 	std::shared_ptr<Sector> sector(new Sector);
 	index_count_ = 0;
 
@@ -455,6 +471,10 @@ std::shared_ptr<Sector> Parser::get_next_sector()
 		if((data_crc >> 8) != get_next_byte()) continue;
 		if((data_crc & 0xff) != get_next_byte()) continue;
 
+		// Put this sector into the cache.
+		int index = get_index(head_, track_, sector->sector);
+		sectors_by_index_[index] = sector;
+
 		return sector;
 	}
 
@@ -465,7 +485,7 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 	std::shared_ptr<Sector> first_sector;
 	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
-	if(!first_sector) return first_sector;
+	if(!first_sector) return nullptr;
 	if(first_sector->sector == sector) return first_sector;
 
 	while(1) {
@@ -474,4 +494,8 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 		if(next_sector->sector == first_sector->sector) return nullptr;
 		if(next_sector->sector == sector) return next_sector;
 	}
+}
+
+int Parser::get_index(uint8_t head, uint8_t track, uint8_t sector) {
+	return head | (track << 8) | (sector << 16);
 }

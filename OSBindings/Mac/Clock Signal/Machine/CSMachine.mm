@@ -116,6 +116,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	self.machine->setup_output(aspectRatio);
+
+	// Since OS X v10.6, Macs have had a gamma of 2.2.
+	self.machine->get_crt()->set_output_gamma(2.2f);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {

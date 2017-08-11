@@ -14,6 +14,7 @@
 namespace {
 	static const unsigned int sectors_per_track = 16;
 	static const unsigned int bytes_per_sector = 256;
+	static const unsigned int sector_size = 1;
 }
 
 using namespace Storage::Disk;
@@ -69,6 +70,7 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 		new_sector.track = (uint8_t)position;
 		new_sector.side = (uint8_t)head;
 		new_sector.sector = (uint8_t)sector;
+		new_sector.size = sector_size;
 
 		new_sector.data.resize(bytes_per_sector);
 		fread(&new_sector.data[0], 1, bytes_per_sector, file_);
@@ -87,7 +89,7 @@ void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int p
 	std::vector<uint8_t> parsed_track;
 	Storage::Encodings::MFM::Parser parser(true, track);
 	for(unsigned int c = 0; c < sectors_per_track; c++) {
-		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
 		if(sector) {
 			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
 		} else {

@@ -31,9 +31,18 @@ class BusHandler {
 		void perform_bus_cycle(const BusState &) {}
 };
 
+enum Personality {
+	HD6845S,	//
+	UM6845R,	//
+	MC6845,		//
+	AMS40226	//
+};
+
 template <class T> class CRTC6845 {
 	public:
-		CRTC6845(T &bus_handler) : bus_handler_(bus_handler) {}
+
+		CRTC6845(Personality p, T &bus_handler) :
+			personality_(p), bus_handler_(bus_handler) {}
 
 		void run_for(Cycles cycles) {
 			int cyles_remaining = cycles.as_int();
@@ -58,22 +67,18 @@ template <class T> class CRTC6845 {
 					if(hsync_down_counter_) bus_state_.hsync = true;
 				}
 
+				// update refresh address
+				if(character_is_visible_) {
+					bus_state_.refresh_address++;
+				}
+
 				// check for end of visible characters
 				if(character_counter_ == registers_[1]) {
-					bus_state_.refresh_address++;
 					character_is_visible_ = false;
-				} else {
-					// update refresh address
-					if(character_is_visible_) {
-						bus_state_.refresh_address++;
-					}
 				}
 
 				// check for end-of-line
 				if(is_end_of_line) {
-					character_counter_ = 0;
-					character_is_visible_ = true;
-
 					// check for end of vertical sync
 					if(vsync_down_counter_) {
 						vsync_down_counter_--;
@@ -94,11 +99,12 @@ template <class T> class CRTC6845 {
 					} else {
 						// advance vertical counter
 						if(bus_state_.row_address == registers_[9]) {
-							line_address_ = bus_state_.refresh_address;
+							if(!character_is_visible_)
+								line_address_ = bus_state_.refresh_address;
 							bus_state_.row_address = 0;
 
 							bool is_at_end_of_frame = line_counter_ == registers_[4];
-							line_counter_++;
+							line_counter_ = (line_counter_ + 1) & 0x7f;
 
 							// check for end of visible lines
 							if(line_counter_ == registers_[6]) {
@@ -125,19 +131,23 @@ template <class T> class CRTC6845 {
 								line_counter_ = 0;
 							}
 						} else {
-							bus_state_.row_address++;
-							bus_state_.refresh_address = line_address_;
+							bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
 						}
+						bus_state_.refresh_address = line_address_;
 					}
+
+					character_counter_ = 0;
+					character_is_visible_ = true;
 				}
 
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+				bus_state_.refresh_address &= 0x3fff;
 				bus_handler_.perform_bus_cycle(bus_state_);
 			}
 		}
 
 		void select_register(uint8_t r) {
-			selected_register_ = (int)r & 15;
+			selected_register_ = r;
 		}
 
 		uint8_t get_status() {
@@ -145,18 +155,31 @@ template <class T> class CRTC6845 {
 		}
 
 		uint8_t get_register() {
+			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
 
 		void set_register(uint8_t value) {
-			registers_[selected_register_] = value;
+			static uint8_t masks[] = {
+				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
+			};
+
+			if(selected_register_ < 16)
+				registers_[selected_register_] = value & masks[selected_register_];
+		}
+
+		void trigger_light_pen() {
+			registers_[17] = bus_state_.refresh_address & 0xff;
+			registers_[16] = bus_state_.refresh_address >> 8;
 		}
 
 	private:
+		Personality personality_;
 		T &bus_handler_;
 		BusState bus_state_;
 
-		uint8_t registers_[16];
+		uint8_t registers_[18];
 		int selected_register_;
 
 		uint8_t character_counter_;

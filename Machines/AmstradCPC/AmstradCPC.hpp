@@ -52,6 +52,8 @@ class Machine:
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine {
 	public:
+		virtual ~Machine();
+
 		/// Creates an returns an Amstrad CPC on the heap.
 		static Machine *AmstradCPC();
 

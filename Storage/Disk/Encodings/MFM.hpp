@@ -36,13 +36,39 @@ const uint16_t MFMPostSyncCRCValue		= 0xcdb4;	// the value the CRC generator sho
 const uint8_t MFMIndexSyncByteValue		= 0xc2;
 const uint8_t MFMSyncByteValue			= 0xa1;
 
+/*!
+	Represents a single [M]FM sector, identified by its track, side and sector records, a blob of data
+	and a few extra flags of metadata.
+*/
 struct Sector {
-	uint8_t track, side, sector;
+	uint8_t track, side, sector, size;
 	std::vector<uint8_t> data;
+
+	bool has_data_crc_error;
+	bool has_header_crc_error;
+	bool is_deleted;
+
+	Sector() : track(0), side(0), sector(0), size(0), has_data_crc_error(false), has_header_crc_error(false), is_deleted(false) {}
 };
 
-std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors);
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors);
+extern const size_t DefaultSectorGapLength;
+/*!
+	Converts a vector of sectors into a properly-encoded MFM track.
+
+	@param sectors The sectors to write.
+	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
+	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
+*/
+std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
+
+/*!
+	Converts a vector of sectors into a properly-encoded FM track.
+
+	@param sectors The sectors to write.
+	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
+	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
+*/
+std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
 
 class Encoder {
 	public:
@@ -53,7 +79,9 @@ class Encoder {
 		virtual void add_data_address_mark() = 0;
 		virtual void add_deleted_data_address_mark() = 0;
 		virtual void output_short(uint16_t value);
-		void add_crc();
+
+		/// Outputs the CRC for all data since the last address mask; if @c incorrectly is @c true then outputs an incorrect CRC.
+		void add_crc(bool incorrectly);
 
 	protected:
 		NumberTheory::CRC16 crc_generator_;
@@ -75,7 +103,7 @@ class Parser: public Storage::Disk::Controller {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t track, uint8_t sector);
+		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t head, uint8_t track, uint8_t sector);
 
 		/*!
 			Attempts to read the track at @c track, starting from the index hole.
@@ -92,10 +120,10 @@ class Parser: public Storage::Disk::Controller {
 	private:
 		Parser(bool is_mfm);
 
-		std::shared_ptr<Storage::Disk::Drive> drive;
+		std::shared_ptr<Storage::Disk::Drive> drive_;
 		unsigned int shift_register_;
 		int index_count_;
-		uint8_t track_;
+		uint8_t track_, head_;
 		int bit_count_;
 		NumberTheory::CRC16 crc_generator_;
 		bool is_mfm_;
@@ -110,6 +138,9 @@ class Parser: public Storage::Disk::Controller {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
 		std::vector<uint8_t> get_track();
+
+		std::map<int, std::shared_ptr<Storage::Encodings::MFM::Sector>> sectors_by_index_;
+		int get_index(uint8_t head, uint8_t track, uint8_t sector);
 };
 
 

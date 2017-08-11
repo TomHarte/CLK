@@ -8,12 +8,17 @@
 
 #include "AmstradCPC.hpp"
 
+#include "CharacterMapper.hpp"
+
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/8272/i8272.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+
+#include "../MemoryFuzzer.hpp"
+#include "../Typer.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -291,6 +296,7 @@ class CRTCBusHandler {
 					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 				"}");
 			crt_->set_visible_area(Outputs::CRT::Rect(0.075f, 0.05f, 0.9f, 0.9f));
+			crt_->set_output_device(Outputs::CRT::Monitor);
 		}
 
 		/// Destructs the CRT.
@@ -522,19 +528,23 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
 class ConcreteMachine:
+	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
 		ConcreteMachine() :
 			z80_(*this),
 			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
-			crtc_(crtc_bus_handler_),
+			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
 			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_, tape_player_),
 			tape_player_(8000000) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
+
+			// ensure memory starts in a random state
+			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -556,11 +566,14 @@ class ConcreteMachine:
 			// run_for as HalfCycles
 			tape_player_.run_for(cycle.length.as_int());
 
-			// Pump the AY.
+			// Pump the AY
 			ay_.run_for(cycle.length);
 
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(has_fdc_) fdc_.run_for(Cycles(cycle.length.as_int()));
+
+			// Update typing activity
+			if(typer_) typer_->run_for(cycle.length);
 
 			// Stop now if no action is strictly required.
 			if(!cycle.is_terminal()) return HalfCycles(0);
@@ -579,48 +592,7 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					// Check for a gate array access.
 					if((address & 0xc000) == 0x4000) {
-						switch(*cycle.value >> 6) {
-							case 0: crtc_bus_handler_.select_pen(*cycle.value & 0x1f);		break;
-							case 1: crtc_bus_handler_.set_colour(*cycle.value & 0x1f);		break;
-							case 2:
-								// Perform ROM paging.
-								read_pointers_[0] = (*cycle.value & 4) ? write_pointers_[0] : roms_[rom_model_].data();
-
-								upper_rom_is_paged_ = !(*cycle.value & 8);
-								read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : write_pointers_[3];
-
-								// Reset the interrupt timer if requested.
-								if(*cycle.value & 0x10) interrupt_timer_.reset_count();
-
-								// Post the next mode.
-								crtc_bus_handler_.set_next_mode(*cycle.value & 3);
-							break;
-							case 3:
-								// Perform RAM paging, if 128kb is permitted.
-								if(has_128k_) {
-									bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
-									bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
-#define RAM_BANK(x) &ram_[x * 16384]
-#define RAM_CONFIG(a, b, c, d) write_pointers_[0] = RAM_BANK(a); write_pointers_[1] = RAM_BANK(b); write_pointers_[2] = RAM_BANK(c); write_pointers_[3] = RAM_BANK(d);
-									switch(*cycle.value & 7) {
-										case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
-										case 1:	RAM_CONFIG(0, 1, 2, 7);	break;
-										case 2:	RAM_CONFIG(4, 5, 6, 7);	break;
-										case 3:	RAM_CONFIG(0, 3, 2, 7);	break;
-										case 4:	RAM_CONFIG(0, 4, 2, 3);	break;
-										case 5:	RAM_CONFIG(0, 5, 2, 3);	break;
-										case 6:	RAM_CONFIG(0, 6, 2, 3);	break;
-										case 7:	RAM_CONFIG(0, 7, 2, 3);	break;
-									}
-#undef RAM_CONFIG
-#undef RAM_BANK
-									if(adjust_low_read_pointer) read_pointers_[0] = write_pointers_[0];
-									read_pointers_[1] = write_pointers_[1];
-									read_pointers_[2] = write_pointers_[2];
-									if(adjust_high_read_pointer) read_pointers_[3] = write_pointers_[3];
-								}
-							break;
-						}
+						write_to_gate_array(*cycle.value);
 					}
 
 					// Check for an upper ROM selection
@@ -634,7 +606,7 @@ class ConcreteMachine:
 						switch((address >> 8) & 3) {
 							case 0:	crtc_.select_register(*cycle.value);	break;
 							case 1:	crtc_.set_register(*cycle.value);		break;
-							case 2: case 3:	printf("Illegal CRTC write?\n");	break;
+							default: break;
 						}
 					}
 
@@ -657,23 +629,31 @@ class ConcreteMachine:
 					// Default to nothing answering
 					*cycle.value = 0xff;
 
-					// Check for a CRTC access
-					if(!(address & 0x4000)) {
-						switch((address >> 8) & 3) {
-							case 0:	case 1: printf("Illegal CRTC read?\n");	break;
-							case 2: *cycle.value = crtc_.get_status();		break;
-							case 3:	*cycle.value = crtc_.get_register();	break;
-						}
-					}
-
 					// Check for a PIO access
 					if(!(address & 0x800)) {
-						*cycle.value = i8255_.get_register((address >> 8) & 3);
+						*cycle.value &= i8255_.get_register((address >> 8) & 3);
 					}
 
 					// Check for an FDC access
 					if(has_fdc_ && (address & 0x580) == 0x100) {
-						*cycle.value = fdc_.get_register(address & 1);
+						*cycle.value &= fdc_.get_register(address & 1);
+					}
+
+					// Check for a CRTC access; the below is not a typo — the CRTC can be selected
+					// for writing via an input, and will sample whatever happens to be available
+					if(!(address & 0x4000)) {
+						switch((address >> 8) & 3) {
+							case 0:	crtc_.select_register(*cycle.value);	break;
+							case 1:	crtc_.set_register(*cycle.value);		break;
+							case 2: *cycle.value &= crtc_.get_status();		break;
+							case 3:	*cycle.value &= crtc_.get_register();	break;
+						}
+					}
+
+					// As with the CRTC, the gate array will sample the bus if the address decoding
+					// implies that it should, unaware of data direction
+					if((address & 0xc000) == 0x4000) {
+						write_to_gate_array(*cycle.value);
 					}
 				break;
 
@@ -774,11 +754,31 @@ class ConcreteMachine:
 				c++;
 				if(c == 4) break;
 			}
+
+			// Type whatever is required.
+			if(target.loadingCommand.length()) {
+				set_typer_for_string(target.loadingCommand.c_str());
+			}
 		}
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) {
 			roms_[(int)type] = data;
+		}
+
+#pragma mark - Keyboard
+
+		void set_typer_for_string(const char *string) {
+			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+		}
+
+		HalfCycles get_typer_delay() {
+			return Cycles(4000000);	// Wait 1 second before typing.
+		}
+
+		HalfCycles get_typer_frequency() {
+			return Cycles(80000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -794,6 +794,51 @@ class ConcreteMachine:
 		}
 
 	private:
+		inline void write_to_gate_array(uint8_t value) {
+			switch(value >> 6) {
+				case 0: crtc_bus_handler_.select_pen(value & 0x1f);		break;
+				case 1: crtc_bus_handler_.set_colour(value & 0x1f);		break;
+				case 2:
+					// Perform ROM paging.
+					read_pointers_[0] = (value & 4) ? write_pointers_[0] : roms_[rom_model_].data();
+
+					upper_rom_is_paged_ = !(value & 8);
+					read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : write_pointers_[3];
+
+					// Reset the interrupt timer if requested.
+					if(value & 0x10) interrupt_timer_.reset_count();
+
+					// Post the next mode.
+					crtc_bus_handler_.set_next_mode(value & 3);
+				break;
+				case 3:
+					// Perform RAM paging, if 128kb is permitted.
+					if(has_128k_) {
+						bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
+						bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
+#define RAM_BANK(x) &ram_[x * 16384]
+#define RAM_CONFIG(a, b, c, d) write_pointers_[0] = RAM_BANK(a); write_pointers_[1] = RAM_BANK(b); write_pointers_[2] = RAM_BANK(c); write_pointers_[3] = RAM_BANK(d);
+						switch(value & 7) {
+							case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
+							case 1:	RAM_CONFIG(0, 1, 2, 7);	break;
+							case 2:	RAM_CONFIG(4, 5, 6, 7);	break;
+							case 3:	RAM_CONFIG(0, 3, 2, 7);	break;
+							case 4:	RAM_CONFIG(0, 4, 2, 3);	break;
+							case 5:	RAM_CONFIG(0, 5, 2, 3);	break;
+							case 6:	RAM_CONFIG(0, 6, 2, 3);	break;
+							case 7:	RAM_CONFIG(0, 7, 2, 3);	break;
+						}
+#undef RAM_CONFIG
+#undef RAM_BANK
+						if(adjust_low_read_pointer) read_pointers_[0] = write_pointers_[0];
+						read_pointers_[1] = write_pointers_[1];
+						read_pointers_[2] = write_pointers_[2];
+						if(adjust_high_read_pointer) read_pointers_[3] = write_pointers_[3];
+					}
+				break;
+			}
+		}
+
 		CPU::Z80::Processor<ConcreteMachine> z80_;
 
 		CRTCBusHandler crtc_bus_handler_;
@@ -836,3 +881,5 @@ using namespace AmstradCPC;
 Machine *Machine::AmstradCPC() {
 	return new AmstradCPC::ConcreteMachine;
 }
+
+Machine::~Machine() {}
