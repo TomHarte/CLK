@@ -247,6 +247,7 @@ void i8272::posit_event(int event_type) {
 
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
+			status_[0] = status_[1] = status_[2] = 0;
 			SET_DRIVE_HEAD_MFM();
 			cylinder_ = command_[2];
 			head_ = command_[3];
