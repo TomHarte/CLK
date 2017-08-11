@@ -266,6 +266,26 @@ void Parser::seek_to_track(uint8_t track) {
 }
 
 std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t sector) {
+	// Switch head and track if necessary.
+	if(head_ != head) {
+		drive_->set_head(head);
+		invalidate_track();
+	}
+	seek_to_track(track);
+	int track_index = get_index(head, track, 0);
+
+	// Populate the sector cache if it's not already populated.
+	if(decoded_tracks_.find(track_index) == decoded_tracks_.end()) {
+		std::shared_ptr<Sector> first_sector = get_next_sector();
+		if(first_sector) {
+			while(1) {
+				std::shared_ptr<Sector> next_sector = get_next_sector();
+				if(next_sector->sector == first_sector->sector) break;
+			}
+		}
+		decoded_tracks_.insert(track_index);
+	}
+
 	// Check cache for sector.
 	int index = get_index(head, track, sector);
 	auto cached_sector = sectors_by_index_.find(index);
@@ -273,14 +293,8 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 		return cached_sector->second;
 	}
 
-	// Failing that, set the proper head and track, and search for the sector. get_sector automatically
-	// inserts everything found into sectors_by_index_.
-	if(head_ != head) {
-		drive_->set_head(head);
-		invalidate_track();
-	}
-	seek_to_track(track);
-	return get_sector(sector);
+	// If it wasn't found, it doesn't exist.
+	return nullptr;
 }
 
 std::vector<uint8_t> Parser::get_track(uint8_t track) {

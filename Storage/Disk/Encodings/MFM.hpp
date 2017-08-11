@@ -140,6 +140,7 @@ class Parser: public Storage::Disk::Controller {
 		std::vector<uint8_t> get_track();
 
 		std::map<int, std::shared_ptr<Storage::Encodings::MFM::Sector>> sectors_by_index_;
+		std::set<int> decoded_tracks_;
 		int get_index(uint8_t head, uint8_t track, uint8_t sector);
 };
 

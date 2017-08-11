@@ -66,6 +66,8 @@ static void InspectDataCatalogue(
 static void InspectSystemCatalogue(
 	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
 	StaticAnalyser::Target &target) {
+	// TODO: does track 0, side 0, sector 0x41 exist? If not, InspectDataCatalogue.
+
 	// If this is a system disk, then launch it as though it were CP/M.
 	target.loadingCommand = "|cpm\n";
 }
