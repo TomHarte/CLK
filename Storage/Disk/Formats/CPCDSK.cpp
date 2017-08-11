@@ -123,33 +123,33 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		new_sector.data.resize(data_size);
 		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
-		// TODO: obey the status bytes, somehow (?)
-		if(sector_info.status1 || sector_info.status2) {
-			if(sector_info.status1 & 0x08) {
-				// The CRC failed in the ID field.
-				new_sector.has_header_crc_error = true;
-			}
+		if(sector_info.status1 & 0x08) {
+			// The CRC failed in the ID field.
+			new_sector.has_header_crc_error = true;
+		}
 
-			if(sector_info.status2 & 0x20) {
-				// The CRC failed in the data field.
-				new_sector.has_data_crc_error = true;
-			}
+		if(sector_info.status2 & 0x20) {
+			// The CRC failed in the data field.
+			new_sector.has_data_crc_error = true;
+		}
 
-			if(sector_info.status2 & 0x40) {
-				// This sector is marked as deleted.
-				new_sector.is_deleted = true;
-			}
+		if(sector_info.status2 & 0x40) {
+			// This sector is marked as deleted.
+			new_sector.is_deleted = true;
+		}
 
-			if(sector_info.status2 & 0x01) {
-				// Data field wasn't found.
-				new_sector.data.clear();
-			}
+		if(sector_info.status2 & 0x01) {
+			// Data field wasn't found.
+			new_sector.data.clear();
 		}
 
 		sectors.push_back(std::move(new_sector));
 	}
 
-	// TODO: supply gay 3 length and filler byte
+	// TODO: extensions to the extended format; John Elliot's addition of single-density support,
+	// and Simon Owen's weak/random sectors, subject to adding some logic to pick a potential
+	// FM/MFM encoding that can produce specified weak values.
+
 	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors, gap3_length, filler_byte);
 
 	return nullptr;
