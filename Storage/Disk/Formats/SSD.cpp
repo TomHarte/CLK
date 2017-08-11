@@ -81,7 +81,7 @@ void SSD::store_updated_track_at_position(unsigned int head, unsigned int positi
 	std::vector<uint8_t> parsed_track;
 	Storage::Encodings::MFM::Parser parser(false, track);
 	for(unsigned int c = 0; c < 10; c++) {
-		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector((uint8_t)position, (uint8_t)c);
+		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
 		if(sector) {
 			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
 		} else {

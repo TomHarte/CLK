@@ -75,7 +75,7 @@ class Parser: public Storage::Disk::Controller {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t track, uint8_t sector);
+		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t head, uint8_t track, uint8_t sector);
 
 		/*!
 			Attempts to read the track at @c track, starting from the index hole.
@@ -92,10 +92,10 @@ class Parser: public Storage::Disk::Controller {
 	private:
 		Parser(bool is_mfm);
 
-		std::shared_ptr<Storage::Disk::Drive> drive;
+		std::shared_ptr<Storage::Disk::Drive> drive_;
 		unsigned int shift_register_;
 		int index_count_;
-		uint8_t track_;
+		uint8_t track_, head_;
 		int bit_count_;
 		NumberTheory::CRC16 crc_generator_;
 		bool is_mfm_;
@@ -110,6 +110,9 @@ class Parser: public Storage::Disk::Controller {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
 		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
 		std::vector<uint8_t> get_track();
+
+		std::map<int, std::shared_ptr<Storage::Encodings::MFM::Sector>> sectors_by_index_;
+		int get_index(uint8_t head, uint8_t track, uint8_t sector);
 };
 
 

@@ -58,6 +58,7 @@
 		4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */; };
 		4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BF5AE1F146264005B6C36 /* CSW.cpp */; };
 		4B3F1B461E0388D200DB26EE /* PCMPatchedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */; };
+		4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
 		4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E7F1F1C45A00009ABD6 /* TZX.cpp */; };
 		4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */; };
 		4B44EBF51DC987AF00A7820C /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */; };
@@ -562,6 +563,8 @@
 		4B3BF5AF1F146264005B6C36 /* CSW.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CSW.hpp; sourceTree = "<group>"; };
 		4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMPatchedTrack.cpp; sourceTree = "<group>"; };
 		4B3F1B451E0388D200DB26EE /* PCMPatchedTrack.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMPatchedTrack.hpp; sourceTree = "<group>"; };
+		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
+		4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CPM.hpp; path = Parsers/CPM.hpp; sourceTree = "<group>"; };
 		4B448E7F1F1C45A00009ABD6 /* TZX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TZX.cpp; sourceTree = "<group>"; };
 		4B448E801F1C45A00009ABD6 /* TZX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TZX.hpp; sourceTree = "<group>"; };
 		4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PulseQueuedTape.cpp; sourceTree = "<group>"; };
@@ -1330,6 +1333,15 @@
 			path = Bridges;
 			sourceTree = "<group>";
 		};
+		4B3FE75F1F3CF6BA00448EE4 /* Parsers */ = {
+			isa = PBXGroup;
+			children = (
+				4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */,
+				4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */,
+			);
+			name = Parsers;
+			sourceTree = "<group>";
+		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
 			isa = PBXGroup;
 			children = (
@@ -1446,12 +1458,12 @@
 		4B69FB3A1C4D908A00B5F0AA /* Tape */ = {
 			isa = PBXGroup;
 			children = (
+				4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */,
+				4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */,
+				4B448E831F1C4C480009ABD6 /* PulseQueuedTape.hpp */,
+				4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */,
 				4B69FB411C4D941400B5F0AA /* Formats */,
 				4B8805F11DCFC9A2003085B1 /* Parsers */,
-				4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */,
-				4B448E831F1C4C480009ABD6 /* PulseQueuedTape.hpp */,
-				4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */,
-				4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */,
 			);
 			path = Tape;
 			sourceTree = "<group>";
@@ -1545,6 +1557,7 @@
 				4BAB62B71D3302CA00DF5BA0 /* PCMTrack.hpp */,
 				4BB697CF1D4BA44900248BDF /* Encodings */,
 				4BAB62B21D327F7E00DF5BA0 /* Formats */,
+				4B3FE75F1F3CF6BA00448EE4 /* Parsers */,
 			);
 			path = Disk;
 			sourceTree = "<group>";
@@ -2700,6 +2713,7 @@
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */,
+				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
