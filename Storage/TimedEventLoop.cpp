@@ -43,10 +43,12 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 		(int64_t)subcycles_until_event_.clock_rate * (int64_t)input_clock_rate_ * (int64_t)interval.length +
 		(int64_t)interval.clock_rate * (int64_t)subcycles_until_event_.length;
 
-	// Simplify now, to prepare for stuffing into possibly 32-bit quantities
-	int64_t common_divisor = NumberTheory::greatest_common_divisor(numerator % denominator, denominator);
-	denominator /= common_divisor;
-	numerator /= common_divisor;
+	// Simplify if necessary.
+	if(denominator > std::numeric_limits<unsigned int>::max()) {
+		int64_t common_divisor = NumberTheory::greatest_common_divisor(numerator % denominator, denominator);
+		denominator /= common_divisor;
+		numerator /= common_divisor;
+	}
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
