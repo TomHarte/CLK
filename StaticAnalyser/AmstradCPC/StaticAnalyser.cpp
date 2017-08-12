@@ -7,7 +7,9 @@
 //
 
 #include "StaticAnalyser.hpp"
+
 #include "../../Storage/Disk/Parsers/CPM.hpp"
+#include "../../Storage/Disk/Encodings/MFM.hpp"
 
 static bool strcmp_insensitive(const char *a, const char *b) {
 	if(strlen(a) != strlen(b)) return false;
@@ -37,6 +39,10 @@ static void InspectDataCatalogue(
 	size_t last_implicit_suffixed_file = 0;
 
 	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
+		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
+		if(data_catalogue->files[c].type == "   " && data_catalogue->files[c].name == "        ")
+			continue;
+
 		// Check for whether this is [potentially] BASIC.
 		if(data_catalogue->files[c].data.size() >= 128 && !((data_catalogue->files[c].data[18] >> 1) & 7)) {
 			basic_files++;
@@ -64,10 +70,17 @@ static void InspectDataCatalogue(
 }
 
 static void InspectSystemCatalogue(
-	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
+	const std::shared_ptr<Storage::Disk::Disk> &disk,
+	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &catalogue,
 	StaticAnalyser::Target &target) {
-	// If this is a system disk, then launch it as though it were CP/M.
-	target.loadingCommand = "|cpm\n";
+	Storage::Encodings::MFM::Parser parser(true, disk);
+	// Check that the boot sector exists.
+	if(parser.get_sector(0, 0, 0x41) != nullptr) {
+		// This is a system disk, then launch it as though it were CP/M.
+		target.loadingCommand = "|cpm\n";
+	} else {
+		InspectDataCatalogue(catalogue, target);
+	}
 }
 
 void StaticAnalyser::AmstradCPC::AddTargets(
@@ -114,7 +127,7 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), system_format);
 			if(system_catalogue) {
-				InspectSystemCatalogue(data_catalogue, target);
+				InspectSystemCatalogue(target.disks.front(), data_catalogue, target);
 			}
 		}
 	}

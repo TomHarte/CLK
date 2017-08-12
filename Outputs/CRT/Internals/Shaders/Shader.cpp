@@ -29,7 +29,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 		GLint logLength;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[logLength];
+			GLchar *log = new GLchar[(size_t)logLength];
 			glGetShaderInfoLog(shader, logLength, &logLength, log);
 			printf("Compile log:\n%s\n", log);
 			delete[] log;
@@ -66,7 +66,7 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 		GLint logLength;
 		glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[logLength];
+			GLchar *log = new GLchar[(size_t)logLength];
 			glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
 			printf("Link log:\n%s\n", log);
 			delete[] log;
