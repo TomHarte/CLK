@@ -42,6 +42,8 @@ using namespace Intel;
 #define SetMissingAddressMark()			(status_[1] |= 0x01)
 
 #define SetControlMark()				(status_[2] |= 0x40)
+#define ControlMark()					(status_[2] & 0x40)
+
 #define SetDataFieldDataError()			(status_[2] |= 0x20)
 #define SetWrongCyinder()				(status_[2] |= 0x10)
 #define SetScanEqualHit()				(status_[2] |= 0x08)
@@ -393,7 +395,7 @@ void i8272::posit_event(int event_type) {
 
 		// check whether that's it: either the final requested sector has been read, or because
 		// a sector that was [/wasn't] marked as deleted when it shouldn't [/should] have been
-			if(sector_ != command_[6] && !(status_[2]&0x40)) {
+			if(sector_ != command_[6] && !ControlMark()) {
 				sector_++;
 				goto read_next_data;
 			}
