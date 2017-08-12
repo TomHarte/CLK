@@ -174,10 +174,12 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	}
 
 #define SCHEDULE_HEAD_UNLOAD()	\
-	if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
-		head_timers_running_++;	\
-	}	\
-	drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);
+	if(drives_[active_drive_].head_is_loaded[active_head_]) {\
+		if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
+			head_timers_running_++;	\
+		}	\
+		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
+	}
 
 void i8272::posit_event(int event_type) {
 	if(!(interesting_event_mask_ & event_type)) return;
