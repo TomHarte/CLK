@@ -79,6 +79,7 @@ void i8272::run_for(Cycles cycles) {
 						drives_[c].head_unload_delay[c] = 0;
 						drives_[c].head_is_loaded[c] = false;
 						head_timers_running_--;
+						if(!head_timers_running_) return;
 					} else {
 						drives_[c].head_unload_delay[c] -= cycles.as_int();
 					}
@@ -125,8 +126,9 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
+#define MS_TO_CYCLES(x)			x * 8000
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = ms * 8000; case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
@@ -177,7 +179,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
 		head_timers_running_++;	\
 	}	\
-	drives_[active_drive_].head_unload_delay[active_head_] = head_unload_time_;
+	drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);
 
 void i8272::posit_event(int event_type) {
 	if(!(interesting_event_mask_ & event_type)) return;
@@ -287,13 +289,11 @@ void i8272::posit_event(int event_type) {
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
 			SET_DRIVE_HEAD_MFM();
+			LOAD_HEAD();
 			cylinder_ = command_[2];
 			head_ = command_[3];
 			sector_ = command_[4];
 			size_ = command_[5];
-
-		// TODO: is the head loaded?
-			LOAD_HEAD();
 
 		read_next_data:
 
