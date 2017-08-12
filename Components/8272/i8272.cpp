@@ -139,7 +139,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define FIND_DATA()	\
 	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data) goto CONCAT(find_data, __LINE__);
+	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) goto CONCAT(find_data, __LINE__);
 
 #define READ_HEADER()	\
 	distance_into_section_ = 0;	\
@@ -204,14 +204,10 @@ void i8272::posit_event(int event_type) {
 
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
-					goto read_data;
-
 				case 0x0b:	// read deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
 					main_status_ &= ~StatusRequest;
-					goto read_deleted_data;
+					goto read_data;
 
 				case 0x05:	// write data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
@@ -282,9 +278,9 @@ void i8272::posit_event(int event_type) {
 					goto invalid;
 			}
 
-	// Performs the read data command.
+	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
+			printf("Read [deleted?] data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
 
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
@@ -308,9 +304,12 @@ void i8272::posit_event(int event_type) {
 			READ_HEADER();
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
-		// Finds the next data block and sets data mode to reading.
+		// Finds the next data block and sets data mode to reading, setting an error flag if the on-disk deleted
+		// flag doesn't match the sort the command was looking for.
 			FIND_DATA();
 			distance_into_section_ = 0;
+			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) != 0x6))
+				status_[2] |= 0x40;
 			set_data_mode(Reading);
 
 		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and (ii) resetting
@@ -348,10 +347,6 @@ void i8272::posit_event(int event_type) {
 			status_[1] |= 0x4;
 			status_[0] = 0x40;
 			goto post_st012chrn;
-
-	read_deleted_data:
-		printf("Read deleted data unimplemented!!\n");
-		goto wait_for_command;
 
 	write_data:
 		printf("Write data unimplemented!!\n");
