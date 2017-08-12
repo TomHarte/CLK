@@ -12,12 +12,44 @@
 
 using namespace Intel;
 
-namespace {
-const uint8_t StatusRequest = 0x80;	// Set: ready to send or receive from processor.
-const uint8_t StatusDirection = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
-const uint8_t StatusNonDMAExecuting = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
-const uint8_t StatusBusy = 0x10;	// Set: the FDC is busy.
-}
+#define SetDataRequest()				(main_status_ |= 0x80)
+#define ResetDataRequest()				(main_status_ &= ~0x80)
+#define DataRequest()					(main_status_ & 0x80)
+
+#define SetDataDirectionToProcessor()	(main_status_ |= 0x40)
+#define SetDataDirectionFromProcessor()	(main_status_ &= ~0x40)
+#define DataDirectionToProcessor()		(main_status_ & 0x40)
+
+#define SetNonDMAExecution()			(main_status_ |= 0x20)
+#define ResetNonDMAExecution()			(main_status_ &= ~0x20)
+
+#define SetBusy()						(main_status_ |= 0x10)
+#define ResetBusy()						(main_status_ &= ~0x10)
+#define Busy()							(main_status_ & 0x10)
+
+#define SetAbnormalTermination()		(status_[0] |= 0x40)
+#define SetInvalidCommand()				(status_[0] |= 0x80)
+#define SetReadyChanged()				(status_[0] |= 0xc0)
+#define SetSeekEnd()					(status_[0] |= 0x20)
+#define SetEquipmentCheck()				(status_[0] |= 0x10)
+#define SetNotReady()					(status_[0] |= 0x08)
+
+#define SetEndOfCylinder()				(status_[1] |= 0x80)
+#define SetDataError()					(status_[1] |= 0x20)
+#define SetOverrun()					(status_[1] |= 0x10)
+#define SetNoData()						(status_[1] |= 0x04)
+#define SetNotWriteable()				(status_[1] |= 0x02)
+#define SetMissingAddressMark()			(status_[1] |= 0x01)
+
+#define SetControlMark()				(status_[2] |= 0x40)
+#define ControlMark()					(status_[2] & 0x40)
+
+#define SetDataFieldDataError()			(status_[2] |= 0x20)
+#define SetWrongCyinder()				(status_[2] |= 0x10)
+#define SetScanEqualHit()				(status_[2] |= 0x08)
+#define SetScanNotSatisfied()			(status_[2] |= 0x04)
+#define SetBadCylinder()				(status_[2] |= 0x02)
+#define SetMissingDataAddressMark()		(status_[2] |= 0x01)
 
 i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
@@ -90,7 +122,7 @@ void i8272::set_register(int address, uint8_t value) {
 	if(!address) return;
 
 	// if not ready for commands, do nothing
-	if(!(main_status_ & StatusRequest)) return;
+	if(!DataRequest() || DataDirectionToProcessor()) return;
 
 	// accumulate latest byte in the command byte sequence
 	command_.push_back(value);
@@ -151,7 +183,6 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	status_[0] = status_[1] = status_[2] = 0;
 
 #define SET_DRIVE_HEAD_MFM()	\
-	if(!dma_mode_) main_status_ |= StatusNonDMAExecuting;	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
 	set_drive(drives_[active_drive_].drive);	\
@@ -188,90 +219,92 @@ void i8272::posit_event(int event_type) {
 	// into wait_for_complete_command_sequence.
 	wait_for_command:
 			set_data_mode(Storage::Disk::MFMController::DataMode::Scanning);
-			main_status_ &= ~(StatusBusy | StatusNonDMAExecuting);
+			ResetBusy();
+			ResetNonDMAExecution();
 			command_.clear();
 
 	// Sets the data request bit, and waits for a byte. Then sets the busy bit. Continues accepting bytes
 	// until it has a quantity that make up an entire command, then resets the data request bit and
 	// branches to that command.
 	wait_for_complete_command_sequence:
-			main_status_ |= StatusRequest;
+			SetDataRequest();
+			SetDataDirectionFromProcessor();
 			WAIT_FOR_EVENT(Event8272::CommandByte)
-			main_status_ |= StatusBusy;
+			SetBusy();
 
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
 				case 0x0b:	// read deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto read_data;
 
 				case 0x05:	// write data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto write_data;
 
 				case 0x09:	// write deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto write_deleted_data;
 
 				case 0x02:	// read track
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto read_track;
 
 				case 0x0a:	// read ID
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto read_id;
 
 				case 0x0d:	// format track
 					if(command_.size() < 6) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto format_track;
 
 				case 0x11:	// scan low
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto scan_low;
 
 				case 0x19:	// scan low or equal
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto scan_low_or_equal;
 
 				case 0x1d:	// scan high or equal
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto scan_high_or_equal;
 
 				case 0x07:	// recalibrate
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto recalibrate;
 
 				case 0x08:	// sense interrupt status
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto sense_interrupt_status;
 
 				case 0x03:	// specify
 					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto specify;
 
 				case 0x04:	// sense drive status
 					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto sense_drive_status;
 
 				case 0x0f:	// seek
 					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto seek;
 
 				default:	// invalid
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					goto invalid;
 			}
 
@@ -281,6 +314,7 @@ void i8272::posit_event(int event_type) {
 
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
+			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
 			CLEAR_STATUS();
@@ -299,13 +333,13 @@ void i8272::posit_event(int event_type) {
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
-				status_[1] |= 0x4;
+				SetNoData();
 				goto abort_read;
 			}
 			READ_HEADER();
 			if(get_crc_generator().get_value()) {
 				// This implies a CRC error in the header; mark as such but continue.
-				status_[1] |= 0x20;
+				SetDataError();
 			}
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
@@ -316,7 +350,7 @@ void i8272::posit_event(int event_type) {
 			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
 				if(!(command_[0]&0x20)) {
 					// SK is not set; set the error flag but read this sector before finishing.
-					status_[2] |= 0x40;
+					SetControlMark();
 				} else {
 					// SK is set; skip this sector.
 					goto read_next_data;
@@ -333,15 +367,16 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::Token);
 			result_stack_.push_back(get_latest_token().byte_value);
 			distance_into_section_++;
-			main_status_ |= StatusRequest | StatusDirection;
+			SetDataRequest();
+			SetDataDirectionToProcessor();
 			WAIT_FOR_EVENT((int)Event8272::ResultEmpty | (int)Event::Token | (int)Event::IndexHole);
 			switch(event_type) {
 				case (int)Event8272::ResultEmpty:	// The caller read the byte in time; proceed as normal.
-					main_status_ &= ~StatusRequest;
+					ResetDataRequest();
 					if(distance_into_section_ < (128 << size_)) goto get_byte;
 				break;
 				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
-					status_[0] |= 0x10;
+					SetOverrun();
 					goto abort_read;
 				break;
 				case (int)Event::IndexHole:
@@ -353,14 +388,14 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::Token);
 			if(get_crc_generator().get_value()) {
 				// This implies a CRC error in the sector; mark as such and temrinate.
-				status_[1] |= 0x20;
-				status_[2] |= 0x20;
+				SetDataError();
+				SetDataFieldDataError();
 				goto abort_read;
 			}
 
 		// check whether that's it: either the final requested sector has been read, or because
 		// a sector that was [/wasn't] marked as deleted when it shouldn't [/should] have been
-			if(sector_ != command_[6] && !(status_[2]&0x40)) {
+			if(sector_ != command_[6] && !ControlMark()) {
 				sector_++;
 				goto read_next_data;
 			}
@@ -369,7 +404,7 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 		abort_read:
-			status_[0] = 0x40;
+			SetAbnormalTermination();
 			goto post_st012chrn;
 
 	write_data:
@@ -397,7 +432,7 @@ void i8272::posit_event(int event_type) {
 		read_id_find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
-				status_[1] |= 0x4;
+				SetNoData();
 				goto abort_read;
 			}
 			READ_HEADER();
@@ -469,7 +504,8 @@ void i8272::posit_event(int event_type) {
 				// If a drive was found, return its results. Otherwise return a single 0x80.
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
-					status_[0] = (uint8_t)found_drive | 0x20;
+					status_[0] = (uint8_t)found_drive;
+					SetSeekEnd();
 					main_status_ &= ~(1 << found_drive);
 
 					result_stack_.push_back(drives_[found_drive].head_position);
@@ -527,15 +563,15 @@ void i8272::posit_event(int event_type) {
 	// last thing in it will be returned first.
 	post_result:
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
-			main_status_ |= StatusRequest | StatusDirection;
-			main_status_ &= ~StatusNonDMAExecuting;
+			ResetNonDMAExecution();
+			SetDataRequest();
+			SetDataDirectionToProcessor();
 
 			// The actual stuff of unwinding result_stack_ is handled by ::get_register; wait
 			// until the processor has read all result bytes.
 			WAIT_FOR_EVENT(Event8272::ResultEmpty);
 
 			// Reset data direction and end the command.
-			main_status_ &= ~StatusDirection;
 			goto wait_for_command;
 
 	END_SECTION()
