@@ -17,10 +17,6 @@ const uint8_t StatusRequest = 0x80;	// Set: ready to send or receive from proces
 const uint8_t StatusDirection = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
 const uint8_t StatusNonDMAExecuting = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
 const uint8_t StatusBusy = 0x10;	// Set: the FDC is busy.
-//const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
-//const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
-//const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
-//const uint8_t StatusD0B = 0x01;	// Set: drive 0 is seeking.
 }
 
 i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
@@ -60,7 +56,7 @@ void i8272::run_for(Cycles cycles) {
 					drives_[c].head_position += direction;
 
 					// Check for completion.
-					if(seek_is_satisfied(c)) {
+					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
 						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
@@ -154,12 +150,14 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
+#define CLEAR_STATUS()	\
+	status_[0] = status_[1] = status_[2] = 0;
+
 #define SET_DRIVE_HEAD_MFM()	\
 	if(!dma_mode_) main_status_ |= StatusNonDMAExecuting;	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
 	set_drive(drives_[active_drive_].drive);	\
-	drives_[active_drive_].clear_status();	\
 	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);	\
 	invalidate_track();
@@ -290,6 +288,7 @@ void i8272::posit_event(int event_type) {
 		// cylinder, head, sector and size registers from the command stream.
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
+			CLEAR_STATUS();
 			cylinder_ = command_[2];
 			head_ = command_[3];
 			sector_ = command_[4];
@@ -344,8 +343,8 @@ void i8272::posit_event(int event_type) {
 		read_data_not_found:
 			printf("Not found\n");
 
-			drives_[active_drive_].status[1] |= 0x4;
-			drives_[active_drive_].status[0] = 0x40;	// (status_[0] & ~0xc0) |
+			status_[1] |= 0x4;
+			status_[0] = 0x40;
 			goto post_st012chrn;
 
 	read_deleted_data:
@@ -414,15 +413,15 @@ void i8272::posit_event(int event_type) {
 		// a recalibrate the target is -1 and ::run_for knows that -1 means the terminal condition is the drive
 		// returning that its at track zero, and that it should reset the drive's current position once reached.
 			if(drives_[command_[1]&3].phase != Drive::Seeking) {
-				drives_[command_[1]&3].clear_status();
 				int drive = command_[1]&3;
 				drives_[drive].phase = Drive::Seeking;
 				drives_[drive].steps_taken = 0;
 				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
 				drives_[drive].step_rate_counter = 0;
+				drives_[drive].seek_failed = false;
 
 				// Check whether any steps are even needed.
-				if(seek_is_satisfied(drive)) {
+				if(drives_[drive].seek_is_satisfied()) {
 					drives_[drive].phase = Drive::CompletedSeeking;
 				} else {
 					main_status_ |= 1 << (command_[1]&3);
@@ -446,11 +445,11 @@ void i8272::posit_event(int event_type) {
 				// If a drive was found, return its results. Otherwise return a single 0x80.
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
-					drives_[found_drive].status[0] = (uint8_t)found_drive | 0x20;
+					status_[0] = (uint8_t)found_drive | 0x20;
 					main_status_ &= ~(1 << found_drive);
 
 					result_stack_.push_back(drives_[found_drive].head_position);
-					result_stack_.push_back(drives_[found_drive].status[0]);
+					result_stack_.push_back(status_[0]);
 				} else {
 					result_stack_.push_back(0x80);
 				}
@@ -494,9 +493,9 @@ void i8272::posit_event(int event_type) {
 			result_stack_.push_back(head_);
 			result_stack_.push_back(cylinder_);
 
-			result_stack_.push_back(drives_[active_drive_].status[2]);
-			result_stack_.push_back(drives_[active_drive_].status[1]);
-			result_stack_.push_back(drives_[active_drive_].status[0]);
+			result_stack_.push_back(status_[2]);
+			result_stack_.push_back(status_[1]);
+			result_stack_.push_back(status_[0]);
 
 			goto post_result;
 
@@ -518,7 +517,7 @@ void i8272::posit_event(int event_type) {
 	END_SECTION()
 }
 
-bool i8272::seek_is_satisfied(int drive) {
-	return	(drives_[drive].target_head_position == drives_[drive].head_position) ||
-			(drives_[drive].target_head_position == -1 && drives_[drive].drive->get_is_track_zero());
+bool i8272::Drive::seek_is_satisfied() {
+	return	(target_head_position == head_position) ||
+			(target_head_position == -1 && drive->get_is_track_zero());
 }
