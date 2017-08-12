@@ -99,8 +99,6 @@ void i8272::set_register(int address, uint8_t value) {
 
 uint8_t i8272::get_register(int address) {
 	if(address) {
-//		printf("8272 get data\n");
-
 		if(result_stack_.empty()) return 0xff;
 		uint8_t result = result_stack_.back();
 		result_stack_.pop_back();
@@ -108,7 +106,6 @@ uint8_t i8272::get_register(int address) {
 
 		return result;
 	} else {
-//		printf("Main status: %02x\n", main_status_);
 		return main_status_;
 	}
 }
