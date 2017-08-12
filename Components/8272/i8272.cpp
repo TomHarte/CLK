@@ -300,16 +300,31 @@ void i8272::posit_event(int event_type) {
 			index_hole_limit_ = 2;
 		find_next_sector:
 			FIND_HEADER();
-			if(!index_hole_limit_) goto read_data_not_found;
+			if(!index_hole_limit_) {
+				// Two index holes have passed wihout finding the header sought.
+				status_[1] |= 0x4;
+				goto abort_read;
+			}
 			READ_HEADER();
+			if(get_crc_generator().get_value()) {
+				// This implies a CRC error in the header; mark as such but continue.
+				status_[1] |= 0x20;
+			}
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 		// Finds the next data block and sets data mode to reading, setting an error flag if the on-disk deleted
 		// flag doesn't match the sort the command was looking for.
 			FIND_DATA();
 			distance_into_section_ = 0;
-			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) != 0x6))
-				status_[2] |= 0x40;
+			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
+				if(!(command_[0]&0x20)) {
+					// SK is not set; set the error flag but read this sector before finishing.
+					status_[2] |= 0x40;
+				} else {
+					// SK is set; skip this sector.
+					goto read_next_data;
+				}
+			}
 			set_data_mode(Reading);
 
 		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and (ii) resetting
@@ -322,16 +337,33 @@ void i8272::posit_event(int event_type) {
 			result_stack_.push_back(get_latest_token().byte_value);
 			distance_into_section_++;
 			main_status_ |= StatusRequest | StatusDirection;
-			WAIT_FOR_EVENT(Event8272::ResultEmpty);
-			main_status_ &= ~StatusRequest;
-			if(distance_into_section_ < (128 << size_)) goto get_byte;
+			WAIT_FOR_EVENT((int)Event8272::ResultEmpty | (int)Event::Token | (int)Event::IndexHole);
+			switch(event_type) {
+				case (int)Event8272::ResultEmpty:	// The caller read the byte in time; proceed as normal.
+					main_status_ &= ~StatusRequest;
+					if(distance_into_section_ < (128 << size_)) goto get_byte;
+				break;
+				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
+					status_[0] |= 0x10;
+					goto abort_read;
+				break;
+				case (int)Event::IndexHole:
+				break;
+			}
 
-		// read CRC, without transferring it
+		// read CRC, without transferring it, then check it
 			WAIT_FOR_EVENT(Event::Token);
 			WAIT_FOR_EVENT(Event::Token);
+			if(get_crc_generator().get_value()) {
+				// This implies a CRC error in the sector; mark as such and temrinate.
+				status_[1] |= 0x20;
+				status_[2] |= 0x20;
+				goto abort_read;
+			}
 
-		// check whether that's it
-			if(sector_ != command_[6]) {
+		// check whether that's it: either the final requested sector has been read, or because
+		// a sector that was [/wasn't] marked as deleted when it shouldn't [/should] have been
+			if(sector_ != command_[6] && !(status_[2]&0x40)) {
 				sector_++;
 				goto read_next_data;
 			}
@@ -339,12 +371,7 @@ void i8272::posit_event(int event_type) {
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
 
-		// Execution reaches here if two index holes were discovered before a matching sector — i.e. the data wasn't found.
-		// In that case set appropriate error flags and post the results.
-		read_data_not_found:
-			printf("Not found\n");
-
-			status_[1] |= 0x4;
+		abort_read:
 			status_[0] = 0x40;
 			goto post_st012chrn;
 
@@ -372,7 +399,10 @@ void i8272::posit_event(int event_type) {
 			index_hole_limit_ = 2;
 		read_id_find_next_sector:
 			FIND_HEADER();
-			if(!index_hole_limit_) goto read_data_not_found;
+			if(!index_hole_limit_) {
+				status_[1] |= 0x4;
+				goto abort_read;
+			}
 			READ_HEADER();
 
 		// Sets internal registers from the discovered header and posts the standard ST0, ST1, ST2, C, H, R, N.
