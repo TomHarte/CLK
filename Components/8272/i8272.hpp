@@ -31,7 +31,6 @@ class i8272: public Storage::Disk::MFMController {
 	private:
 		void posit_event(int type);
 		uint8_t main_status_;
-		uint8_t status_[3];
 
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;
@@ -53,7 +52,9 @@ class i8272: public Storage::Disk::MFMController {
 
 		struct Drive {
 			uint8_t head_position;
+			uint8_t status[3];
 
+			// Seeking state.
 			enum Phase {
 				NotSeeking,
 				Seeking,
@@ -63,14 +64,28 @@ class i8272: public Storage::Disk::MFMController {
 			int steps_taken;
 			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
 
+			// Head state.
+			int head_unload_delay[2];
+			bool head_is_loaded[2];
+
 			std::shared_ptr<Storage::Disk::Drive> drive;
 
-			Drive() : head_position(0), phase(NotSeeking), drive(new Storage::Disk::Drive) {};
+			Drive() :
+				head_position(0), phase(NotSeeking),
+				drive(new Storage::Disk::Drive),
+				status{0, 0, 0}, head_is_loaded{false, false} {};
+			void clear_status() {
+				status[0] = status[1] = status[2] = 0;
+			}
 		} drives_[4];
+		int head_timers_running_;
 
 		uint8_t header_[6];
 		int distance_into_section_;
 		int index_hole_limit_;
+
+		int active_drive_;
+		int active_head_;
 
 		uint8_t cylinder_, head_, sector_, size_;
 
