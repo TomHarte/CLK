@@ -123,14 +123,14 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 		new_sector.data.resize(data_size);
 		fread(new_sector.data.data(), sizeof(uint8_t), data_size, file_);
 
-		if(sector_info.status1 & 0x08) {
-			// The CRC failed in the ID field.
-			new_sector.has_header_crc_error = true;
-		}
-
 		if(sector_info.status2 & 0x20) {
 			// The CRC failed in the data field.
 			new_sector.has_data_crc_error = true;
+		} else {
+			if(sector_info.status1 & 0x20) {
+				// The CRC failed in the ID field.
+				new_sector.has_header_crc_error = true;
+			}
 		}
 
 		if(sector_info.status2 & 0x40) {
