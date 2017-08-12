@@ -29,52 +29,81 @@ class i8272: public Storage::Disk::MFMController {
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 
 	private:
-		void posit_event(int type);
+		// Status registers.
 		uint8_t main_status_;
 		uint8_t status_[3];
 
+		// A buffer for accumulating the incoming command, and one for accumulating the result.
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;
 
+		// Event stream: the 8272-specific events, plus the current event state.
 		enum class Event8272: int {
 			CommandByte	= (1 << 3),
 			Timer = (1 << 4),
 			ResultEmpty = (1 << 5),
 		};
-
+		void posit_event(int type);
 		int interesting_event_mask_;
 		int resume_point_;
+
+		// The counter used for ::Timer events.
 		int delay_time_;
 
-		int step_rate_time_;
-		int head_unload_time_;
-		int head_load_time_;
-		bool dma_mode_;
-
+		// The connected drives.
 		struct Drive {
 			uint8_t head_position;
 
+			// Seeking: persistent state.
 			enum Phase {
 				NotSeeking,
 				Seeking,
 				CompletedSeeking
 			} phase;
+			bool seek_failed;
+
+			// Seeking: transient state.
 			int step_rate_counter;
 			int steps_taken;
 			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
 
+			/// @returns @c true if the currently queued-up seek or recalibrate has reached where it should be.
+			bool seek_is_satisfied();
+
+			// Head state.
+			int head_unload_delay[2];
+			bool head_is_loaded[2];
+
+			// The connected drive.
 			std::shared_ptr<Storage::Disk::Drive> drive;
 
-			Drive() : head_position(0), phase(NotSeeking), drive(new Storage::Disk::Drive) {};
+			Drive() :
+				head_position(0), phase(NotSeeking),
+				drive(new Storage::Disk::Drive),
+				head_is_loaded{false, false} {};
 		} drives_[4];
 
+		// User-supplied parameters; as per the specify command.
+		int step_rate_time_;
+		int head_unload_time_;
+		int head_load_time_;
+		bool dma_mode_;
+
+		// A count of head unload timers currently running.
+		int head_timers_running_;
+
+		// Transient storage and counters used while reading the disk.
 		uint8_t header_[6];
 		int distance_into_section_;
 		int index_hole_limit_;
 
+		// Keeps track of the drive and head in use during commands.
+		int active_drive_;
+		int active_head_;
+
+		// Internal registers.
 		uint8_t cylinder_, head_, sector_, size_;
 
-		bool seek_is_satisfied(int drive);
 };
 
 }

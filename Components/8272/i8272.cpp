@@ -17,10 +17,6 @@ const uint8_t StatusRequest = 0x80;	// Set: ready to send or receive from proces
 const uint8_t StatusDirection = 0x40;	// Set: data is expected to be taken from the 8272 by the processor.
 const uint8_t StatusNonDMAExecuting = 0x20;	// Set: the execution phase of a data transfer command is ongoing and DMA mode is disabled.
 const uint8_t StatusBusy = 0x10;	// Set: the FDC is busy.
-//const uint8_t StatusD3B = 0x08;	// Set: drive 3 is seeking.
-//const uint8_t StatusD2B = 0x04;	// Set: drive 2 is seeking.
-//const uint8_t StatusD1B = 0x02;	// Set: drive 1 is seeking.
-//const uint8_t StatusD0B = 0x01;	// Set: drive 0 is seeking.
 }
 
 i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
@@ -29,7 +25,7 @@ i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_m
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
 	delay_time_(0),
-	status_{0, 0, 0} {
+	head_timers_running_(0) {
 	posit_event((int)Event8272::CommandByte);
 }
 
@@ -60,10 +56,28 @@ void i8272::run_for(Cycles cycles) {
 					drives_[c].head_position += direction;
 
 					// Check for completion.
-					if(seek_is_satisfied(c)) {
+					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
 						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
+					}
+				}
+			}
+		}
+	}
+
+	// check for any head unloads
+	if(head_timers_running_) {
+		for(int c = 0; c < 4; c++) {
+			for(int h = 0; h < 2; h++) {
+				if(drives_[c].head_unload_delay[c] > 0) {
+					if(cycles.as_int() >= drives_[c].head_unload_delay[c]) {
+						drives_[c].head_unload_delay[c] = 0;
+						drives_[c].head_is_loaded[c] = false;
+						head_timers_running_--;
+						if(!head_timers_running_) return;
+					} else {
+						drives_[c].head_unload_delay[c] -= cycles.as_int();
 					}
 				}
 			}
@@ -108,7 +122,9 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
+#define MS_TO_CYCLES(x)			x * 8000
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
@@ -123,7 +139,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define FIND_DATA()	\
 	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data) goto CONCAT(find_data, __LINE__);
+	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) goto CONCAT(find_data, __LINE__);
 
 #define READ_HEADER()	\
 	distance_into_section_ = 0;	\
@@ -134,11 +150,36 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
+#define CLEAR_STATUS()	\
+	status_[0] = status_[1] = status_[2] = 0;
+
 #define SET_DRIVE_HEAD_MFM()	\
 	if(!dma_mode_) main_status_ |= StatusNonDMAExecuting;	\
-	set_drive(drives_[command_[1]&3].drive);	\
+	active_drive_ = command_[1]&3;	\
+	active_head_ = (command_[1] >> 2)&1;	\
+	set_drive(drives_[active_drive_].drive);	\
+	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);	\
 	invalidate_track();
+
+#define LOAD_HEAD()	\
+	if(!drives_[active_drive_].head_is_loaded[active_head_]) {	\
+		drives_[active_drive_].head_is_loaded[active_head_] = true;	\
+		WAIT_FOR_TIME(head_load_time_);	\
+	} else {	\
+		if(drives_[active_drive_].head_unload_delay[active_head_] > 0) {	\
+			drives_[active_drive_].head_unload_delay[active_head_] = 0;	\
+			head_timers_running_--;	\
+		}	\
+	}
+
+#define SCHEDULE_HEAD_UNLOAD()	\
+	if(drives_[active_drive_].head_is_loaded[active_head_]) {\
+		if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
+			head_timers_running_++;	\
+		}	\
+		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
+	}
 
 void i8272::posit_event(int event_type) {
 	if(!(interesting_event_mask_ & event_type)) return;
@@ -163,14 +204,10 @@ void i8272::posit_event(int event_type) {
 
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					main_status_ &= ~StatusRequest;
-					goto read_data;
-
 				case 0x0b:	// read deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
 					main_status_ &= ~StatusRequest;
-					goto read_deleted_data;
+					goto read_data;
 
 				case 0x05:	// write data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
@@ -241,14 +278,15 @@ void i8272::posit_event(int event_type) {
 					goto invalid;
 			}
 
-	// Performs the read data command.
+	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
+			printf("Read [deleted?] data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
 
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
-			status_[0] = status_[1] = status_[2] = 0;
 			SET_DRIVE_HEAD_MFM();
+			LOAD_HEAD();
+			CLEAR_STATUS();
 			cylinder_ = command_[2];
 			head_ = command_[3];
 			sector_ = command_[4];
@@ -262,13 +300,31 @@ void i8272::posit_event(int event_type) {
 			index_hole_limit_ = 2;
 		find_next_sector:
 			FIND_HEADER();
-			if(!index_hole_limit_) goto read_data_not_found;
+			if(!index_hole_limit_) {
+				// Two index holes have passed wihout finding the header sought.
+				status_[1] |= 0x4;
+				goto abort_read;
+			}
 			READ_HEADER();
+			if(get_crc_generator().get_value()) {
+				// This implies a CRC error in the header; mark as such but continue.
+				status_[1] |= 0x20;
+			}
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
-		// Finds the next data block and sets data mode to reading.
+		// Finds the next data block and sets data mode to reading, setting an error flag if the on-disk deleted
+		// flag doesn't match the sort the command was looking for.
 			FIND_DATA();
 			distance_into_section_ = 0;
+			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
+				if(!(command_[0]&0x20)) {
+					// SK is not set; set the error flag but read this sector before finishing.
+					status_[2] |= 0x40;
+				} else {
+					// SK is set; skip this sector.
+					goto read_next_data;
+				}
+			}
 			set_data_mode(Reading);
 
 		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and (ii) resetting
@@ -281,16 +337,33 @@ void i8272::posit_event(int event_type) {
 			result_stack_.push_back(get_latest_token().byte_value);
 			distance_into_section_++;
 			main_status_ |= StatusRequest | StatusDirection;
-			WAIT_FOR_EVENT(Event8272::ResultEmpty);
-			main_status_ &= ~StatusRequest;
-			if(distance_into_section_ < (128 << size_)) goto get_byte;
+			WAIT_FOR_EVENT((int)Event8272::ResultEmpty | (int)Event::Token | (int)Event::IndexHole);
+			switch(event_type) {
+				case (int)Event8272::ResultEmpty:	// The caller read the byte in time; proceed as normal.
+					main_status_ &= ~StatusRequest;
+					if(distance_into_section_ < (128 << size_)) goto get_byte;
+				break;
+				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
+					status_[0] |= 0x10;
+					goto abort_read;
+				break;
+				case (int)Event::IndexHole:
+				break;
+			}
 
-		// read CRC, without transferring it
+		// read CRC, without transferring it, then check it
 			WAIT_FOR_EVENT(Event::Token);
 			WAIT_FOR_EVENT(Event::Token);
+			if(get_crc_generator().get_value()) {
+				// This implies a CRC error in the sector; mark as such and temrinate.
+				status_[1] |= 0x20;
+				status_[2] |= 0x20;
+				goto abort_read;
+			}
 
-		// check whether that's it
-			if(sector_ != command_[6]) {
+		// check whether that's it: either the final requested sector has been read, or because
+		// a sector that was [/wasn't] marked as deleted when it shouldn't [/should] have been
+			if(sector_ != command_[6] && !(status_[2]&0x40)) {
 				sector_++;
 				goto read_next_data;
 			}
@@ -298,18 +371,9 @@ void i8272::posit_event(int event_type) {
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
 
-		// Execution reaches here if two index holes were discovered before a matching sector — i.e. the data wasn't found.
-		// In that case set appropriate error flags and post the results.
-		read_data_not_found:
-			printf("Not found\n");
-
-			status_[1] |= 0x4;
-			status_[0] = 0x40;	// (status_[0] & ~0xc0) |
+		abort_read:
+			status_[0] = 0x40;
 			goto post_st012chrn;
-
-	read_deleted_data:
-		printf("Read deleted data unimplemented!!\n");
-		goto wait_for_command;
 
 	write_data:
 		printf("Write data unimplemented!!\n");
@@ -328,13 +392,17 @@ void i8272::posit_event(int event_type) {
 		// Establishes the drive and head being addressed, and whether in double density mode.
 			printf("Read ID\n");
 			SET_DRIVE_HEAD_MFM();
+			LOAD_HEAD();
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
 			index_hole_limit_ = 2;
 		read_id_find_next_sector:
 			FIND_HEADER();
-			if(!index_hole_limit_) goto read_data_not_found;
+			if(!index_hole_limit_) {
+				status_[1] |= 0x4;
+				goto abort_read;
+			}
 			READ_HEADER();
 
 		// Sets internal registers from the discovered header and posts the standard ST0, ST1, ST2, C, H, R, N.
@@ -372,15 +440,15 @@ void i8272::posit_event(int event_type) {
 		// a recalibrate the target is -1 and ::run_for knows that -1 means the terminal condition is the drive
 		// returning that its at track zero, and that it should reset the drive's current position once reached.
 			if(drives_[command_[1]&3].phase != Drive::Seeking) {
-				status_[0] = status_[1] = status_[2] = 0;
 				int drive = command_[1]&3;
 				drives_[drive].phase = Drive::Seeking;
 				drives_[drive].steps_taken = 0;
 				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
 				drives_[drive].step_rate_counter = 0;
+				drives_[drive].seek_failed = false;
 
 				// Check whether any steps are even needed.
-				if(seek_is_satisfied(drive)) {
+				if(drives_[drive].seek_is_satisfied()) {
 					drives_[drive].phase = Drive::CompletedSeeking;
 				} else {
 					main_status_ |= 1 << (command_[1]&3);
@@ -439,12 +507,14 @@ void i8272::posit_event(int event_type) {
 
 	// Performs any invalid command.
 	invalid:
-			// A no-op, but posts ST0.
-			result_stack_.push_back(status_[0]);
+			// A no-op, but posts ST0 (but which ST0?)
+			result_stack_.push_back(0x80);
 			goto post_result;
 
 	// Posts ST0, ST1, ST2, C, H, R and N as a result phase.
 	post_st012chrn:
+			SCHEDULE_HEAD_UNLOAD();
+
 			result_stack_.push_back(size_);
 			result_stack_.push_back(sector_);
 			result_stack_.push_back(head_);
@@ -474,7 +544,7 @@ void i8272::posit_event(int event_type) {
 	END_SECTION()
 }
 
-bool i8272::seek_is_satisfied(int drive) {
-	return	(drives_[drive].target_head_position == drives_[drive].head_position) ||
-			(drives_[drive].target_head_position == -1 && drives_[drive].drive->get_is_track_zero());
+bool i8272::Drive::seek_is_satisfied() {
+	return	(target_head_position == head_position) ||
+			(target_head_position == -1 && drive->get_is_track_zero());
 }
