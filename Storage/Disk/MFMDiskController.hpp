@@ -107,6 +107,10 @@ class MFMController: public Controller {
 		*/
 		void write_raw_short(uint16_t value);
 
+		/*!
+			Gets the current value of the CRC generator and makes two calls to @c write_byte, to
+			write first its higher-value byte and then its lower.
+		*/
 		void write_crc();
 
 	private:
