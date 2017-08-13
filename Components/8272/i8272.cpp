@@ -476,11 +476,7 @@ void i8272::posit_event(int event_type) {
 				goto write_loop;
 			}
 
-			{
-				uint16_t crc = get_crc_generator().get_value();
-				write_byte(crc >> 8);
-				write_byte(crc & 0xff);
-			}
+			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
 			end_writing();
@@ -518,8 +514,104 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	format_track:
-		printf("Fromat track unimplemented!!\n");
-		goto wait_for_command;
+			printf("Format track\n");
+			SET_DRIVE_HEAD_MFM();
+			LOAD_HEAD();
+			CLEAR_STATUS();
+
+			// Wait for the index hole.
+			WAIT_FOR_EVENT(Event::IndexHole);
+			begin_writing();
+
+			// Write start-of-track.
+			// TODO: single density.
+			for(int c = 0; c < 80; c++) {
+				write_byte(0x4e);
+			}
+			for(int c = 0; c < 12; c++) {
+				write_byte(0x00);
+			}
+			for(int c = 0; c < 3; c++) {
+				write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
+			}
+			write_byte(Storage::Encodings::MFM::IndexAddressByte);
+			for(int c = 0; c < 50; c++) {
+				write_byte(0x4e);
+			}
+			WAIT_FOR_EVENT(Event::DataWritten);
+			sector_ = 0;
+
+		format_track_write_sector:
+			for(int c = 0; c < 12; c++) {
+				write_byte(0x00);
+			}
+			for(int c = 0; c < 3; c++) {
+				write_raw_short(Storage::Encodings::MFM::MFMSync);
+			}
+			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+			write_byte(Storage::Encodings::MFM::IDAddressByte);
+
+			// Write the sector header, obtaining its contents
+			// from the processor.
+			SetDataDirectionFromProcessor();
+			SetDataRequest();
+			expects_input_ = true;
+			distance_into_section_ = 0;
+		format_track_write_header:
+			WAIT_FOR_EVENT(Event::DataWritten);
+			// TODO: overrun?
+			header_[distance_into_section_] = input_;
+			write_byte(input_);
+			has_input_ = false;
+			distance_into_section_++;
+			if(distance_into_section_ < 4) {
+				SetDataRequest();
+				goto format_track_write_header;
+			}
+			write_crc();
+
+			// Write the sector body.
+			for(int c = 0; c < 22; c++) {
+				write_byte(0x4e);
+			}
+			for(int c = 0; c < 12; c++) {
+				write_byte(0x00);
+			}
+			for(int c = 0; c < 3; c++) {
+				write_raw_short(Storage::Encodings::MFM::MFMSync);
+			}
+			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+			write_byte(Storage::Encodings::MFM::DataAddressByte);
+			for(int c = 0; c < (128 << command_[2]); c++) {
+				write_byte(command_[5]);
+			}
+			write_crc();
+
+			// Write the prescribed gap.
+			for(int c = 0; c < command_[4]; c++) {
+				write_byte(0x4e);
+			}
+
+			// Consider repeating.
+			sector_++;
+			if(sector_ < command_[3]) {
+				goto format_track_write_sector;
+			}
+
+			// Otherwise, pad out to the index hole.
+		format_track_pad:
+			write_byte(0x4e);
+			WAIT_FOR_EVENT((int)Event::DataWritten | (int)Event::IndexHole);
+			if(event_type != (int)Event::IndexHole) goto format_track_pad;
+
+			end_writing();
+
+			cylinder_ = header_[0];
+			head_ = header_[1];
+			sector_ = header_[2] + 1;
+			size_ = header_[3];
+
+		goto post_st012chrn;
 
 	scan_low:
 		printf("Scan low unimplemented!!\n");

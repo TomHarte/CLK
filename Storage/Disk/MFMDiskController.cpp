@@ -175,3 +175,9 @@ void MFMController::write_raw_short(uint16_t value) {
 		Controller::write_bit(!!((value << c)&0x8000));
 	}
 }
+
+void MFMController::write_crc() {
+	uint16_t crc = get_crc_generator().get_value();
+	write_byte(crc >> 8);
+	write_byte(crc & 0xff);
+}

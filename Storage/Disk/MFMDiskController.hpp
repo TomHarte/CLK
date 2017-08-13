@@ -107,6 +107,8 @@ class MFMController: public Controller {
 		*/
 		void write_raw_short(uint16_t value);
 
+		void write_crc();
+
 	private:
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
