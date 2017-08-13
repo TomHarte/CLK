@@ -103,7 +103,7 @@ void Controller::process_next_event()
 			if(is_reading_) pll_->add_pulse();
 		break;
 		case Track::Event::IndexHole:
-			printf("%p %d [/%d = %d]\n", this, cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
+//			printf("%p %d [/%d = %d]\n", this, cycles_since_index_hole_, clock_rate_multiplier_, cycles_since_index_hole_ / clock_rate_multiplier_);
 			cycles_since_index_hole_ = 0;
 			process_index_hole();
 		break;
