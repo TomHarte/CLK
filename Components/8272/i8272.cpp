@@ -515,6 +515,7 @@ void i8272::posit_event(int event_type) {
 
 	format_track:
 			printf("Format track\n");
+			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
 			CLEAR_STATUS();
@@ -726,6 +727,12 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack — the
 	// last thing in it will be returned first.
 	post_result:
+			printf("Result: ");
+			for(size_t c = 0; c < result_stack_.size(); c++) {
+				printf("%02x ", result_stack_[result_stack_.size() - 1 - c]);
+			}
+			printf("\n");
+
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
 			ResetNonDMAExecution();
 			SetDataRequest();
