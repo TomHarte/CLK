@@ -36,6 +36,9 @@ class i8272: public Storage::Disk::MFMController {
 		// A buffer for accumulating the incoming command, and one for accumulating the result.
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;
+		uint8_t input_;
+		bool has_input_;
+		bool expects_input_;
 
 		// Event stream: the 8272-specific events, plus the current event state.
 		enum class Event8272: int {

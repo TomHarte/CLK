@@ -90,6 +90,23 @@ class MFMController: public Controller {
 		*/
 		virtual void posit_event(int type) = 0;
 
+		/*!
+			Encodes @c bit according to the current single/double density mode and adds it
+			to the controller's write buffer.
+		*/
+		void write_bit(int bit);
+
+		/*!
+			Encodes @c byte according to the current single/double density mode and adds it
+			to the controller's write buffer.
+		*/
+		void write_byte(uint8_t byte);
+
+		/*!
+			Serialises @c value into the controller's write buffer without adjustment.
+		*/
+		void write_raw_short(uint16_t value);
+
 	private:
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
@@ -107,6 +124,9 @@ class MFMController: public Controller {
 
 		// output
 		Token latest_token_;
+
+		// writing
+		int last_bit_;
 
 		// CRC generator
 		NumberTheory::CRC16 crc_generator_;

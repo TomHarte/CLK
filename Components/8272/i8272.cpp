@@ -7,6 +7,7 @@
 //
 
 #include "i8272.hpp"
+#include "../../Storage/Disk/Encodings/MFM.hpp"
 
 #include <cstdio>
 
@@ -57,7 +58,8 @@ i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_m
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
 	delay_time_(0),
-	head_timers_running_(0) {
+	head_timers_running_(0),
+	expects_input_(false) {
 	posit_event((int)Event8272::CommandByte);
 }
 
@@ -124,9 +126,15 @@ void i8272::set_register(int address, uint8_t value) {
 	// if not ready for commands, do nothing
 	if(!DataRequest() || DataDirectionToProcessor()) return;
 
-	// accumulate latest byte in the command byte sequence
-	command_.push_back(value);
-	posit_event((int)Event8272::CommandByte);
+	if(expects_input_) {
+		input_ = value;
+		has_input_ = true;
+		ResetDataRequest();
+	} else {
+		// accumulate latest byte in the command byte sequence
+		command_.push_back(value);
+		posit_event((int)Event8272::CommandByte);
+	}
 }
 
 uint8_t i8272::get_register(int address) {
@@ -218,6 +226,7 @@ void i8272::posit_event(int event_type) {
 	// Resets busy and non-DMA execution, clears the command buffer, sets the data mode to scanning and flows
 	// into wait_for_complete_command_sequence.
 	wait_for_command:
+			expects_input_ = false;
 			set_data_mode(Storage::Disk::MFMController::DataMode::Scanning);
 			ResetBusy();
 			ResetNonDMAExecution();
@@ -240,14 +249,10 @@ void i8272::posit_event(int event_type) {
 					goto read_data;
 
 				case 0x05:	// write data
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto write_data;
-
 				case 0x09:	// write deleted data
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
 					ResetDataRequest();
-					goto write_deleted_data;
+					goto write_data;
 
 				case 0x02:	// read track
 					if(command_.size() < 9) goto wait_for_complete_command_sequence;
@@ -308,10 +313,10 @@ void i8272::posit_event(int event_type) {
 					goto invalid;
 			}
 
-	// Performs the read data or read deleted data command.
-	read_data:
-			printf("Read [deleted?] data, sector %02x %02x %02x %02x\n", command_[2], command_[3], command_[4], command_[5]);
-
+	// Decodes drive, head and density, loads the head, loads the internal cylinder, head, sector and size registers,
+	// and searches for a sector that meets those criteria. If one is found, inspects the instruction in use and
+	// jumps to an appropriate handler.
+	read_write_find_header:
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
 			if(!dma_mode_) SetNonDMAExecution();
@@ -323,8 +328,6 @@ void i8272::posit_event(int event_type) {
 			sector_ = command_[4];
 			size_ = command_[5];
 
-		read_next_data:
-
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
@@ -334,7 +337,7 @@ void i8272::posit_event(int event_type) {
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
 				SetNoData();
-				goto abort_read;
+				goto abort_read_write;
 			}
 			READ_HEADER();
 			if(get_crc_generator().get_value()) {
@@ -343,8 +346,30 @@ void i8272::posit_event(int event_type) {
 			}
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
+			// Branch to whatever is supposed to happen next
+			switch(command_[0] & 0x1f) {
+				case 0x06:	// read data
+				case 0x0b:	// read deleted data
+				goto read_data_found_header;
+
+				case 0x05:	// write data
+				case 0x09:	// write deleted data
+				goto write_data_found_header;
+			}
+
+	// Sets abnormal termination of the current command and proceeds to an ST0, ST1, ST2, C, H, R, N result phase.
+	abort_read_write:
+		SetAbnormalTermination();
+		goto post_st012chrn;
+
+	// Performs the read data or read deleted data command.
+	read_data:
+		read_next_data:
+			goto read_write_find_header;
+
 		// Finds the next data block and sets data mode to reading, setting an error flag if the on-disk deleted
 		// flag doesn't match the sort the command was looking for.
+		read_data_found_header:
 			FIND_DATA();
 			distance_into_section_ = 0;
 			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
@@ -377,7 +402,7 @@ void i8272::posit_event(int event_type) {
 				break;
 				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
 					SetOverrun();
-					goto abort_read;
+					goto abort_read_write;
 				break;
 				case (int)Event::IndexHole:
 				break;
@@ -390,7 +415,7 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the sector; mark as such and temrinate.
 				SetDataError();
 				SetDataFieldDataError();
-				goto abort_read;
+				goto abort_read_write;
 			}
 
 		// check whether that's it: either the final requested sector has been read, or because
@@ -403,17 +428,64 @@ void i8272::posit_event(int event_type) {
 		// For a final result phase, post the standard ST0, ST1, ST2, C, H, R, N
 			goto post_st012chrn;
 
-		abort_read:
-			SetAbnormalTermination();
-			goto post_st012chrn;
-
 	write_data:
-		printf("Write data unimplemented!!\n");
-		goto wait_for_command;
+		printf("Write [deleted] data\n");
 
-	write_deleted_data:
-		printf("Write deleted data unimplemented!!\n");
-		goto wait_for_command;
+		write_next_data:
+			goto read_write_find_header;
+
+		write_data_found_header:
+			begin_writing();
+
+			// Write out the requested gap between ID and data.
+			for(int c = 0; c < command_[7]; c++) {
+				write_byte(0x4e);
+			}
+			WAIT_FOR_EVENT(Event::DataWritten);
+
+			{
+				bool is_deleted = (command_[0] & 0x1f) == 0x09;
+				if(get_is_double_density()) {
+					get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+					write_raw_short(Storage::Encodings::MFM::MFMSync);
+					write_byte(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+				} else {
+					get_crc_generator().reset();
+					get_crc_generator().add(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+					write_raw_short(is_deleted ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+				}
+			}
+
+			SetDataDirectionFromProcessor();
+			SetDataRequest();
+			expects_input_ = true;
+			distance_into_section_ = 0;
+
+		write_loop:
+			WAIT_FOR_EVENT(Event::DataWritten);
+			if(!has_input_) {
+				SetOverrun();
+				end_writing();
+				goto abort_read_write;
+			}
+			write_byte(input_);
+			has_input_ = false;
+			distance_into_section_++;
+			if(distance_into_section_ < (128 << size_)) {
+				SetDataRequest();
+				goto write_loop;
+			}
+
+			{
+				uint16_t crc = get_crc_generator().get_value();
+				write_byte(crc >> 8);
+				write_byte(crc & 0xff);
+			}
+			expects_input_ = false;
+			WAIT_FOR_EVENT(Event::DataWritten);
+			end_writing();
+
+		goto post_st012chrn;
 
 	read_track:
 		printf("Read track unimplemented!!\n");
@@ -433,7 +505,7 @@ void i8272::posit_event(int event_type) {
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				SetNoData();
-				goto abort_read;
+				goto abort_read_write;
 			}
 			READ_HEADER();
 
