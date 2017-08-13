@@ -364,6 +364,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
+			printf("Read data\n");
 		read_next_data:
 			goto read_write_find_header;
 
@@ -684,9 +685,14 @@ void i8272::posit_event(int event_type) {
 	// Performs specify.
 	specify:
 		// Just store the values, and terminate the command.
+			printf("Specify\n");
 			step_rate_time_ = command_[1] &0xf0;		// i.e. 16 to 240m
 			head_unload_time_ = command_[1] & 0x0f;		// i.e. 1 to 16ms
 			head_load_time_ = command_[2] & ~1;			// i.e. 2 to 254 ms in increments of 2ms
+
+			if(!step_rate_time_) step_rate_time_ = 16;
+			if(!head_unload_time_) head_unload_time_ = 1;
+			if(!head_load_time_) head_load_time_ = 2;
 			dma_mode_ = !(command_[2] & 1);
 			goto wait_for_command;
 
