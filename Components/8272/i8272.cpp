@@ -532,8 +532,8 @@ void i8272::posit_event(int event_type) {
 					(command_[1] & 7) |	// drive and head number
 					0x08 |				// single sided
 					(drives_[drive].drive->get_is_track_zero() ? 0x10 : 0x00)	|
-					(drives_[drive].drive->has_disk() ? 0x20 : 0x00)	|	// ready, approximately (TODO)
-					0x40	// write protected
+					(drives_[drive].drive->get_is_ready() ? 0x20 : 0x00)		|
+					(drives_[drive].drive->get_is_read_only() ? 0x40 : 0x00)
 				);
 			}
 			goto post_result;

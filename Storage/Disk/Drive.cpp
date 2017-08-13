@@ -42,8 +42,7 @@ void Drive::set_head(unsigned int head) {
 
 bool Drive::get_is_read_only() {
 	if(disk_) return disk_->get_is_read_only();
-	if(track_) return true;
-	return false;
+	return true;
 }
 
 bool Drive::get_is_ready() {
