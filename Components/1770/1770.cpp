@@ -25,29 +25,16 @@ WD1770::Status::Status() :
 		busy(false) {}
 
 WD1770::WD1770(Personality p) :
-		Storage::Disk::Controller(8000000, 16, 300),
-		crc_generator_(0x1021, 0xffff),
-		interesting_event_mask_(Event::Command),
+		Storage::Disk::MFMController(8000000, 16, 300),
+		interesting_event_mask_((int)Event1770::Command),
 		resume_point_(0),
 		delay_time_(0),
 		index_hole_count_target_(-1),
-		is_awaiting_marker_value_(false),
-		data_mode_(DataMode::Scanning),
 		delegate_(nullptr),
 		personality_(p),
 		head_is_loaded_(false) {
 	set_is_double_density(false);
-	posit_event(Event::Command);
-}
-
-void WD1770::set_is_double_density(bool is_double_density) {
-	is_double_density_ = is_double_density;
-	Storage::Time bit_length;
-	bit_length.length = 1;
-	bit_length.clock_rate = is_double_density ? 500000 : 250000;
-	set_expected_bit_length(bit_length);
-
-	if(!is_double_density) is_awaiting_marker_value_ = false;
+	posit_event((int)Event1770::Command);
 }
 
 void WD1770::set_register(int address, uint8_t value) {
@@ -60,7 +47,7 @@ void WD1770::set_register(int address, uint8_t value) {
 				});
 			} else {
 				command_ = value;
-				posit_event(Event::Command);
+				posit_event((int)Event1770::Command);
 			}
 		}
 		break;
@@ -131,148 +118,24 @@ void WD1770::run_for(const Cycles cycles) {
 		unsigned int number_of_cycles = (unsigned int)cycles.as_int();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
-			posit_event(Event::Timer);
+			posit_event((int)Event1770::Timer);
 		} else {
 			delay_time_ -= number_of_cycles;
 		}
 	}
 }
 
-void WD1770::process_input_bit(int value, unsigned int cycles_since_index_hole) {
-	if(data_mode_ == DataMode::Writing) return;
-
-	shift_register_ = (shift_register_ << 1) | value;
-	bits_since_token_++;
-
-	if(data_mode_ == DataMode::Scanning) {
-		Token::Type token_type = Token::Byte;
-		if(!is_double_density_) {
-			switch(shift_register_ & 0xffff) {
-				case Storage::Encodings::MFM::FMIndexAddressMark:
-					token_type = Token::Index;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IndexAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMIDAddressMark:
-					token_type = Token::ID;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IDAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMDataAddressMark:
-					token_type = Token::Data;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DataAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
-					token_type = Token::DeletedData;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DeletedDataAddressByte);
-				break;
-				default:
-				break;
-			}
-		} else {
-			switch(shift_register_ & 0xffff) {
-				case Storage::Encodings::MFM::MFMIndexSync:
-					bits_since_token_ = 0;
-					is_awaiting_marker_value_ = true;
-
-					token_type = Token::Sync;
-					latest_token_.byte_value = Storage::Encodings::MFM::MFMIndexSyncByteValue;
-				break;
-				case Storage::Encodings::MFM::MFMSync:
-					bits_since_token_ = 0;
-					is_awaiting_marker_value_ = true;
-					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-
-					token_type = Token::Sync;
-					latest_token_.byte_value = Storage::Encodings::MFM::MFMSyncByteValue;
-				break;
-				default:
-				break;
-			}
-		}
-
-		if(token_type != Token::Byte) {
-			latest_token_.type = token_type;
-			bits_since_token_ = 0;
-			posit_event(Event::Token);
-			return;
-		}
-	}
-
-	if(bits_since_token_ == 16) {
-		latest_token_.type = Token::Byte;
-		latest_token_.byte_value = (uint8_t)(
-			((shift_register_ & 0x0001) >> 0) |
-			((shift_register_ & 0x0004) >> 1) |
-			((shift_register_ & 0x0010) >> 2) |
-			((shift_register_ & 0x0040) >> 3) |
-			((shift_register_ & 0x0100) >> 4) |
-			((shift_register_ & 0x0400) >> 5) |
-			((shift_register_ & 0x1000) >> 6) |
-			((shift_register_ & 0x4000) >> 7));
-		bits_since_token_ = 0;
-
-		if(is_awaiting_marker_value_ && is_double_density_) {
-			is_awaiting_marker_value_ = false;
-			switch(latest_token_.byte_value) {
-				case Storage::Encodings::MFM::IndexAddressByte:
-					latest_token_.type = Token::Index;
-				break;
-				case Storage::Encodings::MFM::IDAddressByte:
-					latest_token_.type = Token::ID;
-				break;
-				case Storage::Encodings::MFM::DataAddressByte:
-					latest_token_.type = Token::Data;
-				break;
-				case Storage::Encodings::MFM::DeletedDataAddressByte:
-					latest_token_.type = Token::DeletedData;
-				break;
-				default: break;
-			}
-		}
-
-		crc_generator_.add(latest_token_.byte_value);
-		posit_event(Event::Token);
-		return;
-	}
-}
-
-void WD1770::process_index_hole() {
-	index_hole_count_++;
-	posit_event(Event::IndexHole);
-	if(index_hole_count_target_ == index_hole_count_) {
-		posit_event(Event::IndexHoleTarget);
-		index_hole_count_target_ = -1;
-	}
-
-	// motor power-down
-	if(index_hole_count_ == 9 && !status_.busy && has_motor_on_line()) {
-		set_motor_on(false);
-	}
-
-	// head unload
-	if(index_hole_count_ == 15 && !status_.busy && has_head_load_line()) {
-		set_head_load_request(false);
-	}
-}
-
-void WD1770::process_write_completed() {
-	posit_event(Event::DataWritten);
-}
-
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = mask; return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = Event::Timer; delay_time_ = ms * 8000; case __LINE__: if(delay_time_) return;
-#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; interesting_event_mask_ = Event::Token; distance_into_section_ = 0; return; case __LINE__: if(latest_token_.type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = Event::Token; return; }
+#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
+#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = (int)Event::Token; return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }
 
 #define READ_ID()	\
-		if(new_event_type == Event::Token) {	\
-			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }	\
-			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte) {	\
-				header_[distance_into_section_ - 1] = latest_token_.byte_value;	\
+		if(new_event_type == (int)Event::Token) {	\
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }	\
+			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
+				header_[distance_into_section_ - 1] = get_latest_token().byte_value;	\
 				distance_into_section_++;	\
 			}	\
 		}
@@ -285,7 +148,7 @@ void WD1770::process_write_completed() {
 		set_motor_on(true);	\
 		index_hole_count_ = 0;	\
 		index_hole_count_target_ = 6;	\
-		WAIT_FOR_EVENT(Event::IndexHoleTarget);	\
+		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);	\
 		status_.spin_up = true;
 
 //     +--------+----------+-------------------------+
@@ -305,7 +168,25 @@ void WD1770::process_write_completed() {
 //     !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
 //     +--------+----------+-------------------------+
 
-void WD1770::posit_event(Event new_event_type) {
+void WD1770::posit_event(int new_event_type) {
+	if(new_event_type == (int)Event::IndexHole) {
+		index_hole_count_++;
+		if(index_hole_count_target_ == index_hole_count_) {
+			posit_event((int)Event1770::IndexHoleTarget);
+			index_hole_count_target_ = -1;
+		}
+
+		// motor power-down
+		if(index_hole_count_ == 9 && !status_.busy && has_motor_on_line()) {
+			set_motor_on(false);
+		}
+
+		// head unload
+		if(index_hole_count_ == 15 && !status_.busy && has_head_load_line()) {
+			set_head_load_request(false);
+		}
+	}
+
 	if(!(interesting_event_mask_ & (int)new_event_type)) return;
 	interesting_event_mask_ &= ~new_event_type;
 
@@ -315,7 +196,7 @@ void WD1770::posit_event(Event new_event_type) {
 	// Wait for a new command, branch to the appropriate handler.
 	wait_for_command:
 		printf("Idle...\n");
-		data_mode_ = DataMode::Scanning;
+		set_data_mode(DataMode::Scanning);
 		index_hole_count_ = 0;
 
 		update_status([] (Status &status) {
@@ -323,7 +204,7 @@ void WD1770::posit_event(Event new_event_type) {
 			status.interrupt_request = true;
 		});
 
-		WAIT_FOR_EVENT(Event::Command);
+		WAIT_FOR_EVENT(Event1770::Command);
 
 		update_status([] (Status &status) {
 			status.busy = true;
@@ -372,7 +253,7 @@ void WD1770::posit_event(Event new_event_type) {
 		}
 		set_head_load_request(true);
 		if(head_is_loaded_) goto test_type1_type;
-		WAIT_FOR_EVENT(Event::HeadLoad);
+		WAIT_FOR_EVENT(Event1770::HeadLoad);
 		goto test_type1_type;
 
 	begin_type1_spin_up:
@@ -429,7 +310,7 @@ void WD1770::posit_event(Event new_event_type) {
 		distance_into_section_ = 0;
 
 	verify_read_data:
-		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
@@ -439,8 +320,8 @@ void WD1770::posit_event(Event new_event_type) {
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
-			data_mode_ = DataMode::Scanning;
-			if(crc_generator_.get_value()) {
+			set_data_mode(DataMode::Scanning);
+			if(get_crc_generator().get_value()) {
 				update_status([] (Status &status) {
 					status.crc_error = true;
 				});
@@ -491,7 +372,7 @@ void WD1770::posit_event(Event new_event_type) {
 	begin_type2_load_head:
 		set_head_load_request(true);
 		if(head_is_loaded_) goto test_type2_delay;
-		WAIT_FOR_EVENT(Event::HeadLoad);
+		WAIT_FOR_EVENT(Event1770::HeadLoad);
 		goto test_type2_delay;
 
 	begin_type2_spin_up:
@@ -513,7 +394,7 @@ void WD1770::posit_event(Event new_event_type) {
 		}
 
 	type2_get_header:
-		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
+		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
@@ -525,11 +406,11 @@ void WD1770::posit_event(Event new_event_type) {
 		}
 		if(distance_into_section_ == 7) {
 			printf("Considering %d/%d\n", header_[0], header_[2]);
-			data_mode_ = DataMode::Scanning;
+			set_data_mode(DataMode::Scanning);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
 				printf("Found %d/%d\n", header_[0], header_[2]);
-				if(crc_generator_.get_value()) {
+				if(get_crc_generator().get_value()) {
 					printf("CRC error; back to searching\n");
 					update_status([] (Status &status) {
 						status.crc_error = true;
@@ -554,20 +435,20 @@ void WD1770::posit_event(Event new_event_type) {
 	type2_read_data:
 		WAIT_FOR_EVENT(Event::Token);
 		// TODO: timeout
-		if(latest_token_.type == Token::Data || latest_token_.type == Token::DeletedData) {
+		if(get_latest_token().type == Token::Data || get_latest_token().type == Token::DeletedData) {
 			update_status([this] (Status &status) {
-				status.record_type = (latest_token_.type == Token::DeletedData);
+				status.record_type = (get_latest_token().type == Token::DeletedData);
 			});
 			distance_into_section_ = 0;
-			data_mode_ = DataMode::Reading;
+			set_data_mode(DataMode::Reading);
 			goto type2_read_byte;
 		}
 		goto type2_read_data;
 
 	type2_read_byte:
 		WAIT_FOR_EVENT(Event::Token);
-		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		data_ = latest_token_.byte_value;
+		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
+		data_ = get_latest_token().byte_value;
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
@@ -581,11 +462,11 @@ void WD1770::posit_event(Event new_event_type) {
 
 	type2_check_crc:
 		WAIT_FOR_EVENT(Event::Token);
-		if(latest_token_.type != Token::Byte) goto type2_read_byte;
-		header_[distance_into_section_] = latest_token_.byte_value;
+		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
+		header_[distance_into_section_] = get_latest_token().byte_value;
 		distance_into_section_++;
 		if(distance_into_section_ == 2) {
-			if(crc_generator_.get_value()) {
+			if(get_crc_generator().get_value()) {
 				printf("CRC error; terminating\n");
 				update_status([this] (Status &status) {
 					status.crc_error = true;
@@ -616,24 +497,24 @@ void WD1770::posit_event(Event new_event_type) {
 			goto wait_for_command;
 		}
 		WAIT_FOR_BYTES(1);
-		if(is_double_density_) {
+		if(get_is_double_density()) {
 			WAIT_FOR_BYTES(11);
 		}
 
-		data_mode_ = DataMode::Writing;
+		set_data_mode(DataMode::Writing);
 		begin_writing();
-		for(int c = 0; c < (is_double_density_ ? 12 : 6); c++) {
+		for(int c = 0; c < (get_is_double_density() ? 12 : 6); c++) {
 			write_byte(0);
 		}
 		WAIT_FOR_EVENT(Event::DataWritten);
 
-		if(is_double_density_) {
-			crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+		if(get_is_double_density()) {
+			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 			for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
 			write_byte((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
 		} else {
-			crc_generator_.reset();
-			crc_generator_.add((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+			get_crc_generator().reset();
+			get_crc_generator().add((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
 			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
 		}
 
@@ -669,11 +550,8 @@ void WD1770::posit_event(Event new_event_type) {
 
 		goto type2_write_loop;
 
-	type2_write_crc: {
-			uint16_t crc = crc_generator_.get_value();
-			write_byte(crc >> 8);
-			write_byte(crc & 0xff);
-		}
+	type2_write_crc:
+		write_crc();
 		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
 		end_writing();
@@ -712,7 +590,7 @@ void WD1770::posit_event(Event new_event_type) {
 	begin_type3_load_head:
 		set_head_load_request(true);
 		if(head_is_loaded_) goto type3_test_delay;
-		WAIT_FOR_EVENT(Event::HeadLoad);
+		WAIT_FOR_EVENT(Event1770::HeadLoad);
 		goto type3_test_delay;
 
 	begin_type3_spin_up:
@@ -733,17 +611,17 @@ void WD1770::posit_event(Event new_event_type) {
 		distance_into_section_ = 0;
 
 	read_address_get_header:
-		WAIT_FOR_EVENT(Event::IndexHole | Event::Token);
-		if(new_event_type == Event::Token) {
-			if(!distance_into_section_ && latest_token_.type == Token::ID) {data_mode_ = DataMode::Reading; distance_into_section_++; }
-			else if(distance_into_section_ && distance_into_section_ < 7 && latest_token_.type == Token::Byte) {
+		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
+		if(new_event_type == (int)Event::Token) {
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }
+			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {
 				if(status_.data_request) {
 					update_status([] (Status &status) {
 						status.lost_data = true;
 					});
 					goto wait_for_command;
 				}
-				header_[distance_into_section_ - 1] = data_ = latest_token_.byte_value;
+				header_[distance_into_section_ - 1] = data_ = get_latest_token().byte_value;
 				track_ = header_[0];
 				update_status([] (Status &status) {
 					status.data_request = true;
@@ -751,7 +629,7 @@ void WD1770::posit_event(Event new_event_type) {
 				distance_into_section_++;
 
 				if(distance_into_section_ == 7) {
-					if(crc_generator_.get_value()) {
+					if(get_crc_generator().get_value()) {
 						update_status([] (Status &status) {
 							status.crc_error = true;
 						});
@@ -774,7 +652,7 @@ void WD1770::posit_event(Event new_event_type) {
 		index_hole_count_ = 0;
 
 	read_track_read_byte:
-		WAIT_FOR_EVENT(Event::Token | Event::IndexHole);
+		WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole);
 		if(index_hole_count_) {
 			goto wait_for_command;
 		}
@@ -784,7 +662,7 @@ void WD1770::posit_event(Event new_event_type) {
 			});
 			goto wait_for_command;
 		}
-		data_ = latest_token_.byte_value;
+		data_ = get_latest_token().byte_value;
 		update_status([] (Status &status) {
 			status.data_request = true;
 		});
@@ -815,25 +693,23 @@ void WD1770::posit_event(Event new_event_type) {
 			goto wait_for_command;
 		}
 
-		WAIT_FOR_EVENT(Event::IndexHoleTarget);
+		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);
 		begin_writing();
 		index_hole_count_ = 0;
 
 	write_track_write_loop:
-		if(is_double_density_) {
+		if(get_is_double_density()) {
 			switch(data_) {
 				case 0xf5:
 					write_raw_short(Storage::Encodings::MFM::MFMSync);
-					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+					get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
 				break;
 				case 0xf6:
 					write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
 				break;
-				case 0xff: {
-					uint16_t crc = crc_generator_.get_value();
-					write_byte(crc >> 8);
-					write_byte(crc & 0xff);
-				} break;
+				case 0xff:
+					write_crc();
+				break;
 				default:
 					write_byte(data_);
 				break;
@@ -856,17 +732,15 @@ void WD1770::posit_event(Event new_event_type) {
 							(data_ & 0x01)
 						)
 					);
-					crc_generator_.reset();
-					crc_generator_.add(data_);
+					get_crc_generator().reset();
+					get_crc_generator().add(data_);
 				break;
 				case 0xfc:
 					write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
 				break;
-				case 0xf7: {
-					uint16_t crc = crc_generator_.get_value();
-					write_byte(crc >> 8);
-					write_byte(crc & 0xff);
-				} break;
+				case 0xf7:
+					write_crc();
+				break;
 				default:
 					write_byte(data_);
 				break;
@@ -910,27 +784,5 @@ void WD1770::set_head_load_request(bool head_load) {}
 
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;
-	if(head_loaded) posit_event(Event::HeadLoad);
-}
-
-void WD1770::write_bit(int bit) {
-	if(is_double_density_) {
-		Controller::write_bit(!bit && !last_bit_);
-		Controller::write_bit(!!bit);
-		last_bit_ = bit;
-	} else {
-		Controller::write_bit(true);
-		Controller::write_bit(!!bit);
-	}
-}
-
-void WD1770::write_byte(uint8_t byte) {
-	for(int c = 0; c < 8; c++) write_bit((byte << c)&0x80);
-	crc_generator_.add(byte);
-}
-
-void WD1770::write_raw_short(uint16_t value) {
-	for(int c = 0; c < 16; c++) {
-		Controller::write_bit(!!((value << c)&0x8000));
-	}
+	if(head_loaded) posit_event((int)Event1770::HeadLoad);
 }

@@ -9,8 +9,7 @@
 #ifndef _770_hpp
 #define _770_hpp
 
-#include "../../Storage/Disk/DiskController.hpp"
-#include "../../NumberTheory/CRC.hpp"
+#include "../../Storage/Disk/MFMDiskController.hpp"
 
 namespace WD {
 
@@ -18,7 +17,7 @@ namespace WD {
 	Provides an emulation of various Western Digital drive controllers, including the
 	WD1770, WD1772, FDC1773 and FDC1793.
 */
-class WD1770: public Storage::Disk::Controller {
+class WD1770: public Storage::Disk::MFMController {
 	public:
 		enum Personality {
 			P1770,	// implies automatic motor-on management, with Type 2 commands offering a spin-up disable
@@ -34,7 +33,7 @@ class WD1770: public Storage::Disk::Controller {
 		WD1770(Personality p);
 
 		/// Sets the value of the double-density input; when @c is_double_density is @c true, reads and writes double-density format data.
-		void set_is_double_density(bool is_double_density);
+		using Storage::Disk::MFMController::set_is_double_density;
 
 		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
 		void set_register(int address, uint8_t value);
@@ -107,66 +106,31 @@ class WD1770: public Storage::Disk::Controller {
 
 		int index_hole_count_;
 		int index_hole_count_target_;
-		int bits_since_token_;
 		int distance_into_section_;
-		bool is_awaiting_marker_value_;
 
 		int step_direction_;
 		void update_status(std::function<void(Status &)> updater);
 
-		// Tokeniser
-		enum DataMode {
-			Scanning,
-			Reading,
-			Writing
-		} data_mode_;
-		bool is_double_density_;
-		int shift_register_;
-		struct Token {
-			enum Type {
-				Index, ID, Data, DeletedData, Sync, Byte
-			} type;
-			uint8_t byte_value;
-		} latest_token_;
-
 		// Events
-		enum Event: int {
-			Command			= (1 << 0),	// Indicates receipt of a new command.
-			Token			= (1 << 1),	// Indicates recognition of a new token in the flux stream. Interrogate latest_token_ for details.
-			IndexHole		= (1 << 2),	// Indicates the passing of a physical index hole.
-			HeadLoad		= (1 << 3),	// Indicates the head has been loaded (1973 only).
-			DataWritten		= (1 << 4),	// Indicates that all queued bits have been written
-
+		enum Event1770: int {
+			Command			= (1 << 3),	// Indicates receipt of a new command.
+			HeadLoad		= (1 << 4),	// Indicates the head has been loaded (1973 only).
 			Timer			= (1 << 5),	// Indicates that the delay_time_-powered timer has timed out.
 			IndexHoleTarget	= (1 << 6)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		};
-		void posit_event(Event type);
+		void posit_event(int type);
 		int interesting_event_mask_;
 		int resume_point_;
 		unsigned int delay_time_;
 
-		// Output
-		int last_bit_;
-		void write_bit(int bit);
-		void write_byte(uint8_t byte);
-		void write_raw_short(uint16_t value);
-
 		// ID buffer
 		uint8_t header_[6];
-
-		// CRC generator
-		NumberTheory::CRC16 crc_generator_;
 
 		// 1793 head-loading logic
 		bool head_is_loaded_;
 
 		// delegate
 		Delegate *delegate_;
-
-		// Storage::Disk::Controller
-		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
-		virtual void process_index_hole();
-		virtual void process_write_completed();
 };
 
 }
