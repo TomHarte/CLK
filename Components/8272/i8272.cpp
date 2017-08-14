@@ -371,7 +371,7 @@ void i8272::posit_event(int event_type) {
 		// data request once the byte has been taken. Continues until all bytes have been read.
 		//
 		// TODO: consider DTL.
-		get_byte:
+		read_data_get_byte:
 			WAIT_FOR_EVENT(Event::Token);
 			result_stack_.push_back(get_latest_token().byte_value);
 			distance_into_section_++;
@@ -381,7 +381,7 @@ void i8272::posit_event(int event_type) {
 			switch(event_type) {
 				case (int)Event8272::ResultEmpty:	// The caller read the byte in time; proceed as normal.
 					ResetDataRequest();
-					if(distance_into_section_ < (128 << size_)) goto get_byte;
+					if(distance_into_section_ < (128 << size_)) goto read_data_get_byte;
 				break;
 				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
 					SetOverrun();
@@ -485,10 +485,6 @@ void i8272::posit_event(int event_type) {
 
 		goto post_st012chrn;
 
-	read_track:
-		printf("Read track unimplemented!!\n");
-		goto wait_for_command;
-
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
@@ -515,6 +511,50 @@ void i8272::posit_event(int event_type) {
 
 			goto post_st012chrn;
 
+	// Performs read track.
+	read_track:
+			printf("Read track [%02x %02x %02x %02x]\n", command_[2], command_[3], command_[4], command_[5]);
+			if(!dma_mode_) SetNonDMAExecution();
+			SET_DRIVE_HEAD_MFM();
+
+			// Wait for the index hole.
+			WAIT_FOR_EVENT(Event::IndexHole);
+
+			sector_ = 0;
+			index_hole_limit_ = 2;
+
+		// While not index hole again, stream all sector contents until EOT sectors have been read.
+		read_track_next_sector:
+			FIND_HEADER();
+			if(!index_hole_limit_) {
+				if(!sector_) {
+					SetMissingAddressMark();
+					goto abort_read_write;
+				} else {
+					goto post_st012chrn;
+				}
+			}
+			READ_HEADER();
+
+			FIND_DATA();
+			distance_into_section_ = 0;
+			SetDataDirectionToProcessor();
+		read_track_get_byte:
+			WAIT_FOR_EVENT(Event::Token);
+			result_stack_.push_back(get_latest_token().byte_value);
+			distance_into_section_++;
+			SetDataRequest();
+			// TODO: other possible exit conditions; find a way to merge with the read_data version of this.
+			WAIT_FOR_EVENT((int)Event8272::ResultEmpty);
+			ResetDataRequest();
+			if(distance_into_section_ < (128 << header_[2])) goto read_track_get_byte;
+
+			sector_++;
+			if(sector_ < command_[6]) goto read_track_next_sector;
+
+			goto post_st012chrn;
+
+	// Performs format [/write] track.
 	format_track:
 			printf("Format track\n");
 			if(!dma_mode_) SetNonDMAExecution();
