@@ -120,8 +120,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 			size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
 			size_t pre_address_mark_bytes,
 			size_t post_address_mark_bytes, uint8_t post_address_mark_value,
-			size_t pre_data_mark_bytes, size_t post_data_bytes,
-			size_t inter_sector_gap,
+			size_t pre_data_mark_bytes,
+			size_t post_data_bytes, uint8_t post_data_value,
 			size_t expected_track_bytes) {
 	Storage::Disk::PCMSegment segment;
 	segment.data.reserve(expected_track_bytes);
@@ -169,8 +169,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		}
 
 		// gap
-		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(0x00);
-		for(size_t c = 0; c < inter_sector_gap; c++) shifter.add_byte(0x4e);
+		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
 	}
 
 	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
@@ -199,11 +198,11 @@ const size_t Storage::Encodings::MFM::DefaultSectorGapLength = (size_t)~0;
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(
 		sectors,
-		16, 0x00,
+		26, 0xff,
 		6,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 0, sector_gap_filler_byte,
-		(sector_gap_length != DefaultSectorGapLength) ? 0 : 17, 14,
-		0,
+		11, 0xff,
+		6,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
@@ -212,9 +211,9 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		sectors,
 		50, 0x4e,
 		12,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 22, sector_gap_filler_byte,
-		(sector_gap_length != DefaultSectorGapLength) ? 0 : 12, 18,
-		32,
+		22, 0x4e,
+		12,
+		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
 }
 

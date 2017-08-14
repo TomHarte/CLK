@@ -92,6 +92,7 @@ void i8272::run_for(Cycles cycles) {
 					// Check for completion.
 					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
+						main_status_ &= ~(1 << c);
 						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
 					}
@@ -438,17 +439,29 @@ void i8272::posit_event(int event_type) {
 		write_data_found_header:
 			begin_writing();
 
-			// Write out the requested gap between ID and data.
-			for(int c = 0; c < command_[7]; c++) {
-				write_byte(0x4e);
+			if(get_is_double_density()) {
+				for(int c = 0; c < 50; c++) {
+					write_byte(0x4e);
+				}
+				for(int c = 0; c < 12; c++) {
+					write_byte(0x00);
+				}
+			} else {
+				for(int c = 0; c < 11; c++) {
+					write_byte(0xff);
+				}
+				for(int c = 0; c < 6; c++) {
+					write_byte(0x00);
+				}
 			}
+
 			WAIT_FOR_EVENT(Event::DataWritten);
 
 			{
 				bool is_deleted = (command_[0] & 0x1f) == 0x09;
 				if(get_is_double_density()) {
 					get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-					write_raw_short(Storage::Encodings::MFM::MFMSync);
+					for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
 					write_byte(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
 				} else {
 					get_crc_generator().reset();
@@ -644,6 +657,7 @@ void i8272::posit_event(int event_type) {
 				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
 				drives_[drive].step_rate_counter = 0;
 				drives_[drive].seek_failed = false;
+				printf("Accepted seek to %d\n", drives_[drive].target_head_position);
 
 				// Check whether any steps are even needed.
 				if(drives_[drive].seek_is_satisfied()) {
@@ -651,6 +665,8 @@ void i8272::posit_event(int event_type) {
 				} else {
 					main_status_ |= 1 << (command_[1]&3);
 				}
+			} else {
+				printf("Rejected seek to %d\n", (command_.size() > 2) ? command_[2] : -1);
 			}
 			goto wait_for_command;
 
@@ -672,7 +688,6 @@ void i8272::posit_event(int event_type) {
 					drives_[found_drive].phase = Drive::NotSeeking;
 					status_[0] = (uint8_t)found_drive;
 					SetSeekEnd();
-					main_status_ &= ~(1 << found_drive);
 
 					result_stack_.push_back(drives_[found_drive].head_position);
 					result_stack_.push_back(status_[0]);
