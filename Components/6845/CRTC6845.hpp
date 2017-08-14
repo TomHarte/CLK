@@ -137,7 +137,7 @@ template <class T> class CRTC6845 {
 					}
 
 					character_counter_ = 0;
-					character_is_visible_ = true;
+					character_is_visible_ = (registers_[1] != 0);
 				}
 
 				perform_bus_cycle();
