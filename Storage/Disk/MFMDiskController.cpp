@@ -185,3 +185,55 @@ void MFMController::write_crc() {
 void MFMController::write_n_bytes(int quantity, uint8_t value) {
 	while(quantity--) write_byte(value);
 }
+
+void MFMController::write_id_joiner() {
+	if(get_is_double_density()) {
+		write_n_bytes(12, 0x00);
+		for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
+		get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+		write_byte(Storage::Encodings::MFM::IDAddressByte);
+	} else {
+		write_n_bytes(6, 0x00);
+		get_crc_generator().reset();
+		write_raw_short(Storage::Encodings::MFM::FMIDAddressMark);
+	}
+}
+
+void MFMController::write_id_data_joiner(bool is_deleted) {
+	if(get_is_double_density()) {
+		write_n_bytes(22, 0x4e);
+		write_n_bytes(12, 0x00);
+		for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
+		get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+		write_byte(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+	} else {
+		write_n_bytes(11, 0xff);
+		write_n_bytes(6, 0x00);
+		get_crc_generator().reset();
+		get_crc_generator().add(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+		write_raw_short(is_deleted ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+	}
+}
+
+void MFMController::write_post_data_gap() {
+	if(get_is_double_density()) {
+		write_n_bytes(54, 0x4e);
+	} else {
+		write_n_bytes(27, 0xff);
+	}
+}
+
+void MFMController::write_start_of_track() {
+	if(get_is_double_density()) {
+		write_n_bytes(80, 0x4e);
+		write_n_bytes(12, 0x00);
+		for(int c = 0; c < 3; c++)	write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
+		write_byte(Storage::Encodings::MFM::IndexAddressByte);
+		write_n_bytes(50, 0x4e);
+	} else {
+		write_n_bytes(40, 0xff);
+		write_n_bytes(6, 0x00);
+		write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
+		write_n_bytes(26, 0xff);
+	}
+}

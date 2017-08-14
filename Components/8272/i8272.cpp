@@ -427,31 +427,11 @@ void i8272::posit_event(int event_type) {
 		write_data_found_header:
 			begin_writing();
 
-			if(get_is_double_density()) {
-				write_n_bytes(50, 0x4e);
-				write_n_bytes(12, 0x00);
-			} else {
-				write_n_bytes(11, 0xff);
-				write_n_bytes(6, 0x00);
-			}
-
-			WAIT_FOR_EVENT(Event::DataWritten);
-
-			{
-				bool is_deleted = (command_[0] & 0x1f) == 0x09;
-				if(get_is_double_density()) {
-					get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-					for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
-					write_byte(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
-				} else {
-					get_crc_generator().reset();
-					get_crc_generator().add(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
-					write_raw_short(is_deleted ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
-				}
-			}
+			write_id_data_joiner((command_[0] & 0x1f) == 0x09);
 
 			SetDataDirectionFromProcessor();
 			SetDataRequest();
+			WAIT_FOR_EVENT(Event::DataWritten);
 			expects_input_ = true;
 			distance_into_section_ = 0;
 
@@ -563,32 +543,12 @@ void i8272::posit_event(int event_type) {
 			begin_writing();
 
 			// Write start-of-track.
-			if(get_is_double_density()) {
-				write_n_bytes(80, 0x4e);
-				write_n_bytes(12, 0x00);
-				for(int c = 0; c < 3; c++)	write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
-				write_byte(Storage::Encodings::MFM::IndexAddressByte);
-				write_n_bytes(50, 0x4e);
-			} else {
-				write_n_bytes(40, 0xff);
-				write_n_bytes(6, 0x00);
-				write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
-				write_n_bytes(26, 0xff);
-			}
+			write_start_of_track();
 			WAIT_FOR_EVENT(Event::DataWritten);
 			sector_ = 0;
 
 		format_track_write_sector:
-			if(get_is_double_density()) {
-				write_n_bytes(12, 0x00);
-				for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
-				get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-				write_byte(Storage::Encodings::MFM::IDAddressByte);
-			} else {
-				write_n_bytes(6, 0x00);
-				get_crc_generator().reset();
-				write_raw_short(Storage::Encodings::MFM::FMIDAddressMark);
-			}
+			write_id_joiner();
 
 			// Write the sector header, obtaining its contents
 			// from the processor.
@@ -610,18 +570,7 @@ void i8272::posit_event(int event_type) {
 			write_crc();
 
 			// Write the sector body.
-			if(get_is_double_density()) {
-				write_n_bytes(22, 0x4e);
-				write_n_bytes(12, 0x00);
-				for(int c = 0; c < 3; c++)	write_raw_short(Storage::Encodings::MFM::MFMSync);
-				get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-				write_byte(Storage::Encodings::MFM::DataAddressByte);
-			} else {
-				write_n_bytes(11, 0xff);
-				write_n_bytes(6, 0x00);
-				get_crc_generator().reset();
-				write_raw_short(Storage::Encodings::MFM::FMDataAddressMark);
-			}
+			write_id_data_joiner(false);
 			write_n_bytes(128 << command_[2], command_[5]);
 			write_crc();
 

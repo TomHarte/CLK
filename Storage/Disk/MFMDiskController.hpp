@@ -118,6 +118,31 @@ class MFMController: public Controller {
 		*/
 		void write_n_bytes(int quantity, uint8_t value);
 
+		/*!
+			Writes everything that should, per the spec, appear prior to the address contained
+			in an ID mark — proper gaps and the ID mark — and appropriate seeds the CRC generator.
+		*/
+		void write_id_joiner();
+
+		/*!
+			Writes everything that should, per the spec, appear after the ID's CRC, up to and
+			including the mark that indicates the beginning of data, appropriately seeding
+			the CRC generator.
+		*/
+		void write_id_data_joiner(bool is_deleted);
+
+		/*!
+			Writes the gap expected after a sector's data CRC and before the beginning of the
+			next ID joiner.
+		*/
+		void write_post_data_gap();
+
+		/*!
+			Writes everything that should, per the spec, following the index hole and prior
+			to any sectors.
+		*/
+		void write_start_of_track();
+
 	private:
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
