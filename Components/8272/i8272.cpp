@@ -531,32 +531,32 @@ void i8272::posit_event(int event_type) {
 			begin_writing();
 
 			// Write start-of-track.
-			// TODO: single density.
-			for(int c = 0; c < 80; c++) {
-				write_byte(0x4e);
-			}
-			for(int c = 0; c < 12; c++) {
-				write_byte(0x00);
-			}
-			for(int c = 0; c < 3; c++) {
-				write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
-			}
-			write_byte(Storage::Encodings::MFM::IndexAddressByte);
-			for(int c = 0; c < 50; c++) {
-				write_byte(0x4e);
+			if(get_is_double_density()) {
+				for(int c = 0; c < 80; c++)	write_byte(0x4e);
+				for(int c = 0; c < 12; c++)	write_byte(0x00);
+				for(int c = 0; c < 3; c++)	write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
+				write_byte(Storage::Encodings::MFM::IndexAddressByte);
+				for(int c = 0; c < 50; c++)	write_byte(0x4e);
+			} else {
+				for(int c = 0; c < 40; c++)	write_byte(0xff);
+				for(int c = 0; c < 6; c++)	write_byte(0x00);
+				write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
+				for(int c = 0; c < 26; c++)	write_byte(0xff);
 			}
 			WAIT_FOR_EVENT(Event::DataWritten);
 			sector_ = 0;
 
 		format_track_write_sector:
-			for(int c = 0; c < 12; c++) {
-				write_byte(0x00);
+			if(get_is_double_density()) {
+				for(int c = 0; c < 12; c++)	write_byte(0x00);
+				for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
+				get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+				write_byte(Storage::Encodings::MFM::IDAddressByte);
+			} else {
+				for(int c = 0; c < 6; c++)	write_byte(0x00);
+				get_crc_generator().reset();
+				write_raw_short(Storage::Encodings::MFM::FMIDAddressMark);
 			}
-			for(int c = 0; c < 3; c++) {
-				write_raw_short(Storage::Encodings::MFM::MFMSync);
-			}
-			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-			write_byte(Storage::Encodings::MFM::IDAddressByte);
 
 			// Write the sector header, obtaining its contents
 			// from the processor.
@@ -578,36 +578,38 @@ void i8272::posit_event(int event_type) {
 			write_crc();
 
 			// Write the sector body.
-			for(int c = 0; c < 22; c++) {
-				write_byte(0x4e);
+			if(get_is_double_density()) {
+				for(int c = 0; c < 22; c++)	write_byte(0x4e);
+				for(int c = 0; c < 12; c++)	write_byte(0x00);
+				for(int c = 0; c < 3; c++)	write_raw_short(Storage::Encodings::MFM::MFMSync);
+				get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+				write_byte(Storage::Encodings::MFM::DataAddressByte);
+			} else {
+				for(int c = 0; c < 11; c++)	write_byte(0xff);
+				for(int c = 0; c < 6; c++)	write_byte(0x00);
+				get_crc_generator().reset();
+				write_raw_short(Storage::Encodings::MFM::FMDataAddressMark);
 			}
-			for(int c = 0; c < 12; c++) {
-				write_byte(0x00);
-			}
-			for(int c = 0; c < 3; c++) {
-				write_raw_short(Storage::Encodings::MFM::MFMSync);
-			}
-			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-			write_byte(Storage::Encodings::MFM::DataAddressByte);
 			for(int c = 0; c < (128 << command_[2]); c++) {
 				write_byte(command_[5]);
 			}
 			write_crc();
 
 			// Write the prescribed gap.
-			for(int c = 0; c < command_[4]; c++) {
-				write_byte(0x4e);
+			if(get_is_double_density()) {
+				for(int c = 0; c < command_[4]; c++)	write_byte(0x4e);
+			} else {
+				for(int c = 0; c < command_[4]; c++)	write_byte(0xff);
 			}
 
 			// Consider repeating.
 			sector_++;
-			if(sector_ < command_[3]) {
+			if(sector_ < command_[3])
 				goto format_track_write_sector;
-			}
 
 			// Otherwise, pad out to the index hole.
 		format_track_pad:
-			write_byte(0x4e);
+			write_byte(get_is_double_density() ? 0x4e : 0xff);
 			WAIT_FOR_EVENT((int)Event::DataWritten | (int)Event::IndexHole);
 			if(event_type != (int)Event::IndexHole) goto format_track_pad;
 
