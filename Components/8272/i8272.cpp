@@ -88,14 +88,14 @@ void i8272::run_for(Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
+					printf("Target %d versus believed %d\n", drives_[c].target_head_position, drives_[c].head_position);
 					drives_[c].drive->step(direction);
-					drives_[c].head_position += direction;
+					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
 
 					// Check for completion.
 					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
 						drives_seeking_--;
-						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
 					}
 				}
@@ -190,19 +190,12 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 	set_data_mode(Scanning);
 
-#define CLEAR_STATUS()	\
-	status_[0] = status_[1] = status_[2] = 0;
-
 #define SET_DRIVE_HEAD_MFM()	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
 	set_drive(drives_[active_drive_].drive);	\
 	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);	\
-	if(drives_[active_drive_].phase == Drive::Seeking) {	\
-		drives_[active_drive_].phase = Drive::NotSeeking;	\
-		drives_seeking_--;	\
-	}\
 	invalidate_track();
 
 #define LOAD_HEAD()	\
@@ -248,76 +241,59 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event8272::CommandByte)
 			SetBusy();
 
+			static const size_t required_lengths[32] = {
+				0,	0,	9,	3,	2,	9,	9,	2,
+				1,	9,	2,	9,	0,	6,	0,	3,
+				0,	9,	0,	0,	0,	0,	0,	0,
+				0,	9,	0,	0,	0,	9,	0,	0,
+			};
+
+			if(command_.size() < required_lengths[command_[0] & 0x1f]) goto wait_for_complete_command_sequence;
+			ResetDataRequest();
+			status_[0] = status_[1] = status_[2] = 0;
+
+			// If this is not clearly a command that's safe to carry out in parallel to a seek, end all seeks.
+			switch(command_[0] & 0x1f) {
+				case 0x03:	// specify
+				case 0x04:	// sense drive status
+				case 0x07:	// recalibrate
+				case 0x08:	// sense interrupt status
+				case 0x0f:	// seek
+				break;
+
+				default:
+					for(int c = 0; c < 4; c++) {
+						if(drives_[c].phase == Drive::Seeking) {
+							drives_[c].phase = Drive::NotSeeking;
+							drives_seeking_--;
+						}
+					}
+				break;
+			}
+
+			// Jump to the proper place.
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
 				case 0x0b:	// read deleted data
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
 					goto read_data;
 
 				case 0x05:	// write data
 				case 0x09:	// write deleted data
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
 					goto write_data;
 
-				case 0x02:	// read track
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto read_track;
+				case 0x02:	goto read_track;
+				case 0x0a:	goto read_id;
+				case 0x0d:	goto format_track;
+				case 0x11:	goto scan_low;
+				case 0x19:	goto scan_low_or_equal;
+				case 0x1d:	goto scan_high_or_equal;
+				case 0x07:	goto recalibrate;
+				case 0x08:	goto sense_interrupt_status;
+				case 0x03:	goto specify;
+				case 0x04:	goto sense_drive_status;
+				case 0x0f:	goto seek;
 
-				case 0x0a:	// read ID
-					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto read_id;
-
-				case 0x0d:	// format track
-					if(command_.size() < 6) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto format_track;
-
-				case 0x11:	// scan low
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto scan_low;
-
-				case 0x19:	// scan low or equal
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto scan_low_or_equal;
-
-				case 0x1d:	// scan high or equal
-					if(command_.size() < 9) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto scan_high_or_equal;
-
-				case 0x07:	// recalibrate
-					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto recalibrate;
-
-				case 0x08:	// sense interrupt status
-					ResetDataRequest();
-					goto sense_interrupt_status;
-
-				case 0x03:	// specify
-					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto specify;
-
-				case 0x04:	// sense drive status
-					if(command_.size() < 2) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto sense_drive_status;
-
-				case 0x0f:	// seek
-					if(command_.size() < 3) goto wait_for_complete_command_sequence;
-					ResetDataRequest();
-					goto seek;
-
-				default:	// invalid
-					ResetDataRequest();
-					goto invalid;
+				default:	goto invalid;
 			}
 
 	// Decodes drive, head and density, loads the head, loads the internal cylinder, head, sector and size registers,
@@ -329,7 +305,6 @@ void i8272::posit_event(int event_type) {
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
-			CLEAR_STATUS();
 			cylinder_ = command_[2];
 			head_ = command_[3];
 			sector_ = command_[4];
@@ -513,7 +488,6 @@ void i8272::posit_event(int event_type) {
 			printf("Read ID\n");
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
-			CLEAR_STATUS();
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -539,7 +513,6 @@ void i8272::posit_event(int event_type) {
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
-			CLEAR_STATUS();
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);

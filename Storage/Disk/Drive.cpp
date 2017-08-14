@@ -34,6 +34,7 @@ bool Drive::get_is_track_zero() {
 
 void Drive::step(int direction) {
 	head_position_ = std::max(head_position_ + direction, 0);
+	printf("Head -> %d\n", head_position_);
 }
 
 void Drive::set_head(unsigned int head) {
