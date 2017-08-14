@@ -81,6 +81,7 @@ class i8272: public Storage::Disk::MFMController {
 				Seeking,
 				CompletedSeeking
 			} phase;
+			bool did_seek;
 			bool seek_failed;
 
 			// Seeking: transient state.
@@ -103,6 +104,7 @@ class i8272: public Storage::Disk::MFMController {
 				drive(new Storage::Disk::Drive),
 				head_is_loaded{false, false} {};
 		} drives_[4];
+		int drives_seeking_;
 
 		// User-supplied parameters; as per the specify command.
 		int step_rate_time_;

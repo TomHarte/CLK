@@ -60,7 +60,8 @@ i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multipli
 	resume_point_(0),
 	delay_time_(0),
 	head_timers_running_(0),
-	expects_input_(false) {
+	expects_input_(false),
+	drives_seeking_(0) {
 	posit_event((int)Event8272::CommandByte);
 }
 
@@ -78,7 +79,7 @@ void i8272::run_for(Cycles cycles) {
 	}
 
 	// update seek status of any drives presently seeking
-	if(main_status_ & 0xf) {
+	if(drives_seeking_) {
 		for(int c = 0; c < 4; c++) {
 			if(drives_[c].phase == Drive::Seeking) {
 				drives_[c].step_rate_counter += cycles.as_int();
@@ -93,6 +94,7 @@ void i8272::run_for(Cycles cycles) {
 					// Check for completion.
 					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
+						drives_seeking_--;
 						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
 					}
@@ -197,6 +199,10 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	set_drive(drives_[active_drive_].drive);	\
 	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);	\
+	if(drives_[active_drive_].phase == Drive::Seeking) {	\
+		drives_[active_drive_].phase = Drive::NotSeeking;	\
+		drives_seeking_--;	\
+	}\
 	invalidate_track();
 
 #define LOAD_HEAD()	\
@@ -646,26 +652,37 @@ void i8272::posit_event(int event_type) {
 	seek:
 			printf((command_.size() > 2) ? "Seek\n" : "Recalibrate\n");
 
-		// Declines to act if a seek is already ongoing; otherwise resets all status registers, sets the drive
-		// into seeking mode, sets the drive's main status seeking bit, and sets the target head position: for
-		// a recalibrate the target is -1 and ::run_for knows that -1 means the terminal condition is the drive
-		// returning that its at track zero, and that it should reset the drive's current position once reached.
-			if(drives_[command_[1]&3].phase != Drive::Seeking) {
+			{
 				int drive = command_[1]&3;
+
+				// Increment the seeking count if this drive wasn't already seeking.
+				if(drives_[drive].phase != Drive::Seeking) {
+					drives_seeking_++;
+				}
+
+				// Set currently seeking, with a step to occur right now (yes, it sounds like jamming these
+				// in could damage your drive motor).
 				drives_[drive].phase = Drive::Seeking;
+				drives_[drive].step_rate_counter = 8000 * step_rate_time_;
 				drives_[drive].steps_taken = 0;
-				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
-				drives_[drive].step_rate_counter = 0;
 				drives_[drive].seek_failed = false;
 				main_status_ |= 1 << (command_[1]&3);
-				printf("Accepted seek to %d\n", drives_[drive].target_head_position);
 
-				// Check whether any steps are even needed.
+				// If this is a seek, set the processor-supplied target location; otherwise it is a recalibrate,
+				// which means resetting the current state now but aiming to hit '-1' (which the stepping code
+				// up in run_for understands to mean 'keep going until track 0 is active').
+				if(command_.size() > 2) {
+					drives_[drive].target_head_position = command_[2];
+				} else {
+					drives_[drive].target_head_position = -1;
+					drives_[drive].head_position = 0;
+				}
+
+				// Check whether any steps are even needed; if not then mark as completed already.
 				if(drives_[drive].seek_is_satisfied()) {
 					drives_[drive].phase = Drive::CompletedSeeking;
+					drives_seeking_--;
 				}
-			} else {
-				printf("Rejected seek to %d\n", (command_.size() > 2) ? command_[2] : -1);
 			}
 			goto wait_for_command;
 
