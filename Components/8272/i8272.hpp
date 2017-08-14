@@ -31,6 +31,9 @@ class i8272: public Storage::Disk::MFMController {
 
 		void run_for(Cycles);
 
+		void set_data_input(uint8_t value);
+		uint8_t get_data_output();
+
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
@@ -40,7 +43,6 @@ class i8272: public Storage::Disk::MFMController {
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 
 	private:
-
 		// The bus handler, for interrupt and DMA-driven usage.
 		BusHandler &bus_handler_;
 		std::unique_ptr<BusHandler> allocated_bus_handler_;

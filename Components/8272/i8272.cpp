@@ -93,7 +93,6 @@ void i8272::run_for(Cycles cycles) {
 					// Check for completion.
 					if(drives_[c].seek_is_satisfied()) {
 						drives_[c].phase = Drive::CompletedSeeking;
-						main_status_ &= ~(1 << c);
 						if(drives_[c].target_head_position == -1) drives_[c].head_position = 0;
 						break;
 					}
@@ -658,13 +657,12 @@ void i8272::posit_event(int event_type) {
 				drives_[drive].target_head_position = (command_.size() > 2) ? command_[2] : -1;
 				drives_[drive].step_rate_counter = 0;
 				drives_[drive].seek_failed = false;
+				main_status_ |= 1 << (command_[1]&3);
 				printf("Accepted seek to %d\n", drives_[drive].target_head_position);
 
 				// Check whether any steps are even needed.
 				if(drives_[drive].seek_is_satisfied()) {
 					drives_[drive].phase = Drive::CompletedSeeking;
-				} else {
-					main_status_ |= 1 << (command_[1]&3);
 				}
 			} else {
 				printf("Rejected seek to %d\n", (command_.size() > 2) ? command_[2] : -1);
@@ -688,6 +686,7 @@ void i8272::posit_event(int event_type) {
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
 					status_[0] = (uint8_t)found_drive;
+					main_status_ &= ~(1 << found_drive);
 					SetSeekEnd();
 
 					result_stack_.push_back(drives_[found_drive].head_position);
@@ -702,17 +701,17 @@ void i8272::posit_event(int event_type) {
 	specify:
 		// Just store the values, and terminate the command.
 			printf("Specify\n");
-			step_rate_time_ = command_[1] &0xf0;		// i.e. 16 to 240m
-			head_unload_time_ = command_[1] & 0x0f;		// i.e. 1 to 16ms
-			head_load_time_ = command_[2] & ~1;			// i.e. 2 to 254 ms in increments of 2ms
+			step_rate_time_ = 16 - (command_[1] >> 4);			// i.e. 1 to 16ms
+			head_unload_time_ = (command_[1] & 0x0f) << 4;		// i.e. 16 to 240ms
+			head_load_time_ = command_[2] & ~1;					// i.e. 2 to 254 ms in increments of 2ms
 
-			if(!step_rate_time_) step_rate_time_ = 16;
-			if(!head_unload_time_) head_unload_time_ = 1;
+			if(!head_unload_time_) head_unload_time_ = 16;
 			if(!head_load_time_) head_load_time_ = 2;
 			dma_mode_ = !(command_[2] & 1);
 			goto wait_for_command;
 
 	sense_drive_status:
+			printf("Sense drive status\n");
 			{
 				int drive = command_[1] & 3;
 				result_stack_.push_back(
@@ -749,7 +748,7 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack — the
 	// last thing in it will be returned first.
 	post_result:
-			printf("Result: ");
+			printf("Result to %02x: ", command_[0] & 0x1f);
 			for(size_t c = 0; c < result_stack_.size(); c++) {
 				printf("%02x ", result_stack_[result_stack_.size() - 1 - c]);
 			}
@@ -779,4 +778,11 @@ void i8272::set_dma_acknowledge(bool dack) {
 }
 
 void i8272::set_terminal_count(bool tc) {
+}
+
+void i8272::set_data_input(uint8_t value) {
+}
+
+uint8_t i8272::get_data_output() {
+	return 0xff;
 }
