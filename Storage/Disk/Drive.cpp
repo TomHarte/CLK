@@ -34,6 +34,7 @@ bool Drive::get_is_track_zero() {
 
 void Drive::step(int direction) {
 	head_position_ = std::max(head_position_ + direction, 0);
+	printf("Head -> %d\n", head_position_);
 }
 
 void Drive::set_head(unsigned int head) {
@@ -42,8 +43,7 @@ void Drive::set_head(unsigned int head) {
 
 bool Drive::get_is_read_only() {
 	if(disk_) return disk_->get_is_read_only();
-	if(track_) return true;
-	return false;
+	return true;
 }
 
 bool Drive::get_is_ready() {

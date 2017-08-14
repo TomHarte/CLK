@@ -13,22 +13,40 @@
 #include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace Intel {
+namespace i8272 {
+
+class BusHandler {
+	public:
+		virtual void set_dma_data_request(bool drq) {}
+		virtual void set_interrupt(bool irq) {}
+};
 
 class i8272: public Storage::Disk::MFMController {
 	public:
-		i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 		void run_for(Cycles);
+
+		void set_data_input(uint8_t value);
+		uint8_t get_data_output();
 
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
+		void set_dma_acknowledge(bool dack);
+		void set_terminal_count(bool tc);
+
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 
 	private:
+		// The bus handler, for interrupt and DMA-driven usage.
+		BusHandler &bus_handler_;
+		std::unique_ptr<BusHandler> allocated_bus_handler_;
+
 		// Status registers.
 		uint8_t main_status_;
 		uint8_t status_[3];
@@ -36,6 +54,9 @@ class i8272: public Storage::Disk::MFMController {
 		// A buffer for accumulating the incoming command, and one for accumulating the result.
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;
+		uint8_t input_;
+		bool has_input_;
+		bool expects_input_;
 
 		// Event stream: the 8272-specific events, plus the current event state.
 		enum class Event8272: int {
@@ -60,6 +81,7 @@ class i8272: public Storage::Disk::MFMController {
 				Seeking,
 				CompletedSeeking
 			} phase;
+			bool did_seek;
 			bool seek_failed;
 
 			// Seeking: transient state.
@@ -82,6 +104,7 @@ class i8272: public Storage::Disk::MFMController {
 				drive(new Storage::Disk::Drive),
 				head_is_loaded{false, false} {};
 		} drives_[4];
+		int drives_seeking_;
 
 		// User-supplied parameters; as per the specify command.
 		int step_rate_time_;
@@ -107,6 +130,6 @@ class i8272: public Storage::Disk::MFMController {
 };
 
 }
-
+}
 
 #endif /* i8272_hpp */

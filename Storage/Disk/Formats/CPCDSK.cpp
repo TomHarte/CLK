@@ -47,7 +47,7 @@ unsigned int CPCDSK::get_head_count() {
 
 bool CPCDSK::get_is_read_only() {
 	// TODO: allow writing.
-	return true;
+	return false;
 }
 
 std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head, unsigned int position) {

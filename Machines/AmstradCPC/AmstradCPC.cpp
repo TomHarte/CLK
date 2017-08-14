@@ -438,12 +438,15 @@ struct KeyboardState {
 	Wraps the 8272 so as to provide proper clocking and RPM counts, and just directly
 	exposes motor control, applying the same value to all drives.
 */
-class FDC: public Intel::i8272 {
+class FDC: public Intel::i8272::i8272 {
+	private:
+		Intel::i8272::BusHandler bus_handler_;
+
 	public:
-		FDC() : i8272(Cycles(8000000), 16, 300) {}
+		FDC() : i8272(bus_handler_, Cycles(8000000), 16, 300) {}
 
 		void set_motor_on(bool on) {
-			Intel::i8272::set_motor_on(on);
+			Intel::i8272::i8272::set_motor_on(on);
 		}
 };
 
@@ -534,7 +537,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
+			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the CPU's memory accesses
 			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),

@@ -21,12 +21,16 @@ static bool strcmp_insensitive(const char *a, const char *b) {
 	return true;
 }
 
+static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
+	return "run\"" + file.name + "\n";
+}
+
 static void InspectDataCatalogue(
 	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
 	StaticAnalyser::Target &target) {
 	// If there's just one file, run that.
 	if(data_catalogue->files.size() == 1) {
-		target.loadingCommand = "run\"" + data_catalogue->files[0].name + "\n";
+		target.loadingCommand = RunCommandFor(data_catalogue->files[0]);
 		return;
 	}
 
@@ -61,7 +65,7 @@ static void InspectDataCatalogue(
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loadingCommand = "run\"" + data_catalogue->files[selected_file].name + "\n";
+		target.loadingCommand = RunCommandFor(data_catalogue->files[selected_file]);
 		return;
 	}
 
