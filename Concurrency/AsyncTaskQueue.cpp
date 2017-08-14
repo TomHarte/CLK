@@ -46,6 +46,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 AsyncTaskQueue::~AsyncTaskQueue() {
 #ifdef __APPLE__
 	dispatch_release(serial_dispatch_queue_);
+	serial_dispatch_queue_ = nullptr;
 #else
 	should_destruct_ = true;
 	enqueue([](){});
