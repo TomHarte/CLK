@@ -537,7 +537,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the memory accesses
+			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the CPU's memory accesses
 			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
