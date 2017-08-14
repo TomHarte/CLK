@@ -113,6 +113,11 @@ class MFMController: public Controller {
 		*/
 		void write_crc();
 
+		/*!
+			Calls @c write_byte with @c value, @c quantity times.
+		*/
+		void write_n_bytes(int quantity, uint8_t value);
+
 	private:
 		// Storage::Disk::Controller
 		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);

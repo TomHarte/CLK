@@ -181,3 +181,7 @@ void MFMController::write_crc() {
 	write_byte(crc >> 8);
 	write_byte(crc & 0xff);
 }
+
+void MFMController::write_n_bytes(int quantity, uint8_t value) {
+	while(quantity--) write_byte(value);
+}
