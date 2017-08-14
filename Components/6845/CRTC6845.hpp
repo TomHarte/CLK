@@ -140,9 +140,7 @@ template <class T> class CRTC6845 {
 					character_is_visible_ = true;
 				}
 
-				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
-				bus_state_.refresh_address &= 0x3fff;
-				bus_handler_.perform_bus_cycle(bus_state_);
+				perform_bus_cycle();
 			}
 		}
 
@@ -175,6 +173,12 @@ template <class T> class CRTC6845 {
 		}
 
 	private:
+		inline void perform_bus_cycle() {
+			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+			bus_state_.refresh_address &= 0x3fff;
+			bus_handler_.perform_bus_cycle(bus_state_);
+		}
+
 		Personality personality_;
 		T &bus_handler_;
 		BusState bus_state_;
