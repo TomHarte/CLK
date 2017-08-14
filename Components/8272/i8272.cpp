@@ -346,7 +346,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read data\n");
+			printf("Read data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
 		read_next_data:
 			goto read_write_find_header;
 
@@ -354,7 +354,6 @@ void i8272::posit_event(int event_type) {
 		// flag doesn't match the sort the command was looking for.
 		read_data_found_header:
 			FIND_DATA();
-			distance_into_section_ = 0;
 			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
 				if(!(command_[0]&0x20)) {
 					// SK is not set; set the error flag but read this sector before finishing.
@@ -364,13 +363,14 @@ void i8272::posit_event(int event_type) {
 					goto read_next_data;
 				}
 			}
+
+			distance_into_section_ = 0;
 			set_data_mode(Reading);
 
 		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and (ii) resetting
 		// data request once the byte has been taken. Continues until all bytes have been read.
 		//
-		// TODO: signal if the CPU is too slow and missed a byte; at the minute it'll just silently miss. Also allow for other
-		// ways that sector size might have been specified.
+		// TODO: consider DTL.
 		get_byte:
 			WAIT_FOR_EVENT(Event::Token);
 			result_stack_.push_back(get_latest_token().byte_value);
