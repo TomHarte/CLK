@@ -513,6 +513,7 @@ void i8272::posit_event(int event_type) {
 			printf("Read ID\n");
 			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
+			CLEAR_STATUS();
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -650,8 +651,6 @@ void i8272::posit_event(int event_type) {
 	// occurs in ::run_for; this merely establishes that seeking should be ongoing.
 	recalibrate:
 	seek:
-			printf((command_.size() > 2) ? "Seek\n" : "Recalibrate\n");
-
 			{
 				int drive = command_[1]&3;
 
@@ -673,9 +672,11 @@ void i8272::posit_event(int event_type) {
 				// up in run_for understands to mean 'keep going until track 0 is active').
 				if(command_.size() > 2) {
 					drives_[drive].target_head_position = command_[2];
+					printf("Seek to %02x\n", command_[2]);
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
+					printf("Recalibrate\n");
 				}
 
 				// Check whether any steps are even needed; if not then mark as completed already.
