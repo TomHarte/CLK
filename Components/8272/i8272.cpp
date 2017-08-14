@@ -11,7 +11,7 @@
 
 #include <cstdio>
 
-using namespace Intel;
+using namespace Intel::i8272;
 
 #define SetDataRequest()				(main_status_ |= 0x80)
 #define ResetDataRequest()				(main_status_ &= ~0x80)
@@ -52,8 +52,9 @@ using namespace Intel;
 #define SetBadCylinder()				(status_[2] |= 0x02)
 #define SetMissingDataAddressMark()		(status_[2] |= 0x01)
 
-i8272::i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
+i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
+	bus_handler_(bus_handler),
 	main_status_(0),
 	interesting_event_mask_((int)Event8272::CommandByte),
 	resume_point_(0),
@@ -772,4 +773,10 @@ void i8272::posit_event(int event_type) {
 bool i8272::Drive::seek_is_satisfied() {
 	return	(target_head_position == head_position) ||
 			(target_head_position == -1 && drive->get_is_track_zero());
+}
+
+void i8272::set_dma_acknowledge(bool dack) {
+}
+
+void i8272::set_terminal_count(bool tc) {
 }

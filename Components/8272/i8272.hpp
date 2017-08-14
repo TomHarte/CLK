@@ -13,22 +13,38 @@
 #include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace Intel {
+namespace i8272 {
+
+class BusHandler {
+	public:
+		virtual void set_dma_data_request(bool drq) {}
+		virtual void set_interrupt(bool irq) {}
+};
 
 class i8272: public Storage::Disk::MFMController {
 	public:
-		i8272(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
 
 		void run_for(Cycles);
 
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
+		void set_dma_acknowledge(bool dack);
+		void set_terminal_count(bool tc);
+
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 
 	private:
+
+		// The bus handler, for interrupt and DMA-driven usage.
+		BusHandler &bus_handler_;
+		std::unique_ptr<BusHandler> allocated_bus_handler_;
+
 		// Status registers.
 		uint8_t main_status_;
 		uint8_t status_[3];
@@ -110,6 +126,6 @@ class i8272: public Storage::Disk::MFMController {
 };
 
 }
-
+}
 
 #endif /* i8272_hpp */
