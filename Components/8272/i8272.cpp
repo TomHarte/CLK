@@ -302,8 +302,6 @@ void i8272::posit_event(int event_type) {
 	read_write_find_header:
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
-			if(!dma_mode_) SetNonDMAExecution();
-			SET_DRIVE_HEAD_MFM();
 			LOAD_HEAD();
 			cylinder_ = command_[2];
 			head_ = command_[3];
@@ -347,6 +345,8 @@ void i8272::posit_event(int event_type) {
 	// Performs the read data or read deleted data command.
 	read_data:
 			printf("Read data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
+			if(!dma_mode_) SetNonDMAExecution();
+			SET_DRIVE_HEAD_MFM();
 		read_next_data:
 			goto read_write_find_header;
 
@@ -412,7 +412,14 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-		printf("Write [deleted] data\n");
+			printf("Write [deleted] data\n");
+			if(!dma_mode_) SetNonDMAExecution();
+			SET_DRIVE_HEAD_MFM();
+
+			if(drives_[active_drive_].drive->get_is_read_only()) {
+				SetNotWriteable();
+				goto abort_read_write;
+			}
 
 		write_next_data:
 			goto read_write_find_header;
@@ -512,6 +519,11 @@ void i8272::posit_event(int event_type) {
 			printf("Format track\n");
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
+			if(drives_[active_drive_].drive->get_is_read_only()) {
+				SetNotWriteable();
+				goto abort_read_write;
+			}
+
 			LOAD_HEAD();
 
 			// Wait for the index hole.
