@@ -195,11 +195,14 @@ Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole) {
 		active_period_++;
 	}
 
-	// allow whatever storage represents the period found to perform its seek
+	// allow whatever storage represents the period found to perform its seek; calculation for periods
+	// with an event source is, in effect: seek_to(offset_into_segment + distance_into_period) - offset_into_segment.
 	if(active_period_->event_source)
-		current_time_ = active_period_->event_source->seek_to(active_period_->segment_start_time + time_since_index_hole - active_period_->start_time) + active_period_->start_time;
+		current_time_ = active_period_->event_source->seek_to(active_period_->segment_start_time + time_since_index_hole - active_period_->start_time) + active_period_->start_time - active_period_->segment_start_time;
 	else
 		current_time_ = underlying_track_->seek_to(time_since_index_hole);
+
+	assert(current_time_ <= time_since_index_hole);
 	return current_time_;
 }
 
