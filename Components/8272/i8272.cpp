@@ -243,12 +243,18 @@ void i8272::posit_event(int event_type) {
 
 			static const size_t required_lengths[32] = {
 				0,	0,	9,	3,	2,	9,	9,	2,
-				1,	9,	2,	9,	0,	6,	0,	3,
+				1,	9,	2,	0,	9,	6,	0,	3,
 				0,	9,	0,	0,	0,	0,	0,	0,
 				0,	9,	0,	0,	0,	9,	0,	0,
 			};
 
 			if(command_.size() < required_lengths[command_[0] & 0x1f]) goto wait_for_complete_command_sequence;
+			if(command_.size() == 9) {
+				cylinder_ = command_[2];
+				head_ = command_[3];
+				sector_ = command_[4];
+				size_ = command_[5];
+			}
 			ResetDataRequest();
 			status_[0] = status_[1] = status_[2] = 0;
 
@@ -274,7 +280,7 @@ void i8272::posit_event(int event_type) {
 			// Jump to the proper place.
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-				case 0x0b:	// read deleted data
+				case 0x0c:	// read deleted data
 					goto read_data;
 
 				case 0x05:	// write data
@@ -303,19 +309,18 @@ void i8272::posit_event(int event_type) {
 		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 		// cylinder, head, sector and size registers from the command stream.
 			LOAD_HEAD();
-			cylinder_ = command_[2];
-			head_ = command_[3];
-			sector_ = command_[4];
-			size_ = command_[5];
 
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
 			index_hole_limit_ = 2;
+			set_data_mode(DataMode::Scanning);
+//			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
 		find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
+//				printf("Not found\n");
 				SetNoData();
 				goto abort_read_write;
 			}
@@ -324,12 +329,14 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the header; mark as such but continue.
 				SetDataError();
 			}
+//			printf("Considering %02x %02x %02x %02x\n", header_[0], header_[1], header_[2], header_[3]);
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
+//			printf("Proceeding\n");
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-				case 0x0b:	// read deleted data
+				case 0x0c:	// read deleted data
 				goto read_data_found_header;
 
 				case 0x05:	// write data
