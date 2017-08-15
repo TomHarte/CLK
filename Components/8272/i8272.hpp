@@ -117,7 +117,7 @@ class i8272: public Storage::Disk::MFMController {
 		// Transient storage and counters used while reading the disk.
 		uint8_t header_[6];
 		int distance_into_section_;
-		int index_hole_limit_;
+		int index_hole_count_, index_hole_limit_;
 
 		// Keeps track of the drive and head in use during commands.
 		int active_drive_;

@@ -121,8 +121,9 @@ Storage::Time Controller::get_time_into_track() {
 
 #pragma mark - Writing
 
-void Controller::begin_writing() {
+void Controller::begin_writing(bool clamp_to_index_hole) {
 	is_reading_ = false;
+	clamp_writing_to_index_hole_ = clamp_to_index_hole;
 
 	write_segment_.length_of_a_bit = bit_length_ / rotational_multiplier_;
 	write_segment_.data.clear();
@@ -148,9 +149,14 @@ void Controller::end_writing() {
 		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
 		if(!patched_track_) {
 			patched_track_.reset(new PCMPatchedTrack(track_));
+		} else {
+			printf("");
 		}
+	} else {
+		printf("");
 	}
-	patched_track_->add_segment(write_start_time_, write_segment_);
+	patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
+	cycles_since_index_hole_ %= 8000000 * clock_rate_multiplier_;
 	invalidate_track();	// TEMPORARY: to force a seek
 }
 
@@ -205,8 +211,7 @@ bool Controller::get_motor_on() {
 }
 
 void Controller::set_drive(std::shared_ptr<Drive> drive) {
-	if(drive_ != drive)
-	{
+	if(drive_ != drive) {
 		invalidate_track();
 		drive_ = drive;
 	}

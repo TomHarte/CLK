@@ -193,25 +193,28 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define CONCAT(x, y) PASTE(x, y)
 
 #define FIND_HEADER()	\
+	set_data_mode(DataMode::Scanning);	\
 	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-	if(event_type == (int)Event::IndexHole) index_hole_limit_--;	\
+	if(event_type == (int)Event::IndexHole) { printf("I\n"); index_hole_limit_--; }	\
 	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
 	\
 	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
 	CONCAT(header_found, __LINE__):	0;\
 
 #define FIND_DATA()	\
+	set_data_mode(DataMode::Scanning);	\
 	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
 	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) goto CONCAT(find_data, __LINE__);
 
 #define READ_HEADER()	\
 	distance_into_section_ = 0;	\
-	set_data_mode(Reading);	\
+	set_data_mode(DataMode::Reading);	\
 	CONCAT(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
 	header_[distance_into_section_] = get_latest_token().byte_value;	\
 	distance_into_section_++; \
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
-	set_data_mode(Scanning);
+
+//	printf("%02x -> %04x\n", header_[distance_into_section_], get_crc_generator().get_value());	\
 
 #define SET_DRIVE_HEAD_MFM()	\
 	active_drive_ = command_[1]&3;	\
@@ -220,6 +223,14 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);	\
 	invalidate_track();
+
+#define WAIT_FOR_BYTES(n) \
+	distance_into_section_ = 0;	\
+	CONCAT(wait_bytes, __LINE__): WAIT_FOR_EVENT(Event::Token);	\
+	if(get_latest_token().type == Token::Byte) distance_into_section_++;	\
+	if(distance_into_section_ < (n)) goto CONCAT(wait_bytes, __LINE__);
+
+// printf("%02x\n", get_latest_token().byte_value);
 
 #define LOAD_HEAD()	\
 	if(!drives_[active_drive_].head_is_loaded[active_head_]) {	\
@@ -241,6 +252,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	}
 
 void i8272::posit_event(int event_type) {
+	if(event_type == (int)Event::IndexHole) index_hole_count_++;
 	if(!(interesting_event_mask_ & event_type)) return;
 	interesting_event_mask_ &= ~event_type;
 
@@ -339,8 +351,7 @@ void i8272::posit_event(int event_type) {
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
-			index_hole_limit_ = 2;
-			set_data_mode(DataMode::Scanning);
+			index_hole_limit_ = 6;
 			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
 		find_next_sector:
 			FIND_HEADER();
@@ -350,12 +361,13 @@ void i8272::posit_event(int event_type) {
 				SetNoData();
 				goto abort_read_write;
 			}
+			printf("Header\n");
 			READ_HEADER();
 			if(get_crc_generator().get_value()) {
 				// This implies a CRC error in the header; mark as such but continue.
 				SetDataError();
 			}
-			printf("Considering %02x %02x %02x %02x\n", header_[0], header_[1], header_[2], header_[3]);
+			printf("Considering %02x %02x %02x %02x [%04x]\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
@@ -450,6 +462,10 @@ void i8272::posit_event(int event_type) {
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 
+//			if(command_[2] == 0x16 && command_[3] == 0x00 && command_[4] == 0x06 && command_[5] == 0x02) {
+//				printf("?");
+//			}
+
 			if(drives_[active_drive_].drive->get_is_read_only()) {
 				SetNotWriteable();
 				goto abort_read_write;
@@ -459,9 +475,10 @@ void i8272::posit_event(int event_type) {
 			goto read_write_find_header;
 
 		write_data_found_header:
-			begin_writing();
+			WAIT_FOR_BYTES(get_is_double_density() ? 22 : 11);
+			begin_writing(true);
 
-			write_id_data_joiner((command_[0] & 0x1f) == CommandWriteDeletedData);
+			write_id_data_joiner((command_[0] & 0x1f) == CommandWriteDeletedData, true);
 
 			SetDataDirectionFromProcessor();
 			SetDataRequest();
@@ -483,6 +500,7 @@ void i8272::posit_event(int event_type) {
 				goto write_loop;
 			}
 
+			printf("Wrote %d bytes\n", distance_into_section_);
 			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
@@ -578,7 +596,8 @@ void i8272::posit_event(int event_type) {
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
-			begin_writing();
+			index_hole_count_ = 0;
+			begin_writing(true);
 
 			// Write start-of-track.
 			write_start_of_track();
@@ -595,20 +614,30 @@ void i8272::posit_event(int event_type) {
 			expects_input_ = true;
 			distance_into_section_ = 0;
 		format_track_write_header:
-			WAIT_FOR_EVENT(Event::DataWritten);
-			// TODO: overrun?
-			header_[distance_into_section_] = input_;
-			write_byte(input_);
-			has_input_ = false;
-			distance_into_section_++;
-			if(distance_into_section_ < 4) {
-				SetDataRequest();
-				goto format_track_write_header;
+			WAIT_FOR_EVENT((int)Event::DataWritten | (int)Event::IndexHole);
+			switch(event_type) {
+				case (int)Event::IndexHole:
+					SetOverrun();
+					end_writing();
+					goto abort_read_write;
+				break;
+				case (int)Event::DataWritten:
+					header_[distance_into_section_] = input_;
+					write_byte(input_);
+					has_input_ = false;
+					distance_into_section_++;
+					if(distance_into_section_ < 4) {
+						SetDataRequest();
+						goto format_track_write_header;
+					}
+				break;
 			}
+
+			printf("W: %02x %02x %02x %02x, %04x\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
 			write_crc();
 
 			// Write the sector body.
-			write_id_data_joiner(false);
+			write_id_data_joiner(false, false);
 			write_n_bytes(128 << command_[2], command_[5]);
 			write_crc();
 
@@ -617,7 +646,7 @@ void i8272::posit_event(int event_type) {
 
 			// Consider repeating.
 			sector_++;
-			if(sector_ < command_[3])
+			if(sector_ < command_[3] && !index_hole_count_)
 				goto format_track_write_sector;
 
 			// Otherwise, pad out to the index hole.

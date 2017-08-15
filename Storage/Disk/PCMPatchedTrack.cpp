@@ -31,15 +31,18 @@ Track *PCMPatchedTrack::clone() {
 	return new PCMPatchedTrack(*this);
 }
 
-void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment) {
+void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole) {
 	std::shared_ptr<PCMSegmentEventSource> event_source(new PCMSegmentEventSource(segment));
 
 	Time zero(0);
+	Time one(1);
 	Time end_time = start_time + event_source->get_length();
+	if(clamp_to_index_hole && end_time > one) {
+		end_time = one;
+	}
 	Period insertion_period(start_time, end_time, zero, event_source);
 
 	// the new segment may wrap around, so divide it up into track-length parts if required
-	Time one = Time(1);
 	assert(insertion_period.start_time <= one);
 	while(insertion_period.end_time > one) {
 		Time next_end_time = insertion_period.end_time - one;
