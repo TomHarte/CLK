@@ -8,6 +8,7 @@
 
 #include "DiskController.hpp"
 #include "../../NumberTheory/Factors.hpp"
+#include <cassert>
 
 using namespace Storage::Disk;
 
@@ -32,8 +33,10 @@ void Controller::setup_track() {
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
+	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
 	if(track_) {
 		Time time_found = track_->seek_to(track_time_now);
+		assert(time_found >= Time(0) && time_found <= track_time_now);
 		offset = track_time_now - time_found;
 	}
 
@@ -93,7 +96,9 @@ void Controller::get_next_event(const Time &duration_already_passed) {
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
-	set_next_event_time_interval((current_event_.length - duration_already_passed) * rotational_multiplier_);
+	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
+	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
+	set_next_event_time_interval(interval);
 }
 
 void Controller::process_next_event()
