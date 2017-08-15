@@ -315,12 +315,12 @@ void i8272::posit_event(int event_type) {
 		// values in the internal registers.
 			index_hole_limit_ = 2;
 			set_data_mode(DataMode::Scanning);
-//			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
+			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
 		find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
-//				printf("Not found\n");
+				printf("Not found\n");
 				SetNoData();
 				goto abort_read_write;
 			}
@@ -329,17 +329,18 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the header; mark as such but continue.
 				SetDataError();
 			}
-//			printf("Considering %02x %02x %02x %02x\n", header_[0], header_[1], header_[2], header_[3]);
+			printf("Considering %02x %02x %02x %02x\n", header_[0], header_[1], header_[2], header_[3]);
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
-//			printf("Proceeding\n");
+			printf("Proceeding\n");
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
 				case 0x0c:	// read deleted data
 				goto read_data_found_header;
 
 				case 0x05:	// write data
+				goto write_data_found_header;
 				case 0x09:	// write deleted data
 				goto write_data_found_header;
 			}
@@ -351,7 +352,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
+			printf("Read [deleted] data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 		read_next_data:
@@ -419,7 +420,7 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-			printf("Write [deleted] data\n");
+			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 
@@ -438,7 +439,6 @@ void i8272::posit_event(int event_type) {
 
 			SetDataDirectionFromProcessor();
 			SetDataRequest();
-			WAIT_FOR_EVENT(Event::DataWritten);
 			expects_input_ = true;
 			distance_into_section_ = 0;
 
@@ -461,6 +461,11 @@ void i8272::posit_event(int event_type) {
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
 			end_writing();
+
+			if(sector_ != command_[6] && !ControlMark()) {
+				sector_++;
+				goto write_next_data;
+			}
 
 		goto post_st012chrn;
 
