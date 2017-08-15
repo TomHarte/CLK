@@ -8,6 +8,8 @@
 
 #include "PCMPatchedTrack.hpp"
 
+#include <cassert>
+
 using namespace Storage::Disk;
 
 PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
@@ -38,11 +40,13 @@ void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segm
 
 	// the new segment may wrap around, so divide it up into track-length parts if required
 	Time one = Time(1);
+	assert(insertion_period.start_time <= one);
 	while(insertion_period.end_time > one) {
 		Time next_end_time = insertion_period.end_time - one;
 		insertion_period.end_time = one;
 		insert_period(insertion_period);
 
+		insertion_period.segment_start_time += one;
 		insertion_period.start_time = zero;
 		insertion_period.end_time = next_end_time;
 	}
@@ -127,8 +131,7 @@ void PCMPatchedTrack::insert_period(const Period &period) {
 	}
 }
 
-Track::Event PCMPatchedTrack::get_next_event()
-{
+Track::Event PCMPatchedTrack::get_next_event() {
 	const Time one(1);
 	const Time zero(0);
 	Time extra_time(0);
@@ -184,11 +187,14 @@ Track::Event PCMPatchedTrack::get_next_event()
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole) {
 	// start at the beginning and continue while segments end before reaching the time sought
 	active_period_ = periods_.begin();
-	while(active_period_->end_time < time_since_index_hole) active_period_++;
+	while(active_period_->end_time < time_since_index_hole) {
+		assert(active_period_ != periods_.end());
+		active_period_++;
+	}
 
 	// allow whatever storage represents the period found to perform its seek
 	if(active_period_->event_source)
-		current_time_ = active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
+		current_time_ = active_period_->event_source->seek_to(active_period_->segment_start_time + time_since_index_hole - active_period_->start_time) + active_period_->start_time;
 	else
 		current_time_ = underlying_track_->seek_to(time_since_index_hole);
 	return current_time_;
