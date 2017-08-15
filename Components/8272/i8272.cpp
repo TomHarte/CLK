@@ -52,6 +52,29 @@ using namespace Intel::i8272;
 #define SetBadCylinder()				(status_[2] |= 0x02)
 #define SetMissingDataAddressMark()		(status_[2] |= 0x01)
 
+namespace {
+	const uint8_t CommandReadData = 0x06;
+	const uint8_t CommandReadDeletedData = 0x0c;
+
+	const uint8_t CommandWriteData = 0x05;
+	const uint8_t CommandWriteDeletedData = 0x09;
+
+	const uint8_t CommandReadTrack = 0x02;
+	const uint8_t CommandReadID = 0x0a;
+	const uint8_t CommandFormatTrack = 0x0d;
+
+	const uint8_t CommandScanLow = 0x11;
+	const uint8_t CommandScanLowOrEqual = 0x19;
+	const uint8_t CommandScanHighOrEqual = 0x1d;
+
+	const uint8_t CommandRecalibrate = 0x07;
+	const uint8_t CommandSeek = 0x0f;
+
+	const uint8_t CommandSenseInterruptStatus = 0x08;
+	const uint8_t CommandSpecify = 0x03;
+	const uint8_t CommandSenseDriveStatus = 0x04;
+}
+
 i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
 	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
 	bus_handler_(bus_handler),
@@ -260,11 +283,11 @@ void i8272::posit_event(int event_type) {
 
 			// If this is not clearly a command that's safe to carry out in parallel to a seek, end all seeks.
 			switch(command_[0] & 0x1f) {
-				case 0x03:	// specify
-				case 0x04:	// sense drive status
-				case 0x07:	// recalibrate
-				case 0x08:	// sense interrupt status
-				case 0x0f:	// seek
+				case CommandSpecify:
+				case CommandSenseDriveStatus:
+				case CommandSenseInterruptStatus:
+				case CommandRecalibrate:
+				case CommandSeek:
 				break;
 
 				default:
@@ -279,27 +302,30 @@ void i8272::posit_event(int event_type) {
 
 			// Jump to the proper place.
 			switch(command_[0] & 0x1f) {
-				case 0x06:	// read data
-				case 0x0c:	// read deleted data
+				case CommandReadData:
+				case CommandReadDeletedData:
 					goto read_data;
 
-				case 0x05:	// write data
-				case 0x09:	// write deleted data
+				case CommandWriteData:
+				case CommandWriteDeletedData:
 					goto write_data;
 
-				case 0x02:	goto read_track;
-				case 0x0a:	goto read_id;
-				case 0x0d:	goto format_track;
-				case 0x11:	goto scan_low;
-				case 0x19:	goto scan_low_or_equal;
-				case 0x1d:	goto scan_high_or_equal;
-				case 0x07:	goto recalibrate;
-				case 0x08:	goto sense_interrupt_status;
-				case 0x03:	goto specify;
-				case 0x04:	goto sense_drive_status;
-				case 0x0f:	goto seek;
+				case CommandReadTrack:				goto read_track;
+				case CommandReadID:					goto read_id;
+				case CommandFormatTrack:			goto format_track;
 
-				default:	goto invalid;
+				case CommandScanLow:				goto scan_low;
+				case CommandScanLowOrEqual:			goto scan_low_or_equal;
+				case CommandScanHighOrEqual:		goto scan_high_or_equal;
+
+				case CommandRecalibrate:			goto recalibrate;
+				case CommandSeek:					goto seek;
+
+				case CommandSenseInterruptStatus:	goto sense_interrupt_status;
+				case CommandSpecify:				goto specify;
+				case CommandSenseDriveStatus:		goto sense_drive_status;
+
+				default:							goto invalid;
 			}
 
 	// Decodes drive, head and density, loads the head, loads the internal cylinder, head, sector and size registers,
@@ -335,15 +361,15 @@ void i8272::posit_event(int event_type) {
 			// Branch to whatever is supposed to happen next
 			printf("Proceeding\n");
 			switch(command_[0] & 0x1f) {
-				case 0x06:	// read data
-				case 0x0c:	// read deleted data
+				case CommandReadData:
+				case CommandReadDeletedData:
 				goto read_data_found_header;
 
-				case 0x05:	// write data
-				goto write_data_found_header;
-				case 0x09:	// write deleted data
+				case CommandWriteData:	// write data
+				case CommandWriteDeletedData:	// write deleted data
 				goto write_data_found_header;
 			}
+
 
 	// Sets abnormal termination of the current command and proceeds to an ST0, ST1, ST2, C, H, R, N result phase.
 	abort_read_write:
@@ -352,7 +378,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read [deleted] data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
+			printf("Read [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 		read_next_data:
@@ -362,7 +388,7 @@ void i8272::posit_event(int event_type) {
 		// flag doesn't match the sort the command was looking for.
 		read_data_found_header:
 			FIND_DATA();
-			if((get_latest_token().type == Token::Data) != ((command_[0]&0xf) == 0x6)) {
+			if((get_latest_token().type == Token::Data) != ((command_[0] & 0x1f) == CommandReadData)) {
 				if(!(command_[0]&0x20)) {
 					// SK is not set; set the error flag but read this sector before finishing.
 					SetControlMark();
@@ -420,7 +446,7 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[8]);
+			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 
@@ -435,7 +461,7 @@ void i8272::posit_event(int event_type) {
 		write_data_found_header:
 			begin_writing();
 
-			write_id_data_joiner((command_[0] & 0x1f) == 0x09);
+			write_id_data_joiner((command_[0] & 0x1f) == CommandWriteDeletedData);
 
 			SetDataDirectionFromProcessor();
 			SetDataRequest();
@@ -462,7 +488,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			end_writing();
 
-			if(sector_ != command_[6] && !ControlMark()) {
+			if(sector_ != command_[6]) {
 				sector_++;
 				goto write_next_data;
 			}
