@@ -243,7 +243,7 @@ void i8272::posit_event(int event_type) {
 
 			static const size_t required_lengths[32] = {
 				0,	0,	9,	3,	2,	9,	9,	2,
-				1,	9,	2,	9,	0,	6,	0,	3,
+				1,	9,	2,	0,	9,	6,	0,	3,
 				0,	9,	0,	0,	0,	0,	0,	0,
 				0,	9,	0,	0,	0,	9,	0,	0,
 			};
@@ -274,7 +274,7 @@ void i8272::posit_event(int event_type) {
 			// Jump to the proper place.
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-				case 0x0b:	// read deleted data
+				case 0x0c:	// read deleted data
 					goto read_data;
 
 				case 0x05:	// write data
@@ -329,7 +329,7 @@ void i8272::posit_event(int event_type) {
 			// Branch to whatever is supposed to happen next
 			switch(command_[0] & 0x1f) {
 				case 0x06:	// read data
-				case 0x0b:	// read deleted data
+				case 0x0c:	// read deleted data
 				goto read_data_found_header;
 
 				case 0x05:	// write data
