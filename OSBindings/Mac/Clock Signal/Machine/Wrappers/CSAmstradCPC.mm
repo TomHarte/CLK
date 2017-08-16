@@ -109,31 +109,41 @@
 			case VK_ANSI_M:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyM, isPressed);	break;
 
 			case VK_Space:			_amstradCPC->set_key_state(AmstradCPC::Key::KeySpace, isPressed);		break;
-			case VK_ANSI_Grave:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyCopy, isPressed);			break;
+			case VK_ANSI_Grave:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyCopy, isPressed);		break;
 			case VK_Return:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyReturn, isPressed);		break;
 			case VK_ANSI_Minus:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyMinus, isPressed);		break;
 
 			case VK_RightArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyRight, isPressed);		break;
-			case VK_LeftArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyLeft, isPressed);			break;
-			case VK_DownArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyDown, isPressed);			break;
+			case VK_LeftArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyLeft, isPressed);		break;
+			case VK_DownArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyDown, isPressed);		break;
 			case VK_UpArrow:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyUp, isPressed);			break;
 
 			case VK_Delete:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyDelete, isPressed);		break;
 			case VK_Escape:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyEscape, isPressed);		break;
 
 			case VK_ANSI_Comma:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyComma, isPressed);		break;
-			case VK_ANSI_Period:	_amstradCPC->set_key_state(AmstradCPC::Key::KeyFullStop, isPressed);		break;
+			case VK_ANSI_Period:	_amstradCPC->set_key_state(AmstradCPC::Key::KeyFullStop, isPressed);	break;
 
 			case VK_ANSI_Semicolon:
 									_amstradCPC->set_key_state(AmstradCPC::Key::KeySemicolon, isPressed);	break;
 			case VK_ANSI_Quote:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyColon, isPressed);		break;
 
-			case VK_ANSI_Slash:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyForwardSlash, isPressed);		break;
+			case VK_ANSI_Slash:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyForwardSlash, isPressed);	break;
 			case VK_ANSI_Backslash:	_amstradCPC->set_key_state(AmstradCPC::Key::KeyBackSlash, isPressed);		break;
 
 			case VK_Shift:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyShift, isPressed);		break;
 			case VK_Control:		_amstradCPC->set_key_state(AmstradCPC::Key::KeyControl, isPressed);		break;
 
+			case VK_F1:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF1, isPressed);			break;
+			case VK_F2:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF2, isPressed);			break;
+			case VK_F3:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF3, isPressed);			break;
+			case VK_F4:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF4, isPressed);			break;
+			case VK_F5:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF5, isPressed);			break;
+			case VK_F6:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF6, isPressed);			break;
+			case VK_F7:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF7, isPressed);			break;
+			case VK_F8:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF8, isPressed);			break;
+			case VK_F9:				_amstradCPC->set_key_state(AmstradCPC::Key::KeyF9, isPressed);			break;
+			case VK_F10:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyF0, isPressed);			break;
 			case VK_F12:			_amstradCPC->set_key_state(AmstradCPC::Key::KeyFDot, isPressed);		break;
 
 			default:

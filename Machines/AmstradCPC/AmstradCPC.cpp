@@ -100,7 +100,7 @@ class AYDeferrer {
 	public:
 		/// Constructs a new AY instance and sets its clock rate.
 		inline void setup_output() {
-			ay_.reset(new GI::AY38910);
+			ay_.reset(new GI::AY38910::AY38910);
 			ay_->set_input_rate(1000000);
 		}
 
@@ -130,12 +130,12 @@ class AYDeferrer {
 		}
 
 		/// @returns the AY itself.
-		GI::AY38910 *ay() {
+		GI::AY38910::AY38910 *ay() {
 			return ay_.get();
 		}
 
 	private:
-		std::shared_ptr<GI::AY38910> ay_;
+		std::shared_ptr<GI::AY38910::AY38910> ay_;
 		HalfCycles cycles_since_update_;
 };
 
@@ -425,13 +425,49 @@ class CRTCBusHandler {
 };
 
 /*!
-	Passively holds the current keyboard state. Keyboard state is modified in response
-	to external messages, so is handled by the machine, but is read by the i8255 port
-	handler, so is factored out.
+	Holds and vends the current keyboard state, acting as the AY's port handler.
 */
-struct KeyboardState {
-	KeyboardState() : rows{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
-	uint8_t rows[10];
+class KeyboardState: public GI::AY38910::PortHandler {
+	public:
+		KeyboardState() : rows_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
+
+		/*!
+			Sets the row currently being reported to the AY.
+		*/
+		void set_row(int row) {
+			row_ = row;
+		}
+
+		/*!
+			Reports the state of the currently-selected row as Port A to the AY.
+		*/
+		uint8_t get_port_input(bool port_b) {
+			if(!port_b && row_ < 10) {
+				return rows_[row_];
+			}
+
+			return 0xff;
+		}
+
+		/*!
+			Sets whether @c key on line @c line is currently pressed.
+		*/
+		void set_is_pressed(bool is_pressed, int line, int key) {
+			int mask = 1 << key;
+			assert(line < 10);
+			if(is_pressed) rows_[line] &= ~mask; else rows_[line] |= mask;
+		}
+
+		/*!
+			Sets all keys as currently unpressed.
+		*/
+		void clear_all_keys() {
+			memset(rows_, 0xff, 10);
+		}
+
+	private:
+		uint8_t rows_[10];
+		int row_;
 };
 
 /*!
@@ -456,7 +492,7 @@ class FDC: public Intel::i8272::i8272 {
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		i8255PortHandler(
-			const KeyboardState &key_state,
+			KeyboardState &key_state,
 			const CRTCBusHandler &crtc_bus_handler,
 			AYDeferrer &ay,
 			Storage::Tape::BinaryTapePlayer &tape_player) :
@@ -478,14 +514,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				break;
 				case 2: {
 					// The low four bits of the value sent to Port C select a keyboard line.
-					// At least for now, do a static push of the keyboard state here. So this
-					// is a capture. TODO: it should be a live connection.
 					int key_row = value & 15;
-					if(key_row < 10) {
-						ay_.ay()->set_port_input(false, key_state_.rows[key_row]);
-					} else {
-						ay_.ay()->set_port_input(false, 0xff);
-					}
+					key_state_.set_row(key_row);
 
 					// Bit 4 sets the tape motor on or off.
 					tape_player_.set_motor_control((value & 0x10) ? true : false);
@@ -522,7 +552,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		AYDeferrer &ay_;
-		const KeyboardState &key_state_;
+		KeyboardState &key_state_;
 		const CRTCBusHandler &crtc_bus_handler_;
 		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
@@ -688,6 +718,7 @@ class ConcreteMachine:
 		void setup_output(float aspect_ratio) {
 			crtc_bus_handler_.setup_output(aspect_ratio);
 			ay_.setup_output();
+			ay_.ay()->set_port_handler(&key_state_);
 		}
 
 		/// A CRTMachine function; indicates that outputs should be destroyed now.
@@ -786,14 +817,12 @@ class ConcreteMachine:
 
 		// See header; sets a key as either pressed or released.
 		void set_key_state(uint16_t key, bool isPressed) {
-			int line = key >> 4;
-			uint8_t mask = (uint8_t)(1 << (key & 7));
-			if(isPressed) key_state_.rows[line] &= ~mask; else key_state_.rows[line] |= mask;
+			key_state_.set_is_pressed(isPressed, key >> 4, key & 7);
 		}
 
 		// See header; sets all keys to released.
 		void clear_all_keys() {
-			memset(key_state_.rows, 0xff, 10);
+			key_state_.clear_all_keys();
 		}
 
 	private:

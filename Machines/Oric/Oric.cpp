@@ -154,7 +154,7 @@ void Machine::update_video() {
 }
 
 void Machine::setup_output(float aspect_ratio) {
-	via_.ay8910.reset(new GI::AY38910());
+	via_.ay8910.reset(new GI::AY38910::AY38910());
 	via_.ay8910->set_clock_rate(1000000);
 	video_output_.reset(new VideoOutput(ram_));
 	if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);

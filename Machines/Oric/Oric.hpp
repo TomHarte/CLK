@@ -145,7 +145,7 @@ class Machine:
 				uint8_t get_port_input(Port port);
 				inline void run_for(const Cycles cycles);
 
-				std::shared_ptr<GI::AY38910> ay8910;
+				std::shared_ptr<GI::AY38910::AY38910> ay8910;
 				std::unique_ptr<TapePlayer> tape;
 				std::shared_ptr<Keyboard> keyboard;
 
