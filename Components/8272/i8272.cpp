@@ -812,7 +812,7 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack — the
 	// last thing in it will be returned first.
 	post_result:
-			printf("Result to %02x: ", command_[0] & 0x1f);
+			printf("Result to %02x, main %02x: ", command_[0] & 0x1f, main_status_);
 			for(size_t c = 0; c < result_stack_.size(); c++) {
 				printf("%02x ", result_stack_[result_stack_.size() - 1 - c]);
 			}
