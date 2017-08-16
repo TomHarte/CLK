@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeCBSRAMPlus: public Cartridge<CartridgeCBSRAMPlus> {
 	public:
@@ -39,6 +40,7 @@ class CartridgeCBSRAMPlus: public Cartridge<CartridgeCBSRAMPlus> {
 		uint8_t ram_[256];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeCBSRAMPlus_hpp */

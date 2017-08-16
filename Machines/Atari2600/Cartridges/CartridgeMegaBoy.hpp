@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeMegaBoy: public Cartridge<CartridgeMegaBoy> {
 	public:
@@ -40,6 +41,7 @@ class CartridgeMegaBoy: public Cartridge<CartridgeMegaBoy> {
 		uint8_t current_page_;
 };
 
+}
 }
 
 #endif /* CartridgeMegaBoy_h */

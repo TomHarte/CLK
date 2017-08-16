@@ -10,6 +10,7 @@
 #define Atari2600_CartridgeCommaVid_hpp
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
 	public:
@@ -37,6 +38,7 @@ class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
 		uint8_t ram_[1024];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeCommaVid_hpp */

@@ -10,6 +10,7 @@
 #define Atari2600_CartridgePitfall2_hpp
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 	public:
@@ -128,6 +129,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		Cycles cycles_since_audio_update_;
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgePitfall2_hpp */

@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeParkerBros: public Cartridge<CartridgeParkerBros> {
 	public:
@@ -41,6 +42,7 @@ class CartridgeParkerBros: public Cartridge<CartridgeParkerBros> {
 		uint8_t *rom_ptr_[4];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeParkerBros_hpp */

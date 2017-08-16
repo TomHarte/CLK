@@ -139,7 +139,7 @@ class Vic6560: public MOS::MOS6560<Vic6560> {
 };
 
 class Machine:
-	public CPU::MOS6502::Processor<Machine>,
+	public CPU::MOS6502::BusHandler,
 	public CRTMachine::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public Utility::TypeRecipient,
@@ -174,7 +174,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return mos6560_->get_crt(); }
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker() { return mos6560_->get_speaker(); }
-		virtual void run_for(const Cycles cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
+		virtual void run_for(const Cycles cycles);
 
 		// to satisfy MOS::MOS6522::Delegate
 		virtual void mos6522_did_change_interrupt_status(void *mos6522);
@@ -187,6 +187,8 @@ class Machine:
 		virtual void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape);
 
 	private:
+		CPU::MOS6502::Processor<Machine> m6502_;
+
 		uint8_t character_rom_[0x1000];
 		uint8_t basic_rom_[0x2000];
 		uint8_t kernel_rom_[0x2000];

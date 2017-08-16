@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeTigervision: public Cartridge<CartridgeTigervision> {
 	public:
@@ -35,6 +36,7 @@ class CartridgeTigervision: public Cartridge<CartridgeTigervision> {
 		uint8_t *rom_ptr_[2];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeTigervision_hpp */

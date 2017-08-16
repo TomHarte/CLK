@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeAtari8k: public Cartridge<CartridgeAtari8k> {
 	public:
@@ -63,6 +64,7 @@ class CartridgeAtari8kSuperChip: public Cartridge<CartridgeAtari8kSuperChip> {
 		uint8_t ram_[128];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeAtari8k_hpp */

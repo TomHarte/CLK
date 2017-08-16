@@ -12,6 +12,7 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeUnpaged: public Cartridge<CartridgeUnpaged> {
 	public:
@@ -25,6 +26,7 @@ class CartridgeUnpaged: public Cartridge<CartridgeUnpaged> {
 		}
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeUnpaged_hpp */

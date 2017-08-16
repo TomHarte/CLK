@@ -13,17 +13,19 @@
 #include "../Bus.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
 template<class T> class Cartridge:
-	public CPU::MOS6502::Processor<Cartridge<T>>,
+	public CPU::MOS6502::BusHandler,
 	public Bus {
 
 	public:
 		Cartridge(const std::vector<uint8_t> &rom) :
+			m6502_(*this),
 			rom_(rom) {}
 
-		void run_for(const Cycles cycles) { CPU::MOS6502::Processor<Cartridge<T>>::run_for(cycles); }
-		void set_reset_line(bool state) { CPU::MOS6502::Processor<Cartridge<T>>::set_reset_line(state); }
+		void run_for(const Cycles cycles) { m6502_.run_for(cycles); }
+		void set_reset_line(bool state) { m6502_.set_reset_line(state); }
 		void advance_cycles(int cycles) {}
 
 		// to satisfy CPU::MOS6502::Processor
@@ -91,7 +93,7 @@ template<class T> class Cartridge:
 							case 0x00:	update_video(); tia_->set_sync(*value & 0x02);		break;
 							case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
 
-							case 0x02:	CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(true);								break;
+							case 0x02:	m6502_.set_ready_line(true);						break;
 							case 0x03:	update_video();	tia_->reset_horizontal_counter();	break;
 								// TODO: audio will now be out of synchronisation — fix
 
@@ -156,7 +158,7 @@ template<class T> class Cartridge:
 				}
 			}
 
-			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) CPU::MOS6502::Processor<Cartridge<T>>::set_ready_line(false);
+			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) m6502_.set_ready_line(false);
 
 			return Cycles(cycles_run_for / 3);
 		}
@@ -168,9 +170,11 @@ template<class T> class Cartridge:
 		}
 
 	protected:
+		CPU::MOS6502::Processor<Cartridge<T>> m6502_;
 		std::vector<uint8_t> rom_;
 };
 
+}
 }
 
 #endif /* Atari2600_Cartridge_hpp */

@@ -10,6 +10,7 @@
 #define Atari2600_CartridgeActivisionStack_hpp
 
 namespace Atari2600 {
+namespace Cartridge {
 
 class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
 	public:
@@ -45,6 +46,7 @@ class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
 		uint8_t last_opcode_;
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeActivisionStack_hpp */
