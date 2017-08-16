@@ -18,17 +18,21 @@
 using namespace Commodore::Vic20;
 
 @implementation CSVic20 {
-	Machine _vic20;
+	std::unique_ptr<Machine> _vic20;
 	BOOL _joystickMode;
 }
 
-- (CRTMachine::Machine * const)machine	{	return &_vic20;		}
+- (CRTMachine::Machine * const)machine	{
+	if(!_vic20) {
+		_vic20.reset(Commodore::Vic20::Machine::Vic20());
+	}
+	return _vic20.get();
+}
 - (NSString *)userDefaultsPrefix		{	return @"vic20";	}
 
 - (instancetype)init {
 	self = [super init];
-	if(self)
-	{
+	if(self) {
 		[self setDriveROM:[[NSBundle mainBundle] dataForResource:@"1540" withExtension:@"bin" subdirectory:@"ROMImages/Commodore1540"]];
 		[self setBASICROM:[self rom:@"basic"]];
 		[self setCountry:CSVic20CountryEuropean];
@@ -36,8 +40,7 @@ using namespace Commodore::Vic20;
 	return self;
 }
 
-- (NSData *)rom:(NSString *)name
-{
+- (NSData *)rom:(NSString *)name {
 	return [[NSBundle mainBundle] dataForResource:name withExtension:@"bin" subdirectory:@"ROMImages/Vic20"];
 }
 
@@ -45,7 +48,7 @@ using namespace Commodore::Vic20;
 
 - (void)setROM:(nonnull NSData *)rom slot:(ROMSlot)slot {
 	@synchronized(self) {
-		_vic20.set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
+		_vic20->set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
 	}
 }
 
@@ -120,32 +123,26 @@ using namespace Commodore::Vic20;
 	//	KeyPlus
 	//	KeyGBP
 
-	if(key == VK_Tab && isPressed)
-	{
+	if(key == VK_Tab && isPressed) {
 		_joystickMode ^= YES;
 	}
 
 	@synchronized(self) {
-		if(_joystickMode)
-		{
-			switch(key)
-			{
-				case VK_UpArrow:	_vic20.set_joystick_state(JoystickInput::Up, isPressed);	break;
-				case VK_DownArrow:	_vic20.set_joystick_state(JoystickInput::Down, isPressed);	break;
-				case VK_LeftArrow:	_vic20.set_joystick_state(JoystickInput::Left, isPressed);	break;
-				case VK_RightArrow:	_vic20.set_joystick_state(JoystickInput::Right, isPressed);	break;
-				case VK_ANSI_A:		_vic20.set_joystick_state(JoystickInput::Fire, isPressed);	break;
+		if(_joystickMode) {
+			switch(key) {
+				case VK_UpArrow:	_vic20->set_joystick_state(JoystickInput::Up, isPressed);	break;
+				case VK_DownArrow:	_vic20->set_joystick_state(JoystickInput::Down, isPressed);	break;
+				case VK_LeftArrow:	_vic20->set_joystick_state(JoystickInput::Left, isPressed);	break;
+				case VK_RightArrow:	_vic20->set_joystick_state(JoystickInput::Right, isPressed);	break;
+				case VK_ANSI_A:		_vic20->set_joystick_state(JoystickInput::Fire, isPressed);	break;
 			}
-		}
-		else
-		{
-			switch(key)
-			{
+		} else {
+			switch(key) {
 				default: {
 					NSNumber *targetKey = vicKeysByKeys[@(key)];
 					if(targetKey)
 					{
-						_vic20.set_key_state((Key)targetKey.integerValue, isPressed);
+						_vic20->set_key_state((Key)targetKey.integerValue, isPressed);
 					}
 					else
 					{
@@ -155,8 +152,8 @@ using namespace Commodore::Vic20;
 
 				case VK_Shift:
 					// Yuck
-					_vic20.set_key_state(Key::KeyLShift, isPressed);
-					_vic20.set_key_state(Key::KeyRShift, isPressed);
+					_vic20->set_key_state(Key::KeyLShift, isPressed);
+					_vic20->set_key_state(Key::KeyRShift, isPressed);
 				break;
 			}
 		}
@@ -165,7 +162,7 @@ using namespace Commodore::Vic20;
 
 - (void)clearAllKeys {
 	@synchronized(self) {
-		_vic20.clear_all_keys();
+		_vic20->clear_all_keys();
 	}
 }
 
@@ -174,7 +171,7 @@ using namespace Commodore::Vic20;
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	_useFastLoadingHack = useFastLoadingHack;
 	@synchronized(self) {
-		_vic20.set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+		_vic20->set_use_fast_tape_hack(useFastLoadingHack ? true : false);
 	}
 }
 
@@ -182,8 +179,7 @@ using namespace Commodore::Vic20;
 	_country = country;
 	NSString *charactersROM, *kernelROM;
 	Commodore::Vic20::Region region;
-	switch(country)
-	{
+	switch(country) {
 		case CSVic20CountryDanish:
 			region = Commodore::Vic20::Region::PAL;
 			charactersROM = @"characters-danish";
@@ -212,7 +208,7 @@ using namespace Commodore::Vic20;
 	}
 
 	@synchronized(self) {
-		_vic20.set_region(region);
+		_vic20->set_region(region);
 		[self setCharactersROM:[self rom:charactersROM]];
 		[self setKernelROM:[self rom:kernelROM]];
 	}
@@ -222,9 +218,9 @@ using namespace Commodore::Vic20;
 	_memorySize = memorySize;
 	@synchronized(self) {
 		switch(memorySize) {
-			case CSVic20MemorySize5Kb: _vic20.set_memory_size(Commodore::Vic20::Default);	break;
-			case CSVic20MemorySize8Kb: _vic20.set_memory_size(Commodore::Vic20::ThreeKB);	break;
-			case CSVic20MemorySize32Kb: _vic20.set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
+			case CSVic20MemorySize5Kb: _vic20->set_memory_size(Commodore::Vic20::Default);	break;
+			case CSVic20MemorySize8Kb: _vic20->set_memory_size(Commodore::Vic20::ThreeKB);	break;
+			case CSVic20MemorySize32Kb: _vic20->set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
 		}
 	}
 }
