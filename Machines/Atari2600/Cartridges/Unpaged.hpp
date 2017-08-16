@@ -20,7 +20,7 @@ class Unpaged: public BusExtender {
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(isReadOperation(operation) && (address & 0x1000)) {
-				*value = rom_base_[address] & (rom_size_ - 1);
+				*value = rom_base_[address & (rom_size_ - 1)];
 			}
 		}
 };
