@@ -218,17 +218,16 @@ void AY38910::set_register_value(uint8_t value) {
 }
 
 uint8_t AY38910::get_register_value() {
-	// This table ensures that bits that aren't defined within the AY are returned as 1s
-	// when read. I can't find documentation on this and don't have a machine to test, so
-	// this is provisionally a guess. TODO: investigate.
+	// This table ensures that bits that aren't defined within the AY are returned as 0s
+	// when read, conforming to CPC-sourced unit tests.
 	const uint8_t register_masks[16] = {
-		0x00, 0xf0, 0x00, 0xf0, 0x00, 0xf0, 0xe0, 0x00,
-		0xe0, 0xe0, 0xe0, 0x00, 0x00, 0xf0, 0x00, 0x00
+		0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff,
+		0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff, 0xff
 	};
 
 	if(selected_register_ > 15) return 0xff;
 	switch(selected_register_) {
-		default:	return registers_[selected_register_] & ~register_masks[selected_register_];
+		default:	return registers_[selected_register_] & register_masks[selected_register_];
 		case 14:	return (registers_[0x7] & 0x40) ? registers_[14] : port_inputs_[0];
 		case 15:	return (registers_[0x7] & 0x80) ? registers_[15] : port_inputs_[1];
 	}
