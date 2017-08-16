@@ -14,14 +14,36 @@
 namespace GI {
 namespace AY38910 {
 
+/*!
+	A port handler provides all input for an AY's two 8-bit ports, and may optionally receive
+	active notification of changes in output.
+
+	Machines with an AY without ports or with nothing wired to them need not supply a port handler.
+	Machines that use the AY ports as output but for which polling for changes is acceptable can
+	instead use AY38910.get_port_output.
+*/
 class PortHandler {
 	public:
+		/*!
+			Requests the current input on an AY port.
+			
+			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
+		*/
 		virtual uint8_t get_port_input(bool port_b) {
 			return 0xff;
 		}
+
+		/*!
+			Requests the current input on an AY port.
+			
+			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
+		*/
 		virtual void set_port_output(bool port_b, uint8_t value) {}
 };
 
+/*!
+	Names the control lines used as input to the AY, which uses CP1600 bus semantics.
+*/
 enum ControlLines {
 	BC1		= (1 << 0),
 	BC2		= (1 << 1),
