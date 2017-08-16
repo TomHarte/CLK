@@ -14,18 +14,15 @@
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeAtari32k: public Cartridge<CartridgeAtari32k> {
+class Atari32k: public BusExtender {
 	public:
-		CartridgeAtari32k(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_ = rom_.data();
-		}
+		Atari32k(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff4 && address <= 0x1ffb) rom_ptr_ = rom_.data() + (address - 0x1ff4) * 4096;
+			if(address >= 0x1ff4 && address <= 0x1ffb) rom_ptr_ = rom_base_ + (address - 0x1ff4) * 4096;
 
 			if(isReadOperation(operation)) {
 				*value = rom_ptr_[address & 4095];
@@ -36,18 +33,15 @@ class CartridgeAtari32k: public Cartridge<CartridgeAtari32k> {
 		uint8_t *rom_ptr_;
 };
 
-class CartridgeAtari32kSuperChip: public Cartridge<CartridgeAtari32kSuperChip> {
+class Atari32kSuperChip: public BusExtender {
 	public:
-		CartridgeAtari32kSuperChip(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_ = rom_.data();
-		}
+		Atari32kSuperChip(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff4 && address <= 0x1ffb) rom_ptr_ = rom_.data() + (address - 0x1ff4) * 4096;
+			if(address >= 0x1ff4 && address <= 0x1ffb) rom_ptr_ = rom_base_ + (address - 0x1ff4) * 4096;
 
 			if(isReadOperation(operation)) {
 				*value = rom_ptr_[address & 4095];

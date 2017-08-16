@@ -14,12 +14,12 @@
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeMegaBoy: public Cartridge<CartridgeMegaBoy> {
+class MegaBoy: public BusExtender {
 	public:
-		CartridgeMegaBoy(const std::vector<uint8_t> &rom) :
-			Cartridge(rom),
+		MegaBoy(uint8_t *rom_base, size_t rom_size) :
+			BusExtender(rom_base, rom_size),
+			rom_ptr_(rom_base),
 			current_page_(0) {
-			rom_ptr_ = rom_.data();
 		}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -28,7 +28,7 @@ class CartridgeMegaBoy: public Cartridge<CartridgeMegaBoy> {
 
 			if(address == 0x1ff0) {
 				current_page_ = (current_page_ + 1) & 15;
-				rom_ptr_ = rom_.data() + current_page_ * 4096;
+				rom_ptr_ = rom_base_ + current_page_ * 4096;
 			}
 
 			if(isReadOperation(operation)) {

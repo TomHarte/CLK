@@ -10,18 +10,18 @@
 #include <algorithm>
 #include <stdio.h>
 
-#include "Cartridges/CartridgeAtari8k.hpp"
-#include "Cartridges/CartridgeAtari16k.hpp"
-#include "Cartridges/CartridgeAtari32k.hpp"
-#include "Cartridges/CartridgeActivisionStack.hpp"
-#include "Cartridges/CartridgeCBSRAMPlus.hpp"
-#include "Cartridges/CartridgeCommaVid.hpp"
-#include "Cartridges/CartridgeMegaBoy.hpp"
-#include "Cartridges/CartridgeMNetwork.hpp"
-#include "Cartridges/CartridgeParkerBros.hpp"
-#include "Cartridges/CartridgePitfall2.hpp"
-#include "Cartridges/CartridgeTigervision.hpp"
-#include "Cartridges/CartridgeUnpaged.hpp"
+#include "Cartridges/Atari8k.hpp"
+#include "Cartridges/Atari16k.hpp"
+#include "Cartridges/Atari32k.hpp"
+#include "Cartridges/ActivisionStack.hpp"
+#include "Cartridges/CBSRAMPlus.hpp"
+#include "Cartridges/CommaVid.hpp"
+#include "Cartridges/MegaBoy.hpp"
+#include "Cartridges/MNetwork.hpp"
+#include "Cartridges/ParkerBros.hpp"
+#include "Cartridges/Pitfall2.hpp"
+#include "Cartridges/Tigervision.hpp"
+#include "Cartridges/Unpaged.hpp"
 
 using namespace Atari2600;
 namespace {
@@ -83,35 +83,35 @@ void Machine::set_switch_is_enabled(Atari2600Switch input, bool state) {
 void Machine::configure_as_target(const StaticAnalyser::Target &target) {
 	const std::vector<uint8_t> &rom = target.cartridges.front()->get_segments().front().data;
 	switch(target.atari.paging_model) {
-		case StaticAnalyser::Atari2600PagingModel::ActivisionStack:	bus_.reset(new Cartridge::CartridgeActivisionStack(rom));	break;
-		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::CartridgeCBSRAMPlus(rom));		break;
-		case StaticAnalyser::Atari2600PagingModel::CommaVid:		bus_.reset(new Cartridge::CartridgeCommaVid(rom));			break;
-		case StaticAnalyser::Atari2600PagingModel::MegaBoy:			bus_.reset(new Cartridge::CartridgeMegaBoy(rom));			break;
-		case StaticAnalyser::Atari2600PagingModel::MNetwork:		bus_.reset(new Cartridge::CartridgeMNetwork(rom));			break;
-		case StaticAnalyser::Atari2600PagingModel::None:			bus_.reset(new Cartridge::CartridgeUnpaged(rom));			break;
-		case StaticAnalyser::Atari2600PagingModel::ParkerBros:		bus_.reset(new Cartridge::CartridgeParkerBros(rom));		break;
-		case StaticAnalyser::Atari2600PagingModel::Pitfall2:		bus_.reset(new Cartridge::CartridgePitfall2(rom));			break;
-		case StaticAnalyser::Atari2600PagingModel::Tigervision:		bus_.reset(new Cartridge::CartridgeTigervision(rom));		break;
+		case StaticAnalyser::Atari2600PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
+		case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
+		case StaticAnalyser::Atari2600PagingModel::CommaVid:		bus_.reset(new Cartridge::Cartridge<Cartridge::CommaVid>(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::MegaBoy:			bus_.reset(new Cartridge::Cartridge<Cartridge::MegaBoy>(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::MNetwork:		bus_.reset(new Cartridge::Cartridge<Cartridge::MNetwork>(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::None:			bus_.reset(new Cartridge::Cartridge<Cartridge::Unpaged>(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::ParkerBros:		bus_.reset(new Cartridge::Cartridge<Cartridge::ParkerBros>(rom));		break;
+		case StaticAnalyser::Atari2600PagingModel::Pitfall2:		bus_.reset(new Cartridge::Cartridge<Cartridge::Pitfall2>(rom));			break;
+		case StaticAnalyser::Atari2600PagingModel::Tigervision:		bus_.reset(new Cartridge::Cartridge<Cartridge::Tigervision>(rom));		break;
 
 		case StaticAnalyser::Atari2600PagingModel::Atari8k:
 			if(target.atari.uses_superchip) {
-				bus_.reset(new Cartridge::CartridgeAtari8kSuperChip(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8kSuperChip>(rom));
 			} else {
-				bus_.reset(new Cartridge::CartridgeAtari8k(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8k>(rom));
 			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::Atari16k:
 			if(target.atari.uses_superchip) {
-				bus_.reset(new Cartridge::CartridgeAtari16kSuperChip(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16kSuperChip>(rom));
 			} else {
-				bus_.reset(new Cartridge::CartridgeAtari16k(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16k>(rom));
 			}
 		break;
 		case StaticAnalyser::Atari2600PagingModel::Atari32k:
 			if(target.atari.uses_superchip) {
-				bus_.reset(new Cartridge::CartridgeAtari32kSuperChip(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32kSuperChip>(rom));
 			} else {
-				bus_.reset(new Cartridge::CartridgeAtari32k(rom));
+				bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32k>(rom));
 			}
 		break;
 	}

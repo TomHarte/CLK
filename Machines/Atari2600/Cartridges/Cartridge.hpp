@@ -15,6 +15,17 @@
 namespace Atari2600 {
 namespace Cartridge {
 
+class BusExtender: public CPU::MOS6502::BusHandler {
+	public:
+		BusExtender(uint8_t *rom_base, size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
+
+		void advance_cycles(int cycles) {}
+
+	protected:
+		uint8_t *rom_base_;
+		size_t rom_size_;
+};
+
 template<class T> class Cartridge:
 	public CPU::MOS6502::BusHandler,
 	public Bus {
@@ -22,11 +33,14 @@ template<class T> class Cartridge:
 	public:
 		Cartridge(const std::vector<uint8_t> &rom) :
 			m6502_(*this),
-			rom_(rom) {}
+			rom_(rom),
+			bus_extender_(rom_.data(), rom.size()) {
+			// The above works because bus_extender_ is declared after rom_ in the instance storage list;
+			// consider doing something less fragile.
+		}
 
-		void run_for(const Cycles cycles) { m6502_.run_for(cycles); }
-		void set_reset_line(bool state) { m6502_.set_reset_line(state); }
-		void advance_cycles(int cycles) {}
+		void run_for(const Cycles cycles)	{ m6502_.run_for(cycles);		}
+		void set_reset_line(bool state)		{ m6502_.set_reset_line(state);	}
 
 		// to satisfy CPU::MOS6502::Processor
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -43,11 +57,11 @@ template<class T> class Cartridge:
 			cycles_since_speaker_update_ += Cycles(cycles_run_for);
 			cycles_since_video_update_ += Cycles(cycles_run_for);
 			cycles_since_6532_update_ += Cycles(cycles_run_for / 3);
-			static_cast<T *>(this)->advance_cycles(cycles_run_for / 3);
+			bus_extender_.advance_cycles(cycles_run_for / 3);
 
 			if(operation != CPU::MOS6502::BusOperation::Ready) {
 				// give the cartridge a chance to respond to the bus access
-				static_cast<T *>(this)->perform_bus_operation(operation, address, value);
+				bus_extender_.perform_bus_operation(operation, address, value);
 
 				// check for a RIOT RAM access
 				if((address&0x1280) == 0x80) {
@@ -172,6 +186,9 @@ template<class T> class Cartridge:
 	protected:
 		CPU::MOS6502::Processor<Cartridge<T>> m6502_;
 		std::vector<uint8_t> rom_;
+
+	private:
+		BusExtender bus_extender_;
 };
 
 }

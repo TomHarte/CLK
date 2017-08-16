@@ -14,11 +14,11 @@
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeParkerBros: public Cartridge<CartridgeParkerBros> {
+class ParkerBros: public BusExtender {
 	public:
-		CartridgeParkerBros(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_[0] = rom_.data() + 4096;
+		ParkerBros(uint8_t *rom_base, size_t rom_size) :
+			BusExtender(rom_base, rom_size) {
+			rom_ptr_[0] = rom_base + 4096;
 			rom_ptr_[1] = rom_ptr_[0] + 1024;
 			rom_ptr_[2] = rom_ptr_[1] + 1024;
 			rom_ptr_[3] = rom_ptr_[2] + 1024;
@@ -30,7 +30,7 @@ class CartridgeParkerBros: public Cartridge<CartridgeParkerBros> {
 
 			if(address >= 0x1fe0 && address < 0x1ff8) {
 				int slot = (address >> 3)&3;
-				rom_ptr_[slot] = rom_.data() + ((address & 7) * 1024);
+				rom_ptr_[slot] = rom_base_ + ((address & 7) * 1024);
 			}
 
 			if(isReadOperation(operation)) {

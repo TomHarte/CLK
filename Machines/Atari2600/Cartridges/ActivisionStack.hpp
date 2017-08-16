@@ -6,19 +6,18 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeActivisionStack_hpp
-#define Atari2600_CartridgeActivisionStack_hpp
+#ifndef Atari2600_ActivisionStack_hpp
+#define Atari2600_ActivisionStack_hpp
 
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
+class ActivisionStack: public BusExtender {
 	public:
-		CartridgeActivisionStack(const std::vector<uint8_t> &rom) :
-			Cartridge(rom),
-			last_opcode_(0x00) {
-			rom_ptr_ = rom_.data();
-		}
+		ActivisionStack(uint8_t *rom_base, size_t rom_size) :
+			BusExtender(rom_base, rom_size),
+			rom_ptr_(rom_base),
+			last_opcode_(0x00) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(!(address & 0x1000)) return;
@@ -28,9 +27,9 @@ class CartridgeActivisionStack: public Cartridge<CartridgeActivisionStack> {
 			// RST or JSR.
 			if(operation == CPU::MOS6502::BusOperation::ReadOpcode && (last_opcode_ == 0x20 || last_opcode_ == 0x60)) {
 				if(address & 0x2000) {
-					rom_ptr_ = rom_.data();
+					rom_ptr_ = rom_base_;
 				} else {
-					rom_ptr_ = rom_.data() + 4096;
+					rom_ptr_ = rom_base_ + 4096;
 				}
 			}
 

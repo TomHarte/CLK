@@ -14,18 +14,15 @@
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeCBSRAMPlus: public Cartridge<CartridgeCBSRAMPlus> {
+class CBSRAMPlus: public BusExtender {
 	public:
-		CartridgeCBSRAMPlus(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_ = rom_.data();
-		}
+		CBSRAMPlus(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff8 && address <= 0x1ffa) rom_ptr_ = rom_.data() + (address - 0x1ff8) * 4096;
+			if(address >= 0x1ff8 && address <= 0x1ffa) rom_ptr_ = rom_base_ + (address - 0x1ff8) * 4096;
 
 			if(isReadOperation(operation)) {
 				*value = rom_ptr_[address & 4095];

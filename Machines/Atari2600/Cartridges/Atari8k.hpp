@@ -6,26 +6,24 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeAtari16k_hpp
-#define Atari2600_CartridgeAtari16k_hpp
+#ifndef Atari2600_CartridgeAtari8k_hpp
+#define Atari2600_CartridgeAtari8k_hpp
 
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
 namespace Cartridge {
 
-class CartridgeAtari16k: public Cartridge<CartridgeAtari16k> {
+class Atari8k: public BusExtender {
 	public:
-		CartridgeAtari16k(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_ = rom_.data();
-		}
+		Atari8k(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff6 && address <= 0x1ff9) rom_ptr_ = rom_.data() + (address - 0x1ff6) * 4096;
+			if(address == 0x1ff8) rom_ptr_ = rom_base_;
+			else if(address == 0x1ff9) rom_ptr_ = rom_base_ + 4096;
 
 			if(isReadOperation(operation)) {
 				*value = rom_ptr_[address & 4095];
@@ -36,18 +34,16 @@ class CartridgeAtari16k: public Cartridge<CartridgeAtari16k> {
 		uint8_t *rom_ptr_;
 };
 
-class CartridgeAtari16kSuperChip: public Cartridge<CartridgeAtari16kSuperChip> {
+class Atari8kSuperChip: public BusExtender {
 	public:
-		CartridgeAtari16kSuperChip(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_ = rom_.data();
-		}
+		Atari8kSuperChip(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
 			if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff6 && address <= 0x1ff9) rom_ptr_ = rom_.data() + (address - 0x1ff6) * 4096;
+			if(address == 0x1ff8) rom_ptr_ = rom_base_;
+			if(address == 0x1ff9) rom_ptr_ = rom_base_ + 4096;
 
 			if(isReadOperation(operation)) {
 				*value = rom_ptr_[address & 4095];
@@ -65,4 +61,4 @@ class CartridgeAtari16kSuperChip: public Cartridge<CartridgeAtari16kSuperChip> {
 }
 }
 
-#endif /* Atari2600_CartridgeAtari16k_hpp */
+#endif /* Atari2600_CartridgeAtari8k_hpp */
