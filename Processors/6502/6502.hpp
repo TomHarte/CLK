@@ -117,6 +117,14 @@ class ProcessorBase {
 		static const MicroOp operations[256][10];
 };
 
+class BusHandler {
+	public:
+		void flush() {}
+		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+			return Cycles(0);
+		}
+};
+
 /*!
 	@abstact An abstract base class for emulation of a 6502 processor via the curiously recurring template pattern/f-bounded polymorphism.
 
@@ -130,6 +138,7 @@ class ProcessorBase {
 */
 template <class T> class Processor: public ProcessorBase {
 	private:
+		T &bus_handler_;
 		const MicroOp *scheduled_program_counter_;
 
 		/*
@@ -261,8 +270,11 @@ template <class T> class Processor: public ProcessorBase {
 			return reset;
 		}
 
-	protected:
-		Processor() :
+	public:
+		/*!
+			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
+		*/
+		Processor(T &bus_handler) :
 				is_jammed_(false),
 				ready_line_is_enabled_(false),
 				ready_is_active_(false),
@@ -274,7 +286,8 @@ template <class T> class Processor: public ProcessorBase {
 				irq_line_(0),
 				nmi_line_is_enabled_(false),
 				set_overflow_line_is_enabled_(false),
-				scheduled_program_counter_(nullptr) {
+				scheduled_program_counter_(nullptr),
+				bus_handler_(bus_handler) {
 			// only the interrupt flag is defined upon reset but get_flags isn't going to
 			// mask the other flags so we need to do that, at least
 			carry_flag_ &= Flag::Carry;
@@ -282,7 +295,6 @@ template <class T> class Processor: public ProcessorBase {
 			overflow_flag_ &= Flag::Overflow;
 		}
 
-	public:
 		/*!
 			Runs the 6502 for a supplied number of cycles.
 
@@ -334,7 +346,7 @@ template <class T> class Processor: public ProcessorBase {
 #define bus_access() \
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
 	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
-	number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(nextBusOperation, busAddress, busValue);	\
+	number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
 	if(number_of_cycles <= Cycles(0)) break;
 
@@ -344,7 +356,7 @@ template <class T> class Processor: public ProcessorBase {
 			while(number_of_cycles > Cycles(0)) {
 
 				while (ready_is_active_ && number_of_cycles > Cycles(0)) {
-					number_of_cycles -= static_cast<T *>(this)->perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+					number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
 				if(!ready_is_active_) {
@@ -825,15 +837,8 @@ template <class T> class Processor: public ProcessorBase {
 			bus_address_ = busAddress;
 			bus_value_ = busValue;
 
-			static_cast<T *>(this)->flush();
+			bus_handler_.flush();
 		}
-
-		/*!
-			Called to announce the end of a run_for period, allowing deferred work to take place.
-
-			Users of the 6502 template may override this.
-		*/
-		void flush() {}
 
 		/*!
 			Gets the value of a register.
@@ -884,8 +889,8 @@ template <class T> class Processor: public ProcessorBase {
 		*/
 		void return_from_subroutine() {
 			s_++;
-			static_cast<T *>(this)->perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
-			static_cast<T *>(this)->perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
+			bus_handler_.perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
+			bus_handler_.perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
 			pc_.full++;
 
 			if(is_jammed_) {

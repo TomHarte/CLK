@@ -120,7 +120,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 	Provides an emulation of the C1540.
 */
 class Machine:
-	public CPU::MOS6502::Processor<Machine>,
+	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522IRQDelegate::Delegate,
 	public DriveVIA::Delegate,
 	public Storage::Disk::Controller {
@@ -152,6 +152,8 @@ class Machine:
 		void drive_via_did_set_data_density(void *driveVIA, int density);
 
 	private:
+		CPU::MOS6502::Processor<Machine> m6502_;
+
 		uint8_t ram_[0x800];
 		uint8_t rom_[0x4000];
 

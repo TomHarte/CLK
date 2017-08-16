@@ -67,7 +67,7 @@ enum Key: uint16_t {
 	Acorn Electron.
 */
 class Machine:
-	public CPU::MOS6502::Processor<Machine>,
+	public CPU::MOS6502::BusHandler,
 	public CRTMachine::Machine,
 	public Tape::Delegate,
 	public Utility::TypeRecipient,
@@ -95,7 +95,7 @@ class Machine:
 		virtual void close_output();
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
 		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for(const Cycles cycles) { CPU::MOS6502::Processor<Machine>::run_for(cycles); }
+		virtual void run_for(const Cycles cycles);
 
 		// to satisfy Tape::Delegate
 		virtual void tape_did_change_interrupt_status(Tape *tape);
@@ -113,6 +113,8 @@ class Machine:
 		inline void signal_interrupt(Interrupt interrupt);
 		inline void clear_interrupt(Interrupt interrupt);
 		inline void evaluate_interrupts();
+
+		CPU::MOS6502::Processor<Machine> m6502_;
 
 		// Things that directly constitute the memory map.
 		uint8_t roms_[16][16384];

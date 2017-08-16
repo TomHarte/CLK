@@ -12,12 +12,13 @@
 #include "Cartridge.hpp"
 
 namespace Atari2600 {
+namespace Cartridge {
 
-class CartridgeMNetwork: public Cartridge<CartridgeMNetwork> {
+class MNetwork: public BusExtender {
 	public:
-		CartridgeMNetwork(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {
-			rom_ptr_[0] = rom_.data() + rom_.size() - 4096;
+		MNetwork(uint8_t *rom_base, size_t rom_size) :
+			BusExtender(rom_base, rom_size) {
+			rom_ptr_[0] = rom_base + rom_size_ - 4096;
 			rom_ptr_[1] = rom_ptr_[0] + 2048;
 			high_ram_ptr_ = high_ram_;
 		}
@@ -27,7 +28,7 @@ class CartridgeMNetwork: public Cartridge<CartridgeMNetwork> {
 			if(!(address & 0x1000)) return;
 
 			if(address >= 0x1fe0 && address <= 0x1fe6) {
-				rom_ptr_[0] = rom_.data() + (address - 0x1fe0) * 2048;
+				rom_ptr_[0] = rom_base_ + (address - 0x1fe0) * 2048;
 			} else if(address == 0x1fe7) {
 				rom_ptr_[0] = nullptr;
 			} else if(address >= 0x1ff8 && address <= 0x1ffb) {
@@ -54,7 +55,6 @@ class CartridgeMNetwork: public Cartridge<CartridgeMNetwork> {
 					}
 				}
 			}
-
 		}
 
 	private:
@@ -63,6 +63,7 @@ class CartridgeMNetwork: public Cartridge<CartridgeMNetwork> {
 		uint8_t low_ram_[1024], high_ram_[1024];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeMNetwork_hpp */

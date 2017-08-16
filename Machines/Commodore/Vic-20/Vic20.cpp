@@ -17,6 +17,7 @@
 using namespace Commodore::Vic20;
 
 Machine::Machine() :
+		m6502_(*this),
 		rom_(nullptr),
 		is_running_at_zero_cost_(false),
 		tape_(new Storage::Tape::BinaryTapePlayer(1022727)),
@@ -138,7 +139,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 
 				*value = 0x0c;	// i.e. NOP abs
 			} else if(address == 0xf90b) {
-				uint8_t x = (uint8_t)get_value_of_register(CPU::MOS6502::Register::X);
+				uint8_t x = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::X);
 				if(x == 0xe) {
 					Storage::Tape::Commodore::Parser parser;
 					std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
@@ -159,13 +160,13 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 
 					// set tape status, carry and flag
 					user_basic_memory_[0x90] |= 0x40;
-					uint8_t	flags = (uint8_t)get_value_of_register(CPU::MOS6502::Register::Flags);
+					uint8_t	flags = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::Flags);
 					flags &= ~(uint8_t)(CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt);
-					set_value_of_register(CPU::MOS6502::Register::Flags, flags);
+					m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
 
 					// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
 					// ensure that the PC leaps to 0xfccf
-					set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
+					m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 					*value = 0xea;	// i.e. NOP implied
 				}
 			}
@@ -194,11 +195,15 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 	return Cycles(1);
 }
 
+void Machine::run_for(const Cycles cycles) {
+	m6502_.run_for(cycles);
+}
+
 #pragma mark - 6522 delegate
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
-	set_nmi_line(user_port_via_->get_interrupt_line());
-	set_irq_line(keyboard_via_->get_interrupt_line());
+	m6502_.set_nmi_line(user_port_via_->get_interrupt_line());
+	m6502_.set_irq_line(keyboard_via_->get_interrupt_line());
 }
 
 #pragma mark - Setup

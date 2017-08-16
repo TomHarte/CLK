@@ -9,12 +9,14 @@
 #ifndef Atari2600_CartridgeCommaVid_hpp
 #define Atari2600_CartridgeCommaVid_hpp
 
-namespace Atari2600 {
+#include "Cartridge.hpp"
 
-class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
+namespace Atari2600 {
+namespace Cartridge {
+
+class CommaVid: public BusExtender {
 	public:
-		CartridgeCommaVid(const std::vector<uint8_t> &rom) :
-			Cartridge(rom) {}
+		CommaVid(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(!(address & 0x1000)) return;
@@ -30,13 +32,14 @@ class CartridgeCommaVid: public Cartridge<CartridgeCommaVid> {
 				return;
 			}
 
-			if(isReadOperation(operation)) *value = rom_[address & 2047];
+			if(isReadOperation(operation)) *value = rom_base_[address & 2047];
 		}
 
 	private:
 		uint8_t ram_[1024];
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgeCommaVid_hpp */

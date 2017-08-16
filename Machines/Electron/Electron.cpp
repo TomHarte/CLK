@@ -15,6 +15,7 @@ using namespace Electron;
 #pragma mark - Lifecycle
 
 Machine::Machine() :
+		m6502_(*this),
 		interrupt_control_(0),
 		interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
 		cycles_since_audio_update_(0),
@@ -61,7 +62,7 @@ void Machine::clear_all_keys() {
 
 void Machine::set_key_state(uint16_t key, bool isPressed) {
 	if(key == KeyBreak) {
-		set_reset_line(isPressed);
+		m6502_.set_reset_line(isPressed);
 	} else {
 		if(isPressed)
 			key_states_[key >> 4] |= key&0xf;
@@ -269,7 +270,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 																				// allow the PC read to return an RTS.
 							)
 						) {
-							uint8_t service_call = (uint8_t)get_value_of_register(CPU::MOS6502::Register::X);
+							uint8_t service_call = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::X);
 							if(address == 0xf0a8) {
 								if(!ram_[0x247] && service_call == 14) {
 									tape_.set_delegate(nullptr);
@@ -291,8 +292,8 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 									interrupt_status_ |= tape_.get_interrupt_status();
 
 									fast_load_is_in_data_ = true;
-									set_value_of_register(CPU::MOS6502::Register::A, 0);
-									set_value_of_register(CPU::MOS6502::Register::Y, tape_.get_data_register());
+									m6502_.set_value_of_register(CPU::MOS6502::Register::A, 0);
+									m6502_.set_value_of_register(CPU::MOS6502::Register::Y, tape_.get_data_register());
 									*value = 0x60; // 0x60 is RTS
 								}
 								else *value = os_[address & 16383];
@@ -340,7 +341,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 		shift_restart_counter_ -= cycles;
 		if(shift_restart_counter_ <= 0) {
 			shift_restart_counter_ = 0;
-			set_power_on(true);
+			m6502_.set_power_on(true);
 			set_key_state(KeyShift, true);
 			is_holding_shift_ = true;
 		}
@@ -353,6 +354,10 @@ void Machine::flush() {
 	update_display();
 	update_audio();
 	speaker_->flush();
+}
+
+void Machine::run_for(const Cycles cycles) {
+	m6502_.run_for(cycles);
 }
 
 #pragma mark - Deferred scheduling
@@ -393,7 +398,7 @@ inline void Machine::evaluate_interrupts() {
 	} else {
 		interrupt_status_ &= ~1;
 	}
-	set_irq_line(interrupt_status_ & 1);
+	m6502_.set_irq_line(interrupt_status_ & 1);
 }
 
 #pragma mark - Tape::Delegate
@@ -406,7 +411,7 @@ void Machine::tape_did_change_interrupt_status(Tape *tape) {
 #pragma mark - Typer timing
 
 HalfCycles Electron::Machine::get_typer_delay() {
-	return get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+	return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
 }
 
 HalfCycles Electron::Machine::get_typer_frequency() {

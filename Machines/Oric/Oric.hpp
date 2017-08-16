@@ -55,7 +55,7 @@ enum ROM {
 };
 
 class Machine:
-	public CPU::MOS6502::Processor<Machine>,
+	public CPU::MOS6502::BusHandler,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public MOS::MOS6522IRQDelegate::Delegate,
@@ -101,6 +101,8 @@ class Machine:
 		void wd1770_did_change_output(WD::WD1770 *wd1770);
 
 	private:
+		CPU::MOS6502::Processor<Machine> m6502_;
+
 		// RAM and ROM
 		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536], rom_[16384];

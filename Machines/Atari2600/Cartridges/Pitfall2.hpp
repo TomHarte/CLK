@@ -10,17 +10,17 @@
 #define Atari2600_CartridgePitfall2_hpp
 
 namespace Atari2600 {
+namespace Cartridge {
 
-class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
+class Pitfall2: public BusExtender {
 	public:
-		CartridgePitfall2(const std::vector<uint8_t> &rom) :
-			Cartridge(rom),
+		Pitfall2(uint8_t *rom_base, size_t rom_size) :
+			BusExtender(rom_base, rom_size),
+			rom_ptr_(rom_base),
 			random_number_generator_(0),
 			featcher_address_{0, 0, 0, 0, 0, 0, 0, 0},
 			mask_{0, 0, 0, 0, 0, 0, 0, 0},
-			cycles_since_audio_update_(0) {
-			rom_ptr_ = rom_.data();
-		}
+			cycles_since_audio_update_(0) {}
 
 		void advance_cycles(int cycles) {
 			cycles_since_audio_update_ += cycles;
@@ -53,11 +53,11 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 				break;
 
 				case 0x1008: case 0x1009: case 0x100a: case 0x100b: case 0x100c: case 0x100d: case 0x100e: case 0x100f:
-					*value = rom_[8192 + address_for_counter(address & 7)];
+					*value = rom_base_[8192 + address_for_counter(address & 7)];
 				break;
 
 				case 0x1010: case 0x1011: case 0x1012: case 0x1013: case 0x1014: case 0x1015: case 0x1016: case 0x1017:
-					*value = rom_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
+					*value = rom_base_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
 				break;
 
 #pragma mark - Writes
@@ -81,8 +81,8 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 
 #pragma mark - Paging
 
-				case 0x1ff8: rom_ptr_ = rom_.data();		break;
-				case 0x1ff9: rom_ptr_ = rom_.data() + 4096;	break;
+				case 0x1ff8: rom_ptr_ = rom_base_;			break;
+				case 0x1ff9: rom_ptr_ = rom_base_ + 4096;	break;
 
 #pragma mark - Business as usual
 
@@ -128,6 +128,7 @@ class CartridgePitfall2: public Cartridge<CartridgePitfall2> {
 		Cycles cycles_since_audio_update_;
 };
 
+}
 }
 
 #endif /* Atari2600_CartridgePitfall2_hpp */

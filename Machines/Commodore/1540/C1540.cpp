@@ -13,6 +13,7 @@
 using namespace Commodore::C1540;
 
 Machine::Machine() :
+		m6502_(*this),
 		shift_register_(0),
 		Storage::Disk::Controller(1000000, 4, 300),
 		serial_port_(new SerialPort),
@@ -80,7 +81,7 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 }
 
 void Machine::run_for(const Cycles cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for(cycles);
+	m6502_.run_for(cycles);
 	set_motor_on(drive_VIA_.get_motor_enabled());
 	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
 		Storage::Disk::Controller::run_for(cycles);
@@ -90,7 +91,7 @@ void Machine::run_for(const Cycles cycles) {
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
 	// both VIAs are connected to the IRQ line
-	set_irq_line(serial_port_VIA_->get_interrupt_line() || drive_VIA_.get_interrupt_line());
+	m6502_.set_irq_line(serial_port_VIA_->get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
 #pragma mark - Disk drive
@@ -108,10 +109,10 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 		drive_VIA_.set_data_input((uint8_t)shift_register_);
 		bit_window_offset_ = 0;
 		if(drive_VIA_.get_should_set_overflow()) {
-			set_overflow_line(true);
+			m6502_.set_overflow_line(true);
 		}
 	}
-	else set_overflow_line(false);
+	else m6502_.set_overflow_line(false);
 }
 
 // the 1540 does not recognise index holes

@@ -16,6 +16,7 @@
 using namespace Oric;
 
 Machine::Machine() :
+		m6502_(*this),
 		use_fast_tape_hack_(false),
 		typer_delay_(2500000),
 		keyboard_read_count_(0),
@@ -94,8 +95,8 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 		// E6C9 = read byte: return byte in A
 		if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end()) {
 			uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
-			set_value_of_register(CPU::MOS6502::A, next_byte);
-			set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
+			m6502_.set_value_of_register(CPU::MOS6502::A, next_byte);
+			m6502_.set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 			*value = 0x60; // i.e. RTS
 		}
 	} else {
@@ -171,7 +172,7 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
 
 void Machine::set_key_state(uint16_t key, bool isPressed) {
 	if(key == KeyNMI) {
-		set_nmi_line(isPressed);
+		m6502_.set_nmi_line(isPressed);
 	} else {
 		if(isPressed)
 			keyboard_->rows[key >> 8] |= (key & 0xff);
@@ -206,7 +207,7 @@ std::shared_ptr<Outputs::Speaker> Machine::get_speaker() {
 }
 
 void Machine::run_for(const Cycles cycles) {
-	CPU::MOS6502::Processor<Machine>::run_for(cycles);
+	m6502_.run_for(cycles);
 }
 
 #pragma mark - The 6522
@@ -287,7 +288,7 @@ void Machine::wd1770_did_change_output(WD::WD1770 *wd1770) {
 }
 
 void Machine::set_interrupt_line() {
-	set_irq_line(
+	m6502_.set_irq_line(
 		via_.get_interrupt_line() ||
 		(microdisc_is_enabled_ && microdisc_.get_interrupt_request_line()));
 }
