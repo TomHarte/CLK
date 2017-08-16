@@ -12,6 +12,21 @@
 #include "../../Outputs/Speaker.hpp"
 
 namespace GI {
+namespace AY38910 {
+
+class PortHandler {
+	public:
+		virtual uint8_t get_port_input(bool port_b) {
+			return 0xff;
+		}
+		virtual void set_port_output(bool port_b, uint8_t value) {}
+};
+
+enum ControlLines {
+	BC1		= (1 << 0),
+	BC2		= (1 << 1),
+	BDIR	= (1 << 2)
+};
 
 /*!
 	Provides emulation of an AY-3-8910 / YM2149, which is a three-channel sound chip with a
@@ -25,12 +40,6 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 
 		/// Sets the clock rate at which this AY38910 will be run.
 		void set_clock_rate(double clock_rate);
-
-		enum ControlLines {
-			BC1		= (1 << 0),
-			BC2		= (1 << 1),
-			BDIR	= (1 << 2)
-		};
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -48,10 +57,11 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		uint8_t get_port_output(bool port_b);
 
 		/*!
-			Sets the value that would appear on the requested interface port if it were in output mode.
-			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
+			Sets the port handler, which will receive a call every time the AY either wants to sample
+			input or else declare new output. As a convenience, current port output can be obtained
+			without installing a port handler via get_port_output.
 		*/
-		void set_port_input(bool port_b, uint8_t value);
+		void set_port_handler(PortHandler *);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
 		void get_samples(unsigned int number_of_samples, int16_t *target);
@@ -97,8 +107,10 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		inline void evaluate_output_volume();
 
 		inline void update_bus();
+		PortHandler *port_handler_;
 };
 
-};
+}
+}
 
 #endif /* AY_3_8910_hpp */

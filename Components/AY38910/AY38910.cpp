@@ -8,7 +8,7 @@
 
 #include "AY38910.hpp"
 
-using namespace GI;
+using namespace GI::AY38910;
 
 AY38910::AY38910() :
 		selected_register_(0),
@@ -16,7 +16,8 @@ AY38910::AY38910() :
 		noise_shift_register_(0xffff), noise_period_(0), noise_counter_(0), noise_output_(0),
 		envelope_divider_(0), envelope_period_(0), envelope_position_(0),
 		master_divider_(0),
-		output_registers_{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} {
+		output_registers_{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		port_handler_(nullptr) {
 	output_registers_[8] = output_registers_[9] = output_registers_[10] = 0;
 
 	// set up envelope lookup tables
@@ -188,23 +189,19 @@ void AY38910::set_register_value(uint8_t value) {
 						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
 					else
 						tone_periods_[channel] = (tone_periods_[channel] & ~0xff) | value;
-//					tone_counters_[channel] = tone_periods_[channel];
 				}
 				break;
 
 				case 6:
 					noise_period_ = value & 0x1f;
-//					noise_counter_ = noise_period_;
 				break;
 
 				case 11:
 					envelope_period_ = (envelope_period_ & ~0xff) | value;
-//					envelope_divider_ = envelope_period_;
 				break;
 
 				case 12:
 					envelope_period_ = (envelope_period_ & 0xff) | (int)(value << 8);
-//					envelope_divider_ = envelope_period_;
 				break;
 
 				case 13:
@@ -215,6 +212,8 @@ void AY38910::set_register_value(uint8_t value) {
 			output_registers_[selected_register] = masked_value;
 			evaluate_output_volume();
 		});
+	} else {
+		if(port_handler_) port_handler_->set_port_output(value == 15, value);
 	}
 }
 
@@ -241,12 +240,11 @@ uint8_t AY38910::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
 }
 
-void AY38910::set_port_input(bool port_b, uint8_t value) {
-	port_inputs_[port_b ? 1 : 0] = value;
-	update_bus();
-}
-
 #pragma mark - Bus handling
+
+void AY38910::set_port_handler(PortHandler *handler) {
+	port_handler_ = handler;
+}
 
 void AY38910::set_data_input(uint8_t r) {
 	data_input_ = r;
@@ -254,6 +252,13 @@ void AY38910::set_data_input(uint8_t r) {
 }
 
 uint8_t AY38910::get_data_output() {
+	if(control_state_ == Read && selected_register_ >= 14) {
+		if(port_handler_) {
+			return port_handler_->get_port_input(selected_register_ == 15);
+		} else {
+			return 0xff;
+		}
+	}
 	return data_output_;
 }
 
