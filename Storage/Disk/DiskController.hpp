@@ -72,8 +72,11 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 			@c write_bit. They will be written with the length set via @c set_expected_bit_length.
 			It is acceptable to supply a backlog of bits. Flux transition events will not be reported
 			while writing.
+
+			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
+			the index hole. Writing will continue over the index hole otherwise.
 		*/
-		void begin_writing();
+		void begin_writing(bool clamp_to_index_hole);
 
 		/*!
 			Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
@@ -129,6 +132,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		bool motor_is_on_;
 
 		bool is_reading_;
+		bool clamp_writing_to_index_hole_;
 		std::shared_ptr<PCMPatchedTrack> patched_track_;
 		PCMSegment write_segment_;
 		Time write_start_time_;

@@ -28,6 +28,9 @@ void Disk::set_track_at_position(unsigned int head, unsigned int position, const
 }
 
 std::shared_ptr<Track> Disk::get_track_at_position(unsigned int head, unsigned int position) {
+	if(head >= get_head_count()) return nullptr;
+	if(position >= get_head_position_count()) return nullptr;
+
 	int address = get_id_for_track_at_position(head, position);
 	std::map<int, std::shared_ptr<Track>>::iterator cached_track = cached_tracks_.find(address);
 	if(cached_track != cached_tracks_.end()) return cached_track->second;

@@ -125,11 +125,12 @@ class MFMController: public Controller {
 		void write_id_joiner();
 
 		/*!
-			Writes everything that should, per the spec, appear after the ID's CRC, up to and
+			Writes at most what should, per the spec, appear after the ID's CRC, up to and
 			including the mark that indicates the beginning of data, appropriately seeding
-			the CRC generator.
+			the CRC generator; if @c skip_first_gap is set then the initial gap after the
+			CRC isn't written.
 		*/
-		void write_id_data_joiner(bool is_deleted);
+		void write_id_data_joiner(bool is_deleted, bool skip_first_gap);
 
 		/*!
 			Writes the gap expected after a sector's data CRC and before the beginning of the

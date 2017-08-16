@@ -7,7 +7,9 @@
 //
 
 #include "DiskController.hpp"
+#include "UnformattedTrack.hpp"
 #include "../../NumberTheory/Factors.hpp"
+#include <cassert>
 
 using namespace Storage::Disk;
 
@@ -29,13 +31,17 @@ Controller::Controller(Cycles clock_rate, int clock_rate_multiplier, int revolut
 
 void Controller::setup_track() {
 	track_ = drive_->get_track();
+	if(!track_) {
+		track_.reset(new UnformattedTrack);
+	}
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
-	if(track_) {
-		Time time_found = track_->seek_to(track_time_now);
-		offset = track_time_now - time_found;
-	}
+	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
+
+	Time time_found = track_->seek_to(track_time_now);
+	assert(time_found >= Time(0) && time_found <= track_time_now);
+	offset = track_time_now - time_found;
 
 	get_next_event(offset);
 }
@@ -93,7 +99,9 @@ void Controller::get_next_event(const Time &duration_already_passed) {
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
-	set_next_event_time_interval((current_event_.length - duration_already_passed) * rotational_multiplier_);
+	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
+	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
+	set_next_event_time_interval(interval);
 }
 
 void Controller::process_next_event()
@@ -121,8 +129,9 @@ Storage::Time Controller::get_time_into_track() {
 
 #pragma mark - Writing
 
-void Controller::begin_writing() {
+void Controller::begin_writing(bool clamp_to_index_hole) {
 	is_reading_ = false;
+	clamp_writing_to_index_hole_ = clamp_to_index_hole;
 
 	write_segment_.length_of_a_bit = bit_length_ / rotational_multiplier_;
 	write_segment_.data.clear();
@@ -150,7 +159,8 @@ void Controller::end_writing() {
 			patched_track_.reset(new PCMPatchedTrack(track_));
 		}
 	}
-	patched_track_->add_segment(write_start_time_, write_segment_);
+	patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
+	cycles_since_index_hole_ %= 8000000 * clock_rate_multiplier_;
 	invalidate_track();	// TEMPORARY: to force a seek
 }
 
@@ -205,8 +215,7 @@ bool Controller::get_motor_on() {
 }
 
 void Controller::set_drive(std::shared_ptr<Drive> drive) {
-	if(drive_ != drive)
-	{
+	if(drive_ != drive) {
 		invalidate_track();
 		drive_ = drive;
 	}

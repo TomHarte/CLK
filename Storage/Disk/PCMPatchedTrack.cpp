@@ -8,6 +8,8 @@
 
 #include "PCMPatchedTrack.hpp"
 
+#include <cassert>
+
 using namespace Storage::Disk;
 
 PCMPatchedTrack::PCMPatchedTrack(std::shared_ptr<Track> underlying_track) :
@@ -29,20 +31,25 @@ Track *PCMPatchedTrack::clone() {
 	return new PCMPatchedTrack(*this);
 }
 
-void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment) {
+void PCMPatchedTrack::add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole) {
 	std::shared_ptr<PCMSegmentEventSource> event_source(new PCMSegmentEventSource(segment));
 
 	Time zero(0);
+	Time one(1);
 	Time end_time = start_time + event_source->get_length();
+	if(clamp_to_index_hole && end_time > one) {
+		end_time = one;
+	}
 	Period insertion_period(start_time, end_time, zero, event_source);
 
 	// the new segment may wrap around, so divide it up into track-length parts if required
-	Time one = Time(1);
+	assert(insertion_period.start_time <= one);
 	while(insertion_period.end_time > one) {
 		Time next_end_time = insertion_period.end_time - one;
 		insertion_period.end_time = one;
 		insert_period(insertion_period);
 
+		insertion_period.segment_start_time += one;
 		insertion_period.start_time = zero;
 		insertion_period.end_time = next_end_time;
 	}
@@ -127,8 +134,7 @@ void PCMPatchedTrack::insert_period(const Period &period) {
 	}
 }
 
-Track::Event PCMPatchedTrack::get_next_event()
-{
+Track::Event PCMPatchedTrack::get_next_event() {
 	const Time one(1);
 	const Time zero(0);
 	Time extra_time(0);
@@ -184,13 +190,19 @@ Track::Event PCMPatchedTrack::get_next_event()
 Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole) {
 	// start at the beginning and continue while segments end before reaching the time sought
 	active_period_ = periods_.begin();
-	while(active_period_->end_time < time_since_index_hole) active_period_++;
+	while(active_period_->end_time < time_since_index_hole) {
+		assert(active_period_ != periods_.end());
+		active_period_++;
+	}
 
-	// allow whatever storage represents the period found to perform its seek
+	// allow whatever storage represents the period found to perform its seek; calculation for periods
+	// with an event source is, in effect: seek_to(offset_into_segment + distance_into_period) - offset_into_segment.
 	if(active_period_->event_source)
-		current_time_ = active_period_->event_source->seek_to(time_since_index_hole - active_period_->start_time) + active_period_->start_time;
+		current_time_ = active_period_->event_source->seek_to(active_period_->segment_start_time + time_since_index_hole - active_period_->start_time) + active_period_->start_time - active_period_->segment_start_time;
 	else
 		current_time_ = underlying_track_->seek_to(time_since_index_hole);
+
+	assert(current_time_ <= time_since_index_hole);
 	return current_time_;
 }
 

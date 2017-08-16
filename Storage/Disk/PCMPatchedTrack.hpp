@@ -9,7 +9,7 @@
 #ifndef PCMPatchedTrack_hpp
 #define PCMPatchedTrack_hpp
 
-#include "PCMTrack.hpp"
+#include "Disk.hpp"
 #include "PCMSegment.hpp"
 
 namespace Storage {
@@ -34,8 +34,13 @@ class PCMPatchedTrack: public Track {
 		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
 			with the contents of @c segment.
+			
+			@param start_time The time at which this segment begins. Must be in the range [0, 1).
+			@param segment The PCM segment to add.
+			@param clamp_to_index_hole If @c true then the new segment will be truncated if it overruns the index hole;
+			it will otherwise write over the index hole and continue.
 		*/
-		void add_segment(const Time &start_time, const PCMSegment &segment);
+		void add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole);
 
 		// To satisfy Storage::Disk::Track
 		Event get_next_event();
