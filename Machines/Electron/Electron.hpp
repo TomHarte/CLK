@@ -9,19 +9,9 @@
 #ifndef Electron_hpp
 #define Electron_hpp
 
-#include "../../Processors/6502/6502.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
-#include "../Typer.hpp"
-
-#include "Interrupts.hpp"
-#include "Plus3.hpp"
-#include "Speaker.hpp"
-#include "Tape.hpp"
-#include "Video.hpp"
+#include "../KeyboardMachine.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -67,90 +57,23 @@ enum Key: uint16_t {
 	Acorn Electron.
 */
 class Machine:
-	public CPU::MOS6502::BusHandler,
 	public CRTMachine::Machine,
-	public Tape::Delegate,
-	public Utility::TypeRecipient,
-	public ConfigurationTarget::Machine {
-
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine {
 	public:
-		Machine();
+		virtual ~Machine();
 
-		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable);
+		/// Creates and returns an Electron.
+		static Machine *Electron();
 
-		void set_key_state(uint16_t key, bool isPressed);
-		void clear_all_keys();
+		/*!
+			Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
+			is enabled — it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
+		*/
+		virtual void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) = 0;
 
-		inline void set_use_fast_tape_hack(bool activate) { use_fast_tape_hack_ = activate; }
-
-		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const StaticAnalyser::Target &target);
-
-		// to satisfy CPU::MOS6502::Processor
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void flush();
-
-		// to satisfy CRTMachine::Machine
-		virtual void setup_output(float aspect_ratio);
-		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for(const Cycles cycles);
-
-		// to satisfy Tape::Delegate
-		virtual void tape_did_change_interrupt_status(Tape *tape);
-
-		// for Utility::TypeRecipient
-		virtual HalfCycles get_typer_delay();
-		virtual HalfCycles get_typer_frequency();
-		virtual void set_typer_for_string(const char *string);
-
-	private:
-		inline void update_display();
-		inline void queue_next_display_interrupt();
-		inline void update_audio();
-
-		inline void signal_interrupt(Interrupt interrupt);
-		inline void clear_interrupt(Interrupt interrupt);
-		inline void evaluate_interrupts();
-
-		CPU::MOS6502::Processor<Machine> m6502_;
-
-		// Things that directly constitute the memory map.
-		uint8_t roms_[16][16384];
-		bool rom_write_masks_[16];
-		uint8_t os_[16384], ram_[32768];
-		std::vector<uint8_t> dfs_, adfs_;
-
-		// Paging
-		ROMSlot active_rom_;
-		bool keyboard_is_active_, basic_is_active_;
-
-		// Interrupt and keyboard state
-		uint8_t interrupt_status_, interrupt_control_;
-		uint8_t key_states_[14];
-
-		// Counters related to simultaneous subsystems
-		Cycles cycles_since_display_update_;
-		Cycles cycles_since_audio_update_;
-		int cycles_until_display_interrupt_;
-		Interrupt next_display_interrupt_;
-		VideoOutput::Range video_access_range_;
-
-		// Tape
-		Tape tape_;
-		bool use_fast_tape_hack_;
-		bool fast_load_is_in_data_;
-
-		// Disk
-		std::unique_ptr<Plus3> plus3_;
-		bool is_holding_shift_;
-		int shift_restart_counter_;
-
-		// Outputs
-		std::unique_ptr<VideoOutput> video_output_;
-		std::shared_ptr<Speaker> speaker_;
-		bool speaker_is_enabled_;
+		/// Enables or disables turbo-speed tape loading.
+		virtual void set_use_fast_tape_hack(bool activate) = 0;
 };
 
 }
