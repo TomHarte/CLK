@@ -157,11 +157,7 @@ void Controller::end_writing() {
 		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
 		if(!patched_track_) {
 			patched_track_.reset(new PCMPatchedTrack(track_));
-		} else {
-			printf("");
 		}
-	} else {
-		printf("");
 	}
 	patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
 	cycles_since_index_hole_ %= 8000000 * clock_rate_multiplier_;
