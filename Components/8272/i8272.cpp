@@ -204,7 +204,9 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define FIND_DATA()	\
 	set_data_mode(DataMode::Scanning);	\
 	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-	if(event_type == (int)Event::Token && get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) goto CONCAT(find_data, __LINE__);
+	if(event_type == (int)Event::Token) { \
+		if(get_latest_token().type == Token::Byte) goto CONCAT(find_data, __LINE__);	\
+	}
 
 #define READ_HEADER()	\
 	distance_into_section_ = 0;	\
@@ -351,27 +353,33 @@ void i8272::posit_event(int event_type) {
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
-			index_hole_limit_ = 6;
-			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
+			index_hole_limit_ = 2;
+//			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
 		find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
-				printf("Not found\n");
+//				printf("Not found\n");
 				SetNoData();
-				goto abort_read_write;
+				goto abort;
 			}
-			printf("Header\n");
+			index_hole_count_ = 0;
+//			printf("Header\n");
 			READ_HEADER();
+			if(index_hole_count_) {
+				// This implies an index hole was sighted within the header. Error out.
+				SetEndOfCylinder();
+				goto abort;
+			}
 			if(get_crc_generator().get_value()) {
 				// This implies a CRC error in the header; mark as such but continue.
 				SetDataError();
 			}
-			printf("Considering %02x %02x %02x %02x [%04x]\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
+//			printf("Considering %02x %02x %02x %02x [%04x]\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
-			printf("Proceeding\n");
+//			printf("Proceeding\n");
 			switch(command_[0] & 0x1f) {
 				case CommandReadData:
 				case CommandReadDeletedData:
@@ -382,11 +390,6 @@ void i8272::posit_event(int event_type) {
 				goto write_data_found_header;
 			}
 
-
-	// Sets abnormal termination of the current command and proceeds to an ST0, ST1, ST2, C, H, R, N result phase.
-	abort_read_write:
-		SetAbnormalTermination();
-		goto post_st012chrn;
 
 	// Performs the read data or read deleted data command.
 	read_data:
@@ -400,14 +403,27 @@ void i8272::posit_event(int event_type) {
 		// flag doesn't match the sort the command was looking for.
 		read_data_found_header:
 			FIND_DATA();
-			if((get_latest_token().type == Token::Data) != ((command_[0] & 0x1f) == CommandReadData)) {
-				if(!(command_[0]&0x20)) {
-					// SK is not set; set the error flag but read this sector before finishing.
-					SetControlMark();
+			if(event_type == (int)Event::Token) {
+				if(get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) {
+					// Something other than a data mark came next — impliedly an ID or index mark.
+					SetMissingAddressMark();
+					SetMissingDataAddressMark();
+					goto abort;	// TODO: or read_next_data?
 				} else {
-					// SK is set; skip this sector.
-					goto read_next_data;
+					if((get_latest_token().type == Token::Data) != ((command_[0] & 0x1f) == CommandReadData)) {
+						if(!(command_[0]&0x20)) {
+							// SK is not set; set the error flag but read this sector before finishing.
+							SetControlMark();
+						} else {
+							// SK is set; skip this sector.
+							goto read_next_data;
+						}
+					}
 				}
+			} else {
+				// An index hole appeared before the data mark.
+				SetEndOfCylinder();
+				goto abort;	// TODO: or read_next_data?
 			}
 
 			distance_into_section_ = 0;
@@ -418,12 +434,14 @@ void i8272::posit_event(int event_type) {
 		//
 		// TODO: consider DTL.
 		read_data_get_byte:
-			WAIT_FOR_EVENT(Event::Token);
-			result_stack_.push_back(get_latest_token().byte_value);
-			distance_into_section_++;
-			SetDataRequest();
-			SetDataDirectionToProcessor();
-			WAIT_FOR_EVENT((int)Event8272::ResultEmpty | (int)Event::Token | (int)Event::IndexHole);
+			WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole);
+			if(event_type == (int)Event::Token) {
+				result_stack_.push_back(get_latest_token().byte_value);
+				distance_into_section_++;
+				SetDataRequest();
+				SetDataDirectionToProcessor();
+				WAIT_FOR_EVENT((int)Event8272::ResultEmpty | (int)Event::Token | (int)Event::IndexHole);
+			}
 			switch(event_type) {
 				case (int)Event8272::ResultEmpty:	// The caller read the byte in time; proceed as normal.
 					ResetDataRequest();
@@ -431,9 +449,11 @@ void i8272::posit_event(int event_type) {
 				break;
 				case (int)Event::Token:				// The caller hasn't read the old byte yet and a new one has arrived
 					SetOverrun();
-					goto abort_read_write;
+					goto abort;
 				break;
 				case (int)Event::IndexHole:
+					SetEndOfCylinder();
+					goto abort;
 				break;
 			}
 
@@ -444,7 +464,7 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the sector; mark as such and temrinate.
 				SetDataError();
 				SetDataFieldDataError();
-				goto abort_read_write;
+				goto abort;
 			}
 
 		// check whether that's it: either the final requested sector has been read, or because
@@ -462,13 +482,9 @@ void i8272::posit_event(int event_type) {
 			if(!dma_mode_) SetNonDMAExecution();
 			SET_DRIVE_HEAD_MFM();
 
-//			if(command_[2] == 0x16 && command_[3] == 0x00 && command_[4] == 0x06 && command_[5] == 0x02) {
-//				printf("?");
-//			}
-
 			if(drives_[active_drive_].drive->get_is_read_only()) {
 				SetNotWriteable();
-				goto abort_read_write;
+				goto abort;
 			}
 
 		write_next_data:
@@ -490,7 +506,7 @@ void i8272::posit_event(int event_type) {
 			if(!has_input_) {
 				SetOverrun();
 				end_writing();
-				goto abort_read_write;
+				goto abort;
 			}
 			write_byte(input_);
 			has_input_ = false;
@@ -527,7 +543,7 @@ void i8272::posit_event(int event_type) {
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				SetNoData();
-				goto abort_read_write;
+				goto abort;
 			}
 			READ_HEADER();
 
@@ -557,7 +573,7 @@ void i8272::posit_event(int event_type) {
 			if(!index_hole_limit_) {
 				if(!sector_) {
 					SetMissingAddressMark();
-					goto abort_read_write;
+					goto abort;
 				} else {
 					goto post_st012chrn;
 				}
@@ -589,7 +605,7 @@ void i8272::posit_event(int event_type) {
 			SET_DRIVE_HEAD_MFM();
 			if(drives_[active_drive_].drive->get_is_read_only()) {
 				SetNotWriteable();
-				goto abort_read_write;
+				goto abort;
 			}
 
 			LOAD_HEAD();
@@ -619,7 +635,7 @@ void i8272::posit_event(int event_type) {
 				case (int)Event::IndexHole:
 					SetOverrun();
 					end_writing();
-					goto abort_read_write;
+					goto abort;
 				break;
 				case (int)Event::DataWritten:
 					header_[distance_into_section_] = input_;
@@ -776,6 +792,11 @@ void i8272::posit_event(int event_type) {
 			// A no-op, but posts ST0 (but which ST0?)
 			result_stack_.push_back(0x80);
 			goto post_result;
+
+	// Sets abnormal termination of the current command and proceeds to an ST0, ST1, ST2, C, H, R, N result phase.
+	abort:
+		SetAbnormalTermination();
+		goto post_st012chrn;
 
 	// Posts ST0, ST1, ST2, C, H, R and N as a result phase.
 	post_st012chrn:
