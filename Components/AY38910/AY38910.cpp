@@ -213,7 +213,7 @@ void AY38910::set_register_value(uint8_t value) {
 			evaluate_output_volume();
 		});
 	} else {
-		if(port_handler_) port_handler_->set_port_output(value == 15, value);
+		if(port_handler_) port_handler_->set_port_output(selected_register_ == 15, value);
 	}
 }
 
