@@ -53,7 +53,7 @@ class Machine:
 	public:
 		virtual ~Machine();
 
-		/// Creates an returns an Oric on the heap.
+		/// Creates and returns an Oric.
 		static Machine *Oric();
 
 		/// Sets the contents of @c rom to @c data. Assumed to be a setup step; has no effect once a machine is running.

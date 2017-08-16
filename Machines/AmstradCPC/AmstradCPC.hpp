@@ -54,7 +54,7 @@ class Machine:
 	public:
 		virtual ~Machine();
 
-		/// Creates and returns an Amstrad CPC on the heap.
+		/// Creates and returns an Amstrad CPC.
 		static Machine *AmstradCPC();
 
 		/// Sets the contents of rom @c type to @c data. Assumed to be a setup step; has no effect once a machine is running.
