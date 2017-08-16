@@ -293,21 +293,36 @@ void i8272::posit_event(int event_type) {
 
 			// If this is not clearly a command that's safe to carry out in parallel to a seek, end all seeks.
 			switch(command_[0] & 0x1f) {
-				case CommandSpecify:
-				case CommandSenseDriveStatus:
-				case CommandSenseInterruptStatus:
-				case CommandRecalibrate:
-				case CommandSeek:
+				case CommandReadData:
+				case CommandReadDeletedData:
+				case CommandWriteData:
+				case CommandWriteDeletedData:
+				case CommandReadTrack:
+				case CommandReadID:
+				case CommandFormatTrack:
+				case CommandScanLow:
+				case CommandScanLowOrEqual:
+				case CommandScanHighOrEqual:
+					is_access_command_ = true;
 				break;
 
 				default:
-					for(int c = 0; c < 4; c++) {
-						if(drives_[c].phase == Drive::Seeking) {
-							drives_[c].phase = Drive::NotSeeking;
-							drives_seeking_--;
-						}
-					}
+					is_access_command_ = false;
 				break;
+			}
+
+			if(is_access_command_) {
+				for(int c = 0; c < 4; c++) {
+					if(drives_[c].phase == Drive::Seeking) {
+						drives_[c].phase = Drive::NotSeeking;
+						drives_seeking_--;
+					}
+				}
+				// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
+				// cylinder, head, sector and size registers from the command stream.
+				if(!dma_mode_) SetNonDMAExecution();
+				SET_DRIVE_HEAD_MFM();
+				LOAD_HEAD();
 			}
 
 			// Jump to the proper place.
@@ -342,9 +357,6 @@ void i8272::posit_event(int event_type) {
 	// and searches for a sector that meets those criteria. If one is found, inspects the instruction in use and
 	// jumps to an appropriate handler.
 	read_write_find_header:
-		// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
-		// cylinder, head, sector and size registers from the command stream.
-			LOAD_HEAD();
 
 		// Sets a maximum index hole limit of 2 then performs a find header/read header loop, continuing either until
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
@@ -390,8 +402,6 @@ void i8272::posit_event(int event_type) {
 	// Performs the read data or read deleted data command.
 	read_data:
 			printf("Read [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
-			if(!dma_mode_) SetNonDMAExecution();
-			SET_DRIVE_HEAD_MFM();
 		read_next_data:
 			goto read_write_find_header;
 
@@ -475,8 +485,6 @@ void i8272::posit_event(int event_type) {
 
 	write_data:
 			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
-			if(!dma_mode_) SetNonDMAExecution();
-			SET_DRIVE_HEAD_MFM();
 
 			if(drives_[active_drive_].drive->get_is_read_only()) {
 				SetNotWriteable();
@@ -528,9 +536,7 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-			printf("Read ID\n");
-			SET_DRIVE_HEAD_MFM();
-			LOAD_HEAD();
+			printf("Read ID [%02x %02x]\n", command_[0], command_[1]);
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -538,7 +544,7 @@ void i8272::posit_event(int event_type) {
 		read_id_find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
-				SetNoData();
+				SetMissingAddressMark();
 				goto abort;
 			}
 			READ_HEADER();
@@ -554,8 +560,6 @@ void i8272::posit_event(int event_type) {
 	// Performs read track.
 	read_track:
 			printf("Read track [%02x %02x %02x %02x]\n", command_[2], command_[3], command_[4], command_[5]);
-			if(!dma_mode_) SetNonDMAExecution();
-			SET_DRIVE_HEAD_MFM();
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -597,14 +601,10 @@ void i8272::posit_event(int event_type) {
 	// Performs format [/write] track.
 	format_track:
 			printf("Format track\n");
-			if(!dma_mode_) SetNonDMAExecution();
-			SET_DRIVE_HEAD_MFM();
 			if(drives_[active_drive_].drive->get_is_read_only()) {
 				SetNotWriteable();
 				goto abort;
 			}
-
-			LOAD_HEAD();
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);

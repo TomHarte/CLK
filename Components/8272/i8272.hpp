@@ -66,6 +66,7 @@ class i8272: public Storage::Disk::MFMController {
 		void posit_event(int type);
 		int interesting_event_mask_;
 		int resume_point_;
+		bool is_access_command_;
 
 		// The counter used for ::Timer events.
 		int delay_time_;
