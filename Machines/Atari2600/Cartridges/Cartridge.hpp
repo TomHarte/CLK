@@ -188,7 +188,7 @@ template<class T> class Cartridge:
 		std::vector<uint8_t> rom_;
 
 	private:
-		BusExtender bus_extender_;
+		T bus_extender_;
 };
 
 }
