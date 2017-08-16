@@ -195,7 +195,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define FIND_HEADER()	\
 	set_data_mode(DataMode::Scanning);	\
 	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
-	if(event_type == (int)Event::IndexHole) { printf("I\n"); index_hole_limit_--; }	\
+	if(event_type == (int)Event::IndexHole) { index_hole_limit_--; }	\
 	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
 	\
 	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
@@ -216,8 +216,6 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	distance_into_section_++; \
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 
-//	printf("%02x -> %04x\n", header_[distance_into_section_], get_crc_generator().get_value());	\
-
 #define SET_DRIVE_HEAD_MFM()	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
@@ -231,8 +229,6 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	CONCAT(wait_bytes, __LINE__): WAIT_FOR_EVENT(Event::Token);	\
 	if(get_latest_token().type == Token::Byte) distance_into_section_++;	\
 	if(distance_into_section_ < (n)) goto CONCAT(wait_bytes, __LINE__);
-
-// printf("%02x\n", get_latest_token().byte_value);
 
 #define LOAD_HEAD()	\
 	if(!drives_[active_drive_].head_is_loaded[active_head_]) {	\
