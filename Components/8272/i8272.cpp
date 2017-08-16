@@ -205,7 +205,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	set_data_mode(DataMode::Scanning);	\
 	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole); \
 	if(event_type == (int)Event::Token) { \
-		if(get_latest_token().type == Token::Byte) goto CONCAT(find_data, __LINE__);	\
+		if(get_latest_token().type == Token::Byte || get_latest_token().type == Token::Sync) goto CONCAT(find_data, __LINE__);	\
 	}
 
 #define READ_HEADER()	\
