@@ -7,6 +7,7 @@
 //
 
 #include "DiskController.hpp"
+#include "UnformattedTrack.hpp"
 #include "../../NumberTheory/Factors.hpp"
 #include <cassert>
 
@@ -30,15 +31,17 @@ Controller::Controller(Cycles clock_rate, int clock_rate_multiplier, int revolut
 
 void Controller::setup_track() {
 	track_ = drive_->get_track();
+	if(!track_) {
+		track_.reset(new UnformattedTrack);
+	}
 
 	Time offset;
 	Time track_time_now = get_time_into_track();
 	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
-	if(track_) {
-		Time time_found = track_->seek_to(track_time_now);
-		assert(time_found >= Time(0) && time_found <= track_time_now);
-		offset = track_time_now - time_found;
-	}
+
+	Time time_found = track_->seek_to(track_time_now);
+	assert(time_found >= Time(0) && time_found <= track_time_now);
+	offset = track_time_now - time_found;
 
 	get_next_event(offset);
 }
