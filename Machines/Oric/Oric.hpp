@@ -11,23 +11,16 @@
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
-#include "../Typer.hpp"
-
-#include "../../Processors/6502/6502.hpp"
-#include "../../Components/6522/6522.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Storage/Tape/Parsers/Oric.hpp"
-
-#include "Video.hpp"
-#include "Microdisc.hpp"
-
-#include "../../Storage/Tape/Tape.hpp"
+#include "../KeyboardMachine.hpp"
 
 #include <cstdint>
 #include <vector>
-#include <memory>
 
 namespace Oric {
+
+enum ROM {
+	BASIC10, BASIC11, Microdisc, Colour
+};
 
 enum Key: uint16_t {
 	Key3			= 0x0000 | 0x80,	KeyX			= 0x0000 | 0x40,	Key1			= 0x0000 | 0x20,
@@ -50,124 +43,27 @@ enum Key: uint16_t {
 	KeyNMI			= 0xfffd,
 };
 
-enum ROM {
-	BASIC10, BASIC11, Microdisc, Colour
-};
-
+/*!
+	Models an Oric 1/Atmos with or without a Microdisc.
+*/
 class Machine:
-	public CPU::MOS6502::BusHandler,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public MOS::MOS6522IRQDelegate::Delegate,
-	public Utility::TypeRecipient,
-	public Storage::Tape::BinaryTapePlayer::Delegate,
-	public Microdisc::Delegate {
-
+	public KeyboardMachine::Machine {
 	public:
-		Machine();
+		virtual ~Machine();
 
-		void set_rom(ROM rom, const std::vector<uint8_t> &data);
-		void set_key_state(uint16_t key, bool isPressed);
-		void clear_all_keys();
+		/// Creates an returns an Oric on the heap.
+		static Machine *Oric();
 
-		void set_use_fast_tape_hack(bool activate);
-		void set_output_device(Outputs::CRT::OutputDevice output_device);
+		/// Sets the contents of @c rom to @c data. Assumed to be a setup step; has no effect once a machine is running.
+		virtual void set_rom(ROM rom, const std::vector<uint8_t> &data) = 0;
 
-		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const StaticAnalyser::Target &target);
+		/// Enables or disables turbo-speed tape loading.
+		virtual void set_use_fast_tape_hack(bool activate) = 0;
 
-		// to satisfy CPU::MOS6502::Processor
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
-		void flush();
-
-		// to satisfy CRTMachine::Machine
-		virtual void setup_output(float aspect_ratio);
-		virtual void close_output();
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt();
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker();
-		virtual void run_for(const Cycles cycles);
-
-		// to satisfy MOS::MOS6522IRQDelegate::Delegate
-		void mos6522_did_change_interrupt_status(void *mos6522);
-
-		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player);
-
-		// for Utility::TypeRecipient::Delegate
-		void set_typer_for_string(const char *string);
-
-		// for Microdisc::Delegate
-		void microdisc_did_change_paging_flags(class Microdisc *microdisc);
-		void wd1770_did_change_output(WD::WD1770 *wd1770);
-
-	private:
-		CPU::MOS6502::Processor<Machine> m6502_;
-
-		// RAM and ROM
-		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
-		uint8_t ram_[65536], rom_[16384];
-		Cycles cycles_since_video_update_;
-		inline void update_video();
-
-		// ROM bookkeeping
-		bool is_using_basic11_;
-		uint16_t tape_get_byte_address_, scan_keyboard_address_, tape_speed_address_;
-		int keyboard_read_count_;
-
-		// Outputs
-		std::unique_ptr<VideoOutput> video_output_;
-
-		// Keyboard
-		class Keyboard {
-			public:
-				uint8_t row;
-				uint8_t rows[8];
-		};
-		int typer_delay_;
-
-		// The tape
-		class TapePlayer: public Storage::Tape::BinaryTapePlayer {
-			public:
-				TapePlayer();
-				uint8_t get_next_byte(bool fast);
-
-			private:
-				Storage::Tape::Oric::Parser parser_;
-		};
-		bool use_fast_tape_hack_;
-
-		// VIA (which owns the tape and the AY)
-		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
-			public:
-				VIA();
-				using MOS6522IRQDelegate::set_interrupt_status;
-
-				void set_control_line_output(Port port, Line line, bool value);
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask);
-				uint8_t get_port_input(Port port);
-				inline void run_for(const Cycles cycles);
-
-				std::shared_ptr<GI::AY38910::AY38910> ay8910;
-				std::unique_ptr<TapePlayer> tape;
-				std::shared_ptr<Keyboard> keyboard;
-
-				void flush();
-
-			private:
-				void update_ay();
-				bool ay_bdir_, ay_bc1_;
-				Cycles cycles_since_ay_update_;
-		};
-		VIA via_;
-		std::shared_ptr<Keyboard> keyboard_;
-
-		// the Microdisc, if in use
-		class Microdisc microdisc_;
-		bool microdisc_is_enabled_;
-		uint16_t ram_top_;
-		uint8_t *paged_rom_;
-
-		inline void set_interrupt_line();
+		/// Sets the type of display the Oric is connected to.
+		virtual void set_output_device(Outputs::CRT::OutputDevice output_device) = 0;
 };
 
 }
