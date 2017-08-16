@@ -27,24 +27,36 @@
 namespace Commodore {
 namespace Vic20 {
 
+/*!
+	Models the user-port VIA, which is the Vic's connection point for controlling its tape recorder —
+	sensing the presence or absence of a tape and controlling the tape motor — and reading the current
+	state from its serial port. Most of the joystick input is also exposed here.
+*/
 class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		UserPortVIA() : port_a_(0xbf) {}
 		using MOS6522IRQDelegate::set_interrupt_status;
 
+		/// Reports the current input to the 6522 port @c port.
 		uint8_t get_port_input(Port port) {
+			// Port A provides information about the presence or absence of a tape, and parts of
+			// the joystick and serial port state, both of which have been statefully collected
+			// into port_a_.
 			if(!port) {
 				return port_a_ | (tape_->has_tape() ? 0x00 : 0x40);
 			}
 			return 0xff;
 		}
 
+		/// Receives announcements of control line output change from the 6522.
 		void set_control_line_output(Port port, Line line, bool value) {
+			// The CA2 output is used to control the tape motor.
 			if(port == Port::A && line == Line::Two) {
 				tape_->set_motor_control(!value);
 			}
 		}
 
+		/// Receives announcements of changes in the serial bus connected to the serial port and propagates them into Port A.
 		void set_serial_line_state(::Commodore::Serial::Line line, bool value) {
 			switch(line) {
 				default: break;
@@ -53,25 +65,28 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 			}
 		}
 
+		/// Allows the current joystick input to be set.
 		void set_joystick_state(JoystickInput input, bool value) {
 			if(input != JoystickInput::Right) {
 				port_a_ = (port_a_ & ~input) | (value ? 0 : input);
 			}
 		}
 
+		/// Receives announcements from the 6522 of user-port output, which might affect what's currently being presented onto the serial bus.
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
-			// Line 7 of port A is inverted and output as serial ATN
+			// Line 7 of port A is inverted and output as serial ATN.
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-				if(serialPort)
-					serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
+				if(serialPort) serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
 			}
 		}
 
-		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort) {
-			serial_port_ = serialPort;
+		/// Sets @serial_port as this VIA's connection to the serial bus.
+		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serial_port) {
+			serial_port_ = serial_port;
 		}
 
+		/// Sets @tape as the tape player connected to this VIA.
 		void set_tape(std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape) {
 			tape_ = tape;
 		}
@@ -82,6 +97,10 @@ class UserPortVIA: public MOS::MOS6522<UserPortVIA>, public MOS::MOS6522IRQDeleg
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 };
 
+/*!
+	Models the keyboard VIA, which is used by the Vic for reading its keyboard, to output to its serial port,
+	and for the small portion of joystick input not connected to the user-port VIA.
+*/
 class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDelegate {
 	public:
 		KeyboardVIA() : port_b_(0xff) {
@@ -90,17 +109,20 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 
 		using MOS6522IRQDelegate::set_interrupt_status;
 
-		void set_key_state(uint16_t key, bool isPressed) {
-			if(isPressed)
+		/// Sets whether @c key @c is_pressed.
+		void set_key_state(uint16_t key, bool is_pressed) {
+			if(is_pressed)
 				columns_[key & 7] &= ~(key >> 3);
 			else
 				columns_[key & 7] |= (key >> 3);
 		}
 
+		/// Sets all keys as unpressed.
 		void clear_all_keys() {
 			memset(columns_, 0xff, sizeof(columns_));
 		}
 
+		/// Called by the 6522 to get input. Reads the keyboard on Port A, returns a small amount of joystick state on Port B.
 		uint8_t get_port_input(Port port) {
 			if(!port) {
 				uint8_t result = 0xff;
@@ -114,11 +136,12 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			return port_b_;
 		}
 
+		/// Called by the 6522 to set output. The value of Port B selects which part of the keyboard to read.
 		void set_port_output(Port port, uint8_t value, uint8_t mask) {
-			if(port)
-				activation_mask_ = (value & mask) | (~mask);
+			if(port) activation_mask_ = (value & mask) | (~mask);
 		}
 
+		/// Called by the 6522 to set control line output. Which affects the serial port.
 		void set_control_line_output(Port port, Line line, bool value) {
 			if(line == Line::Two) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
@@ -132,12 +155,14 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 			}
 		}
 
+		/// Sets whether the joystick input @c input is pressed.
 		void set_joystick_state(JoystickInput input, bool value) {
 			if(input == JoystickInput::Right) {
 				port_b_ = (port_b_ & ~input) | (value ? 0 : input);
 			}
 		}
 
+		/// Sets the serial port to which this VIA is connected.
 		void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort) {
 			serial_port_ = serialPort;
 		}
@@ -149,13 +174,18 @@ class KeyboardVIA: public MOS::MOS6522<KeyboardVIA>, public MOS::MOS6522IRQDeleg
 		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
 };
 
+/*!
+	Models the Vic's serial port, providing the receipticle for input.
+*/
 class SerialPort : public ::Commodore::Serial::Port {
 	public:
+		/// Receives an input change from the base serial port class, and communicates it to the user-port VIA.
 		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
 			if(userPortVIA) userPortVIA->set_serial_line_state(line, (bool)level);
 		}
 
+		/// Sets the user-port VIA with which this serial port communicates.
 		void set_user_port_via(std::shared_ptr<UserPortVIA> userPortVIA) {
 			user_port_via_ = userPortVIA;
 		}
@@ -164,15 +194,20 @@ class SerialPort : public ::Commodore::Serial::Port {
 		std::weak_ptr<UserPortVIA> user_port_via_;
 };
 
+/*!
+	Provides the bus over which the Vic 6560 fetches memory in a Vic-20.
+*/
 class Vic6560: public MOS::MOS6560<Vic6560> {
 	public:
+		/// Performs a read on behalf of the 6560; in practice uses @c video_memory_map and @c colour_memory to find data.
 		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
 			*pixel_data = video_memory_map[address >> 10] ? video_memory_map[address >> 10][address & 0x3ff] : 0xff; // TODO
 			*colour_data = colour_memory[address & 0x03ff];
 		}
 
-		uint8_t *video_memory_map[16];
-		uint8_t *colour_memory;
+		// It is assumed that these pointers have been filled in by the machine.
+		uint8_t *video_memory_map[16];	// Segments video memory into 1kb portions.
+		uint8_t *colour_memory;			// Colour memory must be contiguous.
 };
 
 class ConcreteMachine:
@@ -212,9 +247,6 @@ class ConcreteMachine:
 
 			// set the NTSC clock rate
 			set_region(NTSC);
-		//	_debugPort.reset(new ::Commodore::Serial::DebugPort);
-		//	_debugPort->set_serial_bus(serial_bus_);
-		//	serial_bus_->add_port(_debugPort);
 		}
 
 		~ConcreteMachine() {
