@@ -45,7 +45,7 @@ enum Key: uint16_t {
 };
 
 /*!
-	Models an Amstrad CPC, a CRT-outputting machine with a keyboard that can accept configuration targets.
+	Models an Amstrad CPC.
 */
 class Machine:
 	public CRTMachine::Machine,
@@ -54,7 +54,7 @@ class Machine:
 	public:
 		virtual ~Machine();
 
-		/// Creates an returns an Amstrad CPC on the heap.
+		/// Creates and returns an Amstrad CPC on the heap.
 		static Machine *AmstradCPC();
 
 		/// Sets the contents of rom @c type to @c data. Assumed to be a setup step; has no effect once a machine is running.
