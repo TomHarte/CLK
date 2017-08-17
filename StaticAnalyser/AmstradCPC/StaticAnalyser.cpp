@@ -26,11 +26,11 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 }
 
 static void InspectDataCatalogue(
-	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &data_catalogue,
+	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
 	// If there's just one file, run that.
-	if(data_catalogue->files.size() == 1) {
-		target.loadingCommand = RunCommandFor(data_catalogue->files[0]);
+	if(catalogue.files.size() == 1) {
+		target.loadingCommand = RunCommandFor(catalogue.files[0]);
 		return;
 	}
 
@@ -42,22 +42,22 @@ static void InspectDataCatalogue(
 	size_t last_basic_file = 0;
 	size_t last_implicit_suffixed_file = 0;
 
-	for(size_t c = 0; c < data_catalogue->files.size(); c++) {
+	for(size_t c = 0; c < catalogue.files.size(); c++) {
 		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
-		if(data_catalogue->files[c].type == "   " && data_catalogue->files[c].name == "        ")
+		if(catalogue.files[c].type == "   " && catalogue.files[c].name == "        ")
 			continue;
 
 		// Check for whether this is [potentially] BASIC.
-		if(data_catalogue->files[c].data.size() >= 128 && !((data_catalogue->files[c].data[18] >> 1) & 7)) {
+		if(catalogue.files[c].data.size() >= 128 && !((catalogue.files[c].data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
 
 		// Check suffix for emptiness.
 		if(
-			data_catalogue->files[c].type == "   " ||
-			strcmp_insensitive(data_catalogue->files[c].type.c_str(), "BAS") ||
-			strcmp_insensitive(data_catalogue->files[c].type.c_str(), "BIN")
+			catalogue.files[c].type == "   " ||
+			strcmp_insensitive(catalogue.files[c].type.c_str(), "BAS") ||
+			strcmp_insensitive(catalogue.files[c].type.c_str(), "BIN")
 		) {
 			implicit_suffixed_files++;
 			last_implicit_suffixed_file = c;
@@ -65,7 +65,7 @@ static void InspectDataCatalogue(
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loadingCommand = RunCommandFor(data_catalogue->files[selected_file]);
+		target.loadingCommand = RunCommandFor(catalogue.files[selected_file]);
 		return;
 	}
 
@@ -75,16 +75,31 @@ static void InspectDataCatalogue(
 
 static void InspectSystemCatalogue(
 	const std::shared_ptr<Storage::Disk::Disk> &disk,
-	const std::unique_ptr<Storage::Disk::CPM::Catalogue> &catalogue,
+	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
-	// Check that the boot sector exists.
-	if(parser.get_sector(0, 0, 0x41) != nullptr) {
+
+	// Check that the boot sector exists and looks like it had content written to it.
+	std::shared_ptr<Storage::Encodings::MFM::Sector> boot_sector = parser.get_sector(0, 0, 0x41);
+	if(boot_sector != nullptr) {
+		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
+		// this disk was formatted and the filler byte never replaced.
+		bool matched = true;
+		for(size_t c = 1; c < 64; c++) {
+			if(boot_sector->data[c] != boot_sector->data[0]) {
+				matched = false;
+				break;
+			}
+		}
+
 		// This is a system disk, then launch it as though it were CP/M.
-		target.loadingCommand = "|cpm\n";
-	} else {
-		InspectDataCatalogue(catalogue, target);
+		if(!matched) {
+			target.loadingCommand = "|cpm\n";
+			return;
+		}
 	}
+
+	InspectDataCatalogue(catalogue, target);
 }
 
 void StaticAnalyser::AmstradCPC::AddTargets(
@@ -119,7 +134,7 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 
 		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), data_format);
 		if(data_catalogue) {
-			InspectDataCatalogue(data_catalogue, target);
+			InspectDataCatalogue(*data_catalogue, target);
 		} else {
 			Storage::Disk::CPM::ParameterBlock system_format;
 			system_format.sectors_per_track = 9;
@@ -131,7 +146,7 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), system_format);
 			if(system_catalogue) {
-				InspectSystemCatalogue(target.disks.front(), data_catalogue, target);
+				InspectSystemCatalogue(target.disks.front(), *system_catalogue, target);
 			}
 		}
 	}
