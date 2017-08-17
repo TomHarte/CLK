@@ -178,24 +178,18 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	}
 }
 
-void StaticAnalyser::Atari::AddTargets(
-		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-		std::list<StaticAnalyser::Target> &destination) {
-	// TODO: sanity checking; is this image really for an Atari 2600?
+void StaticAnalyser::Atari::AddTargets(const Media &media, std::list<Target> &destination) {
+	// TODO: sanity checking; is this image really for an Atari 2600.
 	Target target;
 	target.machine = Target::Atari2600;
 	target.probability = 1.0;
-	target.disks = disks;
-	target.tapes = tapes;
-	target.cartridges = cartridges;
+	target.media.cartridges = media.cartridges;
 	target.atari.paging_model = Atari2600PagingModel::None;
 	target.atari.uses_superchip = false;
 
 	// try to figure out the paging scheme
-	if(!cartridges.empty()) {
-		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridges.front()->get_segments();
+	if(!media.cartridges.empty()) {
+		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = media.cartridges.front()->get_segments();
 
 		if(segments.size() == 1) {
 			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();

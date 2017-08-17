@@ -128,28 +128,24 @@ static void InspectSystemCatalogue(
 	InspectDataCatalogue(catalogue, target);
 }
 
-void StaticAnalyser::AmstradCPC::AddTargets(
-	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-	std::list<StaticAnalyser::Target> &destination) {
+void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target> &destination) {
 	Target target;
 	target.machine = Target::AmstradCPC;
 	target.probability = 1.0;
-	target.disks = disks;
-	target.tapes = tapes;
-	target.cartridges = cartridges;
+	target.media.disks = media.disks;
+	target.media.tapes = media.tapes;
+	target.media.cartridges = media.cartridges;
 
 	target.amstradcpc.model = AmstradCPCModel::CPC6128;
 
-	if(!target.tapes.empty()) {
+	if(!target.media.tapes.empty()) {
 		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 		// enter and responding to the follow-on prompt to press a key, so just type for
 		// a while. Yuck!
 		target.loadingCommand = "|tape\nrun\"\n1234567890";
 	}
 
-	if(!target.disks.empty()) {
+	if(!target.media.disks.empty()) {
 		Storage::Disk::CPM::ParameterBlock data_format;
 		data_format.sectors_per_track = 9;
 		data_format.tracks = 40;
@@ -158,7 +154,7 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 		data_format.catalogue_allocation_bitmap = 0xc000;
 		data_format.reserved_tracks = 0;
 
-		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), data_format);
+		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), data_format);
 		if(data_catalogue) {
 			InspectDataCatalogue(*data_catalogue, target);
 		} else {
@@ -170,9 +166,9 @@ void StaticAnalyser::AmstradCPC::AddTargets(
 			system_format.catalogue_allocation_bitmap = 0xc000;
 			system_format.reserved_tracks = 2;
 
-			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.disks.front(), system_format);
+			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
 			if(system_catalogue) {
-				InspectSystemCatalogue(target.disks.front(), *system_catalogue, target);
+				InspectSystemCatalogue(target.media.disks.front(), *system_catalogue, target);
 			}
 		}
 	}

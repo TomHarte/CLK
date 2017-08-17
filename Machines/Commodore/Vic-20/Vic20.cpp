@@ -274,34 +274,6 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			if(target.tapes.size()) {
-				tape_->set_tape(target.tapes.front());
-			}
-
-			if(target.disks.size()) {
-				// construct the 1540
-				c1540_.reset(new ::Commodore::C1540::Machine);
-
-				// attach it to the serial bus
-				c1540_->set_serial_bus(serial_bus_);
-
-				// hand it the disk
-				c1540_->set_disk(target.disks.front());
-
-				// install the ROM if it was previously set
-				install_disk_rom();
-			}
-
-			if(target.cartridges.size()) {
-				rom_address_ = 0xa000;
-				std::vector<uint8_t> rom_image = target.cartridges.front()->get_segments().front().data;
-				rom_length_ = (uint16_t)(rom_image.size());
-
-				rom_ = new uint8_t[0x2000];
-				memcpy(rom_, rom_image.data(), rom_image.size());
-				write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
-			}
-
 			if(target.loadingCommand.length()) {
 				set_typer_for_string(target.loadingCommand.c_str());
 			}
@@ -317,6 +289,41 @@ class ConcreteMachine:
 					set_memory_size(ThirtyTwoKB);
 				break;
 			}
+
+			if(target.media.disks.size()) {
+				// construct the 1540
+				c1540_.reset(new ::Commodore::C1540::Machine);
+
+				// attach it to the serial bus
+				c1540_->set_serial_bus(serial_bus_);
+
+				// install the ROM if it was previously set
+				install_disk_rom();
+			}
+
+			insert_media(target.media);
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
+			if(!media.tapes.empty()) {
+				tape_->set_tape(media.tapes.front());
+			}
+
+			if(!media.disks.empty() && c1540_) {
+				c1540_->set_disk(media.disks.front());
+			}
+
+			if(!media.cartridges.empty()) {
+				rom_address_ = 0xa000;
+				std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
+				rom_length_ = (uint16_t)(rom_image.size());
+
+				rom_ = new uint8_t[0x2000];
+				memcpy(rom_, rom_image.data(), rom_image.size());
+				write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
+			}
+
+			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) {

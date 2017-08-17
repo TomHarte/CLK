@@ -139,11 +139,19 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
 
-- (void)applyTarget:(StaticAnalyser::Target)target {
+- (void)applyTarget:(const StaticAnalyser::Target &)target {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget =
 			dynamic_cast<ConfigurationTarget::Machine *>(self.machine);
 		if(configurationTarget) configurationTarget->configure_as_target(target);
+	}
+}
+
+- (void)applyMedia:(const StaticAnalyser::Media &)media {
+	@synchronized(self) {
+		ConfigurationTarget::Machine *const configurationTarget =
+			dynamic_cast<ConfigurationTarget::Machine *>(self.machine);
+		if(configurationTarget) configurationTarget->insert_media(media);
 	}
 }
 

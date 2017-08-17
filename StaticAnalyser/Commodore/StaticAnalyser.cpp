@@ -38,11 +38,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void StaticAnalyser::Commodore::AddTargets(
-		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-		std::list<StaticAnalyser::Target> &destination) {
+void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target> &destination) {
 	Target target;
 	target.machine = Target::Vic20;	// TODO: machine estimation
 	target.probability = 1.0; // TODO: a proper estimation
@@ -52,26 +48,26 @@ void StaticAnalyser::Commodore::AddTargets(
 	bool is_disk = false;
 
 	// strip out inappropriate cartridges
-	target.cartridges = Vic20CartridgesFrom(cartridges);
+	target.media.cartridges = Vic20CartridgesFrom(media.cartridges);
 
 	// check disks
-	for(auto &disk : disks) {
+	for(auto &disk : media.disks) {
 		std::list<File> disk_files = GetFiles(disk);
 		if(disk_files.size()) {
 			is_disk = true;
 			files.splice(files.end(), disk_files);
-			target.disks = disks;
+			target.media.disks.push_back(disk);
 			if(!device) device = 8;
 		}
 	}
 
 	// check tapes
-	for(auto &tape : tapes) {
+	for(auto &tape : media.tapes) {
 		std::list<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(tape_files.size()) {
 			files.splice(files.end(), tape_files);
-			target.tapes = tapes;
+			target.media.tapes.push_back(tape);
 			if(!device) device = 1;
 		}
 	}
@@ -140,6 +136,6 @@ void StaticAnalyser::Commodore::AddTargets(
 		}
 	}
 
-	if(target.tapes.size() || target.cartridges.size() || target.disks.size())
+	if(target.media.tapes.size() || target.media.cartridges.size() || target.media.disks.size())
 		destination.push_back(target);
 }

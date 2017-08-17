@@ -268,13 +268,19 @@ class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			if(target.tapes.size()) {
-				tape_player_.set_tape(target.tapes.front());
-			}
-
 			if(target.loadingCommand.length()) {
 				set_typer_for_string(target.loadingCommand.c_str());
 			}
+
+			insert_media(target.media);
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
+			if(!media.tapes.empty()) {
+				tape_player_.set_tape(media.tapes.front());
+			}
+
+			return !media.tapes.empty();
 		}
 
 		void set_typer_for_string(const char *string) {

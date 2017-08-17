@@ -15,11 +15,18 @@
 /*!
 	Requests that the delegate produce an image of its current output state. May be called on
 	any queue or thread.
-	@param view The view makin the request.
+	@param view The view making the request.
 	@param onlyIfDirty If @c YES then the delegate may decline to redraw if its output would be
 	identical to the previous frame. If @c NO then the delegate must draw.
 */
 - (void)openGLView:(nonnull CSOpenGLView *)view drawViewOnlyIfDirty:(BOOL)onlyIfDirty;
+
+/*!
+	Announces receipt of a file by drag and drop to the delegate.
+	@param view The view making the request.
+	@param URL The file URL of the received file.
+*/
+- (void)openGLView:(nonnull CSOpenGLView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
 
 @end
 

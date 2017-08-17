@@ -164,6 +164,13 @@ class MachineDocument:
 		}
 	}
 
+	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
+		let mediaSet = CSMediaSet(fileAt: URL)
+		if let mediaSet = mediaSet {
+			mediaSet.apply(to: self.machine)
+		}
+	}
+
 	// MARK: NSDocument overrides
 	override func data(ofType typeName: String) throws -> Data {
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
