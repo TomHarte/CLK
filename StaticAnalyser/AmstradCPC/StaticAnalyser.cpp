@@ -50,13 +50,34 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 static void InspectDataCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
-	// Make a copy of all files and filter out any that are marked as system.
 	std::vector<Storage::Disk::CPM::File> candidate_files = catalogue.files;
+
+	// Remove all files with untypable characters.
 	candidate_files.erase(
 		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
-			return file.system;
+			for(auto c : file.name) {
+				if(c < 32) return true;
+			}
+			return false;
 		}),
 		candidate_files.end());
+
+	// If that leaves a mix of 'system' (i.e. hidden) and non-system files, remove the system files.
+	bool are_all_system = true;
+	for(auto &file : candidate_files) {
+		if(!file.system) {
+			are_all_system = false;
+			break;
+		}
+	}
+
+	if(!are_all_system) {
+		candidate_files.erase(
+			std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
+				return file.system;
+			}),
+			candidate_files.end());
+	}
 
 	// If there's just one file, run that.
 	if(candidate_files.size() == 1) {
@@ -153,6 +174,15 @@ void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target
 		data_format.first_sector = 0xc1;
 		data_format.catalogue_allocation_bitmap = 0xc000;
 		data_format.reserved_tracks = 0;
+			Storage::Disk::CPM::ParameterBlock system_format;
+			system_format.sectors_per_track = 9;
+			system_format.tracks = 40;
+			system_format.block_size = 1024;
+			system_format.first_sector = 0x41;
+			system_format.catalogue_allocation_bitmap = 0xc000;
+			system_format.reserved_tracks = 2;
+
+			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
 
 		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), data_format);
 		if(data_catalogue) {
