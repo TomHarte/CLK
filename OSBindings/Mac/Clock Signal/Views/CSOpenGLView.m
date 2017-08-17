@@ -10,6 +10,9 @@
 @import CoreVideo;
 @import GLKit;
 
+@interface CSOpenGLView () <NSDraggingDestination>
+@end
+
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 }
@@ -105,6 +108,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	self.pixelFormat = pixelFormat;
 	self.openGLContext = context;
 	self.wantsBestResolutionOpenGLSurface = YES;
+
+	// Register to receive dragged and dropped file URLs.
+	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
 }
 
 - (void)drawRect:(NSRect)dirtyRect
@@ -148,6 +154,26 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 - (void)flagsChanged:(NSEvent *)theEvent
 {
 	[self.responderDelegate flagsChanged:theEvent];
+}
+
+#pragma mark - NSDraggingDestination
+
+- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+{
+	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems])
+	{
+		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
+
+		NSLog(@"%@", URL);
+		[self.delegate openGLView:self didReceiveFileAtURL:URL];
+	}
+	return YES;
+}
+
+- (NSDragOperation)draggingEntered:(id < NSDraggingInfo >)sender
+{
+	// we'll drag and drop, yeah?
+	return NSDragOperationLink;
 }
 
 @end

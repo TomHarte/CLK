@@ -53,6 +53,15 @@ enum class AmstradCPCModel {
 };
 
 /*!
+	A list of disks, tapes and cartridges.
+*/
+struct Media {
+	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
+	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
+	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
+};
+
+/*!
 	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
 */
@@ -102,10 +111,7 @@ struct Target {
 	};
 
 	std::string loadingCommand;
-
-	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
-	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
+	Media media;
 };
 
 /*!
@@ -114,6 +120,11 @@ struct Target {
 	@returns The list of potential targets, sorted from most to least probable.
 */
 std::list<Target> GetTargets(const char *file_name);
+
+/*!
+	Inspects the supplied file and determines the media included.
+*/
+Media GetMedia(const char *file_name);
 
 }
 

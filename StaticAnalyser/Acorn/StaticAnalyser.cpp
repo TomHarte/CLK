@@ -56,11 +56,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-void StaticAnalyser::Acorn::AddTargets(
-		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-		std::list<StaticAnalyser::Target> &destination) {
+void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &destination) {
 	Target target;
 	target.machine = Target::Electron;
 	target.probability = 1.0; // TODO: a proper estimation
@@ -69,11 +65,11 @@ void StaticAnalyser::Acorn::AddTargets(
 	target.acorn.should_shift_restart = false;
 
 	// strip out inappropriate cartridges
-	target.cartridges = AcornCartridgesFrom(cartridges);
+	target.media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// if there are any tapes, attempt to get data from the first
-	if(tapes.size() > 0) {
-		std::shared_ptr<Storage::Tape::Tape> tape = tapes.front();
+	if(media.tapes.size() > 0) {
+		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
 		std::list<File> files = GetFiles(tape);
 		tape->reset();
 
@@ -102,17 +98,17 @@ void StaticAnalyser::Acorn::AddTargets(
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
 			target.loadingCommand = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
 
-			target.tapes = tapes;
+			target.media.tapes = media.tapes;
 		}
 	}
 
-	if(disks.size() > 0) {
-		std::shared_ptr<Storage::Disk::Disk> disk = disks.front();
+	if(media.disks.size() > 0) {
+		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
-			target.disks = disks;
+			target.media.disks = media.disks;
 			target.acorn.has_dfs = !!dfs_catalogue;
 			target.acorn.has_adfs = !!adfs_catalogue;
 
@@ -124,6 +120,6 @@ void StaticAnalyser::Acorn::AddTargets(
 		}
 	}
 
-	if(target.tapes.size() || target.disks.size() || target.cartridges.size())
+	if(target.media.tapes.size() || target.media.disks.size() || target.media.cartridges.size())
 		destination.push_back(target);
 }

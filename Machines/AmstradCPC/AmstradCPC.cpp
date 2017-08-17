@@ -776,23 +776,29 @@ class ConcreteMachine:
 			read_pointers_[2] = write_pointers_[2];
 			read_pointers_[3] = roms_[upper_rom_].data();
 
+			// Type whatever is required.
+			if(target.loadingCommand.length()) {
+				set_typer_for_string(target.loadingCommand.c_str());
+			}
+
+			insert_media(target.media);
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
 			// If there are any tapes supplied, use the first of them.
-			if(!target.tapes.empty()) {
-				tape_player_.set_tape(target.tapes.front());
+			if(!media.tapes.empty()) {
+				tape_player_.set_tape(media.tapes.front());
 			}
 
 			// Insert up to four disks.
 			int c = 0;
-			for(auto &disk : target.disks) {
+			for(auto &disk : media.disks) {
 				fdc_.set_disk(disk, c);
 				c++;
 				if(c == 4) break;
 			}
 
-			// Type whatever is required.
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
-			}
+			return !media.tapes.empty() || (!media.disks.empty() && has_fdc_);
 		}
 
 		// See header; provides the system ROMs.

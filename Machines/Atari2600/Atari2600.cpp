@@ -45,7 +45,7 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			const std::vector<uint8_t> &rom = target.cartridges.front()->get_segments().front().data;
+			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
 			switch(target.atari.paging_model) {
 				case StaticAnalyser::Atari2600PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
 				case StaticAnalyser::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
@@ -79,6 +79,10 @@ class ConcreteMachine:
 					}
 				break;
 			}
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
+			return false;
 		}
 
 		void set_digital_input(Atari2600DigitalInput input, bool state) {

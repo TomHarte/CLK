@@ -53,6 +53,86 @@ enum class TargetPlatform: TargetPlatformType {
 
 using namespace StaticAnalyser;
 
+static Media GetMediaAndPlatforms(const char *file_name, TargetPlatformType &potential_platforms) {
+	// Get the extension, if any; it will be assumed that extensions are reliable, so an extension is a broad-phase
+	// test as to file format.
+	const char *mixed_case_extension = strrchr(file_name, '.');
+	char *lowercase_extension = nullptr;
+	if(mixed_case_extension) {
+		lowercase_extension = strdup(mixed_case_extension+1);
+		char *parser = lowercase_extension;
+		while(*parser) {
+			*parser = (char)tolower(*parser);
+			parser++;
+		}
+	}
+
+	Media result;
+#define Insert(list, class, platforms) \
+	list.emplace_back(new Storage::class(file_name));\
+	potential_platforms |= (TargetPlatformType)(platforms);\
+
+#define TryInsert(list, class, platforms) \
+	try {\
+		Insert(list, class, platforms) \
+	} catch(...) {}
+
+#define Format(extension, list, class, platforms) \
+	if(!strcmp(lowercase_extension, extension))	{	\
+		TryInsert(list, class, platforms)	\
+	}
+
+	if(lowercase_extension) {
+		Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 80
+		Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 81
+		Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
+		Format("adf", result.disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
+		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
+		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)						// CDT
+		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
+		Format("d64", result.disks, Disk::D64, TargetPlatform::Commodore)						// D64
+		Format("dsd", result.disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
+		Format("dsk", result.disks, Disk::CPCDSK, TargetPlatform::AmstradCPC)					// DSK (Amstrad CPC)
+		Format("dsk", result.disks, Disk::OricMFMDSK, TargetPlatform::Oric)						// DSK (Oric)
+		Format("g64", result.disks, Disk::G64, TargetPlatform::Commodore)						// G64
+		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
+		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P
+		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P81
+
+		// PRG
+		if(!strcmp(lowercase_extension, "prg")) {
+			// try instantiating as a ROM; failing that accept as a tape
+			try {
+				Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore)
+			} catch(...) {
+				try {
+					Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore)
+				} catch(...) {}
+			}
+		}
+
+		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
+		Format("ssd", result.disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
+		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
+		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
+		Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)						// TZX
+		Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
+
+#undef Format
+#undef Insert
+#undef TryInsert
+
+		free(lowercase_extension);
+	}
+
+	return result;
+}
+
+Media StaticAnalyser::GetMedia(const char *file_name) {
+	TargetPlatformType throwaway;
+	return GetMediaAndPlatforms(file_name, throwaway);
+}
+
 std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 	std::list<Target> targets;
 
@@ -71,80 +151,21 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
-	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
-	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
 	TargetPlatformType potential_platforms = 0;
+	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
 
-#define Insert(list, class, platforms) \
-	list.emplace_back(new Storage::class(file_name));\
-	potential_platforms |= (TargetPlatformType)(platforms);\
-
-#define TryInsert(list, class, platforms) \
-	try {\
-		Insert(list, class, platforms) \
-	} catch(...) {}
-
-#define Format(extension, list, class, platforms) \
-	if(!strcmp(lowercase_extension, extension))	{	\
-		TryInsert(list, class, platforms)	\
-	}
-
-	if(lowercase_extension) {
-		Format("80", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 80
-		Format("81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 81
-		Format("a26", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
-		Format("adf", disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
-		Format("bin", cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
-		Format("cdt", tapes, Tape::TZX,	TargetPlatform::AmstradCPC)						// CDT
-		Format("csw", tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
-		Format("d64", disks, Disk::D64, TargetPlatform::Commodore)						// D64
-		Format("dsd", disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
-		Format("dsk", disks, Disk::CPCDSK, TargetPlatform::AmstradCPC)					// DSK (Amstrad CPC)
-		Format("dsk", disks, Disk::OricMFMDSK, TargetPlatform::Oric)					// DSK (Oric)
-		Format("g64", disks, Disk::G64, TargetPlatform::Commodore)						// G64
-		Format("o", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
-		Format("p", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P
-		Format("p81", tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)					// P81
-
-		// PRG
-		if(!strcmp(lowercase_extension, "prg")) {
-			// try instantiating as a ROM; failing that accept as a tape
-			try {
-				Insert(cartridges, Cartridge::PRG, TargetPlatform::Commodore)
-			} catch(...) {
-				try {
-					Insert(tapes, Tape::PRG, TargetPlatform::Commodore)
-				} catch(...) {}
-			}
-		}
-
-		Format("rom", cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
-		Format("ssd", disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
-		Format("tap", tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
-		Format("tap", tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
-		Format("tzx", tapes, Tape::TZX, TargetPlatform::ZX8081)						// TZX
-		Format("uef", tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
-
-#undef Format
-#undef Insert
-#undef TryInsert
-
-		// Hand off to platform-specific determination of whether these things are actually compatible and,
-		// if so, how to load them. (TODO)
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)			Acorn::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)		Atari::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)		Commodore::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)			Oric::AddTargets(disks, tapes, cartridges, targets);
-		if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)		ZX8081::AddTargets(disks, tapes, cartridges, targets);
-
-		free(lowercase_extension);
-	}
+	// Hand off to platform-specific determination of whether these things are actually compatible and,
+	// if so, how to load them.
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)			Acorn::AddTargets(media, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)			Oric::AddTargets(media, targets);
+	if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets);
 
 	// Reset any tapes to their initial position
 	for(auto target : targets) {
-		for(auto tape : target.tapes) {
+		for(auto tape : media.tapes) {
 			tape->reset();
 		}
 	}

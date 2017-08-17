@@ -164,6 +164,10 @@ class MachineDocument:
 		}
 	}
 
+	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
+		// TODO: pass to machine.
+	}
+
 	// MARK: NSDocument overrides
 	override func data(ofType typeName: String) throws -> Data {
 		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)

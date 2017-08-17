@@ -91,24 +91,14 @@ class ConcreteMachine:
 
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			if(target.tapes.size()) {
-				via_.tape->set_tape(target.tapes.front());
-			}
-
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
-			}
-
 			if(target.oric.has_microdisc) {
 				microdisc_is_enabled_ = true;
 				microdisc_did_change_paging_flags(&microdisc_);
 				microdisc_.set_delegate(this);
 			}
 
-			int drive_index = 0;
-			for(auto disk : target.disks) {
-				if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
-				drive_index++;
+			if(target.loadingCommand.length()) {
+				set_typer_for_string(target.loadingCommand.c_str());
 			}
 
 			if(target.oric.use_atmos_rom) {
@@ -126,6 +116,22 @@ class ConcreteMachine:
 				scan_keyboard_address_ = 0xf43c;
 				tape_speed_address_ = 0x67;
 			}
+
+			insert_media(target.media);
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
+			if(media.tapes.size()) {
+				via_.tape->set_tape(media.tapes.front());
+			}
+
+			int drive_index = 0;
+			for(auto disk : media.disks) {
+				if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
+				drive_index++;
+			}
+
+			return !media.tapes.empty() || (!media.disks.empty() && microdisc_is_enabled_);
 		}
 
 		// to satisfy CPU::MOS6502::BusHandler

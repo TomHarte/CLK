@@ -14,12 +14,7 @@
 namespace StaticAnalyser {
 namespace Atari {
 
-void AddTargets(
-	const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-	const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-	const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-	std::list<Target> &destination
-);
+void AddTargets(const Media &media, std::list<Target> &destination);
 
 }
 }

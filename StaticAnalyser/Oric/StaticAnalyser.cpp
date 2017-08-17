@@ -72,11 +72,7 @@ static int Basic11Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
-void StaticAnalyser::Oric::AddTargets(
-		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-		std::list<StaticAnalyser::Target> &destination) {
+void StaticAnalyser::Oric::AddTargets(const Media &media, std::list<Target> &destination) {
 	Target target;
 	target.machine = Target::Oric;
 	target.probability = 1.0;
@@ -84,7 +80,7 @@ void StaticAnalyser::Oric::AddTargets(
 	int basic10_votes = 0;
 	int basic11_votes = 0;
 
-	for(auto &tape : tapes) {
+	for(auto &tape : media.tapes) {
 		std::list<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(tape_files.size()) {
@@ -100,15 +96,15 @@ void StaticAnalyser::Oric::AddTargets(
 				}
 			}
 
-			target.tapes.push_back(tape);
+			target.media.tapes.push_back(tape);
 			target.loadingCommand = "CLOAD\"\"\n";
 		}
 	}
 
 	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
-	if(!disks.empty()) {
+	if(!media.disks.empty()) {
 		target.oric.has_microdisc = true;
-		target.disks = disks;
+		target.media.disks = media.disks;
 	} else {
 		target.oric.has_microdisc = false;
 	}
@@ -117,6 +113,6 @@ void StaticAnalyser::Oric::AddTargets(
 	target.oric.use_atmos_rom = basic11_votes >= basic10_votes;
 	if(target.oric.has_microdisc) target.oric.use_atmos_rom = true;
 
-	if(target.tapes.size() || target.disks.size() || target.cartridges.size())
+	if(target.media.tapes.size() || target.media.disks.size() || target.media.cartridges.size())
 		destination.push_back(target);
 }

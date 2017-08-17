@@ -81,11 +81,15 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) {
-			if(target.tapes.size()) {
-				tape_.set_tape(target.tapes.front());
+			if(target.loadingCommand.length()) {
+				set_typer_for_string(target.loadingCommand.c_str());
 			}
 
-			if(target.disks.size()) {
+			if(target.acorn.should_shift_restart) {
+				shift_restart_counter_ = 1000000;
+			}
+
+			if(target.acorn.has_dfs || target.acorn.has_adfs) {
 				plus3_.reset(new Plus3);
 
 				if(target.acorn.has_dfs) {
@@ -95,23 +99,27 @@ class ConcreteMachine:
 					set_rom(ROMSlot4, adfs_, true);
 					set_rom(ROMSlot5, std::vector<uint8_t>(adfs_.begin() + 16384, adfs_.end()), true);
 				}
+			}
 
-				plus3_->set_disk(target.disks.front(), 0);
+			insert_media(target.media);
+		}
+
+		bool insert_media(const StaticAnalyser::Media &media) {
+			if(!media.tapes.empty()) {
+				tape_.set_tape(media.tapes.front());
+			}
+
+			if(!media.disks.empty() && plus3_) {
+				plus3_->set_disk(media.disks.front(), 0);
 			}
 
 			ROMSlot slot = ROMSlot12;
-			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : target.cartridges) {
+			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
 				set_rom(slot, cartridge->get_segments().front().data, false);
 				slot = (ROMSlot)(((int)slot + 1)&15);
 			}
 
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
-			}
-
-			if(target.acorn.should_shift_restart) {
-				shift_restart_counter_ = 1000000;
-			}
+			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
 		}
 
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {

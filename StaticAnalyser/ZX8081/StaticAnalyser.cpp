@@ -27,15 +27,10 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 	return files;
 }
 
-void StaticAnalyser::ZX8081::AddTargets(
-		const std::list<std::shared_ptr<Storage::Disk::Disk>> &disks,
-		const std::list<std::shared_ptr<Storage::Tape::Tape>> &tapes,
-		const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges,
-		std::list<StaticAnalyser::Target> &destination) {
-
-	if(!tapes.empty()) {
-		std::vector<Storage::Data::ZX8081::File> files = GetFiles(tapes.front());
-		tapes.front()->reset();
+void StaticAnalyser::ZX8081::AddTargets(const Media &media, std::list<Target> &destination) {
+	if(!media.tapes.empty()) {
+		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());
+		media.tapes.front()->reset();
 		if(!files.empty()) {
 			StaticAnalyser::Target target;
 			target.machine = Target::ZX8081;
@@ -47,7 +42,7 @@ void StaticAnalyser::ZX8081::AddTargets(
 			} else {
 				target.zx8081.memory_model = ZX8081MemoryModel::Unexpanded;
 			}
-			target.tapes = tapes;
+			target.media.tapes = media.tapes;
 
 			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
 			if(target.zx8081.isZX81) {
