@@ -53,7 +53,7 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 	return command + "\n";
 }
 
-static void InspectDataCatalogue(
+static void InspectCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
 	std::vector<Storage::Disk::CPM::File> candidate_files = catalogue.files;
@@ -145,13 +145,8 @@ static void InspectDataCatalogue(
 	target.loadingCommand = "cat\n";
 }
 
-static void InspectSystemCatalogue(
-	const std::shared_ptr<Storage::Disk::Disk> &disk,
-	const Storage::Disk::CPM::Catalogue &catalogue,
-	StaticAnalyser::Target &target) {
+static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, StaticAnalyser::Target &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
-
-	// Check that the boot sector exists and looks like it had content written to it.
 	std::shared_ptr<Storage::Encodings::MFM::Sector> boot_sector = parser.get_sector(0, 0, 0x41);
 	if(boot_sector != nullptr) {
 		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
@@ -167,11 +162,11 @@ static void InspectSystemCatalogue(
 		// This is a system disk, then launch it as though it were CP/M.
 		if(!matched) {
 			target.loadingCommand = "|cpm\n";
-			return;
+			return true;
 		}
 	}
 
-	InspectDataCatalogue(catalogue, target);
+	return false;
 }
 
 void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target> &destination) {
@@ -202,19 +197,21 @@ void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target
 
 		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), data_format);
 		if(data_catalogue) {
-			InspectDataCatalogue(*data_catalogue, target);
+			InspectCatalogue(*data_catalogue, target);
 		} else {
-			Storage::Disk::CPM::ParameterBlock system_format;
-			system_format.sectors_per_track = 9;
-			system_format.tracks = 40;
-			system_format.block_size = 1024;
-			system_format.first_sector = 0x41;
-			system_format.catalogue_allocation_bitmap = 0xc000;
-			system_format.reserved_tracks = 2;
+			if(!CheckBootSector(target.media.disks.front(), target)) {
+				Storage::Disk::CPM::ParameterBlock system_format;
+				system_format.sectors_per_track = 9;
+				system_format.tracks = 40;
+				system_format.block_size = 1024;
+				system_format.first_sector = 0x41;
+				system_format.catalogue_allocation_bitmap = 0xc000;
+				system_format.reserved_tracks = 2;
 
-			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
-			if(system_catalogue) {
-				InspectSystemCatalogue(target.media.disks.front(), *system_catalogue, target);
+				std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
+				if(system_catalogue) {
+					InspectCatalogue(*system_catalogue, target);
+				}
 			}
 		}
 	}
