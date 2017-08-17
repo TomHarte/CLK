@@ -69,3 +69,21 @@
 }
 
 @end
+
+@implementation CSMediaSet {
+	StaticAnalyser::Media _media;
+}
+
+- (instancetype)initWithFileAtURL:(NSURL *)url {
+	self = [super init];
+	if(self) {
+		_media = StaticAnalyser::GetMedia([url fileSystemRepresentation]);
+	}
+	return self;
+}
+
+- (void)applyToMachine:(CSMachine *)machine {
+	[machine applyMedia:_media];
+}
+
+@end

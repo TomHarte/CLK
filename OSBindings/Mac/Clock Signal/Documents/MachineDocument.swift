@@ -165,7 +165,10 @@ class MachineDocument:
 	}
 
 	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
-		// TODO: pass to machine.
+		let mediaSet = CSMediaSet(fileAt: URL)
+		if let mediaSet = mediaSet {
+			mediaSet.apply(to: self.machine)
+		}
 	}
 
 	// MARK: NSDocument overrides

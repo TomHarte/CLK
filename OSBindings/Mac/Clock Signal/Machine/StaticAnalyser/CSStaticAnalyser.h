@@ -22,3 +22,10 @@
 - (void)applyToMachine:(CSMachine *)machine;
 
 @end
+
+@interface CSMediaSet : NSObject
+
+- (instancetype)initWithFileAtURL:(NSURL *)url;
+- (void)applyToMachine:(CSMachine *)machine;
+
+@end
