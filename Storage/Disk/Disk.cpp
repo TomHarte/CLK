@@ -37,6 +37,7 @@ std::shared_ptr<Track> Disk::get_track_at_position(unsigned int head, unsigned i
 
 	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 	std::shared_ptr<Track> track = get_uncached_track_at_position(head, position);
+	if(!track) return nullptr;
 	cached_tracks_[address] = track;
 	return track;
 }

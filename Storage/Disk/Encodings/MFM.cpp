@@ -11,6 +11,8 @@
 #include "../PCMTrack.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 
+#include <set>
+
 using namespace Storage::Encodings::MFM;
 
 class MFMEncoder: public Encoder {
@@ -173,6 +175,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	}
 
 	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
+	if(segment.data.size() > expected_track_bytes) segment.data.resize(expected_track_bytes);
 
 	segment.number_of_bits = (unsigned int)(segment.data.size() * 8);
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
@@ -273,13 +276,20 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 	seek_to_track(track);
 	int track_index = get_index(head, track, 0);
 
-	// Populate the sector cache if it's not already populated.
+	// Populate the sector cache if it's not already populated by asking for sectors unless and until
+	// one is returned that has already been seen.
 	if(decoded_tracks_.find(track_index) == decoded_tracks_.end()) {
 		std::shared_ptr<Sector> first_sector = get_next_sector();
+		std::set<uint8_t> visited_sectors;
 		if(first_sector) {
 			while(1) {
 				std::shared_ptr<Sector> next_sector = get_next_sector();
-				if(!next_sector || next_sector->sector == first_sector->sector) break;
+				if(next_sector) {
+					if(visited_sectors.find(next_sector->sector) != visited_sectors.end()) {
+						break;
+					}
+					visited_sectors.insert(next_sector->sector);
+				}
 			}
 		}
 		decoded_tracks_.insert(track_index);

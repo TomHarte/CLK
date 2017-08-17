@@ -57,8 +57,14 @@ std::shared_ptr<Track> CPCDSK::get_uncached_track_at_position(unsigned int head,
 	// All DSK images reserve 0x100 bytes for their headers.
 	long file_offset = 0x100;
 	if(is_extended_) {
-		// Tracks are a variable size in the original DSK file format; sum the lengths
-		// of all tracks prior to the interesting one to get a file offset.
+		// Tracks are a variable size in the original DSK file format.
+
+		// Check that there is anything stored for this track.
+		if(!track_sizes_[chronological_track]) {
+			return nullptr;
+		}
+
+		// Sum the lengths of all tracks prior to the interesting one to get a file offset.
 		unsigned int t = 0;
 		while(t < chronological_track && t < track_sizes_.size()) {
 			file_offset += track_sizes_[t];
