@@ -28,19 +28,25 @@ static bool is_implied_extension(const std::string &extension) {
 		strcmp_insensitive(extension.c_str(), "BIN");
 }
 
+static void right_trim(std::string &string) {
+	string.erase(std::find_if(string.rbegin(), string.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), string.end());
+}
+
 static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 	// Trim spaces from the name.
 	std::string name = file.name;
-	name.erase(std::find_if(name.rbegin(), name.rend(), [](int ch) {
-        return !std::isspace(ch);
-    }).base(), name.end());
+	right_trim(name);
 
 	// Form the basic command.
 	std::string command = "run\"" + name;
 
 	// Consider whether the extension is required.
 	if(!is_implied_extension(file.type)) {
-		command += "." + file.type;
+		std::string type = file.type;
+		right_trim(type);
+		command += "." + type;
 	}
 
 	// Add a newline and return.
@@ -114,6 +120,25 @@ static void InspectDataCatalogue(
 		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
 		target.loadingCommand = RunCommandFor(candidate_files[selected_file]);
 		return;
+	}
+
+	// One more guess: if only one remaining candidate file has a different name than the others,
+	// assume it is intended to stand out.
+	std::map<std::string, int> name_counts;
+	std::map<std::string, size_t> indices_by_name;
+	size_t index = 0;
+	for(auto &file : candidate_files) {
+		name_counts[file.name]++;
+		indices_by_name[file.name] = index;
+		index++;
+	}
+	if(name_counts.size() == 2) {
+		for(auto &pair : name_counts) {
+			if(pair.second == 1) {
+				target.loadingCommand = RunCommandFor(candidate_files[indices_by_name[pair.first]]);
+				return;
+			}
+		}
 	}
 
 	// Desperation.
