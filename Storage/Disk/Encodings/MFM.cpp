@@ -173,6 +173,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	}
 
 	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
+	if(segment.data.size() > expected_track_bytes) segment.data.resize(expected_track_bytes);
 
 	segment.number_of_bits = (unsigned int)(segment.data.size() * 8);
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
