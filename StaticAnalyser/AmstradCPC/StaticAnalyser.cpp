@@ -21,8 +21,30 @@ static bool strcmp_insensitive(const char *a, const char *b) {
 	return true;
 }
 
+static bool is_implied_extension(const std::string &extension) {
+	return
+		extension == "   " ||
+		strcmp_insensitive(extension.c_str(), "BAS") ||
+		strcmp_insensitive(extension.c_str(), "BIN");
+}
+
 static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
-	return "run\"" + file.name + "\n";
+	// Trim spaces from the name.
+	std::string name = file.name;
+	name.erase(std::find_if(name.rbegin(), name.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), name.end());
+
+	// Form the basic command.
+	std::string command = "run\"" + name;
+
+	// Consider whether the extension is required.
+	if(!is_implied_extension(file.type)) {
+		command += "." + file.type;
+	}
+
+	// Add a newline and return.
+	return command + "\n";
 }
 
 static void InspectDataCatalogue(
@@ -62,11 +84,7 @@ static void InspectDataCatalogue(
 		}
 
 		// Check suffix for emptiness.
-		if(
-			candidate_files[c].type == "   " ||
-			strcmp_insensitive(candidate_files[c].type.c_str(), "BAS") ||
-			strcmp_insensitive(candidate_files[c].type.c_str(), "BIN")
-		) {
+		if(is_implied_extension(candidate_files[c].type)) {
 			implicit_suffixed_files++;
 			last_implicit_suffixed_file = c;
 		}
