@@ -40,6 +40,10 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 |![Repton 3 in game, with a classic 1:1 pixel emulation](READMEImages/NaiveRepton3.png)|![Repton 3 in game, decoded from an interlaced composite feed](READMEImages/CompositeRepton3.png)|
 |![Stormlord with a classic 1:1 pixel emulation](READMEImages/NaiveStormlord.png)|![Stormlord decoded from an interlaced composite feed](READMEImages/CompositeStormlord.png)|
 
+| 1:1 Pixel Copying | Correct Aspect Ratio, Filtered |
+|---|---|
+|![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
+
 <img src="READMEImages/ReptonInterlaced.gif" height=600 alt="Repton title screen, interlaced">
 
 ## Low Latency
