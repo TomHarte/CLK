@@ -28,9 +28,17 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 static void InspectDataCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
+	// Make a copy of all files and filter out any that are marked as system.
+	std::vector<Storage::Disk::CPM::File> candidate_files = catalogue.files;
+	candidate_files.erase(
+		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
+			return file.system;
+		}),
+		candidate_files.end());
+
 	// If there's just one file, run that.
-	if(catalogue.files.size() == 1) {
-		target.loadingCommand = RunCommandFor(catalogue.files[0]);
+	if(candidate_files.size() == 1) {
+		target.loadingCommand = RunCommandFor(candidate_files[0]);
 		return;
 	}
 
@@ -42,22 +50,22 @@ static void InspectDataCatalogue(
 	size_t last_basic_file = 0;
 	size_t last_implicit_suffixed_file = 0;
 
-	for(size_t c = 0; c < catalogue.files.size(); c++) {
+	for(size_t c = 0; c < candidate_files.size(); c++) {
 		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
-		if(catalogue.files[c].type == "   " && catalogue.files[c].name == "        ")
+		if(candidate_files[c].type == "   " && candidate_files[c].name == "        ")
 			continue;
 
 		// Check for whether this is [potentially] BASIC.
-		if(catalogue.files[c].data.size() >= 128 && !((catalogue.files[c].data[18] >> 1) & 7)) {
+		if(candidate_files[c].data.size() >= 128 && !((candidate_files[c].data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
 
 		// Check suffix for emptiness.
 		if(
-			catalogue.files[c].type == "   " ||
-			strcmp_insensitive(catalogue.files[c].type.c_str(), "BAS") ||
-			strcmp_insensitive(catalogue.files[c].type.c_str(), "BIN")
+			candidate_files[c].type == "   " ||
+			strcmp_insensitive(candidate_files[c].type.c_str(), "BAS") ||
+			strcmp_insensitive(candidate_files[c].type.c_str(), "BIN")
 		) {
 			implicit_suffixed_files++;
 			last_implicit_suffixed_file = c;
@@ -65,7 +73,7 @@ static void InspectDataCatalogue(
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loadingCommand = RunCommandFor(catalogue.files[selected_file]);
+		target.loadingCommand = RunCommandFor(candidate_files[selected_file]);
 		return;
 	}
 
