@@ -199,15 +199,6 @@ void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target
 		data_format.first_sector = 0xc1;
 		data_format.catalogue_allocation_bitmap = 0xc000;
 		data_format.reserved_tracks = 0;
-			Storage::Disk::CPM::ParameterBlock system_format;
-			system_format.sectors_per_track = 9;
-			system_format.tracks = 40;
-			system_format.block_size = 1024;
-			system_format.first_sector = 0x41;
-			system_format.catalogue_allocation_bitmap = 0xc000;
-			system_format.reserved_tracks = 2;
-
-			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
 
 		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), data_format);
 		if(data_catalogue) {

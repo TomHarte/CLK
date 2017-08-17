@@ -46,8 +46,6 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		catalogue_allocation_bitmap <<= 1;
 	}
 
-	printf("%lu\n", catalogue.size());
-
 	std::unique_ptr<Catalogue> result(new Catalogue);
 	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * (int)sector_size / parameters.block_size) >= 256;
 	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 16 : 8) * (size_t)parameters.block_size;
