@@ -812,7 +812,7 @@ class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_frequency() {
-			return Cycles(80000);	// Type one character per frame.
+			return Cycles(160000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
