@@ -24,23 +24,29 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 	int track = parameters.reserved_tracks;
 	while(catalogue_allocation_bitmap) {
 		if(catalogue_allocation_bitmap & 0x8000) {
-			std::shared_ptr<Storage::Encodings::MFM::Sector> sector_contents = parser.get_sector(0, (uint8_t)track, (uint8_t)(parameters.first_sector + sector));
-			if(!sector_contents) {
-				return nullptr;
-			}
+			size_t size_read = 0;
+			do {
+				std::shared_ptr<Storage::Encodings::MFM::Sector> sector_contents = parser.get_sector(0, (uint8_t)track, (uint8_t)(parameters.first_sector + sector));
+				if(!sector_contents) {
+					return nullptr;
+				}
 
-			catalogue.insert(catalogue.end(), sector_contents->data.begin(), sector_contents->data.end());
-			sector_size = sector_contents->data.size();
+				catalogue.insert(catalogue.end(), sector_contents->data.begin(), sector_contents->data.end());
+				sector_size = sector_contents->data.size();
+
+				size_read += sector_size;
+				sector++;
+				if(sector == parameters.sectors_per_track) {
+					sector = 0;
+					track++;
+				}
+			} while(size_read < (size_t)parameters.block_size);
 		}
 
 		catalogue_allocation_bitmap <<= 1;
-
-		sector++;
-		if(sector == parameters.sectors_per_track) {
-			sector = 0;
-			track++;
-		}
 	}
+
+	printf("%lu\n", catalogue.size());
 
 	std::unique_ptr<Catalogue> result(new Catalogue);
 	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * (int)sector_size / parameters.block_size) >= 256;
