@@ -43,6 +43,7 @@ class HFE: public Disk, public Storage::FileHolder {
 
 		unsigned int head_count_;
 		unsigned int track_count_;
+		long track_list_offset_;
 };
 
 }
