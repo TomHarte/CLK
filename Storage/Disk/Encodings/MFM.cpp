@@ -231,7 +231,7 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 #pragma mark - Parser
 
 Parser::Parser(bool is_mfm) :
-		Storage::Disk::Controller(4000000, 1, 300),
+		Storage::Disk::Controller(4000000, 32, 300),
 		crc_generator_(0x1021, 0xffff),
 		shift_register_(0), is_mfm_(is_mfm),
 		track_(0), head_(0) {
