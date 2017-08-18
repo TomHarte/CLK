@@ -442,6 +442,7 @@
 		4BF8295D1D8F048B001BAE39 /* MFM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8295B1D8F048B001BAE39 /* MFM.cpp */; };
 		4BF829631D8F536B001BAE39 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829611D8F536B001BAE39 /* SSD.cpp */; };
 		4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
+		4BFB9FAE1F467D3A00960122 /* HFE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFB9FAC1F467D3A00960122 /* HFE.cpp */; };
 		4BFCA1201ECBDC1500AC40C1 /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA11D1ECBD9BD00AC40C1 /* Z80AllRAM.cpp */; };
 		4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */; };
 		4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */; };
@@ -1067,6 +1068,8 @@
 		4BF829641D8F732B001BAE39 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Acorn/Disk.cpp; sourceTree = "<group>"; };
 		4BF829651D8F732B001BAE39 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Disk.hpp; path = ../../StaticAnalyser/Acorn/Disk.hpp; sourceTree = "<group>"; };
 		4BF829681D8F7361001BAE39 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = File.hpp; path = ../../StaticAnalyser/Acorn/File.hpp; sourceTree = "<group>"; };
+		4BFB9FAC1F467D3A00960122 /* HFE.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFE.cpp; sourceTree = "<group>"; };
+		4BFB9FAD1F467D3A00960122 /* HFE.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = HFE.hpp; sourceTree = "<group>"; };
 		4BFCA11D1ECBD9BD00AC40C1 /* Z80AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Z80AllRAM.cpp; path = Z80/Z80AllRAM.cpp; sourceTree = "<group>"; };
 		4BFCA11E1ECBD9BD00AC40C1 /* Z80AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80AllRAM.hpp; path = Z80/Z80AllRAM.hpp; sourceTree = "<group>"; };
 		4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AllRAMProcessor.cpp; sourceTree = "<group>"; };
@@ -1587,6 +1590,8 @@
 				4BF829621D8F536B001BAE39 /* SSD.hpp */,
 				4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */,
 				4B838F1E1F35FDCD0016B5E6 /* CPCDSK.hpp */,
+				4BFB9FAC1F467D3A00960122 /* HFE.cpp */,
+				4BFB9FAD1F467D3A00960122 /* HFE.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2819,6 +2824,7 @@
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
+				4BFB9FAE1F467D3A00960122 /* HFE.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

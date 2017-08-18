@@ -27,6 +27,7 @@
 #include "../Storage/Disk/Formats/CPCDSK.hpp"
 #include "../Storage/Disk/Formats/D64.hpp"
 #include "../Storage/Disk/Formats/G64.hpp"
+#include "../Storage/Disk/Formats/HFE.hpp"
 #include "../Storage/Disk/Formats/OricMFMDSK.hpp"
 #include "../Storage/Disk/Formats/SSD.hpp"
 
@@ -48,7 +49,8 @@ enum class TargetPlatform: TargetPlatformType {
 	Oric		=	1 << 4,
 	ZX8081		=	1 << 5,
 
-	AllTape		= Acorn | Commodore | Oric | ZX8081 | AmstradCPC,
+	AllTape		= Acorn | AmstradCPC | Commodore | Oric | ZX8081,
+	AllDisk		= Acorn | AmstradCPC | Commodore | Oric,
 };
 
 using namespace StaticAnalyser;
@@ -95,6 +97,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatformType &pot
 		Format("dsk", result.disks, Disk::CPCDSK, TargetPlatform::AmstradCPC)					// DSK (Amstrad CPC)
 		Format("dsk", result.disks, Disk::OricMFMDSK, TargetPlatform::Oric)						// DSK (Oric)
 		Format("g64", result.disks, Disk::G64, TargetPlatform::Commodore)						// G64
+		Format("hfe", result.disks, Disk::HFE, TargetPlatform::AmstradCPC)						// HFE (TODO: plus other target platforms)
 		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
 		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P
 		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P81
