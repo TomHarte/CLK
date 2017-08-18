@@ -53,6 +53,7 @@ std::shared_ptr<Track> HFE::get_uncached_track_at_position(unsigned int head, un
 	PCMSegment segment;
 	uint16_t side_length = track_length / 2;
 	segment.data.resize(side_length);
+	segment.number_of_bits = side_length * 8;
 
 	uint16_t c = 0;
 	while(c < side_length) {
@@ -60,6 +61,24 @@ std::shared_ptr<Track> HFE::get_uncached_track_at_position(unsigned int head, un
 		fread(&segment.data[c], 1, length, file_);
 		c += length;
 		fseek(file_, 256, SEEK_CUR);
+	}
+
+	// Flip bytes; HFE's preference is that the least-significant bit
+	// is serialised first, but PCMTrack posts the most-significant first.
+	for(size_t i = 0; i < segment.data.size(); i++) {
+		uint8_t original = segment.data[i];
+		uint8_t flipped_byte =
+			(uint8_t)(
+				((original & 0x01) << 7) |
+				((original & 0x02) << 5) |
+				((original & 0x04) << 3) |
+				((original & 0x08) << 1) |
+				((original & 0x10) >> 1) |
+				((original & 0x20) >> 3) |
+				((original & 0x40) >> 5) |
+				((original & 0x80) >> 7)
+			);
+		segment.data[i] = flipped_byte;
 	}
 
 	std::shared_ptr<Track> track(new PCMTrack(segment));
