@@ -102,7 +102,8 @@ class i8272: public Storage::Disk::MFMController {
 			Drive() :
 				head_position(0), phase(NotSeeking),
 				drive(new Storage::Disk::Drive),
-				head_is_loaded{false, false} {};
+				head_is_loaded{false, false},
+				head_unload_delay{0, 0} {};
 		} drives_[4];
 		int drives_seeking_;
 
