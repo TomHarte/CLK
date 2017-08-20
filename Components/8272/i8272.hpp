@@ -128,6 +128,8 @@ class i8272: public Storage::Disk::MFMController {
 		// Internal registers.
 		uint8_t cylinder_, head_, sector_, size_;
 
+		// Master switch on not performing any work.
+		bool is_sleeping_;
 };
 
 }
