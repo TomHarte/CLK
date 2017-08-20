@@ -129,19 +129,20 @@ void i8272::run_for(Cycles cycles) {
 	// check for any head unloads
 	if(head_timers_running_) {
 		int timers_left = head_timers_running_;
-		for(int c = 0; c < 4; c++) {
-			for(int h = 0; h < 2; h++) {
-				if(drives_[c].head_unload_delay[c] > 0) {
-					if(cycles.as_int() >= drives_[c].head_unload_delay[c]) {
-						drives_[c].head_unload_delay[c] = 0;
-						drives_[c].head_is_loaded[c] = false;
-						head_timers_running_--;
-					} else {
-						drives_[c].head_unload_delay[c] -= cycles.as_int();
-					}
-					timers_left--;
-					if(!timers_left) return;
+		for(int c = 0; c < 8; c++) {
+			int drive = (c >> 1);
+			int head = c&1;
+
+			if(drives_[drive].head_unload_delay[head] > 0) {
+				if(cycles.as_int() >= drives_[drive].head_unload_delay[head]) {
+					drives_[drive].head_unload_delay[head] = 0;
+					drives_[drive].head_is_loaded[head] = false;
+					head_timers_running_--;
+				} else {
+					drives_[drive].head_unload_delay[head] -= cycles.as_int();
 				}
+				timers_left--;
+				if(!timers_left) break;
 			}
 		}
 	}
