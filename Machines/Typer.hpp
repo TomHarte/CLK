@@ -107,12 +107,21 @@ class TypeRecipient: public Typer::Delegate {
 		*/
 		void typer_reset(Typer *typer) {
 			clear_all_keys();
+
+			// It's unsafe to deallocate typer right now, since it is the caller, but also it has a small
+			// memory footprint and it's desireable not to imply that the subclass need call it any more.
+			// So shuffle it off into a siding.
+			previous_typer_ = std::move(typer_);
+			typer_ = nullptr;
 		}
 
 	protected:
 		virtual HalfCycles get_typer_delay() { return HalfCycles(0); }
 		virtual HalfCycles get_typer_frequency() { return HalfCycles(0); }
 		std::unique_ptr<Typer> typer_;
+
+	private:
+		std::unique_ptr<Typer> previous_typer_;
 };
 
 }
