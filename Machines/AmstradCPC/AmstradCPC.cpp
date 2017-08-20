@@ -76,7 +76,12 @@ class InterruptTimer {
 
 		/// @returns @c true if an interrupt is currently requested; @c false otherwise.
 		inline bool get_request() {
-			return interrupt_request_;
+			return last_interrupt_request_ = interrupt_request_;
+		}
+
+		/// Asks whether the interrupt status has changed.
+		inline bool request_has_changed() {
+			return last_interrupt_request_ != interrupt_request_;
 		}
 
 		/// Resets the timer.
@@ -88,6 +93,7 @@ class InterruptTimer {
 	private:
 		int reset_counter_;
 		bool interrupt_request_;
+		bool last_interrupt_request_;
 		int timer_;
 };
 
@@ -659,6 +665,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
+	public Sleeper::SleepObserver,
 	public Machine {
 	public:
 		ConcreteMachine() :
@@ -674,6 +681,10 @@ class ConcreteMachine:
 
 			// ensure memory starts in a random state
 			Memory::Fuzz(ram_, sizeof(ram_));
+
+			// register this class as the sleep observer for the FDC
+			fdc_.set_sleep_observer(this);
+			fdc_is_sleeping_ = fdc_.is_sleeping();
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -689,7 +700,7 @@ class ConcreteMachine:
 			crtc_counter_ += cycle.length;
 			Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
-			z80_.set_interrupt_line(interrupt_timer_.get_request());
+			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
@@ -699,7 +710,7 @@ class ConcreteMachine:
 			ay_.run_for(cycle.length);
 
 			// Clock the FDC, if connected, using a lazy scale by two
-			if(has_fdc_) fdc_.run_for(Cycles(cycle.length.as_int()));
+			if(has_fdc_ && !fdc_is_sleeping_) fdc_.run_for(Cycles(cycle.length.as_int()));
 
 			// Update typing activity
 			if(typer_) typer_->run_for(cycle.length);
@@ -902,6 +913,11 @@ class ConcreteMachine:
 			roms_[(int)type] = data;
 		}
 
+		void set_component_is_sleeping(void *component, bool is_sleeping) {
+			// The FDC is the only thing this registers with as a sleep observer.
+			fdc_is_sleeping_ = is_sleeping;
+		}
+
 #pragma mark - Keyboard
 
 		void set_typer_for_string(const char *string) {
@@ -995,7 +1011,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> roms_[7];
 		int rom_model_;
-		bool has_fdc_;
+		bool has_fdc_, fdc_is_sleeping_;
 		bool has_128k_;
 		bool upper_rom_is_paged_;
 		int upper_rom_;
