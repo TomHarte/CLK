@@ -88,6 +88,10 @@ i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multipli
 	posit_event((int)Event8272::CommandByte);
 }
 
+bool i8272::is_sleeping() {
+	return is_sleeping_ && Storage::Disk::MFMController::is_sleeping();
+}
+
 void i8272::run_for(Cycles cycles) {
 	Storage::Disk::MFMController::run_for(cycles);
 
@@ -154,6 +158,7 @@ void i8272::run_for(Cycles cycles) {
 	}
 
 	is_sleeping_ = !delay_time_ && !drives_seeking_ && !head_timers_running_;
+	if(is_sleeping_) update_sleep_observer();
 }
 
 void i8272::set_register(int address, uint8_t value) {
@@ -198,7 +203,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define MS_TO_CYCLES(x)			x * 8000
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_sleep_observer(); case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
@@ -257,6 +262,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 		if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
 			head_timers_running_++;	\
 			is_sleeping_ = false;	\
+			update_sleep_observer();	\
 		}	\
 		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
 	}
@@ -711,6 +717,7 @@ void i8272::posit_event(int event_type) {
 				if(drives_[drive].phase != Drive::Seeking) {
 					drives_seeking_++;
 					is_sleeping_ = false;
+					update_sleep_observer();
 				}
 
 				// Set currently seeking, with a step to occur right now (yes, it sounds like jamming these

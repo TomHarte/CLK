@@ -12,6 +12,8 @@
 #include <memory>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/Sleeper.hpp"
+
 #include "../TimedEventLoop.hpp"
 
 namespace Storage {
@@ -93,7 +95,7 @@ class Tape {
 	Will call @c process_input_pulse instantaneously upon reaching *the end* of a pulse. Therefore a subclass
 	can decode pulses into data within process_input_pulse, using the supplied pulse's @c length and @c type.
 */
-class TapePlayer: public TimedEventLoop {
+class TapePlayer: public TimedEventLoop, public Sleeper {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
@@ -104,6 +106,8 @@ class TapePlayer: public TimedEventLoop {
 		void run_for(const Cycles cycles);
 
 		void run_for_input_pulse();
+
+		bool is_sleeping();
 
 	protected:
 		virtual void process_next_event();
@@ -138,6 +142,8 @@ class BinaryTapePlayer: public TapePlayer {
 				virtual void tape_did_change_input(BinaryTapePlayer *tape_player) = 0;
 		};
 		void set_delegate(Delegate *delegate);
+
+		bool is_sleeping();
 
 	protected:
 		Delegate *delegate_;

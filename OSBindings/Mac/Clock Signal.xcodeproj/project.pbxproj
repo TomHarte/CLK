@@ -677,7 +677,8 @@
 		4BACC5B01F3DFF7C0037C015 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CharacterMapper.hpp; path = AmstradCPC/CharacterMapper.hpp; sourceTree = "<group>"; };
 		4BAD9B941F43D7E900724854 /* UnformattedTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnformattedTrack.cpp; sourceTree = "<group>"; };
 		4BAD9B951F43D7E900724854 /* UnformattedTrack.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = UnformattedTrack.hpp; sourceTree = "<group>"; };
-		4BB06B211F316A3F00600C7A /* ForceInline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ForceInline.h; sourceTree = "<group>"; };
+		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
+		4BB146C61F49D7D700253439 /* Sleeper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sleeper.hpp; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
 		4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.in.json; path = FUSE/tests.in.json; sourceTree = "<group>"; };
 		4BB297E51B587D8300A49093 /*  start */ = {isa = PBXFileReference; lastKnownFileType = file; path = " start"; sourceTree = "<group>"; };
@@ -2279,7 +2280,8 @@
 			isa = PBXGroup;
 			children = (
 				4BF6606A1F281573002CB053 /* ClockReceiver.hpp */,
-				4BB06B211F316A3F00600C7A /* ForceInline.h */,
+				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
+				4BB146C61F49D7D700253439 /* Sleeper.hpp */,
 			);
 			name = ClockReceiver;
 			path = ../../ClockReceiver;

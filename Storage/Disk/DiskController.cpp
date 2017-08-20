@@ -46,6 +46,14 @@ void Controller::setup_track() {
 	get_next_event(offset);
 }
 
+void Controller::set_component_is_sleeping(void *component, bool is_sleeping) {
+	update_sleep_observer();
+}
+
+bool Controller::is_sleeping() {
+	return !(drive_ && drive_->has_disk() && motor_is_on_);
+}
+
 void Controller::run_for(const Cycles cycles) {
 	Time zero(0);
 
@@ -208,6 +216,7 @@ void Controller::step(int direction) {
 
 void Controller::set_motor_on(bool motor_on) {
 	motor_is_on_ = motor_on;
+	update_sleep_observer();
 }
 
 bool Controller::get_motor_on() {
@@ -218,6 +227,8 @@ void Controller::set_drive(std::shared_ptr<Drive> drive) {
 	if(drive_ != drive) {
 		invalidate_track();
 		drive_ = drive;
+		drive->set_sleep_observer(this);
+		update_sleep_observer();
 	}
 }
 

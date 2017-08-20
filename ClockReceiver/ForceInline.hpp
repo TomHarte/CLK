@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ForceInline_h
-#define ForceInline_h
+#ifndef ForceInline_hpp
+#define ForceInline_hpp
 
 #ifdef __GNUC__
 #define forceinline __attribute__((always_inline)) inline

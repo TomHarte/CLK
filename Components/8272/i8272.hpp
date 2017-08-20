@@ -41,6 +41,8 @@ class i8272: public Storage::Disk::MFMController {
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 
+		bool is_sleeping();
+
 	private:
 		// The bus handler, for interrupt and DMA-driven usage.
 		BusHandler &bus_handler_;

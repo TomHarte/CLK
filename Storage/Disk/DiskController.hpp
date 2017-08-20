@@ -14,7 +14,9 @@
 #include "PCMSegment.hpp"
 #include "PCMPatchedTrack.hpp"
 #include "../TimedEventLoop.hpp"
+
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/Sleeper.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -28,7 +30,7 @@ namespace Disk {
 
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
-class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop {
+class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop, public Sleeper, public Sleeper::SleepObserver {
 	protected:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
@@ -116,6 +118,8 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		virtual bool get_drive_is_ready();
 		bool get_drive_is_read_only();
 
+		bool is_sleeping();
+
 	private:
 		Time bit_length_;
 		int clock_rate_;
@@ -142,6 +146,8 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 
 		void setup_track();
 		Time get_time_into_track();
+
+		void set_component_is_sleeping(void *component, bool is_sleeping);
 };
 
 }

@@ -10,12 +10,14 @@
 #define Drive_hpp
 
 #include <memory>
+
 #include "Disk.hpp"
+#include "../../ClockReceiver/Sleeper.hpp"
 
 namespace Storage {
 namespace Disk {
 
-class Drive {
+class Drive: public Sleeper {
 	public:
 		Drive();
 
@@ -69,6 +71,9 @@ class Drive {
 			@returns @c true if the drive is ready; @c false otherwise.
 		*/
 		bool get_is_ready();
+
+		// As per Sleeper.
+		bool is_sleeping();
 
 	private:
 		std::shared_ptr<Track> track_;
