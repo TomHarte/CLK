@@ -917,8 +917,8 @@ class ConcreteMachine:
 		}
 
 		void set_component_is_sleeping(void *component, bool is_sleeping) {
-			if(component == &fdc_) fdc_is_sleeping_ = is_sleeping;
-			else tape_player_is_sleeping_ = is_sleeping;
+			fdc_is_sleeping_ = fdc_.is_sleeping();
+			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}
 
 #pragma mark - Keyboard
