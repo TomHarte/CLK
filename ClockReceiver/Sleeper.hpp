@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Sleeper_h
-#define Sleeper_h
+#ifndef Sleeper_hpp
+#define Sleeper_hpp
 
 /*!
 	A sleeper is any component that sometimes requires a clock but at other times is 'asleep' — i.e. is not doing
@@ -30,17 +30,31 @@ class Sleeper {
 		class SleepObserver {
 			public:
 				/// Called to inform an observer that the component @c component has either gone to sleep or become awake.
-				void set_component_is_sleeping(void *component, bool is_sleeping) = 0;
+				virtual void set_component_is_sleeping(void *component, bool is_sleeping) = 0;
 		};
 
 		/// Registers @c observer as the new sleep observer;
 		void set_sleep_observer(SleepObserver *observer) {
-			sleep_observer_ = delegate;
+			sleep_observer_ = observer;
 		}
+
+		/// @returns @c true if the component is currently sleeping; @c false otherwise.
+		virtual bool is_sleeping() = 0;
 
 	protected:
 		/// Provided for subclasses; send sleep announcements to the sleep_observer_.
 		SleepObserver *sleep_observer_;
+
+		/*!
+			Provided for subclasses; call this whenever is_sleeping might have changed, and the observer will be notified,
+			if one exists.
+
+			@c is_sleeping will be called only if there is an observer.
+		*/
+		void update_sleep_observer() {
+			if(!sleep_observer_) return;
+			sleep_observer_->set_component_is_sleeping(this, is_sleeping());
+		}
 };
 
 #endif /* Sleeper_h */

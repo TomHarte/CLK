@@ -18,16 +18,22 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	disk_ = disk;
 	track_ = nullptr;
 	has_disk_ = !!disk_;
+	update_sleep_observer();
 }
 
 void Drive::set_disk_with_track(const std::shared_ptr<Track> &track) {
 	disk_ = nullptr;
 	track_ = track;
 	has_disk_ = !!track_;
+	update_sleep_observer();
 }
 
 bool Drive::has_disk() {
 	return has_disk_;
+}
+
+bool Drive::is_sleeping() {
+	return !has_disk_;
 }
 
 bool Drive::get_is_track_zero() {
