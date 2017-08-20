@@ -73,6 +73,7 @@ class Drive {
 	private:
 		std::shared_ptr<Track> track_;
 		std::shared_ptr<Disk> disk_;
+		bool has_disk_;
 		int head_position_;
 		unsigned int head_;
 };

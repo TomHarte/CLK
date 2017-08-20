@@ -12,20 +12,22 @@
 using namespace Storage::Disk;
 
 Drive::Drive()
-	: head_position_(0), head_(0) {}
+	: head_position_(0), head_(0), has_disk_(false) {}
 
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	disk_ = disk;
 	track_ = nullptr;
+	has_disk_ = !!disk_;
 }
 
 void Drive::set_disk_with_track(const std::shared_ptr<Track> &track) {
 	disk_ = nullptr;
 	track_ = track;
+	has_disk_ = !!track_;
 }
 
 bool Drive::has_disk() {
-	return (bool)disk_ || (bool)track_;
+	return has_disk_;
 }
 
 bool Drive::get_is_track_zero() {
