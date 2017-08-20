@@ -682,9 +682,12 @@ class ConcreteMachine:
 			// ensure memory starts in a random state
 			Memory::Fuzz(ram_, sizeof(ram_));
 
-			// register this class as the sleep observer for the FDC
+			// register this class as the sleep observer for the FDC and tape
 			fdc_.set_sleep_observer(this);
 			fdc_is_sleeping_ = fdc_.is_sleeping();
+
+			tape_player_.set_sleep_observer(this);
+			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -704,7 +707,7 @@ class ConcreteMachine:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
-			tape_player_.run_for(cycle.length.as_int());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_int());
 
 			// Pump the AY
 			ay_.run_for(cycle.length);
@@ -914,8 +917,8 @@ class ConcreteMachine:
 		}
 
 		void set_component_is_sleeping(void *component, bool is_sleeping) {
-			// The FDC is the only thing this registers with as a sleep observer.
-			fdc_is_sleeping_ = is_sleeping;
+			if(component == &fdc_) fdc_is_sleeping_ = is_sleeping;
+			else tape_player_is_sleeping_ = is_sleeping;
 		}
 
 #pragma mark - Keyboard
@@ -1012,6 +1015,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> roms_[7];
 		int rom_model_;
 		bool has_fdc_, fdc_is_sleeping_;
+		bool tape_player_is_sleeping_;
 		bool has_128k_;
 		bool upper_rom_is_paged_;
 		int upper_rom_;
