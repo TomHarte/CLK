@@ -125,8 +125,10 @@ bool BinaryTapePlayer::is_sleeping() {
 }
 
 void BinaryTapePlayer::set_motor_control(bool enabled) {
-	motor_is_running_ = enabled;
-	update_sleep_observer();
+	if(motor_is_running_ != enabled) {
+		motor_is_running_ = enabled;
+		update_sleep_observer();
+	}
 }
 
 void BinaryTapePlayer::set_tape_output(bool set) {
