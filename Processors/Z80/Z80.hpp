@@ -909,6 +909,7 @@ template <class T> class Processor {
 
 			while(1) {
 
+				do_bus_acknowledge:
 				while(bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
 					number_of_cycles_ -= bus_handler_.perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
@@ -918,7 +919,7 @@ template <class T> class Processor {
 					}
 				}
 
-				while(!bus_request_line_) {
+				while(true) {
 					const MicroOp *operation = scheduled_program_counter_;
 					scheduled_program_counter_++;
 
@@ -945,6 +946,7 @@ template <class T> class Processor {
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
 							number_of_cycles_ -= bus_handler_.perform_machine_cycle(operation->machine_cycle);
+							if(bus_request_line_) goto do_bus_acknowledge;
 						break;
 						case MicroOp::MoveToNextProgram:
 							advance_operation();
