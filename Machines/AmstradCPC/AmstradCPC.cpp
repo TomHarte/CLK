@@ -159,7 +159,7 @@ class CRTCBusHandler {
 			mode_(2),
 			next_mode_(2),
 			cycles_into_hsync_(0) {
-				build_mode_tables();
+				build_mode_table();
 			}
 
 		/*!
@@ -271,6 +271,7 @@ class CRTCBusHandler {
 						case 1:		pixel_divider_ = 2;	break;
 						case 2:		pixel_divider_ = 1;	break;
 					}
+					build_mode_table();
 				}
 
 				interrupt_timer_.signal_hsync();
@@ -339,8 +340,7 @@ class CRTCBusHandler {
 				border_ = mapped_palette_value(colour);
 			} else {
 				palette_[pen_] = mapped_palette_value(colour);
-				// TODO: no need for a full regeneration, of every mode, every time
-				build_mode_tables();
+				patch_mode_table(pen_);
 			}
 		}
 
@@ -351,35 +351,56 @@ class CRTCBusHandler {
 			crt_->output_level(length * 16);
 		}
 
-		void build_mode_tables() {
-			for(int c = 0; c < 256; c++) {
-				// prepare mode 0
-				uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
-				mode0_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)];
-				mode0_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3)];
+		void patch_mode_table(int pen) {
+			// TODO: patch, don't rebuild.
+			build_mode_table();
+		}
 
-				// prepare mode 1
-				uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
-				mode1_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
-				mode1_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
-				mode1_pixels[2] = palette_[((c & 0x20) >> 5) | ((c & 0x02) >> 0)];
-				mode1_pixels[3] = palette_[((c & 0x10) >> 4) | ((c & 0x01) << 1)];
+		void build_mode_table() {
+			switch(mode_) {
+				case 0:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 0
+						uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+						mode0_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)];
+						mode0_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3)];
+					}
+				break;
 
-				// prepare mode 2
-				uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
-				mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
-				mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
-				mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
-				mode2_pixels[3] = palette_[((c & 0x10) >> 4)];
-				mode2_pixels[4] = palette_[((c & 0x08) >> 3)];
-				mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
-				mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
-				mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
+				case 1:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 1
+						uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+						mode1_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
+						mode1_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
+						mode1_pixels[2] = palette_[((c & 0x20) >> 5) | ((c & 0x02) >> 0)];
+						mode1_pixels[3] = palette_[((c & 0x10) >> 4) | ((c & 0x01) << 1)];
+					}
+				break;
 
-				// prepare mode 3
-				uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
-				mode3_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
-				mode3_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
+				case 2:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 2
+						uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
+						mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
+						mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
+						mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
+						mode2_pixels[3] = palette_[((c & 0x10) >> 4)];
+						mode2_pixels[4] = palette_[((c & 0x08) >> 3)];
+						mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
+						mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
+						mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
+					}
+				break;
+
+				case 3:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 3
+						uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+						mode3_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
+						mode3_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
+					}
+				break;
 			}
 		}
 
