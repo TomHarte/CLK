@@ -65,10 +65,15 @@ void Tape::set_offset(uint64_t offset) {
 
 #pragma mark - Player
 
+bool TapePlayer::is_sleeping() {
+	return !tape_ || tape_->is_at_end();
+}
+
 void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape) {
 	tape_ = tape;
 	reset_timer();
 	get_next_pulse();
+	update_sleep_observer();
 }
 
 std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
@@ -81,8 +86,10 @@ bool TapePlayer::has_tape() {
 
 void TapePlayer::get_next_pulse() {
 	// get the new pulse
-	if(tape_)
+	if(tape_) {
 		current_pulse_ = tape_->get_next_pulse();
+		if(tape_->is_at_end()) update_sleep_observer();
+	}
 	else {
 		current_pulse_.length.length = 1;
 		current_pulse_.length.clock_rate = 1;
@@ -113,8 +120,13 @@ BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
 	TapePlayer(input_clock_rate), motor_is_running_(false), input_level_(false), delegate_(nullptr)
 {}
 
+bool BinaryTapePlayer::is_sleeping() {
+	return !motor_is_running_ || TapePlayer::is_sleeping();
+}
+
 void BinaryTapePlayer::set_motor_control(bool enabled) {
 	motor_is_running_ = enabled;
+	update_sleep_observer();
 }
 
 void BinaryTapePlayer::set_tape_output(bool set) {
