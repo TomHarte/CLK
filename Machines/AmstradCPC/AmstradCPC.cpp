@@ -353,6 +353,19 @@ class CRTCBusHandler {
 
 		void patch_mode_table(int pen) {
 			// TODO: patch, don't rebuild.
+			switch(mode_) {
+				case 0:
+				break;
+				case 1:
+					if(pen > 3) return;
+				break;
+				case 2:
+					if(pen > 1) return;
+				break;
+				case 3:
+					if(pen > 3) return;
+				break;
+			}
 			build_mode_table();
 		}
 
