@@ -91,6 +91,8 @@ i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multipli
 void i8272::run_for(Cycles cycles) {
 	Storage::Disk::MFMController::run_for(cycles);
 
+	if(is_sleeping_) return;
+
 	// check for an expired timer
 	if(delay_time_ > 0) {
 		if(cycles.as_int() >= delay_time_) {
@@ -103,6 +105,7 @@ void i8272::run_for(Cycles cycles) {
 
 	// update seek status of any drives presently seeking
 	if(drives_seeking_) {
+		int drives_left = drives_seeking_;
 		for(int c = 0; c < 4; c++) {
 			if(drives_[c].phase == Drive::Seeking) {
 				drives_[c].step_rate_counter += cycles.as_int();
@@ -122,27 +125,35 @@ void i8272::run_for(Cycles cycles) {
 						break;
 					}
 				}
+
+				drives_left--;
+				if(!drives_left) break;
 			}
 		}
 	}
 
 	// check for any head unloads
 	if(head_timers_running_) {
-		for(int c = 0; c < 4; c++) {
-			for(int h = 0; h < 2; h++) {
-				if(drives_[c].head_unload_delay[c] > 0) {
-					if(cycles.as_int() >= drives_[c].head_unload_delay[c]) {
-						drives_[c].head_unload_delay[c] = 0;
-						drives_[c].head_is_loaded[c] = false;
-						head_timers_running_--;
-						if(!head_timers_running_) return;
-					} else {
-						drives_[c].head_unload_delay[c] -= cycles.as_int();
-					}
+		int timers_left = head_timers_running_;
+		for(int c = 0; c < 8; c++) {
+			int drive = (c >> 1);
+			int head = c&1;
+
+			if(drives_[drive].head_unload_delay[head] > 0) {
+				if(cycles.as_int() >= drives_[drive].head_unload_delay[head]) {
+					drives_[drive].head_unload_delay[head] = 0;
+					drives_[drive].head_is_loaded[head] = false;
+					head_timers_running_--;
+				} else {
+					drives_[drive].head_unload_delay[head] -= cycles.as_int();
 				}
+				timers_left--;
+				if(!timers_left) break;
 			}
 		}
 	}
+
+	is_sleeping_ = !delay_time_ && !drives_seeking_ && !head_timers_running_;
 }
 
 void i8272::set_register(int address, uint8_t value) {
@@ -187,7 +198,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 
 #define MS_TO_CYCLES(x)			x * 8000
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = (int)Event8272::Timer; delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
@@ -245,6 +256,7 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(drives_[active_drive_].head_is_loaded[active_head_]) {\
 		if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
 			head_timers_running_++;	\
+			is_sleeping_ = false;	\
 		}	\
 		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
 	}
@@ -698,6 +710,7 @@ void i8272::posit_event(int event_type) {
 				// Increment the seeking count if this drive wasn't already seeking.
 				if(drives_[drive].phase != Drive::Seeking) {
 					drives_seeking_++;
+					is_sleeping_ = false;
 				}
 
 				// Set currently seeking, with a step to occur right now (yes, it sounds like jamming these

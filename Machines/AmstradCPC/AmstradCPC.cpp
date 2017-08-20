@@ -159,7 +159,8 @@ class CRTCBusHandler {
 			mode_(2),
 			next_mode_(2),
 			cycles_into_hsync_(0) {
-				build_mode_tables();
+				establish_palette_hits();
+				build_mode_table();
 			}
 
 		/*!
@@ -271,6 +272,7 @@ class CRTCBusHandler {
 						case 1:		pixel_divider_ = 2;	break;
 						case 2:		pixel_divider_ = 1;	break;
 					}
+					build_mode_table();
 				}
 
 				interrupt_timer_.signal_hsync();
@@ -339,8 +341,7 @@ class CRTCBusHandler {
 				border_ = mapped_palette_value(colour);
 			} else {
 				palette_[pen_] = mapped_palette_value(colour);
-				// TODO: no need for a full regeneration, of every mode, every time
-				build_mode_tables();
+				patch_mode_table(pen_);
 			}
 		}
 
@@ -351,37 +352,128 @@ class CRTCBusHandler {
 			crt_->output_level(length * 16);
 		}
 
-		void build_mode_tables() {
+#define Mode0Colour0(c) ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)
+#define Mode0Colour1(c) ((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3)
+
+#define Mode1Colour0(c) ((c & 0x80) >> 7) | ((c & 0x08) >> 2)
+#define Mode1Colour1(c) ((c & 0x40) >> 6) | ((c & 0x04) >> 1)
+#define Mode1Colour2(c) ((c & 0x20) >> 5) | ((c & 0x02) >> 0)
+#define Mode1Colour3(c) ((c & 0x10) >> 4) | ((c & 0x01) << 1)
+
+#define Mode3Colour0(c)	((c & 0x80) >> 7) | ((c & 0x08) >> 2)
+#define Mode3Colour1(c) ((c & 0x40) >> 6) | ((c & 0x04) >> 1)
+
+		void establish_palette_hits() {
 			for(int c = 0; c < 256; c++) {
-				// prepare mode 0
-				uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
-				mode0_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)];
-				mode0_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3)];
+				mode0_palette_hits_[Mode0Colour0(c)].push_back((uint8_t)c);
+				mode0_palette_hits_[Mode0Colour1(c)].push_back((uint8_t)c);
 
-				// prepare mode 1
-				uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
-				mode1_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
-				mode1_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
-				mode1_pixels[2] = palette_[((c & 0x20) >> 5) | ((c & 0x02) >> 0)];
-				mode1_pixels[3] = palette_[((c & 0x10) >> 4) | ((c & 0x01) << 1)];
+				mode1_palette_hits_[Mode1Colour0(c)].push_back((uint8_t)c);
+				mode1_palette_hits_[Mode1Colour1(c)].push_back((uint8_t)c);
+				mode1_palette_hits_[Mode1Colour2(c)].push_back((uint8_t)c);
+				mode1_palette_hits_[Mode1Colour3(c)].push_back((uint8_t)c);
 
-				// prepare mode 2
-				uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
-				mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
-				mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
-				mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
-				mode2_pixels[3] = palette_[((c & 0x10) >> 4)];
-				mode2_pixels[4] = palette_[((c & 0x08) >> 3)];
-				mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
-				mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
-				mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
-
-				// prepare mode 3
-				uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
-				mode3_pixels[0] = palette_[((c & 0x80) >> 7) | ((c & 0x08) >> 2)];
-				mode3_pixels[1] = palette_[((c & 0x40) >> 6) | ((c & 0x04) >> 1)];
+				mode3_palette_hits_[Mode3Colour0(c)].push_back((uint8_t)c);
+				mode3_palette_hits_[Mode3Colour1(c)].push_back((uint8_t)c);
 			}
 		}
+
+		void build_mode_table() {
+			switch(mode_) {
+				case 0:
+					// Mode 0: abcdefgh -> [gcea] [hdfb]
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 0
+						uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+						mode0_pixels[0] = palette_[Mode0Colour0(c)];
+						mode0_pixels[1] = palette_[Mode0Colour1(c)];
+					}
+				break;
+
+				case 1:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 1
+						uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+						mode1_pixels[0] = palette_[Mode1Colour0(c)];
+						mode1_pixels[1] = palette_[Mode1Colour1(c)];
+						mode1_pixels[2] = palette_[Mode1Colour2(c)];
+						mode1_pixels[3] = palette_[Mode1Colour3(c)];
+					}
+				break;
+
+				case 2:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 2
+						uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
+						mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
+						mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
+						mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
+						mode2_pixels[3] = palette_[((c & 0x10) >> 4)];
+						mode2_pixels[4] = palette_[((c & 0x08) >> 3)];
+						mode2_pixels[5] = palette_[((c & 0x04) >> 2)];
+						mode2_pixels[6] = palette_[((c & 0x03) >> 1)];
+						mode2_pixels[7] = palette_[((c & 0x01) >> 0)];
+					}
+				break;
+
+				case 3:
+					for(int c = 0; c < 256; c++) {
+						// prepare mode 3
+						uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+						mode3_pixels[0] = palette_[Mode3Colour0(c)];
+						mode3_pixels[1] = palette_[Mode3Colour1(c)];
+					}
+				break;
+			}
+		}
+
+		void patch_mode_table(int pen) {
+			switch(mode_) {
+				case 0: {
+					for(uint8_t c : mode0_palette_hits_[pen]) {
+						uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+						mode0_pixels[0] = palette_[Mode0Colour0(c)];
+						mode0_pixels[1] = palette_[Mode0Colour1(c)];
+					}
+				} break;
+				case 1:
+					if(pen > 3) return;
+					for(uint8_t c : mode1_palette_hits_[pen]) {
+						uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+						mode1_pixels[0] = palette_[Mode1Colour0(c)];
+						mode1_pixels[1] = palette_[Mode1Colour1(c)];
+						mode1_pixels[2] = palette_[Mode1Colour2(c)];
+						mode1_pixels[3] = palette_[Mode1Colour3(c)];
+					}
+				break;
+				case 2:
+					if(pen > 1) return;
+					// Whichever pen this is, there's only one table entry it doesn't touch, so just
+					// rebuild the whole thing.
+					build_mode_table();
+				break;
+				case 3:
+					if(pen > 3) return;
+					// Same argument applies here as to case 1, as the unused bits aren't masked out.
+					for(uint8_t c : mode3_palette_hits_[pen]) {
+						uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+						mode3_pixels[0] = palette_[Mode3Colour0(c)];
+						mode3_pixels[1] = palette_[Mode3Colour1(c)];
+					}
+				break;
+			}
+		}
+
+#undef Mode0Colour0
+#undef Mode0Colour1
+
+#undef Mode1Colour0
+#undef Mode1Colour1
+#undef Mode1Colour2
+#undef Mode1Colour3
+
+#undef Mode3Colour0
+#undef Mode3Colour1
 
 		uint8_t mapped_palette_value(uint8_t colour) {
 #define COL(r, g, b) (r << 4) | (g << 2) | b
@@ -416,6 +508,10 @@ class CRTCBusHandler {
 		uint32_t mode1_output_[256];
 		uint64_t mode2_output_[256];
 		uint16_t mode3_output_[256];
+
+		std::vector<uint8_t> mode0_palette_hits_[16];
+		std::vector<uint8_t> mode1_palette_hits_[4];
+		std::vector<uint8_t> mode3_palette_hits_[4];
 
 		int pen_;
 		uint8_t palette_[16];
