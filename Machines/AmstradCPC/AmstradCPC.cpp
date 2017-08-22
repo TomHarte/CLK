@@ -22,6 +22,8 @@
 
 #include "../../Storage/Tape/Tape.hpp"
 
+#include "../../ClockReceiver/ForceInline.hpp"
+
 namespace AmstradCPC {
 
 /*!
@@ -173,7 +175,7 @@ class CRTCBusHandler {
 			The CRTC entry function; takes the current bus state and determines what output 
 			to produce based on the current palette and mode.
 		*/
-		inline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		forceinline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 			// The gate array waits 2µs to react to the CRTC's vsync signal, and then
 			// caps output at 4µs. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 			// respectively.
@@ -691,7 +693,7 @@ class ConcreteMachine:
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
-		inline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			// Amstrad CPC timing scheme: assert WAIT for three out of four cycles
 			clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 			z80_.set_wait_line(clock_offset_ >= HalfCycles(2));
@@ -825,35 +827,35 @@ class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; indicates that outputs should be created now.
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override final {
 			crtc_bus_handler_.setup_output(aspect_ratio);
 			ay_.setup_output();
 			ay_.ay()->set_port_handler(&key_state_);
 		}
 
 		/// A CRTMachine function; indicates that outputs should be destroyed now.
-		void close_output() {
+		void close_output() override final {
 			crtc_bus_handler_.close_output();
 			ay_.close_output();
 		}
 
 		/// @returns the CRT in use.
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
 			return crtc_bus_handler_.get_crt();
 		}
 
 		/// @returns the speaker in use.
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
 			return ay_.get_speaker();
 		}
 
 		/// Wires virtual-dispatched CRTMachine run_for requests to the static Z80 method.
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override final {
 			z80_.run_for(cycles);
 		}
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override final  {
 			switch(target.amstradcpc.model) {
 				case StaticAnalyser::AmstradCPCModel::CPC464:
 					rom_model_ = ROMType::OS464;
@@ -894,7 +896,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override final {
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
@@ -912,37 +914,37 @@ class ConcreteMachine:
 		}
 
 		// See header; provides the system ROMs.
-		void set_rom(ROMType type, std::vector<uint8_t> data) {
+		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
 			roms_[(int)type] = data;
 		}
 
-		void set_component_is_sleeping(void *component, bool is_sleeping) {
+		void set_component_is_sleeping(void *component, bool is_sleeping) override final {
 			fdc_is_sleeping_ = fdc_.is_sleeping();
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}
 
 #pragma mark - Keyboard
 
-		void set_typer_for_string(const char *string) {
+		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
-		HalfCycles get_typer_delay() {
+		HalfCycles get_typer_delay() override final {
 			return Cycles(4000000);	// Wait 1 second before typing.
 		}
 
-		HalfCycles get_typer_frequency() {
+		HalfCycles get_typer_frequency() override final {
 			return Cycles(160000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
-		void set_key_state(uint16_t key, bool isPressed) {
+		void set_key_state(uint16_t key, bool isPressed) override final {
 			key_state_.set_is_pressed(isPressed, key >> 4, key & 7);
 		}
 
 		// See header; sets all keys to released.
-		void clear_all_keys() {
+		void clear_all_keys() override final {
 			key_state_.clear_all_keys();
 		}
 
@@ -992,7 +994,7 @@ class ConcreteMachine:
 			}
 		}
 
-		CPU::Z80::Processor<ConcreteMachine> z80_;
+		CPU::Z80::Processor<ConcreteMachine, false> z80_;
 
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;

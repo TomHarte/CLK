@@ -18,33 +18,29 @@
 
 #pragma mark - Prebuilt tracks
 
-- (std::shared_ptr<Storage::Disk::Track>)togglingTrack
-{
+- (std::shared_ptr<Storage::Disk::Track>)togglingTrack {
 	Storage::Disk::PCMSegment segment;
 	segment.data = { 0xff, 0xff, 0xff, 0xff };
 	segment.number_of_bits = 32;
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(segment));
 }
 
-- (std::shared_ptr<Storage::Disk::Track>)patchableTogglingTrack
-{
+- (std::shared_ptr<Storage::Disk::Track>)patchableTogglingTrack {
 	std::shared_ptr<Storage::Disk::Track> track = self.togglingTrack;
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMPatchedTrack(track));
 }
 
-- (std::shared_ptr<Storage::Disk::Track>)fourSegmentPatchedTrack
-{
+- (std::shared_ptr<Storage::Disk::Track>)fourSegmentPatchedTrack {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(patchableTrack.get());
 
-	for(int c = 0; c < 4; c++)
-	{
+	for(int c = 0; c < 4; c++) {
 		Storage::Disk::PCMSegment segment;
 		segment.data = {0xff};
 		segment.number_of_bits = 8;
 		segment.length_of_a_bit.length = 1;
 		segment.length_of_a_bit.clock_rate = 32;
-		patchable->add_segment(Storage::Time(c, 4), segment);
+		patchable->add_segment(Storage::Time(c, 4), segment, false);
 	}
 
 	return patchableTrack;
@@ -52,41 +48,34 @@
 
 #pragma mark -
 
-- (std::vector<Storage::Disk::Track::Event>)eventsFromTrack:(std::shared_ptr<Storage::Disk::Track>)track
-{
+- (std::vector<Storage::Disk::Track::Event>)eventsFromTrack:(std::shared_ptr<Storage::Disk::Track>)track {
 	std::vector<Storage::Disk::Track::Event> events;
-	while(1)
-	{
+	while(1) {
 		events.push_back(track->get_next_event());
 		if(events.back().type == Storage::Disk::Track::Event::IndexHole) break;
 	}
 	return events;
 }
 
-- (Storage::Time)timeForEvents:(const std::vector<Storage::Disk::Track::Event> &)events
-{
+- (Storage::Time)timeForEvents:(const std::vector<Storage::Disk::Track::Event> &)events {
 	Storage::Time result(0);
-	for(auto event : events)
-	{
+	for(auto event : events) {
 		result += event.length;
 	}
 	return result;
 }
 
-- (void)patchTrack:(std::shared_ptr<Storage::Disk::Track>)track withSegment:(Storage::Disk::PCMSegment)segment atTime:(Storage::Time)time
-{
+- (void)patchTrack:(std::shared_ptr<Storage::Disk::Track>)track withSegment:(Storage::Disk::PCMSegment)segment atTime:(Storage::Time)time {
 	Storage::Disk::PCMPatchedTrack *patchable = static_cast<Storage::Disk::PCMPatchedTrack *>(track.get());
-	patchable->add_segment(time, segment);
+	patchable->add_segment(time, segment, false);
 }
 
 #pragma mark - Repeating Asserts
 
-- (void)assertOneThirtyTwosForTrack:(std::shared_ptr<Storage::Disk::Track>)track
-{
+- (void)assertOneThirtyTwosForTrack:(std::shared_ptr<Storage::Disk::Track>)track {
 	// Confirm that there are now flux transitions (just the first five will do)
 	// located 1/32nd of a rotation apart.
-	for(int c = 0; c < 5; c++)
-	{
+	for(int c = 0; c < 5; c++) {
 		Storage::Disk::Track::Event event = track->get_next_event();
 		XCTAssert(
 			event.length == (c ? Storage::Time(1, 32) : Storage::Time(1, 64)),
@@ -94,8 +83,7 @@
 	}
 }
 
-- (void)assertEvents:(const std::vector<Storage::Disk::Track::Event> &)events hasEntries:(size_t)numberOfEntries withEntry:(size_t)entry ofLength:(Storage::Time)time
-{
+- (void)assertEvents:(const std::vector<Storage::Disk::Track::Event> &)events hasEntries:(size_t)numberOfEntries withEntry:(size_t)entry ofLength:(Storage::Time)time {
 	XCTAssert(events.size() == numberOfEntries, @"Should be %zu total events", numberOfEntries);
 
 	XCTAssert(events[entry].length == time, @"Event %zu should have been %d/%d long, was %d/%d", entry, time.length, time.clock_rate, events[entry].length.length, events[entry].length.clock_rate);
@@ -106,20 +94,17 @@
 
 #pragma mark - Unpatched tracks
 
-- (void)testUnpatchedRawTrack
-{
+- (void)testUnpatchedRawTrack {
 	[self assertOneThirtyTwosForTrack:self.togglingTrack];
 }
 
-- (void)testUnpatchedTrack
-{
+- (void)testUnpatchedTrack {
 	[self assertOneThirtyTwosForTrack:self.patchableTogglingTrack];
 }
 
 #pragma mark - Insertions affecting one existing segment
 
-- (void)testSingleSplice
-{
+- (void)testSingleSplice {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 32), 1, {0xff}) atTime:Storage::Time(3, 128)];
 
@@ -133,16 +118,14 @@
 	XCTAssert(total_length == Storage::Time(1), @"Total track length should still be 1");
 }
 
-- (void)testLeftReplace
-{
+- (void)testLeftReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(0)];
 
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:17 withEntry:0 ofLength:Storage::Time(33, 64)];
 }
 
-- (void)testRightReplace
-{
+- (void)testRightReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 2)];
 
@@ -151,30 +134,26 @@
 
 #pragma mark - Insertions affecting three existing segments
 
-- (void)testMultiSegmentTrack
-{
+- (void)testMultiSegmentTrack {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:33 withEntry:4 ofLength:Storage::Time(1, 32)];
 }
 
-- (void)testMultiTrimBothSideReplace
-{
+- (void)testMultiTrimBothSideReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 16), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:17 withEntry:4 ofLength:Storage::Time(17, 32)];
 }
 
-- (void)testMultiTrimRightReplace
-{
+- (void)testMultiTrimRightReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:4 ofLength:Storage::Time(13, 32)];
 }
 
-- (void)testMultiTrimLeftReplace
-{
+- (void)testMultiTrimLeftReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 4)];
 
@@ -183,24 +162,21 @@
 
 #pragma mark - Insertions affecting two existing segments
 
-- (void)testTwoSegmentOverlap
-{
+- (void)testTwoSegmentOverlap {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(1, 32), 8, {0x00}) atTime:Storage::Time(1, 8)];
 
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:25 withEntry:4 ofLength:Storage::Time(9, 32)];
 }
 
-- (void)testTwoSegmentRightReplace
-{
+- (void)testTwoSegmentRightReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(1, 8)];
 
 	[self assertEvents:[self eventsFromTrack:patchableTrack] hasEntries:21 withEntry:4 ofLength:Storage::Time(13, 32)];
 }
 
-- (void)testTwoSegmentLeftReplace
-{
+- (void)testTwoSegmentLeftReplace {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.fourSegmentPatchedTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(3, 8), 1, {0x00}) atTime:Storage::Time(0)];
 
@@ -209,8 +185,7 @@
 
 #pragma mark - Wrapping segment
 
-- (void)testWrappingSegment
-{
+- (void)testWrappingSegment {
 	std::shared_ptr<Storage::Disk::Track> patchableTrack = self.patchableTogglingTrack;
 	[self patchTrack:patchableTrack withSegment:Storage::Disk::PCMSegment(Storage::Time(5, 2), 1, {0x00}) atTime:Storage::Time(0)];
 

@@ -31,8 +31,6 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachine6502Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachine6502Register)reg;
 
-- (void)returnFromSubroutine;
-
 @property (nonatomic, readonly) BOOL isJammed;
 @property (nonatomic, readonly) uint32_t timestamp;
 @property (nonatomic, assign) BOOL irqLine;

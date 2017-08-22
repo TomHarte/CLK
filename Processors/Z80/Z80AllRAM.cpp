@@ -96,7 +96,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 		}
 
 	private:
-		CPU::Z80::Processor<ConcreteAllRAMProcessor> z80_;
+		CPU::Z80::Processor<ConcreteAllRAMProcessor, false> z80_;
 };
 
 }

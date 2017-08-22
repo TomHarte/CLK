@@ -14,10 +14,11 @@ using namespace CPU::MOS6502;
 
 namespace {
 
-class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<ConcreteAllRAMProcessor> {
+class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
-		ConcreteAllRAMProcessor() {
-			set_power_on(false);
+		ConcreteAllRAMProcessor() :
+			mos6502_(*this) {
+			mos6502_.set_power_on(false);
 		}
 
 		inline Cycles perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
@@ -37,32 +38,31 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public Processor<Concrete
 		}
 
 		void run_for(const Cycles cycles) {
-			Processor<ConcreteAllRAMProcessor>::run_for(cycles);
+			mos6502_.run_for(cycles);
 		}
 
 		bool is_jammed() {
-			return Processor<ConcreteAllRAMProcessor>::is_jammed();
+			return mos6502_.is_jammed();
 		}
 
 		void set_irq_line(bool value) {
-			Processor<ConcreteAllRAMProcessor>::set_irq_line(value);
+			mos6502_.set_irq_line(value);
 		}
 
 		void set_nmi_line(bool value) {
-			Processor<ConcreteAllRAMProcessor>::set_nmi_line(value);
-		}
-
-		void return_from_subroutine() {
-			Processor<ConcreteAllRAMProcessor>::return_from_subroutine();
+			mos6502_.set_nmi_line(value);
 		}
 
 		uint16_t get_value_of_register(Register r) {
-			return Processor<ConcreteAllRAMProcessor>::get_value_of_register(r);
+			return mos6502_.get_value_of_register(r);
 		}
 
 		void set_value_of_register(Register r, uint16_t value) {
-			Processor<ConcreteAllRAMProcessor>::set_value_of_register(r, value);
+			mos6502_.set_value_of_register(r, value);
 		}
+
+	private:
+		CPU::MOS6502::Processor<ConcreteAllRAMProcessor, false> mos6502_;
 };
 
 }

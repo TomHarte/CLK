@@ -152,7 +152,7 @@ class Machine:
 		void drive_via_did_set_data_density(void *driveVIA, int density);
 
 	private:
-		CPU::MOS6502::Processor<Machine> m6502_;
+		CPU::MOS6502::Processor<Machine, false> m6502_;
 
 		uint8_t ram_[0x800];
 		uint8_t rom_[0x4000];

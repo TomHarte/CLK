@@ -22,6 +22,8 @@
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/Oric.hpp"
 
+#include "../../ClockReceiver/ForceInline.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -54,7 +56,7 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
-		void set_rom(ROM rom, const std::vector<uint8_t> &data) {
+		void set_rom(ROM rom, const std::vector<uint8_t> &data) override final {
 			switch(rom) {
 				case BASIC11:	basic11_rom_ = std::move(data);		break;
 				case BASIC10:	basic10_rom_ = std::move(data);		break;
@@ -66,7 +68,7 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) {
+		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(key == KeyNMI) {
 				m6502_.set_nmi_line(isPressed);
 			} else {
@@ -77,20 +79,20 @@ class ConcreteMachine:
 			}
 		}
 
-		void clear_all_keys() {
+		void clear_all_keys() override final {
 			memset(keyboard_->rows, 0, sizeof(keyboard_->rows));
 		}
 
-		void set_use_fast_tape_hack(bool activate) {
+		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_output_device(Outputs::CRT::OutputDevice output_device) {
+		void set_output_device(Outputs::CRT::OutputDevice output_device) override final {
 			video_output_->set_output_device(output_device);
 		}
 
 		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			if(target.oric.has_microdisc) {
 				microdisc_is_enabled_ = true;
 				microdisc_did_change_paging_flags(&microdisc_);
@@ -120,7 +122,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(media.tapes.size()) {
 				via_.tape->set_tape(media.tapes.front());
 			}
@@ -135,7 +137,7 @@ class ConcreteMachine:
 		}
 
 		// to satisfy CPU::MOS6502::BusHandler
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(address > ram_top_) {
 				if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
@@ -193,55 +195,55 @@ class ConcreteMachine:
 			return Cycles(1);
 		}
 
-		void flush() {
+		forceinline void flush() {
 			update_video();
 			via_.flush();
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override final {
 			via_.ay8910.reset(new GI::AY38910::AY38910());
 			via_.ay8910->set_clock_rate(1000000);
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
 		}
 
-		void close_output() {
+		void close_output() override final {
 			video_output_.reset();
 			via_.ay8910.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
 			return video_output_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
 			return via_.ay8910;
 		}
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override final {
 			m6502_.run_for(cycles);
 		}
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
-		void mos6522_did_change_interrupt_status(void *mos6522) {
+		void mos6522_did_change_interrupt_status(void *mos6522) override final {
 			set_interrupt_line();
 		}
 
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) override final {
 			// set CB1
 			via_.set_control_line_input(VIA::Port::B, VIA::Line::One, !tape_player->get_input());
 		}
 
 		// for Utility::TypeRecipient::Delegate
-		void set_typer_for_string(const char *string) {
+		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
 		// for Microdisc::Delegate
-		void microdisc_did_change_paging_flags(class Microdisc *microdisc) {
+		void microdisc_did_change_paging_flags(class Microdisc *microdisc) override final {
 			int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
 				ram_top_ = 0xbfff;
@@ -256,12 +258,12 @@ class ConcreteMachine:
 			}
 		}
 
-		void wd1770_did_change_output(WD::WD1770 *wd1770) {
+		void wd1770_did_change_output(WD::WD1770 *wd1770) override final {
 			set_interrupt_line();
 		}
 
 	private:
-		CPU::MOS6502::Processor<ConcreteMachine> m6502_;
+		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
 		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
@@ -292,7 +294,7 @@ class ConcreteMachine:
 			public:
 				TapePlayer() : Storage::Tape::BinaryTapePlayer(1000000) {}
 
-				uint8_t get_next_byte(bool fast) {
+				inline uint8_t get_next_byte(bool fast) {
 					return (uint8_t)parser_.get_next_byte(get_tape(), fast);
 				}
 

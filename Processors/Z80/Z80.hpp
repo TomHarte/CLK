@@ -9,6 +9,7 @@
 #ifndef Z80_hpp
 #define Z80_hpp
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
@@ -180,7 +181,7 @@ class BusHandler {
 	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 */
-template <class T> class Processor {
+template <class T, bool uses_bus_request> class Processor {
 	private:
 		T &bus_handler_;
 
@@ -910,7 +911,7 @@ template <class T> class Processor {
 			while(1) {
 
 				do_bus_acknowledge:
-				while(bus_request_line_) {
+				while(uses_bus_request && bus_request_line_) {
 					static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
 					number_of_cycles_ -= bus_handler_.perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
 					if(!number_of_cycles_) {
@@ -946,7 +947,7 @@ template <class T> class Processor {
 							number_of_cycles_ -= operation->machine_cycle.length;
 							last_request_status_ = request_status_;
 							number_of_cycles_ -= bus_handler_.perform_machine_cycle(operation->machine_cycle);
-							if(bus_request_line_) goto do_bus_acknowledge;
+							if(uses_bus_request && bus_request_line_) goto do_bus_acknowledge;
 						break;
 						case MicroOp::MoveToNextProgram:
 							advance_operation();
@@ -1953,6 +1954,7 @@ template <class T> class Processor {
 			Sets the logical value of the bus request line.
 		*/
 		void set_bus_request_line(bool value) {
+			assert(uses_bus_request);
 			bus_request_line_ = value;
 		}
 

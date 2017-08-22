@@ -9,6 +9,7 @@
 #ifndef MOS6502_cpp
 #define MOS6502_cpp
 
+#include <cassert>
 #include <cstdio>
 #include <cstdint>
 
@@ -131,12 +132,8 @@ class BusHandler {
 	@discussion Subclasses should implement @c perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) in
 	order to provide the bus on which the 6502 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
-
-	Additional functionality can be provided by the host machine by providing a jam handler and inserting jam opcodes where appropriate;
-	that will cause call outs when the program counter reaches those addresses. @c return_from_subroutine can be used to exit from a
-	jammed state.
 */
-template <class T> class Processor: public ProcessorBase {
+template <class T, bool uses_ready_line> class Processor: public ProcessorBase {
 	private:
 		T &bus_handler_;
 		const MicroOp *scheduled_program_counter_;
@@ -355,11 +352,11 @@ template <class T> class Processor: public ProcessorBase {
 
 			while(number_of_cycles > Cycles(0)) {
 
-				while (ready_is_active_ && number_of_cycles > Cycles(0)) {
+				while(uses_ready_line && ready_is_active_ && number_of_cycles > Cycles(0)) {
 					number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 				}
 
-				if(!ready_is_active_) {
+				if(!uses_ready_line || !ready_is_active_) {
 					if(nextBusOperation != BusOperation::None) {
 						bus_access();
 					}
@@ -822,7 +819,7 @@ template <class T> class Processor: public ProcessorBase {
 							continue;
 						}
 
-						if(ready_line_is_enabled_ && isReadOperation(nextBusOperation)) {
+						if(uses_ready_line && ready_line_is_enabled_ && isReadOperation(nextBusOperation)) {
 							ready_is_active_ = true;
 							break;
 						}
@@ -884,26 +881,12 @@ template <class T> class Processor: public ProcessorBase {
 		}
 
 		/*!
-			Interrupts current execution flow to perform an RTS and, if the 6502 is currently jammed,
-			to unjam it.
-		*/
-		void return_from_subroutine() {
-			s_++;
-			bus_handler_.perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.low); s_++;
-			bus_handler_.perform_bus_operation(MOS6502::BusOperation::Read, 0x100 | s_, &pc_.bytes.high);
-			pc_.full++;
-
-			if(is_jammed_) {
-				scheduled_program_counter_ = nullptr;
-			}
-		}
-
-		/*!
 			Sets the current level of the RDY line.
 
 			@param active @c true if the line is logically active; @c false otherwise.
 		*/
 		inline void set_ready_line(bool active) {
+			assert(uses_ready_line);
 			if(active) {
 				ready_line_is_enabled_ = true;
 			} else {

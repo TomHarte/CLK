@@ -184,7 +184,7 @@ template<class T> class Cartridge:
 		}
 
 	protected:
-		CPU::MOS6502::Processor<Cartridge<T>> m6502_;
+		CPU::MOS6502::Processor<Cartridge<T>, true> m6502_;
 		std::vector<uint8_t> rom_;
 
 	private:

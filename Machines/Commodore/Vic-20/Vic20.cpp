@@ -14,6 +14,8 @@
 #include "../../../Components/6560/6560.hpp"
 #include "../../../Components/6522/6522.hpp"
 
+#include "../../../ClockReceiver/ForceInline.hpp"
+
 #include "../../../Storage/Tape/Parsers/Commodore.hpp"
 
 #include "../SerialBus.hpp"
@@ -253,7 +255,7 @@ class ConcreteMachine:
 			delete[] rom_;
 		}
 
-		void set_rom(ROMSlot slot, size_t length, const uint8_t *data) {
+		void set_rom(ROMSlot slot, size_t length, const uint8_t *data) override final {
 			uint8_t *target = nullptr;
 			size_t max_length = 0x2000;
 			switch(slot) {
@@ -273,7 +275,7 @@ class ConcreteMachine:
 			}
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			if(target.loadingCommand.length()) {
 				set_typer_for_string(target.loadingCommand.c_str());
 			}
@@ -304,7 +306,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_->set_tape(media.tapes.front());
 			}
@@ -326,20 +328,20 @@ class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) {
+		void set_key_state(uint16_t key, bool isPressed) override final {
 			keyboard_via_->set_key_state(key, isPressed);
 		}
 
-		void clear_all_keys() {
+		void clear_all_keys() override final {
 			keyboard_via_->clear_all_keys();
 		}
 
-		void set_joystick_state(JoystickInput input, bool isPressed) {
+		void set_joystick_state(JoystickInput input, bool isPressed) override final {
 			user_port_via_->set_joystick_state(input, isPressed);
 			keyboard_via_->set_joystick_state(input, isPressed);
 		}
 
-		void set_memory_size(MemorySize size) {
+		void set_memory_size(MemorySize size) override final {
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 
@@ -373,7 +375,7 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_region(Region region) {
+		void set_region(Region region) override final {
 			region_ = region;
 			switch(region) {
 				case PAL:
@@ -393,12 +395,12 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_use_fast_tape_hack(bool activate) {
+		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
 		}
 
 		// to satisfy CPU::MOS6502::Processor
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			// run the phase-1 part of this cycle, in which the VIC accesses memory
 			if(!is_running_at_zero_cost_) mos6560_->run_for(Cycles(1));
 
@@ -494,15 +496,15 @@ class ConcreteMachine:
 			return Cycles(1);
 		}
 
-		void flush() {
+		forceinline void flush() {
 			mos6560_->flush();
 		}
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override final {
 			m6502_.run_for(cycles);
 		}
 
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override final {
 			mos6560_.reset(new Vic6560());
 			mos6560_->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 			set_region(region_);
@@ -514,34 +516,34 @@ class ConcreteMachine:
 			mos6560_->colour_memory = colour_memory_;
 		}
 
-		void close_output() {
+		void close_output() override final {
 			mos6560_ = nullptr;
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
 			return mos6560_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
 			return mos6560_->get_speaker();
 		}
 
-		void mos6522_did_change_interrupt_status(void *mos6522) {
+		void mos6522_did_change_interrupt_status(void *mos6522) override final {
 			m6502_.set_nmi_line(user_port_via_->get_interrupt_line());
 			m6502_.set_irq_line(keyboard_via_->get_interrupt_line());
 		}
 
-		void set_typer_for_string(const char *string) {
+		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) override final {
 			keyboard_via_->set_control_line_input(KeyboardVIA::Port::A, KeyboardVIA::Line::One, !tape->get_input());
 		}
 
 	private:
-		CPU::MOS6502::Processor<ConcreteMachine> m6502_;
+		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		uint8_t character_rom_[0x1000];
 		uint8_t basic_rom_[0x2000];
