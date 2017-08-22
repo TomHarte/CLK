@@ -9,11 +9,11 @@
 #ifndef ForceInline_hpp
 #define ForceInline_hpp
 
-//#ifdef DEBUG
-//
-//#define forceinline inline
-//
-//#elseif
+#ifdef DEBUG
+
+#define forceinline
+
+#else
 
 #ifdef __GNUC__
 #define forceinline __attribute__((always_inline)) inline
@@ -21,6 +21,6 @@
 #define forceinline __forceinline
 #endif
 
-//#endif
+#endif
 
 #endif /* ForceInline_h */
