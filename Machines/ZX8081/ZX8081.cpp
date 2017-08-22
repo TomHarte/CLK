@@ -12,6 +12,8 @@
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
+#include "../../ClockReceiver/ForceInline.hpp"
+
 #include "../MemoryFuzzer.hpp"
 #include "../Typer.hpp"
 
@@ -45,7 +47,7 @@ class ConcreteMachine:
 			clear_all_keys();
 		}
 
-		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			HalfCycles previous_counter = horizontal_counter_;
 			horizontal_counter_ += cycle.length;
 
@@ -204,31 +206,31 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		void flush() {
+		forceinline void flush() {
 			video_->flush();
 		}
 
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override final {
 			video_.reset(new Video);
 		}
 
-		void close_output() {
+		void close_output() override final {
 			video_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
 			return video_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
 			return nullptr;
 		}
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override final {
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			is_zx81_ = target.zx8081.isZX81;
 			if(is_zx81_) {
 				rom_ = zx81_rom_;
@@ -275,7 +277,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
 			}
@@ -283,12 +285,12 @@ class ConcreteMachine:
 			return !media.tapes.empty();
 		}
 
-		void set_typer_for_string(const char *string) {
+		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81_));
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
-		void set_rom(ROMType type, std::vector<uint8_t> data) {
+		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
 			switch(type) {
 				case ZX80: zx80_rom_ = data; break;
 				case ZX81: zx81_rom_ = data; break;
@@ -297,37 +299,37 @@ class ConcreteMachine:
 
 #pragma mark - Keyboard
 
-		void set_key_state(uint16_t key, bool isPressed) {
+		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(isPressed)
 				key_states_[key >> 8] &= (uint8_t)(~key);
 			else
 				key_states_[key >> 8] |= (uint8_t)key;
 		}
 
-		void clear_all_keys() {
+		void clear_all_keys() override final {
 			memset(key_states_, 0xff, 8);
 		}
 
 #pragma mark - Tape control
 
-		void set_use_fast_tape_hack(bool activate) {
+		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_use_automatic_tape_motor_control(bool enabled) {
+		void set_use_automatic_tape_motor_control(bool enabled) override final {
 			use_automatic_tape_motor_control_ = enabled;
 			if(!enabled) {
 				tape_player_.set_motor_control(false);
 			}
 		}
-		void set_tape_is_playing(bool is_playing) {
+		void set_tape_is_playing(bool is_playing) override final {
 			tape_player_.set_motor_control(is_playing);
 		}
 
 #pragma mark - Typer timing
 
-		HalfCycles get_typer_delay() { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() { return Cycles(390000); }
+		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
+		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false> z80_;
@@ -367,17 +369,17 @@ class ConcreteMachine:
 
 #pragma mark - Video
 
-		void set_vsync(bool sync) {
+		inline void set_vsync(bool sync) {
 			vsync_ = sync;
 			update_sync();
 		}
 
-		void set_hsync(bool sync) {
+		inline void set_hsync(bool sync) {
 			hsync_ = sync;
 			update_sync();
 		}
 
-		void update_sync() {
+		inline void update_sync() {
 			video_->set_sync(vsync_ || hsync_);
 		}
 };

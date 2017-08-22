@@ -11,6 +11,7 @@
 #include "../../Processors/6502/6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 
 #include "../Typer.hpp"
 
@@ -44,7 +45,7 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 		}
 
-		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) {
+		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) override final {
 			uint8_t *target = nullptr;
 			switch(slot) {
 				case ROMSlotDFS:	dfs_ = data;			return;
@@ -60,7 +61,7 @@ class ConcreteMachine:
 			memcpy(target, &data[0], std::min((size_t)16384, data.size()));
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) {
+		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(key == KeyBreak) {
 				m6502_.set_reset_line(isPressed);
 			} else {
@@ -71,16 +72,16 @@ class ConcreteMachine:
 			}
 		}
 
-		void clear_all_keys() {
+		void clear_all_keys() override final {
 			memset(key_states_, 0, sizeof(key_states_));
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		void set_use_fast_tape_hack(bool activate) {
+		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			if(target.loadingCommand.length()) {
 				set_typer_for_string(target.loadingCommand.c_str());
 			}
@@ -104,7 +105,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
@@ -122,7 +123,7 @@ class ConcreteMachine:
 			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
 		}
 
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			unsigned int cycles = 1;
 
 			if(address < 0x8000) {
@@ -342,13 +343,13 @@ class ConcreteMachine:
 			return Cycles((int)cycles);
 		}
 
-		void flush() {
+		forceinline void flush() {
 			update_display();
 			update_audio();
 			speaker_->flush();
 		}
 
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override final {
 			video_output_.reset(new VideoOutput(ram_));
 
 			// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
@@ -358,36 +359,36 @@ class ConcreteMachine:
 			speaker_->set_input_rate(2000000 / Speaker::clock_rate_divider);
 		}
 
-		void close_output() {
+		void close_output() override final {
 			video_output_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
 			return video_output_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
 			return speaker_;
 		}
 
-		virtual void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override final {
 			m6502_.run_for(cycles);
 		}
 
-		void tape_did_change_interrupt_status(Tape *tape) {
+		void tape_did_change_interrupt_status(Tape *tape) override final {
 			interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() {
+		HalfCycles get_typer_delay() override final {
 			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
 		}
 
-		HalfCycles get_typer_frequency() {
+		HalfCycles get_typer_frequency() override final {
 			return Cycles(625*128*2);	// accept a new character every two frames
 		}
 
-		void set_typer_for_string(const char *string) {
+		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
@@ -430,7 +431,7 @@ class ConcreteMachine:
 			m6502_.set_irq_line(interrupt_status_ & 1);
 		}
 
-		CPU::MOS6502::Processor<ConcreteMachine> m6502_;
+		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		// Things that directly constitute the memory map.
 		uint8_t roms_[16][16384];

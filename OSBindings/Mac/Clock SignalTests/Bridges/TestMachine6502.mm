@@ -97,10 +97,6 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 #pragma mark - Actions
 
-- (void)returnFromSubroutine {
-	_processor->return_from_subroutine();
-}
-
 - (void)runForNumberOfCycles:(int)cycles {
 	_processor->run_for(Cycles(cycles));
 }
