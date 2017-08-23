@@ -91,7 +91,7 @@ class Speaker {
 			std::shared_ptr<std::list<std::function<void(void)>>> queued_functions = queued_functions_;
 			queued_functions_.reset();
 			_queue->enqueue([queued_functions] {
-				for(auto function : *queued_functions) {
+				for(auto &function : *queued_functions) {
 					function();
 				}
 			});
