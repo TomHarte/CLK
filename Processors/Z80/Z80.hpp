@@ -847,11 +847,11 @@ template <class T, bool uses_bus_request> class Processor {
 			};
 			MicroOp irq_mode1_program[] = {
 				{ MicroOp::BeginIRQ },
-				BusOp(IntAckStart(7, operation_)),
-				BusOp(IntWait(operation_)),
-				BusOp(IntAckEnd(operation_)),
-				BusOp(Refresh(4)),
-				Push(pc_),
+				BusOp(IntAckStart(7, operation_)),	// 7 half cycles (including  +
+				BusOp(IntWait(operation_)),			// [potentially 2 half cycles] +
+				BusOp(IntAckEnd(operation_)),		// Implicitly 3 half cycles +
+				BusOp(Refresh(4)),					// 4 half cycles +
+				Push(pc_),							// 12 half cycles = 26 half cycles = 13 cycles
 				{ MicroOp::Move16, &temp16_.full, &pc_.full },
 				{ MicroOp::MoveToNextProgram }
 			};

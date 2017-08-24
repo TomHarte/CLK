@@ -20,6 +20,11 @@ class Z80InterruptTests: XCTestCase {
 	}
 
 	func testNMI() {
+		// Per http://www.z80.info/interrup.htm NMI should take 11 cycles to get to 0x66:
+		// M1 cycle: 5 T states to do an opcode read and decrement SP
+		// M2 cycle: 3 T states write high byte of PC to the stack and decrement SP
+		// M3 cycle: 3 T states write the low byte of PC and jump to #0066.
+
 		let machine = CSTestMachineZ80()
 
 		// start the PC at 0x0100 and install two NOPs for it
@@ -153,7 +158,8 @@ class Z80InterruptTests: XCTestCase {
 
 	func testIRQMode1() {
 		// In interrupt mode 1, receipt of an IRQ means that the interrupt flag is disabled,
-		// the PC is pushed to the stack and execution resumes at 0x38.
+		// the PC is pushed to the stack and execution resumes at 0x38. This should take
+		// 13 cycles total, per http://www.z80.info/interrup.htm
 
 		let machine = CSTestMachineZ80()
 
