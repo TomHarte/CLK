@@ -92,11 +92,12 @@ struct PartialMachineCycle {
 		InputStart,
 		OutputStart,
 		InterruptStart,
-	} operation;
-	HalfCycles length;
-	uint16_t *address;
-	uint8_t *value;
-	bool was_requested;
+	};
+	const Operation operation;
+	const HalfCycles length;
+	const uint16_t *const address;
+	uint8_t *const value;
+	const bool was_requested;
 
 	inline bool expects_action() const {
 		return operation <= Operation::Interrupt;
@@ -107,6 +108,17 @@ struct PartialMachineCycle {
 	inline bool is_wait() const {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
+
+	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept :
+		operation(rhs.operation),
+		length(rhs.length),
+		address(rhs.address),
+		value(rhs.value),
+		was_requested(rhs.was_requested) {}
+	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept :
+		operation(operation), length(length), address(address), value(value), was_requested(was_requested)  {}
+	PartialMachineCycle() noexcept :
+		operation(Internal), length(0), address(nullptr), value(nullptr), was_requested(false) {}
 };
 
 class BusHandler {
@@ -118,31 +130,31 @@ class BusHandler {
 };
 
 // Elemental bus operations
-#define ReadOpcodeStart()			{PartialMachineCycle::ReadOpcodeStart, HalfCycles(3), &pc_.full, &operation_, false}
-#define ReadOpcodeWait(f)			{PartialMachineCycle::ReadOpcodeWait, HalfCycles(2), &pc_.full, &operation_, f}
-#define ReadOpcodeEnd()				{PartialMachineCycle::ReadOpcode, HalfCycles(1), &pc_.full, &operation_, false}
+#define ReadOpcodeStart()			PartialMachineCycle(PartialMachineCycle::ReadOpcodeStart, HalfCycles(3), &pc_.full, &operation_, false)
+#define ReadOpcodeWait(f)			PartialMachineCycle(PartialMachineCycle::ReadOpcodeWait, HalfCycles(2), &pc_.full, &operation_, f)
+#define ReadOpcodeEnd()				PartialMachineCycle(PartialMachineCycle::ReadOpcode, HalfCycles(1), &pc_.full, &operation_, false)
 
-#define Refresh(len)				{PartialMachineCycle::Refresh, HalfCycles(len), &refresh_addr_.full, nullptr, false}
+#define Refresh(len)				PartialMachineCycle(PartialMachineCycle::Refresh, HalfCycles(len), &refresh_addr_.full, nullptr, false)
 
-#define ReadStart(addr, val)		{PartialMachineCycle::ReadStart, HalfCycles(3), &addr.full, &val, false}
-#define ReadWait(l, addr, val, f)	{PartialMachineCycle::ReadWait, HalfCycles(l), &addr.full, &val, f}
-#define ReadEnd(addr, val)			{PartialMachineCycle::Read, HalfCycles(3), &addr.full, &val, false}
+#define ReadStart(addr, val)		PartialMachineCycle(PartialMachineCycle::ReadStart, HalfCycles(3), &addr.full, &val, false)
+#define ReadWait(l, addr, val, f)	PartialMachineCycle(PartialMachineCycle::ReadWait, HalfCycles(l), &addr.full, &val, f)
+#define ReadEnd(addr, val)			PartialMachineCycle(PartialMachineCycle::Read, HalfCycles(3), &addr.full, &val, false)
 
-#define WriteStart(addr, val)		{PartialMachineCycle::WriteStart,HalfCycles(3), &addr.full, &val, false}
-#define WriteWait(l, addr, val, f)	{PartialMachineCycle::WriteWait, HalfCycles(l), &addr.full, &val, f}
-#define WriteEnd(addr, val)			{PartialMachineCycle::Write, HalfCycles(3), &addr.full, &val, false}
+#define WriteStart(addr, val)		PartialMachineCycle(PartialMachineCycle::WriteStart,HalfCycles(3), &addr.full, &val, false)
+#define WriteWait(l, addr, val, f)	PartialMachineCycle(PartialMachineCycle::WriteWait, HalfCycles(l), &addr.full, &val, f)
+#define WriteEnd(addr, val)			PartialMachineCycle(PartialMachineCycle::Write, HalfCycles(3), &addr.full, &val, false)
 
-#define InputStart(addr, val)		{PartialMachineCycle::InputStart, HalfCycles(3), &addr.full, &val, false}
-#define InputWait(addr, val, f)		{PartialMachineCycle::InputWait, HalfCycles(2), &addr.full, &val, f}
-#define InputEnd(addr, val)			{PartialMachineCycle::Input, HalfCycles(3), &addr.full, &val, false}
+#define InputStart(addr, val)		PartialMachineCycle(PartialMachineCycle::InputStart, HalfCycles(3), &addr.full, &val, false)
+#define InputWait(addr, val, f)		PartialMachineCycle(PartialMachineCycle::InputWait, HalfCycles(2), &addr.full, &val, f)
+#define InputEnd(addr, val)			PartialMachineCycle(PartialMachineCycle::Input, HalfCycles(3), &addr.full, &val, false)
 
-#define OutputStart(addr, val)		{PartialMachineCycle::OutputStart, HalfCycles(3), &addr.full, &val, false}
-#define OutputWait(addr, val, f)	{PartialMachineCycle::OutputWait, HalfCycles(2), &addr.full, &val, f}
-#define OutputEnd(addr, val)		{PartialMachineCycle::Output, HalfCycles(3), &addr.full, &val, false}
+#define OutputStart(addr, val)		PartialMachineCycle(PartialMachineCycle::OutputStart, HalfCycles(3), &addr.full, &val, false)
+#define OutputWait(addr, val, f)	PartialMachineCycle(PartialMachineCycle::OutputWait, HalfCycles(2), &addr.full, &val, f)
+#define OutputEnd(addr, val)		PartialMachineCycle(PartialMachineCycle::Output, HalfCycles(3), &addr.full, &val, false)
 
-#define IntAckStart(length, val)	{PartialMachineCycle::InterruptStart, HalfCycles(length), nullptr, &val, false}
-#define IntWait(val)				{PartialMachineCycle::InterruptWait, HalfCycles(2), nullptr, &val, true}
-#define IntAckEnd(val)				{PartialMachineCycle::Interrupt, HalfCycles(3), nullptr, &val, false}
+#define IntAckStart(length, val)	PartialMachineCycle(PartialMachineCycle::InterruptStart, HalfCycles(length), nullptr, &val, false)
+#define IntWait(val)				PartialMachineCycle(PartialMachineCycle::InterruptWait, HalfCycles(2), nullptr, &val, true)
+#define IntAckEnd(val)				PartialMachineCycle(PartialMachineCycle::Interrupt, HalfCycles(3), nullptr, &val, false)
 
 
 // A wrapper to express a bus operation as a micro-op
@@ -438,13 +450,13 @@ template <class T, bool uses_bus_request> class Processor {
 			}
 
 			// Allocate a landing area.
-			target.all_operations.resize(number_of_micro_ops);
+			std::vector<size_t> operation_indices;
 			target.instructions.resize(256, nullptr);
 
-			// Copy in all programs and set pointers.
+			// Copy in all programs, recording where they go.
 			size_t destination = 0;
 			for(size_t c = 0; c < 256; c++) {
-				target.instructions[c] = &target.all_operations[destination];
+				operation_indices.push_back(target.all_operations.size());
 				for(size_t t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
 					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
@@ -462,10 +474,17 @@ template <class T, bool uses_bus_request> class Processor {
 							t++;
 						}
 					}
-					target.all_operations[destination] = table[c][t];
+					target.all_operations.emplace_back(table[c][t]);
 					destination++;
 					t++;
 				}
+			}
+
+			// Since the vector won't change again, it's now safe to set pointers.
+			size_t c = 0;
+			for(size_t index : operation_indices) {
+				target.instructions[c] = &target.all_operations[index];
+				c++;
 			}
 		}
 
@@ -774,10 +793,9 @@ template <class T, bool uses_bus_request> class Processor {
 		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 			size_t length = 0;
 			while(!isTerminal(source[length].type)) length++;
-			destination.resize(length + 1);
 			size_t pointer = 0;
 			while(true) {
-				destination[pointer] = source[pointer];
+				destination.emplace_back(source[pointer]);
 				if(isTerminal(source[pointer].type)) break;
 				pointer++;
 			}
