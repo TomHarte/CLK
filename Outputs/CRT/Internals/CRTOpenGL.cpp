@@ -44,17 +44,17 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 	// create the source vertex array
 	glGenVertexArrays(1, &source_vertex_array_);
 
-	bool supports_texture_barrier = false;
+//	bool supports_texture_barrier = false;
 #ifdef GL_NV_texture_barrier
-	GLint number_of_extensions;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &number_of_extensions);
-
-	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++) {
-		const char *extension_name = (const char *)glGetStringi(GL_EXTENSIONS, c);
-		if(!strcmp(extension_name, "GL_NV_texture_barrier")) {
-			supports_texture_barrier = true;
-		}
-	}
+//	GLint number_of_extensions;
+//	glGetIntegerv(GL_NUM_EXTENSIONS, &number_of_extensions);
+//
+//	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++) {
+//		const char *extension_name = (const char *)glGetStringi(GL_EXTENSIONS, c);
+//		if(!strcmp(extension_name, "GL_NV_texture_barrier")) {
+//			supports_texture_barrier = true;
+//		}
+//	}
 #endif
 
 //	if(supports_texture_barrier) {

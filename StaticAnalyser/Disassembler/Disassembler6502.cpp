@@ -92,6 +92,10 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 #define IM_INSTRUCTION(base, op)	\
 	case base:	instruction.operation = op; break;
 		switch(operation) {
+			default:
+				instruction.operation = Instruction::KIL;
+			break;
+
 			IM_INSTRUCTION(0x00, Instruction::BRK)
 			IM_INSTRUCTION(0x20, Instruction::JSR)
 			IM_INSTRUCTION(0x40, Instruction::RTI)
