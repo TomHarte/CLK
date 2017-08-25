@@ -346,7 +346,7 @@ uint8_t Parser::get_next_byte() {
 std::vector<uint8_t> Parser::get_track() {
 	std::vector<uint8_t> result;
 	int distance_until_permissible_sync = 0;
-	uint8_t last_id[6];
+	uint8_t last_id[6] = {0, 0, 0, 0, 0, 0};
 	int last_id_pointer = 0;
 	bool next_is_type = false;
 

@@ -62,7 +62,7 @@ std::shared_ptr<Track> OricMFMDSK::get_uncached_track_at_position(unsigned int h
 	// The file format omits clock bits. So it's not a genuine MFM capture.
 	// A consumer must contextually guess when an FB, FC, etc is meant to be a control mark.
 	size_t track_offset = 0;
-	uint8_t last_header[6];
+	uint8_t last_header[6] = {0, 0, 0, 0, 0, 0};
 	std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
 	bool did_sync = false;
 	while(track_offset < 6250) {
