@@ -109,15 +109,15 @@ struct PartialMachineCycle {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
 
-	PartialMachineCycle(const PartialMachineCycle &rhs) :
+	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept :
 		operation(rhs.operation),
 		length(rhs.length),
 		address(rhs.address),
 		value(rhs.value),
 		was_requested(rhs.was_requested) {}
-	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) :
-		operation(operation), length(length), address(address), value(value), was_requested(was_requested) {}
-	PartialMachineCycle() :
+	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept :
+		operation(operation), length(length), address(address), value(value), was_requested(was_requested)  {}
+	PartialMachineCycle() noexcept :
 		operation(Internal), length(0), address(nullptr), value(nullptr), was_requested(false) {}
 };
 
@@ -793,11 +793,9 @@ template <class T, bool uses_bus_request> class Processor {
 		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 			size_t length = 0;
 			while(!isTerminal(source[length].type)) length++;
-//			destination.resize(length + 1);
 			size_t pointer = 0;
 			while(true) {
 				destination.emplace_back(source[pointer]);
-//				destination[pointer] = source[pointer];
 				if(isTerminal(source[pointer].type)) break;
 				pointer++;
 			}
