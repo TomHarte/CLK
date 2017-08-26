@@ -87,16 +87,17 @@ template <class T> class CRTC6845 {
 		void run_for(Cycles cycles) {
 			int cyles_remaining = cycles.as_int();
 			while(cyles_remaining--) {
-				// check for end of horizontal sync
-				if(bus_state_.hsync) {
-					hsync_counter_ = (hsync_counter_ + 1) & 15;
-					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
-				}
-
 				// check for start of horizontal sync
 				if(character_counter_ == registers_[2]) {
 					hsync_counter_ = 0;
-					if(registers_[3] & 15) bus_state_.hsync = true;
+					bus_state_.hsync = true;
+				}
+
+				// check for end of horizontal sync; note that a sync time of zero will result in an immediate
+				// cancellation of the plan to perform sync
+				if(bus_state_.hsync) {
+					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+					hsync_counter_ = (hsync_counter_ + 1) & 15;
 				}
 
 				// check for end of visible characters
