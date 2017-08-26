@@ -79,17 +79,15 @@ template <class T> class CRTC6845 {
 			int cyles_remaining = cycles.as_int();
 			while(cyles_remaining--) {
 				// check for end of horizontal sync
-				if(hsync_down_counter_) {
-					hsync_down_counter_--;
-					if(!hsync_down_counter_) {
-						bus_state_.hsync = false;
-					}
+				if(bus_state_.hsync) {
+					hsync_counter_ = (hsync_counter_ + 1) & 15;
+					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
 				}
 
 				// check for start of horizontal sync
 				if(character_counter_ == registers_[2]) {
-					hsync_down_counter_ = registers_[3] & 15;
-					if(hsync_down_counter_) bus_state_.hsync = true;
+					hsync_counter_ = 0;
+					if(registers_[3] & 15) bus_state_.hsync = true;
 				}
 
 				// check for end of visible characters
@@ -123,9 +121,9 @@ template <class T> class CRTC6845 {
 
 		inline void do_end_of_line() {
 			// check for end of vertical sync
-			if(vsync_down_counter_) {
-				vsync_down_counter_--;
-				if(!vsync_down_counter_) {
+			if(bus_state_.vsync) {
+				vsync_counter_ = (vsync_counter_ + 1) & 15;
+				if(vsync_counter_ == (registers_[3] >> 4)) {
 					bus_state_.vsync = false;
 				}
 			}
@@ -156,8 +154,7 @@ template <class T> class CRTC6845 {
 						// check for start of vertical sync
 						if(line_counter_ == registers_[7]) {
 							bus_state_.vsync = true;
-							vsync_down_counter_ = registers_[3] >> 4;
-							if(!vsync_down_counter_) vsync_down_counter_ = 16;
+							vsync_counter_ = 0;
 						}
 
 						// check for end of visible lines
@@ -194,8 +191,8 @@ template <class T> class CRTC6845 {
 
 		bool character_is_visible_, line_is_visible_;
 
-		int hsync_down_counter_;
-		int vsync_down_counter_;
+		int hsync_counter_;
+		int vsync_counter_;
 		bool is_in_adjustment_period_;
 
 		uint16_t line_address_;
