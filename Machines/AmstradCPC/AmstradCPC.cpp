@@ -172,10 +172,10 @@ class CRTCBusHandler {
 			}
 
 		/*!
-			The CRTC entry function; takes the current bus state and determines what output 
-			to produce based on the current palette and mode.
+			The CRTC entry function for the main part of each clock cycle; takes the current
+			bus state and determines what output to produce based on the current palette and mode.
 		*/
-		forceinline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		forceinline void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
 			// The gate array waits 2µs to react to the CRTC's vsync signal, and then
 			// caps output at 4µs. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 			// respectively.
@@ -268,7 +268,13 @@ class CRTCBusHandler {
 					}
 				}
 			}
+		}
 
+		/*!
+			The CRTC entry function for phase 2 of each bus cycle — in which the next sync line state becomes
+			visible early. The CPC uses changes in sync to clock the interrupt timer.
+		*/
+		void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &state) {
 			// check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change
 			// modes, and should also be sent on to the interrupt timer
 			if(was_hsync_ && !state.hsync) {
@@ -700,7 +706,10 @@ class ConcreteMachine:
 			crtc_counter_ += cycle.length;
 			Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
-			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
+
+			// Check whether that prompted a change in the interrupt line. If so then date
+			// it to whenever the cycle was triggered.
+			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
