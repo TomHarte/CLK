@@ -80,7 +80,7 @@ template <class T> class CRTC6845 {
 			while(cyles_remaining--) {
 				// check for end of horizontal sync
 				if(bus_state_.hsync) {
-					hsync_counter_++;
+					hsync_counter_ = (hsync_counter_ + 1) & 15;
 					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
 				}
 
@@ -122,7 +122,7 @@ template <class T> class CRTC6845 {
 		inline void do_end_of_line() {
 			// check for end of vertical sync
 			if(bus_state_.vsync) {
-				vsync_counter_++;
+				vsync_counter_ = (vsync_counter_ + 1) & 15;
 				if(vsync_counter_ == (registers_[3] >> 4)) {
 					bus_state_.vsync = false;
 				}
