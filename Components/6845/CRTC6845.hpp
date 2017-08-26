@@ -28,7 +28,19 @@ struct BusState {
 
 class BusHandler {
 	public:
-		void perform_bus_cycle(const BusState &) {}
+		/*!
+			Performs the first phase of a 6845 bus cycle; this is the phase in which it is intended that
+			systems using the 6845 respect the bus state and produce pixels, sync or whatever they require.
+		*/
+		void perform_bus_cycle_phase1(const BusState &) {}
+
+		/*!
+			Performs the second phase of a 6845 bus cycle. Some bus state — including sync — is updated
+			directly after phase 1 and hence is visible to an observer during phase 2. Handlers may therefore
+			implement @c perform_bus_cycle_phase2 to be notified of the availability of that state without
+			having to wait until the next cycle has begun.
+		*/
+		void perform_bus_cycle_phase2(const BusState &) {}
 };
 
 enum Personality {
@@ -94,8 +106,8 @@ template <class T> class CRTC6845 {
 					end_of_line_address_ = bus_state_.refresh_address;
 				}
 
-				perform_bus_cycle();
-				bus_state_.refresh_address++;
+				perform_bus_cycle_phase1();
+				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
 
 				// check for end-of-line
 				if(character_counter_ == registers_[0]) {
@@ -106,6 +118,8 @@ template <class T> class CRTC6845 {
 					// increment counter
 					character_counter_++;
 				}
+
+				perform_bus_cycle_phase2();
 			}
 		}
 
@@ -114,10 +128,14 @@ template <class T> class CRTC6845 {
 		}
 
 	private:
-		inline void perform_bus_cycle() {
+		inline void perform_bus_cycle_phase1() {
 			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
-			bus_state_.refresh_address &= 0x3fff;
-			bus_handler_.perform_bus_cycle(bus_state_);
+			bus_handler_.perform_bus_cycle_phase1(bus_state_);
+		}
+
+		inline void perform_bus_cycle_phase2() {
+			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+			bus_handler_.perform_bus_cycle_phase2(bus_state_);
 		}
 
 		inline void do_end_of_line() {
