@@ -172,10 +172,10 @@ class CRTCBusHandler {
 			}
 
 		/*!
-			The CRTC entry function; takes the current bus state and determines what output 
-			to produce based on the current palette and mode.
+			The CRTC entry function for the main part of each clock cycle; takes the current
+			bus state and determines what output to produce based on the current palette and mode.
 		*/
-		forceinline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		forceinline void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
 			// The gate array waits 2µs to react to the CRTC's vsync signal, and then
 			// caps output at 4µs. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 			// respectively.
@@ -268,7 +268,13 @@ class CRTCBusHandler {
 					}
 				}
 			}
+		}
 
+		/*!
+			The CRTC entry function for phase 2 of each bus cycle — in which the next sync line state becomes
+			visible early. The CPC uses changes in sync to clock the interrupt timer.
+		*/
+		void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &state) {
 			// check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change
 			// modes, and should also be sent on to the interrupt timer
 			if(was_hsync_ && !state.hsync) {
@@ -325,11 +331,6 @@ class CRTCBusHandler {
 		*/
 		void set_next_mode(int mode) {
 			next_mode_ = mode;
-		}
-
-		/// @returns the current value of the CRTC's vertical sync output.
-		bool get_vsync() const {
-			return was_vsync_;
 		}
 
 		/// Palette management: selects a pen to modify.
@@ -597,11 +598,11 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		i8255PortHandler(
 			KeyboardState &key_state,
-			const CRTCBusHandler &crtc_bus_handler,
+			const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc,
 			AYDeferrer &ay,
 			Storage::Tape::BinaryTapePlayer &tape_player) :
 				key_state_(key_state),
-				crtc_bus_handler_(crtc_bus_handler),
+				crtc_(crtc),
 				ay_(ay),
 				tape_player_(tape_player) {}
 
@@ -642,7 +643,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			switch(port) {
 				case 0: return ay_.ay()->get_data_output();	// Port A is wired to the AY
 				case 1:	return
-					(crtc_bus_handler_.get_vsync() ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
+					(crtc_.get_bus_state().vsync ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
 					(tape_player_.get_input() ? 0x80 : 0x00) |		// Bit 7 returns cassette input.
 					0x7e;	// Bits unimplemented:
 							//
@@ -657,7 +658,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	private:
 		AYDeferrer &ay_;
 		KeyboardState &key_state_;
-		const CRTCBusHandler &crtc_bus_handler_;
+		const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc_;
 		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
 
@@ -676,7 +677,7 @@ class ConcreteMachine:
 			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
-			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_, tape_player_),
+			i8255_port_handler_(key_state_, crtc_, ay_, tape_player_),
 			tape_player_(8000000) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
@@ -705,7 +706,10 @@ class ConcreteMachine:
 			crtc_counter_ += cycle.length;
 			Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
-			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
+
+			// Check whether that prompted a change in the interrupt line. If so then date
+			// it to whenever the cycle was triggered.
+			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles

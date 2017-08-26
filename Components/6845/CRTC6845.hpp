@@ -28,7 +28,19 @@ struct BusState {
 
 class BusHandler {
 	public:
-		void perform_bus_cycle(const BusState &) {}
+		/*!
+			Performs the first phase of a 6845 bus cycle; this is the phase in which it is intended that
+			systems using the 6845 respect the bus state and produce pixels, sync or whatever they require.
+		*/
+		void perform_bus_cycle_phase1(const BusState &) {}
+
+		/*!
+			Performs the second phase of a 6845 bus cycle. Some bus state — including sync — is updated
+			directly after phase 1 and hence is visible to an observer during phase 2. Handlers may therefore
+			implement @c perform_bus_cycle_phase2 to be notified of the availability of that state without
+			having to wait until the next cycle has begun.
+		*/
+		void perform_bus_cycle_phase2(const BusState &) {}
 };
 
 enum Personality {
@@ -41,18 +53,18 @@ enum Personality {
 template <class T> class CRTC6845 {
 	public:
 
-		CRTC6845(Personality p, T &bus_handler) :
+		CRTC6845(Personality p, T &bus_handler) noexcept :
 			personality_(p), bus_handler_(bus_handler) {}
 
 		void select_register(uint8_t r) {
 			selected_register_ = r;
 		}
 
-		uint8_t get_status() {
+		uint8_t get_status() const {
 			return 0xff;
 		}
 
-		uint8_t get_register() {
+		uint8_t get_register() const {
 			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
@@ -73,21 +85,19 @@ template <class T> class CRTC6845 {
 		}
 
 		void run_for(Cycles cycles) {
-			static int c = 0;
-			c++;
-
 			int cyles_remaining = cycles.as_int();
 			while(cyles_remaining--) {
-				// check for end of horizontal sync
-				if(bus_state_.hsync) {
-					hsync_counter_ = (hsync_counter_ + 1) & 15;
-					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
-				}
-
 				// check for start of horizontal sync
 				if(character_counter_ == registers_[2]) {
 					hsync_counter_ = 0;
-					if(registers_[3] & 15) bus_state_.hsync = true;
+					bus_state_.hsync = true;
+				}
+
+				// check for end of horizontal sync; note that a sync time of zero will result in an immediate
+				// cancellation of the plan to perform sync
+				if(bus_state_.hsync) {
+					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+					hsync_counter_ = (hsync_counter_ + 1) & 15;
 				}
 
 				// check for end of visible characters
@@ -97,8 +107,8 @@ template <class T> class CRTC6845 {
 					end_of_line_address_ = bus_state_.refresh_address;
 				}
 
-				perform_bus_cycle();
-				bus_state_.refresh_address++;
+				perform_bus_cycle_phase1();
+				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
 
 				// check for end-of-line
 				if(character_counter_ == registers_[0]) {
@@ -109,14 +119,24 @@ template <class T> class CRTC6845 {
 					// increment counter
 					character_counter_++;
 				}
+
+				perform_bus_cycle_phase2();
 			}
 		}
 
+		const BusState &get_bus_state() const {
+			return bus_state_;
+		}
+
 	private:
-		inline void perform_bus_cycle() {
+		inline void perform_bus_cycle_phase1() {
 			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
-			bus_state_.refresh_address &= 0x3fff;
-			bus_handler_.perform_bus_cycle(bus_state_);
+			bus_handler_.perform_bus_cycle_phase1(bus_state_);
+		}
+
+		inline void perform_bus_cycle_phase2() {
+			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+			bus_handler_.perform_bus_cycle_phase2(bus_state_);
 		}
 
 		inline void do_end_of_line() {
