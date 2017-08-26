@@ -75,8 +75,9 @@ template <class T> class CRTC6845 {
 				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
 			};
 
-			if(selected_register_ < 16)
+			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
+			}
 		}
 
 		void trigger_light_pen() {
@@ -170,20 +171,20 @@ template <class T> class CRTC6845 {
 						}
 					} else {
 						line_counter_ = (line_counter_ + 1) & 0x7f;
-
-						// check for start of vertical sync
-						if(line_counter_ == registers_[7]) {
-							bus_state_.vsync = true;
-							vsync_counter_ = 0;
-						}
-
-						// check for end of visible lines
-						if(line_counter_ == registers_[6]) {
-							line_is_visible_ = false;
-						}
 					}
 				} else {
 					bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
+				}
+
+				// check for start of vertical sync
+				if(line_counter_ == registers_[7]) {
+					bus_state_.vsync = true;
+					vsync_counter_ = 0;
+				}
+
+				// check for end of visible lines
+				if(line_counter_ == registers_[6]) {
+					line_is_visible_ = false;
 				}
 			}
 
