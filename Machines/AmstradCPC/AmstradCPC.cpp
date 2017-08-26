@@ -327,11 +327,6 @@ class CRTCBusHandler {
 			next_mode_ = mode;
 		}
 
-		/// @returns the current value of the CRTC's vertical sync output.
-		bool get_vsync() const {
-			return was_vsync_;
-		}
-
 		/// Palette management: selects a pen to modify.
 		void select_pen(int pen) {
 			pen_ = pen;
@@ -597,11 +592,11 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		i8255PortHandler(
 			KeyboardState &key_state,
-			const CRTCBusHandler &crtc_bus_handler,
+			const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc,
 			AYDeferrer &ay,
 			Storage::Tape::BinaryTapePlayer &tape_player) :
 				key_state_(key_state),
-				crtc_bus_handler_(crtc_bus_handler),
+				crtc_(crtc),
 				ay_(ay),
 				tape_player_(tape_player) {}
 
@@ -642,7 +637,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			switch(port) {
 				case 0: return ay_.ay()->get_data_output();	// Port A is wired to the AY
 				case 1:	return
-					(crtc_bus_handler_.get_vsync() ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
+					(crtc_.get_bus_state().vsync ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
 					(tape_player_.get_input() ? 0x80 : 0x00) |		// Bit 7 returns cassette input.
 					0x7e;	// Bits unimplemented:
 							//
@@ -657,7 +652,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	private:
 		AYDeferrer &ay_;
 		KeyboardState &key_state_;
-		const CRTCBusHandler &crtc_bus_handler_;
+		const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc_;
 		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
 
@@ -676,7 +671,7 @@ class ConcreteMachine:
 			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			i8255_(i8255_port_handler_),
-			i8255_port_handler_(key_state_, crtc_bus_handler_, ay_, tape_player_),
+			i8255_port_handler_(key_state_, crtc_, ay_, tape_player_),
 			tape_player_(8000000) {
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);

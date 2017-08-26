@@ -41,18 +41,18 @@ enum Personality {
 template <class T> class CRTC6845 {
 	public:
 
-		CRTC6845(Personality p, T &bus_handler) :
+		CRTC6845(Personality p, T &bus_handler) noexcept :
 			personality_(p), bus_handler_(bus_handler) {}
 
 		void select_register(uint8_t r) {
 			selected_register_ = r;
 		}
 
-		uint8_t get_status() {
+		uint8_t get_status() const {
 			return 0xff;
 		}
 
-		uint8_t get_register() {
+		uint8_t get_register() const {
 			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
@@ -73,9 +73,6 @@ template <class T> class CRTC6845 {
 		}
 
 		void run_for(Cycles cycles) {
-			static int c = 0;
-			c++;
-
 			int cyles_remaining = cycles.as_int();
 			while(cyles_remaining--) {
 				// check for end of horizontal sync
@@ -110,6 +107,10 @@ template <class T> class CRTC6845 {
 					character_counter_++;
 				}
 			}
+		}
+
+		const BusState &get_bus_state() const {
+			return bus_state_;
 		}
 
 	private:
