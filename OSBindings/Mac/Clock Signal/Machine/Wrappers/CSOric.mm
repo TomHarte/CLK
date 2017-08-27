@@ -19,16 +19,13 @@
 	std::unique_ptr<Oric::Machine> _oric;
 }
 
-- (CRTMachine::Machine * const)machine {
-	if(!_oric) {
-		_oric.reset(Oric::Machine::Oric());
-	}
-	return _oric.get();
-}
-
 - (instancetype)init {
-	self = [super init];
+	Oric::Machine *machine = Oric::Machine::Oric();
+
+	self = [super initWithMachine:machine];
 	if(self) {
+		_oric.reset(machine);
+
 		NSData *basic10 = [self rom:@"basic10"];
 		NSData *basic11 = [self rom:@"basic11"];
 		NSData *colour = [self rom:@"colour"];

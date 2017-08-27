@@ -11,4 +11,6 @@
 
 @interface CSAmstradCPC : CSMachine <CSKeyboardMachine>
 
+- (instancetype)init;
+
 @end

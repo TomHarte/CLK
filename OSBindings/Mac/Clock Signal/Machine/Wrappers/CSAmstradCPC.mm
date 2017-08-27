@@ -18,17 +18,13 @@
 	std::unique_ptr<AmstradCPC::Machine> _amstradCPC;
 }
 
-- (CRTMachine::Machine * const)machine {
-	if(!_amstradCPC) {
-		_amstradCPC.reset(AmstradCPC::Machine::AmstradCPC());
-	}
-	return _amstradCPC.get();
-}
-
 - (instancetype)init {
-	self = [super init];
+	AmstradCPC::Machine *machine = AmstradCPC::Machine::AmstradCPC();
+
+	self = [super initWithMachine:machine];
 	if(self) {
-		[self machine];
+		_amstradCPC.reset(machine);
+
 		NSDictionary *roms = @{
 			@(AmstradCPC::ROMType::OS464) : @"os464",
 			@(AmstradCPC::ROMType::OS664) : @"os664",

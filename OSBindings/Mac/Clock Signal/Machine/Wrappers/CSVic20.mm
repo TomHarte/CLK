@@ -13,6 +13,7 @@
 #include "G64.hpp"
 #include "D64.hpp"
 
+#import "CSmachine+Subclassing.h"
 #import "NSBundle+DataResource.h"
 
 using namespace Commodore::Vic20;
@@ -22,17 +23,14 @@ using namespace Commodore::Vic20;
 	BOOL _joystickMode;
 }
 
-- (CRTMachine::Machine * const)machine	{
-	if(!_vic20) {
-		_vic20.reset(Commodore::Vic20::Machine::Vic20());
-	}
-	return _vic20.get();
-}
 - (NSString *)userDefaultsPrefix		{	return @"vic20";	}
 
 - (instancetype)init {
-	self = [super init];
+	Machine *machine = Commodore::Vic20::Machine::Vic20();
+
+	self = [super initWithMachine:machine];
 	if(self) {
+		_vic20.reset(machine);
 		[self setDriveROM:[[NSBundle mainBundle] dataForResource:@"1540" withExtension:@"bin" subdirectory:@"ROMImages/Commodore1540"]];
 		[self setBASICROM:[self rom:@"basic"]];
 		[self setCountry:CSVic20CountryEuropean];
