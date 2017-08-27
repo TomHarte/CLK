@@ -388,8 +388,8 @@ class ConcreteMachine:
 
 using namespace ZX8081;
 
-// See header; constructs and returns an instance of the ZX80/81.
-Machine *Machine::ZX8081() {
+// See header; constructs and returns an instance of the ZX80 or 81.
+Machine *Machine::ZX8081(const StaticAnalyser::Target &target_hint) {
 	return new ZX8081::ConcreteMachine;
 }
 

@@ -38,7 +38,7 @@ class Machine:
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine {
 	public:
-		static Machine *ZX8081();
+		static Machine *ZX8081(const StaticAnalyser::Target &target_hint);
 		virtual ~Machine();
 
 		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;

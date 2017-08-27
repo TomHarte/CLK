@@ -18,8 +18,8 @@
 	std::unique_ptr<ZX8081::Machine> _zx8081;
 }
 
-- (instancetype)init {
-	ZX8081::Machine *machine = ZX8081::Machine::ZX8081();
+- (instancetype)initWithIntendedTarget:(const StaticAnalyser::Target &)target {
+	ZX8081::Machine *machine = ZX8081::Machine::ZX8081(target);
 
 	self = [super initWithMachine:machine];
 	if(self) {
