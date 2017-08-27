@@ -332,7 +332,7 @@ class ConcreteMachine:
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
 	private:
-		CPU::Z80::Processor<ConcreteMachine, false> z80_;
+		CPU::Z80::Processor<ConcreteMachine, false, true> z80_;
 
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
