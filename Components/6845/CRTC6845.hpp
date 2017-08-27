@@ -62,7 +62,7 @@ template <class T> class CRTC6845 {
 			selected_register_ = r;
 		}
 
-		uint8_t get_status() const {
+		uint8_t get_status() {
 			switch(personality_) {
 				case UM6845R:	return status_ | (bus_state_.vsync ? 0x20 : 0x00);
 				case AMS40226:	return get_register();
@@ -71,7 +71,7 @@ template <class T> class CRTC6845 {
 			return 0xff;
 		}
 
-		uint8_t get_register() const {
+		uint8_t get_register() {
 			if(selected_register_ == 31) status_ &= ~0x80;
 			if(selected_register_ == 16 || selected_register_ == 17) status_ &= ~0x40;
 
