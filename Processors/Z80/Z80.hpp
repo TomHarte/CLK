@@ -193,7 +193,7 @@ class BusHandler {
 	order to provide the bus on which the Z80 operates and @c flush(), which is called upon completion of a continuous run
 	of cycles to allow a subclass to bring any on-demand activities up to date.
 */
-template <class T, bool uses_bus_request> class Processor {
+template <class T, bool uses_bus_request, bool uses_wait_line> class Processor {
 	private:
 		T &bus_handler_;
 
@@ -451,6 +451,7 @@ template <class T, bool uses_bus_request> class Processor {
 
 			// Allocate a landing area.
 			std::vector<size_t> operation_indices;
+			target.all_operations.reserve(number_of_micro_ops);
 			target.instructions.resize(256, nullptr);
 
 			// Copy in all programs, recording where they go.
@@ -460,6 +461,12 @@ template <class T, bool uses_bus_request> class Processor {
 				for(size_t t = 0; t < lengths[c];) {
 					// Skip zero-length bus cycles.
 					if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
+						t++;
+						continue;
+					}
+
+					// Skip optional waits if this instance doesn't use the wait line.
+					if(table[c][t].machine_cycle.was_requested && !uses_wait_line) {
 						t++;
 						continue;
 					}
@@ -795,6 +802,13 @@ template <class T, bool uses_bus_request> class Processor {
 			while(!isTerminal(source[length].type)) length++;
 			size_t pointer = 0;
 			while(true) {
+				// TODO: This test is duplicated from assemble_page; can a better factoring be found?
+				// Skip optional waits if this instance doesn't use the wait line.
+				if(source[pointer].machine_cycle.was_requested && !uses_wait_line) {
+					pointer++;
+					continue;
+				}
+
 				destination.emplace_back(source[pointer]);
 				if(isTerminal(source[pointer].type)) break;
 				pointer++;
@@ -955,7 +969,7 @@ template <class T, bool uses_bus_request> class Processor {
 								bus_handler_.flush();
 								return;
 							}
-							if(operation->machine_cycle.was_requested) {
+							if(uses_wait_line && operation->machine_cycle.was_requested) {
 								if(wait_line_) {
 									scheduled_program_counter_--;
 								} else {
@@ -2002,6 +2016,7 @@ template <class T, bool uses_bus_request> class Processor {
 			Sets the logical value of the wait line.
 		*/
 		inline void set_wait_line(bool value) {
+			assert(uses_wait_line);
 			wait_line_ = value;
 		}
 

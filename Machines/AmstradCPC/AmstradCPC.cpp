@@ -998,7 +998,7 @@ class ConcreteMachine:
 			}
 		}
 
-		CPU::Z80::Processor<ConcreteMachine, false> z80_;
+		CPU::Z80::Processor<ConcreteMachine, false, true> z80_;
 
 		CRTCBusHandler crtc_bus_handler_;
 		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
