@@ -40,22 +40,12 @@
 #include "../Storage/Tape/Formats/TZX.hpp"
 #include "../Storage/Tape/Formats/ZX80O81P.hpp"
 
-typedef int TargetPlatformType;
-enum class TargetPlatform: TargetPlatformType {
-	Acorn		=	1 << 0,
-	AmstradCPC	=	1 << 1,
-	Atari2600	=	1 << 2,
-	Commodore	=	1 << 3,
-	Oric		=	1 << 4,
-	ZX8081		=	1 << 5,
-
-	AllTape		= Acorn | AmstradCPC | Commodore | Oric | ZX8081,
-	AllDisk		= Acorn | AmstradCPC | Commodore | Oric,
-};
+// Target Platform Types
+#include "../Storage/TargetPlatforms.hpp"
 
 using namespace StaticAnalyser;
 
-static Media GetMediaAndPlatforms(const char *file_name, TargetPlatformType &potential_platforms) {
+static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType &potential_platforms) {
 	// Get the extension, if any; it will be assumed that extensions are reliable, so an extension is a broad-phase
 	// test as to file format.
 	const char *mixed_case_extension = strrchr(file_name, '.');
@@ -72,7 +62,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatformType &pot
 	Media result;
 #define Insert(list, class, platforms) \
 	list.emplace_back(new Storage::class(file_name));\
-	potential_platforms |= (TargetPlatformType)(platforms);\
+	potential_platforms |= platforms;\
 
 #define TryInsert(list, class, platforms) \
 	try {\
@@ -132,7 +122,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatformType &pot
 }
 
 Media StaticAnalyser::GetMedia(const char *file_name) {
-	TargetPlatformType throwaway;
+	TargetPlatform::IntType throwaway;
 	return GetMediaAndPlatforms(file_name, throwaway);
 }
 
@@ -141,17 +131,17 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
-	TargetPlatformType potential_platforms = 0;
+	TargetPlatform::IntType potential_platforms = 0;
 	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them.
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Acorn)			Acorn::AddTargets(media, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::Oric)			Oric::AddTargets(media, targets);
-	if(potential_platforms & (TargetPlatformType)TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::Acorn)			Acorn::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::Oric)			Oric::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets);
 
 	// Reset any tapes to their initial position
 	for(auto target : targets) {
