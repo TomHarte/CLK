@@ -11,7 +11,5 @@
 
 @interface CSMachine (Subclassing)
 
-- (CRTMachine::Machine * const)machine;
 - (void)setupOutputWithAspectRatio:(float)aspectRatio;
-
 @end

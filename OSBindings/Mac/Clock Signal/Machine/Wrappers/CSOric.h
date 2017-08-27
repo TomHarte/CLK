@@ -12,6 +12,8 @@
 
 @interface CSOric : CSMachine <CSKeyboardMachine, CSFastLoading>
 
+- (instancetype)init;
+
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL useCompositeOutput;
 

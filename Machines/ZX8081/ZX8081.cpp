@@ -29,7 +29,7 @@ namespace {
 
 namespace ZX8081 {
 
-class ConcreteMachine:
+template<bool is_zx81> class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public Machine {
@@ -332,7 +332,7 @@ class ConcreteMachine:
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
 	private:
-		CPU::Z80::Processor<ConcreteMachine, false, true> z80_;
+		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 
 		std::shared_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
@@ -388,9 +388,13 @@ class ConcreteMachine:
 
 using namespace ZX8081;
 
-// See header; constructs and returns an instance of the ZX80/81.
-Machine *Machine::ZX8081() {
-	return new ZX8081::ConcreteMachine;
+// See header; constructs and returns an instance of the ZX80 or 81.
+Machine *Machine::ZX8081(const StaticAnalyser::Target &target_hint) {
+	// Instantiate the correct type of machine.
+	if(target_hint.zx8081.isZX81)
+		return new ZX8081::ConcreteMachine<true>();
+	else
+		return new ZX8081::ConcreteMachine<false>();
 }
 
 Machine::~Machine() {}

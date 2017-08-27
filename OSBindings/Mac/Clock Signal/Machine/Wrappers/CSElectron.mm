@@ -19,16 +19,13 @@
 	std::unique_ptr<Electron::Machine> _electron;
 }
 
-- (CRTMachine::Machine * const)machine {
-	if(!_electron) {
-		_electron.reset(Electron::Machine::Electron());
-	}
-	return _electron.get();
-}
-
 - (instancetype)init {
-	self = [super init];
+	Electron::Machine *machine = Electron::Machine::Electron();
+
+	self = [super initWithMachine:machine];
 	if(self) {
+		_electron.reset(machine);
+
 		[self setOSROM:[self rom:@"os"]];
 		[self setBASICROM:[self rom:@"basic"]];
 		[self setDFSROM:[self rom:@"DFS-1770-2.20"]];

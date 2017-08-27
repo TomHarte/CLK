@@ -18,16 +18,12 @@
 	std::unique_ptr<ZX8081::Machine> _zx8081;
 }
 
-- (CRTMachine::Machine * const)machine {
-	if(!_zx8081) {
-		_zx8081.reset(ZX8081::Machine::ZX8081());
-	}
-	return _zx8081.get();
-}
+- (instancetype)initWithIntendedTarget:(const StaticAnalyser::Target &)target {
+	ZX8081::Machine *machine = ZX8081::Machine::ZX8081(target);
 
-- (instancetype)init {
-	self = [super init];
+	self = [super initWithMachine:machine];
 	if(self) {
+		_zx8081.reset(machine);
 		_zx8081->set_rom(ZX8081::ROMType::ZX80, [self rom:@"zx80"].stdVector8);
 		_zx8081->set_rom(ZX8081::ROMType::ZX81, [self rom:@"zx81"].stdVector8);
 	}

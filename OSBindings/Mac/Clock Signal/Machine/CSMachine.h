@@ -18,6 +18,15 @@
 
 @interface CSMachine : NSObject
 
+- (instancetype)init NS_UNAVAILABLE;
+/*!
+	Initialises an instance of CSMachine.
+	
+	@param machine The pointer to an instance of @c CRTMachine::Machine* . C++ type is omitted because
+	this header is visible to Swift, and the designated initialiser cannot be placed into a category.
+*/
+- (instancetype)initWithMachine:(void *)machine NS_DESIGNATED_INITIALIZER;
+
 - (void)runForNumberOfCycles:(int)numberOfCycles;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;

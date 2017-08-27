@@ -39,14 +39,17 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	MachineDelegate _machineDelegate;
+	CRTMachine::Machine *_machine;
 }
 
-- (instancetype)init {
+- (instancetype)initWithMachine:(void *)machine {
 	self = [super init];
 	if(self) {
+		_machine = (CRTMachine::Machine *)machine;
 		_machineDelegate.machine = self;
-		self.machine->set_delegate(&_machineDelegate);
 		_speakerDelegate.machine = self;
+
+		_machine->set_delegate(&_machineDelegate);
 	}
 	return self;
 }
@@ -66,14 +69,14 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 - (void)dealloc {
 	[_view performWithGLContext:^{
 		@synchronized(self) {
-			self.machine->close_output();
+			_machine->close_output();
 		}
 	}];
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = self.machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
 		if(speaker)
 		{
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
@@ -90,7 +93,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = self.machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
 		if(speaker)
 		{
 			speaker->set_output_rate(sampleRate, (int)bufferSize);
@@ -103,7 +106,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 
 - (void)runForNumberOfCycles:(int)numberOfCycles {
 	@synchronized(self) {
-		self.machine->run_for(Cycles(numberOfCycles));
+		_machine->run_for(Cycles(numberOfCycles));
 	}
 }
 
@@ -115,26 +118,26 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	self.machine->setup_output(aspectRatio);
+	_machine->setup_output(aspectRatio);
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
-	self.machine->get_crt()->set_output_gamma(2.2f);
+	_machine->get_crt()->set_output_gamma(2.2f);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	self.machine->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+	_machine->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (double)clockRate {
-	return self.machine->get_clock_rate();
+	return _machine->get_clock_rate();
 }
 
 - (BOOL)clockIsUnlimited {
-	return self.machine->get_clock_is_unlimited() ? YES : NO;
+	return _machine->get_clock_is_unlimited() ? YES : NO;
 }
 
 - (void)paste:(NSString *)paste {
-	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(self.machine);
+	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(_machine);
 	if(typeRecipient)
 		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
@@ -142,7 +145,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 - (void)applyTarget:(const StaticAnalyser::Target &)target {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget =
-			dynamic_cast<ConfigurationTarget::Machine *>(self.machine);
+			dynamic_cast<ConfigurationTarget::Machine *>(_machine);
 		if(configurationTarget) configurationTarget->configure_as_target(target);
 	}
 }
@@ -150,7 +153,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 - (void)applyMedia:(const StaticAnalyser::Media &)media {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget =
-			dynamic_cast<ConfigurationTarget::Machine *>(self.machine);
+			dynamic_cast<ConfigurationTarget::Machine *>(_machine);
 		if(configurationTarget) configurationTarget->insert_media(media);
 	}
 }

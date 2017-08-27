@@ -15,11 +15,13 @@
 	std::unique_ptr<Atari2600::Machine> _atari2600;
 }
 
-- (CRTMachine::Machine * const)machine {
-	if(!_atari2600) {
-		_atari2600.reset(Atari2600::Machine::Atari2600());
+- (instancetype)init {
+	Atari2600::Machine *machine = Atari2600::Machine::Atari2600();
+	self = [super initWithMachine:machine];
+	if(self) {
+		_atari2600.reset(machine);
 	}
-	return _atari2600.get();
+	return self;
 }
 
 - (void)setDirection:(CSJoystickDirection)direction onPad:(NSUInteger)pad isPressed:(BOOL)isPressed {

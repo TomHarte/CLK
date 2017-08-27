@@ -12,6 +12,8 @@
 
 @interface CSAtari2600 : CSMachine <CSJoystickMachine>
 
+- (instancetype)init;
+
 - (void)setResetLineEnabled:(BOOL)enabled;
 
 @property (nonatomic, assign) BOOL colourButton;
