@@ -70,7 +70,8 @@ using namespace Storage::Tape;
 
 UEF::UEF(const char *file_name) :
 	time_base_(1200),
-	is_300_baud_(false) {
+	is_300_baud_(false),
+	platform_type_(TargetPlatform::Acorn) {
 	file_ = gzopen(file_name, "rb");
 
 	char identifier[10];
@@ -85,10 +86,11 @@ UEF::UEF(const char *file_name) :
 	if(version[1] > 0 || version[0] > 10) {
 		throw ErrorNotUEF;
 	}
+
+	set_platform_type();
 }
 
-UEF::~UEF()
-{
+UEF::~UEF() {
 	gzclose(file_);
 }
 
@@ -102,31 +104,42 @@ void UEF::virtual_reset() {
 
 #pragma mark - Chunk navigator
 
+bool UEF::get_next_chunk(UEF::Chunk &result) {
+	uint16_t chunk_id = (uint16_t)gzget16(file_);
+	uint32_t chunk_length = (uint32_t)gzget32(file_);
+	z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
+
+	if(gzeof(file_)) {
+		return false;
+	}
+
+	result.id = chunk_id;
+	result.length = chunk_length;
+	result.start_of_next_chunk = start_of_next_chunk;
+
+	return true;
+}
+
 void UEF::get_next_pulses() {
 	while(empty()) {
 		// read chunk details
-		uint16_t chunk_id = (uint16_t)gzget16(file_);
-		uint32_t chunk_length = (uint32_t)gzget32(file_);
-
-		// figure out where the next chunk will start
-		z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
-
-		if(gzeof(file_)) {
+		Chunk next_chunk;
+		if(!get_next_chunk(next_chunk)) {
 			set_is_at_end(true);
 			return;
 		}
 
-		switch(chunk_id) {
-			case 0x0100:	queue_implicit_bit_pattern(chunk_length);	break;
-			case 0x0102:	queue_explicit_bit_pattern(chunk_length);	break;
-			case 0x0112:	queue_integer_gap();						break;
-			case 0x0116:	queue_floating_point_gap();					break;
+		switch(next_chunk.id) {
+			case 0x0100:	queue_implicit_bit_pattern(next_chunk.length);	break;
+			case 0x0102:	queue_explicit_bit_pattern(next_chunk.length);	break;
+			case 0x0112:	queue_integer_gap();							break;
+			case 0x0116:	queue_floating_point_gap();						break;
 
-			case 0x0110:	queue_carrier_tone();						break;
-			case 0x0111:	queue_carrier_tone_with_dummy();			break;
+			case 0x0110:	queue_carrier_tone();							break;
+			case 0x0111:	queue_carrier_tone_with_dummy();				break;
 
-			case 0x0114:	queue_security_cycles();					break;
-			case 0x0104:	queue_defined_data(chunk_length);			break;
+			case 0x0114:	queue_security_cycles();						break;
+			case 0x0104:	queue_defined_data(next_chunk.length);			break;
 
 			// change of base rate
 			case 0x0113: {
@@ -143,19 +156,18 @@ void UEF::get_next_pulses() {
 			break;
 
 			default:
-				printf("!!! Skipping %04x\n", chunk_id);
+				printf("!!! Skipping %04x\n", next_chunk.id);
 			break;
 		}
 
-		gzseek(file_, start_of_next_chunk, SEEK_SET);
+		gzseek(file_, next_chunk.start_of_next_chunk, SEEK_SET);
 	}
 }
 
 #pragma mark - Chunk parsers
 
 void UEF::queue_implicit_bit_pattern(uint32_t length) {
-	while(length--)
-	{
+	while(length--) {
 		queue_implicit_byte(gzget8(file_));
 	}
 }
@@ -163,8 +175,7 @@ void UEF::queue_implicit_bit_pattern(uint32_t length) {
 void UEF::queue_explicit_bit_pattern(uint32_t length) {
 	size_t length_in_bits = (length << 3) - (size_t)gzget8(file_);
 	uint8_t current_byte = 0;
-	for(size_t bit = 0; bit < length_in_bits; bit++)
-	{
+	for(size_t bit = 0; bit < length_in_bits; bit++) {
 		if(!(bit&7)) current_byte = gzget8(file_);
 		queue_bit(current_byte&1);
 		current_byte >>= 1;
@@ -302,4 +313,31 @@ void UEF::queue_bit(int bit) {
 		emplace_back(Pulse::Low, duration);
 		emplace_back(Pulse::High, duration);
 	}
+}
+
+#pragma mark - TypeDistinguisher
+
+TargetPlatform::Type UEF::target_platform_type() {
+	return platform_type_;
+}
+
+void UEF::set_platform_type() {
+	// If a chunk of type 0005 exists anywhere in the UEF then the UEF specifies its target machine.
+	// So check and, if so, update the list of machines for which this file thinks it is suitable.
+	Chunk next_chunk;
+	while(get_next_chunk(next_chunk)) {
+		if(next_chunk.id == 0x0005) {
+			uint8_t target = gzget8(file_);
+			switch(target >> 4) {
+				case 0:	platform_type_ = TargetPlatform::BBCModelA;		break;
+				case 1:	platform_type_ = TargetPlatform::AcornElectron;	break;
+				case 2:	platform_type_ = TargetPlatform::BBCModelB;		break;
+				case 3:	platform_type_ = TargetPlatform::BBCMaster;		break;
+				case 4:	platform_type_ = TargetPlatform::AcornAtom;		break;
+				default: break;
+			}
+		}
+		gzseek(file_, next_chunk.start_of_next_chunk, SEEK_SET);
+	}
+	reset();
 }

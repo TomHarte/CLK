@@ -13,17 +13,22 @@ namespace TargetPlatform {
 
 typedef int IntType;
 enum Type: IntType {
-	Acorn		=	1 << 0,
-	AmstradCPC	=	1 << 1,
-	Atari2600	=	1 << 2,
-	Commodore	=	1 << 3,
-	Oric		=	1 << 4,
-	ZX80		=	1 << 5,
-	ZX81		=	1 << 6,
+	AmstradCPC		=	1 << 1,
+	Atari2600		=	1 << 2,
+	AcornAtom		=	1 << 3,
+	AcornElectron	=	1 << 4,
+	BBCMaster		=	1 << 5,
+	BBCModelA		=	1 << 6,
+	BBCModelB		=	1 << 7,
+	Commodore		=	1 << 8,
+	Oric			=	1 << 9,
+	ZX80			=	1 << 10,
+	ZX81			=	1 << 11,
 
-	ZX8081		= ZX80 | ZX81,
-	AllTape		= Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81,
-	AllDisk		= Acorn | AmstradCPC | Commodore | Oric,
+	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
+	ZX8081			=	ZX80 | ZX81,
+	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81,
+	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric,
 };
 
 class TypeDistinguisher {
