@@ -10,7 +10,9 @@
 #define ZX80O81P_hpp
 
 #include "../Tape.hpp"
+
 #include "../../FileHolder.hpp"
+#include "../../TargetPlatforms.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -21,7 +23,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
 */
-class ZX80O81P: public Tape, public Storage::FileHolder {
+class ZX80O81P: public Tape, public Storage::FileHolder, public TargetPlatform::TypeDistinguisher {
 	public:
 		/*!
 			Constructs a @c ZX80O containing content from the file with name @c file_name.
@@ -34,10 +36,14 @@ class ZX80O81P: public Tape, public Storage::FileHolder {
 			ErrorNotZX80O81P
 		};
 
+	private:
 		// implemented to satisfy @c Tape
 		bool is_at_end();
 
-	private:
+		// implemented to satisfy TargetPlatform::TypeDistinguisher
+		TargetPlatform::Type target_platform_type();
+		TargetPlatform::Type platform_type_;
+
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 		bool has_finished_data();

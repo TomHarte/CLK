@@ -1060,6 +1060,7 @@
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
 		4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4BF4A2D91F534DB300B171F4 /* TargetPlatforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TargetPlatforms.hpp; sourceTree = "<group>"; };
 		4BF6606A1F281573002CB053 /* ClockReceiver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ClockReceiver.hpp; sourceTree = "<group>"; };
 		4BF8295B1D8F048B001BAE39 /* MFM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MFM.cpp; path = Encodings/MFM.cpp; sourceTree = "<group>"; };
 		4BF8295C1D8F048B001BAE39 /* MFM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = MFM.hpp; path = Encodings/MFM.hpp; sourceTree = "<group>"; };
@@ -1457,6 +1458,7 @@
 				4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */,
 				4B5FADB91DE3151600AEC565 /* FileHolder.hpp */,
 				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
+				4BF4A2D91F534DB300B171F4 /* TargetPlatforms.hpp */,
 				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
 				4BEE0A691D72496600532C7B /* Cartridge */,
 				4B8805F81DCFF6CD003085B1 /* Data */,

@@ -52,6 +52,7 @@ class Cartridge {
 		};
 
 		const std::list<Segment> &get_segments() {	return segments_; }
+		virtual ~Cartridge() {}
 
 	protected:
 		std::list<Segment> segments_;
