@@ -44,27 +44,38 @@ class BusHandler {
 };
 
 enum Personality {
-	HD6845S,	//
-	UM6845R,	//
-	MC6845,		//
-	AMS40226	//
+	HD6845S,	// Type 0 in CPC parlance. Zero-width HSYNC available, no status, programmable VSYNC length.
+	UM6845R,	// Type 1 in CPC parlance. Status register, fixed-length VSYNC.
+	MC6845,		// Type 2. No status register, fixed-length VSYNC, no zero-length HSYNC.
+	AMS40226	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
 };
+
+// TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
 
 template <class T> class CRTC6845 {
 	public:
 
 		CRTC6845(Personality p, T &bus_handler) noexcept :
-			personality_(p), bus_handler_(bus_handler) {}
+			personality_(p), bus_handler_(bus_handler), status_(0) {}
 
 		void select_register(uint8_t r) {
 			selected_register_ = r;
 		}
 
 		uint8_t get_status() const {
+			switch(personality_) {
+				case UM6845R:	return status_ | (bus_state_.vsync ? 0x20 : 0x00);
+				case AMS40226:	return get_register();
+				default:		return 0xff;
+			}
 			return 0xff;
 		}
 
 		uint8_t get_register() const {
+			if(selected_register_ == 31) status_ &= ~0x80;
+			if(selected_register_ == 16 || selected_register_ == 17) status_ &= ~0x40;
+
+			if(personality_ == UM6845R && selected_register_ == 31) return dummy_register_;
 			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
@@ -78,11 +89,15 @@ template <class T> class CRTC6845 {
 			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
 			}
+			if(selected_register_ == 31 && personality_ == UM6845R) {
+				dummy_register_ = value;
+			}
 		}
 
 		void trigger_light_pen() {
 			registers_[17] = bus_state_.refresh_address & 0xff;
 			registers_[16] = bus_state_.refresh_address >> 8;
+			status_ |= 0x40;
 		}
 
 		void run_for(Cycles cycles) {
@@ -117,8 +132,17 @@ template <class T> class CRTC6845 {
 				// check for end of horizontal sync; note that a sync time of zero will result in an immediate
 				// cancellation of the plan to perform sync
 				if(bus_state_.hsync) {
-					bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
-					hsync_counter_ = (hsync_counter_ + 1) & 15;
+					switch(personality_) {
+						case HD6845S:
+						case UM6845R:
+							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+							hsync_counter_ = (hsync_counter_ + 1) & 15;
+						break;
+						default:
+							hsync_counter_ = (hsync_counter_ + 1) & 15;
+							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+						break;
+					}
 				}
 
 				perform_bus_cycle_phase2();
@@ -144,8 +168,14 @@ template <class T> class CRTC6845 {
 			// check for end of vertical sync
 			if(bus_state_.vsync) {
 				vsync_counter_ = (vsync_counter_ + 1) & 15;
-				if(vsync_counter_ == (registers_[3] >> 4)) {
-					bus_state_.vsync = false;
+				switch(personality_) {
+					case HD6845S:
+					case AMS40226:
+						bus_state_.vsync = vsync_counter_ != (registers_[3] >> 4);
+					break;
+					default:
+						bus_state_.vsync = vsync_counter_ != 0;
+					break;
 				}
 			}
 
@@ -205,6 +235,7 @@ template <class T> class CRTC6845 {
 		BusState bus_state_;
 
 		uint8_t registers_[18];
+		uint8_t dummy_register_;
 		int selected_register_;
 
 		uint8_t character_counter_;
@@ -218,6 +249,7 @@ template <class T> class CRTC6845 {
 
 		uint16_t line_address_;
 		uint16_t end_of_line_address_;
+		uint8_t status_;
 };
 
 }
