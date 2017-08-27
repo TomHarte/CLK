@@ -42,7 +42,7 @@
 
 - (NSString *)optionsPanelNibName {
 	switch(_target.machine) {
-		case StaticAnalyser::Target::AmstradCPC:	return @"AmstradCPCOptions";
+		case StaticAnalyser::Target::AmstradCPC:	return nil;
 		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
 		case StaticAnalyser::Target::Electron:		return @"ElectronOptions";
 		case StaticAnalyser::Target::Oric:			return @"OricOptions";
