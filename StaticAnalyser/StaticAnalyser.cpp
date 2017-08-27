@@ -63,6 +63,8 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 #define Insert(list, class, platforms) \
 	list.emplace_back(new Storage::class(file_name));\
 	potential_platforms |= platforms;\
+	TargetPlatform::TypeDistinguisher *distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
+	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
 
 #define TryInsert(list, class, platforms) \
 	try {\
@@ -115,6 +117,8 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 #undef Insert
 #undef TryInsert
 
+		// Filter potential platforms as per file preferences, if any.
+
 		free(lowercase_extension);
 	}
 
@@ -141,7 +145,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 	if(potential_platforms & TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Oric)			Oric::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets, potential_platforms);
 
 	// Reset any tapes to their initial position
 	for(auto target : targets) {
