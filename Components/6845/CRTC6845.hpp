@@ -130,7 +130,8 @@ template <class T> class CRTC6845 {
 				}
 
 				// check for end of horizontal sync; note that a sync time of zero will result in an immediate
-				// cancellation of the plan to perform sync
+				// cancellation of the plan to perform sync if this is an HD6845S or UM6845R; otherwise zero
+				// will end up counting as 16 as it won't be checked until after overflow.
 				if(bus_state_.hsync) {
 					switch(personality_) {
 						case HD6845S:
@@ -168,6 +169,8 @@ template <class T> class CRTC6845 {
 			// check for end of vertical sync
 			if(bus_state_.vsync) {
 				vsync_counter_ = (vsync_counter_ + 1) & 15;
+				// on the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
+				// always use a vertical sync count of 16.
 				switch(personality_) {
 					case HD6845S:
 					case AMS40226:
