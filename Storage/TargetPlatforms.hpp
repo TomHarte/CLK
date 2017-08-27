@@ -26,6 +26,11 @@ enum Type: IntType {
 	AllDisk		= Acorn | AmstradCPC | Commodore | Oric,
 };
 
+class TypeDistinguisher {
+	public:
+		virtual Type target_platform_type() = 0;
+};
+
 }
 
 #endif /* TargetPlatforms_h */

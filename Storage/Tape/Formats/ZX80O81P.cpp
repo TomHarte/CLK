@@ -20,9 +20,11 @@ ZX80O81P::ZX80O81P(const char *file_name) :
 
 	// If it's a ZX81 file, prepend a file name.
 	std::string type = extension();
+	platform_type_ = TargetPlatform::ZX80;
 	if(type == "p" || type == "81") {
 		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.
 		data_.insert(data_.begin(), 0x80);
+		platform_type_ = TargetPlatform::ZX81;
 	}
 
 	std::shared_ptr<::Storage::Data::ZX8081::File> file = Storage::Data::ZX8081::FileFromData(data_);
@@ -99,4 +101,8 @@ Tape::Pulse ZX80O81P::virtual_get_next_pulse() {
 	}
 
 	return pulse;
+}
+
+TargetPlatform::Type ZX80O81P::target_platform_type() {
+	return platform_type_;
 }
