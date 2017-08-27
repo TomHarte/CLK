@@ -10,11 +10,12 @@
 #define StaticAnalyser_ZX8081_StaticAnalyser_hpp
 
 #include "../StaticAnalyser.hpp"
+#include "../../Storage/TargetPlatforms.hpp"
 
 namespace StaticAnalyser {
 namespace ZX8081 {
 
-void AddTargets(const Media &media, std::list<Target> &destination);
+void AddTargets(const Media &media, std::list<Target> &destination, TargetPlatform::IntType potential_platforms);
 
 }
 }
