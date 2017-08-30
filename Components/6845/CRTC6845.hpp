@@ -45,6 +45,7 @@ class BusHandler {
 
 enum Personality {
 	HD6845S,	// Type 0 in CPC parlance. Zero-width HSYNC available, no status, programmable VSYNC length.
+				// Considered exactly identical to the UM6845, so this enum covers both.
 	UM6845R,	// Type 1 in CPC parlance. Status register, fixed-length VSYNC.
 	MC6845,		// Type 2. No status register, fixed-length VSYNC, no zero-length HSYNC.
 	AMS40226	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
@@ -85,6 +86,15 @@ template <class T> class CRTC6845 {
 				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
 				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
 			};
+
+			// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
+			if(selected_register_ == 8 && personality_ != UM6845R && personality_ != MC6845) {
+				switch((value >> 4)&3) {
+					default:	display_skew_mask_ = 1;		break;
+					case 1:		display_skew_mask_ = 2;		break;
+					case 2:		display_skew_mask_ = 4;		break;
+				}
+			}
 
 			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
@@ -156,12 +166,13 @@ template <class T> class CRTC6845 {
 
 	private:
 		inline void perform_bus_cycle_phase1() {
-			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
+			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | static_cast<int>(character_is_visible_);
+			bus_state_.display_enable = (character_is_visible_shifter_ & display_skew_mask_) && line_is_visible_;
 			bus_handler_.perform_bus_cycle_phase1(bus_state_);
 		}
 
 		inline void perform_bus_cycle_phase2() {
-			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
 			bus_handler_.perform_bus_cycle_phase2(bus_state_);
 		}
 
@@ -253,6 +264,9 @@ template <class T> class CRTC6845 {
 		uint16_t line_address_;
 		uint16_t end_of_line_address_;
 		uint8_t status_;
+
+		int display_skew_mask_ = 1;
+		int character_is_visible_shifter_ = 0;
 };
 
 }
