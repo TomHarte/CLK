@@ -1,12 +1,14 @@
 //
-//  6502.cpp
-//  CLK
+//  6502Base.cpp
+//  Clock Signal
 //
-//  Created by Thomas Harte on 09/07/2015.
-//  Copyright © 2015 Thomas Harte. All rights reserved.
+//  Created by Thomas Harte on 31/08/2017.
+//  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#include "6502.hpp"
+#include "../6502.hpp"
+
+using namespace CPU::MOS6502;
 
 const uint8_t CPU::MOS6502::JamOpcode = 0xf2;
 
@@ -67,7 +69,7 @@ const uint8_t CPU::MOS6502::JamOpcode = 0xf2;
 
 #define JAM									{CycleFetchOperand, CycleScheduleJam}
 
-const CPU::MOS6502::ProcessorBase::MicroOp CPU::MOS6502::ProcessorBase::operations[256][10] = {
+const ProcessorBase::MicroOp ProcessorBase::operations[256][10] = {
 	/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 	/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 	/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
@@ -243,3 +245,54 @@ const CPU::MOS6502::ProcessorBase::MicroOp CPU::MOS6502::ProcessorBase::operatio
 #undef IndirectIndexedReadModify
 #undef Immediate
 #undef Implied
+
+uint16_t ProcessorBase::get_value_of_register(Register r) {
+	switch (r) {
+		case Register::ProgramCounter:			return pc_.full;
+		case Register::LastOperationAddress:	return last_operation_pc_.full;
+		case Register::StackPointer:			return s_;
+		case Register::Flags:					return get_flags();
+		case Register::A:						return a_;
+		case Register::X:						return x_;
+		case Register::Y:						return y_;
+		case Register::S:						return s_;
+		default: return 0;
+	}
+}
+
+void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+	switch (r) {
+		case Register::ProgramCounter:	pc_.full = value;			break;
+		case Register::StackPointer:	s_ = (uint8_t)value;		break;
+		case Register::Flags:			set_flags((uint8_t)value);	break;
+		case Register::A:				a_ = (uint8_t)value;		break;
+		case Register::X:				x_ = (uint8_t)value;		break;
+		case Register::Y:				y_ = (uint8_t)value;		break;
+		case Register::S:				s_ = (uint8_t)value;		break;
+		default: break;
+	}
+}
+
+bool ProcessorBase::is_jammed() {
+	return is_jammed_;
+}
+
+ProcessorBase::ProcessorBase() :
+		is_jammed_(false),
+		ready_line_is_enabled_(false),
+		ready_is_active_(false),
+		inverse_interrupt_flag_(0),
+		irq_request_history_(0),
+		s_(0),
+		next_bus_operation_(BusOperation::None),
+		interrupt_requests_(InterruptRequestFlags::PowerOn),
+		irq_line_(0),
+		nmi_line_is_enabled_(false),
+		set_overflow_line_is_enabled_(false),
+		scheduled_program_counter_(nullptr) {
+	// only the interrupt flag is defined upon reset but get_flags isn't going to
+	// mask the other flags so we need to do that, at least
+	carry_flag_ &= Flag::Carry;
+	decimal_flag_ &= Flag::Decimal;
+	overflow_flag_ &= Flag::Overflow;
+}
