@@ -30,13 +30,7 @@ class ConcreteMachine:
 	public Tape::Delegate,
 	public Utility::TypeRecipient {
 	public:
-		ConcreteMachine() :
-				m6502_(*this),
-				interrupt_control_(0),
-				interrupt_status_(Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80),
-				cycles_since_audio_update_(0),
-				use_fast_tape_hack_(false),
-				cycles_until_display_interrupt_(0) {
+		ConcreteMachine() : m6502_(*this) {
 			memset(key_states_, 0, sizeof(key_states_));
 			for(int c = 0; c < 16; c++)
 				memset(roms_[c], 0xff, 16384);
@@ -435,39 +429,41 @@ class ConcreteMachine:
 
 		// Things that directly constitute the memory map.
 		uint8_t roms_[16][16384];
-		bool rom_write_masks_[16];
+		bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 		uint8_t os_[16384], ram_[32768];
 		std::vector<uint8_t> dfs_, adfs_;
 
 		// Paging
-		ROMSlot active_rom_;
-		bool keyboard_is_active_, basic_is_active_;
+		ROMSlot active_rom_ = ROMSlot::ROMSlot0;
+		bool keyboard_is_active_ = false;
+		bool basic_is_active_ = false;
 
 		// Interrupt and keyboard state
-		uint8_t interrupt_status_, interrupt_control_;
+		uint8_t interrupt_status_ = Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80;
+		uint8_t interrupt_control_ = 0;
 		uint8_t key_states_[14];
 
 		// Counters related to simultaneous subsystems
-		Cycles cycles_since_display_update_;
-		Cycles cycles_since_audio_update_;
-		int cycles_until_display_interrupt_;
-		Interrupt next_display_interrupt_;
-		VideoOutput::Range video_access_range_;
+		Cycles cycles_since_display_update_ = 0;
+		Cycles cycles_since_audio_update_ = 0;
+		int cycles_until_display_interrupt_ = 0;
+		Interrupt next_display_interrupt_ = Interrupt::RealTimeClock;
+		VideoOutput::Range video_access_range_ = {0, 0xffff};
 
 		// Tape
 		Tape tape_;
-		bool use_fast_tape_hack_;
-		bool fast_load_is_in_data_;
+		bool use_fast_tape_hack_ = false;
+		bool fast_load_is_in_data_ = false;
 
 		// Disk
 		std::unique_ptr<Plus3> plus3_;
-		bool is_holding_shift_;
-		int shift_restart_counter_;
+		bool is_holding_shift_ = false;
+		int shift_restart_counter_ = 0;
 
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
 		std::shared_ptr<Speaker> speaker_;
-		bool speaker_is_enabled_;
+		bool speaker_is_enabled_ = false;
 };
 
 }

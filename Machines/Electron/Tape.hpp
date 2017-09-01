@@ -53,21 +53,22 @@ class Tape:
 
 		struct {
 			int minimum_bits_until_full;
-		} input_;
+		} input_ = {0};
 		struct {
 			unsigned int cycles_into_pulse;
 			unsigned int bits_remaining_until_empty;
-		} output_;
+		} output_ = {.bits_remaining_until_empty = 0, .cycles_into_pulse = 0};
 
-		bool is_running_;
-		bool is_enabled_;
-		bool is_in_input_mode_;
+		bool is_running_ = false;
+		bool is_enabled_ = false;
+		bool is_in_input_mode_ = false;
 
 		inline void evaluate_interrupts();
-		uint16_t data_register_;
+		uint16_t data_register_ = 0;
 
-		uint8_t interrupt_status_, last_posted_interrupt_status_;
-		Delegate *delegate_;
+		uint8_t interrupt_status_ = 0;
+		uint8_t last_posted_interrupt_status_ = 0;
+		Delegate *delegate_ = nullptr;
 
 		::Storage::Tape::Acorn::Shifter shifter_;
 };

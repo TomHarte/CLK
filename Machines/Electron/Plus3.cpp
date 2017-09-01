@@ -10,7 +10,7 @@
 
 using namespace Electron;
 
-Plus3::Plus3() : WD1770(P1770), last_control_(0) {
+Plus3::Plus3() : WD1770(P1770) {
 	set_control_register(last_control_, 0xff);
 }
 

@@ -10,14 +10,7 @@
 
 using namespace Electron;
 
-Tape::Tape() :
-		TapePlayer(2000000),
-		is_running_(false),
-		data_register_(0),
-		delegate_(nullptr),
-		output_({.bits_remaining_until_empty = 0, .cycles_into_pulse = 0}),
-		last_posted_interrupt_status_(0),
-		interrupt_status_(0) {
+Tape::Tape() : TapePlayer(2000000) {
 	shifter_.set_delegate(this);
 }
 
