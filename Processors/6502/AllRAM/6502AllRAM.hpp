@@ -9,8 +9,8 @@
 #ifndef MOS6502AllRAM_cpp
 #define MOS6502AllRAM_cpp
 
-#include "6502.hpp"
-#include "../AllRAMProcessor.hpp"
+#include "../6502.hpp"
+#include "../../AllRAMProcessor.hpp"
 
 namespace CPU {
 namespace MOS6502 {
