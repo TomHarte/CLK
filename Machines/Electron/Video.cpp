@@ -36,13 +36,7 @@ namespace {
 
 #pragma mark - Lifecycle
 
-VideoOutput::VideoOutput(uint8_t *memory) :
-		ram_(memory),
-		current_pixel_line_(-1),
-		output_position_(0),
-		screen_mode_(6),
-		screen_map_pointer_(0),
-		cycles_into_draw_action_(0) {
+VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
 	setup_base_address();

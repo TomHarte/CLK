@@ -80,12 +80,13 @@ class VideoOutput {
 		inline void output_pixels(unsigned int number_of_cycles);
 		inline void setup_base_address();
 
-		int output_position_, unused_cycles_;
+		int output_position_ = 0;
+		int unused_cycles_ = 0;
 
 		uint8_t palette_[16];
-		uint8_t screen_mode_;
-		uint16_t screen_mode_base_address_;
-		uint16_t start_screen_address_;
+		uint8_t screen_mode_ = 6;
+		uint16_t screen_mode_base_address_ = 0;
+		uint16_t start_screen_address_ = 0;
 
 		uint8_t *ram_;
 		struct {
@@ -97,14 +98,18 @@ class VideoOutput {
 		} palette_tables_;
 
 		// Display generation.
-		uint16_t start_line_address_, current_screen_address_;
-		int current_pixel_line_, current_pixel_column_, current_character_row_;
-		uint8_t last_pixel_byte_;
-		bool is_blank_line_;
+		uint16_t start_line_address_ = 0;
+		uint16_t current_screen_address_ = 0;
+		int current_pixel_line_ = -1;
+		int current_pixel_column_ = 0;
+		int current_character_row_ = 0;
+		uint8_t last_pixel_byte_ = 0;
+		bool is_blank_line_ = false;
 
 		// CRT output
-		uint8_t *current_output_target_, *initial_output_target_;
-		unsigned int current_output_divider_;
+		uint8_t *current_output_target_ = nullptr;
+		uint8_t *initial_output_target_ = nullptr;
+		unsigned int current_output_divider_ = 1;
 
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
@@ -119,8 +124,8 @@ class VideoOutput {
 		void setup_screen_map();
 		void emplace_blank_line();
 		void emplace_pixel_line();
-		size_t screen_map_pointer_;
-		int cycles_into_draw_action_;
+		size_t screen_map_pointer_ = 0;
+		int cycles_into_draw_action_ = 0;
 };
 
 }

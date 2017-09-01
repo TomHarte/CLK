@@ -25,9 +25,9 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		static const unsigned int clock_rate_divider = 8;
 
 	private:
-		unsigned int counter_;
-		unsigned int divider_;
-		bool is_enabled_;
+		unsigned int counter_ = 0;
+		unsigned int divider_ = 0;
+		bool is_enabled_ = false;
 };
 
 }
