@@ -69,7 +69,7 @@ const uint8_t CPU::MOS6502::JamOpcode = 0xf2;
 
 #define JAM									{CycleFetchOperand, CycleScheduleJam}
 
-const ProcessorBase::MicroOp ProcessorBase::operations[256][10] = {
+const ProcessorStorage::MicroOp ProcessorStorage::operations[256][10] = {
 	/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 	/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 	/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
@@ -277,7 +277,7 @@ bool ProcessorBase::is_jammed() {
 	return is_jammed_;
 }
 
-ProcessorBase::ProcessorBase() :
+ProcessorStorage::ProcessorStorage() :
 		is_jammed_(false),
 		ready_line_is_enabled_(false),
 		ready_is_active_(false),

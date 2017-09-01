@@ -1,0 +1,148 @@
+//
+//  6502Storage.hpp
+//  Clock Signal
+//
+//  Created by Thomas Harte on 01/09/2017.
+//  Copyright © 2017 Thomas Harte. All rights reserved.
+//
+
+#ifndef MOS6502Storage_h
+#define MOS6502Storage_h
+
+/*!
+	A repository for all the internal state of a CPU::MOS6502::Processor; extracted into a separate base
+	class in order to remove it from visibility within the main 6502.hpp.
+*/
+class ProcessorStorage {
+	protected:
+		ProcessorStorage();
+
+		/*
+			This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
+			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+		*/
+		enum MicroOp {
+			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
+			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
+			OperationSetI,
+
+			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
+			CycleReadVectorLow,							CycleReadVectorHigh,
+
+			CycleReadFromS,								CycleReadFromPC,
+			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CycleNoWritePush,
+			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
+			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
+			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
+			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
+			OperationMoveToNextProgram,					OperationIncrementPC,
+			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
+			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
+			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
+			OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
+			OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
+			OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
+			OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
+			OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
+			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
+			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
+			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
+			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
+			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
+			OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
+			OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
+			OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
+			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
+			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
+			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+			OperationSetOperandFromFlags,
+			OperationSetFlagsFromA,
+			CycleScheduleJam
+		};
+
+		static const MicroOp operations[256][10];
+
+		const MicroOp *scheduled_program_counter_;
+
+		/*
+			Storage for the 6502 registers; F is stored as individual flags.
+		*/
+		RegisterPair pc_, last_operation_pc_;
+		uint8_t a_, x_, y_, s_;
+		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_;
+
+		/*
+			Temporary state for the micro programs.
+		*/
+		uint8_t operation_, operand_;
+		RegisterPair address_, next_address_;
+
+		/*
+			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
+			possibly deferring is no longer of value.
+		*/
+		BusOperation next_bus_operation_;
+		uint16_t bus_address_;
+		uint8_t *bus_value_;
+
+		/*!
+			Gets the flags register.
+
+			@see set_flags
+
+			@returns The current value of the flags register.
+		*/
+		inline uint8_t get_flags();
+
+		/*!
+			Sets the flags register.
+
+			@see set_flags
+
+			@param flags The new value of the flags register.
+		*/
+		inline void set_flags(uint8_t flags);
+
+		bool is_jammed_;
+		Cycles cycles_left_to_run_;
+
+		enum InterruptRequestFlags: uint8_t {
+			Reset		= 0x80,
+			IRQ			= Flag::Interrupt,
+			NMI			= 0x20,
+
+			PowerOn		= 0x10,
+		};
+		uint8_t interrupt_requests_;
+
+		bool ready_is_active_;
+		bool ready_line_is_enabled_;
+
+		uint8_t irq_line_, irq_request_history_;
+		bool nmi_line_is_enabled_, set_overflow_line_is_enabled_;
+
+		/*!
+			Gets the program representing an RST response.
+
+			@returns The program representing an RST response.
+		*/
+		inline const MicroOp *get_reset_program();
+
+		/*!
+			Gets the program representing an IRQ response.
+
+			@returns The program representing an IRQ response.
+		*/
+		inline const MicroOp *get_irq_program();
+
+		/*!
+			Gets the program representing an NMI response.
+
+			@returns The program representing an NMI response.
+		*/
+		inline const MicroOp *get_nmi_program();
+};
+
+#endif /* _502Storage_h */

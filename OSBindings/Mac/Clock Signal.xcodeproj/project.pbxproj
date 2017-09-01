@@ -537,6 +537,8 @@
 		4B30512C1D989E2200B4FED8 /* Drive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Drive.hpp; sourceTree = "<group>"; };
 		4B30512E1D98ACC600B4FED8 /* Plus3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Plus3.cpp; path = Electron/Plus3.cpp; sourceTree = "<group>"; };
 		4B30512F1D98ACC600B4FED8 /* Plus3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Plus3.hpp; path = Electron/Plus3.hpp; sourceTree = "<group>"; };
+		4B322DF31F5A26BF004EB04C /* 6502Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Implementation.hpp; sourceTree = "<group>"; };
+		4B322DF41F5A2714004EB04C /* 6502Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Storage.hpp; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B38F3421F2EB3E900D9235D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/AmstradCPC/StaticAnalyser.cpp; sourceTree = "<group>"; };
@@ -1518,6 +1520,8 @@
 			isa = PBXGroup;
 			children = (
 				4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */,
+				4B322DF31F5A26BF004EB04C /* 6502Implementation.hpp */,
+				4B322DF41F5A2714004EB04C /* 6502Storage.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
