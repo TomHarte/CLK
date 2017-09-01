@@ -19,26 +19,38 @@
 - (void)machineDidChangeClockIsUnlimited;
 @end
 
-struct SpeakerDelegate: public Outputs::Speaker::Delegate {
-	__weak CSMachine *machine;
+struct LockProtectedDelegate {
+	// Contractual promise is: machine — the pointer **and** the object ** — may be accessed only
+	// in sections protected by the machineAccessLock;
+	NSLock *machineAccessLock;
+	__unsafe_unretained CSMachine *machine;
+};
+
+struct SpeakerDelegate: public Outputs::Speaker::Delegate, public LockProtectedDelegate {
 	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
+		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
+		[machineAccessLock unlock];
 	}
 };
 
-struct MachineDelegate: CRTMachine::Machine::Delegate {
-	__weak CSMachine *machine;
+struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDelegate {
 	void machine_did_change_clock_rate(CRTMachine::Machine *sender) {
+		[machineAccessLock lock];
 		[machine machineDidChangeClockRate];
+		[machineAccessLock unlock];
 	}
 	void machine_did_change_clock_is_unlimited(CRTMachine::Machine *sender) {
+		[machineAccessLock lock];
 		[machine machineDidChangeClockIsUnlimited];
+		[machineAccessLock unlock];
 	}
 };
 
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	MachineDelegate _machineDelegate;
+	NSLock *_delegateMachineAccessLock;
 	CRTMachine::Machine *_machine;
 }
 
@@ -46,8 +58,12 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 	self = [super init];
 	if(self) {
 		_machine = (CRTMachine::Machine *)machine;
+		_delegateMachineAccessLock = [[NSLock alloc] init];
+
 		_machineDelegate.machine = self;
 		_speakerDelegate.machine = self;
+		_machineDelegate.machineAccessLock = _delegateMachineAccessLock;
+		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_machine->set_delegate(&_machineDelegate);
 	}
@@ -67,6 +83,17 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 }
 
 - (void)dealloc {
+	// The two delegate's references to this machine are nilled out here because close_output may result
+	// in a data flush, which might cause an audio callback, which could cause the audio queue to decide
+	// that it's out of data, resulting in an attempt further to run the machine while it is dealloc'ing.
+	//
+	// They are nilled inside an explicit lock because that allows the delegates to protect their entire
+	// call into the machine, not just the pointer access.
+	[_delegateMachineAccessLock lock];
+	_machineDelegate.machine = nil;
+	_speakerDelegate.machine = nil;
+	[_delegateMachineAccessLock unlock];
+
 	[_view performWithGLContext:^{
 		@synchronized(self) {
 			_machine->close_output();
@@ -77,8 +104,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
 		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
-		if(speaker)
-		{
+		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
 		return 0;
@@ -94,8 +120,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate {
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
 		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
-		if(speaker)
-		{
+		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize);
 			speaker->set_delegate(delegate);
 			return YES;
