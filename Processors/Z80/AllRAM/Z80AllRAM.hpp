@@ -9,8 +9,8 @@
 #ifndef Z80AllRAM_hpp
 #define Z80AllRAM_hpp
 
-#include "Z80.hpp"
-#include "../AllRAMProcessor.hpp"
+#include "../Z80.hpp"
+#include "../../AllRAMProcessor.hpp"
 
 namespace CPU {
 namespace Z80 {
