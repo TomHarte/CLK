@@ -888,6 +888,8 @@ template <	class T,
 	return wait_line_;
 }
 
+#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
+
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
@@ -970,6 +972,8 @@ template <	class T,
 		pointer++;
 	}
 }
+
+#undef isTerminal
 
 bool ProcessorBase::get_halt_line() {
 	return halt_mask_ == 0x00;
