@@ -211,7 +211,7 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 	}
 }
 
-PartialMachineCycle::PartialMachineCycle(const PartialMachineCycle &rhs) :
+PartialMachineCycle::PartialMachineCycle(const PartialMachineCycle &rhs) noexcept :
 	operation(rhs.operation),
 	length(rhs.length),
 	address(rhs.address),
