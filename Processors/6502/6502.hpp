@@ -93,7 +93,7 @@ class BusHandler {
 			Cycles(1) to describe lengthened bus cycles.
 		*/
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-			return Cycles(0);
+			return Cycles(1);
 		}
 
 		/*!
