@@ -17,15 +17,17 @@ Machine::Machine() :
 		shift_register_(0),
 		Storage::Disk::Controller(1000000, 4, 300),
 		serial_port_(new SerialPort),
-		serial_port_VIA_(new SerialPortVIA) {
+		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
+		drive_VIA_(drive_VIA_port_handler_),
+		serial_port_VIA_(*serial_port_VIA_port_handler_) {
 	// attach the serial port to its VIA and vice versa
-	serial_port_->set_serial_port_via(serial_port_VIA_);
-	serial_port_VIA_->set_serial_port(serial_port_);
+	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
+	serial_port_VIA_port_handler_->set_serial_port(serial_port_);
 
 	// set this instance as the delegate to receive interrupt requests from both VIAs
-	serial_port_VIA_->set_interrupt_delegate(this);
-	drive_VIA_.set_interrupt_delegate(this);
-	drive_VIA_.set_delegate(this);
+	serial_port_VIA_port_handler_->set_interrupt_delegate(this);
+	drive_VIA_port_handler_.set_interrupt_delegate(this);
+	drive_VIA_port_handler_.set_delegate(this);
 
 	// set a bit rate
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
@@ -54,9 +56,9 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 			*value = rom_[address & 0x3fff];
 	} else if(address >= 0x1800 && address <= 0x180f) {
 		if(isReadOperation(operation))
-			*value = serial_port_VIA_->get_register(address);
+			*value = serial_port_VIA_.get_register(address);
 		else
-			serial_port_VIA_->set_register(address, *value);
+			serial_port_VIA_.set_register(address, *value);
 	} else if(address >= 0x1c00 && address <= 0x1c0f) {
 		if(isReadOperation(operation))
 			*value = drive_VIA_.get_register(address);
@@ -64,7 +66,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 			drive_VIA_.set_register(address, *value);
 	}
 
-	serial_port_VIA_->run_for(Cycles(1));
+	serial_port_VIA_.run_for(Cycles(1));
 	drive_VIA_.run_for(Cycles(1));
 
 	return Cycles(1);
@@ -82,8 +84,8 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
-	set_motor_on(drive_VIA_.get_motor_enabled());
-	if(drive_VIA_.get_motor_enabled()) // TODO: motor speed up/down
+	set_motor_on(drive_VIA_port_handler_.get_motor_enabled());
+	if(drive_VIA_port_handler_.get_motor_enabled()) // TODO: motor speed up/down
 		Storage::Disk::Controller::run_for(cycles);
 }
 
@@ -91,7 +93,7 @@ void Machine::run_for(const Cycles cycles) {
 
 void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
 	// both VIAs are connected to the IRQ line
-	m6502_.set_irq_line(serial_port_VIA_->get_interrupt_line() || drive_VIA_.get_interrupt_line());
+	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
 #pragma mark - Disk drive
@@ -99,16 +101,16 @@ void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
 void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole) {
 	shift_register_ = (shift_register_ << 1) | value;
 	if((shift_register_ & 0x3ff) == 0x3ff) {
-		drive_VIA_.set_sync_detected(true);
+		drive_VIA_port_handler_.set_sync_detected(true);
 		bit_window_offset_ = -1; // i.e. this bit isn't the first within a data window, but the next might be
 	} else {
-		drive_VIA_.set_sync_detected(false);
+		drive_VIA_port_handler_.set_sync_detected(false);
 	}
 	bit_window_offset_++;
 	if(bit_window_offset_ == 8) {
-		drive_VIA_.set_data_input((uint8_t)shift_register_);
+		drive_VIA_port_handler_.set_data_input((uint8_t)shift_register_);
 		bit_window_offset_ = 0;
-		if(drive_VIA_.get_should_set_overflow()) {
+		if(drive_VIA_port_handler_.get_should_set_overflow()) {
 			m6502_.set_overflow_line(true);
 		}
 	}
@@ -130,15 +132,15 @@ void Machine::drive_via_did_set_data_density(void *driveVIA, int density) {
 
 #pragma mark - SerialPortVIA
 
-SerialPortVIA::SerialPortVIA() :
-	port_b_(0x00), attention_acknowledge_level_(false), attention_level_input_(true), data_level_output_(false) {}
+SerialPortVIA::SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via) :
+	port_b_(0x00), attention_acknowledge_level_(false), attention_level_input_(true), data_level_output_(false), via_(via) {}
 
-uint8_t SerialPortVIA::get_port_input(Port port) {
+uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 	if(port) return port_b_;
 	return 0xff;
 }
 
-void SerialPortVIA::set_port_output(Port port, uint8_t value, uint8_t mask) {
+void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t mask) {
 	if(port) {
 		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort) {
@@ -159,7 +161,7 @@ void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool v
 		case ::Commodore::Serial::Line::Attention:
 			attention_level_input_ = !value;
 			port_b_ = (port_b_ & ~0x80) | (value ? 0x00 : 0x80);
-			set_control_line_input(Port::A, Line::One, !value);
+			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !value);
 			update_data_line();
 		break;
 	}
@@ -187,7 +189,7 @@ void DriveVIA::set_delegate(Delegate *delegate) {
 // write protect tab uncovered
 DriveVIA::DriveVIA() : port_b_(0xff), port_a_(0xff), delegate_(nullptr) {}
 
-uint8_t DriveVIA::get_port_input(Port port) {
+uint8_t DriveVIA::get_port_input(MOS::MOS6522::Port port) {
 	return port ? port_b_ : port_a_;
 }
 
@@ -207,13 +209,13 @@ bool DriveVIA::get_motor_enabled() {
 	return drive_motor_;
 }
 
-void DriveVIA::set_control_line_output(Port port, Line line, bool value) {
-	if(port == Port::A && line == Line::Two) {
+void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+	if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
 		should_set_overflow_ = value;
 	}
 }
 
-void DriveVIA::set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
 	if(port) {
 		// record drive motor state
 		drive_motor_ = !!(value&4);

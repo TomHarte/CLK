@@ -32,7 +32,7 @@ namespace Oric {
 
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
-	public MOS::MOS6522IRQDelegate::Delegate,
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
@@ -47,12 +47,13 @@ class ConcreteMachine:
 				keyboard_(new Keyboard),
 				ram_top_(0xbfff),
 				paged_rom_(rom_),
-				microdisc_is_enabled_(false) {
+				microdisc_is_enabled_(false),
+				via_(via_port_handler_) {
 			set_clock_rate(1000000);
-			via_.set_interrupt_delegate(this);
-			via_.keyboard = keyboard_;
+			via_port_handler_.set_interrupt_delegate(this);
+			via_port_handler_.keyboard = keyboard_;
 			clear_all_keys();
-			via_.tape->set_delegate(this);
+			via_port_handler_.tape->set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
@@ -124,7 +125,7 @@ class ConcreteMachine:
 
 		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(media.tapes.size()) {
-				via_.tape->set_tape(media.tapes.front());
+				via_port_handler_.tape->set_tape(media.tapes.front());
 			}
 
 			int drive_index = 0;
@@ -143,8 +144,8 @@ class ConcreteMachine:
 
 				// 024D = 0 => fast; otherwise slow
 				// E6C9 = read byte: return byte in A
-				if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end()) {
-					uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
+				if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && via_port_handler_.tape->has_tape() && !via_port_handler_.tape->get_tape()->is_at_end()) {
+					uint8_t next_byte = via_port_handler_.tape->get_next_byte(!ram_[tape_speed_address_]);
 					m6502_.set_value_of_register(CPU::MOS6502::A, next_byte);
 					m6502_.set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 					*value = 0x60; // i.e. RTS
@@ -190,6 +191,7 @@ class ConcreteMachine:
 			}
 
 			via_.run_for(Cycles(1));
+			via_port_handler_.run_for(Cycles(1));
 			if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 			cycles_since_video_update_++;
 			return Cycles(1);
@@ -197,20 +199,20 @@ class ConcreteMachine:
 
 		forceinline void flush() {
 			update_video();
-			via_.flush();
+			via_port_handler_.flush();
 		}
 
 		// to satisfy CRTMachine::Machine
 		void setup_output(float aspect_ratio) override final {
-			via_.ay8910.reset(new GI::AY38910::AY38910());
-			via_.ay8910->set_clock_rate(1000000);
+			via_port_handler_.ay8910.reset(new GI::AY38910::AY38910());
+			via_port_handler_.ay8910->set_clock_rate(1000000);
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
 		}
 
 		void close_output() override final {
 			video_output_.reset();
-			via_.ay8910.reset();
+			via_port_handler_.ay8910.reset();
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
@@ -218,7 +220,7 @@ class ConcreteMachine:
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
-			return via_.ay8910;
+			return via_port_handler_.ay8910;
 		}
 
 		void run_for(const Cycles cycles) override final {
@@ -233,7 +235,7 @@ class ConcreteMachine:
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) override final {
 			// set CB1
-			via_.set_control_line_input(VIA::Port::B, VIA::Line::One, !tape_player->get_input());
+			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, !tape_player->get_input());
 		}
 
 		// for Utility::TypeRecipient::Delegate
@@ -304,22 +306,18 @@ class ConcreteMachine:
 		bool use_fast_tape_hack_;
 
 		// VIA (which owns the tape and the AY)
-		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
+		class VIA: public MOS::MOS6522::IRQDelegatePortHandler {
 			public:
-				VIA() :
-					MOS::MOS6522<VIA>(),
-					tape(new TapePlayer) {}
+				VIA() : tape(new TapePlayer) {}
 
-				using MOS6522IRQDelegate::set_interrupt_status;
-
-				void set_control_line_output(Port port, Line line, bool value) {
+				void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
 					if(line) {
 						if(port) ay_bdir_ = value; else ay_bc1_ = value;
 						update_ay();
 					}
 				}
 
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask)  {
+				void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask)  {
 					if(port) {
 						keyboard->row = value;
 						tape->set_motor_control(value & 0x40);
@@ -328,7 +326,7 @@ class ConcreteMachine:
 					}
 				}
 
-				uint8_t get_port_input(Port port) {
+				uint8_t get_port_input(MOS::MOS6522::Port port) {
 					if(port) {
 						uint8_t column = ay8910->get_port_output(false) ^ 0xff;
 						return (keyboard->rows[keyboard->row & 7] & column) ? 0x08 : 0x00;
@@ -339,7 +337,6 @@ class ConcreteMachine:
 
 				inline void run_for(const Cycles cycles) {
 					cycles_since_ay_update_ += cycles;
-					MOS::MOS6522<VIA>::run_for(cycles);
 					tape->run_for(cycles);
 				}
 
@@ -360,7 +357,8 @@ class ConcreteMachine:
 				bool ay_bdir_, ay_bc1_;
 				Cycles cycles_since_ay_update_;
 		};
-		VIA via_;
+		VIA via_port_handler_;
+		MOS::MOS6522::MOS6522<VIA> via_;
 		std::shared_ptr<Keyboard> keyboard_;
 
 		// the Microdisc, if in use
