@@ -30,26 +30,41 @@ enum Line {
 	Two = 1
 };
 
+/*!
+	Provides the mechanism for just-int-time communication from a 6522; the normal use case is to compose a
+	6522 and a subclass of PortHandler in order to reproduce a 6522 and its original bus wiring.
+*/
 class PortHandler {
 	public:
+		/// Requests the current input value of @c port from the port handler.
 		uint8_t get_port_input(Port port)										{	return 0xff;	}
+
+		/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
 		void set_port_output(Port port, uint8_t value, uint8_t direction_mask)	{}
+
+		/// Sets the current logical output level for line @c line on port @c port.
 		void set_control_line_output(Port port, Line line, bool value)			{}
+
+		/// Sets the current logical value of the interrupt line.
 		void set_interrupt_status(bool status)									{}
 };
 
 /*!
-	Provided for optional composition with @c MOS6522, @c MOS6522IRQDelegate provides for a delegate
-	that will receive IRQ line change notifications.
+	Provided as an optional alternative base to @c PortHandler for port handlers; via the delegate pattern adds
+	a virtual level of indirection for receiving changes to the interrupt line.
 */
 class IRQDelegatePortHandler: public PortHandler {
 	public:
 		class Delegate {
 			public:
-				virtual void mos6522_did_change_interrupt_status(void *mos6522) = 0;
+				/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
+				virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
 		};
 
+		/// Sets the delegate that will receive notification of changes in the interrupt line.
 		void set_interrupt_delegate(Delegate *delegate);
+
+		/// Overrides PortHandler::set_interrupt_status, notifying the delegate if one is set.
 		void set_interrupt_status(bool new_status);
 
 	private:
@@ -58,15 +73,16 @@ class IRQDelegatePortHandler: public PortHandler {
 
 class MOS6522Base: public MOS6522Storage {
 	public:
+		/// Sets the input value of line @c line on port @c port.
 		void set_control_line_input(Port port, Line line, bool value);
 
-		/*! Runs for a specified number of half cycles. */
+		/// Runs for a specified number of half cycles.
 		void run_for(const HalfCycles half_cycles);
 
-		/*! Runs for a specified number of cycles. */
+		/// Runs for a specified number of cycles.
 		void run_for(const Cycles cycles);
 
-		/*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
+		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
 		bool get_interrupt_line();
 
 	private:
