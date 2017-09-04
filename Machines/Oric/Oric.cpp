@@ -24,15 +24,156 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 
 namespace Oric {
 
+/*!
+	Models the Oric's keyboard: eight key rows, containing a bitfield of keys set.
+
+	Active line is selected through a port on the Oric's VIA, and a column mask is
+	selected via a port on the AY, returning a single Boolean representation of the
+	logical OR of every key selected by the column mask on the active row.
+*/
+class Keyboard {
+	public:
+		Keyboard() {
+			clear_all_keys();
+		}
+
+		/// Sets whether @c key is or is not pressed, per @c is_pressed.
+		void set_key_state(uint16_t key, bool is_pressed) {
+			uint8_t mask = key & 0xff;
+			int line = key >> 8;
+
+			if(is_pressed)	rows_[line] |= mask;
+			else			rows_[line] &= ~mask;
+		}
+
+		/// Sets all keys as unpressed.
+		void clear_all_keys() {
+			memset(rows_, 0, sizeof(rows_));
+		}
+
+		/// Selects the active row.
+		void set_active_row(uint8_t row) {
+			row_ = row & 7;
+		}
+
+		/// Queries the keys on the active row specified by @c mask.
+		bool query_column(uint8_t column_mask) {
+			return !!(rows_[row_] & column_mask);
+		}
+
+	private:
+		uint8_t row_ = 0;
+		uint8_t rows_[8];
+};
+
+/*!
+	Provide's the Oric's tape player: a standard binary-sampled tape which also holds
+	an instance of the Oric tape parser, to provide fast-tape loading.
+*/
+class TapePlayer: public Storage::Tape::BinaryTapePlayer {
+	public:
+		TapePlayer() : Storage::Tape::BinaryTapePlayer(1000000) {}
+
+		/*!
+			Parses the incoming tape event stream to obtain the next stored byte.
+
+			@param use_fast_encoding If set to @c true , inspects the tape as though it
+			is encoded in the Oric's fast-loading scheme. Otherwise looks for a slow-encoded byte.
+
+			@returns The next byte from the tape.
+		*/
+		uint8_t get_next_byte(bool use_fast_encoding) {
+			return (uint8_t)parser_.get_next_byte(get_tape(), use_fast_encoding);
+		}
+
+	private:
+		Storage::Tape::Oric::Parser parser_;
+};
+
+/*!
+	Implements the Oric's VIA's port handler. On the Oric the VIA's ports connect
+	to the AY, the tape's motor control signal and the keyboard.
+*/
+class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+	public:
+		VIAPortHandler(TapePlayer &tape_player, Keyboard &keyboard) : tape_player_(tape_player), keyboard_(keyboard) {}
+
+		/*!
+			Reponds to the 6522's control line output change signal; on an Oric A2 is connected to
+			the AY's BDIR, and B2 is connected to the AY's A2.
+		*/
+		void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+			if(line) {
+				if(port) ay_bdir_ = value; else ay_bc1_ = value;
+				update_ay();
+				ay8910_->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+			}
+		}
+
+		/*!
+			Reponds to changes in the 6522's port output. On an Oric port B sets the tape motor control
+			and the keyboard's active row. Port A is connected to the AY's data bus.
+		*/
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask)  {
+			if(port) {
+				keyboard_.set_active_row(value);
+				tape_player_.set_motor_control(value & 0x40);
+			} else {
+				update_ay();
+				ay8910_->set_data_input(value);
+			}
+		}
+
+		/*!
+			Provides input data for the 6522. Port B reads the keyboard, and port A reads from the AY.
+		*/
+		uint8_t get_port_input(MOS::MOS6522::Port port) {
+			if(port) {
+				uint8_t column = ay8910_->get_port_output(false) ^ 0xff;
+				return keyboard_.query_column(column) ? 0x08 : 0x00;
+			} else {
+				return ay8910_->get_data_output();
+			}
+		}
+
+		/*!
+			Advances time. This class manages the AY's concept of time to permit updating-on-demand.
+		*/
+		inline void run_for(const Cycles cycles) {
+			cycles_since_ay_update_ += cycles;
+		}
+
+		/// Flushes any queued behaviour (which, specifically, means on the AY).
+		void flush() {
+			ay8910_->run_for(cycles_since_ay_update_.flush());
+			ay8910_->flush();
+		}
+
+		/// Sets the AY in use by the machine the VIA that uses this port handler sits within.
+		void set_ay(GI::AY38910::AY38910 *ay) {
+			ay8910_ = ay;
+		}
+
+	private:
+		void update_ay() {
+			ay8910_->run_for(cycles_since_ay_update_.flush());
+		}
+		bool ay_bdir_ = false;
+		bool ay_bc1_ = false;
+		Cycles cycles_since_ay_update_;
+
+		GI::AY38910::AY38910 *ay8910_ = nullptr;
+		TapePlayer &tape_player_;
+		Keyboard &keyboard_;
+};
+
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
-	public MOS::MOS6522IRQDelegate::Delegate,
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
@@ -41,18 +182,12 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
-				use_fast_tape_hack_(false),
-				typer_delay_(2500000),
-				keyboard_read_count_(0),
-				keyboard_(new Keyboard),
-				ram_top_(0xbfff),
 				paged_rom_(rom_),
-				microdisc_is_enabled_(false) {
+				via_(via_port_handler_),
+				via_port_handler_(tape_player_, keyboard_) {
 			set_clock_rate(1000000);
-			via_.set_interrupt_delegate(this);
-			via_.keyboard = keyboard_;
-			clear_all_keys();
-			via_.tape->set_delegate(this);
+			via_port_handler_.set_interrupt_delegate(this);
+			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
@@ -68,19 +203,16 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) override final {
+		void set_key_state(uint16_t key, bool is_pressed) override final {
 			if(key == KeyNMI) {
-				m6502_.set_nmi_line(isPressed);
+				m6502_.set_nmi_line(is_pressed);
 			} else {
-				if(isPressed)
-					keyboard_->rows[key >> 8] |= (key & 0xff);
-				else
-					keyboard_->rows[key >> 8] &= ~(key & 0xff);
+				keyboard_.set_key_state(key, is_pressed);
 			}
 		}
 
 		void clear_all_keys() override final {
-			memset(keyboard_->rows, 0, sizeof(keyboard_->rows));
+			keyboard_.clear_all_keys();
 		}
 
 		void set_use_fast_tape_hack(bool activate) override final {
@@ -124,7 +256,7 @@ class ConcreteMachine:
 
 		bool insert_media(const StaticAnalyser::Media &media) override final {
 			if(media.tapes.size()) {
-				via_.tape->set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front());
 			}
 
 			int drive_index = 0;
@@ -143,8 +275,14 @@ class ConcreteMachine:
 
 				// 024D = 0 => fast; otherwise slow
 				// E6C9 = read byte: return byte in A
-				if(address == tape_get_byte_address_ && paged_rom_ == rom_ && use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && via_.tape->has_tape() && !via_.tape->get_tape()->is_at_end()) {
-					uint8_t next_byte = via_.tape->get_next_byte(!ram_[tape_speed_address_]);
+				if(	address == tape_get_byte_address_ &&
+					paged_rom_ == rom_ &&
+					use_fast_tape_hack_ &&
+					operation == CPU::MOS6502::BusOperation::ReadOpcode &&
+					tape_player_.has_tape() &&
+					!tape_player_.get_tape()->is_at_end()) {
+
+					uint8_t next_byte = tape_player_.get_next_byte(!ram_[tape_speed_address_]);
 					m6502_.set_value_of_register(CPU::MOS6502::A, next_byte);
 					m6502_.set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 					*value = 0x60; // i.e. RTS
@@ -173,7 +311,7 @@ class ConcreteMachine:
 					if(isReadOperation(operation))
 						*value = ram_[address];
 					else {
-						if(address >= 0x9800 && address <= 0xc000) { update_video(); typer_delay_ = 0; }
+						if(address >= 0x9800 && address <= 0xc000) update_video();
 						ram_[address] = *value;
 					}
 				}
@@ -190,6 +328,8 @@ class ConcreteMachine:
 			}
 
 			via_.run_for(Cycles(1));
+			via_port_handler_.run_for(Cycles(1));
+			tape_player_.run_for(Cycles(1));
 			if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
 			cycles_since_video_update_++;
 			return Cycles(1);
@@ -197,20 +337,23 @@ class ConcreteMachine:
 
 		forceinline void flush() {
 			update_video();
-			via_.flush();
+			via_port_handler_.flush();
 		}
 
 		// to satisfy CRTMachine::Machine
 		void setup_output(float aspect_ratio) override final {
-			via_.ay8910.reset(new GI::AY38910::AY38910());
-			via_.ay8910->set_clock_rate(1000000);
+			ay8910_.reset(new GI::AY38910::AY38910());
+			ay8910_->set_clock_rate(1000000);
+			via_port_handler_.set_ay(ay8910_.get());
+
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
 		}
 
 		void close_output() override final {
 			video_output_.reset();
-			via_.ay8910.reset();
+			ay8910_.reset();
+			via_port_handler_.set_ay(nullptr);
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
@@ -218,7 +361,7 @@ class ConcreteMachine:
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
-			return via_.ay8910;
+			return ay8910_;
 		}
 
 		void run_for(const Cycles cycles) override final {
@@ -233,7 +376,7 @@ class ConcreteMachine:
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) override final {
 			// set CB1
-			via_.set_control_line_input(VIA::Port::B, VIA::Line::One, !tape_player->get_input());
+			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, !tape_player->get_input());
 		}
 
 		// for Utility::TypeRecipient::Delegate
@@ -274,99 +417,26 @@ class ConcreteMachine:
 		}
 
 		// ROM bookkeeping
-		bool is_using_basic11_;
-		uint16_t tape_get_byte_address_, scan_keyboard_address_, tape_speed_address_;
-		int keyboard_read_count_;
+		bool is_using_basic11_ = false;
+		uint16_t tape_get_byte_address_ = 0, scan_keyboard_address_ = 0, tape_speed_address_ = 0;
+		int keyboard_read_count_ = 0;
 
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
-
-		// Keyboard
-		class Keyboard {
-			public:
-				uint8_t row;
-				uint8_t rows[8];
-		};
-		int typer_delay_;
+		std::shared_ptr<GI::AY38910::AY38910> ay8910_;
 
 		// The tape
-		class TapePlayer: public Storage::Tape::BinaryTapePlayer {
-			public:
-				TapePlayer() : Storage::Tape::BinaryTapePlayer(1000000) {}
+		TapePlayer tape_player_;
+		bool use_fast_tape_hack_ = false;
 
-				inline uint8_t get_next_byte(bool fast) {
-					return (uint8_t)parser_.get_next_byte(get_tape(), fast);
-				}
-
-			private:
-				Storage::Tape::Oric::Parser parser_;
-		};
-		bool use_fast_tape_hack_;
-
-		// VIA (which owns the tape and the AY)
-		class VIA: public MOS::MOS6522<VIA>, public MOS::MOS6522IRQDelegate {
-			public:
-				VIA() :
-					MOS::MOS6522<VIA>(),
-					tape(new TapePlayer) {}
-
-				using MOS6522IRQDelegate::set_interrupt_status;
-
-				void set_control_line_output(Port port, Line line, bool value) {
-					if(line) {
-						if(port) ay_bdir_ = value; else ay_bc1_ = value;
-						update_ay();
-					}
-				}
-
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask)  {
-					if(port) {
-						keyboard->row = value;
-						tape->set_motor_control(value & 0x40);
-					} else {
-						ay8910->set_data_input(value);
-					}
-				}
-
-				uint8_t get_port_input(Port port) {
-					if(port) {
-						uint8_t column = ay8910->get_port_output(false) ^ 0xff;
-						return (keyboard->rows[keyboard->row & 7] & column) ? 0x08 : 0x00;
-					} else {
-						return ay8910->get_data_output();
-					}
-				}
-
-				inline void run_for(const Cycles cycles) {
-					cycles_since_ay_update_ += cycles;
-					MOS::MOS6522<VIA>::run_for(cycles);
-					tape->run_for(cycles);
-				}
-
-				void flush() {
-					ay8910->run_for(cycles_since_ay_update_.flush());
-					ay8910->flush();
-				}
-
-				std::shared_ptr<GI::AY38910::AY38910> ay8910;
-				std::unique_ptr<TapePlayer> tape;
-				std::shared_ptr<Keyboard> keyboard;
-
-			private:
-				void update_ay() {
-					ay8910->run_for(cycles_since_ay_update_.flush());
-					ay8910->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
-				}
-				bool ay_bdir_, ay_bc1_;
-				Cycles cycles_since_ay_update_;
-		};
-		VIA via_;
-		std::shared_ptr<Keyboard> keyboard_;
+		VIAPortHandler via_port_handler_;
+		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
+		Keyboard keyboard_;
 
 		// the Microdisc, if in use
 		class Microdisc microdisc_;
-		bool microdisc_is_enabled_;
-		uint16_t ram_top_;
+		bool microdisc_is_enabled_ = false;
+		uint16_t ram_top_ = 0xbfff;
 		uint8_t *paged_rom_;
 
 		inline void set_interrupt_line() {
