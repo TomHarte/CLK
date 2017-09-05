@@ -53,7 +53,7 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 	// check disks
 	for(auto &disk : media.disks) {
 		std::list<File> disk_files = GetFiles(disk);
-		if(disk_files.size()) {
+		if(!disk_files.empty()) {
 			is_disk = true;
 			files.splice(files.end(), disk_files);
 			target.media.disks.push_back(disk);
@@ -65,14 +65,14 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 	for(auto &tape : media.tapes) {
 		std::list<File> tape_files = GetFiles(tape);
 		tape->reset();
-		if(tape_files.size()) {
+		if(!tape_files.empty()) {
 			files.splice(files.end(), tape_files);
 			target.media.tapes.push_back(tape);
 			if(!device) device = 1;
 		}
 	}
 
-	if(files.size()) {
+	if(!files.empty()) {
 		target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
@@ -136,6 +136,6 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 		}
 	}
 
-	if(target.media.tapes.size() || target.media.cartridges.size() || target.media.disks.size())
+	if(!target.media.tapes.empty() || !target.media.cartridges.empty() || !target.media.disks.empty())
 		destination.push_back(target);
 }
