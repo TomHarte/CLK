@@ -66,8 +66,8 @@ enum JoystickInput {
 };
 
 class Machine:
-	public ConfigurationTarget::Machine,
 	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine {
 	public:
 		virtual ~Machine();
