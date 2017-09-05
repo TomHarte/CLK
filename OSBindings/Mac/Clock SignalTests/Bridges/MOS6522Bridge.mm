@@ -7,11 +7,13 @@
 //
 
 #import "MOS6522Bridge.h"
+
 #include "6522.hpp"
+#include <memory>
 
 @class MOS6522Bridge;
 
-class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
+class VanillaVIAPortHandler: public MOS::MOS6522::PortHandler {
 	public:
 		MOS6522Bridge *bridge;
 		bool irq_line;
@@ -22,53 +24,55 @@ class VanillaVIA: public MOS::MOS6522<VanillaVIA> {
 			irq_line = new_status;
 		}
 
-		uint8_t get_port_input(Port port) {
+		uint8_t get_port_input(MOS::MOS6522::Port port) {
 			return port ? port_b_value : port_a_value;
 		}
 };
 
 @implementation MOS6522Bridge {
-	VanillaVIA _via;
+	VanillaVIAPortHandler _viaPortHandler;
+	std::unique_ptr<MOS::MOS6522::MOS6522<VanillaVIAPortHandler>> _via;
 }
 
 - (instancetype)init {
 	self = [super init];
 	if(self) {
-		_via.bridge = self;
+		_via.reset(new MOS::MOS6522::MOS6522<VanillaVIAPortHandler>(_viaPortHandler));
+		_viaPortHandler.bridge = self;
 	}
 	return self;
 }
 
 - (void)setValue:(uint8_t)value forRegister:(NSUInteger)registerNumber {
-	_via.set_register((int)registerNumber, value);
+	_via->set_register((int)registerNumber, value);
 }
 
 - (uint8_t)valueForRegister:(NSUInteger)registerNumber {
-	return _via.get_register((int)registerNumber);
+	return _via->get_register((int)registerNumber);
 }
 
 - (void)runForHalfCycles:(NSUInteger)numberOfHalfCycles {
-	_via.run_for(HalfCycles((int)numberOfHalfCycles));
+	_via->run_for(HalfCycles((int)numberOfHalfCycles));
 }
 
 - (BOOL)irqLine {
-	return _via.irq_line;
+	return _viaPortHandler.irq_line;
 }
 
 - (void)setPortAInput:(uint8_t)portAInput {
-	_via.port_a_value = portAInput;
+	_viaPortHandler.port_a_value = portAInput;
 }
 
 - (uint8_t)portAInput {
-	return _via.port_a_value;
+	return _viaPortHandler.port_a_value;
 }
 
 - (void)setPortBInput:(uint8_t)portBInput {
-	_via.port_b_value = portBInput;
+	_viaPortHandler.port_b_value = portBInput;
 }
 
 - (uint8_t)portBInput {
-	return _via.port_b_value;
+	return _viaPortHandler.port_b_value;
 }
 
 @end
