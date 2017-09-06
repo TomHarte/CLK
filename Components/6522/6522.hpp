@@ -104,7 +104,8 @@ class MOS6522Base: public MOS6522Storage {
 */
 template <class T> class MOS6522: public MOS6522Base {
 	public:
-		MOS6522(T &bus_handler) : bus_handler_(bus_handler) {}
+		MOS6522(T &bus_handler) noexcept : bus_handler_(bus_handler) {}
+		MOS6522(const MOS6522 &) = delete;
 
 		/*! Sets a register value. */
 		void set_register(int address, uint8_t value);
