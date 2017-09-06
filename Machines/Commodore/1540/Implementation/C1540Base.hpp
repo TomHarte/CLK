@@ -48,7 +48,7 @@ class SerialPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 		void set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &);
 
 	private:
-		MOS::MOS6522::MOS6522<SerialPortVIA> via_;
+		MOS::MOS6522::MOS6522<SerialPortVIA> &via_;
 		uint8_t port_b_;
 		std::weak_ptr<::Commodore::Serial::Port> serial_port_;
 		bool attention_acknowledge_level_, attention_level_input_, data_level_output_;

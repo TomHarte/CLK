@@ -55,8 +55,9 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 		else
 			ram_[address] = *value;
 	} else if(address >= 0xc000) {
-		if(isReadOperation(operation))
+		if(isReadOperation(operation)) {
 			*value = rom_[address & 0x3fff];
+		}
 	} else if(address >= 0x1800 && address <= 0x180f) {
 		if(isReadOperation(operation))
 			*value = serial_port_VIA_.get_register(address);
@@ -160,6 +161,8 @@ void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint
 }
 
 void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool value) {
+//	printf("[C1540] %s is %s\n", StringForLine(line), value ? "high" : "low");
+
 	switch(line) {
 		default: break;
 		case ::Commodore::Serial::Line::Data:		port_b_ = (port_b_ & ~0x01) | (value ? 0x00 : 0x01);		break;
@@ -223,25 +226,27 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 
 void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
 	if(port) {
-		// record drive motor state
-		drive_motor_ = !!(value&4);
+		if(previous_port_b_output_ != value) {
+			// record drive motor state
+			drive_motor_ = !!(value&4);
 
-		// check for a head step
-		int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
-		if(step_difference) {
-			if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+			// check for a head step
+			int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
+			if(step_difference) {
+				if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+			}
+
+			// check for a change in density
+			int density_difference = (previous_port_b_output_^value) & (3 << 5);
+			if(density_difference && delegate_) {
+				delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
+			}
+
+			// TODO: something with the drive LED
+//			printf("LED: %s\n", value&8 ? "On" : "Off");
+
+			previous_port_b_output_ = value;
 		}
-
-		// check for a change in density
-		int density_difference = (previous_port_b_output_^value) & (3 << 5);
-		if(density_difference && delegate_) {
-			delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
-		}
-
-		// TODO: something with the drive LED
-//		printf("LED: %s\n", value&8 ? "On" : "Off");
-
-		previous_port_b_output_ = value;
 	}
 }
 
