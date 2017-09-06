@@ -7,12 +7,15 @@
 //
 
 #include "C1540.hpp"
+
 #include <string>
-#include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
+#include <cassert>
+
+#include "../../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 
 using namespace Commodore::C1540;
 
-Machine::Machine() :
+MachineBase::MachineBase() :
 		m6502_(*this),
 		shift_register_(0),
 		Storage::Disk::Controller(1000000, 4, 300),
@@ -37,7 +40,7 @@ void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bu
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
 }
 
-Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -52,8 +55,9 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 		else
 			ram_[address] = *value;
 	} else if(address >= 0xc000) {
-		if(isReadOperation(operation))
+		if(isReadOperation(operation)) {
 			*value = rom_[address & 0x3fff];
+		}
 	} else if(address >= 0x1800 && address <= 0x180f) {
 		if(isReadOperation(operation))
 			*value = serial_port_VIA_.get_register(address);
@@ -73,6 +77,7 @@ Cycles Machine::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint
 }
 
 void Machine::set_rom(const std::vector<uint8_t> &rom) {
+	assert(rom.size() == sizeof(rom_));
 	memcpy(rom_, rom.data(), std::min(sizeof(rom_), rom.size()));
 }
 
@@ -84,21 +89,23 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
-	set_motor_on(drive_VIA_port_handler_.get_motor_enabled());
-	if(drive_VIA_port_handler_.get_motor_enabled()) // TODO: motor speed up/down
+
+	bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
+	set_motor_on(drive_motor);
+	if(drive_motor)
 		Storage::Disk::Controller::run_for(cycles);
 }
 
 #pragma mark - 6522 delegate
 
-void Machine::mos6522_did_change_interrupt_status(void *mos6522) {
+void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
 	// both VIAs are connected to the IRQ line
 	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
 #pragma mark - Disk drive
 
-void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole) {
+void MachineBase::process_input_bit(int value, unsigned int cycles_since_index_hole) {
 	shift_register_ = (shift_register_ << 1) | value;
 	if((shift_register_ & 0x3ff) == 0x3ff) {
 		drive_VIA_port_handler_.set_sync_detected(true);
@@ -118,15 +125,15 @@ void Machine::process_input_bit(int value, unsigned int cycles_since_index_hole)
 }
 
 // the 1540 does not recognise index holes
-void Machine::process_index_hole()	{}
+void MachineBase::process_index_hole()	{}
 
 #pragma mak - Drive VIA delegate
 
-void Machine::drive_via_did_step_head(void *driveVIA, int direction) {
+void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
 	step(direction);
 }
 
-void Machine::drive_via_did_set_data_density(void *driveVIA, int density) {
+void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)density));
 }
 
@@ -154,6 +161,8 @@ void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint
 }
 
 void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool value) {
+//	printf("[C1540] %s is %s\n", StringForLine(line), value ? "high" : "low");
+
 	switch(line) {
 		default: break;
 		case ::Commodore::Serial::Line::Data:		port_b_ = (port_b_ & ~0x01) | (value ? 0x00 : 0x01);		break;
@@ -217,25 +226,27 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 
 void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
 	if(port) {
-		// record drive motor state
-		drive_motor_ = !!(value&4);
+		if(previous_port_b_output_ != value) {
+			// record drive motor state
+			drive_motor_ = !!(value&4);
 
-		// check for a head step
-		int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
-		if(step_difference) {
-			if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+			// check for a head step
+			int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
+			if(step_difference) {
+				if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
+			}
+
+			// check for a change in density
+			int density_difference = (previous_port_b_output_^value) & (3 << 5);
+			if(density_difference && delegate_) {
+				delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
+			}
+
+			// TODO: something with the drive LED
+//			printf("LED: %s\n", value&8 ? "On" : "Off");
+
+			previous_port_b_output_ = value;
 		}
-
-		// check for a change in density
-		int density_difference = (previous_port_b_output_^value) & (3 << 5);
-		if(density_difference && delegate_) {
-			delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
-		}
-
-		// TODO: something with the drive LED
-//		printf("LED: %s\n", value&8 ? "On" : "Off");
-
-		previous_port_b_output_ = value;
 	}
 }
 

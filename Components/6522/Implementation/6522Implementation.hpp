@@ -61,7 +61,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			registers_.auxiliary_control = value;
 		break;
 		case 0xc:
-//					printf("Peripheral control %02x\n", value);
+//			printf("Peripheral control %02x\n", value);
 			registers_.peripheral_control = value;
 
 			// TODO: simplify below; trying to avoid improper logging of unimplemented warnings in input mode

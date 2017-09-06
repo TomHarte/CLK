@@ -46,6 +46,8 @@ void Bus::set_line_output_did_change(Line line) {
 		}
 	}
 
+//	printf("[Bus] %s is %s\n", StringForLine(line), new_line_level ? "high" : "low");
+
 	// post an update only if one occurred
 	if(new_line_level != line_levels_[line]) {
 		line_levels_[line] = new_line_level;
