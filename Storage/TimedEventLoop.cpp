@@ -35,6 +35,10 @@ unsigned int TimedEventLoop::get_cycles_until_next_event() {
 	return (unsigned int)std::max(cycles_until_event_, 0);
 }
 
+unsigned int TimedEventLoop::get_input_clock_rate() {
+	return input_clock_rate_;
+}
+
 void TimedEventLoop::reset_timer() {
 	subcycles_until_event_.set_zero();
 	cycles_until_event_ = 0;

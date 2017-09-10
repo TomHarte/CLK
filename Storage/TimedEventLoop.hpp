@@ -54,6 +54,11 @@ namespace Storage {
 			*/
 			unsigned int get_cycles_until_next_event();
 
+			/*!
+				@returns the input clock rate.
+			*/
+			unsigned int get_input_clock_rate();
+
 		protected:
 			/*!
 				Sets the time interval, as a proportion of a second, until the next event should be triggered.
