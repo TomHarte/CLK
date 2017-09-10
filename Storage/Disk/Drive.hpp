@@ -31,11 +31,6 @@ class Drive: public Sleeper, public TimedEventLoop {
 		void set_disk(const std::shared_ptr<Disk> &disk);
 
 		/*!
-			Replaces whatever is in the drive with a disk that contains endless copies of @c track.
-		*/
-		void set_disk_with_track(const std::shared_ptr<Track> &track);
-
-		/*!
 			@returns @c true if a disk is currently inserted; @c false otherwise.
 		*/
 		bool has_disk();
@@ -62,16 +57,6 @@ class Drive: public Sleeper, public TimedEventLoop {
 		bool get_is_read_only();
 
 		/*!
-			@returns the track underneath the current head at the location now stepped to.
-		*/
-		std::shared_ptr<Track> get_track();
-
-		/*!
-			Attempts to set @c track as the track underneath the current head at the location now stepped to.
-		*/
-		void set_track(const std::shared_ptr<Track> &track);
-
-		/*!
 			@returns @c true if the drive is ready; @c false otherwise.
 		*/
 		bool get_is_ready();
@@ -95,7 +80,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 			the index hole. Writing will continue over the index hole otherwise.
 		*/
-		void begin_writing(bool clamp_to_index_hole);
+		void begin_writing(Time bit_length, bool clamp_to_index_hole);
 
 		/*!
 			Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
@@ -125,6 +110,9 @@ class Drive: public Sleeper, public TimedEventLoop {
 				If the controller provides further bits now then there will be no gap in written data.
 			*/
 			virtual void process_write_completed() {}
+
+			/// Informs the delegate of the passing of @c cycles.
+			virtual void advance(const Cycles cycles) {}
 		};
 
 		/// Sets the current event delegate.
@@ -134,7 +122,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		bool is_sleeping();
 
 	private:
-		// Drives [usually] contain an entire disk; from that a certain track
+		// Drives contain an entire disk; from that a certain track
 		// will be currently under the head.
 		std::shared_ptr<Disk> disk_;
 		std::shared_ptr<Track> track_;
@@ -158,14 +146,17 @@ class Drive: public Sleeper, public TimedEventLoop {
 
 		// If the drive is not currently reading then it is writing. While writing
 		// it can optionally be told to clamp to the index hole.
-		bool is_reading_;
-		bool clamp_writing_to_index_hole_;
+		bool is_reading_ = false;
+		bool clamp_writing_to_index_hole_ = false;
 
 		// If writing is occurring then the drive will be accumulating a write segment,
 		// for addition to a patched track.
 		std::shared_ptr<PCMPatchedTrack> patched_track_;
 		PCMSegment write_segment_;
 		Time write_start_time_;
+
+		// Indicates drive ready state.
+		bool is_ready_ = false;
 
 		// Maintains appropriate counting to know when to indicate that writing
 		// is complete.
@@ -182,6 +173,19 @@ class Drive: public Sleeper, public TimedEventLoop {
 
 		// The target (if any) for track events.
 		EventDelegate *event_delegate_ = nullptr;
+
+		/*!
+			@returns the track underneath the current head at the location now stepped to.
+		*/
+		std::shared_ptr<Track> get_track();
+
+		/*!
+			Attempts to set @c track as the track underneath the current head at the location now stepped to.
+		*/
+		void set_track(const std::shared_ptr<Track> &track);
+
+		void setup_track();
+		void invalidate_track();
 };
 
 
