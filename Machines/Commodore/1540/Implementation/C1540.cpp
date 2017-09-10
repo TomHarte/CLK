@@ -91,7 +91,7 @@ void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
 
 	bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
-	set_motor_on(drive_motor);
+	get_drive().set_motor_on(drive_motor);
 	if(drive_motor)
 		Storage::Disk::Controller::run_for(cycles);
 }
@@ -105,7 +105,7 @@ void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
 
 #pragma mark - Disk drive
 
-void MachineBase::process_input_bit(int value, unsigned int cycles_since_index_hole) {
+void MachineBase::process_input_bit(int value) {
 	shift_register_ = (shift_register_ << 1) | value;
 	if((shift_register_ & 0x3ff) == 0x3ff) {
 		drive_VIA_port_handler_.set_sync_detected(true);
@@ -130,7 +130,7 @@ void MachineBase::process_index_hole()	{}
 #pragma mak - Drive VIA delegate
 
 void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
-	step(direction);
+	get_drive().step(direction);
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {

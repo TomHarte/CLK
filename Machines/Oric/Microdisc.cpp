@@ -95,7 +95,7 @@ uint8_t Microdisc::get_data_request_register() {
 }
 
 void Microdisc::set_head_load_request(bool head_load) {
-	set_motor_on(head_load);
+	get_drive().set_motor_on(head_load);
 	if(head_load) {
 		head_load_request_counter_ = 0;
 	} else {

@@ -13,7 +13,6 @@
 #include "DigitalPhaseLockedLoop.hpp"
 #include "PCMSegment.hpp"
 #include "PCMPatchedTrack.hpp"
-#include "../TimedEventLoop.hpp"
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/Sleeper.hpp"
@@ -30,7 +29,7 @@ namespace Disk {
 
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
-class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop, public Sleeper, public Sleeper::SleepObserver {
+class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDelegate, public Sleeper, public Sleeper::SleepObserver {
 	protected:
 		/*!
 			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
@@ -49,51 +48,14 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		void run_for(const Cycles cycles);
 
 		/*!
-			Sets the current drive.
+			Sets the current drive. This drive is the one the PLL listens to.
 		*/
 		void set_drive(std::shared_ptr<Drive> drive);
 
 		/*!
-			Announces that the track the drive sees is about to change for a reason unknownt to the controller.
+			Should be implemented by subclasses; communicates each bit that the PLL recognises.
 		*/
-		void invalidate_track();
-
-		/*!
-			Enables or disables the disk motor.
-		*/
-		void set_motor_on(bool motor_on);
-
-		/*!
-			@returns @c true if the motor is on; @c false otherwise.
-		*/
-		bool get_motor_on();
-
-		/*!
-			Begins write mode, initiating a PCM sampled region of data. Bits should be written via
-			@c write_bit. They will be written with the length set via @c set_expected_bit_length.
-			It is acceptable to supply a backlog of bits. Flux transition events will not be reported
-			while writing.
-
-			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
-			the index hole. Writing will continue over the index hole otherwise.
-		*/
-		void begin_writing(bool clamp_to_index_hole);
-
-		/*!
-			Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
-		*/
-		void write_bit(bool value);
-
-		/*!
-			Ends write mode, switching back to read mode. The drive will stop overwriting events.
-		*/
-		void end_writing();
-
-		/*!
-			Should be implemented by subclasses; communicates each bit that the PLL recognises, also specifying
-			the amount of time since the index hole was last seen.
-		*/
-		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole) = 0;
+		virtual void process_input_bit(int value) = 0;
 
 		/*!
 			Should be implemented by subclasses; communicates that the index hole has been reached.
@@ -106,16 +68,19 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 		*/
 		virtual void process_write_completed();
 
-		// for TimedEventLoop
-		virtual void process_next_event();
+		/*!
+			Puts the drive returned by get_drive() into write mode, supplying the current bit length.
 
-		// to satisfy DigitalPhaseLockedLoop::Delegate
-		void digital_phase_locked_loop_output_bit(int value);
+			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
+			the index hole. Writing will continue over the index hole otherwise.
+		*/
+		void begin_writing(bool clamp_to_index_hole);
 
-		bool get_is_track_zero();
-		void step(int direction);
-		virtual bool get_drive_is_ready();
-		bool get_drive_is_read_only();
+		/*!
+			Returns the connected drive or, if none is connected, an invented one. No guarantees are
+			made about the lifetime or the exclusivity of the invented drive.
+		*/
+		Drive &get_drive();
 
 		bool is_sleeping();
 
@@ -127,26 +92,17 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;
-		std::shared_ptr<Track> track_;
-		int cycles_since_index_hole_;
 
-		inline void get_next_event(const Time &duration_already_passed);
-		Track::Event current_event_;
-		bool motor_is_on_;
-
-		bool is_reading_;
-		bool clamp_writing_to_index_hole_;
-		std::shared_ptr<PCMPatchedTrack> patched_track_;
-		PCMSegment write_segment_;
-		Time write_start_time_;
-
-		Time cycles_until_bits_written_;
-		Time cycles_per_bit_;
-
-		void setup_track();
-		Time get_time_into_track();
+		std::shared_ptr<Drive> empty_drive_;
 
 		void set_component_is_sleeping(void *component, bool is_sleeping);
+
+		// for Drive::EventDelegate
+		void process_event(const Track::Event &event);
+		void advance(const Cycles cycles);
+
+		// to satisfy DigitalPhaseLockedLoop::Delegate
+		void digital_phase_locked_loop_output_bit(int value);
 };
 
 }

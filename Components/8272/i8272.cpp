@@ -236,9 +236,8 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
 	set_drive(drives_[active_drive_].drive);	\
-	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
-	set_is_double_density(command_[0] & 0x40);	\
-	invalidate_track();
+	get_drive().set_head((unsigned int)active_head_);	\
+	set_is_double_density(command_[0] & 0x40);
 
 #define WAIT_FOR_BYTES(n) \
 	distance_into_section_ = 0;	\
@@ -527,7 +526,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			if(!has_input_) {
 				SetOverrun();
-				end_writing();
+				get_drive().end_writing();
 				goto abort;
 			}
 			write_byte(input_);
@@ -542,7 +541,7 @@ void i8272::posit_event(int event_type) {
 			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
-			end_writing();
+			get_drive().end_writing();
 
 			if(sector_ != command_[6]) {
 				sector_++;
@@ -648,7 +647,7 @@ void i8272::posit_event(int event_type) {
 			switch(event_type) {
 				case (int)Event::IndexHole:
 					SetOverrun();
-					end_writing();
+					get_drive().end_writing();
 					goto abort;
 				break;
 				case (int)Event::DataWritten:
@@ -685,7 +684,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT((int)Event::DataWritten | (int)Event::IndexHole);
 			if(event_type != (int)Event::IndexHole) goto format_track_pad;
 
-			end_writing();
+			get_drive().end_writing();
 
 			cylinder_ = header_[0];
 			head_ = header_[1];

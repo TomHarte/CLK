@@ -146,7 +146,7 @@ class MFMController: public Controller {
 
 	private:
 		// Storage::Disk::Controller
-		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_input_bit(int value);
 		virtual void process_index_hole();
 		virtual void process_write_completed();
 

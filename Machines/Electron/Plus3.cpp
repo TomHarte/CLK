@@ -42,7 +42,6 @@ void Plus3::set_control_register(uint8_t control, uint8_t changes) {
 		}
 	}
 	if(changes & 0x04) {
-		invalidate_track();
 		if(drives_[0]) drives_[0]->set_head((control & 0x04) ? 1 : 0);
 		if(drives_[1]) drives_[1]->set_head((control & 0x04) ? 1 : 0);
 	}

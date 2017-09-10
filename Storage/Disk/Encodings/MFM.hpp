@@ -129,7 +129,7 @@ class Parser: public Storage::Disk::Controller {
 		bool is_mfm_;
 
 		void seek_to_track(uint8_t track);
-		void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		void process_input_bit(int value);
 		void process_index_hole();
 		uint8_t get_next_byte();
 

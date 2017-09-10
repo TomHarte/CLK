@@ -83,6 +83,14 @@ void Drive::set_motor_on(bool motor_is_on) {
 	update_sleep_observer();
 }
 
+bool Drive::get_motor_on() {
+	return motor_is_on_;
+}
+
+void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
+	event_delegate_ = delegate;
+}
+
 void Drive::run_for(const Cycles cycles) {
 	Time zero(0);
 
@@ -178,6 +186,10 @@ void Drive::setup_track() {
 
 void Drive::invalidate_track() {
 	track_ = nullptr;
+	if(patched_track_) {
+		set_track(patched_track_);
+		patched_track_ = nullptr;
+	}
 }
 
 #pragma mark - Writing
@@ -185,6 +197,9 @@ void Drive::invalidate_track() {
 void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	is_reading_ = false;
 	clamp_writing_to_index_hole_ = clamp_to_index_hole;
+
+	cycles_per_bit_ = Storage::Time(get_input_clock_rate()) * bit_length;
+	cycles_per_bit_.simplify();
 
 	write_segment_.length_of_a_bit = bit_length / rotational_multiplier_;
 	write_segment_.data.clear();

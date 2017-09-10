@@ -75,7 +75,7 @@ uint8_t WD1770::get_register(int address) {
 			switch(status_.type) {
 				case Status::One:
 					status |=
-						(get_is_track_zero() ? Flag::TrackZero : 0) |
+						(get_drive().get_is_track_zero() ? Flag::TrackZero : 0) |
 						(status_.seek_error ? Flag::SeekError : 0);
 						// TODO: index hole
 				break;
@@ -91,11 +91,11 @@ uint8_t WD1770::get_register(int address) {
 			}
 
 			if(!has_motor_on_line()) {
-				status |= get_drive_is_ready() ? 0 : Flag::NotReady;
+				status |= get_drive().get_is_ready() ? 0 : Flag::NotReady;
 				if(status_.type == Status::One)
 					status |= (head_is_loaded_ ? Flag::HeadLoaded : 0);
 			} else {
-				status |= (get_motor_on() ? Flag::MotorOn : 0);
+				status |= (get_drive().get_motor_on() ? Flag::MotorOn : 0);
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
@@ -145,7 +145,7 @@ void WD1770::run_for(const Cycles cycles) {
 #define LINE_LABEL INDIRECT_CONCATENATE(label, __LINE__)
 
 #define SPIN_UP()	\
-		set_motor_on(true);	\
+		get_drive().set_motor_on(true);	\
 		index_hole_count_ = 0;	\
 		index_hole_count_target_ = 6;	\
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);	\
@@ -178,7 +178,7 @@ void WD1770::posit_event(int new_event_type) {
 
 		// motor power-down
 		if(index_hole_count_ == 9 && !status_.busy && has_motor_on_line()) {
-			set_motor_on(false);
+			get_drive().set_motor_on(false);
 		}
 
 		// head unload
@@ -257,7 +257,7 @@ void WD1770::posit_event(int new_event_type) {
 		goto test_type1_type;
 
 	begin_type1_spin_up:
-		if((command_&0x08) || get_motor_on()) goto test_type1_type;
+		if((command_&0x08) || get_drive().get_motor_on()) goto test_type1_type;
 		SPIN_UP();
 
 	test_type1_type:
@@ -280,11 +280,11 @@ void WD1770::posit_event(int new_event_type) {
 		if(step_direction_) track_++; else track_--;
 
 	perform_step:
-		if(!step_direction_ && get_is_track_zero()) {
+		if(!step_direction_ && get_drive().get_is_track_zero()) {
 			track_ = 0;
 			goto verify;
 		}
-		step(step_direction_ ? 1 : -1);
+		get_drive().step(step_direction_ ? 1 : -1);
 		unsigned int time_to_wait;
 		switch(command_ & 3) {
 			default:
@@ -376,7 +376,7 @@ void WD1770::posit_event(int new_event_type) {
 		goto test_type2_delay;
 
 	begin_type2_spin_up:
-		if(get_motor_on()) goto test_type2_delay;
+		if(get_drive().get_motor_on()) goto test_type2_delay;
 		// Perform spin up.
 		SPIN_UP();
 
@@ -386,7 +386,7 @@ void WD1770::posit_event(int new_event_type) {
 		WAIT_FOR_TIME(30);
 
 	test_type2_write_protection:
-		if(command_&0x20 && get_drive_is_read_only()) {
+		if(command_&0x20 && get_drive().get_is_read_only()) {
 			update_status([] (Status &status) {
 				status.write_protect = true;
 			});
@@ -541,7 +541,7 @@ void WD1770::posit_event(int new_event_type) {
 		});
 		WAIT_FOR_EVENT(Event::DataWritten);
 		if(status_.data_request) {
-			end_writing();
+			get_drive().end_writing();
 			update_status([] (Status &status) {
 				status.lost_data = true;
 			});
@@ -554,7 +554,7 @@ void WD1770::posit_event(int new_event_type) {
 		write_crc();
 		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
-		end_writing();
+		get_drive().end_writing();
 
 		if(command_ & 0x10) {
 			sector_++;
@@ -594,7 +594,7 @@ void WD1770::posit_event(int new_event_type) {
 		goto type3_test_delay;
 
 	begin_type3_spin_up:
-		if((command_&0x08) || get_motor_on()) goto type3_test_delay;
+		if((command_&0x08) || get_drive().get_motor_on()) goto type3_test_delay;
 		SPIN_UP();
 
 	type3_test_delay:
@@ -675,7 +675,7 @@ void WD1770::posit_event(int new_event_type) {
 		});
 
 	write_track_test_write_protect:
-		if(get_drive_is_read_only()) {
+		if(get_drive().get_is_read_only()) {
 			update_status([] (Status &status) {
 				status.write_protect = true;
 			});
@@ -755,11 +755,11 @@ void WD1770::posit_event(int new_event_type) {
 			update_status([] (Status &status) {
 				status.lost_data = true;
 			});
-			end_writing();
+			get_drive().end_writing();
 			goto wait_for_command;
 		}
 		if(index_hole_count_) {
-			end_writing();
+			get_drive().end_writing();
 			goto wait_for_command;
 		}
 
