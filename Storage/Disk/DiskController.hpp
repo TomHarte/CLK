@@ -47,7 +47,6 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public TimedEventLoop
 			Advances the drive by @c number_of_cycles cycles.
 		*/
 		void run_for(const Cycles cycles);
-		using TimedEventLoop::run_for;
 
 		/*!
 			Sets the current drive.

@@ -13,13 +13,14 @@
 
 #include "Disk.hpp"
 #include "../../ClockReceiver/Sleeper.hpp"
+#include "../TimedEventLoop.hpp"
 
 namespace Storage {
 namespace Disk {
 
-class Drive: public Sleeper {
+class Drive: public Sleeper, public TimedEventLoop {
 	public:
-		Drive();
+		Drive(unsigned int input_clock_rate, int revolutions_per_minute);
 
 		/*!
 			Replaces whatever is in the drive with @c disk.
@@ -72,15 +73,47 @@ class Drive: public Sleeper {
 		*/
 		bool get_is_ready();
 
+		/*!
+			Sets whether the disk motor is on.
+		*/
+		void set_motor_on(bool);
+
+		/*!
+			Advances the drive by @c number_of_cycles cycles.
+		*/
+		void run_for(const Cycles cycles);
+
+		/*!
+			Provides a mechanism to receive track events as they occur.
+		*/
+		struct EventDelegate {
+			virtual void process_event(const Track::Event &event) = 0;
+		};
+
+		/// Sets the current event delegate.
+		void set_event_delegate(EventDelegate *);
+
 		// As per Sleeper.
 		bool is_sleeping();
 
 	private:
 		std::shared_ptr<Track> track_;
 		std::shared_ptr<Disk> disk_;
-		bool has_disk_;
-		int head_position_;
-		unsigned int head_;
+		int cycles_since_index_hole_ = 0;
+		Time rotational_multiplier_;
+
+		bool has_disk_ = false;
+
+		int head_position_ = 0;
+		unsigned int head_ = 0;
+
+		void process_next_event();
+		void get_next_event(const Time &duration_already_passed);
+		Track::Event current_event_;
+		bool motor_is_on_ = false;
+
+		Time get_time_into_track();
+		EventDelegate *event_delegate_ = nullptr;
 };
 
 

@@ -82,7 +82,7 @@ void Machine::set_rom(const std::vector<uint8_t> &rom) {
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
-	std::shared_ptr<Storage::Disk::Drive> drive(new Storage::Disk::Drive);
+	std::shared_ptr<Storage::Disk::Drive> drive(new Storage::Disk::Drive(1000000, 300));
 	drive->set_disk(disk);
 	set_drive(drive);
 }

@@ -103,7 +103,7 @@ class i8272: public Storage::Disk::MFMController {
 
 			Drive() :
 				head_position(0), phase(NotSeeking),
-				drive(new Storage::Disk::Drive),
+				drive(new Storage::Disk::Drive(8000000, 300)),	// TODO: these constants can't live here.
 				head_is_loaded{false, false},
 				head_unload_delay{0, 0} {};
 		} drives_[4];

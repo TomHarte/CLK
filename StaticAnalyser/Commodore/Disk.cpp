@@ -22,7 +22,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		std::shared_ptr<Storage::Disk::Drive> drive;
 
 		CommodoreGCRParser() : Storage::Disk::Controller(4000000, 1, 300), shift_register_(0), track_(1) {
-			drive.reset(new Storage::Disk::Drive);
+			drive.reset(new Storage::Disk::Drive(4000000, 300));
 			set_drive(drive);
 			set_motor_on(true);
 		}

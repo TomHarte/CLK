@@ -243,7 +243,7 @@ Parser::Parser(bool is_mfm) :
 	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 	set_expected_bit_length(bit_length);
 
-	drive_.reset(new Storage::Disk::Drive);
+	drive_.reset(new Storage::Disk::Drive(4000000, 300));
 	set_drive(drive_);
 	set_motor_on(true);
 }

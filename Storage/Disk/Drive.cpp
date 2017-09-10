@@ -11,8 +11,10 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive()
-	: head_position_(0), head_(0), has_disk_(false) {}
+Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute):
+	Storage::TimedEventLoop(input_clock_rate),
+	rotational_multiplier_(60, revolutions_per_minute) {
+}
 
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	disk_ = disk;
@@ -33,7 +35,7 @@ bool Drive::has_disk() {
 }
 
 bool Drive::is_sleeping() {
-	return !has_disk_;
+	return !motor_is_on_ || !has_disk_;
 }
 
 bool Drive::get_is_track_zero() {
@@ -41,8 +43,22 @@ bool Drive::get_is_track_zero() {
 }
 
 void Drive::step(int direction) {
+	int old_head_position = head_position_;
 	head_position_ = std::max(head_position_ + direction, 0);
-	printf("Head -> %d\n", head_position_);
+
+	// If the head moved and this drive has a real disk in it, flush the old track.
+	if(head_position_ != old_head_position && disk_ != nullptr) {
+		track_ = nullptr;
+	}
+}
+
+Storage::Time Drive::get_time_into_track() {
+	// `result` will initially be amount of time since the index hole was seen as a
+	// proportion of a second; convert it into proportion of a rotation, simplify and return.
+	Time result(cycles_since_index_hole_, 8000000);
+	result /= rotational_multiplier_;
+	result.simplify();
+	return result;
 }
 
 void Drive::set_head(unsigned int head) {
@@ -67,4 +83,16 @@ std::shared_ptr<Track> Drive::get_track() {
 
 void Drive::set_track(const std::shared_ptr<Track> &track) {
 	if(disk_) disk_->set_track_at_position(head_, (unsigned int)head_position_, track);
+}
+
+void Drive::set_motor_on(bool motor_is_on) {
+	motor_is_on_ = motor_is_on;
+	update_sleep_observer();
+}
+
+void Drive::process_next_event() {
+	if(event_delegate_) event_delegate_->process_event(current_event_);
+}
+
+void Drive::run_for(const Cycles cycles) {
 }
