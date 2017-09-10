@@ -9,6 +9,7 @@
 #include "MFM.hpp"
 
 #include "../PCMTrack.hpp"
+#include "../SingleTrackDisk.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 
 #include <set>
@@ -255,7 +256,7 @@ Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
 		Parser(is_mfm) {
-	drive_->set_disk_with_track(track);
+	drive_->set_disk(std::make_shared<Disk::SingleTrackDisk>(track));
 }
 
 void Parser::seek_to_track(uint8_t track) {
