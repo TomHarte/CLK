@@ -16,9 +16,18 @@ TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::run_for(const Cycles cycles) {
-	cycles_until_event_ -= cycles.as_int();
-	while(cycles_until_event_ <= 0) {
+	int remaining_cycles = cycles.as_int();
+
+	while(cycles_until_event_ <= remaining_cycles) {
+		advance(cycles_until_event_);
+		remaining_cycles -= cycles_until_event_;
+		cycles_until_event_ = 0;
 		process_next_event();
+	}
+
+	if(remaining_cycles) {
+		cycles_until_event_ -= remaining_cycles;
+		advance(remaining_cycles);
 	}
 }
 
@@ -52,7 +61,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
-	cycles_until_event_ = (int)(numerator / denominator);
+	cycles_until_event_ += (int)(numerator / denominator);
 	subcycles_until_event_.length = (unsigned int)(numerator % denominator);
 	subcycles_until_event_.clock_rate = (unsigned int)denominator;
 }

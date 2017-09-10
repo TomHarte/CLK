@@ -67,6 +67,15 @@ namespace Storage {
 			virtual void process_next_event() = 0;
 
 			/*!
+				Optionally allows a subclass to track time within run_for periods; if a subclass implements
+				advnace then it will receive advance increments that add up to the number of cycles supplied
+				to run_for, but calls to process_next_event will be precisely interspersed. No time will carry
+				forward between calls into run_for; a subclass can receive arbitrarily many instructions to
+				advance before receiving a process_next_event.
+			*/
+			virtual void advance(const Cycles cycles) {};
+
+			/*!
 				Resets timing, throwing away any current internal state. So clears any fractional ticks
 				that the event loop is currently tracking.
 			*/
