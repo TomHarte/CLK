@@ -100,8 +100,8 @@ namespace Storage {
 			Time get_time_into_next_event();
 
 		private:
-			unsigned int input_clock_rate_;
-			int cycles_until_event_;
+			unsigned int input_clock_rate_ = 0;
+			int cycles_until_event_ = 0;
 			Time subcycles_until_event_;
 	};
 
