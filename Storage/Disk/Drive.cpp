@@ -66,6 +66,7 @@ Storage::Time Drive::get_time_into_track() {
 	Time result(cycles_since_index_hole_, (int)get_input_clock_rate());
 	result /= rotational_multiplier_;
 	result.simplify();
+	assert(result <= Time(1));
 	return result;
 }
 
@@ -92,6 +93,7 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
 }
 
 void Drive::advance(const Cycles cycles) {
+	cycles_since_index_hole_ += (unsigned int)cycles.as_int();
 	if(event_delegate_) event_delegate_->advance(cycles);
 }
 
@@ -99,9 +101,6 @@ void Drive::run_for(const Cycles cycles) {
 	Time zero(0);
 
 	if(has_disk_ && motor_is_on_) {
-		// Grab a new track if not already in possession of one.
-		if(!track_) setup_track();
-
 		int number_of_cycles = cycles.as_int();
 		while(number_of_cycles) {
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
@@ -111,8 +110,6 @@ void Drive::run_for(const Cycles cycles) {
 				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
 				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
 			}
-
-			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
 			if(!is_reading_) {
@@ -137,6 +134,13 @@ void Drive::run_for(const Cycles cycles) {
 #pragma mark - Track timed event loop
 
 void Drive::get_next_event(const Time &duration_already_passed) {
+	// Grab a new track if not already in possession of one. This will recursively call get_next_event,
+	// supplying a proper duration_already_passed.
+	if(!track_) {
+		setup_track();
+		return;
+	}
+
 	if(track_) {
 		current_event_ = track_->get_next_event();
 	} else {
@@ -154,7 +158,10 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 
 void Drive::process_next_event() {
 	// TODO: ready test here.
-	if(current_event_.type == Track::Event::IndexHole) cycles_since_index_hole_ = 0;
+	if(current_event_.type == Track::Event::IndexHole) {
+		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
+		cycles_since_index_hole_ = 0;
+	}
 	if(event_delegate_) event_delegate_->process_event(current_event_);
 	get_next_event(Time(0));
 }
@@ -181,9 +188,9 @@ void Drive::setup_track() {
 	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
 
 	Time time_found = track_->seek_to(track_time_now);
-	assert(time_found >= Time(0) && time_found <= track_time_now);
-	offset = track_time_now - time_found;
+	assert(time_found >= Time(0) && time_found < Time(1) && time_found <= track_time_now);
 
+	offset = track_time_now - time_found;
 	get_next_event(offset);
 }
 
