@@ -146,7 +146,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 
 		// If the drive is not currently reading then it is writing. While writing
 		// it can optionally be told to clamp to the index hole.
-		bool is_reading_ = false;
+		bool is_reading_ = true;
 		bool clamp_writing_to_index_hole_ = false;
 
 		// If writing is occurring then the drive will be accumulating a write segment,
@@ -166,6 +166,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		// TimedEventLoop call-ins and state.
 		void process_next_event();
 		void get_next_event(const Time &duration_already_passed);
+		void advance(const Cycles cycles);
 		Track::Event current_event_;
 
 		// Helper for track changes.

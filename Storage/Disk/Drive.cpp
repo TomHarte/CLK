@@ -91,6 +91,10 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
 	event_delegate_ = delegate;
 }
 
+void Drive::advance(const Cycles cycles) {
+	if(event_delegate_) event_delegate_->advance(cycles);
+}
+
 void Drive::run_for(const Cycles cycles) {
 	Time zero(0);
 
@@ -111,9 +115,7 @@ void Drive::run_for(const Cycles cycles) {
 			cycles_since_index_hole_ += (unsigned int)cycles_to_run_for;
 
 			number_of_cycles -= cycles_to_run_for;
-			if(is_reading_) {
-				if(event_delegate_) event_delegate_->advance(Cycles(cycles_to_run_for));
-			} else {
+			if(!is_reading_) {
 				if(cycles_until_bits_written_ > zero) {
 					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
 					if(cycles_until_bits_written_ <= cycles_to_run_for_time) {
@@ -152,6 +154,7 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 
 void Drive::process_next_event() {
 	// TODO: ready test here.
+	if(current_event_.type == Track::Event::IndexHole) cycles_since_index_hole_ = 0;
 	if(event_delegate_) event_delegate_->process_event(current_event_);
 	get_next_event(Time(0));
 }

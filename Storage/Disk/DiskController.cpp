@@ -48,7 +48,7 @@ void Controller::process_event(const Track::Event &event) {
 }
 
 void Controller::advance(const Cycles cycles) {
-	pll_->run_for(cycles);
+	pll_->run_for(Cycles(cycles.as_int() * clock_rate_multiplier_));
 }
 
 void Controller::process_write_completed() {

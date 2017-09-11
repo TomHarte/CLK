@@ -426,7 +426,6 @@ std::vector<uint8_t> Parser::get_track() {
 	return result;
 }
 
-
 std::shared_ptr<Sector> Parser::get_next_sector() {
 	std::shared_ptr<Sector> sector(new Sector);
 	index_count_ = 0;
