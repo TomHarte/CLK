@@ -32,10 +32,9 @@ namespace Disk {
 class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDelegate, public Sleeper, public Sleeper::SleepObserver {
 	protected:
 		/*!
-			Constructs a @c DiskDrive that will be run at @c clock_rate and runs its PLL at @c clock_rate*clock_rate_multiplier,
-			spinning inserted disks at @c revolutions_per_minute.
+			Constructs a @c Controller that will be run at @c clock_rate.
 		*/
-		Controller(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		Controller(Cycles clock_rate);
 
 		/*!
 			Communicates to the PLL the expected length of a bit as a fraction of a second.
@@ -86,9 +85,8 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 
 	private:
 		Time bit_length_;
-		int clock_rate_;
 		int clock_rate_multiplier_;
-		Time rotational_multiplier_;
+		int clock_rate_;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;

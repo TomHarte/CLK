@@ -12,9 +12,9 @@
 
 using namespace Storage::Disk;
 
-Controller::Controller(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
-		clock_rate_(clock_rate.as_int() * clock_rate_multiplier),
-		clock_rate_multiplier_(clock_rate_multiplier),
+Controller::Controller(Cycles clock_rate) :
+		clock_rate_multiplier_(128000000 / clock_rate.as_int()),
+		clock_rate_(clock_rate.as_int() * clock_rate_multiplier_),
 		empty_drive_(new Drive((unsigned int)clock_rate.as_int(), 1)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);

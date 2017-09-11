@@ -25,7 +25,7 @@ WD1770::Status::Status() :
 		busy(false) {}
 
 WD1770::WD1770(Personality p) :
-		Storage::Disk::MFMController(8000000, 16, 300),
+		Storage::Disk::MFMController(8000000),
 		interesting_event_mask_((int)Event1770::Command),
 		resume_point_(0),
 		delay_time_(0),

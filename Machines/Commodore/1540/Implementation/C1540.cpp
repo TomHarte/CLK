@@ -18,7 +18,7 @@ using namespace Commodore::C1540;
 MachineBase::MachineBase() :
 		m6502_(*this),
 		shift_register_(0),
-		Storage::Disk::Controller(1000000, 4, 300),
+		Storage::Disk::Controller(1000000),
 		serial_port_(new SerialPort),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		drive_VIA_(drive_VIA_port_handler_),

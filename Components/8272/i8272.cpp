@@ -75,8 +75,8 @@ namespace {
 	const uint8_t CommandSenseDriveStatus = 0x04;
 }
 
-i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
-	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
+i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
+	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler),
 	main_status_(0),
 	interesting_event_mask_((int)Event8272::CommandByte),

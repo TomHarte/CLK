@@ -26,7 +26,7 @@ class BusHandler {
 
 class i8272: public Storage::Disk::MFMController {
 	public:
-		i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		i8272(BusHandler &bus_handler, Cycles clock_rate);
 
 		void run_for(Cycles);
 

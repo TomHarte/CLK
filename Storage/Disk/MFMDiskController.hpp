@@ -22,7 +22,7 @@ namespace Disk {
 */
 class MFMController: public Controller {
 	public:
-		MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		MFMController(Cycles clock_rate);
 
 	protected:
 		/// Indicates whether the controller should try to decode double-density MFM content, or single-density FM content.

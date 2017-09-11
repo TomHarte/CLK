@@ -584,10 +584,10 @@ class FDC: public Intel::i8272::i8272 {
 		Intel::i8272::BusHandler bus_handler_;
 
 	public:
-		FDC() : i8272(bus_handler_, Cycles(8000000), 16, 300) {}
+		FDC() : i8272(bus_handler_, Cycles(8000000)) {}
 
 		void set_motor_on(bool on) {
-			// TODO: should set all motors on, not just the one active drive.
+			// TODO: should set all motors on, not 8272.hjust the one active drive.
 			get_drive().set_motor_on(on);
 		}
 };
