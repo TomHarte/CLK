@@ -135,6 +135,7 @@ class MachineBase:
 
 	protected:
 		CPU::MOS6502::Processor<MachineBase, false> m6502_;
+		std::shared_ptr<Storage::Disk::Drive> drive_;
 
 		uint8_t ram_[0x800];
 		uint8_t rom_[0x4000];
