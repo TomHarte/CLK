@@ -95,7 +95,14 @@ uint8_t Microdisc::get_data_request_register() {
 }
 
 void Microdisc::set_head_load_request(bool head_load) {
-	get_drive().set_motor_on(head_load);
+	// The drive motors (at present: I believe **all drive motors** regardless of the selected drive) receive
+	// the current head load request state.
+	for(int c = 0; c < 4; c++) {
+		if(drives_[c]) drives_[c]->set_motor_on(head_load);
+	}
+
+	// A request to load the head results in a delay until the head is confirmed loaded. This delay is handled
+	// in ::run_for. A request to unload the head results in an instant answer that the head is unloaded.
 	if(head_load) {
 		head_load_request_counter_ = 0;
 	} else {
