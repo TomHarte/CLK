@@ -155,8 +155,8 @@ class Drive: public Sleeper, public TimedEventLoop {
 		PCMSegment write_segment_;
 		Time write_start_time_;
 
-		// Indicates drive ready state.
-		bool is_ready_ = false;
+		// Indicates progress towards drive ready state.
+		int ready_index_count_ = 0;
 
 		// Maintains appropriate counting to know when to indicate that writing
 		// is complete.

@@ -26,9 +26,6 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 
 	invalidate_track();
 	update_sleep_observer();
-
-	// TODO: implement ready properly.
-	is_ready_ = true;
 }
 
 bool Drive::has_disk() {
@@ -76,11 +73,14 @@ bool Drive::get_is_read_only() {
 }
 
 bool Drive::get_is_ready() {
-	return is_ready_;
+	return ready_index_count_ == 2;
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
 	motor_is_on_ = motor_is_on;
+	if(!motor_is_on) {
+		ready_index_count_ = 0;
+	}
 	update_sleep_observer();
 }
 
@@ -160,6 +160,7 @@ void Drive::process_next_event() {
 	// TODO: ready test here.
 	if(current_event_.type == Track::Event::IndexHole) {
 		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
+		if(ready_index_count_ < 2) ready_index_count_++;
 		cycles_since_index_hole_ = 0;
 	}
 	if(event_delegate_) event_delegate_->process_event(current_event_);
