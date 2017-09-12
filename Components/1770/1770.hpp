@@ -76,6 +76,7 @@ class WD1770: public Storage::Disk::MFMController {
 
 	protected:
 		virtual void set_head_load_request(bool head_load);
+		virtual void set_motor_on(bool motor_on);
 		void set_head_loaded(bool head_loaded);
 
 	private:

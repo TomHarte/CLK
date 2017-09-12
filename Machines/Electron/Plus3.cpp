@@ -47,3 +47,9 @@ void Plus3::set_control_register(uint8_t control, uint8_t changes) {
 	}
 	if(changes & 0x08) set_is_double_density(!(control & 0x08));
 }
+
+void Plus3::set_motor_on(bool on) {
+	// TODO: this status should transfer if the selected drive changes. But the same goes for
+	// writing state, so plenty of work to do in general here.
+	get_drive().set_motor_on(on);
+}

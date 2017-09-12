@@ -145,7 +145,7 @@ void WD1770::run_for(const Cycles cycles) {
 #define LINE_LABEL INDIRECT_CONCATENATE(label, __LINE__)
 
 #define SPIN_UP()	\
-		get_drive().set_motor_on(true);	\
+		set_motor_on(true);	\
 		index_hole_count_ = 0;	\
 		index_hole_count_target_ = 6;	\
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);	\
@@ -178,7 +178,7 @@ void WD1770::posit_event(int new_event_type) {
 
 		// motor power-down
 		if(index_hole_count_ == 9 && !status_.busy && has_motor_on_line()) {
-			get_drive().set_motor_on(false);
+			set_motor_on(false);
 		}
 
 		// head unload
@@ -781,6 +781,7 @@ void WD1770::update_status(std::function<void(Status &)> updater) {
 }
 
 void WD1770::set_head_load_request(bool head_load) {}
+void WD1770::set_motor_on(bool motor_on) {}
 
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;

@@ -25,6 +25,8 @@ class Plus3 : public WD::WD1770 {
 		std::shared_ptr<Storage::Disk::Drive> drives_[2];
 		int selected_drive_ = 0;
 		uint8_t last_control_ = 0;
+
+		void set_motor_on(bool on);
 };
 
 }
