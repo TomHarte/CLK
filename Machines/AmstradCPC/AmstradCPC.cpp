@@ -582,13 +582,25 @@ class KeyboardState: public GI::AY38910::PortHandler {
 class FDC: public Intel::i8272::i8272 {
 	private:
 		Intel::i8272::BusHandler bus_handler_;
+		std::shared_ptr<Storage::Disk::Drive> drive_;
 
 	public:
-		FDC() : i8272(bus_handler_, Cycles(8000000)) {}
+		FDC() :
+			i8272(bus_handler_, Cycles(8000000)),
+			drive_(new Storage::Disk::Drive(8000000, 300)) {
+			set_drive(drive_);
+		}
 
 		void set_motor_on(bool on) {
-			// TODO: should set all motors on, not 8272.hjust the one active drive.
-			get_drive().set_motor_on(on);
+			drive_->set_motor_on(on);
+		}
+
+		void select_drive(int c) {
+			// TODO: support more than one drive.
+		}
+
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+			drive_->set_disk(disk);
 		}
 };
 
