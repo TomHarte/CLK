@@ -84,6 +84,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 	assert(cycles_until_event_ >= 0);
 	subcycles_until_event_.length = (unsigned int)(numerator % denominator);
 	subcycles_until_event_.clock_rate = (unsigned int)denominator;
+	subcycles_until_event_.simplify();
 }
 
 Time TimedEventLoop::get_time_into_next_event() {
