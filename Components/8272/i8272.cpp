@@ -335,6 +335,10 @@ void i8272::posit_event(int event_type) {
 				if(!dma_mode_) SetNonDMAExecution();
 				SET_DRIVE_HEAD_MFM();
 				LOAD_HEAD();
+				if(!get_drive().get_is_ready()) {
+					SetNotReady();
+					goto abort;
+				}
 			}
 
 			// Jump to the proper place.
