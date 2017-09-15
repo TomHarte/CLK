@@ -98,9 +98,9 @@ void Drive::advance(const Cycles cycles) {
 }
 
 void Drive::run_for(const Cycles cycles) {
-	Time zero(0);
-
 	if(has_disk_ && motor_is_on_) {
+		Time zero(0);
+
 		int number_of_cycles = cycles.as_int();
 		while(number_of_cycles) {
 			int cycles_until_next_event = (int)get_cycles_until_next_event();
@@ -163,7 +163,12 @@ void Drive::process_next_event() {
 		if(ready_index_count_ < 2) ready_index_count_++;
 		cycles_since_index_hole_ = 0;
 	}
-	if(event_delegate_) event_delegate_->process_event(current_event_);
+	if(
+		event_delegate_ &&
+		(current_event_.type == Track::Event::IndexHole || is_reading_)
+	){
+		event_delegate_->process_event(current_event_);
+	}
 	get_next_event(Time(0));
 }
 
