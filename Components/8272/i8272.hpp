@@ -26,7 +26,7 @@ class BusHandler {
 
 class i8272: public Storage::Disk::MFMController {
 	public:
-		i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		i8272(BusHandler &bus_handler, Cycles clock_rate);
 
 		void run_for(Cycles);
 
@@ -39,9 +39,10 @@ class i8272: public Storage::Disk::MFMController {
 		void set_dma_acknowledge(bool dack);
 		void set_terminal_count(bool tc);
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
-
 		bool is_sleeping();
+
+	protected:
+		virtual void select_drive(int number) = 0;
 
 	private:
 		// The bus handler, for interrupt and DMA-driven usage.
@@ -91,23 +92,19 @@ class i8272: public Storage::Disk::MFMController {
 			int steps_taken;
 			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
 
-			/// @returns @c true if the currently queued-up seek or recalibrate has reached where it should be.
-			bool seek_is_satisfied();
-
 			// Head state.
 			int head_unload_delay[2];
 			bool head_is_loaded[2];
 
-			// The connected drive.
-			std::shared_ptr<Storage::Disk::Drive> drive;
-
 			Drive() :
 				head_position(0), phase(NotSeeking),
-				drive(new Storage::Disk::Drive),
 				head_is_loaded{false, false},
 				head_unload_delay{0, 0} {};
 		} drives_[4];
 		int drives_seeking_;
+
+		/// @returns @c true if the selected drive, which is number @c drive, can stop seeking.
+		bool seek_is_satisfied(int drive);
 
 		// User-supplied parameters; as per the specify command.
 		int step_rate_time_;

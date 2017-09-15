@@ -21,10 +21,10 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 	public:
 		std::shared_ptr<Storage::Disk::Drive> drive;
 
-		CommodoreGCRParser() : Storage::Disk::Controller(4000000, 1, 300), shift_register_(0), track_(1) {
-			drive.reset(new Storage::Disk::Drive);
+		CommodoreGCRParser() : Storage::Disk::Controller(4000000), shift_register_(0), track_(1) {
+			drive.reset(new Storage::Disk::Drive(4000000, 300));
 			set_drive(drive);
-			set_motor_on(true);
+			drive->set_motor_on(true);
 		}
 
 		struct Sector {
@@ -47,7 +47,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 				int direction = difference < 0 ? -1 : 1;
 				difference *= 2 * direction;
 
-				for(int c = 0; c < difference; c++) step(direction);
+				for(int c = 0; c < difference; c++) get_drive().step(direction);
 
 				unsigned int zone = 3;
 				if(track >= 18) zone = 2;
@@ -66,7 +66,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		uint8_t track_;
 		std::shared_ptr<Sector> sector_cache_[65536];
 
-		void process_input_bit(int value, unsigned int cycles_since_index_hole) {
+		void process_input_bit(int value) {
 			shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0x3ff;
 			bit_count_++;
 		}

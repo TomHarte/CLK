@@ -16,7 +16,7 @@ Plus3::Plus3() : WD1770(P1770) {
 
 void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(!drives_[drive]) {
-		drives_[drive].reset(new Storage::Disk::Drive);
+		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300));
 		if(drive == selected_drive_) set_drive(drives_[drive]);
 	}
 	drives_[drive]->set_disk(disk);
@@ -42,9 +42,14 @@ void Plus3::set_control_register(uint8_t control, uint8_t changes) {
 		}
 	}
 	if(changes & 0x04) {
-		invalidate_track();
 		if(drives_[0]) drives_[0]->set_head((control & 0x04) ? 1 : 0);
 		if(drives_[1]) drives_[1]->set_head((control & 0x04) ? 1 : 0);
 	}
 	if(changes & 0x08) set_is_double_density(!(control & 0x08));
+}
+
+void Plus3::set_motor_on(bool on) {
+	// TODO: this status should transfer if the selected drive changes. But the same goes for
+	// writing state, so plenty of work to do in general here.
+	get_drive().set_motor_on(on);
 }

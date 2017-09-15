@@ -12,8 +12,8 @@
 
 using namespace Storage::Disk;
 
-MFMController::MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
-	Storage::Disk::Controller(clock_rate, clock_rate_multiplier, revolutions_per_minute),
+MFMController::MFMController(Cycles clock_rate) :
+	Storage::Disk::Controller(clock_rate),
 	crc_generator_(0x1021, 0xffff),
 	data_mode_(DataMode::Scanning),
 	is_awaiting_marker_value_(false) {
@@ -53,7 +53,7 @@ NumberTheory::CRC16 &MFMController::get_crc_generator() {
 	return crc_generator_;
 }
 
-void MFMController::process_input_bit(int value, unsigned int cycles_since_index_hole) {
+void MFMController::process_input_bit(int value) {
 	if(data_mode_ == DataMode::Writing) return;
 
 	shift_register_ = (shift_register_ << 1) | value;
@@ -156,12 +156,12 @@ void MFMController::process_input_bit(int value, unsigned int cycles_since_index
 
 void MFMController::write_bit(int bit) {
 	if(is_double_density_) {
-		Controller::write_bit(!bit && !last_bit_);
-		Controller::write_bit(!!bit);
+		get_drive().write_bit(!bit && !last_bit_);
+		get_drive().write_bit(!!bit);
 		last_bit_ = bit;
 	} else {
-		Controller::write_bit(true);
-		Controller::write_bit(!!bit);
+		get_drive().write_bit(true);
+		get_drive().write_bit(!!bit);
 	}
 }
 
@@ -172,7 +172,7 @@ void MFMController::write_byte(uint8_t byte) {
 
 void MFMController::write_raw_short(uint16_t value) {
 	for(int c = 0; c < 16; c++) {
-		Controller::write_bit(!!((value << c)&0x8000));
+		get_drive().write_bit(!!((value << c)&0x8000));
 	}
 }
 

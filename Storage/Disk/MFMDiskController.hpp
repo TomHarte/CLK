@@ -22,7 +22,7 @@ namespace Disk {
 */
 class MFMController: public Controller {
 	public:
-		MFMController(Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute);
+		MFMController(Cycles clock_rate);
 
 	protected:
 		/// Indicates whether the controller should try to decode double-density MFM content, or single-density FM content.
@@ -146,7 +146,7 @@ class MFMController: public Controller {
 
 	private:
 		// Storage::Disk::Controller
-		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_input_bit(int value);
 		virtual void process_index_hole();
 		virtual void process_write_completed();
 

@@ -9,6 +9,7 @@
 #include "MFM.hpp"
 
 #include "../PCMTrack.hpp"
+#include "../SingleTrackDisk.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 
 #include <set>
@@ -234,7 +235,7 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8
 #pragma mark - Parser
 
 Parser::Parser(bool is_mfm) :
-		Storage::Disk::Controller(4000000, 32, 300),
+		Storage::Disk::Controller(4000000),
 		crc_generator_(0x1021, 0xffff),
 		shift_register_(0), is_mfm_(is_mfm),
 		track_(0), head_(0) {
@@ -243,9 +244,9 @@ Parser::Parser(bool is_mfm) :
 	bit_length.clock_rate = is_mfm ? 500000 : 250000;	// i.e. 250 kbps (including clocks)
 	set_expected_bit_length(bit_length);
 
-	drive_.reset(new Storage::Disk::Drive);
+	drive_.reset(new Storage::Disk::Drive(4000000, 300));
 	set_drive(drive_);
-	set_motor_on(true);
+	drive_->set_motor_on(true);
 }
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
@@ -255,7 +256,7 @@ Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track) :
 		Parser(is_mfm) {
-	drive_->set_disk_with_track(track);
+	drive_->set_disk(std::make_shared<Disk::SingleTrackDisk>(track));
 }
 
 void Parser::seek_to_track(uint8_t track) {
@@ -266,7 +267,7 @@ void Parser::seek_to_track(uint8_t track) {
 		int direction = difference < 0 ? -1 : 1;
 		difference *= direction;
 
-		for(int c = 0; c < difference; c++) step(direction);
+		for(int c = 0; c < difference; c++) drive_->step(direction);
 	}
 }
 
@@ -274,7 +275,6 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 	// Switch head and track if necessary.
 	if(head_ != head) {
 		drive_->set_head(head);
-		invalidate_track();
 	}
 	seek_to_track(track);
 	int track_index = get_index(head, track, 0);
@@ -314,7 +314,7 @@ std::vector<uint8_t> Parser::get_track(uint8_t track) {
 	return get_track();
 }
 
-void Parser::process_input_bit(int value, unsigned int cycles_since_index_hole) {
+void Parser::process_input_bit(int value) {
 	shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0xffff;
 	bit_count_++;
 }
@@ -425,7 +425,6 @@ std::vector<uint8_t> Parser::get_track() {
 
 	return result;
 }
-
 
 std::shared_ptr<Sector> Parser::get_next_sector() {
 	std::shared_ptr<Sector> sector(new Sector);

@@ -75,8 +75,8 @@ namespace {
 	const uint8_t CommandSenseDriveStatus = 0x04;
 }
 
-i8272::i8272(BusHandler &bus_handler, Cycles clock_rate, int clock_rate_multiplier, int revolutions_per_minute) :
-	Storage::Disk::MFMController(clock_rate, clock_rate_multiplier, revolutions_per_minute),
+i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
+	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler),
 	main_status_(0),
 	interesting_event_mask_((int)Event8272::CommandByte),
@@ -119,11 +119,12 @@ void i8272::run_for(Cycles cycles) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
 					printf("Target %d versus believed %d\n", drives_[c].target_head_position, drives_[c].head_position);
-					drives_[c].drive->step(direction);
+					select_drive(c);
+					get_drive().step(direction);
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
 
 					// Check for completion.
-					if(drives_[c].seek_is_satisfied()) {
+					if(seek_is_satisfied(c)) {
 						drives_[c].phase = Drive::CompletedSeeking;
 						drives_seeking_--;
 						break;
@@ -192,12 +193,6 @@ uint8_t i8272::get_register(int address) {
 	}
 }
 
-void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
-	if(drive < 4 && drive >= 0) {
-		drives_[drive].drive->set_disk(disk);
-	}
-}
-
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
@@ -235,10 +230,9 @@ void i8272::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 #define SET_DRIVE_HEAD_MFM()	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
-	set_drive(drives_[active_drive_].drive);	\
-	drives_[active_drive_].drive->set_head((unsigned int)active_head_);	\
-	set_is_double_density(command_[0] & 0x40);	\
-	invalidate_track();
+	select_drive(active_drive_);	\
+	get_drive().set_head((unsigned int)active_head_);	\
+	set_is_double_density(command_[0] & 0x40);
 
 #define WAIT_FOR_BYTES(n) \
 	distance_into_section_ = 0;	\
@@ -341,6 +335,10 @@ void i8272::posit_event(int event_type) {
 				if(!dma_mode_) SetNonDMAExecution();
 				SET_DRIVE_HEAD_MFM();
 				LOAD_HEAD();
+				if(!get_drive().get_is_ready()) {
+					SetNotReady();
+					goto abort;
+				}
 			}
 
 			// Jump to the proper place.
@@ -504,7 +502,7 @@ void i8272::posit_event(int event_type) {
 	write_data:
 			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
 
-			if(drives_[active_drive_].drive->get_is_read_only()) {
+			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
 				goto abort;
 			}
@@ -619,7 +617,7 @@ void i8272::posit_event(int event_type) {
 	// Performs format [/write] track.
 	format_track:
 			printf("Format track\n");
-			if(drives_[active_drive_].drive->get_is_read_only()) {
+			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
 				goto abort;
 			}
@@ -712,6 +710,7 @@ void i8272::posit_event(int event_type) {
 	seek:
 			{
 				int drive = command_[1]&3;
+				select_drive(drive);
 
 				// Increment the seeking count if this drive wasn't already seeking.
 				if(drives_[drive].phase != Drive::Seeking) {
@@ -741,7 +740,7 @@ void i8272::posit_event(int event_type) {
 				}
 
 				// Check whether any steps are even needed; if not then mark as completed already.
-				if(drives_[drive].seek_is_satisfied()) {
+				if(seek_is_satisfied(drive)) {
 					drives_[drive].phase = Drive::CompletedSeeking;
 					drives_seeking_--;
 				}
@@ -793,12 +792,13 @@ void i8272::posit_event(int event_type) {
 			printf("Sense drive status\n");
 			{
 				int drive = command_[1] & 3;
+				select_drive(drive);
 				result_stack_.push_back(
 					(command_[1] & 7) |	// drive and head number
 					0x08 |				// single sided
-					(drives_[drive].drive->get_is_track_zero() ? 0x10 : 0x00)	|
-					(drives_[drive].drive->get_is_ready() ? 0x20 : 0x00)		|
-					(drives_[drive].drive->get_is_read_only() ? 0x40 : 0x00)
+					(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
+					(get_drive().get_is_ready() ? 0x20 : 0x00)		|
+					(get_drive().get_is_read_only() ? 0x40 : 0x00)
 				);
 			}
 			goto post_result;
@@ -853,9 +853,9 @@ void i8272::posit_event(int event_type) {
 	END_SECTION()
 }
 
-bool i8272::Drive::seek_is_satisfied() {
-	return	(target_head_position == head_position) ||
-			(target_head_position == -1 && drive->get_is_track_zero());
+bool i8272::seek_is_satisfied(int drive) {
+	return	(drives_[drive].target_head_position == drives_[drive].head_position) ||
+			(drives_[drive].target_head_position == -1 && get_drive().get_is_track_zero());
 }
 
 void i8272::set_dma_acknowledge(bool dack) {

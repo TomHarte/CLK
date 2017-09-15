@@ -18,11 +18,12 @@ using namespace Commodore::C1540;
 MachineBase::MachineBase() :
 		m6502_(*this),
 		shift_register_(0),
-		Storage::Disk::Controller(1000000, 4, 300),
+		Storage::Disk::Controller(1000000),
 		serial_port_(new SerialPort),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		drive_VIA_(drive_VIA_port_handler_),
-		serial_port_VIA_(*serial_port_VIA_port_handler_) {
+		serial_port_VIA_(*serial_port_VIA_port_handler_),
+		drive_(new Storage::Disk::Drive(1000000, 300)) {
 	// attach the serial port to its VIA and vice versa
 	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
 	serial_port_VIA_port_handler_->set_serial_port(serial_port_);
@@ -34,6 +35,9 @@ MachineBase::MachineBase() :
 
 	// set a bit rate
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
+
+	// attach the only drive there is
+	set_drive(drive_);
 }
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus) {
@@ -82,16 +86,14 @@ void Machine::set_rom(const std::vector<uint8_t> &rom) {
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
-	std::shared_ptr<Storage::Disk::Drive> drive(new Storage::Disk::Drive);
-	drive->set_disk(disk);
-	set_drive(drive);
+	drive_->set_disk(disk);
 }
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
 
 	bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
-	set_motor_on(drive_motor);
+	drive_->set_motor_on(drive_motor);
 	if(drive_motor)
 		Storage::Disk::Controller::run_for(cycles);
 }
@@ -105,7 +107,7 @@ void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
 
 #pragma mark - Disk drive
 
-void MachineBase::process_input_bit(int value, unsigned int cycles_since_index_hole) {
+void MachineBase::process_input_bit(int value) {
 	shift_register_ = (shift_register_ << 1) | value;
 	if((shift_register_ & 0x3ff) == 0x3ff) {
 		drive_VIA_port_handler_.set_sync_detected(true);
@@ -130,7 +132,7 @@ void MachineBase::process_index_hole()	{}
 #pragma mak - Drive VIA delegate
 
 void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
-	step(direction);
+	drive_->step(direction);
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {

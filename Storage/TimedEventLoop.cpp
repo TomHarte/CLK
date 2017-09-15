@@ -8,7 +8,9 @@
 
 #include "TimedEventLoop.hpp"
 #include "../NumberTheory/Factors.hpp"
+
 #include <algorithm>
+#include <cassert>
 
 using namespace Storage;
 
@@ -16,14 +18,39 @@ TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::run_for(const Cycles cycles) {
-	cycles_until_event_ -= cycles.as_int();
-	while(cycles_until_event_ <= 0) {
+	int remaining_cycles = cycles.as_int();
+#ifndef NDEBUG
+	int cycles_advanced = 0;
+#endif
+
+	while(cycles_until_event_ <= remaining_cycles) {
+#ifndef NDEBUG
+		cycles_advanced += cycles_until_event_;
+#endif
+		advance(cycles_until_event_);
+		remaining_cycles -= cycles_until_event_;
+		cycles_until_event_ = 0;
 		process_next_event();
 	}
+
+	if(remaining_cycles) {
+		cycles_until_event_ -= remaining_cycles;
+#ifndef NDEBUG
+		cycles_advanced += remaining_cycles;
+#endif
+		advance(remaining_cycles);
+	}
+
+	assert(cycles_advanced == cycles.as_int());
+	assert(cycles_until_event_ > 0);
 }
 
 unsigned int TimedEventLoop::get_cycles_until_next_event() {
 	return (unsigned int)std::max(cycles_until_event_, 0);
+}
+
+unsigned int TimedEventLoop::get_input_clock_rate() {
+	return input_clock_rate_;
 }
 
 void TimedEventLoop::reset_timer() {
@@ -52,9 +79,12 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
-	cycles_until_event_ = (int)(numerator / denominator);
+	assert(cycles_until_event_ == 0);
+	cycles_until_event_ += (int)(numerator / denominator);
+	assert(cycles_until_event_ >= 0);
 	subcycles_until_event_.length = (unsigned int)(numerator % denominator);
 	subcycles_until_event_.clock_rate = (unsigned int)denominator;
+	subcycles_until_event_.simplify();
 }
 
 Time TimedEventLoop::get_time_into_next_event() {

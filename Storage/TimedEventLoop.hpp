@@ -54,6 +54,11 @@ namespace Storage {
 			*/
 			unsigned int get_cycles_until_next_event();
 
+			/*!
+				@returns the input clock rate.
+			*/
+			unsigned int get_input_clock_rate();
+
 		protected:
 			/*!
 				Sets the time interval, as a proportion of a second, until the next event should be triggered.
@@ -65,6 +70,15 @@ namespace Storage {
 				and make a fresh call to @c set_next_event_time_interval to keep the event loop running.
 			*/
 			virtual void process_next_event() = 0;
+
+			/*!
+				Optionally allows a subclass to track time within run_for periods; if a subclass implements
+				advnace then it will receive advance increments that add up to the number of cycles supplied
+				to run_for, but calls to process_next_event will be precisely interspersed. No time will carry
+				forward between calls into run_for; a subclass can receive arbitrarily many instructions to
+				advance before receiving a process_next_event.
+			*/
+			virtual void advance(const Cycles cycles) {};
 
 			/*!
 				Resets timing, throwing away any current internal state. So clears any fractional ticks
@@ -86,8 +100,8 @@ namespace Storage {
 			Time get_time_into_next_event();
 
 		private:
-			unsigned int input_clock_rate_;
-			int cycles_until_event_;
+			unsigned int input_clock_rate_ = 0;
+			int cycles_until_event_ = 0;
 			Time subcycles_until_event_;
 	};
 

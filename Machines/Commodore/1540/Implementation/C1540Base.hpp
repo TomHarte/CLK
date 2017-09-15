@@ -135,6 +135,7 @@ class MachineBase:
 
 	protected:
 		CPU::MOS6502::Processor<MachineBase, false> m6502_;
+		std::shared_ptr<Storage::Disk::Drive> drive_;
 
 		uint8_t ram_[0x800];
 		uint8_t rom_[0x4000];
@@ -147,7 +148,7 @@ class MachineBase:
 		MOS::MOS6522::MOS6522<SerialPortVIA> serial_port_VIA_;
 
 		int shift_register_, bit_window_offset_;
-		virtual void process_input_bit(int value, unsigned int cycles_since_index_hole);
+		virtual void process_input_bit(int value);
 		virtual void process_index_hole();
 };
 
