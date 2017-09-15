@@ -541,7 +541,7 @@ void WD1770::posit_event(int new_event_type) {
 		});
 		WAIT_FOR_EVENT(Event::DataWritten);
 		if(status_.data_request) {
-			get_drive().end_writing();
+			end_writing();
 			update_status([] (Status &status) {
 				status.lost_data = true;
 			});
@@ -554,7 +554,7 @@ void WD1770::posit_event(int new_event_type) {
 		write_crc();
 		write_byte(0xff);
 		WAIT_FOR_EVENT(Event::DataWritten);
-		get_drive().end_writing();
+		end_writing();
 
 		if(command_ & 0x10) {
 			sector_++;
@@ -755,11 +755,11 @@ void WD1770::posit_event(int new_event_type) {
 			update_status([] (Status &status) {
 				status.lost_data = true;
 			});
-			get_drive().end_writing();
+			end_writing();
 			goto wait_for_command;
 		}
 		if(index_hole_count_) {
-			get_drive().end_writing();
+			end_writing();
 			goto wait_for_command;
 		}
 

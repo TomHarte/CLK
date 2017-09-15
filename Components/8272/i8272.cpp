@@ -525,7 +525,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			if(!has_input_) {
 				SetOverrun();
-				get_drive().end_writing();
+				end_writing();
 				goto abort;
 			}
 			write_byte(input_);
@@ -540,7 +540,7 @@ void i8272::posit_event(int event_type) {
 			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
-			get_drive().end_writing();
+			end_writing();
 
 			if(sector_ != command_[6]) {
 				sector_++;
@@ -646,7 +646,7 @@ void i8272::posit_event(int event_type) {
 			switch(event_type) {
 				case (int)Event::IndexHole:
 					SetOverrun();
-					get_drive().end_writing();
+					end_writing();
 					goto abort;
 				break;
 				case (int)Event::DataWritten:
@@ -683,7 +683,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT((int)Event::DataWritten | (int)Event::IndexHole);
 			if(event_type != (int)Event::IndexHole) goto format_track_pad;
 
-			get_drive().end_writing();
+			end_writing();
 
 			cylinder_ = header_[0];
 			head_ = header_[1];

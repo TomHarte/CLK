@@ -48,7 +48,7 @@ void Controller::process_event(const Track::Event &event) {
 }
 
 void Controller::advance(const Cycles cycles) {
-	pll_->run_for(Cycles(cycles.as_int() * clock_rate_multiplier_));
+	if(is_reading_) pll_->run_for(Cycles(cycles.as_int() * clock_rate_multiplier_));
 }
 
 void Controller::process_write_completed() {
@@ -72,7 +72,7 @@ void Controller::set_expected_bit_length(Time bit_length) {
 }
 
 void Controller::digital_phase_locked_loop_output_bit(int value) {
-	process_input_bit(value);
+	if(is_reading_) process_input_bit(value);
 }
 
 void Controller::set_drive(std::shared_ptr<Drive> drive) {
@@ -99,5 +99,15 @@ void Controller::set_drive(std::shared_ptr<Drive> drive) {
 }
 
 void Controller::begin_writing(bool clamp_to_index_hole) {
+	is_reading_ = false;
 	get_drive().begin_writing(bit_length_, clamp_to_index_hole);
+}
+
+void Controller::end_writing() {
+	is_reading_ = true;
+	get_drive().end_writing();
+}
+
+bool Controller::is_reading() {
+	return is_reading_;
 }

@@ -68,12 +68,24 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 		virtual void process_write_completed();
 
 		/*!
-			Puts the drive returned by get_drive() into write mode, supplying the current bit length.
+			Puts the drive returned by get_drive() into write mode, supplying the current bit length
+			and marks the controller as being in write mode.
 
 			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 			the index hole. Writing will continue over the index hole otherwise.
 		*/
 		void begin_writing(bool clamp_to_index_hole);
+
+		/*!
+			Puts the drive returned by get_drive() out of write mode, and marks the controller
+			as no longer being in write mode.
+		*/
+		void end_writing();
+
+		/*!
+			@returns @c true if the controller is in reading mode; @c false otherwise.
+		*/
+		bool is_reading();
 
 		/*!
 			Returns the connected drive or, if none is connected, an invented one. No guarantees are
@@ -85,8 +97,10 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 
 	private:
 		Time bit_length_;
-		int clock_rate_multiplier_;
-		int clock_rate_;
+		int clock_rate_multiplier_ = 1;
+		int clock_rate_ = 1;
+
+		bool is_reading_ = true;
 
 		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
 		std::shared_ptr<Drive> drive_;
