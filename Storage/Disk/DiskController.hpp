@@ -68,8 +68,11 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 		virtual void process_write_completed();
 
 		/*!
-			Puts the drive returned by get_drive() into write mode, supplying the current bit length
-			and marks the controller as being in write mode.
+			Puts the controller and the drive returned by get_drive() into write mode, supplying to
+			the drive the current bit length.
+
+			While the controller is in write mode it disconnects the PLL. So subclasses will not
+			receive any calls to @c process_input_bit.
 
 			@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 			the index hole. Writing will continue over the index hole otherwise.
@@ -93,6 +96,9 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 		*/
 		Drive &get_drive();
 
+		/*!
+			As per Sleeper.
+		*/
 		bool is_sleeping();
 
 	private:
