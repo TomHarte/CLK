@@ -64,6 +64,9 @@ static void InspectCatalogue(
 			for(auto c : file.name) {
 				if(c < 32) return true;
 			}
+			for(auto c : file.type) {
+				if(c < 32) return true;
+			}
 			return false;
 		}),
 		candidate_files.end());
