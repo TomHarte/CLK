@@ -15,9 +15,10 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute):
+Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, unsigned int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
-	rotational_multiplier_(60, revolutions_per_minute) {
+	rotational_multiplier_(60, revolutions_per_minute),
+	available_heads_(number_of_heads) {
 }
 
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
@@ -51,6 +52,7 @@ void Drive::step(int direction) {
 }
 
 void Drive::set_head(unsigned int head) {
+	head = std::min(head, available_heads_ - 1);
 	if(head != head_) {
 		head_ = head;
 		track_ = nullptr;
@@ -73,6 +75,7 @@ bool Drive::get_is_read_only() {
 }
 
 bool Drive::get_is_ready() {
+	return true;
 	return ready_index_count_ == 2;
 }
 
@@ -234,16 +237,18 @@ void Drive::write_bit(bool value) {
 }
 
 void Drive::end_writing() {
-	is_reading_ = true;
+	if(!is_reading_) {
+		is_reading_ = true;
 
-	if(!patched_track_) {
-		// Avoid creating a new patched track if this one is already patched
-		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
 		if(!patched_track_) {
-			patched_track_.reset(new PCMPatchedTrack(track_));
+			// Avoid creating a new patched track if this one is already patched
+			patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
+			if(!patched_track_) {
+				patched_track_.reset(new PCMPatchedTrack(track_));
+			}
 		}
+		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
+		cycles_since_index_hole_ %= get_input_clock_rate();
+		invalidate_track();
 	}
-	patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
-	cycles_since_index_hole_ %= get_input_clock_rate();
-	invalidate_track();
 }

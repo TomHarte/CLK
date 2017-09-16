@@ -23,7 +23,7 @@ MachineBase::MachineBase() :
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		drive_VIA_(drive_VIA_port_handler_),
 		serial_port_VIA_(*serial_port_VIA_port_handler_),
-		drive_(new Storage::Disk::Drive(1000000, 300)) {
+		drive_(new Storage::Disk::Drive(1000000, 300, 2)) {
 	// attach the serial port to its VIA and vice versa
 	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
 	serial_port_VIA_port_handler_->set_serial_port(serial_port_);

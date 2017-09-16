@@ -34,6 +34,7 @@ using namespace Intel::i8272;
 #define SetSeekEnd()					(status_[0] |= 0x20)
 #define SetEquipmentCheck()				(status_[0] |= 0x10)
 #define SetNotReady()					(status_[0] |= 0x08)
+#define SetSide2()						(status_[0] |= 0x04)
 
 #define SetEndOfCylinder()				(status_[1] |= 0x80)
 #define SetDataError()					(status_[1] |= 0x20)
@@ -43,6 +44,7 @@ using namespace Intel::i8272;
 #define SetMissingAddressMark()			(status_[1] |= 0x01)
 
 #define SetControlMark()				(status_[2] |= 0x40)
+#define ClearControlMark()				(status_[2] &= ~0x40)
 #define ControlMark()					(status_[2] & 0x40)
 
 #define SetDataFieldDataError()			(status_[2] |= 0x20)
@@ -158,6 +160,11 @@ void i8272::run_for(Cycles cycles) {
 		}
 	}
 
+	// check for busy plus ready disabled
+	if(is_executing_ && !get_drive().get_is_ready()) {
+		posit_event((int)Event8272::NoLongerReady);
+	}
+
 	is_sleeping_ = !delay_time_ && !drives_seeking_ && !head_timers_running_;
 	if(is_sleeping_) update_sleep_observer();
 }
@@ -230,6 +237,7 @@ uint8_t i8272::get_register(int address) {
 #define SET_DRIVE_HEAD_MFM()	\
 	active_drive_ = command_[1]&3;	\
 	active_head_ = (command_[1] >> 2)&1;	\
+	status_[0] = (command_[1]&7);	\
 	select_drive(active_drive_);	\
 	get_drive().set_head((unsigned int)active_head_);	\
 	set_is_double_density(command_[0] & 0x40);
@@ -263,6 +271,10 @@ uint8_t i8272::get_register(int address) {
 
 void i8272::posit_event(int event_type) {
 	if(event_type == (int)Event::IndexHole) index_hole_count_++;
+	if(event_type == (int)Event8272::NoLongerReady) {
+		SetNotReady();
+		goto abort;
+	}
 	if(!(interesting_event_mask_ & event_type)) return;
 	interesting_event_mask_ &= ~event_type;
 
@@ -332,6 +344,7 @@ void i8272::posit_event(int event_type) {
 				}
 				// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
 				// cylinder, head, sector and size registers from the command stream.
+				is_executing_ = true;
 				if(!dma_mode_) SetNonDMAExecution();
 				SET_DRIVE_HEAD_MFM();
 				LOAD_HEAD();
@@ -425,6 +438,7 @@ void i8272::posit_event(int event_type) {
 		// flag doesn't match the sort the command was looking for.
 		read_data_found_header:
 			FIND_DATA();
+			ClearControlMark();
 			if(event_type == (int)Event::Token) {
 				if(get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) {
 					// Something other than a data mark came next — impliedly an ID or index mark.
@@ -525,7 +539,6 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			if(!has_input_) {
 				SetOverrun();
-				end_writing();
 				goto abort;
 			}
 			write_byte(input_);
@@ -646,7 +659,6 @@ void i8272::posit_event(int event_type) {
 			switch(event_type) {
 				case (int)Event::IndexHole:
 					SetOverrun();
-					end_writing();
 					goto abort;
 				break;
 				case (int)Event::DataWritten:
@@ -767,10 +779,9 @@ void i8272::posit_event(int event_type) {
 					main_status_ &= ~(1 << found_drive);
 					SetSeekEnd();
 
-					result_stack_.push_back(drives_[found_drive].head_position);
-					result_stack_.push_back(status_[0]);
+					result_stack_ = { drives_[found_drive].head_position, status_[0]};
 				} else {
-					result_stack_.push_back(0x80);
+					result_stack_ = { 0x80 };
 				}
 			}
 			goto post_result;
@@ -793,24 +804,27 @@ void i8272::posit_event(int event_type) {
 			{
 				int drive = command_[1] & 3;
 				select_drive(drive);
-				result_stack_.push_back(
-					(command_[1] & 7) |	// drive and head number
-					0x08 |				// single sided
-					(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
-					(get_drive().get_is_ready() ? 0x20 : 0x00)		|
-					(get_drive().get_is_read_only() ? 0x40 : 0x00)
-				);
+				result_stack_= {
+					static_cast<uint8_t>(
+						(command_[1] & 7) |	// drive and head number
+						0x08 |				// single sided
+						(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
+						(get_drive().get_is_ready() ? 0x20 : 0x00)		|
+						(get_drive().get_is_read_only() ? 0x40 : 0x00)
+					)
+				};
 			}
 			goto post_result;
 
 	// Performs any invalid command.
 	invalid:
 			// A no-op, but posts ST0 (but which ST0?)
-			result_stack_.push_back(0x80);
+			result_stack_ = {0x80};
 			goto post_result;
 
 	// Sets abnormal termination of the current command and proceeds to an ST0, ST1, ST2, C, H, R, N result phase.
 	abort:
+		end_writing();
 		SetAbnormalTermination();
 		goto post_st012chrn;
 
@@ -818,14 +832,7 @@ void i8272::posit_event(int event_type) {
 	post_st012chrn:
 			SCHEDULE_HEAD_UNLOAD();
 
-			result_stack_.push_back(size_);
-			result_stack_.push_back(sector_);
-			result_stack_.push_back(head_);
-			result_stack_.push_back(cylinder_);
-
-			result_stack_.push_back(status_[2]);
-			result_stack_.push_back(status_[1]);
-			result_stack_.push_back(status_[0]);
+			result_stack_ = {size_, sector_, head_, cylinder_, status_[2], status_[1], status_[0]};
 
 			goto post_result;
 
@@ -839,6 +846,7 @@ void i8272::posit_event(int event_type) {
 			printf("\n");
 
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
+			is_executing_ = false;
 			ResetNonDMAExecution();
 			SetDataRequest();
 			SetDataDirectionToProcessor();

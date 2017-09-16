@@ -30,7 +30,7 @@ Microdisc::Microdisc() :
 
 void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 	if(!drives_[drive]) {
-		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300));
+		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300, 2));
 		if(drive == selected_drive_) set_drive(drives_[drive]);
 	}
 	drives_[drive]->set_disk(disk);

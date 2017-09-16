@@ -65,6 +65,7 @@ class i8272: public Storage::Disk::MFMController {
 			CommandByte	= (1 << 3),
 			Timer = (1 << 4),
 			ResultEmpty = (1 << 5),
+			NoLongerReady = (1 << 6)
 		};
 		void posit_event(int type);
 		int interesting_event_mask_;
@@ -107,10 +108,11 @@ class i8272: public Storage::Disk::MFMController {
 		bool seek_is_satisfied(int drive);
 
 		// User-supplied parameters; as per the specify command.
-		int step_rate_time_;
-		int head_unload_time_;
-		int head_load_time_;
-		bool dma_mode_;
+		int step_rate_time_ = 1;
+		int head_unload_time_ = 1;
+		int head_load_time_ = 1;
+		bool dma_mode_ = false;
+		bool is_executing_ = false;
 
 		// A count of head unload timers currently running.
 		int head_timers_running_;

@@ -587,7 +587,7 @@ class FDC: public Intel::i8272::i8272 {
 	public:
 		FDC() :
 			i8272(bus_handler_, Cycles(8000000)),
-			drive_(new Storage::Disk::Drive(8000000, 300)) {
+			drive_(new Storage::Disk::Drive(8000000, 300, 1)) {
 			set_drive(drive_);
 		}
 
