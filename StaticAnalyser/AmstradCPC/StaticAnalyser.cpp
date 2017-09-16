@@ -61,10 +61,7 @@ static void InspectCatalogue(
 	// Remove all files with untypable characters.
 	candidate_files.erase(
 		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
-			for(auto c : file.name) {
-				if(c < 32) return true;
-			}
-			for(auto c : file.type) {
+			for(auto c : file.name + file.type) {
 				if(c < 32) return true;
 			}
 			return false;
