@@ -539,7 +539,6 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			if(!has_input_) {
 				SetOverrun();
-				end_writing();
 				goto abort;
 			}
 			write_byte(input_);
@@ -660,7 +659,6 @@ void i8272::posit_event(int event_type) {
 			switch(event_type) {
 				case (int)Event::IndexHole:
 					SetOverrun();
-					end_writing();
 					goto abort;
 				break;
 				case (int)Event::DataWritten:
