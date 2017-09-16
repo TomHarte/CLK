@@ -104,8 +104,10 @@ void Controller::begin_writing(bool clamp_to_index_hole) {
 }
 
 void Controller::end_writing() {
-	is_reading_ = true;
-	get_drive().end_writing();
+	if(!is_reading_) {
+		is_reading_ = true;
+		get_drive().end_writing();
+	}
 }
 
 bool Controller::is_reading() {

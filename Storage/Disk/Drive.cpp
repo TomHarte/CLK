@@ -237,16 +237,18 @@ void Drive::write_bit(bool value) {
 }
 
 void Drive::end_writing() {
-	is_reading_ = true;
+	if(!is_reading_) {
+		is_reading_ = true;
 
-	if(!patched_track_) {
-		// Avoid creating a new patched track if this one is already patched
-		patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
 		if(!patched_track_) {
-			patched_track_.reset(new PCMPatchedTrack(track_));
+			// Avoid creating a new patched track if this one is already patched
+			patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
+			if(!patched_track_) {
+				patched_track_.reset(new PCMPatchedTrack(track_));
+			}
 		}
+		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
+		cycles_since_index_hole_ %= get_input_clock_rate();
+		invalidate_track();
 	}
-	patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
-	cycles_since_index_hole_ %= get_input_clock_rate();
-	invalidate_track();
 }
