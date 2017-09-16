@@ -26,7 +26,7 @@ using namespace Intel::i8272;
 
 #define SetBusy()						(main_status_ |= 0x10)
 #define ResetBusy()						(main_status_ &= ~0x10)
-#define IsBusy()						(main_status_ & 0x10)
+#define Busy()							(main_status_ & 0x10)
 
 #define SetAbnormalTermination()		(status_[0] |= 0x40)
 #define SetInvalidCommand()				(status_[0] |= 0x80)
