@@ -221,7 +221,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		22, 0x4e,
 		12,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
-		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kps @ 300 rpm)
+		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
 }
 
 std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint8_t> &target) {
@@ -337,7 +337,15 @@ uint8_t Parser::get_byte_for_shift_value(uint16_t value) {
 
 uint8_t Parser::get_next_byte() {
 	bit_count_ = 0;
-	while(bit_count_ < 16) run_for(Cycles(1));
+	// Archetypal MFM is 500,000 bps given that the drive has an RPM of 300. Clock rate was
+	// specified at 4,000,000. So that's an idealised 8 cycles per bit, Jump ahead 14
+	// times that...
+	run_for(Cycles(14 * 8));
+
+	// ... and proceed at half-idealised-bit intervals to get the next bit. Then proceed very gingerly indeed.
+	while(bit_count_ < 15) run_for(Cycles(4));
+	while(bit_count_ < 16) run_for(Cycles(2));
+
 	uint8_t byte = get_byte_for_shift_value((uint16_t)shift_register_);
 	crc_generator_.add(byte);
 	return byte;
