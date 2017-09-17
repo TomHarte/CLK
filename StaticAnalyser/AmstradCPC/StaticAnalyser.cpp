@@ -56,12 +56,17 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 static void InspectCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
 	StaticAnalyser::Target &target) {
-	std::vector<Storage::Disk::CPM::File> candidate_files = catalogue.files;
+
+	std::vector<const Storage::Disk::CPM::File *> candidate_files;
+	candidate_files.reserve(catalogue.files.size());
+	for(auto &file : catalogue.files) {
+		candidate_files.push_back(&file);
+	}
 
 	// Remove all files with untypable characters.
 	candidate_files.erase(
-		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
-			for(auto c : file.name + file.type) {
+		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File *file) {
+			for(auto c : file->name + file->type) {
 				if(c < 32) return true;
 			}
 			return false;
@@ -70,8 +75,8 @@ static void InspectCatalogue(
 
 	// If that leaves a mix of 'system' (i.e. hidden) and non-system files, remove the system files.
 	bool are_all_system = true;
-	for(auto &file : candidate_files) {
-		if(!file.system) {
+	for(auto file : candidate_files) {
+		if(!file->system) {
 			are_all_system = false;
 			break;
 		}
@@ -79,15 +84,15 @@ static void InspectCatalogue(
 
 	if(!are_all_system) {
 		candidate_files.erase(
-			std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File &file) {
-				return file.system;
+			std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File *file) {
+				return file->system;
 			}),
 			candidate_files.end());
 	}
 
 	// If there's just one file, run that.
 	if(candidate_files.size() == 1) {
-		target.loadingCommand = RunCommandFor(candidate_files[0]);
+		target.loadingCommand = RunCommandFor(*candidate_files[0]);
 		return;
 	}
 
@@ -101,24 +106,24 @@ static void InspectCatalogue(
 
 	for(size_t c = 0; c < candidate_files.size(); c++) {
 		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
-		if(candidate_files[c].type == "   " && candidate_files[c].name == "        ")
+		if(candidate_files[c]->type == "   " && candidate_files[c]->name == "        ")
 			continue;
 
 		// Check for whether this is [potentially] BASIC.
-		if(candidate_files[c].data.size() >= 128 && !((candidate_files[c].data[18] >> 1) & 7)) {
+		if(candidate_files[c]->data.size() >= 128 && !((candidate_files[c]->data[18] >> 1) & 7)) {
 			basic_files++;
 			last_basic_file = c;
 		}
 
 		// Check suffix for emptiness.
-		if(is_implied_extension(candidate_files[c].type)) {
+		if(is_implied_extension(candidate_files[c]->type)) {
 			implicit_suffixed_files++;
 			last_implicit_suffixed_file = c;
 		}
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loadingCommand = RunCommandFor(candidate_files[selected_file]);
+		target.loadingCommand = RunCommandFor(*candidate_files[selected_file]);
 		return;
 	}
 
@@ -127,15 +132,15 @@ static void InspectCatalogue(
 	std::map<std::string, int> name_counts;
 	std::map<std::string, size_t> indices_by_name;
 	size_t index = 0;
-	for(auto &file : candidate_files) {
-		name_counts[file.name]++;
-		indices_by_name[file.name] = index;
+	for(auto file : candidate_files) {
+		name_counts[file->name]++;
+		indices_by_name[file->name] = index;
 		index++;
 	}
 	if(name_counts.size() == 2) {
 		for(auto &pair : name_counts) {
 			if(pair.second == 1) {
-				target.loadingCommand = RunCommandFor(candidate_files[indices_by_name[pair.first]]);
+				target.loadingCommand = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
 				return;
 			}
 		}
