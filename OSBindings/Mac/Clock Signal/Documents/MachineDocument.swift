@@ -40,8 +40,8 @@ class MachineDocument:
 	fileprivate var audioQueue: CSAudioQueue! = nil
 	fileprivate var bestEffortUpdater: CSBestEffortUpdater!
 
-	override var windowNibName: String? {
-		return "MachineDocument"
+	override var windowNibName: NSNib.Name? {
+		return NSNib.Name(rawValue: "MachineDocument")
 	}
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
@@ -114,7 +114,7 @@ class MachineDocument:
 		analysis.apply(to: self.machine)
 
 		if let optionsPanelNibName = analysis.optionsPanelNibName {
-			Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
+			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
 			self.optionsPanel.machine = self.machine
 			showOptions(self)
 		}
@@ -131,8 +131,8 @@ class MachineDocument:
 
 	// MARK: the pasteboard
 	func paste(_ sender: AnyObject!) {
-		let pasteboard = NSPasteboard.general()
-		if let string = pasteboard.string(forType: NSPasteboardTypeString) {
+		let pasteboard = NSPasteboard.general
+		if let string = pasteboard.string(forType: .string) {
 			self.machine.paste(string)
 		}
 	}

@@ -24,9 +24,9 @@ class Atari2600OptionsPanel: MachinePanel {
 	}
 
 	fileprivate func pushSwitchValues() {
-		atari2600.colourButton = colourButton.state == NSOnState
-		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == NSOnState
-		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == NSOnState
+		atari2600.colourButton = colourButton.state == .on
+		atari2600.leftPlayerDifficultyButton = leftPlayerDifficultyButton.state == .on
+		atari2600.rightPlayerDifficultyButton = rightPlayerDifficultyButton.state == .on
 	}
 
 	@IBAction func optionWasPressed(_ sender: NSButton!) {
