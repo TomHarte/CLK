@@ -24,7 +24,7 @@ class MachinePanel: NSPanel {
 	@IBOutlet var fastLoadingButton: NSButton?
 	@IBAction func setFastLoading(_ sender: NSButton!) {
 		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = sender.state == NSOnState
+			let useFastLoadingHack = sender.state == .on
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
 		}
@@ -39,7 +39,7 @@ class MachinePanel: NSPanel {
 		if let fastLoadingMachine = machine as? CSFastLoading {
 			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			self.fastLoadingButton?.state = useFastLoadingHack ? NSOnState : NSOffState
+			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
 		}
 	}
 }
