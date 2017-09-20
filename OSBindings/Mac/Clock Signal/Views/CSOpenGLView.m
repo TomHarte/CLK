@@ -15,6 +15,7 @@
 
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
+	CGSize _backingSize;
 }
 
 - (void)prepareOpenGL
@@ -68,12 +69,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (CGSize)backingSize
 {
-	return [self convertSizeToBacking:self.bounds.size];
+	@synchronized(self) {
+		return _backingSize;
+	}
 }
 
 - (void)reshape
 {
 	[super reshape];
+	@synchronized(self) {
+		_backingSize = [self convertSizeToBacking:self.bounds.size];
+	}
 
 	[self performWithGLContext:^{
 		CGSize viewSize = [self backingSize];
