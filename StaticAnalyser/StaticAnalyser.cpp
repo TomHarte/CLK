@@ -77,22 +77,22 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 	}
 
 	if(lowercase_extension) {
-		Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 80
-		Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// 81
-		Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// A26
-		Format("adf", result.disks, Disk::AcornADF, TargetPlatform::Acorn)						// ADF
-		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)		// BIN
-		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)						// CDT
-		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)						// CSW
-		Format("d64", result.disks, Disk::D64, TargetPlatform::Commodore)						// D64
-		Format("dsd", result.disks, Disk::SSD, TargetPlatform::Acorn)							// DSD
-		Format("dsk", result.disks, Disk::CPCDSK, TargetPlatform::AmstradCPC)					// DSK (Amstrad CPC)
-		Format("dsk", result.disks, Disk::OricMFMDSK, TargetPlatform::Oric)						// DSK (Oric)
-		Format("g64", result.disks, Disk::G64, TargetPlatform::Commodore)						// G64
-		Format("hfe", result.disks, Disk::HFE, TargetPlatform::AmstradCPC)						// HFE (TODO: plus other target platforms)
-		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// O
-		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P
-		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)						// P81
+		Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// 80
+		Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// 81
+		Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// A26
+		Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)		// ADF
+		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// BIN
+		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)										// CDT
+		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)										// CSW
+		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
+		Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
+		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
+		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
+		Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
+		Format("hfe", result.disks, Disk::DiskImageHolder<Storage::Disk::HFE>, TargetPlatform::AmstradCPC)		// HFE (TODO: plus other target platforms)
+		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
+		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
+		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
 
 		// PRG
 		if(!strcmp(lowercase_extension, "prg")) {
@@ -106,12 +106,12 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 			}
 		}
 
-		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)		// ROM
-		Format("ssd", result.disks, Disk::SSD, TargetPlatform::Acorn)						// SSD
-		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)			// TAP (Commodore)
-		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)					// TAP (Oric)
-		Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)						// TZX
-		Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)						// UEF (tape)
+		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)							// ROM
+		Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
+		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
+		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)
+		Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)											// TZX
+		Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)											// UEF (tape)
 
 #undef Format
 #undef Insert

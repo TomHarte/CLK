@@ -28,10 +28,6 @@ SSD::SSD(const char *file_name) :
 	else if(track_count_ < 80) track_count_ = 80;
 }
 
-SSD::~SSD() {
-	flush_updates();
-}
-
 unsigned int SSD::get_head_position_count() {
 	return track_count_;
 }
@@ -48,29 +44,33 @@ long SSD::get_file_offset_for_position(unsigned int head, unsigned int position)
 	return (position * head_count_ + head) * 256 * 10;
 }
 
-std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned int position) {
 	std::shared_ptr<Track> track;
 
 	if(head >= head_count_) return track;
-	fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
-	for(int sector = 0; sector < 10; sector++) {
-		Storage::Encodings::MFM::Sector new_sector;
-		new_sector.track = (uint8_t)position;
-		new_sector.side = 0;
-		new_sector.sector = (uint8_t)sector;
-		new_sector.size = 1;
+	{
+		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+		fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
 
-		new_sector.data.resize(256);
-		fread(new_sector.data.data(), 1, 256, file_);
+		for(int sector = 0; sector < 10; sector++) {
+			Storage::Encodings::MFM::Sector new_sector;
+			new_sector.track = (uint8_t)position;
+			new_sector.side = 0;
+			new_sector.sector = (uint8_t)sector;
+			new_sector.size = 1;
 
-		// zero out if this wasn't present in the disk image; it's still appropriate to put a sector
-		// on disk because one will have been placed during formatting, but there's no reason to leak
-		// information from outside the emulated machine's world
-		if(feof(file_)) memset(new_sector.data.data(), 0, 256);
+			new_sector.data.resize(256);
+			fread(new_sector.data.data(), 1, 256, file_);
 
-		sectors.push_back(std::move(new_sector));
+			// zero out if this wasn't present in the disk image; it's still appropriate to put a sector
+			// on disk because one will have been placed during formatting, but there's no reason to leak
+			// information from outside the emulated machine's world
+			if(feof(file_)) memset(new_sector.data.data(), 0, 256);
+
+			sectors.push_back(std::move(new_sector));
+		}
 	}
 
 	if(sectors.size()) return Storage::Encodings::MFM::GetFMTrackWithSectors(sectors);
@@ -78,23 +78,24 @@ std::shared_ptr<Track> SSD::get_uncached_track_at_position(unsigned int head, un
 	return track;
 }
 
-void SSD::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex) {
-	std::vector<uint8_t> parsed_track;
+void SSD::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
+	std::vector<uint8_t> data;
 	Storage::Encodings::MFM::Parser parser(false, track);
 	for(unsigned int c = 0; c < 10; c++) {
 		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
 		if(sector) {
-			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
+			data.insert(data.end(), sector->data.begin(), sector->data.end());
 		} else {
 			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
 			// it can no longer be stored as an SSD? If so, warn them by what route?
-			parsed_track.resize(parsed_track.size() + 256);
+			data.resize(data.size() + 256);
 		}
 	}
 
-	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
 	long file_offset = get_file_offset_for_position(head, position);
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 	ensure_file_is_at_least_length(file_offset);
 	fseek(file_, file_offset, SEEK_SET);
-	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
+	fwrite(data.data(), 1, data.size(), file_);
 }

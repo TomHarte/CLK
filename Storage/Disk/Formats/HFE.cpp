@@ -35,11 +35,7 @@ unsigned int HFE::get_head_count() {
 	return head_count_;
 }
 
-bool HFE::get_is_read_only() {
-	return true;
-}
-
-std::shared_ptr<Track> HFE::get_uncached_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned int position) {
 	// Get track position and length from the lookup table; data is then always interleaved
 	// based on an assumption of two heads.
 	fseek(file_, track_list_offset_ + position * 4, SEEK_SET);
@@ -84,3 +80,4 @@ std::shared_ptr<Track> HFE::get_uncached_track_at_position(unsigned int head, un
 	std::shared_ptr<Track> track(new PCMTrack(segment));
 	return track;
 }
+

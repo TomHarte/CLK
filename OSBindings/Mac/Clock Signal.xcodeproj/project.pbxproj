@@ -100,6 +100,7 @@
 		4B8378E21F336920005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E01F336920005CA9E4 /* CharacterMapper.cpp */; };
 		4B8378E51F3378C4005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E31F3378C4005CA9E4 /* CharacterMapper.cpp */; };
 		4B838F1F1F35FDCD0016B5E6 /* CPCDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */; };
+		4B84E24A1F7498120054AB7D /* DiskImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B84E2481F7498120054AB7D /* DiskImage.cpp */; };
 		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
 		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
 		4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
@@ -123,7 +124,6 @@
 		4BA22B071D8817CE0008C640 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
-		4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */; };
 		4BAB62B51D327F7E00DF5BA0 /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B31D327F7E00DF5BA0 /* G64.cpp */; };
 		4BAB62B81D3302CA00DF5BA0 /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB62B61D3302CA00DF5BA0 /* PCMTrack.cpp */; };
 		4BACC5B11F3DFF7C0037C015 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BACC5AF1F3DFF7C0037C015 /* CharacterMapper.cpp */; };
@@ -649,6 +649,8 @@
 		4B8378E41F3378C4005CA9E4 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CharacterMapper.hpp; sourceTree = "<group>"; };
 		4B838F1D1F35FDCD0016B5E6 /* CPCDSK.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPCDSK.cpp; sourceTree = "<group>"; };
 		4B838F1E1F35FDCD0016B5E6 /* CPCDSK.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CPCDSK.hpp; sourceTree = "<group>"; };
+		4B84E2481F7498120054AB7D /* DiskImage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DiskImage.cpp; sourceTree = "<group>"; };
+		4B84E2491F7498120054AB7D /* DiskImage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskImage.hpp; sourceTree = "<group>"; };
 		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
 		4B8805EF1DCFC99C003085B1 /* Acorn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Acorn.hpp; path = Parsers/Acorn.hpp; sourceTree = "<group>"; };
 		4B8805F21DCFD22A003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Parsers/Commodore.cpp; sourceTree = "<group>"; };
@@ -686,7 +688,6 @@
 		4BA799931D8B656E0045123D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BA799941D8B656E0045123D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Atari/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfigurationTarget.hpp; sourceTree = "<group>"; };
-		4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Disk.cpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4BAB62B31D327F7E00DF5BA0 /* G64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = G64.cpp; sourceTree = "<group>"; };
@@ -1637,8 +1638,8 @@
 			isa = PBXGroup;
 			children = (
 				4B0BE4261D3481E700D5256B /* DigitalPhaseLockedLoop.cpp */,
-				4BAB62AB1D3272D200DF5BA0 /* Disk.cpp */,
 				4B6C73BB1D387AE500AFCFCA /* DiskController.cpp */,
+				4B84E2481F7498120054AB7D /* DiskImage.cpp */,
 				4B30512B1D989E2200B4FED8 /* Drive.cpp */,
 				4BBC95201F36B16C008F4C34 /* MFMDiskController.cpp */,
 				4B3F1B441E0388D200DB26EE /* PCMPatchedTrack.cpp */,
@@ -1649,6 +1650,7 @@
 				4B0BE4271D3481E700D5256B /* DigitalPhaseLockedLoop.hpp */,
 				4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */,
 				4B6C73BC1D387AE500AFCFCA /* DiskController.hpp */,
+				4B84E2491F7498120054AB7D /* DiskImage.hpp */,
 				4B30512C1D989E2200B4FED8 /* Drive.hpp */,
 				4BBC95211F36B16C008F4C34 /* MFMDiskController.hpp */,
 				4B3F1B451E0388D200DB26EE /* PCMPatchedTrack.hpp */,
@@ -2800,7 +2802,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
-				4BAB62AD1D3272D200DF5BA0 /* Disk.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
@@ -2820,6 +2821,7 @@
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
+				4B84E24A1F7498120054AB7D /* DiskImage.cpp in Sources */,
 				4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,

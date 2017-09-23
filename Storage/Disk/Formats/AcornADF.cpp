@@ -37,10 +37,6 @@ AcornADF::AcornADF(const char *file_name) :
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 }
 
-AcornADF::~AcornADF() {
-	flush_updates();
-}
-
 unsigned int AcornADF::get_head_position_count() {
 	return 80;
 }
@@ -57,27 +53,31 @@ long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int posi
 	return (position * 1 + head) * bytes_per_sector * sectors_per_track;
 }
 
-std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsigned int position) {
 	std::shared_ptr<Track> track;
 
 	if(head >= 2) return track;
 	long file_offset = get_file_offset_for_position(head, position);
-	fseek(file_, file_offset, SEEK_SET);
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
-	for(unsigned int sector = 0; sector < sectors_per_track; sector++) {
-		Storage::Encodings::MFM::Sector new_sector;
-		new_sector.track = (uint8_t)position;
-		new_sector.side = (uint8_t)head;
-		new_sector.sector = (uint8_t)sector;
-		new_sector.size = sector_size;
+	{
+		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+		fseek(file_, file_offset, SEEK_SET);
 
-		new_sector.data.resize(bytes_per_sector);
-		fread(&new_sector.data[0], 1, bytes_per_sector, file_);
-		if(feof(file_))
-			break;
+		for(unsigned int sector = 0; sector < sectors_per_track; sector++) {
+			Storage::Encodings::MFM::Sector new_sector;
+			new_sector.track = (uint8_t)position;
+			new_sector.side = (uint8_t)head;
+			new_sector.sector = (uint8_t)sector;
+			new_sector.size = sector_size;
 
-		sectors.push_back(std::move(new_sector));
+			new_sector.data.resize(bytes_per_sector);
+			fread(&new_sector.data[0], 1, bytes_per_sector, file_);
+			if(feof(file_))
+				break;
+
+			sectors.push_back(std::move(new_sector));
+		}
 	}
 
 	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
@@ -85,7 +85,7 @@ std::shared_ptr<Track> AcornADF::get_uncached_track_at_position(unsigned int hea
 	return track;
 }
 
-void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track, std::mutex &file_access_mutex) {
+void AcornADF::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
 	std::vector<uint8_t> parsed_track;
 	Storage::Encodings::MFM::Parser parser(true, track);
 	for(unsigned int c = 0; c < sectors_per_track; c++) {
@@ -99,8 +99,9 @@ void AcornADF::store_updated_track_at_position(unsigned int head, unsigned int p
 		}
 	}
 
-	std::lock_guard<std::mutex> lock_guard(file_access_mutex);
 	long file_offset = get_file_offset_for_position(head, position);
+
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 	ensure_file_is_at_least_length(file_offset);
 	fseek(file_, file_offset, SEEK_SET);
 	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);

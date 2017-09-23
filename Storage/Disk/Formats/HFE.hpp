@@ -9,7 +9,7 @@
 #ifndef HFE_hpp
 #define HFE_hpp
 
-#include "../Disk.hpp"
+#include "../DiskImage.hpp"
 #include "../../FileHolder.hpp"
 
 namespace Storage {
@@ -18,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing an HFE disk image — a bit stream representation of a floppy.
 */
-class HFE: public Disk, public Storage::FileHolder {
+class HFE: public DiskImage, public Storage::FileHolder {
 	public:
 		/*!
 			Construct an @c SSD containing content from the file with name @c file_name.
@@ -36,10 +36,9 @@ class HFE: public Disk, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
-		bool get_is_read_only();
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
-		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 
 		unsigned int head_count_;
 		unsigned int track_count_;

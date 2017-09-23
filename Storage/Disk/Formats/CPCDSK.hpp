@@ -9,7 +9,7 @@
 #ifndef CPCDSK_hpp
 #define CPCDSK_hpp
 
-#include "../Disk.hpp"
+#include "../DiskImage.hpp"
 #include "../../FileHolder.hpp"
 
 #include <vector>
@@ -20,7 +20,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing an Amstrad CPC-stype disk image — some arrangement of sectors with status bits.
 */
-class CPCDSK: public Disk, public Storage::FileHolder {
+class CPCDSK: public DiskImage, public Storage::FileHolder {
 	public:
 		/*!
 			Construct an @c AcornADF containing content from the file with name @c file_name.
@@ -38,9 +38,9 @@ class CPCDSK: public Disk, public Storage::FileHolder {
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
 		bool get_is_read_only();
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
-		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 
 		unsigned int head_count_;
 		unsigned int head_position_count_;

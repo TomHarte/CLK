@@ -9,7 +9,7 @@
 #ifndef SingleTrackDisk_hpp
 #define SingleTrackDisk_hpp
 
-#include "Disk.hpp"
+#include "DiskImage.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -17,16 +17,15 @@ namespace Disk {
 /*!
 	Provides a disk that has houses a single track.
 */
-class SingleTrackDisk: public Disk {
+class SingleTrackDiskImage: public DiskImage {
 	public:
 		/// Constructs a single-track disk with the track @c track.
-		SingleTrackDisk(const std::shared_ptr<Track> &track);
+		SingleTrackDiskImage(const std::shared_ptr<Track> &track);
+		unsigned int get_head_position_count();
+		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
 		std::shared_ptr<Track> track_;
-
-		unsigned int get_head_position_count();
-		std::shared_ptr<Track> get_uncached_track_at_position(unsigned int head, unsigned int position);
 };
 
 }

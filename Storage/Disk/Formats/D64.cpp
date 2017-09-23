@@ -38,7 +38,7 @@ unsigned int D64::get_head_position_count() {
 	return number_of_tracks_*2;
 }
 
-std::shared_ptr<Track> D64::get_uncached_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned int position) {
 	// every other track is missing, as is any head above 0
 	if(position&1 || head)
 		return std::shared_ptr<Track>();
