@@ -612,6 +612,7 @@
 		4B45189C1F75FD1C00926311 /* SingleTrackDisk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SingleTrackDisk.cpp; sourceTree = "<group>"; };
 		4B45189D1F75FD1C00926311 /* SingleTrackDisk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SingleTrackDisk.hpp; sourceTree = "<group>"; };
 		4B4518A71F76004200926311 /* TapeParser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = TapeParser.hpp; path = Parsers/TapeParser.hpp; sourceTree = "<group>"; };
+		4B4518A81F76022000926311 /* DiskImageImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskImageImplementation.hpp; sourceTree = "<group>"; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AY38910.cpp; path = AY38910/AY38910.cpp; sourceTree = "<group>"; };
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AY38910.hpp; path = AY38910/AY38910.hpp; sourceTree = "<group>"; };
 		4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vic20.cpp; sourceTree = "<group>"; };
@@ -1443,6 +1444,7 @@
 			children = (
 				4B45188A1F75FD1B00926311 /* DiskImage.cpp */,
 				4B45188B1F75FD1B00926311 /* DiskImage.hpp */,
+				4B4518A81F76022000926311 /* DiskImageImplementation.hpp */,
 				4B45188C1F75FD1B00926311 /* Formats */,
 			);
 			path = DiskImage;

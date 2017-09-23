@@ -19,16 +19,11 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Models a disk as a collection of tracks, providing a range of possible track positions and allowing
-	a point sampling of the track beneath any of those positions (if any).
+	Models a disk image as a collection of tracks, plus a range of possible track positions.
 
 	The intention is not that tracks necessarily be evenly spaced; a head_position_count of 3 wih track
 	A appearing in positions 0 and 1, and track B appearing in position 2 is an appropriate use of this API
 	if it matches the media.
-
-	The track returned is point sampled only; if a particular disk drive has a sufficiently large head to
-	pick up multiple tracks at once then the drive responsible for asking for multiple tracks and for
-	merging the results.
 */
 class DiskImage {
 	public:
@@ -70,10 +65,14 @@ class DiskImageHolderBase: public Disk {
 	protected:
 		int get_id_for_track_at_position(unsigned int head, unsigned int position);
 		std::map<int, std::shared_ptr<Track>> cached_tracks_;
-
 		std::unique_ptr<Concurrency::AsyncTaskQueue> update_queue_;
 };
 
+/*!
+	Provides a wrapper that wraps a DiskImage to make it into a Disk, providing caching and,
+	thereby, an intermediate store for modified tracks so that mutable disk images can either
+	update on the fly or perform a block update on closure, as appropriate.
+*/
 template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 	public:
 		template <typename... Ts> DiskImageHolder(Ts&&... args) :
@@ -90,49 +89,7 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 		T disk_image_;
 };
 
-template <typename T> unsigned int DiskImageHolder<T>::get_head_position_count() {
-	return disk_image_.get_head_position_count();
-}
-
-template <typename T> unsigned int DiskImageHolder<T>::get_head_count() {
-	return disk_image_.get_head_count();
-}
-
-template <typename T> bool DiskImageHolder<T>::get_is_read_only() {
-	return disk_image_.get_is_read_only();
-}
-
-template <typename T> void DiskImageHolder<T>::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	if(disk_image_.get_is_read_only()) return;
-
-	int address = get_id_for_track_at_position(head, position);
-	cached_tracks_[address] = track;
-
-	if(!update_queue_) update_queue_.reset(new Concurrency::AsyncTaskQueue);
-	std::shared_ptr<Track> track_copy(track->clone());
-	update_queue_->enqueue([this, head, position, track_copy] {
-		disk_image_.set_track_at_position(head, position, track_copy);
-	});
-}
-
-template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_position(unsigned int head, unsigned int position) {
-	if(head >= get_head_count()) return nullptr;
-	if(position >= get_head_position_count()) return nullptr;
-
-	int address = get_id_for_track_at_position(head, position);
-	std::map<int, std::shared_ptr<Track>>::iterator cached_track = cached_tracks_.find(address);
-	if(cached_track != cached_tracks_.end()) return cached_track->second;
-
-	std::shared_ptr<Track> track = disk_image_.get_track_at_position(head, position);
-	if(!track) return nullptr;
-	cached_tracks_[address] = track;
-	return track;
-}
-
-template <typename T> DiskImageHolder<T>::~DiskImageHolder() {
-	if(update_queue_) update_queue_->flush();
-}
-
+#include "DiskImageImplementation.hpp"
 
 }
 }
