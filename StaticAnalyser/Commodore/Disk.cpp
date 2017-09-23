@@ -7,7 +7,7 @@
 //
 
 #include "Disk.hpp"
-#include "../../Storage/Disk/DiskController.hpp"
+#include "../../Storage/Disk/Controller/DiskController.hpp"
 #include "../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 #include "../../Storage/Data/Commodore.hpp"
 

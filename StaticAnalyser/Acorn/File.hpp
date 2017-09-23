@@ -6,8 +6,8 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef File_hpp
-#define File_hpp
+#ifndef StaticAnalyser_Acorn_File_hpp
+#define StaticAnalyser_Acorn_File_hpp
 
 #include <list>
 #include <memory>

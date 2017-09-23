@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <cstdio>
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 namespace Storage {
@@ -124,6 +125,7 @@ class FileHolder {
 		FILE *file_;
 		struct stat file_stats_;
 		bool is_read_only_;
+		std::mutex file_access_mutex_;
 
 		const std::string name_;
 };

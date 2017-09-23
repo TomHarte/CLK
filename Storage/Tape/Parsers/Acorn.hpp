@@ -11,7 +11,7 @@
 
 #include "TapeParser.hpp"
 #include "../../../NumberTheory/CRC.hpp"
-#include "../../Disk/DigitalPhaseLockedLoop.hpp"
+#include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
 namespace Tape {
