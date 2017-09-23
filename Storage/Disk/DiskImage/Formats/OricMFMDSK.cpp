@@ -7,8 +7,9 @@
 //
 
 #include "OricMFMDSK.hpp"
-#include "../PCMTrack.hpp"
-#include "../Encodings/MFM.hpp"
+
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/MFM.hpp"
 
 using namespace Storage::Disk;
 

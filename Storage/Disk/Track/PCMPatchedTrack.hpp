@@ -9,7 +9,7 @@
 #ifndef PCMPatchedTrack_hpp
 #define PCMPatchedTrack_hpp
 
-#include "Disk.hpp"
+#include "Track.hpp"
 #include "PCMSegment.hpp"
 
 namespace Storage {

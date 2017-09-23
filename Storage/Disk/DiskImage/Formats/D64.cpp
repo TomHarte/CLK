@@ -8,10 +8,11 @@
 
 #include "D64.hpp"
 
-#include <sys/stat.h>
 #include <algorithm>
-#include "../PCMTrack.hpp"
-#include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
+#include <sys/stat.h>
+
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/CommodoreGCR.hpp"
 
 using namespace Storage::Disk;
 

@@ -10,8 +10,8 @@
 #define Drive_hpp
 
 #include "Disk.hpp"
-#include "PCMSegment.hpp"
-#include "PCMPatchedTrack.hpp"
+#include "Track/PCMSegment.hpp"
+#include "Track/PCMPatchedTrack.hpp"
 
 #include "../TimedEventLoop.hpp"
 #include "../../ClockReceiver/Sleeper.hpp"

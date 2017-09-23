@@ -16,7 +16,7 @@
 
 #include "../../../../Storage/Disk/Disk.hpp"
 
-#include "../../../../Storage/Disk/DiskController.hpp"
+#include "../../../../Storage/Disk/Controller/DiskController.hpp"
 
 namespace Commodore {
 namespace C1540 {

@@ -23,13 +23,13 @@
 #include "../Storage/Cartridge/Formats/PRG.hpp"
 
 // Disks
-#include "../Storage/Disk/Formats/AcornADF.hpp"
-#include "../Storage/Disk/Formats/CPCDSK.hpp"
-#include "../Storage/Disk/Formats/D64.hpp"
-#include "../Storage/Disk/Formats/G64.hpp"
-#include "../Storage/Disk/Formats/HFE.hpp"
-#include "../Storage/Disk/Formats/OricMFMDSK.hpp"
-#include "../Storage/Disk/Formats/SSD.hpp"
+#include "../Storage/Disk/DiskImage/Formats/AcornADF.hpp"
+#include "../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
+#include "../Storage/Disk/DiskImage/Formats/D64.hpp"
+#include "../Storage/Disk/DiskImage/Formats/G64.hpp"
+#include "../Storage/Disk/DiskImage/Formats/HFE.hpp"
+#include "../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
+#include "../Storage/Disk/DiskImage/Formats/SSD.hpp"
 
 // Tapes
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"

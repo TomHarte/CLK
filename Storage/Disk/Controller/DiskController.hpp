@@ -9,13 +9,13 @@
 #ifndef Storage_Disk_Controller_hpp
 #define Storage_Disk_Controller_hpp
 
-#include "Drive.hpp"
-#include "DigitalPhaseLockedLoop.hpp"
-#include "PCMSegment.hpp"
-#include "PCMPatchedTrack.hpp"
+#include "../Drive.hpp"
+#include "../DPLL/DigitalPhaseLockedLoop.hpp"
+#include "../Track/PCMSegment.hpp"
+#include "../Track/PCMPatchedTrack.hpp"
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/Sleeper.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../ClockReceiver/Sleeper.hpp"
 
 namespace Storage {
 namespace Disk {

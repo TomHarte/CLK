@@ -9,10 +9,11 @@
 #ifndef DiskImage_hpp
 #define DiskImage_hpp
 
-#include <cstdint>
+#include <map>
 #include <memory>
-#include <vector>
-#include "Disk.hpp"
+
+#include "../Disk.hpp"
+#include "../Track/Track.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -63,14 +64,6 @@ class DiskImage {
 			@returns whether the disk image is read only. Defaults to @c true if not overridden.
 		*/
 		virtual bool get_is_read_only() { return true; }
-};
-
-class PatchingDiskImage {
-	public:
-		struct TrackUpdate {
-			long file_offset;
-			std::vector<uint8_t> data;
-		};
 };
 
 class DiskImageHolderBase: public Disk {

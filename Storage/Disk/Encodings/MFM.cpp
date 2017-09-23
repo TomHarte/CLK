@@ -8,8 +8,8 @@
 
 #include "MFM.hpp"
 
-#include "../PCMTrack.hpp"
-#include "../SingleTrackDisk.hpp"
+#include "../Track/PCMTrack.hpp"
+#include "../SingleTrackDisk/SingleTrackDisk.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 
 #include <set>

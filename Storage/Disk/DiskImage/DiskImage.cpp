@@ -13,4 +13,3 @@ using namespace Storage::Disk;
 int DiskImageHolderBase::get_id_for_track_at_position(unsigned int head, unsigned int position) {
 	return (int)(position * get_head_count() + head);
 }
-

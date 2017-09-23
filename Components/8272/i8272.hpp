@@ -9,7 +9,7 @@
 #ifndef i8272_hpp
 #define i8272_hpp
 
-#include "../../Storage/Disk/MFMDiskController.hpp"
+#include "../../Storage/Disk/Controller/MFMDiskController.hpp"
 
 #include <cstdint>
 #include <memory>

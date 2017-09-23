@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <vector>
 #include "../Disk.hpp"
-#include "../DiskController.hpp"
+#include "../Controller/DiskController.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 
 namespace Storage {

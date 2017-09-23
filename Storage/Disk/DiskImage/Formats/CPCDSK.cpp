@@ -8,7 +8,7 @@
 
 #include "CPCDSK.hpp"
 
-#include "../Encodings/MFM.hpp"
+#include "../../Encodings/MFM.hpp"
 
 using namespace Storage::Disk;
 

@@ -9,8 +9,8 @@
 #include "G64.hpp"
 
 #include <vector>
-#include "../PCMTrack.hpp"
-#include "../Encodings/CommodoreGCR.hpp"
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/CommodoreGCR.hpp"
 
 using namespace Storage::Disk;
 

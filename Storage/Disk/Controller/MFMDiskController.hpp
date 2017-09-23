@@ -10,8 +10,8 @@
 #define MFMDiskController_hpp
 
 #include "DiskController.hpp"
-#include "../../NumberTheory/CRC.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../NumberTheory/CRC.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Storage {
 namespace Disk {

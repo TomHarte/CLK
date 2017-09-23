@@ -9,7 +9,7 @@
 #ifndef _770_hpp
 #define _770_hpp
 
-#include "../../Storage/Disk/MFMDiskController.hpp"
+#include "../../Storage/Disk/Controller/MFMDiskController.hpp"
 
 namespace WD {
 
