@@ -96,6 +96,7 @@
 		4B6A4C991F58F09E00E3F787 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
 		4B7136861F78724F008B8ED9 /* MFM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136841F78724F008B8ED9 /* MFM.cpp */; };
 		4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
+		4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
 		4B79E4451E3AF38600141F11 /* floppy35.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4421E3AF38600141F11 /* floppy35.png */; };
@@ -653,6 +654,9 @@
 		4B7136871F78725F008B8ED9 /* Shifter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shifter.cpp; sourceTree = "<group>"; };
 		4B7136881F78725F008B8ED9 /* Shifter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Shifter.hpp; sourceTree = "<group>"; };
 		4B71368A1F787349008B8ED9 /* Constants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Constants.hpp; sourceTree = "<group>"; };
+		4B71368B1F7880D1008B8ED9 /* Sector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sector.hpp; sourceTree = "<group>"; };
+		4B71368C1F788112008B8ED9 /* Parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
+		4B71368D1F788112008B8ED9 /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = Z80/Z80.hpp; sourceTree = "<group>"; };
 		4B7913CA1DFCD80E00175A82 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Electron/Video.cpp; sourceTree = "<group>"; };
 		4B7913CB1DFCD80E00175A82 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = Electron/Video.hpp; sourceTree = "<group>"; };
@@ -1659,10 +1663,13 @@
 			isa = PBXGroup;
 			children = (
 				4B7136841F78724F008B8ED9 /* MFM.cpp */,
-				4B7136851F78724F008B8ED9 /* MFM.hpp */,
+				4B71368C1F788112008B8ED9 /* Parser.cpp */,
 				4B7136871F78725F008B8ED9 /* Shifter.cpp */,
-				4B7136881F78725F008B8ED9 /* Shifter.hpp */,
 				4B71368A1F787349008B8ED9 /* Constants.hpp */,
+				4B7136851F78724F008B8ED9 /* MFM.hpp */,
+				4B71368D1F788112008B8ED9 /* Parser.hpp */,
+				4B71368B1F7880D1008B8ED9 /* Sector.hpp */,
+				4B7136881F78725F008B8ED9 /* Shifter.hpp */,
 			);
 			name = MFM;
 			path = Encodings/MFM;
@@ -2925,6 +2932,7 @@
 				4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */,
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
+				4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */,
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,
 				4B14978B1EE4AC5E00CE2596 /* StaticAnalyser.cpp in Sources */,
 				4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */,

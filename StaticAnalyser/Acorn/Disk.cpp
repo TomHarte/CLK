@@ -8,7 +8,7 @@
 
 #include "Disk.hpp"
 #include "../../Storage/Disk/Controller/DiskController.hpp"
-#include "../../Storage/Disk/Encodings/MFM/MFM.hpp"
+#include "../../Storage/Disk/Encodings/MFM/Parser.hpp"
 #include "../../NumberTheory/CRC.hpp"
 #include <algorithm>
 

@@ -8,7 +8,7 @@
 
 #include "CPM.hpp"
 
-#include "../Encodings/MFM/MFM.hpp"
+#include "../Encodings/MFM/Parser.hpp"
 
 using namespace Storage::Disk::CPM;
 

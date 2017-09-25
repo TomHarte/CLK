@@ -9,6 +9,7 @@
 #include "AcornADF.hpp"
 
 #include <sys/stat.h>
+#include "../../Encodings/MFM/Parser.hpp"
 #include "../../Encodings/MFM/MFM.hpp"
 
 namespace {
