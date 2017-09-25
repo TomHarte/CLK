@@ -97,6 +97,7 @@
 		4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136841F78724F008B8ED9 /* Encoder.cpp */; };
 		4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
 		4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
+		4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
 		4B79E4451E3AF38600141F11 /* floppy35.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4421E3AF38600141F11 /* floppy35.png */; };
@@ -657,6 +658,8 @@
 		4B71368B1F7880D1008B8ED9 /* Sector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sector.hpp; sourceTree = "<group>"; };
 		4B71368C1F788112008B8ED9 /* Parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
 		4B71368D1F788112008B8ED9 /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
+		4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
+		4B7136901F789C93008B8ED9 /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = Z80/Z80.hpp; sourceTree = "<group>"; };
 		4B7913CA1DFCD80E00175A82 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Electron/Video.cpp; sourceTree = "<group>"; };
 		4B7913CB1DFCD80E00175A82 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = Electron/Video.hpp; sourceTree = "<group>"; };
@@ -1416,15 +1419,15 @@
 			isa = PBXGroup;
 			children = (
 				4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */,
-				4B4518721F75E91800926311 /* PCMPatchedTrack.hpp */,
 				4B4518731F75E91800926311 /* PCMSegment.cpp */,
-				4B4518741F75E91800926311 /* PCMSegment.hpp */,
 				4B4518751F75E91800926311 /* PCMTrack.cpp */,
-				4B4518761F75E91800926311 /* PCMTrack.hpp */,
 				4B4518771F75E91800926311 /* UnformattedTrack.cpp */,
-				4B4518781F75E91800926311 /* UnformattedTrack.hpp */,
+				4B4518721F75E91800926311 /* PCMPatchedTrack.hpp */,
+				4B4518741F75E91800926311 /* PCMSegment.hpp */,
+				4B4518761F75E91800926311 /* PCMTrack.hpp */,
 				4B4518881F75ECB100926311 /* Track.hpp */,
 				4B8D287E1F77207100645199 /* TrackSerialiser.hpp */,
+				4B4518781F75E91800926311 /* UnformattedTrack.hpp */,
 			);
 			path = Track;
 			sourceTree = "<group>";
@@ -1670,6 +1673,8 @@
 				4B71368D1F788112008B8ED9 /* Parser.hpp */,
 				4B71368B1F7880D1008B8ED9 /* Sector.hpp */,
 				4B7136881F78725F008B8ED9 /* Shifter.hpp */,
+				4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */,
+				4B7136901F789C93008B8ED9 /* SegmentParser.hpp */,
 			);
 			name = MFM;
 			path = Encodings/MFM;
@@ -2921,6 +2926,7 @@
 				4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */,
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B2A53A11D117D36003C6002 /* CSAtari2600.mm in Sources */,
+				4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */,
 				4B4518A21F75FD1C00926311 /* G64.cpp in Sources */,
 				4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
