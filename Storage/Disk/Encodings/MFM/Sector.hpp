@@ -27,7 +27,7 @@ struct Sector {
 	struct Address {
 		uint8_t track = 0, side = 0, sector = 0;
 
-		bool operator < (Address &rhs) {
+		bool operator < (const Address &rhs) const {
 			return ((track << 24) | (side << 8) | sector) < ((rhs.track << 24) | (rhs.side << 8) | rhs.sector);
 		}
 	};
@@ -39,6 +39,16 @@ struct Sector {
 	bool has_data_crc_error = false;
 	bool has_header_crc_error = false;
 	bool is_deleted = false;
+
+	Sector() {}
+
+	Sector(const Sector &&rhs) :
+		address(rhs.address),
+		size(rhs.size),
+		data(std::move(rhs.data)),
+		has_data_crc_error(rhs.has_data_crc_error),
+		has_header_crc_error(rhs.has_header_crc_error),
+		is_deleted(rhs.is_deleted ){}
 };
 
 }
