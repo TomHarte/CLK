@@ -9,7 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "../../Storage/Disk/Parsers/CPM.hpp"
-#include "../../Storage/Disk/Encodings/MFM.hpp"
+#include "../../Storage/Disk/Encodings/MFM/MFM.hpp"
 
 static bool strcmp_insensitive(const char *a, const char *b) {
 	if(strlen(a) != strlen(b)) return false;

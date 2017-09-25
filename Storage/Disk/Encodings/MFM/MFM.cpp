@@ -8,9 +8,9 @@
 
 #include "MFM.hpp"
 
-#include "../Track/PCMTrack.hpp"
-#include "../SingleTrackDisk/SingleTrackDisk.hpp"
-#include "../../../NumberTheory/CRC.hpp"
+#include "../../Track/PCMTrack.hpp"
+#include "../../SingleTrackDisk/SingleTrackDisk.hpp"
+#include "../../../../NumberTheory/CRC.hpp"
 
 #include <set>
 

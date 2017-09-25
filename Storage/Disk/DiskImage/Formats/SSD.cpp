@@ -8,7 +8,7 @@
 
 #include "SSD.hpp"
 
-#include "../../Encodings/MFM.hpp"
+#include "../../Encodings/MFM/MFM.hpp"
 
 using namespace Storage::Disk;
 

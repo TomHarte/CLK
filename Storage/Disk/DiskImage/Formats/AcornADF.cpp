@@ -9,7 +9,7 @@
 #include "AcornADF.hpp"
 
 #include <sys/stat.h>
-#include "../../Encodings/MFM.hpp"
+#include "../../Encodings/MFM/MFM.hpp"
 
 namespace {
 	static const unsigned int sectors_per_track = 16;
