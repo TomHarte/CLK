@@ -11,9 +11,8 @@
 
 #include <cstdint>
 #include <vector>
-#include "Constants.hpp"
 #include "Sector.hpp"
-#include "../../Disk.hpp"
+#include "../../Track/Track.hpp"
 #include "../../../../NumberTheory/CRC.hpp"
 
 namespace Storage {
@@ -61,7 +60,6 @@ class Encoder {
 
 std::unique_ptr<Encoder> GetMFMEncoder(std::vector<uint8_t> &target);
 std::unique_ptr<Encoder> GetFMEncoder(std::vector<uint8_t> &target);
-
 
 }
 }

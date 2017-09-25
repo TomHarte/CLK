@@ -8,7 +8,7 @@
 
 #include "MFMDiskController.hpp"
 
-#include "../Encodings/MFM/MFM.hpp"
+#include "../Encodings/MFM/Constants.hpp"
 
 using namespace Storage::Disk;
 

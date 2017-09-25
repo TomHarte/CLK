@@ -7,7 +7,7 @@
 //
 
 #include "i8272.hpp"
-#include "../../Storage/Disk/Encodings/MFM/MFM.hpp"
+//#include "../../Storage/Disk/Encodings/MFM/Encoder.hpp"
 
 #include <cstdio>
 

@@ -6,10 +6,10 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "MFM.hpp"
+#include "Encoder.hpp"
 
+#include "Constants.hpp"
 #include "../../Track/PCMTrack.hpp"
-#include "../../SingleTrackDisk/SingleTrackDisk.hpp"
 #include "../../../../NumberTheory/CRC.hpp"
 
 #include <set>

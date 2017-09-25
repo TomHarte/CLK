@@ -10,7 +10,7 @@
 
 #include <sys/stat.h>
 #include "../../Encodings/MFM/Parser.hpp"
-#include "../../Encodings/MFM/MFM.hpp"
+#include "../../Encodings/MFM/Encoder.hpp"
 
 namespace {
 	static const unsigned int sectors_per_track = 16;
