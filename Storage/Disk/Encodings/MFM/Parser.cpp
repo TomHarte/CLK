@@ -68,10 +68,10 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 			while(1) {
 				std::shared_ptr<Sector> next_sector = get_next_sector();
 				if(next_sector) {
-					if(visited_sectors.find(next_sector->sector) != visited_sectors.end()) {
+					if(visited_sectors.find(next_sector->address.sector) != visited_sectors.end()) {
 						break;
 					}
-					visited_sectors.insert(next_sector->sector);
+					visited_sectors.insert(next_sector->address.sector);
 				}
 			}
 		}
@@ -242,9 +242,9 @@ std::shared_ptr<Sector> Parser::get_next_sector() {
 		}
 
 		crc_generator_.add(IDAddressByte);
-		sector->track = get_next_byte();
-		sector->side = get_next_byte();
-		sector->sector = get_next_byte();
+		sector->address.track = get_next_byte();
+		sector->address.side = get_next_byte();
+		sector->address.sector = get_next_byte();
 		sector->size = get_next_byte();
 		uint16_t header_crc = crc_generator_.get_value();
 		if((header_crc >> 8) != get_next_byte()) sector->has_header_crc_error = true;
@@ -285,7 +285,7 @@ std::shared_ptr<Sector> Parser::get_next_sector() {
 		if((data_crc & 0xff) != get_next_byte()) sector->has_data_crc_error = true;
 
 		// Put this sector into the cache.
-		int index = get_index(head_, track_, sector->sector);
+		int index = get_index(head_, track_, sector->address.sector);
 		sectors_by_index_[index] = sector;
 
 		return sector;
@@ -299,13 +299,13 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t sector) {
 	index_count_ = 0;
 	while(!first_sector && index_count_ < 2) first_sector = get_next_sector();
 	if(!first_sector) return nullptr;
-	if(first_sector->sector == sector) return first_sector;
+	if(first_sector->address.sector == sector) return first_sector;
 
 	while(1) {
 		std::shared_ptr<Sector> next_sector = get_next_sector();
 		if(!next_sector) continue;
-		if(next_sector->sector == first_sector->sector) return nullptr;
-		if(next_sector->sector == sector) return next_sector;
+		if(next_sector->address.sector == first_sector->address.sector) return nullptr;
+		if(next_sector->address.sector == sector) return next_sector;
 	}
 }
 

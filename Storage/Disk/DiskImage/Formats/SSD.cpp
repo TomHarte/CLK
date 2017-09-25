@@ -57,9 +57,9 @@ std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned in
 
 		for(int sector = 0; sector < 10; sector++) {
 			Storage::Encodings::MFM::Sector new_sector;
-			new_sector.track = (uint8_t)position;
-			new_sector.side = 0;
-			new_sector.sector = (uint8_t)sector;
+			new_sector.address.track = (uint8_t)position;
+			new_sector.address.side = 0;
+			new_sector.address.sector = (uint8_t)sector;
 			new_sector.size = 1;
 
 			new_sector.data.resize(256);

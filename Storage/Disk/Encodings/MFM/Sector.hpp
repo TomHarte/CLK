@@ -21,14 +21,24 @@ namespace MFM {
 	and a few extra flags of metadata.
 */
 struct Sector {
-	uint8_t track, side, sector, size;
+	/*!
+		Describes the location of a sector, implementing < to allow for use as a set key.
+	*/
+	struct Address {
+		uint8_t track = 0, side = 0, sector = 0;
+
+		bool operator < (Address &rhs) {
+			return ((track << 24) | (side << 8) | sector) < ((rhs.track << 24) | (rhs.side << 8) | rhs.sector);
+		}
+	};
+
+	Address address;
+	uint8_t size = 0;
 	std::vector<uint8_t> data;
 
-	bool has_data_crc_error;
-	bool has_header_crc_error;
-	bool is_deleted;
-
-	Sector() : track(0), side(0), sector(0), size(0), has_data_crc_error(false), has_header_crc_error(false), is_deleted(false) {}
+	bool has_data_crc_error = false;
+	bool has_header_crc_error = false;
+	bool is_deleted = false;
 };
 
 }

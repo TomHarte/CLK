@@ -143,9 +143,9 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 		// sector header
 		shifter.add_ID_address_mark();
-		shifter.add_byte(sector.track);
-		shifter.add_byte(sector.side);
-		shifter.add_byte(sector.sector);
+		shifter.add_byte(sector.address.track);
+		shifter.add_byte(sector.address.side);
+		shifter.add_byte(sector.address.sector);
 		shifter.add_byte(sector.size);
 		shifter.add_crc(sector.has_header_crc_error);
 

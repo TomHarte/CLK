@@ -67,9 +67,9 @@ std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsign
 
 		for(unsigned int sector = 0; sector < sectors_per_track; sector++) {
 			Storage::Encodings::MFM::Sector new_sector;
-			new_sector.track = (uint8_t)position;
-			new_sector.side = (uint8_t)head;
-			new_sector.sector = (uint8_t)sector;
+			new_sector.address.track = (uint8_t)position;
+			new_sector.address.side = (uint8_t)head;
+			new_sector.address.sector = (uint8_t)sector;
 			new_sector.size = sector_size;
 
 			new_sector.data.resize(bytes_per_sector);
