@@ -21,7 +21,7 @@ namespace MFM {
 	Scans @c segment for all included sectors, returning a set that maps from location within
 	the segment (counted in bits from the beginning) to sector.
 */
-std::map<size_t, Sector> SectorsFromSegment(const Disk::PCMSegment &&segment, bool is_double_density);
+std::map<size_t, Sector> sectors_from_segment(const Disk::PCMSegment &&segment, bool is_double_density);
 
 }
 }

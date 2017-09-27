@@ -11,7 +11,7 @@
 
 using namespace Storage::Encodings::MFM;
 
-std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::SectorsFromSegment(const Storage::Disk::PCMSegment &&segment, bool is_double_density) {
+std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::sectors_from_segment(const Storage::Disk::PCMSegment &&segment, bool is_double_density) {
 	std::map<size_t, Sector> result;
 	Shifter shifter;
 	shifter.set_is_double_density(is_double_density);
