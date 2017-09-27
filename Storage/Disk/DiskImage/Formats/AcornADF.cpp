@@ -9,12 +9,13 @@
 #include "AcornADF.hpp"
 
 #include <sys/stat.h>
-#include "../../Encodings/MFM/Parser.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
+#include "../../Track/TrackSerialiser.hpp"
+#include "../../Encodings/MFM/SegmentParser.hpp"
 
 namespace {
 	static const unsigned int sectors_per_track = 16;
-	static const unsigned int bytes_per_sector = 256;
+	static const size_t bytes_per_sector = 256;
 	static const unsigned int sector_size = 1;
 }
 
@@ -24,8 +25,8 @@ AcornADF::AcornADF(const char *file_name) :
 		Storage::FileHolder(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
-	if(file_stats_.st_size % bytes_per_sector) throw ErrorNotAcornADF;
-	if(file_stats_.st_size < 7 * bytes_per_sector) throw ErrorNotAcornADF;
+	if(file_stats_.st_size % (off_t)bytes_per_sector) throw ErrorNotAcornADF;
+	if(file_stats_.st_size < 7 * (off_t)bytes_per_sector) throw ErrorNotAcornADF;
 
 	// check that the initial directory's 'Hugo's are present
 	fseek(file_, 513, SEEK_SET);
@@ -87,17 +88,16 @@ std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsign
 }
 
 void AcornADF::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	std::vector<uint8_t> parsed_track;
-	Storage::Encodings::MFM::Parser parser(true, track);
-	for(unsigned int c = 0; c < sectors_per_track; c++) {
-		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
-		if(sector) {
-			parsed_track.insert(parsed_track.end(), sector->data.begin(), sector->data.end());
-		} else {
-			// TODO: what's correct here? Warn the user that whatever has been written to the disk,
-			// it can no longer be stored as an SSD? If so, warn them by what route?
-			parsed_track.resize(parsed_track.size() + bytes_per_sector);
-		}
+	std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
+		Storage::Encodings::MFM::sectors_from_segment(
+			Storage::Disk::track_serialisation(*track, Time(1, 100000)),
+			true);
+
+	std::vector<uint8_t> parsed_track(sectors_per_track*bytes_per_sector, 0);
+	for(auto &pair : sectors) {
+		if(pair.second.address.sector >= sectors_per_track) continue;
+		if(pair.second.size != sector_size) continue;
+		memcpy(&parsed_track[pair.second.address.sector * bytes_per_sector], pair.second.data.data(), std::min(pair.second.data.size(), bytes_per_sector));
 	}
 
 	long file_offset = get_file_offset_for_position(head, position);
