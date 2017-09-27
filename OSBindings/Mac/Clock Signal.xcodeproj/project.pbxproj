@@ -420,6 +420,7 @@
 		4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */; };
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
+		4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */; };
@@ -1029,6 +1030,7 @@
 		4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTTypes.hpp; sourceTree = "<group>"; };
 		4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Parsers/ZX8081.cpp; sourceTree = "<group>"; };
 		4BBFBB6B1EE8401E00C01E7A /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Parsers/ZX8081.hpp; sourceTree = "<group>"; };
+		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
 		4BC3B74D1CD194CC00F86E85 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
@@ -1421,6 +1423,7 @@
 				4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */,
 				4B4518731F75E91800926311 /* PCMSegment.cpp */,
 				4B4518751F75E91800926311 /* PCMTrack.cpp */,
+				4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */,
 				4B4518771F75E91800926311 /* UnformattedTrack.cpp */,
 				4B4518721F75E91800926311 /* PCMPatchedTrack.hpp */,
 				4B4518741F75E91800926311 /* PCMSegment.hpp */,
@@ -1667,14 +1670,14 @@
 			children = (
 				4B7136841F78724F008B8ED9 /* Encoder.cpp */,
 				4B71368C1F788112008B8ED9 /* Parser.cpp */,
+				4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */,
 				4B7136871F78725F008B8ED9 /* Shifter.cpp */,
 				4B71368A1F787349008B8ED9 /* Constants.hpp */,
 				4B7136851F78724F008B8ED9 /* Encoder.hpp */,
 				4B71368D1F788112008B8ED9 /* Parser.hpp */,
 				4B71368B1F7880D1008B8ED9 /* Sector.hpp */,
-				4B7136881F78725F008B8ED9 /* Shifter.hpp */,
-				4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */,
 				4B7136901F789C93008B8ED9 /* SegmentParser.hpp */,
+				4B7136881F78725F008B8ED9 /* Shifter.hpp */,
 			);
 			name = MFM;
 			path = Encodings/MFM;
@@ -2905,6 +2908,7 @@
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
+				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
 				4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
