@@ -10,8 +10,9 @@
 
 #include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/MFM/Constants.hpp"
+#include "../../Encodings/MFM/Shifter.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
-#include "../../Encodings/MFM/Parser.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
 
@@ -118,12 +119,48 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 }
 
 void OricMFMDSK::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	Storage::Encodings::MFM::Parser parser(true, track);
-	std::vector<uint8_t> parsed_track = parser.get_track(0);
+	PCMSegment segment = Storage::Disk::track_serialisation(*track, Storage::Encodings::MFM::MFMBitLength);
+	Storage::Encodings::MFM::Shifter shifter;
+	shifter.set_is_double_density(true);
+	shifter.set_should_obey_syncs(true);
+	std::vector<uint8_t> parsed_track;
+	int size = 0;
+	int offset = 0;
+	bool capture_size = false;
+
+	for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
+		shifter.add_input_bit(segment.bit(bit));
+		if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::None) continue;
+		parsed_track.push_back(shifter.get_byte());
+
+		if(offset) {
+			offset--;
+			if(!offset) {
+				shifter.set_should_obey_syncs(true);
+			}
+			if(capture_size && offset == 2) {
+				size = parsed_track.back();
+				capture_size = false;
+			}
+		}
+
+		if(	shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::Data ||
+			shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::DeletedData) {
+			offset = 128 << size;
+			shifter.set_should_obey_syncs(false);
+		}
+
+		if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::ID) {
+			offset = 6;
+			shifter.set_should_obey_syncs(false);
+			capture_size = true;
+		}
+	}
+
 	long file_offset = get_file_offset_for_position(head, position);
 
-		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-fseek(file_, file_offset, SEEK_SET);
+	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+	fseek(file_, file_offset, SEEK_SET);
 	size_t track_size = std::min((size_t)6400, parsed_track.size());
 	fwrite(parsed_track.data(), 1, track_size, file_);
 }

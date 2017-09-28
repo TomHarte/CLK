@@ -89,11 +89,6 @@ std::shared_ptr<Sector> Parser::get_sector(uint8_t head, uint8_t track, uint8_t 
 	return nullptr;
 }
 
-std::vector<uint8_t> Parser::get_track(uint8_t track) {
-	seek_to_track(track);
-	return get_track();
-}
-
 void Parser::process_input_bit(int value) {
 	shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0xffff;
 	bit_count_++;
@@ -129,89 +124,6 @@ uint8_t Parser::get_next_byte() {
 	uint8_t byte = get_byte_for_shift_value((uint16_t)shift_register_);
 	crc_generator_.add(byte);
 	return byte;
-}
-
-std::vector<uint8_t> Parser::get_track() {
-	std::vector<uint8_t> result;
-	int distance_until_permissible_sync = 0;
-	uint8_t last_id[6] = {0, 0, 0, 0, 0, 0};
-	int last_id_pointer = 0;
-	bool next_is_type = false;
-
-	// align to the next index hole
-	index_count_ = 0;
-	while(!index_count_) run_for(Cycles(1));
-
-	// capture every other bit until the next index hole
-	index_count_ = 0;
-	while(1) {
-		// wait until either another bit or the index hole arrives
-		bit_count_ = 0;
-		bool found_sync = false;
-		while(!index_count_ && !found_sync && bit_count_ < 16) {
-			int previous_bit_count = bit_count_;
-			run_for(Cycles(1));
-
-			if(!distance_until_permissible_sync && bit_count_ != previous_bit_count) {
-				uint16_t low_shift_register = (shift_register_&0xffff);
-				if(is_mfm_) {
-					found_sync = (low_shift_register == MFMIndexSync) || (low_shift_register == MFMSync);
-				} else {
-					found_sync =
-						(low_shift_register == FMIndexAddressMark) ||
-						(low_shift_register == FMIDAddressMark) ||
-						(low_shift_register == FMDataAddressMark) ||
-						(low_shift_register == FMDeletedDataAddressMark);
-				}
-			}
-		}
-
-		// if that was the index hole then finish
-		if(index_count_) {
-			if(bit_count_) result.push_back(get_byte_for_shift_value((uint16_t)(shift_register_ << (16 - bit_count_))));
-			break;
-		}
-
-		// store whatever the current byte is
-		uint8_t byte_value = get_byte_for_shift_value((uint16_t)shift_register_);
-		result.push_back(byte_value);
-		if(last_id_pointer < 6) last_id[last_id_pointer++] = byte_value;
-
-		// if no syncs are permissible here, decrement the waiting period and perform no further contemplation
-		bool found_id = false, found_data = false;
-		if(distance_until_permissible_sync) {
-			distance_until_permissible_sync--;
-		} else {
-			if(found_sync) {
-				if(is_mfm_) {
-					next_is_type = true;
-				} else {
-					switch(shift_register_&0xffff) {
-						case FMIDAddressMark:			found_id = true;	break;
-						case FMDataAddressMark:
-						case FMDeletedDataAddressMark:	found_data = true;	break;
-					}
-				}
-			} else if(next_is_type) {
-				switch(byte_value) {
-					case IDAddressByte:				found_id = true;	break;
-					case DataAddressByte:
-					case DeletedDataAddressByte:	found_data = true;	break;
-				}
-			}
-		}
-
-		if(found_id) {
-			distance_until_permissible_sync = 6;
-			last_id_pointer = 0;
-		}
-
-		if(found_data) {
-			distance_until_permissible_sync = 128 << last_id[3];
-		}
-	}
-
-	return result;
 }
 
 std::shared_ptr<Sector> Parser::get_next_sector() {
