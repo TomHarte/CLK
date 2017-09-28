@@ -23,6 +23,17 @@ namespace Disk {
 class Track {
 	public:
 		/*!
+			Describes the location of a track, implementing < to allow for use as a set key.
+		*/
+		struct Address {
+			int head, position;
+
+			bool operator < (const Address &rhs) const {
+				return (head < rhs.head) || (position < rhs.position);
+			}
+		};
+
+		/*!
 			Describes a detectable track event — either a flux transition or the passing of the index hole,
 			along with the length of time between the previous event and its occurance.
 
