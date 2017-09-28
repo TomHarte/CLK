@@ -9,6 +9,7 @@
 #include "AcornADF.hpp"
 
 #include <sys/stat.h>
+#include "../../Encodings/MFM/Constants.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
 #include "../../Track/TrackSerialiser.hpp"
 #include "../../Encodings/MFM/SegmentParser.hpp"
@@ -90,7 +91,7 @@ std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsign
 void AcornADF::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
 	std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
 		Storage::Encodings::MFM::sectors_from_segment(
-			Storage::Disk::track_serialisation(*track, Time(1, 100000)),
+			Storage::Disk::track_serialisation(*track, Storage::Encodings::MFM::MFMBitLength),
 			true);
 
 	std::vector<uint8_t> parsed_track(sectors_per_track*bytes_per_sector, 0);

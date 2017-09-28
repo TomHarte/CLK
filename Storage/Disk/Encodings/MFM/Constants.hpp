@@ -9,6 +9,8 @@
 #ifndef Constants_h
 #define Constants_h
 
+#include "../../../Storage.hpp"
+
 namespace Storage {
 namespace Encodings {
 namespace MFM {
@@ -29,6 +31,9 @@ const uint16_t MFMPostSyncCRCValue		= 0xcdb4;	// the value the CRC generator sho
 
 const uint8_t MFMIndexSyncByteValue		= 0xc2;
 const uint8_t MFMSyncByteValue			= 0xa1;
+
+const Time MFMBitLength					= Time(1, 100000);
+const Time FMBitLength					= Time(1, 50000);
 
 }
 }
