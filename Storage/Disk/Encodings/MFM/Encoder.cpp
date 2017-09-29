@@ -231,7 +231,3 @@ std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint
 std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8_t> &target) {
 	return std::unique_ptr<Encoder>(new FMEncoder(target));
 }
-
-#pragma mark - Parser
-
-
