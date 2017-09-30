@@ -46,7 +46,7 @@ void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uin
 	std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
 		Storage::Encodings::MFM::sectors_from_segment(
 			Storage::Disk::track_serialisation(track, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
-			true);
+			is_double_density);
 
 	size_t byte_size = (size_t)(128 << sector_size);
 	for(auto &pair : sectors) {
