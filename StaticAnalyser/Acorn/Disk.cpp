@@ -19,8 +19,8 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	Storage::Encodings::MFM::Parser parser(false, disk);
 
-	std::shared_ptr<Storage::Encodings::MFM::Sector> names = parser.get_sector(0, 0, 0);
-	std::shared_ptr<Storage::Encodings::MFM::Sector> details = parser.get_sector(0, 0, 1);
+	Storage::Encodings::MFM::Sector *names = parser.get_sector(0, 0, 0);
+	Storage::Encodings::MFM::Sector *details = parser.get_sector(0, 0, 1);
 
 	if(!names || !details) return nullptr;
 	if(names->data.size() != 256 || details->data.size() != 256) return nullptr;
@@ -61,7 +61,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 			uint8_t track = (uint8_t)(start_sector / 10);
 			start_sector++;
 
-			std::shared_ptr<Storage::Encodings::MFM::Sector> next_sector = parser.get_sector(0, track, sector);
+			Storage::Encodings::MFM::Sector *next_sector = parser.get_sector(0, track, sector);
 			if(!next_sector) break;
 
 			long length_from_sector = std::min(data_length, 256l);
@@ -77,13 +77,13 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 	std::unique_ptr<Catalogue> catalogue(new Catalogue);
 	Storage::Encodings::MFM::Parser parser(true, disk);
 
-	std::shared_ptr<Storage::Encodings::MFM::Sector> free_space_map_second_half = parser.get_sector(0, 0, 1);
+	Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.get_sector(0, 0, 1);
 	if(!free_space_map_second_half) return nullptr;
 
 	std::vector<uint8_t> root_directory;
 	root_directory.reserve(5 * 256);
 	for(uint8_t c = 2; c < 7; c++) {
-		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, 0, c);
+		Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->data.begin(), sector->data.end());
 	}

@@ -31,6 +31,12 @@ class Track {
 			bool operator < (const Address &rhs) const {
 				return (head < rhs.head) || (position < rhs.position);
 			}
+//			Address(const Address &rhs) noexcept : head(rhs.head), position(rhs.position) {}
+//			const Address &operator =(const Address &rhs) {
+//				head = rhs.head;
+//				position = rhs.position;
+//				return *this;
+//			}
 		};
 
 		/*!

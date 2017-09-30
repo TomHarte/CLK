@@ -80,10 +80,10 @@ std::shared_ptr<Track> SSD::get_track_at_position(unsigned int head, unsigned in
 }
 
 void SSD::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	std::vector<uint8_t> data;
+/*	std::vector<uint8_t> data;
 	Storage::Encodings::MFM::Parser parser(false, track);
 	for(unsigned int c = 0; c < 10; c++) {
-		std::shared_ptr<Storage::Encodings::MFM::Sector> sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
+		Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, (uint8_t)position, (uint8_t)c);
 		if(sector) {
 			data.insert(data.end(), sector->data.begin(), sector->data.end());
 		} else {
@@ -98,5 +98,5 @@ void SSD::set_track_at_position(unsigned int head, unsigned int position, const 
 	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 	ensure_file_is_at_least_length(file_offset);
 	fseek(file_, file_offset, SEEK_SET);
-	fwrite(data.data(), 1, data.size(), file_);
+	fwrite(data.data(), 1, data.size(), file_);*/
 }

@@ -10,49 +10,34 @@
 #define Parser_hpp
 
 #include "Sector.hpp"
-#include "../../Controller/DiskController.hpp"
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../Track/Track.hpp"
+#include "../../Drive.hpp"
 
 namespace Storage {
 namespace Encodings {
 namespace MFM {
 
-class Parser: public Storage::Disk::Controller {
+/*!
+	Provides a mechanism for collecting sectors from a disk.
+*/
+class Parser {
 	public:
 		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk);
-		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Track> &track);
 
 		/*!
-			Attempts to read the sector located at @c track and @c sector.
+			Seeks to the physical track at @c head and @c track. Searches on it for a sector
+			with logical address @c sector.
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t head, uint8_t track, uint8_t sector);
+		Storage::Encodings::MFM::Sector *get_sector(int head, int track, uint8_t sector);
 
 	private:
-		Parser(bool is_mfm);
+		std::shared_ptr<Storage::Disk::Disk> disk_;
+		bool is_mfm_ = true;
 
-		std::shared_ptr<Storage::Disk::Drive> drive_;
-		unsigned int shift_register_;
-		int index_count_;
-		uint8_t track_, head_;
-		int bit_count_;
-		NumberTheory::CRC16 crc_generator_;
-		bool is_mfm_;
-
-		void seek_to_track(uint8_t track);
-		void process_input_bit(int value);
-		void process_index_hole();
-		uint8_t get_next_byte();
-
-		uint8_t get_byte_for_shift_value(uint16_t value);
-
-		std::shared_ptr<Storage::Encodings::MFM::Sector> get_next_sector();
-		std::shared_ptr<Storage::Encodings::MFM::Sector> get_sector(uint8_t sector);
-
-		std::map<int, std::shared_ptr<Storage::Encodings::MFM::Sector>> sectors_by_index_;
-		std::set<int> decoded_tracks_;
-		int get_index(uint8_t head, uint8_t track, uint8_t sector);
+		void install_sectors_from_track(const Storage::Disk::Track::Address &address);
+		std::map<Storage::Disk::Track::Address, std::map<int, Storage::Encodings::MFM::Sector>> sectors_by_address_by_track_;
 };
 
 }
