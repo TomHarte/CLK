@@ -458,6 +458,7 @@
 		4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */; };
 		4BFCA1291ECBE7A700AC40C1 /* zexall.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCA1281ECBE7A700AC40C1 /* zexall.com */; };
 		4BFCA12B1ECBE7C400AC40C1 /* ZexallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */; };
+		4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1119,6 +1120,8 @@
 		4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachineZ80.mm; sourceTree = "<group>"; };
 		4BFCA1281ECBE7A700AC40C1 /* zexall.com */ = {isa = PBXFileReference; lastKnownFileType = file; name = zexall.com; path = Zexall/zexall.com; sourceTree = "<group>"; };
 		4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZexallTests.swift; sourceTree = "<group>"; };
+		4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ImplicitSectors.hpp; sourceTree = "<group>"; };
+		4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImplicitSectors.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1469,6 +1472,7 @@
 		4B45188C1F75FD1B00926311 /* Formats */ = {
 			isa = PBXGroup;
 			children = (
+				4BFDD7891F7F2DB4008579B9 /* Utility */,
 				4B45188D1F75FD1B00926311 /* AcornADF.cpp */,
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
 				4B45188F1F75FD1B00926311 /* CPCDSK.cpp */,
@@ -2456,6 +2460,15 @@
 			path = ../../ClockReceiver;
 			sourceTree = "<group>";
 		};
+		4BFDD7891F7F2DB4008579B9 /* Utility */ = {
+			isa = PBXGroup;
+			children = (
+				4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */,
+				4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */,
+			);
+			path = Utility;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -2990,6 +3003,7 @@
 				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
 				4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */,
+				4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */,
 				4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */,
 				4B5073071DDD3B9400C48FBD /* ArrayBuilder.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,

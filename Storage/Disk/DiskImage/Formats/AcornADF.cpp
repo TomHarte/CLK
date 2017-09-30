@@ -8,11 +8,7 @@
 
 #include "AcornADF.hpp"
 
-#include <sys/stat.h>
-#include "../../Encodings/MFM/Constants.hpp"
-#include "../../Encodings/MFM/Encoder.hpp"
-#include "../../Track/TrackSerialiser.hpp"
-#include "../../Encodings/MFM/SegmentParser.hpp"
+#include "Utility/ImplicitSectors.hpp"
 
 namespace {
 	static const unsigned int sectors_per_track = 16;
@@ -57,54 +53,28 @@ long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int posi
 }
 
 std::shared_ptr<Track> AcornADF::get_track_at_position(unsigned int head, unsigned int position) {
-	std::shared_ptr<Track> track;
+	uint8_t sectors[bytes_per_sector*sectors_per_track];
 
-	if(head >= 2) return track;
+	if(head > 1) return nullptr;
 	long file_offset = get_file_offset_for_position(head, position);
 
-	std::vector<Storage::Encodings::MFM::Sector> sectors;
 	{
 		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 		fseek(file_, file_offset, SEEK_SET);
-
-		for(unsigned int sector = 0; sector < sectors_per_track; sector++) {
-			Storage::Encodings::MFM::Sector new_sector;
-			new_sector.address.track = (uint8_t)position;
-			new_sector.address.side = (uint8_t)head;
-			new_sector.address.sector = (uint8_t)sector;
-			new_sector.size = sector_size;
-
-			new_sector.data.resize(bytes_per_sector);
-			fread(&new_sector.data[0], 1, bytes_per_sector, file_);
-			if(feof(file_))
-				break;
-
-			sectors.push_back(std::move(new_sector));
-		}
+		fread(sectors, 1, sizeof(sectors), file_);
 	}
 
-	if(sectors.size()) return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors);
-
-	return track;
+	return track_for_sectors(sectors, (uint8_t)position, (uint8_t)head, 0, sector_size, true);
 }
 
 void AcornADF::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
-		Storage::Encodings::MFM::sectors_from_segment(
-			Storage::Disk::track_serialisation(*track, Storage::Encodings::MFM::MFMBitLength),
-			true);
-
-	std::vector<uint8_t> parsed_track(sectors_per_track*bytes_per_sector, 0);
-	for(auto &pair : sectors) {
-		if(pair.second.address.sector >= sectors_per_track) continue;
-		if(pair.second.size != sector_size) continue;
-		memcpy(&parsed_track[pair.second.address.sector * bytes_per_sector], pair.second.data.data(), std::min(pair.second.data.size(), bytes_per_sector));
-	}
+	uint8_t parsed_track[bytes_per_sector*sectors_per_track];
+	decode_sectors(*track, parsed_track, 0, sectors_per_track-1, sector_size, true);
 
 	long file_offset = get_file_offset_for_position(head, position);
 
 	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 	ensure_file_is_at_least_length(file_offset);
 	fseek(file_, file_offset, SEEK_SET);
-	fwrite(parsed_track.data(), 1, parsed_track.size(), file_);
+	fwrite(parsed_track, 1, sizeof(parsed_track), file_);
 }
