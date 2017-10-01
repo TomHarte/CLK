@@ -84,6 +84,7 @@
 		4B50730A1DDFCFDF00C48FBD /* ArrayBuilderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */; };
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
+		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B5A12571DD55862007A2231 /* Disassembler6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5A12551DD55862007A2231 /* Disassembler6502.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
@@ -631,6 +632,8 @@
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
 		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
+		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
+		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
 		4B59199B1DAC6C46005BB85C /* OricTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricTAP.hpp; sourceTree = "<group>"; };
 		4B5A12551DD55862007A2231 /* Disassembler6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disassembler6502.cpp; path = ../../StaticAnalyser/Disassembler/Disassembler6502.cpp; sourceTree = "<group>"; };
@@ -1472,7 +1475,6 @@
 		4B45188C1F75FD1B00926311 /* Formats */ = {
 			isa = PBXGroup;
 			children = (
-				4BFDD7891F7F2DB4008579B9 /* Utility */,
 				4B45188D1F75FD1B00926311 /* AcornADF.cpp */,
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
 				4B45188F1F75FD1B00926311 /* CPCDSK.cpp */,
@@ -1483,10 +1485,13 @@
 				4B4518941F75FD1B00926311 /* G64.hpp */,
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
+				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
+				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */,
 				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
+				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -2463,8 +2468,8 @@
 		4BFDD7891F7F2DB4008579B9 /* Utility */ = {
 			isa = PBXGroup;
 			children = (
-				4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */,
 				4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */,
+				4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */,
 			);
 			path = Utility;
 			sourceTree = "<group>";
@@ -2898,6 +2903,7 @@
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
+				4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */,
 				4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */,
 				4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */,
 				4BBF99151C8FBA6F0075DAFB /* CRTOpenGL.cpp in Sources */,
