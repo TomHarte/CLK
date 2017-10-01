@@ -95,9 +95,16 @@ class MachineDocument:
 	}
 
 	override func close() {
-		bestEffortUpdater.flush()
+		optionsPanel?.setIsVisible(false)
+		optionsPanel = nil
+
+		openGLView.delegate = nil
+		bestEffortUpdater.delegate = nil
+		bestEffortUpdater = nil
+
 		actionLock.lock()
 		drawLock.lock()
+		machine = nil
 		openGLView.invalidate()
 		openGLView.openGLContext!.makeCurrentContext()
 		actionLock.unlock()

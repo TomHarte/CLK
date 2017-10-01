@@ -20,6 +20,7 @@
 	NSTimeInterval _previousTimeInterval;
 	NSTimeInterval _cyclesError;
 	BOOL _hasSkipped;
+	id<CSBestEffortUpdaterDelegate> _delegate;
 }
 
 - (instancetype)init
@@ -35,15 +36,12 @@
 	return self;
 }
 
-- (void)update
-{
+- (void)update {
 	// Always post an -openGLView:didUpdateToTime: if a previous one isn't still ongoing. This is the hook upon which the substantial processing occurs.
-	if(!atomic_flag_test_and_set(&_updateIsOngoing))
-	{
+	if(!atomic_flag_test_and_set(&_updateIsOngoing)) {
 		dispatch_async(_serialDispatchQueue, ^{
 			NSTimeInterval timeInterval = [NSDate timeIntervalSinceReferenceDate];
-			if(_previousTimeInterval > DBL_EPSILON && timeInterval > _previousTimeInterval)
-			{
+			if(_previousTimeInterval > DBL_EPSILON && timeInterval > _previousTimeInterval) {
 				NSTimeInterval timeToRunFor = timeInterval - _previousTimeInterval;
 				double cyclesToRunFor = timeToRunFor * self.clockRate + _cyclesError;
 
@@ -58,18 +56,29 @@
 			_hasSkipped = NO;
 			atomic_flag_clear(&_updateIsOngoing);
 		});
-	}
-	else
-	{
+	} else {
 		dispatch_async(_serialDispatchQueue, ^{
 			_hasSkipped = YES;
 		});
 	}
 }
 
-- (void)flush
-{
+- (void)flush {
 	dispatch_sync(_serialDispatchQueue, ^{});
+}
+
+- (void)setDelegate:(id<CSBestEffortUpdaterDelegate>)delegate {
+	dispatch_sync(_serialDispatchQueue, ^{
+		_delegate = delegate;
+	});
+}
+
+- (id<CSBestEffortUpdaterDelegate>)delegate {
+	__block id<CSBestEffortUpdaterDelegate> delegate;
+	dispatch_sync(_serialDispatchQueue, ^{
+		delegate = _delegate;
+	});
+	return delegate;
 }
 
 @end
