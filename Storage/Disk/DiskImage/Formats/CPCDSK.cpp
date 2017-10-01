@@ -8,7 +8,7 @@
 
 #include "CPCDSK.hpp"
 
-#include "../../Encodings/MFM.hpp"
+#include "../../Encodings/MFM/Encoder.hpp"
 
 using namespace Storage::Disk;
 
@@ -114,9 +114,9 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(unsigned int head, unsigned
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 	for(auto &sector_info : sector_infos) {
 		Storage::Encodings::MFM::Sector new_sector;
-		new_sector.track = sector_info.track;
-		new_sector.side = sector_info.side;
-		new_sector.sector = sector_info.sector;
+		new_sector.address.track = sector_info.track;
+		new_sector.address.side = sector_info.side;
+		new_sector.address.sector = sector_info.sector;
 		new_sector.size = sector_info.length;
 
 		size_t data_size;

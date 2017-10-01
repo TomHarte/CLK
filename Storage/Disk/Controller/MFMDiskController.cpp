@@ -8,7 +8,7 @@
 
 #include "MFMDiskController.hpp"
 
-#include "../Encodings/MFM.hpp"
+#include "../Encodings/MFM/Constants.hpp"
 
 using namespace Storage::Disk;
 
@@ -16,7 +16,7 @@ MFMController::MFMController(Cycles clock_rate) :
 	Storage::Disk::Controller(clock_rate),
 	crc_generator_(0x1021, 0xffff),
 	data_mode_(DataMode::Scanning),
-	is_awaiting_marker_value_(false) {
+	shifter_(&crc_generator_) {
 }
 
 void MFMController::process_index_hole() {
@@ -34,7 +34,7 @@ void MFMController::set_is_double_density(bool is_double_density) {
 	bit_length.clock_rate = is_double_density ? 500000 : 250000;
 	set_expected_bit_length(bit_length);
 
-	if(!is_double_density) is_awaiting_marker_value_ = false;
+	shifter_.set_is_double_density(is_double_density);
 }
 
 bool MFMController::get_is_double_density() {
@@ -43,6 +43,7 @@ bool MFMController::get_is_double_density() {
 
 void MFMController::set_data_mode(DataMode mode) {
 	data_mode_ = mode;
+	shifter_.set_should_obey_syncs(mode == DataMode::Scanning);
 }
 
 MFMController::Token MFMController::get_latest_token() {
@@ -56,102 +57,32 @@ NumberTheory::CRC16 &MFMController::get_crc_generator() {
 void MFMController::process_input_bit(int value) {
 	if(data_mode_ == DataMode::Writing) return;
 
-	shift_register_ = (shift_register_ << 1) | value;
-	bits_since_token_++;
-
-	if(data_mode_ == DataMode::Scanning) {
-		Token::Type token_type = Token::Byte;
-		if(!is_double_density_) {
-			switch(shift_register_ & 0xffff) {
-				case Storage::Encodings::MFM::FMIndexAddressMark:
-					token_type = Token::Index;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IndexAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMIDAddressMark:
-					token_type = Token::ID;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::IDAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMDataAddressMark:
-					token_type = Token::Data;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DataAddressByte);
-				break;
-				case Storage::Encodings::MFM::FMDeletedDataAddressMark:
-					token_type = Token::DeletedData;
-					crc_generator_.reset();
-					crc_generator_.add(latest_token_.byte_value = Storage::Encodings::MFM::DeletedDataAddressByte);
-				break;
-				default:
-				break;
-			}
-		} else {
-			switch(shift_register_ & 0xffff) {
-				case Storage::Encodings::MFM::MFMIndexSync:
-					bits_since_token_ = 0;
-					is_awaiting_marker_value_ = true;
-
-					token_type = Token::Sync;
-					latest_token_.byte_value = Storage::Encodings::MFM::MFMIndexSyncByteValue;
-				break;
-				case Storage::Encodings::MFM::MFMSync:
-					bits_since_token_ = 0;
-					is_awaiting_marker_value_ = true;
-					crc_generator_.set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-
-					token_type = Token::Sync;
-					latest_token_.byte_value = Storage::Encodings::MFM::MFMSyncByteValue;
-				break;
-				default:
-				break;
-			}
-		}
-
-		if(token_type != Token::Byte) {
-			latest_token_.type = token_type;
-			bits_since_token_ = 0;
-			posit_event((int)Event::Token);
-			return;
-		}
-	}
-
-	if(bits_since_token_ == 16) {
-		latest_token_.type = Token::Byte;
-		latest_token_.byte_value = (uint8_t)(
-			((shift_register_ & 0x0001) >> 0) |
-			((shift_register_ & 0x0004) >> 1) |
-			((shift_register_ & 0x0010) >> 2) |
-			((shift_register_ & 0x0040) >> 3) |
-			((shift_register_ & 0x0100) >> 4) |
-			((shift_register_ & 0x0400) >> 5) |
-			((shift_register_ & 0x1000) >> 6) |
-			((shift_register_ & 0x4000) >> 7));
-		bits_since_token_ = 0;
-
-		if(is_awaiting_marker_value_ && is_double_density_) {
-			is_awaiting_marker_value_ = false;
-			switch(latest_token_.byte_value) {
-				case Storage::Encodings::MFM::IndexAddressByte:
-					latest_token_.type = Token::Index;
-				break;
-				case Storage::Encodings::MFM::IDAddressByte:
-					latest_token_.type = Token::ID;
-				break;
-				case Storage::Encodings::MFM::DataAddressByte:
-					latest_token_.type = Token::Data;
-				break;
-				case Storage::Encodings::MFM::DeletedDataAddressByte:
-					latest_token_.type = Token::DeletedData;
-				break;
-				default: break;
-			}
-		}
-
-		crc_generator_.add(latest_token_.byte_value);
-		posit_event((int)Event::Token);
+	shifter_.add_input_bit(value);
+	switch(shifter_.get_token()) {
+		case Encodings::MFM::Shifter::Token::None:
 		return;
+
+		case Encodings::MFM::Shifter::Token::Index:
+			latest_token_.type = Token::Index;
+		break;
+		case Encodings::MFM::Shifter::Token::ID:
+			latest_token_.type = Token::ID;
+		break;
+		case Encodings::MFM::Shifter::Token::Data:
+			latest_token_.type = Token::Data;
+		break;
+		case Encodings::MFM::Shifter::Token::DeletedData:
+			latest_token_.type = Token::DeletedData;
+		break;
+		case Encodings::MFM::Shifter::Token::Sync:
+			latest_token_.type = Token::Sync;
+		break;
+		case Encodings::MFM::Shifter::Token::Byte:
+			latest_token_.type = Token::Byte;
+		break;
 	}
+	latest_token_.byte_value = shifter_.get_byte();
+	posit_event((int)Event::Token);
 }
 
 void MFMController::write_bit(int bit) {

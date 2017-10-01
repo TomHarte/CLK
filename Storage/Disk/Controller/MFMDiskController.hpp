@@ -12,6 +12,7 @@
 #include "DiskController.hpp"
 #include "../../../NumberTheory/CRC.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../Encodings/MFM/Shifter.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -150,17 +151,13 @@ class MFMController: public Controller {
 		virtual void process_index_hole();
 		virtual void process_write_completed();
 
-		// PLL input state
-		int bits_since_token_;
-		int shift_register_;
-		bool is_awaiting_marker_value_;
+		// Reading state.
+		Token latest_token_;
+		Encodings::MFM::Shifter shifter_;
 
 		// input configuration
 		bool is_double_density_;
 		DataMode data_mode_;
-
-		// output
-		Token latest_token_;
 
 		// writing
 		int last_bit_;

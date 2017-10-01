@@ -7,7 +7,7 @@
 //
 
 #include "1770.hpp"
-#include "../../Storage/Disk/Encodings/MFM.hpp"
+#include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
 
 using namespace WD;
 
