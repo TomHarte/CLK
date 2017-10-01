@@ -38,7 +38,7 @@ class MachineDocument:
 	}
 
 	fileprivate var audioQueue: CSAudioQueue! = nil
-	fileprivate var bestEffortUpdater: CSBestEffortUpdater!
+	fileprivate var bestEffortUpdater: CSBestEffortUpdater?
 
 	override var windowNibName: NSNib.Name? {
 		return NSNib.Name(rawValue: "MachineDocument")
@@ -69,7 +69,7 @@ class MachineDocument:
 		self.openGLView.window!.makeKeyAndOrderFront(self)
 
 		// start accepting best effort updates
-		self.bestEffortUpdater.delegate = self
+		self.bestEffortUpdater!.delegate = self
 	}
 
 	func machineDidChangeClockRate(_ machine: CSMachine!) {
@@ -77,7 +77,7 @@ class MachineDocument:
 	}
 
 	func machineDidChangeClockIsUnlimited(_ machine: CSMachine!) {
-		self.bestEffortUpdater.runAsUnlimited = machine.clockIsUnlimited
+		self.bestEffortUpdater?.runAsUnlimited = machine.clockIsUnlimited
 	}
 
 	fileprivate func setupClockRate() {
@@ -91,7 +91,7 @@ class MachineDocument:
 			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
 		}
 
-		self.bestEffortUpdater.clockRate = self.machine.clockRate
+		self.bestEffortUpdater?.clockRate = self.machine.clockRate
 	}
 
 	override func close() {
@@ -99,7 +99,7 @@ class MachineDocument:
 		optionsPanel = nil
 
 		openGLView.delegate = nil
-		bestEffortUpdater.delegate = nil
+		bestEffortUpdater!.delegate = nil
 		bestEffortUpdater = nil
 
 		actionLock.lock()
@@ -150,24 +150,28 @@ class MachineDocument:
 	}
 
 	func runForNumberOfCycles(_ numberOfCycles: Int32) {
-		let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
-		if actionLock.try() {
-			self.machine.runForNumber(ofCycles: cyclesToRunFor)
-			actionLock.unlock()
+		if let bestEffortUpdater = bestEffortUpdater {
+			let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
+			if actionLock.try() {
+				self.machine.runForNumber(ofCycles: cyclesToRunFor)
+				actionLock.unlock()
+			}
 		}
 	}
 
 	// MARK: CSAudioQueueDelegate
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
-		bestEffortUpdater.update()
+		bestEffortUpdater?.update()
 	}
 
 	// MARK: CSOpenGLViewDelegate
 	final func openGLView(_ view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
-		bestEffortUpdater.update()
-		if drawLock.try() {
-			self.machine.drawView(forPixelSize: view.backingSize, onlyIfDirty: onlyIfDirty)
-			drawLock.unlock()
+		if let bestEffortUpdater = bestEffortUpdater {
+			bestEffortUpdater.update()
+			if drawLock.try() {
+				self.machine.drawView(forPixelSize: view.backingSize, onlyIfDirty: onlyIfDirty)
+				drawLock.unlock()
+			}
 		}
 	}
 
