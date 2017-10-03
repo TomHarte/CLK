@@ -45,11 +45,6 @@ unsigned int CPCDSK::get_head_count() {
 	return head_count_;
 }
 
-bool CPCDSK::get_is_read_only() {
-	// TODO: allow writing.
-	return false;
-}
-
 std::shared_ptr<Track> CPCDSK::get_track_at_position(unsigned int head, unsigned int position) {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
 	unsigned int chronological_track = (position * head_count_) + head;

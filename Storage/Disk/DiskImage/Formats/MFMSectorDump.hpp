@@ -23,7 +23,7 @@ class MFMSectorDump: public DiskImage, public Storage::FileHolder {
 		MFMSectorDump(const char *file_name);
 		void set_geometry(int sectors_per_track, uint8_t sector_size, bool is_double_density);
 
-		bool get_is_read_only();
+		using Storage::FileHolder::get_is_read_only;
 		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 

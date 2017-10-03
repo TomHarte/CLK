@@ -37,7 +37,7 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
-		bool get_is_read_only();
+		using DiskImage::get_is_read_only;
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:

@@ -20,10 +20,6 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, boo
 	is_double_density_ = is_double_density;
 }
 
-bool MFMSectorDump::get_is_read_only() {
-	return is_read_only_;
-}
-
 std::shared_ptr<Track> MFMSectorDump::get_track_at_position(unsigned int head, unsigned int position) {
 	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
 

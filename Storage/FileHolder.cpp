@@ -77,6 +77,10 @@ uint16_t FileHolder::fgetc16be() {
 	return result;
 }
 
+bool FileHolder::get_is_read_only() {
+	return is_read_only_;
+}
+
 void FileHolder::ensure_file_is_at_least_length(long length) {
 	fseek(file_, 0, SEEK_END);
 	long bytes_to_write = length - ftell(file_);
