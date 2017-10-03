@@ -9,6 +9,7 @@
 #include "HFE.hpp"
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../../Data/BitReverse.hpp"
 
 using namespace Storage::Disk;
 
@@ -61,21 +62,7 @@ std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned in
 
 	// Flip bytes; HFE's preference is that the least-significant bit
 	// is serialised first, but PCMTrack posts the most-significant first.
-	for(size_t i = 0; i < segment.data.size(); i++) {
-		uint8_t original = segment.data[i];
-		uint8_t flipped_byte =
-			(uint8_t)(
-				((original & 0x01) << 7) |
-				((original & 0x02) << 5) |
-				((original & 0x04) << 3) |
-				((original & 0x08) << 1) |
-				((original & 0x10) >> 1) |
-				((original & 0x20) >> 3) |
-				((original & 0x40) >> 5) |
-				((original & 0x80) >> 7)
-			);
-		segment.data[i] = flipped_byte;
-	}
+	Storage::Data::BitReverse::reverse(segment.data);
 
 	std::shared_ptr<Track> track(new PCMTrack(segment));
 	return track;
