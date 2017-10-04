@@ -36,7 +36,14 @@ unsigned int HFE::get_head_count() {
 	return head_count_;
 }
 
-std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned int position) {
+/*!
+	Seeks to the beginning of the track at @c position underneath @c head,
+	returning its length in bytes.
+
+	To read the track, start from the current file position, read 256 bytes,
+	skip 256 bytes, read 256 bytes, skip 256 bytes, etc.
+*/
+uint16_t HFE::seek_track(unsigned int head, unsigned int position) {
 	// Get track position and length from the lookup table; data is then always interleaved
 	// based on an assumption of two heads.
 	fseek(file_, track_list_offset_ + position * 4, SEEK_SET);
@@ -47,8 +54,14 @@ std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned in
 	fseek(file_, track_offset, SEEK_SET);
 	if(head) fseek(file_, 256, SEEK_CUR);
 
+	return track_length / 2;
+}
+
+std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned int position) {
+	uint16_t track_length = seek_track(head, position);
+
 	PCMSegment segment;
-	uint16_t side_length = track_length / 2;
+	uint16_t side_length = track_length;
 	segment.data.resize(side_length);
 	segment.number_of_bits = side_length * 8;
 
@@ -68,3 +81,5 @@ std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned in
 	return track;
 }
 
+void HFE::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
+}

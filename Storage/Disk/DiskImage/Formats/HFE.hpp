@@ -37,9 +37,11 @@ class HFE: public DiskImage, public Storage::FileHolder {
 		unsigned int get_head_position_count();
 		unsigned int get_head_count();
 		using Storage::FileHolder::get_is_read_only;
+		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
 		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
 
 	private:
+		uint16_t seek_track(unsigned int head, unsigned int position);
 
 		unsigned int head_count_;
 		unsigned int track_count_;
