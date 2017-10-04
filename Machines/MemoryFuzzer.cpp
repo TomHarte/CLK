@@ -19,7 +19,7 @@ void Memory::Fuzz(uint8_t *buffer, size_t size) {
 	}
 
 	for(size_t c = 0; c < size; c++) {
-		buffer[c] = (uint8_t)(std::rand() >> shift);
+		buffer[c] = static_cast<uint8_t>(std::rand() >> shift);
 	}
 }
 

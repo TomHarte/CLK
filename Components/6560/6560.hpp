@@ -218,7 +218,7 @@ template <class T> class MOS6560 {
 					if(column_counter_&1) {
 						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					} else {
-						fetch_address = (uint16_t)(registers_.video_matrix_start_address + video_matrix_address_counter_);
+						fetch_address = static_cast<uint16_t>(registers_.video_matrix_start_address + video_matrix_address_counter_);
 						video_matrix_address_counter_++;
 						if(
 							(current_character_row_ == 15) ||
@@ -345,7 +345,7 @@ template <class T> class MOS6560 {
 
 				case 0x2:
 					registers_.number_of_columns = value & 0x7f;
-					registers_.video_matrix_start_address = (uint16_t)((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 				break;
 
 				case 0x3:
@@ -354,8 +354,8 @@ template <class T> class MOS6560 {
 				break;
 
 				case 0x5:
-					registers_.character_cell_start_address = (uint16_t)((value & 0x0f) << 10);
-					registers_.video_matrix_start_address = (uint16_t)((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+					registers_.character_cell_start_address = static_cast<uint16_t>((value & 0x0f) << 10);
+					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 				break;
 
 				case 0xa:
@@ -399,7 +399,7 @@ template <class T> class MOS6560 {
 			int current_line = (full_frame_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
 			switch(address) {
 				default: return registers_.direct_values[address];
-				case 0x03: return (uint8_t)(current_line << 7) | (registers_.direct_values[3] & 0x7f);
+				case 0x03: return static_cast<uint8_t>(current_line << 7) | (registers_.direct_values[3] & 0x7f);
 				case 0x04: return (current_line >> 1) & 0xff;
 			}
 		}

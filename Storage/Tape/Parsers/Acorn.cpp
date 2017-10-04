@@ -37,7 +37,7 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 		set_error_flag();
 		return -1;
 	}
-	crc_.add((uint8_t)value);
+	crc_.add(static_cast<uint8_t>(value));
 	return value;
 }
 

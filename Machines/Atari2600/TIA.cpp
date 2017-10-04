@@ -37,7 +37,7 @@ TIA::TIA(bool create_crt) :
 	}
 
 	for(int c = 0; c < 256; c++) {
-		reverse_table[c] = (uint8_t)(
+		reverse_table[c] = static_cast<uint8_t>(
 			((c & 0x01) << 7) | ((c & 0x02) << 5) | ((c & 0x04) << 3) | ((c & 0x08) << 1) |
 			((c & 0x10) >> 1) | ((c & 0x20) >> 3) | ((c & 0x40) >> 5) | ((c & 0x80) >> 7)
 		);
@@ -74,17 +74,17 @@ TIA::TIA(bool create_crt) :
 		colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
 		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
 		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-		colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::Background;
+		colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::Background);
 
 		// test 1 for standard priority: if there is a playfield or ball pixel, plot that colour
 		if(has_playfield || has_ball) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] = (uint8_t)ColourIndex::PlayfieldBall;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 
 		// test 1 for score mode: if there is a ball pixel, plot that colour
 		if(has_ball) {
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = (uint8_t)ColourIndex::PlayfieldBall;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 
 		// test 1 for on-top mode, test 2 for everbody else: if there is a player 1 or missile 1 pixel, plot that colour
@@ -92,12 +92,12 @@ TIA::TIA(bool create_crt) :
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayerMissile1;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
 		}
 
 		// in the right-hand side of score mode, the playfield has the same priority as player 1
 		if(has_playfield) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = (uint8_t)ColourIndex::PlayerMissile1;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
 		}
 
 		// next test for everybody: if there is a player 0 or missile 0 pixel, plot that colour instead
@@ -105,17 +105,17 @@ TIA::TIA(bool create_crt) :
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
 			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayerMissile0;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
 		}
 
 		// if this is the left-hand side of score mode, the playfield has the same priority as player 0
 		if(has_playfield) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] = (uint8_t)ColourIndex::PlayerMissile0;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
 		}
 
 		// a final test for 'on top' priority mode: if the playfield or ball are visible, prefer that colour to all others
 		if(has_playfield || has_ball) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = (uint8_t)ColourIndex::PlayfieldBall;
+			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 	}
 }
@@ -210,16 +210,16 @@ void TIA::set_playfield(uint16_t offset, uint8_t value) {
 	assert(offset >= 0 && offset < 3);
 	switch(offset) {
 		case 0:
-			background_[1] = (background_[1] & 0x0ffff) | ((uint32_t)reverse_table[value & 0xf0] << 16);
-			background_[0] = (background_[0] & 0xffff0) | (uint32_t)(value >> 4);
+			background_[1] = (background_[1] & 0x0ffff) | (static_cast<uint32_t>(reverse_table[value & 0xf0]) << 16);
+			background_[0] = (background_[0] & 0xffff0) | static_cast<uint32_t>(value >> 4);
 		break;
 		case 1:
-			background_[1] = (background_[1] & 0xf00ff) | ((uint32_t)value << 8);
-			background_[0] = (background_[0] & 0xff00f) | ((uint32_t)reverse_table[value] << 4);
+			background_[1] = (background_[1] & 0xf00ff) | (static_cast<uint32_t>(value) << 8);
+			background_[0] = (background_[0] & 0xff00f) | (static_cast<uint32_t>(reverse_table[value]) << 4);
 		break;
 		case 2:
 			background_[1] = (background_[1] & 0xfff00) | reverse_table[value];
-			background_[0] = (background_[0] & 0x00fff) | ((uint32_t)value << 12);
+			background_[0] = (background_[0] & 0x00fff) | (static_cast<uint32_t>(value) << 12);
 		break;
 	}
 }
@@ -360,7 +360,7 @@ void TIA::clear_motion() {
 }
 
 uint8_t TIA::get_collision_flags(int offset) {
-	return (uint8_t)((collision_flags_ >> (offset << 1)) << 6) & 0xc0;
+	return static_cast<uint8_t>((collision_flags_ >> (offset << 1)) << 6) & 0xc0;
 }
 
 void TIA::clear_collision_flags() {
@@ -401,11 +401,11 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	int latent_start = output_cursor + 4;
 	int latent_end = horizontal_counter_ + 4;
 	draw_playfield(latent_start, latent_end);
-	draw_object<Player>(player_[0], (uint8_t)CollisionType::Player0, output_cursor, horizontal_counter_);
-	draw_object<Player>(player_[1], (uint8_t)CollisionType::Player1, output_cursor, horizontal_counter_);
-	draw_missile(missile_[0], player_[0], (uint8_t)CollisionType::Missile0, output_cursor, horizontal_counter_);
-	draw_missile(missile_[1], player_[1], (uint8_t)CollisionType::Missile1, output_cursor, horizontal_counter_);
-	draw_object<Ball>(ball_, (uint8_t)CollisionType::Ball, output_cursor, horizontal_counter_);
+	draw_object<Player>(player_[0], static_cast<uint8_t>(CollisionType::Player0), output_cursor, horizontal_counter_);
+	draw_object<Player>(player_[1], static_cast<uint8_t>(CollisionType::Player1), output_cursor, horizontal_counter_);
+	draw_missile(missile_[0], player_[0], static_cast<uint8_t>(CollisionType::Missile0), output_cursor, horizontal_counter_);
+	draw_missile(missile_[1], player_[1], static_cast<uint8_t>(CollisionType::Missile1), output_cursor, horizontal_counter_);
+	draw_object<Ball>(ball_, static_cast<uint8_t>(CollisionType::Ball), output_cursor, horizontal_counter_);
 
 	// convert to television signals
 

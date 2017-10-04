@@ -125,7 +125,7 @@ std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shar
 	while(!is_at_end(tape)) {
 		byte = get_next_byte(tape);
 		if(byte == -1) return result;
-		result->push_back((uint8_t)byte);
+		result->push_back(static_cast<uint8_t>(byte));
 	}
 	return result;
 }

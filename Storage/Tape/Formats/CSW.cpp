@@ -25,8 +25,8 @@ CSW::CSW(const char *file_name) :
 	if(fgetc(file_) != 0x1a) throw ErrorNotCSW;
 
 	// Get version file number.
-	uint8_t major_version = (uint8_t)fgetc(file_);
-	uint8_t minor_version = (uint8_t)fgetc(file_);
+	uint8_t major_version = static_cast<uint8_t>(fgetc(file_));
+	uint8_t minor_version = static_cast<uint8_t>(fgetc(file_));
 
 	// Reject if this is an unknown version.
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
@@ -52,7 +52,7 @@ CSW::CSW(const char *file_name) :
 		}
 
 		pulse_.type = (fgetc(file_) & 1) ? Pulse::High : Pulse::Low;
-		uint8_t extension_length = (uint8_t)fgetc(file_);
+		uint8_t extension_length = static_cast<uint8_t>(fgetc(file_));
 
 		if(file_stats_.st_size < 0x34 + extension_length) throw ErrorNotCSW;
 		fseek(file_, 0x34 + extension_length, SEEK_SET);
@@ -84,7 +84,7 @@ CSW::CSW(const char *file_name) :
 
 uint8_t CSW::get_next_byte() {
 	switch(compression_type_) {
-		case RLE: return (uint8_t)fgetc(file_);
+		case RLE: return static_cast<uint8_t>(fgetc(file_));
 		case ZRLE: {
 			if(source_data_pointer_ == source_data_.size()) return 0xff;
 			uint8_t result = source_data_[source_data_pointer_];

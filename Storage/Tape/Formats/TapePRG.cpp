@@ -172,7 +172,7 @@ void PRG::get_next_output_token()
 		// the first nine bytes are countdown; the high bit is set if this is a header
 		if(byte_offset < countdown_bytes)
 		{
-			output_byte_ = (uint8_t)(countdown_bytes - byte_offset) | copy_mask_;
+			output_byte_ = static_cast<uint8_t>(countdown_bytes - byte_offset) | copy_mask_;
 		}
 		else
 		{
@@ -207,7 +207,7 @@ void PRG::get_next_output_token()
 			}
 			else
 			{
-				output_byte_ = (uint8_t)fgetc(file_);
+				output_byte_ = static_cast<uint8_t>(fgetc(file_));
 				if(feof(file_))
 				{
 					output_byte_ = check_digit_;

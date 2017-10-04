@@ -83,7 +83,7 @@ Typer::~Typer() {
 #pragma mark - Character mapper
 
 uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character) {
-	size_t ucharacter = (size_t)((unsigned char)character);
+	size_t ucharacter = static_cast<size_t>((unsigned char)character);
 	if(ucharacter > (length / sizeof(KeySequence))) return nullptr;
 	if(sequences[ucharacter][0] == NotMapped) return nullptr;
 	return sequences[ucharacter];

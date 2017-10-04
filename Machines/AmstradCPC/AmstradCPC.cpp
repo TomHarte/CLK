@@ -224,7 +224,7 @@ class CRTCBusHandler {
 					//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
 					// ... so form the real access address.
 					uint16_t address =
-						(uint16_t)(
+						static_cast<uint16_t>(
 							((state.refresh_address & 0x3ff) << 1) |
 							((state.row_address & 0x7) << 11) |
 							((state.refresh_address & 0x3000) << 2)
@@ -374,16 +374,16 @@ class CRTCBusHandler {
 
 		void establish_palette_hits() {
 			for(int c = 0; c < 256; c++) {
-				mode0_palette_hits_[Mode0Colour0(c)].push_back((uint8_t)c);
-				mode0_palette_hits_[Mode0Colour1(c)].push_back((uint8_t)c);
+				mode0_palette_hits_[Mode0Colour0(c)].push_back(static_cast<uint8_t>(c));
+				mode0_palette_hits_[Mode0Colour1(c)].push_back(static_cast<uint8_t>(c));
 
-				mode1_palette_hits_[Mode1Colour0(c)].push_back((uint8_t)c);
-				mode1_palette_hits_[Mode1Colour1(c)].push_back((uint8_t)c);
-				mode1_palette_hits_[Mode1Colour2(c)].push_back((uint8_t)c);
-				mode1_palette_hits_[Mode1Colour3(c)].push_back((uint8_t)c);
+				mode1_palette_hits_[Mode1Colour0(c)].push_back(static_cast<uint8_t>(c));
+				mode1_palette_hits_[Mode1Colour1(c)].push_back(static_cast<uint8_t>(c));
+				mode1_palette_hits_[Mode1Colour2(c)].push_back(static_cast<uint8_t>(c));
+				mode1_palette_hits_[Mode1Colour3(c)].push_back(static_cast<uint8_t>(c));
 
-				mode3_palette_hits_[Mode3Colour0(c)].push_back((uint8_t)c);
-				mode3_palette_hits_[Mode3Colour1(c)].push_back((uint8_t)c);
+				mode3_palette_hits_[Mode3Colour0(c)].push_back(static_cast<uint8_t>(c));
+				mode3_palette_hits_[Mode3Colour1(c)].push_back(static_cast<uint8_t>(c));
 			}
 		}
 

@@ -49,11 +49,11 @@ void MOS6522Base::do_phase2() {
 
 	registers_.timer[1] --;
 	if(registers_.next_timer[0] >= 0) {
-		registers_.timer[0] = (uint16_t)registers_.next_timer[0];
+		registers_.timer[0] = static_cast<uint16_t>(registers_.next_timer[0]);
 		registers_.next_timer[0] = -1;
 	}
 	if(registers_.next_timer[1] >= 0) {
-		registers_.timer[1] = (uint16_t)registers_.next_timer[1];
+		registers_.timer[1] = static_cast<uint16_t>(registers_.next_timer[1]);
 		registers_.next_timer[1] = -1;
 	}
 }

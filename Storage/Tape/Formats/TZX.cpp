@@ -27,8 +27,8 @@ TZX::TZX(const char *file_name) :
 	if(fgetc(file_) != 0x1a) throw ErrorNotTZX;
 
 	// Get version number
-	uint8_t major_version = (uint8_t)fgetc(file_);
-	uint8_t minor_version = (uint8_t)fgetc(file_);
+	uint8_t major_version = static_cast<uint8_t>(fgetc(file_));
+	uint8_t minor_version = static_cast<uint8_t>(fgetc(file_));
 
 	// Reject if an incompatible version
 	if(major_version != 1 || minor_version > 20)  throw ErrorNotTZX;
@@ -50,7 +50,7 @@ void TZX::virtual_reset() {
 
 void TZX::get_next_pulses() {
 	while(empty()) {
-		uint8_t chunk_id = (uint8_t)fgetc(file_);
+		uint8_t chunk_id = static_cast<uint8_t>(fgetc(file_));
 		if(feof(file_)) {
 			set_is_at_end(true);
 			return;
@@ -95,12 +95,12 @@ void TZX::get_generalised_data_block() {
 	uint16_t pause_after_block = fgetc16le();
 
 	uint32_t total_pilot_symbols = fgetc32le();
-	uint8_t maximum_pulses_per_pilot_symbol = (uint8_t)fgetc(file_);
-	uint8_t symbols_in_pilot_table = (uint8_t)fgetc(file_);
+	uint8_t maximum_pulses_per_pilot_symbol = static_cast<uint8_t>(fgetc(file_));
+	uint8_t symbols_in_pilot_table = static_cast<uint8_t>(fgetc(file_));
 
 	uint32_t total_data_symbols = fgetc32le();
-	uint8_t maximum_pulses_per_data_symbol = (uint8_t)fgetc(file_);
-	uint8_t symbols_in_data_table = (uint8_t)fgetc(file_);
+	uint8_t maximum_pulses_per_data_symbol = static_cast<uint8_t>(fgetc(file_));
+	uint8_t symbols_in_data_table = static_cast<uint8_t>(fgetc(file_));
 
 	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table, false);
 	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table, true);
@@ -121,7 +121,7 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 	std::vector<Symbol> symbol_table;
 	for(int c = 0; c < number_of_symbols; c++) {
 		Symbol symbol;
-		symbol.flags = (uint8_t)fgetc(file_);
+		symbol.flags = static_cast<uint8_t>(fgetc(file_));
 		for(int ic = 0; ic < max_pulses_per_symbol; ic++) {
 			symbol.pulse_lengths.push_back(fgetc16le());
 		}
@@ -143,7 +143,7 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			symbol_value = stream.get_bits(bits);
 			count = 1;
 		} else {
-			symbol_value = (uint8_t)fgetc(file_);
+			symbol_value = static_cast<uint8_t>(fgetc(file_));
 			count = fgetc16le();
 		}
 		if(symbol_value > number_of_symbols) {
@@ -182,7 +182,7 @@ void TZX::get_standard_speed_data_block() {
 	data_block.data.data_length = fgetc16le();
 	if(!data_block.data.data_length) return;
 
-	uint8_t first_byte = (uint8_t)fgetc(file_);
+	uint8_t first_byte = static_cast<uint8_t>(fgetc(file_));
 	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
 	ungetc(first_byte, file_);
 
@@ -197,7 +197,7 @@ void TZX::get_turbo_speed_data_block() {
 	data_block.data.length_of_zero_bit_pulse = fgetc16le();
 	data_block.data.length_of_one_bit_pulse = fgetc16le();
 	data_block.length_of_pilot_tone = fgetc16le();
-	data_block.data.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	data_block.data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
 	data_block.data.pause_after_block = fgetc16le();
 	data_block.data.data_length = fgetc16le();
 	data_block.data.data_length |= (long)(fgetc(file_) << 16);
@@ -221,7 +221,7 @@ void TZX::get_data_block(const DataBlock &data_block) {
 void TZX::get_data(const Data &data) {
 	// Output data.
 	for(unsigned int c = 0; c < data.data_length; c++) {
-		uint8_t next_byte = (uint8_t)fgetc(file_);
+		uint8_t next_byte = static_cast<uint8_t>(fgetc(file_));
 
 		unsigned int bits = (c != data.data_length-1) ? 8 : data.number_of_bits_in_final_byte;
 		while(bits--) {
@@ -248,7 +248,7 @@ void TZX::get_pure_data_block() {
 	Data data;
 	data.length_of_zero_bit_pulse = fgetc16le();
 	data.length_of_one_bit_pulse = fgetc16le();
-	data.number_of_bits_in_final_byte = (uint8_t)fgetc(file_);
+	data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
 	data.pause_after_block = fgetc16le();
 	data.data_length = fgetc16le();
 	data.data_length |= (long)(fgetc(file_) << 16);
@@ -257,7 +257,7 @@ void TZX::get_pure_data_block() {
 }
 
 void TZX::get_pulse_sequence() {
-	uint8_t number_of_pulses = (uint8_t)fgetc(file_);
+	uint8_t number_of_pulses = static_cast<uint8_t>(fgetc(file_));
 	while(number_of_pulses--) {
 		post_pulse(fgetc16le());
 	}
@@ -297,7 +297,7 @@ void TZX::post_pulse(const Storage::Time &time) {
 
 void TZX::ignore_group_start() {
 	printf("Ignoring TZX group\n");
-	uint8_t length = (uint8_t)fgetc(file_);
+	uint8_t length = static_cast<uint8_t>(fgetc(file_));
 	fseek(file_, length, SEEK_CUR);
 }
 
@@ -336,21 +336,21 @@ void TZX::ignore_select_block() {
 #pragma mark - Messaging
 
 void TZX::ignore_text_description() {
-	uint8_t length = (uint8_t)fgetc(file_);
+	uint8_t length = static_cast<uint8_t>(fgetc(file_));
 	fseek(file_, length, SEEK_CUR);
 	printf("Ignoring TZX text description\n");
 }
 
 void TZX::ignore_message_block() {
-	__unused uint8_t time_for_display = (uint8_t)fgetc(file_);
-	uint8_t length = (uint8_t)fgetc(file_);
+	__unused uint8_t time_for_display = static_cast<uint8_t>(fgetc(file_));
+	uint8_t length = static_cast<uint8_t>(fgetc(file_));
 	fseek(file_, length, SEEK_CUR);
 	printf("Ignoring TZX message\n");
 }
 
 void TZX::get_hardware_type() {
 	// TODO: pick a way to retain and communicate this.
-	uint8_t number_of_machines = (uint8_t)fgetc(file_);
+	uint8_t number_of_machines = static_cast<uint8_t>(fgetc(file_));
 	fseek(file_, number_of_machines * 3, SEEK_CUR);
 	printf("Ignoring TZX hardware types (%d)\n", number_of_machines);
 }

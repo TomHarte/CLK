@@ -69,7 +69,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 				// [6, 7]:		start address of data
 				// 8:			"unused" (on the Oric 1)
 				// [9...]:		filename, up to NULL byte
-				next_byte = (uint8_t)fgetc(file_);
+				next_byte = static_cast<uint8_t>(fgetc(file_));
 
 				if(phase_counter_ == 4)	data_end_address_ = (uint16_t)(next_byte << 8);
 				if(phase_counter_ == 5)	data_end_address_ |= next_byte;
@@ -96,7 +96,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse()
 			break;
 
 			case Data:
-				next_byte = (uint8_t)fgetc(file_);
+				next_byte = static_cast<uint8_t>(fgetc(file_));
 				phase_counter_++;
 				if(phase_counter_ >= (data_end_address_ - data_start_address_)+1)
 				{

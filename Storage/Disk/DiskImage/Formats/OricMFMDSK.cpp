@@ -63,7 +63,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 		std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
 		bool did_sync = false;
 		while(track_offset < 6250) {
-			uint8_t next_byte = (uint8_t)fgetc(file_);
+			uint8_t next_byte = static_cast<uint8_t>(fgetc(file_));
 			track_offset++;
 
 			switch(next_byte) {
@@ -75,7 +75,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 
 							case 0xfe:
 								for(int byte = 0; byte < 6; byte++) {
-									last_header[byte] = (uint8_t)fgetc(file_);
+									last_header[byte] = static_cast<uint8_t>(fgetc(file_));
 									encoder->add_byte(last_header[byte]);
 									track_offset++;
 									if(track_offset == 6250) break;
@@ -84,7 +84,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 
 							case 0xfb:
 								for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++) {
-									encoder->add_byte((uint8_t)fgetc(file_));
+									encoder->add_byte(static_cast<uint8_t>(fgetc(file_)));
 									track_offset++;
 									if(track_offset == 6250) break;
 								}

@@ -39,7 +39,7 @@ class Pitfall2: public BusExtender {
 					if(isReadOperation(operation)) {
 						*value = random_number_generator_;
 					}
-					random_number_generator_ = (uint8_t)(
+					random_number_generator_ = static_cast<uint8_t>(
 						(random_number_generator_ << 1) |
 						(~(	(random_number_generator_ >> 7) ^
 							(random_number_generator_ >> 5) ^

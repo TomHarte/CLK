@@ -720,7 +720,7 @@ void WD1770::posit_event(int new_event_type) {
 				case 0xfd: case 0xfe:
 					// clock is 0xc7 = 1010 0000 0010 1010 = 0xa022
 					write_raw_short(
-						(uint16_t)(
+						static_cast<uint16_t>(
 							0xa022 |
 							((data_ & 0x80) << 7) |
 							((data_ & 0x40) << 6) |

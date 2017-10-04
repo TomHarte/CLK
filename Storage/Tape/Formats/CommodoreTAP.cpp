@@ -64,7 +64,7 @@ Storage::Tape::Tape::Pulse CommodoreTAP::virtual_get_next_pulse()
 	if(current_pulse_.type == Pulse::High)
 	{
 		uint32_t next_length;
-		uint8_t next_byte = (uint8_t)fgetc(file_);
+		uint8_t next_byte = static_cast<uint8_t>(fgetc(file_));
 		if(!updated_layout_ || next_byte > 0)
 		{
 			next_length = (uint32_t)next_byte << 3;
