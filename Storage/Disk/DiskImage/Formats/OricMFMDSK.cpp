@@ -37,10 +37,6 @@ unsigned int OricMFMDSK::get_head_count() {
 	return head_count_;
 }
 
-bool OricMFMDSK::get_is_read_only() {
-	return is_read_only_;
-}
-
 long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int position) {
 	long seek_offset = 0;
 	switch(geometry_type_) {

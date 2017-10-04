@@ -79,6 +79,11 @@ class FileHolder {
 		*/
 		void ensure_file_is_at_least_length(long length);
 
+		/*!
+			@returns @c true if this file is read-only; @c false otherwise.
+		*/
+		bool get_is_read_only();
+
 		class BitStream {
 			public:
 				BitStream(FILE *f, bool lsb_first) :
@@ -124,10 +129,11 @@ class FileHolder {
 
 		FILE *file_;
 		struct stat file_stats_;
-		bool is_read_only_;
 		std::mutex file_access_mutex_;
 
 		const std::string name_;
+	private:
+		bool is_read_only_;
 };
 
 }

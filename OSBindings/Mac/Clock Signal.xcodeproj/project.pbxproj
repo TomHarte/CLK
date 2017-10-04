@@ -21,6 +21,7 @@
 		4B14978F1EE4B4D200CE2596 /* CSZX8081.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */; };
 		4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497901EE4B5A800CE2596 /* ZX8081.cpp */; };
 		4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B1497961EE4B97F00CE2596 /* ZX8081Options.xib */; };
+		4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
 		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
 		4B1E85751D170228001EF87D /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85731D170228001EF87D /* Typer.cpp */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
@@ -504,6 +505,8 @@
 		4B1497901EE4B5A800CE2596 /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = ZX8081/ZX8081.cpp; sourceTree = "<group>"; };
 		4B1497911EE4B5A800CE2596 /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = ZX8081/ZX8081.hpp; sourceTree = "<group>"; };
 		4B1497971EE4B97F00CE2596 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ZX8081Options.xib"; sourceTree = SOURCE_ROOT; };
+		4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BitReverse.cpp; path = Data/BitReverse.cpp; sourceTree = "<group>"; };
+		4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = BitReverse.hpp; path = Data/BitReverse.hpp; sourceTree = "<group>"; };
 		4B1D08051E0F7A1100763741 /* TimeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TimeTests.mm; sourceTree = "<group>"; };
 		4B1E85731D170228001EF87D /* Typer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Typer.cpp; sourceTree = "<group>"; };
 		4B1E85741D170228001EF87D /* Typer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Typer.hpp; sourceTree = "<group>"; };
@@ -1741,8 +1744,10 @@
 		4B8805F81DCFF6CD003085B1 /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */,
 				4B8805F51DCFF6C9003085B1 /* Commodore.cpp */,
 				4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */,
+				4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */,
 				4B8805F61DCFF6C9003085B1 /* Commodore.hpp */,
 				4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */,
 			);
@@ -2917,6 +2922,7 @@
 				4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */,
 				4B8378E21F336920005CA9E4 /* CharacterMapper.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
+				4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
