@@ -24,7 +24,7 @@ G64::G64(const char *file_name) :
 	if(version != 0) throw ErrorUnknownVersion;
 
 	// get the number of tracks and track size
-	number_of_tracks_ = (uint8_t)fgetc(file_);
+	number_of_tracks_ = static_cast<uint8_t>(fgetc(file_));
 	maximum_track_size_ = fgetc16le();
 }
 

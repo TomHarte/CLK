@@ -160,7 +160,7 @@ void AY38910::evaluate_output_volume() {
 #undef channel_volume
 
 	// Mix additively.
-	output_volume_ = (int16_t)(
+	output_volume_ = static_cast<int16_t>(
 		volumes_[volumes[0]] * channel_levels[0] +
 		volumes_[volumes[1]] * channel_levels[1] +
 		volumes_[volumes[2]] * channel_levels[2]
@@ -186,7 +186,7 @@ void AY38910::set_register_value(uint8_t value) {
 					int channel = selected_register >> 1;
 
 					if(selected_register & 1)
-						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | (uint16_t)((value&0xf) << 8);
+						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | static_cast<uint16_t>((value&0xf) << 8);
 					else
 						tone_periods_[channel] = (tone_periods_[channel] & ~0xff) | value;
 				}

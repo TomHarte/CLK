@@ -79,7 +79,7 @@ template <class T> class MOS6532 {
 
 				// Timer and interrupt control
 				case 0x04: case 0x06: {
-					uint8_t value = (uint8_t)(timer_.value >> timer_.activeShift);
+					uint8_t value = static_cast<uint8_t>(timer_.value >> timer_.activeShift);
 					timer_.interrupt_enabled = !!(address&0x08);
 					interrupt_status_ &= ~InterruptFlag::Timer;
 					evaluate_interrupts();

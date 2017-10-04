@@ -240,7 +240,7 @@ template <class T> class CRTC6845 {
 		inline void do_end_of_frame() {
 			line_counter_ = 0;
 			line_is_visible_ = true;
-			line_address_ = (uint16_t)((registers_[12] << 8) | registers_[13]);
+			line_address_ = static_cast<uint16_t>((registers_[12] << 8) | registers_[13]);
 			bus_state_.refresh_address = line_address_;
 		}
 

@@ -243,8 +243,8 @@ uint8_t Parser::get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape
 	if((check&1) == (byte_plus_parity >> 8))
 		set_error_flag();
 
-	add_parity_byte((uint8_t)byte_plus_parity);
-	return (uint8_t)byte_plus_parity;
+	add_parity_byte(static_cast<uint8_t>(byte_plus_parity));
+	return static_cast<uint8_t>(byte_plus_parity);
 }
 
 /*!

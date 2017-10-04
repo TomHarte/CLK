@@ -775,7 +775,7 @@ void i8272::posit_event(int event_type) {
 				// If a drive was found, return its results. Otherwise return a single 0x80.
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
-					status_[0] = (uint8_t)found_drive;
+					status_[0] = static_cast<uint8_t>(found_drive);
 					main_status_ &= ~(1 << found_drive);
 					SetSeekEnd();
 
