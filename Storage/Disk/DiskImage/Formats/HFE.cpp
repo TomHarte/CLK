@@ -9,6 +9,7 @@
 #include "HFE.hpp"
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 #include "../../../Data/BitReverse.hpp"
 
 using namespace Storage::Disk;
@@ -58,19 +59,21 @@ uint16_t HFE::seek_track(unsigned int head, unsigned int position) {
 }
 
 std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned int position) {
-	uint16_t track_length = seek_track(head, position);
-
 	PCMSegment segment;
-	uint16_t side_length = track_length;
-	segment.data.resize(side_length);
-	segment.number_of_bits = side_length * 8;
+	{
+		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+		uint16_t track_length = seek_track(head, position);
 
-	uint16_t c = 0;
-	while(c < side_length) {
-		uint16_t length = (uint16_t)std::min(256, side_length - c);
-		fread(&segment.data[c], 1, length, file_);
-		c += length;
-		fseek(file_, 256, SEEK_CUR);
+		segment.data.resize(track_length);
+		segment.number_of_bits = track_length * 8;
+
+		uint16_t c = 0;
+		while(c < track_length) {
+			uint16_t length = (uint16_t)std::min(256, track_length - c);
+			fread(&segment.data[c], 1, length, file_);
+			c += length;
+			fseek(file_, 256, SEEK_CUR);
+		}
 	}
 
 	// Flip bytes; HFE's preference is that the least-significant bit
@@ -82,4 +85,23 @@ std::shared_ptr<Track> HFE::get_track_at_position(unsigned int head, unsigned in
 }
 
 void HFE::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
+	std::unique_lock<std::mutex> lock_guard(file_access_mutex_);
+	uint16_t track_length = seek_track(head, position);
+	lock_guard.unlock();
+
+	PCMSegment segment = Storage::Disk::track_serialisation(*track, Storage::Time(1, track_length * 8));
+	Storage::Data::BitReverse::reverse(segment.data);
+	uint16_t data_length = std::min(static_cast<uint16_t>(segment.data.size()), track_length);
+
+	lock_guard.lock();
+	seek_track(head, position);
+
+	uint16_t c = 0;
+	while(c < data_length) {
+		uint16_t length = (uint16_t)std::min(256, data_length - c);
+		fwrite(&segment.data[c], 1, length, file_);
+		c += length;
+		fseek(file_, 256, SEEK_CUR);
+	}
+	lock_guard.unlock();
 }
