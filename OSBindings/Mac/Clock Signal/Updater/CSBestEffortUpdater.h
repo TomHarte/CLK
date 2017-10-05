@@ -22,7 +22,7 @@
 
 @property (nonatomic, assign) double clockRate;
 @property (nonatomic, assign) BOOL runAsUnlimited;
-@property (atomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
+@property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
 
 - (void)update;
 - (void)flush;
