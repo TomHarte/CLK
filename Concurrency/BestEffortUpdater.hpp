@@ -20,6 +20,8 @@ namespace Concurrency {
 	Accepts timing cues from multiple threads and ensures that a delegate receives calls to total
 	a certain number of cycles per second, that those calls are strictly serialised, and that no
 	backlog of calls accrues.
+
+	No guarantees about the thread that the delegate will be called on are made.
 */
 class BestEffortUpdater {
 	public:
