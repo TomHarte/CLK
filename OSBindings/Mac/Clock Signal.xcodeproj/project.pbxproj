@@ -106,6 +106,7 @@
 		4B79E4461E3AF38600141F11 /* floppy525.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4431E3AF38600141F11 /* floppy525.png */; };
 		4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */; };
 		4B7BC7F61F58F7D200D1B1B4 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
+		4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */; };
 		4B8334821F5D9FF70097E338 /* PartialMachineCycle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */; };
 		4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334831F5DA0360097E338 /* Z80Storage.cpp */; };
 		4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334851F5DA3780097E338 /* 6502Storage.cpp */; };
@@ -442,7 +443,7 @@
 		4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD3A3091EE755C800B5B501 /* Video.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */; };
-		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */; };
+		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.mm */; };
 		4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */; };
 		4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
 		4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE7C9161E3D397100A5496D /* TIA.cpp */; };
@@ -674,6 +675,8 @@
 		4B79E4411E3AF38600141F11 /* cassette.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cassette.png; sourceTree = "<group>"; };
 		4B79E4421E3AF38600141F11 /* floppy35.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy35.png; sourceTree = "<group>"; };
 		4B79E4431E3AF38600141F11 /* floppy525.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy525.png; sourceTree = "<group>"; };
+		4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BestEffortUpdater.cpp; path = ../../Concurrency/BestEffortUpdater.cpp; sourceTree = "<group>"; };
+		4B80ACFF1F85CACA00176895 /* BestEffortUpdater.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BestEffortUpdater.hpp; path = ../../Concurrency/BestEffortUpdater.hpp; sourceTree = "<group>"; };
 		4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PartialMachineCycle.cpp; sourceTree = "<group>"; };
 		4B8334831F5DA0360097E338 /* Z80Storage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80Storage.cpp; sourceTree = "<group>"; };
 		4B8334851F5DA3780097E338 /* 6502Storage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502Storage.cpp; sourceTree = "<group>"; };
@@ -1073,7 +1076,7 @@
 		4BD468F61D8DF41D0084958B /* 1770.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 1770.hpp; path = 1770/1770.hpp; sourceTree = "<group>"; };
 		4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMTrackTests.mm; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
-		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CSBestEffortUpdater.m; path = Updater/CSBestEffortUpdater.m; sourceTree = "<group>"; };
+		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSBestEffortUpdater.mm; path = Updater/CSBestEffortUpdater.mm; sourceTree = "<group>"; };
 		4BD9137D1F311BC5009BCF85 /* i8255.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8255.hpp; path = 8255/i8255.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
 		4BE77A2C1D84ADFB00BC3827 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = File.cpp; path = ../../StaticAnalyser/Commodore/File.cpp; sourceTree = "<group>"; };
@@ -1390,6 +1393,8 @@
 			children = (
 				4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */,
 				4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */,
+				4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */,
+				4B80ACFF1F85CACA00176895 /* BestEffortUpdater.hpp */,
 			);
 			name = Concurrency;
 			sourceTree = "<group>";
@@ -2362,7 +2367,7 @@
 			isa = PBXGroup;
 			children = (
 				4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */,
-				4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.m */,
+				4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.mm */,
 			);
 			name = Updater;
 			sourceTree = "<group>";
@@ -2939,7 +2944,7 @@
 				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
-				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.m in Sources */,
+				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.mm in Sources */,
 				4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */,
 				4B4518811F75E91A00926311 /* PCMPatchedTrack.cpp in Sources */,
 				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
@@ -2982,6 +2987,7 @@
 				4B4518821F75E91A00926311 /* PCMSegment.cpp in Sources */,
 				4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */,
 				4B1E85751D170228001EF87D /* Typer.cpp in Sources */,
+				4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
 				4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
