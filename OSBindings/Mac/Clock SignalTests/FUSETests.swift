@@ -59,24 +59,24 @@ fileprivate struct RegisterState {
 
 	init(dictionary: [String: Any]) {
 		// don't test bits 3 and 5 for now
-		af = UInt16(dictionary["af"] as! NSNumber)
-		bc = UInt16(dictionary["bc"] as! NSNumber)
-		de = UInt16(dictionary["de"] as! NSNumber)
-		hl = UInt16(dictionary["hl"] as! NSNumber)
+		af = UInt16(truncating: dictionary["af"] as! NSNumber)
+		bc = UInt16(truncating: dictionary["bc"] as! NSNumber)
+		de = UInt16(truncating: dictionary["de"] as! NSNumber)
+		hl = UInt16(truncating: dictionary["hl"] as! NSNumber)
 
-		afDash = UInt16(dictionary["afDash"] as! NSNumber)
-		bcDash = UInt16(dictionary["bcDash"] as! NSNumber)
-		deDash = UInt16(dictionary["deDash"] as! NSNumber)
-		hlDash = UInt16(dictionary["hlDash"] as! NSNumber)
+		afDash = UInt16(truncating: dictionary["afDash"] as! NSNumber)
+		bcDash = UInt16(truncating: dictionary["bcDash"] as! NSNumber)
+		deDash = UInt16(truncating: dictionary["deDash"] as! NSNumber)
+		hlDash = UInt16(truncating: dictionary["hlDash"] as! NSNumber)
 
-		ix = UInt16(dictionary["ix"] as! NSNumber)
-		iy = UInt16(dictionary["iy"] as! NSNumber)
+		ix = UInt16(truncating: dictionary["ix"] as! NSNumber)
+		iy = UInt16(truncating: dictionary["iy"] as! NSNumber)
 
-		sp = UInt16(dictionary["sp"] as! NSNumber)
-		pc = UInt16(dictionary["pc"] as! NSNumber)
+		sp = UInt16(truncating: dictionary["sp"] as! NSNumber)
+		pc = UInt16(truncating: dictionary["pc"] as! NSNumber)
 
-		i = UInt8(dictionary["i"] as! NSNumber)
-		r = UInt8(dictionary["r"] as! NSNumber)
+		i = UInt8(truncating: dictionary["i"] as! NSNumber)
+		r = UInt8(truncating: dictionary["r"] as! NSNumber)
 
 		iff1 = (dictionary["iff1"] as! NSNumber).boolValue
 		iff2 = (dictionary["iff2"] as! NSNumber).boolValue
@@ -183,10 +183,10 @@ class FUSETests: XCTestCase {
 			if let inputMemoryGroups = inputMemoryGroups {
 				for group in inputMemoryGroups {
 					let groupDictionary = group as! [String: Any]
-					var address = UInt16(groupDictionary["address"] as! NSNumber)
+					var address = UInt16(truncating: groupDictionary["address"] as! NSNumber)
 					let data = groupDictionary["data"] as! [NSNumber]
 					for value in data {
-						machine.setValue(UInt8(value), atAddress: address)
+						machine.setValue(UInt8(truncating: value), atAddress: address)
 						address = address + 1
 					}
 				}
@@ -208,10 +208,10 @@ class FUSETests: XCTestCase {
 			if let outputMemoryGroups = outputMemoryGroups {
 				for group in outputMemoryGroups {
 					let groupDictionary = group as! [String: Any]
-					var address = UInt16(groupDictionary["address"] as! NSNumber)
+					var address = UInt16(truncating: groupDictionary["address"] as! NSNumber)
 					let data = groupDictionary["data"] as! [NSNumber]
 					for value in data {
-						XCTAssert(machine.value(atAddress: address) == UInt8(value), "Failed memory state \(name)")
+						XCTAssert(machine.value(atAddress: address) == UInt8(truncating: value), "Failed memory state \(name)")
 						address = address + 1
 					}
 				}
