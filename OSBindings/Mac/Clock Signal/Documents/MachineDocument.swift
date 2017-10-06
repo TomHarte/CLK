@@ -106,7 +106,6 @@ class MachineDocument:
 		drawLock.lock()
 		machine = nil
 		openGLView.invalidate()
-		openGLView.openGLContext!.makeCurrentContext()
 		actionLock.unlock()
 		drawLock.unlock()
 
