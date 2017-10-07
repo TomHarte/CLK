@@ -84,24 +84,26 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 	return track;
 }
 
-void HFE::set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {
-	std::unique_lock<std::mutex> lock_guard(file_access_mutex_);
-	uint16_t track_length = seek_track(address);
-	lock_guard.unlock();
+void HFE::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	for(auto &track : tracks) {
+		std::unique_lock<std::mutex> lock_guard(file_access_mutex_);
+		uint16_t track_length = seek_track(track.first);
+		lock_guard.unlock();
 
-	PCMSegment segment = Storage::Disk::track_serialisation(*track, Storage::Time(1, track_length * 8));
-	Storage::Data::BitReverse::reverse(segment.data);
-	uint16_t data_length = std::min(static_cast<uint16_t>(segment.data.size()), track_length);
+		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Time(1, track_length * 8));
+		Storage::Data::BitReverse::reverse(segment.data);
+		uint16_t data_length = std::min(static_cast<uint16_t>(segment.data.size()), track_length);
 
-	lock_guard.lock();
-	seek_track(address);
+		lock_guard.lock();
+		seek_track(track.first);
 
-	uint16_t c = 0;
-	while(c < data_length) {
-		uint16_t length = (uint16_t)std::min(256, data_length - c);
-		fwrite(&segment.data[c], 1, length, file_);
-		c += length;
-		fseek(file_, 256, SEEK_CUR);
+		uint16_t c = 0;
+		while(c < data_length) {
+			uint16_t length = (uint16_t)std::min(256, data_length - c);
+			fwrite(&segment.data[c], 1, length, file_);
+			c += length;
+			fseek(file_, 256, SEEK_CUR);
+		}
+		lock_guard.unlock();
 	}
-	lock_guard.unlock();
 }

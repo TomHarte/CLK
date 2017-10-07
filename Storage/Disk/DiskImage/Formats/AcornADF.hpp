@@ -31,11 +31,11 @@ class AcornADF: public MFMSectorDump {
 			ErrorNotAcornADF,
 		};
 
-		int get_head_position_count();
-		int get_head_count();
+		int get_head_position_count() override;
+		int get_head_count() override;
 
 	private:
-		long get_file_offset_for_position(Track::Address address);
+		long get_file_offset_for_position(Track::Address address) override;
 };
 
 }

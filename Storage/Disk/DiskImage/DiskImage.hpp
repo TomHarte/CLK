@@ -49,9 +49,9 @@ class DiskImage {
 		virtual std::shared_ptr<Track> get_track_at_position(Track::Address address) = 0;
 
 		/*!
-			Replaces the Track at position @c position underneath @c head with @c track. Ignored if this disk is read-only.
+			Replaces the Tracks indicated by the map, that maps from physical address to track content.
 		*/
-		virtual void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {}
+		virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {}
 
 		/*!
 			Communicates that it is likely to be a while before any more tracks are written.

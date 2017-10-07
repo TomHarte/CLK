@@ -31,11 +31,11 @@ class SSD: public MFMSectorDump {
 			ErrorNotSSD,
 		};
 
-		int get_head_position_count();
-		int get_head_count();
+		int get_head_position_count() override;
+		int get_head_count() override;
 
 	private:
-		long get_file_offset_for_position(Track::Address address);
+		long get_file_offset_for_position(Track::Address address) override;
 
 		int head_count_;
 		int track_count_;

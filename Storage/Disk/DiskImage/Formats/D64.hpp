@@ -33,9 +33,9 @@ class D64: public DiskImage, public Storage::FileHolder {
 		};
 
 		// implemented to satisfy @c Disk
-		int get_head_position_count();
+		int get_head_position_count() override;
 		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address);
+		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
 	private:
 		int number_of_tracks_;

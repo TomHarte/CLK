@@ -30,10 +30,7 @@ template <typename T> void DiskImageHolder<T>::flush_tracks() {
 		unwritten_tracks_.clear();
 
 		update_queue_->enqueue([this, track_copies]() {
-			// TODO: communicate these as a batch, not one by one.
-			for(auto &pair : *track_copies) {
-				disk_image_.set_track_at_position(pair.first, pair.second);
-			}
+			disk_image_.set_tracks(*track_copies);
 		});
 	}
 }

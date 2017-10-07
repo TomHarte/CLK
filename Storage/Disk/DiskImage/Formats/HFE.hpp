@@ -34,11 +34,11 @@ class HFE: public DiskImage, public Storage::FileHolder {
 		};
 
 		// implemented to satisfy @c Disk
-		int get_head_position_count();
-		int get_head_count();
+		int get_head_position_count() override;
+		int get_head_count() override;
 		using Storage::FileHolder::get_is_read_only;
-		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
-		std::shared_ptr<Track> get_track_at_position(Track::Address address);
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
+		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
 	private:
 		uint16_t seek_track(Track::Address address);
