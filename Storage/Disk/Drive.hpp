@@ -24,6 +24,7 @@ namespace Disk {
 class Drive: public Sleeper, public TimedEventLoop {
 	public:
 		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
+		~Drive();
 
 		/*!
 			Replaces whatever is in the drive with @c disk.

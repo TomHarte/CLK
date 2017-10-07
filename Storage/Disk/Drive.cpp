@@ -21,7 +21,12 @@ Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int numb
 	available_heads_(number_of_heads) {
 }
 
+Drive::~Drive() {
+	if(disk_) disk_->flush_tracks();
+}
+
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
+	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
 
