@@ -35,15 +35,14 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 		};
 
 		// implemented to satisfy @c Disk
-		unsigned int get_head_position_count();
-		unsigned int get_head_count();
+		int get_head_position_count();
+		int get_head_count();
 		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+		std::shared_ptr<Track> get_track_at_position(Track::Address address);
 
 	private:
-
-		unsigned int head_count_;
-		unsigned int head_position_count_;
+		int head_count_;
+		int head_position_count_;
 		bool is_extended_;
 
 		// Used only for non-extended disks.

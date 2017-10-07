@@ -35,25 +35,28 @@ class DiskImage {
 			This is not necessarily a track count. There is no implicit guarantee that every position will
 			return a distinct track, or — e.g. if the media is holeless — will return any track at all.
 		*/
-		virtual unsigned int get_head_position_count() = 0;
+		virtual int get_head_position_count() = 0;
 
 		/*!
 			@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
 		*/
-		virtual unsigned int get_head_count() { return 1; }
+		virtual int get_head_count() { return 1; }
 
 		/*!
 			@returns the @c Track at @c position underneath @c head if there are any detectable events there;
 			returns @c nullptr otherwise.
 		*/
-		virtual std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position) = 0;
+		virtual std::shared_ptr<Track> get_track_at_position(Track::Address address) = 0;
 
 		/*!
 			Replaces the Track at position @c position underneath @c head with @c track. Ignored if this disk is read-only.
-			Subclasses that are not read-only should use the protected methods @c get_is_modified and, optionally,
-			@c get_modified_track_at_position to query for changes when closing.
 		*/
-		virtual void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {}
+		virtual void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {}
+
+		/*!
+			Communicates that it is likely to be a while before any more tracks are written.
+		*/
+		virtual void flush_tracks() {}
 
 		/*!
 			@returns whether the disk image is read only. Defaults to @c true if not overridden.
@@ -63,8 +66,7 @@ class DiskImage {
 
 class DiskImageHolderBase: public Disk {
 	protected:
-		int get_id_for_track_at_position(unsigned int head, unsigned int position);
-		std::map<int, std::shared_ptr<Track>> cached_tracks_;
+		std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
 		std::unique_ptr<Concurrency::AsyncTaskQueue> update_queue_;
 };
 
@@ -79,10 +81,11 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 			disk_image_(args...) {}
 		~DiskImageHolder();
 
-		unsigned int get_head_position_count();
-		unsigned int get_head_count();
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
-		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
+		int get_head_position_count();
+		int get_head_count();
+		std::shared_ptr<Track> get_track_at_position(Track::Address address);
+		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
+		void flush_tracks();
 		bool get_is_read_only();
 
 	private:

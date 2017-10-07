@@ -22,7 +22,7 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 		return;
 	}
 
-	std::shared_ptr<Storage::Disk::Track> track = disk_->get_track_at_position((unsigned int)address.head, (unsigned int)address.position);
+	std::shared_ptr<Storage::Disk::Track> track = disk_->get_track_at_position(address);
 	if(!track) {
 		return;
 	}
@@ -39,9 +39,7 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 }
 
 Sector *Parser::get_sector(int head, int track, uint8_t sector) {
-	Disk::Track::Address address;
-	address.position = track;
-	address.head = head;
+	Disk::Track::Address address(head, track);
 	install_sectors_from_track(address);
 
 	auto sectors = sectors_by_address_by_track_.find(address);

@@ -24,12 +24,12 @@ class MFMSectorDump: public DiskImage, public Storage::FileHolder {
 		void set_geometry(int sectors_per_track, uint8_t sector_size, bool is_double_density);
 
 		using Storage::FileHolder::get_is_read_only;
-		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
+		std::shared_ptr<Track> get_track_at_position(Track::Address address);
 
 	private:
 		std::mutex file_access_mutex_;
-		virtual long get_file_offset_for_position(unsigned int head, unsigned int position) = 0;
+		virtual long get_file_offset_for_position(Track::Address address) = 0;
 
 		int sectors_per_track_ = 0;
 		uint8_t sector_size_ = 0;

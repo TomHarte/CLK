@@ -33,12 +33,12 @@ class D64: public DiskImage, public Storage::FileHolder {
 		};
 
 		// implemented to satisfy @c Disk
-		unsigned int get_head_position_count();
+		int get_head_position_count();
 		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+		std::shared_ptr<Track> get_track_at_position(Track::Address address);
 
 	private:
-		unsigned int number_of_tracks_;
+		int number_of_tracks_;
 		uint16_t disk_id_;
 };
 

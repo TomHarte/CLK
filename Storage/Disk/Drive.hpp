@@ -23,7 +23,7 @@ namespace Disk {
 
 class Drive: public Sleeper, public TimedEventLoop {
 	public:
-		Drive(unsigned int input_clock_rate, int revolutions_per_minute, unsigned int number_of_heads);
+		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
 
 		/*!
 			Replaces whatever is in the drive with @c disk.
@@ -49,7 +49,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		/*!
 			Sets the current read head.
 		*/
-		void set_head(unsigned int head);
+		void set_head(int head);
 
 		/*!
 			@returns @c true if the inserted disk is read-only or no disk is inserted; @c false otherwise.
@@ -139,8 +139,8 @@ class Drive: public Sleeper, public TimedEventLoop {
 
 		// A record of head position and active head.
 		int head_position_ = 0;
-		unsigned int head_ = 0;
-		unsigned int available_heads_ = 0;
+		int head_ = 0;
+		int available_heads_ = 0;
 
 		// Motor control state.
 		bool motor_is_on_ = false;
