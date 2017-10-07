@@ -15,13 +15,18 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, unsigned int number_of_heads):
+Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
 	rotational_multiplier_(60, revolutions_per_minute),
 	available_heads_(number_of_heads) {
 }
 
+Drive::~Drive() {
+	if(disk_) disk_->flush_tracks();
+}
+
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
+	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
 
@@ -51,7 +56,7 @@ void Drive::step(int direction) {
 	}
 }
 
-void Drive::set_head(unsigned int head) {
+void Drive::set_head(int head) {
 	head = std::min(head, available_heads_ - 1);
 	if(head != head_) {
 		head_ = head;
@@ -83,6 +88,7 @@ void Drive::set_motor_on(bool motor_is_on) {
 	motor_is_on_ = motor_is_on;
 	if(!motor_is_on) {
 		ready_index_count_ = 0;
+		if(disk_) disk_->flush_tracks();
 	}
 	update_sleep_observer();
 }
@@ -178,12 +184,12 @@ void Drive::process_next_event() {
 #pragma mark - Track management
 
 std::shared_ptr<Track> Drive::get_track() {
-	if(disk_) return disk_->get_track_at_position(head_, (unsigned int)head_position_);
+	if(disk_) return disk_->get_track_at_position(Track::Address(head_, head_position_));
 	return nullptr;
 }
 
 void Drive::set_track(const std::shared_ptr<Track> &track) {
-	if(disk_) disk_->set_track_at_position(head_, (unsigned int)head_position_, track);
+	if(disk_) disk_->set_track_at_position(Track::Address(head_, head_position_), track);
 }
 
 void Drive::setup_track() {

@@ -10,6 +10,7 @@
 #define Track_h
 
 #include "../../Storage.hpp"
+#include <tuple>
 
 namespace Storage {
 namespace Disk {
@@ -29,14 +30,9 @@ class Track {
 			int head, position;
 
 			bool operator < (const Address &rhs) const {
-				return (head < rhs.head) || (position < rhs.position);
+				return std::tie(head, position) < std::tie(rhs.head, rhs.position);
 			}
-//			Address(const Address &rhs) noexcept : head(rhs.head), position(rhs.position) {}
-//			const Address &operator =(const Address &rhs) {
-//				head = rhs.head;
-//				position = rhs.position;
-//				return *this;
-//			}
+			Address(int head, int position) : head(head), position(position) {}
 		};
 
 		/*!

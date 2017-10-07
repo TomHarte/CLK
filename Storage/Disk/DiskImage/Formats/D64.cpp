@@ -35,18 +35,18 @@ D64::D64(const char *file_name) :
 	}
 }
 
-unsigned int D64::get_head_position_count() {
+int D64::get_head_position_count() {
 	return number_of_tracks_*2;
 }
 
-std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 	// every other track is missing, as is any head above 0
-	if(position&1 || head)
+	if(address.position&1 || address.head)
 		return std::shared_ptr<Track>();
 
 	// figure out where this track starts on the disk
 	int offset_to_track = 0;
-	int tracks_to_traverse = position >> 1;
+	int tracks_to_traverse = address.position >> 1;
 
 	int zone_sizes[] = {17, 7, 6, 10};
 	int sectors_by_zone[] = {21, 19, 18, 17};
@@ -96,7 +96,7 @@ std::shared_ptr<Track> D64::get_track_at_position(unsigned int head, unsigned in
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
 		uint8_t sector_number = (uint8_t)(sector);				// sectors count from 0
-		uint8_t track_number = (uint8_t)((position >> 1) + 1);	// tracks count from 1
+		uint8_t track_number = (uint8_t)((address.position >> 1) + 1);	// tracks count from 1
 		uint8_t checksum = (uint8_t)(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
 		uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number

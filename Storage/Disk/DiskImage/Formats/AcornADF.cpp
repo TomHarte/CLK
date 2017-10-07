@@ -11,8 +11,8 @@
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {
-	static const unsigned int sectors_per_track = 16;
-	static const unsigned int sector_size = 1;
+	static const int sectors_per_track = 16;
+	static const int sector_size = 1;
 }
 
 using namespace Storage::Disk;
@@ -36,14 +36,14 @@ AcornADF::AcornADF(const char *file_name) : MFMSectorDump(file_name) {
 	set_geometry(sectors_per_track, sector_size, true);
 }
 
-unsigned int AcornADF::get_head_position_count() {
+int AcornADF::get_head_position_count() {
 	return 80;
 }
 
-unsigned int AcornADF::get_head_count() {
+int AcornADF::get_head_count() {
 	return 1;
 }
 
-long AcornADF::get_file_offset_for_position(unsigned int head, unsigned int position) {
-	return (position * 1 + head) * (128 << sector_size) * sectors_per_track;
+long AcornADF::get_file_offset_for_position(Track::Address address) {
+	return (address.position * 1 + address.head) * (128 << sector_size) * sectors_per_track;
 }

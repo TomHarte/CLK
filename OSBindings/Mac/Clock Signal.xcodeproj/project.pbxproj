@@ -69,7 +69,6 @@
 		4B4518851F75E91A00926311 /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187A1F75E91900926311 /* DiskController.cpp */; };
 		4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187C1F75E91900926311 /* MFMDiskController.cpp */; };
 		4B4518871F75E91A00926311 /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187F1F75E91900926311 /* DigitalPhaseLockedLoop.cpp */; };
-		4B45189E1F75FD1C00926311 /* DiskImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45188A1F75FD1B00926311 /* DiskImage.cpp */; };
 		4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45188D1F75FD1B00926311 /* AcornADF.cpp */; };
 		4B4518A01F75FD1C00926311 /* CPCDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45188F1F75FD1B00926311 /* CPCDSK.cpp */; };
 		4B4518A11F75FD1C00926311 /* D64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518911F75FD1B00926311 /* D64.cpp */; };
@@ -77,7 +76,6 @@
 		4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518951F75FD1B00926311 /* HFE.cpp */; };
 		4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */; };
 		4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518991F75FD1B00926311 /* SSD.cpp */; };
-		4B4518A61F75FD1C00926311 /* SingleTrackDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45189C1F75FD1C00926311 /* SingleTrackDisk.cpp */; };
 		4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */; };
 		4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */; };
 		4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */; };
@@ -603,7 +601,6 @@
 		4B45187F1F75E91900926311 /* DigitalPhaseLockedLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DigitalPhaseLockedLoop.cpp; sourceTree = "<group>"; };
 		4B4518801F75E91900926311 /* DigitalPhaseLockedLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DigitalPhaseLockedLoop.hpp; sourceTree = "<group>"; };
 		4B4518881F75ECB100926311 /* Track.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Track.hpp; sourceTree = "<group>"; };
-		4B45188A1F75FD1B00926311 /* DiskImage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskImage.cpp; sourceTree = "<group>"; };
 		4B45188B1F75FD1B00926311 /* DiskImage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskImage.hpp; sourceTree = "<group>"; };
 		4B45188D1F75FD1B00926311 /* AcornADF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AcornADF.cpp; sourceTree = "<group>"; };
 		4B45188E1F75FD1B00926311 /* AcornADF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AcornADF.hpp; sourceTree = "<group>"; };
@@ -619,8 +616,6 @@
 		4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricMFMDSK.hpp; sourceTree = "<group>"; };
 		4B4518991F75FD1B00926311 /* SSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SSD.cpp; sourceTree = "<group>"; };
 		4B45189A1F75FD1B00926311 /* SSD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SSD.hpp; sourceTree = "<group>"; };
-		4B45189C1F75FD1C00926311 /* SingleTrackDisk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SingleTrackDisk.cpp; sourceTree = "<group>"; };
-		4B45189D1F75FD1C00926311 /* SingleTrackDisk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SingleTrackDisk.hpp; sourceTree = "<group>"; };
 		4B4518A71F76004200926311 /* TapeParser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = TapeParser.hpp; path = Parsers/TapeParser.hpp; sourceTree = "<group>"; };
 		4B4518A81F76022000926311 /* DiskImageImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskImageImplementation.hpp; sourceTree = "<group>"; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AY38910.cpp; path = AY38910/AY38910.cpp; sourceTree = "<group>"; };
@@ -1472,7 +1467,6 @@
 		4B4518891F75FD1B00926311 /* DiskImage */ = {
 			isa = PBXGroup;
 			children = (
-				4B45188A1F75FD1B00926311 /* DiskImage.cpp */,
 				4B45188B1F75FD1B00926311 /* DiskImage.hpp */,
 				4B4518A81F76022000926311 /* DiskImageImplementation.hpp */,
 				4B45188C1F75FD1B00926311 /* Formats */,
@@ -1502,15 +1496,6 @@
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
 			path = Formats;
-			sourceTree = "<group>";
-		};
-		4B45189B1F75FD1C00926311 /* SingleTrackDisk */ = {
-			isa = PBXGroup;
-			children = (
-				4B45189C1F75FD1C00926311 /* SingleTrackDisk.cpp */,
-				4B45189D1F75FD1C00926311 /* SingleTrackDisk.hpp */,
-			);
-			path = SingleTrackDisk;
 			sourceTree = "<group>";
 		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
@@ -1779,7 +1764,6 @@
 				4B45187E1F75E91900926311 /* DPLL */,
 				4BB697CF1D4BA44900248BDF /* Encodings */,
 				4B3FE75F1F3CF6BA00448EE4 /* Parsers */,
-				4B45189B1F75FD1C00926311 /* SingleTrackDisk */,
 				4B4518701F75E91800926311 /* Track */,
 			);
 			path = Disk;
@@ -2923,7 +2907,6 @@
 				4B8378DC1F336631005CA9E4 /* CharacterMapper.cpp in Sources */,
 				4B8378E51F3378C4005CA9E4 /* CharacterMapper.cpp in Sources */,
 				4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */,
-				4B45189E1F75FD1C00926311 /* DiskImage.cpp in Sources */,
 				4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */,
 				4B8378E21F336920005CA9E4 /* CharacterMapper.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
@@ -2996,7 +2979,6 @@
 				4B8FE2291DA1EDDF0090D3CE /* ElectronOptionsPanel.swift in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
-				4B4518A61F75FD1C00926311 /* SingleTrackDisk.cpp in Sources */,
 				4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */,
 				4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */,
 				4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */,

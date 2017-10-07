@@ -28,22 +28,22 @@ G64::G64(const char *file_name) :
 	maximum_track_size_ = fgetc16le();
 }
 
-unsigned int G64::get_head_position_count() {
+int G64::get_head_position_count() {
 	// give at least 84 tracks, to yield the normal geometry but,
 	// if there are more, shove them in
 	return number_of_tracks_ > 84 ? number_of_tracks_ : 84;
 }
 
-std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	std::shared_ptr<Track> resulting_track;
 
 	// if there's definitely no track here, return the empty track
 	// (TODO: should be supplying one with an index hole?)
-	if(position >= number_of_tracks_) return resulting_track;
-	if(head >= 1) return resulting_track;
+	if(address.position >= number_of_tracks_) return resulting_track;
+	if(address.head >= 1) return resulting_track;
 
 	// seek to this track's entry in the track table
-	fseek(file_, (long)((position * 4) + 0xc), SEEK_SET);
+	fseek(file_, (long)((address.position * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
 	uint32_t track_offset;
@@ -64,7 +64,7 @@ std::shared_ptr<Track> G64::get_track_at_position(unsigned int head, unsigned in
 	fread(&track_contents[0], 1, track_length, file_);
 
 	// seek to this track's entry in the speed zone table
-	fseek(file_, (long)((position * 4) + 0x15c), SEEK_SET);
+	fseek(file_, (long)((address.position * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
 	uint32_t speed_zone_offset;

@@ -239,7 +239,7 @@ uint8_t i8272::get_register(int address) {
 	active_head_ = (command_[1] >> 2)&1;	\
 	status_[0] = (command_[1]&7);	\
 	select_drive(active_drive_);	\
-	get_drive().set_head((unsigned int)active_head_);	\
+	get_drive().set_head(active_head_);	\
 	set_is_double_density(command_[0] & 0x40);
 
 #define WAIT_FOR_BYTES(n) \

@@ -29,32 +29,32 @@ OricMFMDSK::OricMFMDSK(const char *file_name) :
 		throw ErrorNotOricMFMDSK;
 }
 
-unsigned int OricMFMDSK::get_head_position_count() {
-	return track_count_;
+int OricMFMDSK::get_head_position_count() {
+	return static_cast<int>(track_count_);
 }
 
-unsigned int OricMFMDSK::get_head_count() {
-	return head_count_;
+int OricMFMDSK::get_head_count() {
+	return static_cast<int>(head_count_);
 }
 
-long OricMFMDSK::get_file_offset_for_position(unsigned int head, unsigned int position) {
-	long seek_offset = 0;
+long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
+	int seek_offset = 0;
 	switch(geometry_type_) {
 		case 1:
-			seek_offset = (head * track_count_) + position;
+			seek_offset = address.head * static_cast<int>(track_count_) + address.position;
 		break;
 		case 2:
-			seek_offset = (position * track_count_ * head_count_) + head;
+			seek_offset = address.position * static_cast<int>(track_count_ * head_count_) + address.head;
 		break;
 	}
-	return (seek_offset * 6400) + 256;
+	return static_cast<long>(seek_offset) * 6400 + 256;
 }
 
-std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address) {
 	PCMSegment segment;
 	{
 		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-		fseek(file_, get_file_offset_for_position(head, position), SEEK_SET);
+		fseek(file_, get_file_offset_for_position(address), SEEK_SET);
 
 		// The file format omits clock bits. So it's not a genuine MFM capture.
 		// A consumer must contextually guess when an FB, FC, etc is meant to be a control mark.
@@ -114,49 +114,51 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(unsigned int head, unsi
 	return track;
 }
 
-void OricMFMDSK::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
-	PCMSegment segment = Storage::Disk::track_serialisation(*track, Storage::Encodings::MFM::MFMBitLength);
-	Storage::Encodings::MFM::Shifter shifter;
-	shifter.set_is_double_density(true);
-	shifter.set_should_obey_syncs(true);
-	std::vector<uint8_t> parsed_track;
-	int size = 0;
-	int offset = 0;
-	bool capture_size = false;
+void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	for(auto &track : tracks) {
+		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Encodings::MFM::MFMBitLength);
+		Storage::Encodings::MFM::Shifter shifter;
+		shifter.set_is_double_density(true);
+		shifter.set_should_obey_syncs(true);
+		std::vector<uint8_t> parsed_track;
+		int size = 0;
+		int offset = 0;
+		bool capture_size = false;
 
-	for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
-		shifter.add_input_bit(segment.bit(bit));
-		if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::None) continue;
-		parsed_track.push_back(shifter.get_byte());
+		for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
+			shifter.add_input_bit(segment.bit(bit));
+			if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::None) continue;
+			parsed_track.push_back(shifter.get_byte());
 
-		if(offset) {
-			offset--;
-			if(!offset) {
-				shifter.set_should_obey_syncs(true);
+			if(offset) {
+				offset--;
+				if(!offset) {
+					shifter.set_should_obey_syncs(true);
+				}
+				if(capture_size && offset == 2) {
+					size = parsed_track.back();
+					capture_size = false;
+				}
 			}
-			if(capture_size && offset == 2) {
-				size = parsed_track.back();
-				capture_size = false;
+
+			if(	shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::Data ||
+				shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::DeletedData) {
+				offset = 128 << size;
+				shifter.set_should_obey_syncs(false);
+			}
+
+			if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::ID) {
+				offset = 6;
+				shifter.set_should_obey_syncs(false);
+				capture_size = true;
 			}
 		}
 
-		if(	shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::Data ||
-			shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::DeletedData) {
-			offset = 128 << size;
-			shifter.set_should_obey_syncs(false);
-		}
+		long file_offset = get_file_offset_for_position(track.first);
 
-		if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::ID) {
-			offset = 6;
-			shifter.set_should_obey_syncs(false);
-			capture_size = true;
-		}
+		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+		fseek(file_, file_offset, SEEK_SET);
+		size_t track_size = std::min((size_t)6400, parsed_track.size());
+		fwrite(parsed_track.data(), 1, track_size, file_);
 	}
-
-	long file_offset = get_file_offset_for_position(head, position);
-
-	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-	fseek(file_, file_offset, SEEK_SET);
-	size_t track_size = std::min((size_t)6400, parsed_track.size());
-	fwrite(parsed_track.data(), 1, track_size, file_);
 }

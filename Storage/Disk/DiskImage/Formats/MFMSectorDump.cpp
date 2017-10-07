@@ -20,11 +20,11 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, boo
 	is_double_density_ = is_double_density;
 }
 
-std::shared_ptr<Track> MFMSectorDump::get_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address address) {
 	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
 
-	if(head > 1) return nullptr;
-	long file_offset = get_file_offset_for_position(head, position);
+	if(address.head > 1) return nullptr;
+	long file_offset = get_file_offset_for_position(address);
 
 	{
 		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
@@ -32,19 +32,24 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(unsigned int head, u
 		fread(sectors, 1, sizeof(sectors), file_);
 	}
 
-	return track_for_sectors(sectors, static_cast<uint8_t>(position), static_cast<uint8_t>(head), 0, sector_size_, is_double_density_);
+	return track_for_sectors(sectors, static_cast<uint8_t>(address.position), static_cast<uint8_t>(address.head), 0, sector_size_, is_double_density_);
 }
 
-void MFMSectorDump::set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track) {
+void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
 	uint8_t parsed_track[(128 << sector_size_)*sectors_per_track_];
-	// Assumption here: sector IDs will run from 0.
-	decode_sectors(*track, parsed_track, 0, static_cast<uint8_t>(sectors_per_track_-1), sector_size_, is_double_density_);
 
-	long file_offset = get_file_offset_for_position(head, position);
+	// TODO: it would be more efficient from a file access and locking point of view to parse the sectors
+	// in one loop, then write in another.
 
-	std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-	ensure_file_is_at_least_length(file_offset);
-	fseek(file_, file_offset, SEEK_SET);
-	fwrite(parsed_track, 1, sizeof(parsed_track), file_);
+	for(auto &track : tracks) {
+		// Assumption here: sector IDs will run from 0.
+		decode_sectors(*track.second, parsed_track, 0, static_cast<uint8_t>(sectors_per_track_-1), sector_size_, is_double_density_);
+		long file_offset = get_file_offset_for_position(track.first);
+
+		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
+		ensure_file_is_at_least_length(file_offset);
+		fseek(file_, file_offset, SEEK_SET);
+		fwrite(parsed_track, 1, sizeof(parsed_track), file_);
+	}
 	fflush(file_);
 }

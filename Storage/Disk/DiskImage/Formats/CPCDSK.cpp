@@ -23,13 +23,13 @@ CPCDSK::CPCDSK(const char *file_name) :
 
 	// Don't really care about about the creator; skip.
 	fseek(file_, 0x30, SEEK_SET);
-	head_position_count_ = (unsigned int)fgetc(file_);
-	head_count_ = (unsigned int)fgetc(file_);
+	head_position_count_ = fgetc(file_);
+	head_count_ = fgetc(file_);
 
 	if(is_extended_) {
 		// Skip two unused bytes and grab the track size table.
 		fseek(file_, 2, SEEK_CUR);
-		for(unsigned int c = 0; c < head_position_count_ * head_count_; c++) {
+		for(int c = 0; c < head_position_count_ * head_count_; c++) {
 			track_sizes_.push_back((size_t)(fgetc(file_) << 8));
 		}
 	} else {
@@ -37,17 +37,17 @@ CPCDSK::CPCDSK(const char *file_name) :
 	}
 }
 
-unsigned int CPCDSK::get_head_position_count() {
+int CPCDSK::get_head_position_count() {
 	return head_position_count_;
 }
 
-unsigned int CPCDSK::get_head_count() {
+int CPCDSK::get_head_count() {
 	return head_count_;
 }
 
-std::shared_ptr<Track> CPCDSK::get_track_at_position(unsigned int head, unsigned int position) {
+std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
-	unsigned int chronological_track = (position * head_count_) + head;
+	size_t chronological_track = static_cast<size_t>((address.position * head_count_) + address.head);
 
 	// All DSK images reserve 0x100 bytes for their headers.
 	long file_offset = 0x100;
@@ -60,14 +60,14 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(unsigned int head, unsigned
 		}
 
 		// Sum the lengths of all tracks prior to the interesting one to get a file offset.
-		unsigned int t = 0;
+		size_t t = 0;
 		while(t < chronological_track && t < track_sizes_.size()) {
 			file_offset += track_sizes_[t];
 			t++;
 		}
 	} else {
 		// Tracks are a fixed size in the original DSK file format.
-		file_offset += size_of_a_track_ * chronological_track;
+		file_offset += size_of_a_track_ * static_cast<long>(chronological_track);
 	}
 
 	// Find the track, and skip the unused part of track information.

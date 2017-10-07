@@ -32,15 +32,15 @@ class OricMFMDSK: public DiskImage, public Storage::FileHolder {
 		};
 
 		// implemented to satisfy @c Disk
-		unsigned int get_head_position_count();
-		unsigned int get_head_count();
+		int get_head_position_count() override;
+		int get_head_count() override;
 		using Storage::FileHolder::get_is_read_only;
-		void set_track_at_position(unsigned int head, unsigned int position, const std::shared_ptr<Track> &track);
-		std::shared_ptr<Track> get_track_at_position(unsigned int head, unsigned int position);
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
+		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
 	private:
 		std::mutex file_access_mutex_;
-		long get_file_offset_for_position(unsigned int head, unsigned int position);
+		long get_file_offset_for_position(Track::Address address);
 
 		uint32_t head_count_;
 		uint32_t track_count_;

@@ -53,7 +53,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 
 	// b4: side select
 	if(changes & 0x10) {
-		unsigned int head = (control & 0x10) ? 1 : 0;
+		int head = (control & 0x10) ? 1 : 0;
 		for(int c = 0; c < 4; c++) {
 			if(drives_[c]) drives_[c]->set_head(head);
 		}
