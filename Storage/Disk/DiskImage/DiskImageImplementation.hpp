@@ -19,18 +19,30 @@ template <typename T> bool DiskImageHolder<T>::get_is_read_only() {
 }
 
 template <typename T> void DiskImageHolder<T>::flush_tracks() {
+	if(!unwritten_tracks_.empty()) {
+		if(!update_queue_) update_queue_.reset(new Concurrency::AsyncTaskQueue);
+
+		using TrackMap = std::map<Track::Address, std::shared_ptr<Track>>;
+		std::shared_ptr<TrackMap> track_copies(new TrackMap);
+		for(auto &address : unwritten_tracks_) {
+			track_copies->insert(std::make_pair(address, cached_tracks_[address]->clone()));
+		}
+		unwritten_tracks_.clear();
+
+		update_queue_->enqueue([this, track_copies]() {
+			// TODO: communicate these as a batch, not one by one.
+			for(auto &pair : *track_copies) {
+				disk_image_.set_track_at_position(pair.first, pair.second);
+			}
+		});
+	}
 }
 
 template <typename T> void DiskImageHolder<T>::set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {
 	if(disk_image_.get_is_read_only()) return;
 
+	unwritten_tracks_.insert(address);
 	cached_tracks_[address] = track;
-
-	if(!update_queue_) update_queue_.reset(new Concurrency::AsyncTaskQueue);
-	std::shared_ptr<Track> track_copy(track->clone());
-	update_queue_->enqueue([this, address, track_copy] {
-		disk_image_.set_track_at_position(address, track_copy);
-	});
 }
 
 template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_position(Track::Address address) {

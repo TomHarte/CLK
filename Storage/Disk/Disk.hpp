@@ -23,7 +23,9 @@ namespace Disk {
 
 class Disk {
 	public:
-		virtual ~Disk() {}
+		virtual ~Disk() {
+			flush_tracks();
+		}
 
 		/*!
 			@returns the number of discrete positions that this disk uses to model its complete surface area.
