@@ -115,6 +115,7 @@
 		4B8378DF1F33675F005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378DD1F33675F005CA9E4 /* CharacterMapper.cpp */; };
 		4B8378E21F336920005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E01F336920005CA9E4 /* CharacterMapper.cpp */; };
 		4B8378E51F3378C4005CA9E4 /* CharacterMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8378E31F3378C4005CA9E4 /* CharacterMapper.cpp */; };
+		4B86E25B1F8C628F006FAA45 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B86E2591F8C628F006FAA45 /* Keyboard.cpp */; };
 		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
 		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
 		4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
@@ -689,6 +690,8 @@
 		4B8378E11F336920005CA9E4 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CharacterMapper.hpp; path = Oric/CharacterMapper.hpp; sourceTree = "<group>"; };
 		4B8378E31F3378C4005CA9E4 /* CharacterMapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CharacterMapper.cpp; sourceTree = "<group>"; };
 		4B8378E41F3378C4005CA9E4 /* CharacterMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CharacterMapper.hpp; sourceTree = "<group>"; };
+		4B86E2591F8C628F006FAA45 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B86E25A1F8C628F006FAA45 /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
 		4B8805EF1DCFC99C003085B1 /* Acorn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Acorn.hpp; path = Parsers/Acorn.hpp; sourceTree = "<group>"; };
 		4B8805F21DCFD22A003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Parsers/Commodore.cpp; sourceTree = "<group>"; };
@@ -1715,6 +1718,16 @@
 			name = Implementation;
 			sourceTree = "<group>";
 		};
+		4B86E2581F8C628F006FAA45 /* Inputs */ = {
+			isa = PBXGroup;
+			children = (
+				4B86E2591F8C628F006FAA45 /* Keyboard.cpp */,
+				4B86E25A1F8C628F006FAA45 /* Keyboard.hpp */,
+			);
+			name = Inputs;
+			path = ../../Inputs;
+			sourceTree = "<group>";
+		};
 		4B8805F11DCFC9A2003085B1 /* Parsers */ = {
 			isa = PBXGroup;
 			children = (
@@ -2070,6 +2083,7 @@
 				4BF660691F281573002CB053 /* ClockReceiver */,
 				4BC9DF4A1D04691600F44158 /* Components */,
 				4B3940E81DA83C8700427841 /* Concurrency */,
+				4B86E2581F8C628F006FAA45 /* Inputs */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
 				4BB697C81D4B559300248BDF /* NumberTheory */,
 				4B366DFD1B5C165F0026627B /* Outputs */,
@@ -2951,6 +2965,7 @@
 				4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */,
 				4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */,
 				4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */,
+				4B86E25B1F8C628F006FAA45 /* Keyboard.cpp in Sources */,
 				4B4518851F75E91A00926311 /* DiskController.cpp in Sources */,
 				4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */,
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
