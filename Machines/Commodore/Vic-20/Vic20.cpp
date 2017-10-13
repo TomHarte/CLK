@@ -111,10 +111,14 @@ class KeyboardVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		/// Sets whether @c key @c is_pressed.
 		void set_key_state(uint16_t key, bool is_pressed) {
-			if(is_pressed)
-				columns_[key & 7] &= ~(key >> 3);
-			else
-				columns_[key & 7] |= (key >> 3);
+			if(key == KeyRestore) {
+				// TODO: how is restore wired?
+			} else {
+				if(is_pressed)
+					columns_[key & 7] &= ~(key >> 3);
+				else
+					columns_[key & 7] |= (key >> 3);
+			}
 		}
 
 		/// Sets all keys as unpressed.
