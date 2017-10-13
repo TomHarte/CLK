@@ -28,19 +28,20 @@ class Keyboard {
 			Tab, Q, W, E, R, T, Y, U, I, O, P, OpenSquareBracket, CloseSquareBracket, BackSlash,
 			CapsLock, A, S, D, F, G, H, J, K, L, Semicolon, Quote, Hash, Enter,
 			LeftShift, Z, X, C, V, B, N, M, Comma, FullStop, ForwardSlash, RightShift,
-			LeftControl, LeftOption, LeftMeta, Space, RightMeta, RightOption,
+			LeftControl, LeftOption, LeftMeta, Space, RightMeta, RightOption, RightControl,
 			Left, Right, Up, Down,
 			Insert, Home, PageUp, Delete, End, PageDown,
 			NumLock, KeyPadSlash, KeyPadAsterisk, KeyPadDelete,
 			KeyPad7, KeyPad8, KeyPad9, KeyPadPlus,
-			KeyPad4, KeyPad5, KeyPad6,
+			KeyPad4, KeyPad5, KeyPad6, KeyPadMinus,
 			KeyPad1, KeyPad2, KeyPad3, KeyPadEnter,
-			KeyPad0, KeyPadDecimalPoint
+			KeyPad0, KeyPadDecimalPoint, KeyPadEquals,
+			Help
 		};
 
 		// Host interface.
-		void set_key_pressed(Key key, bool is_pressed);
-		void reset_all_keys();
+		virtual void set_key_pressed(Key key, bool is_pressed);
+		virtual void reset_all_keys();
 
 		// Delegate interface.
 		struct Delegate {

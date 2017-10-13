@@ -68,28 +68,8 @@ using namespace Commodore::Vic20;
 
 #pragma mark - Keyboard map
 
-- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+/*- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
 	static NSDictionary<NSNumber *, NSNumber *> *vicKeysByKeys = @{
-		@(VK_ANSI_1):	@(Key::Key1),	@(VK_ANSI_2):	@(Key::Key2),
-		@(VK_ANSI_3):	@(Key::Key3),	@(VK_ANSI_4):	@(Key::Key4),
-		@(VK_ANSI_5):	@(Key::Key5),	@(VK_ANSI_6):	@(Key::Key6),
-		@(VK_ANSI_7):	@(Key::Key7),	@(VK_ANSI_8):	@(Key::Key8),
-		@(VK_ANSI_9):	@(Key::Key9),	@(VK_ANSI_0):	@(Key::Key0),
-
-		@(VK_ANSI_Q):	@(Key::KeyQ),	@(VK_ANSI_W):	@(Key::KeyW),
-		@(VK_ANSI_E):	@(Key::KeyE),	@(VK_ANSI_R):	@(Key::KeyR),
-		@(VK_ANSI_T):	@(Key::KeyT),	@(VK_ANSI_Y):	@(Key::KeyY),
-		@(VK_ANSI_U):	@(Key::KeyU),	@(VK_ANSI_I):	@(Key::KeyI),
-		@(VK_ANSI_O):	@(Key::KeyO),	@(VK_ANSI_P):	@(Key::KeyP),
-		@(VK_ANSI_A):	@(Key::KeyA),	@(VK_ANSI_S):	@(Key::KeyS),
-		@(VK_ANSI_D):	@(Key::KeyD),	@(VK_ANSI_F):	@(Key::KeyF),
-		@(VK_ANSI_G):	@(Key::KeyG),	@(VK_ANSI_H):	@(Key::KeyH),
-		@(VK_ANSI_J):	@(Key::KeyJ),	@(VK_ANSI_K):	@(Key::KeyK),
-		@(VK_ANSI_L):	@(Key::KeyL),	@(VK_ANSI_Z):	@(Key::KeyZ),
-		@(VK_ANSI_X):	@(Key::KeyX),	@(VK_ANSI_C):	@(Key::KeyC),
-		@(VK_ANSI_V):	@(Key::KeyV),	@(VK_ANSI_B):	@(Key::KeyB),
-		@(VK_ANSI_N):	@(Key::KeyN),	@(VK_ANSI_M):	@(Key::KeyM),
-
 		@(VK_Space):			@(Key::KeySpace),
 		@(VK_Return):			@(Key::KeyReturn),
 		@(VK_Delete):			@(Key::KeyDelete),
@@ -156,13 +136,7 @@ using namespace Commodore::Vic20;
 			}
 		}
 	}
-}
-
-- (void)clearAllKeys {
-	@synchronized(self) {
-		_vic20->clear_all_keys();
-	}
-}
+}*/
 
 #pragma mark - Public configuration options
 

@@ -14,9 +14,9 @@ using namespace ZX8081;
 CharacterMapper::CharacterMapper(bool is_zx81) : is_zx81_(is_zx81) {}
 
 uint16_t *CharacterMapper::sequence_for_character(char character) {
-#define KEYS(...)	{__VA_ARGS__, EndSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, EndSequence}
-#define X			{NotMapped}
+#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
+#define SHIFT(...)	{KeyShift, __VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
+#define X			{KeyboardMachine::Machine::KeyNotMapped}
 	static KeySequence zx81_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,

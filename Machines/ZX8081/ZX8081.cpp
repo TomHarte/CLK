@@ -18,6 +18,7 @@
 #include "../Typer.hpp"
 
 #include "CharacterMapper.hpp"
+#include "KeyboardMapper.hpp"
 #include "Video.hpp"
 
 #include <memory>
@@ -331,6 +332,10 @@ template<bool is_zx81> class ConcreteMachine:
 		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 
@@ -350,6 +355,7 @@ template<bool is_zx81> class ConcreteMachine:
 		int line_counter_;
 
 		uint8_t key_states_[8];
+		ZX8081::KeyboardMapper keyboard_mapper_;
 
 		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;

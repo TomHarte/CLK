@@ -46,4 +46,9 @@
 
 - (void)paste:(NSString *)string;
 
+// This is an informal implementation of the CSKeyboardMachine protocol; specific machines
+// can decide whether they opt in as keyboard machines.
+- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
+- (void)clearAllKeys;
+
 @end

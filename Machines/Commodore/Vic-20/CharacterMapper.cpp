@@ -12,9 +12,9 @@
 using namespace Commodore::Vic20;
 
 uint16_t *CharacterMapper::sequence_for_character(char character) {
-#define KEYS(...)	{__VA_ARGS__, EndSequence}
-#define SHIFT(...)	{KeyLShift, __VA_ARGS__, EndSequence}
-#define X			{NotMapped}
+#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
+#define SHIFT(...)	{KeyLShift, __VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
+#define X			{KeyboardMachine::Machine::KeyNotMapped}
 	static KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,

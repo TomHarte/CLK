@@ -9,6 +9,7 @@
 #include "Vic20.hpp"
 
 #include "CharacterMapper.hpp"
+#include "KeyboardMapper.hpp"
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6560/6560.hpp"
@@ -541,6 +542,10 @@ class ConcreteMachine:
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}
 
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
@@ -570,6 +575,7 @@ class ConcreteMachine:
 		}
 
 		Region region_;
+		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
 
 		std::unique_ptr<Vic6560> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;

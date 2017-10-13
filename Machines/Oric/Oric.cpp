@@ -8,9 +8,10 @@
 
 #include "Oric.hpp"
 
-#include "Video.hpp"
-#include "Microdisc.hpp"
 #include "CharacterMapper.hpp"
+#include "KeyboardMapper.hpp"
+#include "Microdisc.hpp"
+#include "Video.hpp"
 
 #include "../MemoryFuzzer.hpp"
 #include "../Typer.hpp"
@@ -405,6 +406,10 @@ class ConcreteMachine:
 			set_interrupt_line();
 		}
 
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
@@ -424,6 +429,9 @@ class ConcreteMachine:
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
 		std::shared_ptr<GI::AY38910::AY38910> ay8910_;
+
+		// Inputs
+		Oric::KeyboardMapper keyboard_mapper_;
 
 		// The tape
 		TapePlayer tape_player_;
