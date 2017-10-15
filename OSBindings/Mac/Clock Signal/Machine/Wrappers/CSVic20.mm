@@ -69,73 +69,13 @@ using namespace Commodore::Vic20;
 #pragma mark - Keyboard map
 
 /*- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
-	static NSDictionary<NSNumber *, NSNumber *> *vicKeysByKeys = @{
-		@(VK_Space):			@(Key::KeySpace),
-		@(VK_Return):			@(Key::KeyReturn),
-		@(VK_Delete):			@(Key::KeyDelete),
-		@(VK_ANSI_Comma):		@(Key::KeyComma),
-		@(VK_ANSI_Period):		@(Key::KeyFullStop),
-		@(VK_ANSI_Minus):		@(Key::KeyDash),
-		@(VK_ANSI_Equal):		@(Key::KeyEquals),
-		@(VK_ANSI_Semicolon):	@(Key::KeyColon),
-		@(VK_ANSI_Quote):		@(Key::KeySemicolon),
-		@(VK_ANSI_Slash):		@(Key::KeySlash),
-		@(VK_Option):			@(Key::KeyCBM),
-		@(VK_Control):			@(Key::KeyControl),
-
-		@(VK_F1):	@(Key::KeyF1),	@(VK_F3):	@(Key::KeyF3),
-		@(VK_F5):	@(Key::KeyF5),	@(VK_F7):	@(Key::KeyF7),
-
-		@(VK_ANSI_Grave):			@(Key::KeyLeft),
-		@(VK_Tab):					@(Key::KeyRunStop),
-		@(VK_ANSI_LeftBracket):		@(Key::KeyAt),
-		@(VK_ANSI_RightBracket):	@(Key::KeyAsterisk),
-		@(VK_ANSI_Backslash):		@(Key::KeyUp),
-
-		@(VK_RightArrow):			@(Key::KeyRight),
-		@(VK_DownArrow):			@(Key::KeyDown),
-	};
-
-	// Not yet mapped:
-	//	KeyHome
-	//	KeyPlus
-	//	KeyGBP
-
-	if(key == VK_Tab && isPressed) {
-		_joystickMode ^= YES;
-	}
-
-	@synchronized(self) {
-		if(_joystickMode) {
-			switch(key) {
-				case VK_UpArrow:	_vic20->set_joystick_state(JoystickInput::Up, isPressed);	break;
-				case VK_DownArrow:	_vic20->set_joystick_state(JoystickInput::Down, isPressed);	break;
-				case VK_LeftArrow:	_vic20->set_joystick_state(JoystickInput::Left, isPressed);	break;
-				case VK_RightArrow:	_vic20->set_joystick_state(JoystickInput::Right, isPressed);	break;
-				case VK_ANSI_A:		_vic20->set_joystick_state(JoystickInput::Fire, isPressed);	break;
-			}
-		} else {
-			switch(key) {
-				default: {
-					NSNumber *targetKey = vicKeysByKeys[@(key)];
-					if(targetKey)
-					{
-						_vic20->set_key_state((Key)targetKey.integerValue, isPressed);
-					}
-					else
-					{
-						NSLog(@"Unmapped: %02x", key);
-					}
-				} break;
-
-				case VK_Shift:
-					// Yuck
-					_vic20->set_key_state(Key::KeyLShift, isPressed);
-					_vic20->set_key_state(Key::KeyRShift, isPressed);
-				break;
-			}
+		switch(key) {
+			case VK_UpArrow:	_vic20->set_joystick_state(JoystickInput::Up, isPressed);	break;
+			case VK_DownArrow:	_vic20->set_joystick_state(JoystickInput::Down, isPressed);	break;
+			case VK_LeftArrow:	_vic20->set_joystick_state(JoystickInput::Left, isPressed);	break;
+			case VK_RightArrow:	_vic20->set_joystick_state(JoystickInput::Right, isPressed);	break;
+			case VK_ANSI_A:		_vic20->set_joystick_state(JoystickInput::Fire, isPressed);	break;
 		}
-	}
 }*/
 
 #pragma mark - Public configuration options

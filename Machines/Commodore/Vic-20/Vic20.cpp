@@ -30,6 +30,14 @@
 namespace Commodore {
 namespace Vic20 {
 
+enum JoystickInput {
+	Up = 0x04,
+	Down = 0x08,
+	Left = 0x10,
+	Right = 0x80,
+	Fire = 0x20
+};
+
 /*!
 	Models the user-port VIA, which is the Vic's connection point for controlling its tape recorder —
 	sensing the presence or absence of a tape and controlling the tape motor — and reading the current
@@ -214,6 +222,38 @@ class Vic6560: public MOS::MOS6560<Vic6560> {
 		uint8_t *colour_memory;			// Colour memory must be contiguous.
 };
 
+/*!
+	Interfaces a joystick to the two VIAs.
+*/
+class Joystick: public Inputs::Joystick {
+	public:
+		Joystick(UserPortVIA &user_port_via_port_handler, KeyboardVIA &keyboard_via_port_handler) :
+			user_port_via_port_handler_(user_port_via_port_handler),
+			keyboard_via_port_handler_(keyboard_via_port_handler) {}
+	
+		void set_digital_input(DigitalInput digital_input, bool is_active) override {
+			JoystickInput mapped_input;
+			switch (digital_input) {
+				default: return;
+				case DigitalInput::Up: mapped_input = Up;		break;
+				case DigitalInput::Down: mapped_input = Down;	break;
+				case DigitalInput::Left: mapped_input = Left;	break;
+				case DigitalInput::Right: mapped_input = Right;	break;
+				case DigitalInput::Fire: mapped_input = Fire;	break;
+			}
+
+			user_port_via_port_handler_.set_joystick_state(mapped_input, is_active);
+			keyboard_via_port_handler_.set_joystick_state(mapped_input, is_active);
+		}
+
+		void reset_all_inputs() override {
+		}
+
+	private:
+		UserPortVIA &user_port_via_port_handler_;
+		KeyboardVIA &keyboard_via_port_handler_;
+};
+
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
@@ -253,6 +293,9 @@ class ConcreteMachine:
 
 			// set the NTSC clock rate
 			set_region(NTSC);
+
+			// install a joystick
+			joysticks_.push_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 		}
 
 		~ConcreteMachine() {
@@ -340,9 +383,8 @@ class ConcreteMachine:
 			keyboard_via_port_handler_->clear_all_keys();
 		}
 
-		void set_joystick_state(JoystickInput input, bool isPressed) override final {
-			user_port_via_port_handler_->set_joystick_state(input, isPressed);
-			keyboard_via_port_handler_->set_joystick_state(input, isPressed);
+		std::vector<Inputs::Joystick *> &get_joysticks() override {
+			return joysticks_;
 		}
 
 		void set_memory_size(MemorySize size) override final {
@@ -580,6 +622,7 @@ class ConcreteMachine:
 
 		Region region_;
 		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
+		std::vector<Inputs::Joystick *> joysticks_;
 
 		std::unique_ptr<Vic6560> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;

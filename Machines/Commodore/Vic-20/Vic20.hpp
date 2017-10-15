@@ -11,6 +11,8 @@
 
 #include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
+#include "../../KeyboardMachine.hpp"
+#include "../../JoystickMachine.hpp"
 #include "../../Typer.hpp"
 
 #include <cstdint>
@@ -59,18 +61,11 @@ enum Key: uint16_t {
 #undef key
 };
 
-enum JoystickInput {
-	Up = 0x04,
-	Down = 0x08,
-	Left = 0x10,
-	Right = 0x80,
-	Fire = 0x20
-};
-
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public JoystickMachine::Machine {
 	public:
 		virtual ~Machine();
 
@@ -80,9 +75,6 @@ class Machine:
 		/// Sets the contents of the rom in @c slot to the buffer @c data of length @c length.
 		virtual void set_rom(ROMSlot slot, size_t length, const uint8_t *data) = 0;
 		// TODO: take a std::vector<uint8_t> to collapse length and data.
-
-		/// Sets the state of joystick input @c input.
-		virtual void set_joystick_state(JoystickInput input, bool isPressed) = 0;
 
 		/// Sets the memory size of this Vic-20.
 		virtual void set_memory_size(MemorySize size) = 0;
