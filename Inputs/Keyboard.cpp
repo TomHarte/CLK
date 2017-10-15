@@ -24,7 +24,7 @@ void Keyboard::set_key_pressed(Key key, bool is_pressed) {
 
 void Keyboard::reset_all_keys() {
 	std::fill(key_states_.begin(), key_states_.end(), false);
-	if(delegate_) delegate_->reset_all_keys();
+	if(delegate_) delegate_->reset_all_keys(this);
 }
 
 void Keyboard::set_delegate(Delegate *delegate) {

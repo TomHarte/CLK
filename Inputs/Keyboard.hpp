@@ -46,11 +46,11 @@ class Keyboard {
 		// Delegate interface.
 		struct Delegate {
 			virtual void keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
-			virtual void reset_all_keys() = 0;
+			virtual void reset_all_keys(Keyboard *keyboard) = 0;
 		};
 		void set_delegate(Delegate *delegate);
 		bool get_key_state(Key key);
-	
+
 	private:
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;

@@ -19,7 +19,7 @@ void Machine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboa
 	if(mapped_key != KeyNotMapped) set_key_state(mapped_key, is_pressed);
 }
 
-void Machine::reset_all_keys() {
+void Machine::reset_all_keys(Inputs::Keyboard *keyboard) {
 	// TODO: unify naming.
 	clear_all_keys();
 }

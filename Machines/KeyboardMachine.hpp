@@ -59,8 +59,8 @@ class Machine: public Inputs::Keyboard::Delegate {
 		virtual KeyboardMapper &get_keyboard_mapper() = 0;
 
 	private:
-		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed);
-		void reset_all_keys();
+		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
+		void reset_all_keys(Inputs::Keyboard *keyboard) override;
 		Inputs::Keyboard keyboard_;
 };
 
