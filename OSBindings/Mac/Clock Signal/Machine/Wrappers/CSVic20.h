@@ -7,7 +7,6 @@
 //
 
 #import "CSMachine.h"
-#import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
 typedef NS_ENUM(NSInteger, CSVic20Country)
@@ -26,7 +25,7 @@ typedef NS_ENUM(NSInteger, CSVic20MemorySize)
 	CSVic20MemorySize32Kb,
 };
 
-@interface CSVic20 : CSMachine <CSKeyboardMachine, CSFastLoading>
+@interface CSVic20 : CSMachine <CSFastLoading>
 
 - (instancetype)init;
 

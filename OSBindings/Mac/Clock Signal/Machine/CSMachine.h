@@ -35,6 +35,9 @@
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
+- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
+- (void)clearAllKeys;
+
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 @property (nonatomic, weak) id<CSMachineDelegate> delegate;
@@ -45,10 +48,5 @@
 @property (nonatomic, readonly) NSString *userDefaultsPrefix;
 
 - (void)paste:(NSString *)string;
-
-// This is an informal implementation of the CSKeyboardMachine protocol; specific machines
-// can decide whether they opt in as keyboard machines.
-- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
-- (void)clearAllKeys;
 
 @end
