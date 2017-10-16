@@ -107,15 +107,15 @@ class ConcreteMachine:
 				break;
 			}
 
-			joysticks_.push_back(new Joystick(bus_.get(), 0, 0));
-			joysticks_.push_back(new Joystick(bus_.get(), 4, 1));
+			joysticks_.emplace_back(new Joystick(bus_.get(), 0, 0));
+			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
 		}
 
 		bool insert_media(const StaticAnalyser::Media &media) override {
 			return false;
 		}
 
-		std::vector<Inputs::Joystick *> &get_joysticks() override {
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 
@@ -208,7 +208,7 @@ class ConcreteMachine:
 		} frame_records_[4];
 		unsigned int frame_record_pointer_;
 		bool is_ntsc_;
-		std::vector<Inputs::Joystick *> joysticks_;
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
 }

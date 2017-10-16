@@ -295,7 +295,7 @@ class ConcreteMachine:
 			set_region(NTSC);
 
 			// install a joystick
-			joysticks_.push_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
+			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 		}
 
 		~ConcreteMachine() {
@@ -383,7 +383,7 @@ class ConcreteMachine:
 			keyboard_via_port_handler_->clear_all_keys();
 		}
 
-		std::vector<Inputs::Joystick *> &get_joysticks() override {
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 
@@ -622,7 +622,7 @@ class ConcreteMachine:
 
 		Region region_;
 		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
-		std::vector<Inputs::Joystick *> joysticks_;
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 		std::unique_ptr<Vic6560> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;
