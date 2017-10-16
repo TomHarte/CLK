@@ -30,6 +30,33 @@ namespace {
 
 namespace Atari2600 {
 
+class Joystick: public Inputs::Joystick {
+	public:
+		Joystick(Bus *bus, size_t shift, size_t fire_tia_input) :
+			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
+
+		void set_digital_input(DigitalInput digital_input, bool is_active) {
+			switch(digital_input) {
+				case DigitalInput::Up:		bus_->mos6532_.update_port_input(0, 0x10 >> shift_, is_active);		break;
+				case DigitalInput::Down:	bus_->mos6532_.update_port_input(0, 0x20 >> shift_, is_active);		break;
+				case DigitalInput::Left:	bus_->mos6532_.update_port_input(0, 0x40 >> shift_, is_active);		break;
+				case DigitalInput::Right:	bus_->mos6532_.update_port_input(0, 0x80 >> shift_, is_active);		break;
+
+				// TODO: latching
+				case DigitalInput::Fire:
+					if(is_active)
+						bus_->tia_input_value_[fire_tia_input_] &= ~0x80;
+					else
+						bus_->tia_input_value_[fire_tia_input_] |= 0x80;
+				break;
+			}
+		}
+
+	private:
+		size_t shift_, fire_tia_input_;
+		Bus *bus_;
+};
+
 class ConcreteMachine:
 	public Machine,
 	public Outputs::CRT::Delegate {
@@ -44,7 +71,7 @@ class ConcreteMachine:
 			close_output();
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) {
+		void configure_as_target(const StaticAnalyser::Target &target) override {
 			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
 			switch(target.atari.paging_model) {
 				case StaticAnalyser::Atari2600PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
@@ -79,34 +106,20 @@ class ConcreteMachine:
 					}
 				break;
 			}
+
+			joysticks_.push_back(new Joystick(bus_.get(), 0, 0));
+			joysticks_.push_back(new Joystick(bus_.get(), 4, 1));
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) {
+		bool insert_media(const StaticAnalyser::Media &media) override {
 			return false;
 		}
 
-		void set_digital_input(Atari2600DigitalInput input, bool state) {
-			switch (input) {
-				case Atari2600DigitalInputJoy1Up:		bus_->mos6532_.update_port_input(0, 0x10, state);	break;
-				case Atari2600DigitalInputJoy1Down:		bus_->mos6532_.update_port_input(0, 0x20, state);	break;
-				case Atari2600DigitalInputJoy1Left:		bus_->mos6532_.update_port_input(0, 0x40, state);	break;
-				case Atari2600DigitalInputJoy1Right:	bus_->mos6532_.update_port_input(0, 0x80, state);	break;
-
-				case Atari2600DigitalInputJoy2Up:		bus_->mos6532_.update_port_input(0, 0x01, state);	break;
-				case Atari2600DigitalInputJoy2Down:		bus_->mos6532_.update_port_input(0, 0x02, state);	break;
-				case Atari2600DigitalInputJoy2Left:		bus_->mos6532_.update_port_input(0, 0x04, state);	break;
-				case Atari2600DigitalInputJoy2Right:	bus_->mos6532_.update_port_input(0, 0x08, state);	break;
-
-				// TODO: latching
-				case Atari2600DigitalInputJoy1Fire:		if(state) bus_->tia_input_value_[0] &= ~0x80; else bus_->tia_input_value_[0] |= 0x80; break;
-				case Atari2600DigitalInputJoy2Fire:		if(state) bus_->tia_input_value_[1] &= ~0x80; else bus_->tia_input_value_[1] |= 0x80; break;
-
-				default: break;
-			}
+		std::vector<Inputs::Joystick *> &get_joysticks() override {
+			return joysticks_;
 		}
 
-
-		void set_switch_is_enabled(Atari2600Switch input, bool state) {
+		void set_switch_is_enabled(Atari2600Switch input, bool state) override {
 			switch(input) {
 				case Atari2600SwitchReset:					bus_->mos6532_.update_port_input(1, 0x01, state);	break;
 				case Atari2600SwitchSelect:					bus_->mos6532_.update_port_input(1, 0x02, state);	break;
@@ -116,36 +129,36 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_reset_switch(bool state) {
+		void set_reset_switch(bool state) override {
 			bus_->set_reset_line(state);
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(float aspect_ratio) {
+		void setup_output(float aspect_ratio) override {
 			bus_->tia_.reset(new TIA);
 			bus_->speaker_.reset(new Speaker);
 			bus_->speaker_->set_input_rate((float)(get_clock_rate() / (double)CPUTicksPerAudioTick));
 			bus_->tia_->get_crt()->set_delegate(this);
 		}
 
-		void close_output() {
+		void close_output() override {
 			bus_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
+		std::shared_ptr<Outputs::CRT::CRT> get_crt() override {
 			return bus_->tia_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
+		std::shared_ptr<Outputs::Speaker> get_speaker() override {
 			return bus_->speaker_;
 		}
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) override {
 			bus_->run_for(cycles);
 		}
 
 		// to satisfy Outputs::CRT::Delegate
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) {
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) override {
 			const size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
@@ -182,7 +195,6 @@ class ConcreteMachine:
 			}
 		}
 
-
 	private:
 		// the bus
 		std::unique_ptr<Bus> bus_;
@@ -196,6 +208,7 @@ class ConcreteMachine:
 		} frame_records_[4];
 		unsigned int frame_record_pointer_;
 		bool is_ntsc_;
+		std::vector<Inputs::Joystick *> joysticks_;
 };
 
 }

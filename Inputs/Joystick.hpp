@@ -27,7 +27,13 @@ class Joystick {
 
 		// Host interface.
 		virtual void set_digital_input(DigitalInput digital_input, bool is_active) = 0;
-		virtual void reset_all_inputs() = 0;
+		virtual void reset_all_inputs() {
+			set_digital_input(DigitalInput::Up, false);
+			set_digital_input(DigitalInput::Down, false);
+			set_digital_input(DigitalInput::Left, false);
+			set_digital_input(DigitalInput::Right, false);
+			set_digital_input(DigitalInput::Fire, false);
+		}
 };
 
 }
