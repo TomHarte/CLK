@@ -50,20 +50,20 @@ class DigitalPhaseLockedLoop {
 		}
 
 	private:
-		Delegate *delegate_;
+		Delegate *delegate_ = nullptr;
 
 		void post_phase_offset(int phase, int offset);
 
 		std::vector<int> offset_history_;
-		size_t offset_history_pointer_;
-		int offset_;
+		size_t offset_history_pointer_ = 0;
+		int offset_ = 0;
 
-		int phase_;
-		int window_length_;
-		bool window_was_filled_;
+		int phase_ = 0;
+		int window_length_ = 0;
+		bool window_was_filled_ = false;
 
-		int clocks_per_bit_;
-		int tolerance_;
+		int clocks_per_bit_ = 0;
+		int tolerance_ = 0;
 };
 
 }

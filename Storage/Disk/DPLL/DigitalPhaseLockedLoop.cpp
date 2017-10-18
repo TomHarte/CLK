@@ -13,13 +13,9 @@
 using namespace Storage;
 
 DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, size_t length_of_history) :
-		clocks_per_bit_(clocks_per_bit),
-		phase_(0),
-		window_length_(clocks_per_bit),
-		offset_history_pointer_(0),
 		offset_history_(length_of_history, 0),
-		offset_(0),
-		delegate_(nullptr) {}
+		window_length_(clocks_per_bit),
+		clocks_per_bit_(clocks_per_bit) {}
 
 void DigitalPhaseLockedLoop::run_for(const Cycles cycles) {
 	offset_ += cycles.as_int();
