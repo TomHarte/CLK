@@ -18,12 +18,12 @@ namespace Motorola {
 namespace CRTC {
 
 struct BusState {
-	bool display_enable;
-	bool hsync;
-	bool vsync;
-	bool cursor;
-	uint16_t refresh_address;
-	uint16_t row_address;
+	bool display_enable = false;
+	bool hsync = false;
+	bool vsync = false;
+	bool cursor = false;
+	uint16_t refresh_address = 0;
+	uint16_t row_address = 0;
 };
 
 class BusHandler {
@@ -167,8 +167,8 @@ template <class T> class CRTC6845 {
 	private:
 		inline void perform_bus_cycle_phase1() {
 			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
-			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | static_cast<int>(character_is_visible_);
-			bus_state_.display_enable = (character_is_visible_shifter_ & display_skew_mask_) && line_is_visible_;
+			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | static_cast<unsigned int>(character_is_visible_);
+			bus_state_.display_enable = (static_cast<int>(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
 			bus_handler_.perform_bus_cycle_phase1(bus_state_);
 		}
 
@@ -248,25 +248,25 @@ template <class T> class CRTC6845 {
 		T &bus_handler_;
 		BusState bus_state_;
 
-		uint8_t registers_[18];
-		uint8_t dummy_register_;
-		int selected_register_;
+		uint8_t registers_[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		uint8_t dummy_register_ = 0;
+		int selected_register_ = 0;
 
-		uint8_t character_counter_;
-		uint8_t line_counter_;
+		uint8_t character_counter_ = 0;
+		uint8_t line_counter_ = 0;
 
-		bool character_is_visible_, line_is_visible_;
+		bool character_is_visible_ = false, line_is_visible_ = false;
 
-		int hsync_counter_;
-		int vsync_counter_;
-		bool is_in_adjustment_period_;
+		int hsync_counter_ = 0;
+		int vsync_counter_ = 0;
+		bool is_in_adjustment_period_ = false;
 
-		uint16_t line_address_;
-		uint16_t end_of_line_address_;
-		uint8_t status_;
+		uint16_t line_address_ = 0;
+		uint16_t end_of_line_address_ = 0;
+		uint8_t status_ = 0;
 
 		int display_skew_mask_ = 1;
-		int character_is_visible_shifter_ = 0;
+		unsigned int character_is_visible_shifter_ = 0;
 };
 
 }
