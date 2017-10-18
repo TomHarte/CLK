@@ -99,13 +99,13 @@ void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
 	// against rounding errors when this run is drawn.
 	// TODO: allow somebody else to specify the rule for generating a left-padding value and
 	// a right-padding value.
-	uint8_t *start_pointer = pointer_to_location(write_area_.x, write_area_.y);
-	memcpy(	&start_pointer[-bytes_per_pixel_],
-			start_pointer,
+	uint8_t *start_pointer = pointer_to_location(write_area_.x, write_area_.y) - bytes_per_pixel_;
+	memcpy(	start_pointer,
+			&start_pointer[bytes_per_pixel_],
 			bytes_per_pixel_);
 
-	memcpy(	&start_pointer[actual_length * bytes_per_pixel_],
-			&start_pointer[(actual_length - 1) * bytes_per_pixel_],
+	memcpy(	&start_pointer[(actual_length + 1) * bytes_per_pixel_],
+			&start_pointer[actual_length * bytes_per_pixel_],
 			bytes_per_pixel_);
 }
 

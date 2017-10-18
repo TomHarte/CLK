@@ -67,9 +67,7 @@ ArrayBuilder::Submission ArrayBuilder::submit() {
 }
 
 ArrayBuilder::Buffer::Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
-		is_full(false),
-		submission_function_(submission_function),
-		allocated_data(0), flushed_data(0), submitted_data(0) {
+		submission_function_(submission_function) {
 	if(!submission_function_) {
 		glGenBuffers(1, &buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, buffer);
