@@ -40,10 +40,10 @@ class Shifter {
 	private:
 		// Bit stream input state
 		int bits_since_token_ = 0;
-		int shift_register_ = 0;
+		unsigned int shift_register_ = 0;
 		bool is_awaiting_marker_value_ = false;
-		bool should_obey_syncs_;
-		Token token_;
+		bool should_obey_syncs_ = true;
+		Token token_ = None;
 
 		// input configuration
 		bool is_double_density_ = false;
