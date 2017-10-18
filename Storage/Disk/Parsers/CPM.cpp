@@ -88,7 +88,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 	std::unique_ptr<Catalogue> result(new Catalogue);
 
 	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * (int)sector_size / parameters.block_size) >= 256;
-	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 16 : 8) * (size_t)parameters.block_size;
+	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * (size_t)parameters.block_size;
 	int sectors_per_block = parameters.block_size / (int)sector_size;
 	int records_per_sector = (int)sector_size / 128;
 
@@ -117,7 +117,8 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		// Accumulate all data.
 		while(entry <= final_entry) {
 			int record = 0;
-			for(size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < entry->number_of_records; block++) {
+			int number_of_records = (entry->number_of_records != 0x80) ? entry->number_of_records : (has_long_allocation_units ? 8 : 16);
+			for(size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
 				int block_number;
 				if(has_long_allocation_units) {
 					block_number = catalogue[entry->catalogue_index + 16 + (block << 1)] + (catalogue[entry->catalogue_index + 16 + (block << 1) + 1] << 8);
@@ -133,7 +134,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				sector = first_sector % parameters.sectors_per_track;
 				track = first_sector / parameters.sectors_per_track;
 
-				for(int s = 0; s < sectors_per_block && record < entry->number_of_records; s++) {
+				for(int s = 0; s < sectors_per_block && record < number_of_records; s++) {
 					Storage::Encodings::MFM::Sector *sector_contents = parser.get_sector(0, static_cast<uint8_t>(track), static_cast<uint8_t>(parameters.first_sector +  sector));
 					if(!sector_contents) break;
 					sector++;
