@@ -66,10 +66,11 @@ class TextureBuilder {
 		TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit);
 		virtual ~TextureBuilder();
 
-		/// Finds the first available space of at least @c required_length pixels in size. Calls must be paired off
-		/// with calls to @c reduce_previous_allocation_to.
+		/// Finds the first available space of at least @c required_length pixels in size which is suitably aligned
+		/// for writing of @c required_alignment number of pixels at a time.
+		/// Calls must be paired off with calls to @c reduce_previous_allocation_to.
 		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-		uint8_t *allocate_write_area(size_t required_length);
+		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1);
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.

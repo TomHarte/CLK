@@ -50,15 +50,15 @@ class i8272: public Storage::Disk::MFMController {
 		std::unique_ptr<BusHandler> allocated_bus_handler_;
 
 		// Status registers.
-		uint8_t main_status_;
-		uint8_t status_[3];
+		uint8_t main_status_ = 0;
+		uint8_t status_[3] = {0, 0, 0};
 
 		// A buffer for accumulating the incoming command, and one for accumulating the result.
 		std::vector<uint8_t> command_;
 		std::vector<uint8_t> result_stack_;
-		uint8_t input_;
-		bool has_input_;
-		bool expects_input_;
+		uint8_t input_ = 0;
+		bool has_input_ = false;
+		bool expects_input_ = false;
 
 		// Event stream: the 8272-specific events, plus the current event state.
 		enum class Event8272: int {
@@ -68,41 +68,37 @@ class i8272: public Storage::Disk::MFMController {
 			NoLongerReady = (1 << 6)
 		};
 		void posit_event(int type);
-		int interesting_event_mask_;
-		int resume_point_;
-		bool is_access_command_;
+		int interesting_event_mask_ = (int)Event8272::CommandByte;
+		int resume_point_ = 0;
+		bool is_access_command_ = false;
 
 		// The counter used for ::Timer events.
-		int delay_time_;
+		int delay_time_ = 0;
 
 		// The connected drives.
 		struct Drive {
-			uint8_t head_position;
+			uint8_t head_position = 0;
 
 			// Seeking: persistent state.
 			enum Phase {
 				NotSeeking,
 				Seeking,
 				CompletedSeeking
-			} phase;
-			bool did_seek;
-			bool seek_failed;
+			} phase = NotSeeking;
+			bool did_seek = false;
+			bool seek_failed = false;
 
 			// Seeking: transient state.
-			int step_rate_counter;
-			int steps_taken;
-			int target_head_position;	// either an actual number, or -1 to indicate to step until track zero
+			int step_rate_counter = 0;
+			int steps_taken = 0;
+			int target_head_position = 0;	// either an actual number, or -1 to indicate to step until track zero
 
 			// Head state.
-			int head_unload_delay[2];
-			bool head_is_loaded[2];
+			int head_unload_delay[2] = {0, 0};
+			bool head_is_loaded[2] = {false, false};
 
-			Drive() :
-				head_position(0), phase(NotSeeking),
-				head_is_loaded{false, false},
-				head_unload_delay{0, 0} {};
 		} drives_[4];
-		int drives_seeking_;
+		int drives_seeking_ = 0;
 
 		/// @returns @c true if the selected drive, which is number @c drive, can stop seeking.
 		bool seek_is_satisfied(int drive);
@@ -115,22 +111,22 @@ class i8272: public Storage::Disk::MFMController {
 		bool is_executing_ = false;
 
 		// A count of head unload timers currently running.
-		int head_timers_running_;
+		int head_timers_running_ = 0;
 
 		// Transient storage and counters used while reading the disk.
-		uint8_t header_[6];
-		int distance_into_section_;
-		int index_hole_count_, index_hole_limit_;
+		uint8_t header_[6] = {0, 0, 0, 0, 0, 0};
+		int distance_into_section_ = 0;
+		int index_hole_count_ = 0, index_hole_limit_ = 0;
 
 		// Keeps track of the drive and head in use during commands.
-		int active_drive_;
-		int active_head_;
+		int active_drive_ = 0;
+		int active_head_ = 0;
 
 		// Internal registers.
-		uint8_t cylinder_, head_, sector_, size_;
+		uint8_t cylinder_ = 0, head_ = 0, sector_ = 0, size_ = 0;
 
 		// Master switch on not performing any work.
-		bool is_sleeping_;
+		bool is_sleeping_ = false;
 };
 
 }

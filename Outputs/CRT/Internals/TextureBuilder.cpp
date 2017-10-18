@@ -60,7 +60,7 @@ inline uint8_t *TextureBuilder::pointer_to_location(uint16_t x, uint16_t y) {
 	return &image_[((y * InputBufferBuilderWidth) + x) * bytes_per_pixel_];
 }
 
-uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
+uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t required_alignment) {
 	// Keep a flag to indicate whether the buffer was full at allocate_write_area; if it was then
 	// don't return anything now, and decline to act upon follow-up methods. is_full_ may be reset
 	// by asynchronous calls to submit. was_full_ will not be touched by it.
@@ -69,8 +69,10 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
 
 	// If there's not enough space on this line, move to the next. If the next is where the current
 	// submission group started, trigger is/was_full_ and return nothing.
-	if(write_areas_start_x_ + required_length + 2 > InputBufferBuilderWidth) {
+	size_t alignment_offset = (required_alignment - ((write_areas_start_x_ + 1) % required_alignment)) % required_alignment;
+	if(write_areas_start_x_ + required_length + 2 + alignment_offset > InputBufferBuilderWidth) {
 		write_areas_start_x_ = 0;
+		alignment_offset = (required_alignment -  1) % required_alignment;
 		write_areas_start_y_ = (write_areas_start_y_ + 1) % InputBufferBuilderHeight;
 
 		if(write_areas_start_y_ == first_unsubmitted_y_) {
@@ -80,7 +82,7 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length) {
 	}
 
 	// Queue up the latest write area.
-	write_area_.x = write_areas_start_x_ + 1;
+	write_area_.x = write_areas_start_x_ + 1 + static_cast<uint16_t>(alignment_offset);
 	write_area_.y = write_areas_start_y_;
 	write_area_.length = (uint16_t)required_length;
 

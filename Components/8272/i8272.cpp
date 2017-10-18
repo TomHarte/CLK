@@ -79,14 +79,7 @@ namespace {
 
 i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
 	Storage::Disk::MFMController(clock_rate),
-	bus_handler_(bus_handler),
-	main_status_(0),
-	interesting_event_mask_((int)Event8272::CommandByte),
-	resume_point_(0),
-	delay_time_(0),
-	head_timers_running_(0),
-	expects_input_(false),
-	drives_seeking_(0) {
+	bus_handler_(bus_handler) {
 	posit_event((int)Event8272::CommandByte);
 }
 
