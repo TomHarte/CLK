@@ -207,7 +207,7 @@ class CRTCBusHandler {
 			// collect some more pixels if output is ongoing
 			if(!is_sync && state.display_enable) {
 				if(!pixel_data_) {
-					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320);
+					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320, 8);
 				}
 				if(pixel_pointer_) {
 					// the CPC shuffles output lines as:

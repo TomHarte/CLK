@@ -221,9 +221,9 @@ class CRT {
 			@param required_length The number of samples to allocate.
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
-		inline uint8_t *allocate_write_area(size_t required_length) {
+		inline uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1) {
 			std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
-			return openGL_output_builder_.texture_builder.allocate_write_area(required_length);
+			return openGL_output_builder_.texture_builder.allocate_write_area(required_length, required_alignment);
 		}
 
 		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
