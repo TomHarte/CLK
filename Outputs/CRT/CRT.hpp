@@ -33,12 +33,12 @@ class CRT {
 
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
-		unsigned int time_multiplier_;
-		const unsigned int common_output_divisor_;
+		unsigned int time_multiplier_ = 1;
+		const unsigned int common_output_divisor_ = 1;
 
 		// the two flywheels regulating scanning
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
-		uint16_t vertical_flywheel_output_divider_;
+		uint16_t vertical_flywheel_output_divider_ = 1;
 
 		struct Scan {
 			enum Type {
@@ -53,11 +53,11 @@ class CRT {
 		};
 		void output_scan(const Scan *scan);
 
-		uint8_t colour_burst_phase_, colour_burst_amplitude_, colour_burst_phase_adjustment_;
-		bool is_writing_composite_run_;
+		uint8_t colour_burst_phase_ = 0, colour_burst_amplitude_ = 30, colour_burst_phase_adjustment_ = 0;
+		bool is_writing_composite_run_ = false;
 
-		unsigned int phase_denominator_, phase_numerator_, colour_cycle_numerator_;
-		bool is_alernate_line_, phase_alternates_;
+		unsigned int phase_denominator_ = 1, phase_numerator_ = 1, colour_cycle_numerator_ = 1;
+		bool is_alernate_line_ = false, phase_alternates_ = false;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type);
@@ -76,8 +76,8 @@ class CRT {
 		} output_run_;
 
 		// the delegate
-		Delegate *delegate_;
-		unsigned int frames_since_last_delegate_call_;
+		Delegate *delegate_ = nullptr;
+		unsigned int frames_since_last_delegate_call_ = 0;
 
 		// queued tasks for the OpenGL queue; performed before the next draw
 		std::mutex function_mutex_;
@@ -88,16 +88,16 @@ class CRT {
 		}
 
 		// sync counter, for determining vertical sync
-		bool is_receiving_sync_;						// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		bool is_accumulating_sync_;						// true if a sync level has triggered the suspicion that a vertical sync might be in progress
-		bool is_refusing_sync_;							// true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync
-		unsigned int sync_capacitor_charge_threshold_;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int cycles_of_sync_;					// the number of cycles since the potential vertical sync began
-		unsigned int cycles_since_sync_;				// the number of cycles since last in sync, for defeating the possibility of this being a vertical sync
+		bool is_receiving_sync_ = false;					// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
+		bool is_accumulating_sync_ = false;					// true if a sync level has triggered the suspicion that a vertical sync might be in progress
+		bool is_refusing_sync_ = false;						// true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync
+		unsigned int sync_capacitor_charge_threshold_ = 0;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
+		unsigned int cycles_of_sync_ = 0;					// the number of cycles since the potential vertical sync began
+		unsigned int cycles_since_sync_ = 0;				// the number of cycles since last in sync, for defeating the possibility of this being a vertical sync
 
-		unsigned int cycles_per_line_;
+		unsigned int cycles_per_line_ = 1;
 
-		float input_gamma_, output_gamma_;
+		float input_gamma_ = 1.0f, output_gamma_ = 1.0f;
 		void update_gamma();
 
 	public:

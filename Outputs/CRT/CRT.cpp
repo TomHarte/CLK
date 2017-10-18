@@ -90,13 +90,8 @@ void CRT::update_gamma() {
 }
 
 CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
-	is_receiving_sync_(false),
 	common_output_divisor_(common_output_divisor),
-	is_writing_composite_run_(false),
-	delegate_(nullptr),
-	frames_since_last_delegate_call_(0),
-	openGL_output_builder_(buffer_depth),
-	is_alernate_line_(false) {}
+	openGL_output_builder_(buffer_depth) {}
 
 CRT::CRT(	unsigned int cycles_per_line,
 			unsigned int common_output_divisor,
