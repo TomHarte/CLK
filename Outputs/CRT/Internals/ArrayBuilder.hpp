@@ -82,17 +82,17 @@ class ArrayBuilder {
 				void reset();
 
 			private:
-				bool is_full;
-				GLuint buffer;
+				bool is_full = false;
+				GLuint buffer = 0;
 				std::function<void(bool is_input, uint8_t *, size_t)> submission_function_;
 				std::vector<uint8_t> data;
-				size_t allocated_data;
-				size_t flushed_data;
-				size_t submitted_data;
+				size_t allocated_data = 0;
+				size_t flushed_data = 0;
+				size_t submitted_data = 0;
 		} output_, input_;
 		uint8_t *get_storage(size_t size, Buffer &buffer);
 
-		bool is_full_;
+		bool is_full_ = false;
 };
 
 }

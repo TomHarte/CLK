@@ -155,18 +155,8 @@ class AYDeferrer {
 class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
-			cycles_(0),
-			was_enabled_(false),
-			was_sync_(false),
-			pixel_data_(nullptr),
-			pixel_pointer_(nullptr),
-			was_hsync_(false),
 			ram_(ram),
-			interrupt_timer_(interrupt_timer),
-			pixel_divider_(1),
-			mode_(2),
-			next_mode_(2),
-			cycles_into_hsync_(0) {
+			interrupt_timer_(interrupt_timer) {
 				establish_palette_hits();
 				build_mode_table();
 			}
@@ -500,19 +490,19 @@ class CRTCBusHandler {
 			return mapping[colour];
 		}
 
-		unsigned int cycles_;
+		unsigned int cycles_ = 0;
 
-		bool was_enabled_, was_sync_, was_hsync_, was_vsync_;
-		int cycles_into_hsync_;
+		bool was_enabled_ = false, was_sync_ = false, was_hsync_ = false, was_vsync_ = false;
+		int cycles_into_hsync_ = 0;
 
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
-		uint8_t *pixel_data_, *pixel_pointer_;
+		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
-		uint8_t *ram_;
+		uint8_t *ram_ = nullptr;
 
-		int next_mode_, mode_;
+		int next_mode_ = 2, mode_ = 2;
 
-		unsigned int pixel_divider_;
+		unsigned int pixel_divider_ = 1;
 		uint16_t mode0_output_[256];
 		uint32_t mode1_output_[256];
 		uint64_t mode2_output_[256];
@@ -522,9 +512,9 @@ class CRTCBusHandler {
 		std::vector<uint8_t> mode1_palette_hits_[4];
 		std::vector<uint8_t> mode3_palette_hits_[4];
 
-		int pen_;
+		int pen_ = 0;
 		uint8_t palette_[16];
-		uint8_t border_;
+		uint8_t border_ = 0;
 
 		InterruptTimer &interrupt_timer_;
 };
