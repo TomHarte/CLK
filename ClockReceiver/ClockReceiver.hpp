@@ -161,7 +161,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
 		inline HalfCycles() : WrappedInt<HalfCycles>() {}
 
-		inline HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() << 1) {}
+		inline HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
 		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
