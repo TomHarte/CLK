@@ -53,8 +53,8 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 
 		int get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		unsigned int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		unsigned int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		void reset_crc();
 		uint16_t get_crc();
 

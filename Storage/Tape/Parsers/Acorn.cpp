@@ -41,14 +41,14 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	return value;
 }
 
-int Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	int result = get_next_byte(tape);
-	result |= get_next_byte(tape) << 8;
+unsigned int Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	unsigned int result = static_cast<unsigned int>(get_next_byte(tape));
+	result |= static_cast<unsigned int>(get_next_byte(tape)) << 8;
 	return result;
 }
 
-int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	int result = get_next_short(tape);
+unsigned int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	unsigned int result = get_next_short(tape);
 	result |= get_next_short(tape) << 8;
 	return result;
 }
