@@ -528,7 +528,6 @@
 		4B2A332E1DB86869002876E3 /* OricOptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OricOptionsPanel.swift; sourceTree = "<group>"; };
 		4B2A53901D117D36003C6002 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
 		4B2A53911D117D36003C6002 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
-		4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSKeyboardMachine.h; sourceTree = "<group>"; };
 		4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Subclassing.h"; sourceTree = "<group>"; };
 		4B2A53951D117D36003C6002 /* CSMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSMachine.h; sourceTree = "<group>"; };
 		4B2A53961D117D36003C6002 /* CSMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSMachine.mm; sourceTree = "<group>"; };
@@ -741,7 +740,6 @@
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vic20OptionsPanel.swift; sourceTree = "<group>"; };
-		4B9CCDA21DA27C3F0098B625 /* CSJoystickMachine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickMachine.h; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Data/ZX8081.cpp; sourceTree = "<group>"; };
 		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Data/ZX8081.hpp; sourceTree = "<group>"; };
 		4BA22B051D8817CE0008C640 /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../StaticAnalyser/Commodore/Disk.cpp; sourceTree = "<group>"; };
@@ -1283,8 +1281,6 @@
 			isa = PBXGroup;
 			children = (
 				4BBC34241D2208B100FFC9DF /* CSFastLoading.h */,
-				4B9CCDA21DA27C3F0098B625 /* CSJoystickMachine.h */,
-				4B2A53931D117D36003C6002 /* CSKeyboardMachine.h */,
 				4B2A53951D117D36003C6002 /* CSMachine.h */,
 				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */,
