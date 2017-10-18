@@ -35,8 +35,6 @@ namespace AmstradCPC {
 */
 class InterruptTimer {
 	public:
-		InterruptTimer() : timer_(0), interrupt_request_(false) {}
-
 		/*!
 			Indicates that a new hsync pulse has been recognised. This should be
 			supplied on the falling edge of the CRTC HSYNC signal, which is the
@@ -93,10 +91,10 @@ class InterruptTimer {
 		}
 
 	private:
-		int reset_counter_;
-		bool interrupt_request_;
-		bool last_interrupt_request_;
-		int timer_;
+		int reset_counter_ = 0;
+		bool interrupt_request_ = false;
+		bool last_interrupt_request_ = false;
+		int timer_ = 0;
 };
 
 /*!
