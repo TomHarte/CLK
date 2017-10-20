@@ -242,9 +242,6 @@ class Joystick: public Inputs::Joystick {
 			keyboard_via_port_handler_.set_joystick_state(mapped_input, is_active);
 		}
 
-		void reset_all_inputs() override {
-		}
-
 	private:
 		UserPortVIA &user_port_via_port_handler_;
 		KeyboardVIA &keyboard_via_port_handler_;
