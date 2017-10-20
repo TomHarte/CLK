@@ -8,8 +8,7 @@
 
 #include "Vic20.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6560/6560.hpp"
