@@ -72,7 +72,7 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t requ
 	size_t alignment_offset = (required_alignment - ((write_areas_start_x_ + 1) % required_alignment)) % required_alignment;
 	if(write_areas_start_x_ + required_length + 2 + alignment_offset > InputBufferBuilderWidth) {
 		write_areas_start_x_ = 0;
-		alignment_offset = (required_alignment -  1) % required_alignment;
+		alignment_offset = required_alignment - 1;
 		write_areas_start_y_ = (write_areas_start_y_ + 1) % InputBufferBuilderHeight;
 
 		if(write_areas_start_y_ == first_unsubmitted_y_) {
