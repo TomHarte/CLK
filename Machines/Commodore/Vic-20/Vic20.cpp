@@ -119,14 +119,10 @@ class KeyboardVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		/// Sets whether @c key @c is_pressed.
 		void set_key_state(uint16_t key, bool is_pressed) {
-			if(key == KeyRestore) {
-				// TODO: how is restore wired?
-			} else {
-				if(is_pressed)
-					columns_[key & 7] &= ~(key >> 3);
-				else
-					columns_[key & 7] |= (key >> 3);
-			}
+			if(is_pressed)
+				columns_[key & 7] &= ~(key >> 3);
+			else
+				columns_[key & 7] |= (key >> 3);
 		}
 
 		/// Sets all keys as unpressed.
@@ -375,8 +371,11 @@ class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) override final {
-			keyboard_via_port_handler_->set_key_state(key, isPressed);
+		void set_key_state(uint16_t key, bool is_pressed) override final {
+			if(key != KeyRestore)
+				keyboard_via_port_handler_->set_key_state(key, is_pressed);
+			else
+				user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
 		}
 
 		void clear_all_keys() override final {
