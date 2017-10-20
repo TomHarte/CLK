@@ -14,8 +14,8 @@ Keyboard::Keyboard() {}
 
 void Keyboard::set_key_pressed(Key key, bool is_pressed) {
 	size_t key_offset = static_cast<size_t>(key);
-	if(key_offset > key_states_.size()) {
-		key_states_.resize(key_offset, false);
+	if(key_offset >= key_states_.size()) {
+		key_states_.resize(key_offset+1, false);
 	}
 	key_states_[key_offset] = is_pressed;
 
