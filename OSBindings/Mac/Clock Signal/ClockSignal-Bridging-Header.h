@@ -3,7 +3,6 @@
 //
 
 #import "CSMachine.h"
-#import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
 #import "CSAtari2600.h"
@@ -17,3 +16,5 @@
 #import	"CSOpenGLView.h"
 #import "CSAudioQueue.h"
 #import "CSBestEffortUpdater.h"
+
+#include "KeyCodes.h"

@@ -11,6 +11,7 @@
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 
 #include "Atari2600Inputs.h"
 
@@ -21,15 +22,13 @@ namespace Atari2600 {
 */
 class Machine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public JoystickMachine::Machine {
 	public:
 		virtual ~Machine();
 
 		/// Creates and returns an Atari 2600 on the heap.
 		static Machine *Atari2600();
-
-		/// Sets @c input to @c state.
-		virtual void set_digital_input(Atari2600DigitalInput input, bool state) = 0;
 
 		/// Sets the switch @c input to @c state.
 		virtual void set_switch_is_enabled(Atari2600Switch input, bool state) = 0;

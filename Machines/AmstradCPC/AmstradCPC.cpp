@@ -9,6 +9,7 @@
 #include "AmstradCPC.hpp"
 
 #include "CharacterMapper.hpp"
+#include "KeyboardMapper.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
@@ -953,6 +954,10 @@ class ConcreteMachine:
 			key_state_.clear_all_keys();
 		}
 
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		inline void write_to_gate_array(uint8_t value) {
 			switch(value >> 6) {
@@ -1032,6 +1037,7 @@ class ConcreteMachine:
 		uint8_t *write_pointers_[4];
 
 		KeyboardState key_state_;
+		AmstradCPC::KeyboardMapper keyboard_mapper_;
 };
 
 }

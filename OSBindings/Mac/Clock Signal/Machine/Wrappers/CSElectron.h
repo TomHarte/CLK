@@ -7,10 +7,9 @@
 //
 
 #import "CSMachine.h"
-#import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
-@interface CSElectron : CSMachine <CSKeyboardMachine, CSFastLoading>
+@interface CSElectron : CSMachine <CSFastLoading>
 
 - (instancetype)init;
 

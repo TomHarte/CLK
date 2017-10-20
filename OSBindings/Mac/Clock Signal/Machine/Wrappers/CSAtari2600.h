@@ -8,9 +8,8 @@
 
 #include "CSMachine.h"
 #include "Atari2600Inputs.h"
-#import "CSJoystickMachine.h"
 
-@interface CSAtari2600 : CSMachine <CSJoystickMachine>
+@interface CSAtari2600 : CSMachine
 
 - (instancetype)init;
 

@@ -7,9 +7,8 @@
 //
 
 #import "CSMachine.h"
-#import "CSKeyboardMachine.h"
 
-@interface CSAmstradCPC : CSMachine <CSKeyboardMachine>
+@interface CSAmstradCPC : CSMachine
 
 - (instancetype)init;
 

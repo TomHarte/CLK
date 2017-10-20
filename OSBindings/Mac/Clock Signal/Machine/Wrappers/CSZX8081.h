@@ -7,10 +7,9 @@
 //
 
 #import "CSMachine.h"
-#import "CSKeyboardMachine.h"
 #import "CSFastLoading.h"
 
-@interface CSZX8081 : CSMachine <CSKeyboardMachine, CSFastLoading>
+@interface CSZX8081 : CSMachine <CSFastLoading>
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 

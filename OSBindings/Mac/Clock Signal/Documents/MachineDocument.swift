@@ -187,48 +187,22 @@ class MachineDocument:
 	}
 
 	// MARK: Input management
-	fileprivate func withKeyboardMachine(_ action: (CSKeyboardMachine) -> ()) {
-		if let keyboardMachine = self.machine as? CSKeyboardMachine {
-			action(keyboardMachine)
-		}
-	}
-
-	fileprivate func withJoystickMachine(_ action: (CSJoystickMachine) -> ()) {
-		if let joystickMachine = self.machine as? CSJoystickMachine {
-			action(joystickMachine)
-		}
-	}
-
-	fileprivate func sendJoystickEvent(_ machine: CSJoystickMachine, keyCode: UInt16, isPressed: Bool) {
-		switch keyCode {
-			case 123:	machine.setDirection(.left, onPad: 0, isPressed: isPressed)
-			case 126:	machine.setDirection(.up, onPad: 0, isPressed: isPressed)
-			case 124:	machine.setDirection(.right, onPad: 0, isPressed: isPressed)
-			case 125:	machine.setDirection(.down, onPad: 0, isPressed: isPressed)
-			default:	machine.setButtonAt(0, onPad: 0, isPressed: isPressed)
-		}
-	}
-
 	func windowDidResignKey(_ notification: Notification) {
-		self.withKeyboardMachine { $0.clearAllKeys() }
+		self.machine.clearAllKeys()
 	}
 
 	func keyDown(_ event: NSEvent) {
-		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: true) }
-		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: true) }
+		self.machine.setKey(event.keyCode, isPressed: true)
 	}
 
 	func keyUp(_ event: NSEvent) {
-		self.withKeyboardMachine { $0.setKey(event.keyCode, isPressed: false) }
-		self.withJoystickMachine { sendJoystickEvent($0, keyCode: event.keyCode, isPressed: false) }
+		self.machine.setKey(event.keyCode, isPressed: false)
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
-		self.withKeyboardMachine {
-			$0.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.shift))
-			$0.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
-			$0.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
-			$0.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
-		}
+		self.machine.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.shift))
+		self.machine.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
+		self.machine.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
+		self.machine.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
 	}
 }

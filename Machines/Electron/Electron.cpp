@@ -17,6 +17,7 @@
 
 #include "CharacterMapper.hpp"
 #include "Interrupts.hpp"
+#include "KeyboardMapper.hpp"
 #include "Plus3.hpp"
 #include "Speaker.hpp"
 #include "Tape.hpp"
@@ -387,6 +388,10 @@ class ConcreteMachine:
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		inline void update_display() {
 			if(cycles_since_display_update_ > 0) {
@@ -442,6 +447,7 @@ class ConcreteMachine:
 		uint8_t interrupt_status_ = Interrupt::PowerOnReset | Interrupt::TransmitDataEmpty | 0x80;
 		uint8_t interrupt_control_ = 0;
 		uint8_t key_states_[14];
+		Electron::KeyboardMapper keyboard_mapper_;
 
 		// Counters related to simultaneous subsystems
 		Cycles cycles_since_display_update_ = 0;

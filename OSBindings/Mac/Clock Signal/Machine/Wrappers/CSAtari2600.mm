@@ -24,26 +24,6 @@
 	return self;
 }
 
-- (void)setDirection:(CSJoystickDirection)direction onPad:(NSUInteger)pad isPressed:(BOOL)isPressed {
-	Atari2600DigitalInput input;
-	switch(direction)
-	{
-		case CSJoystickDirectionUp:		input = pad ? Atari2600DigitalInputJoy2Up : Atari2600DigitalInputJoy1Up;		break;
-		case CSJoystickDirectionDown:	input = pad ? Atari2600DigitalInputJoy2Down : Atari2600DigitalInputJoy1Down;	break;
-		case CSJoystickDirectionLeft:	input = pad ? Atari2600DigitalInputJoy2Left : Atari2600DigitalInputJoy1Left;	break;
-		case CSJoystickDirectionRight:	input = pad ? Atari2600DigitalInputJoy2Right : Atari2600DigitalInputJoy1Right;	break;
-	}
-	@synchronized(self) {
-		_atari2600->set_digital_input(input, isPressed ? true : false);
-	}
-}
-
-- (void)setButtonAtIndex:(NSUInteger)button onPad:(NSUInteger)pad isPressed:(BOOL)isPressed {
-	@synchronized(self) {
-		_atari2600->set_digital_input(pad ? Atari2600DigitalInputJoy2Fire : Atari2600DigitalInputJoy1Fire, isPressed ? true : false);
-	}
-}
-
 - (void)setResetLineEnabled:(BOOL)enabled {
 	@synchronized(self) {
 		_atari2600->set_reset_switch(enabled ? true : false);

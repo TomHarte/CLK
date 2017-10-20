@@ -11,6 +11,8 @@
 
 #include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
+#include "../../KeyboardMachine.hpp"
+#include "../../JoystickMachine.hpp"
 #include "../../Typer.hpp"
 
 #include <cstdint>
@@ -54,21 +56,16 @@ enum Key: uint16_t {
 	KeyI		= key(1, 0x10),		KeyP		= key(1, 0x20),		KeyAsterisk		= key(1, 0x40),		KeyReturn	= key(1, 0x80),
 	Key1		= key(0, 0x01),		Key3		= key(0, 0x02),		Key5			= key(0, 0x04),		Key7		= key(0, 0x08),
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
-#undef key
-};
 
-enum JoystickInput {
-	Up = 0x04,
-	Down = 0x08,
-	Left = 0x10,
-	Right = 0x80,
-	Fire = 0x20
+	KeyRestore 	= 0xfffd
+#undef key
 };
 
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public JoystickMachine::Machine {
 	public:
 		virtual ~Machine();
 
@@ -78,9 +75,6 @@ class Machine:
 		/// Sets the contents of the rom in @c slot to the buffer @c data of length @c length.
 		virtual void set_rom(ROMSlot slot, size_t length, const uint8_t *data) = 0;
 		// TODO: take a std::vector<uint8_t> to collapse length and data.
-
-		/// Sets the state of joystick input @c input.
-		virtual void set_joystick_state(JoystickInput input, bool isPressed) = 0;
 
 		/// Sets the memory size of this Vic-20.
 		virtual void set_memory_size(MemorySize size) = 0;

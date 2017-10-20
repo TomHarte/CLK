@@ -24,15 +24,6 @@ class CharacterMapper {
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
 		virtual uint16_t *sequence_for_character(char character) = 0;
 
-		/// Terminates a key sequence.
-		static const uint16_t EndSequence = 0xffff;
-
-		/*!
-			If returned as the first entry in a key sequence, indicates that the requested character
-			cannot be mapped.
-		*/
-		static const uint16_t NotMapped = 0xfffe;
-
 	protected:
 		typedef uint16_t KeySequence[16];
 
