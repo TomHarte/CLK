@@ -10,7 +10,7 @@
 #define Machines_Commodore_Vic20_Keyboard_hpp
 
 #include "../../KeyboardMachine.hpp"
-#include "../../Typer.hpp"
+#include "../../Utility/Typer.hpp"
 
 namespace Commodore {
 namespace Vic20 {

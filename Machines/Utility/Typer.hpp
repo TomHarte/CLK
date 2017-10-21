@@ -10,8 +10,8 @@
 #define Typer_hpp
 
 #include <memory>
-#include "KeyboardMachine.hpp"
-#include "../ClockReceiver/ClockReceiver.hpp"
+#include "../KeyboardMachine.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Utility {
 

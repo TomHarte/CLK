@@ -9,7 +9,7 @@
 #ifndef Machines_Oric_CharacterMapper_hpp
 #define Machines_Oric_CharacterMapper_hpp
 
-#include "../Typer.hpp"
+#include "../Utility/Typer.hpp"
 
 namespace Oric {
 

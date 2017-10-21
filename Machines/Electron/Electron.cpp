@@ -13,7 +13,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 
-#include "../Typer.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "CharacterMapper.hpp"
 #include "Interrupts.hpp"

@@ -18,8 +18,8 @@
 #include "../../Components/8272/i8272.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
-#include "../MemoryFuzzer.hpp"
-#include "../Typer.hpp"
+#include "../Utility/MemoryFuzzer.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 

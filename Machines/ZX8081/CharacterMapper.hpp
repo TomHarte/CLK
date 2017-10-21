@@ -9,7 +9,7 @@
 #ifndef Machines_ZX8081_CharacterMapper_hpp
 #define Machines_ZX8081_CharacterMapper_hpp
 
-#include "../Typer.hpp"
+#include "../Utility/Typer.hpp"
 
 namespace ZX8081 {
 
