@@ -181,7 +181,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	size_t max_size = expected_track_bytes + (expected_track_bytes / 10);
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
-	segment.number_of_bits = (unsigned int)(segment.data.size() * 8);
+	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
 }
 

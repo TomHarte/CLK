@@ -136,7 +136,7 @@ void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
-	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)density));
+	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(density)));
 }
 
 #pragma mark - SerialPortVIA

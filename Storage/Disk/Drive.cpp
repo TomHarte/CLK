@@ -102,7 +102,7 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
 }
 
 void Drive::advance(const Cycles cycles) {
-	cycles_since_index_hole_ += (unsigned int)cycles.as_int();
+	cycles_since_index_hole_ += static_cast<unsigned int>(cycles.as_int());
 	if(event_delegate_) event_delegate_->advance(cycles);
 }
 

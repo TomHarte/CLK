@@ -106,7 +106,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	} else {
 		PCMSegment segment;
 		segment.number_of_bits = track_length * 8;
-		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)speed_zone_offset);
+		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset));
 		segment.data = std::move(track_contents);
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));

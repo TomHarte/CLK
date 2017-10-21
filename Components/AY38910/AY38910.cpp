@@ -67,13 +67,13 @@ AY38910::AY38910() :
 	float max_volume = 8192;
 	float root_two = sqrtf(2.0f);
 	for(int v = 0; v < 16; v++) {
-		volumes_[v] = (int)(max_volume / powf(root_two, (float)(v ^ 0xf)));
+		volumes_[v] = (int)(max_volume / powf(root_two, static_cast<float>(v ^ 0xf)));
 	}
 	volumes_[0] = 0;
 }
 
 void AY38910::set_clock_rate(double clock_rate) {
-	set_input_rate((float)clock_rate);
+	set_input_rate(static_cast<float>(clock_rate));
 }
 
 void AY38910::get_samples(unsigned int number_of_samples, int16_t *target) {

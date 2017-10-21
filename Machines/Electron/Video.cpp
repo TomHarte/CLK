@@ -86,7 +86,7 @@ void VideoOutput::start_pixel_line() {
 }
 
 void VideoOutput::end_pixel_line() {
-	if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+	if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 	current_character_row_++;
 }
 
@@ -104,7 +104,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
-			if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+			if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_, 4);
 		}
@@ -223,16 +223,16 @@ void VideoOutput::run_for(const Cycles cycles) {
 	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;
 		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
-		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels((unsigned int)time_left_in_action);
+		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels(static_cast<unsigned int>(time_left_in_action));
 
 		number_of_cycles -= time_left_in_action;
 		cycles_into_draw_action_ += time_left_in_action;
 		if(cycles_into_draw_action_ == draw_action_length) {
 			switch(screen_map_[screen_map_pointer_].type) {
-				case DrawAction::Sync:			crt_->output_sync((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::ColourBurst:	crt_->output_default_colour_burst((unsigned int)(draw_action_length * crt_cycles_multiplier));	break;
-				case DrawAction::Blank:			crt_->output_blank((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::Pixels:		end_pixel_line();																				break;
+				case DrawAction::Sync:			crt_->output_sync(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::ColourBurst:	crt_->output_default_colour_burst(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));	break;
+				case DrawAction::Blank:			crt_->output_blank(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::Pixels:		end_pixel_line();																							break;
 			}
 			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();
 			cycles_into_draw_action_ = 0;
@@ -376,9 +376,9 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) 
 				int output_position_line = graphics_line(output_position_);
 				int implied_row = current_character_row_ + (current_line - output_position_line) % 10;
 				if(implied_row < 8)
-					result += (unsigned int)(80 - current_column);
+					result += static_cast<unsigned int>(80 - current_column);
 			}
-			else result += (unsigned int)(80 - current_column);
+			else result += static_cast<unsigned int>(80 - current_column);
 		}
 	}
 	return result;

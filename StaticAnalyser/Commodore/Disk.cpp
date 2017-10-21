@@ -67,7 +67,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		std::shared_ptr<Sector> sector_cache_[65536];
 
 		void process_input_bit(int value) {
-			shift_register_ = ((shift_register_ << 1) | (unsigned int)value) & 0x3ff;
+			shift_register_ = ((shift_register_ << 1) | static_cast<unsigned int>(value)) & 0x3ff;
 			bit_count_++;
 		}
 

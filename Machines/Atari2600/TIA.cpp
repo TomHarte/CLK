@@ -162,7 +162,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 	// cycles_per_line * 2 cycles of information from one sync edge to the next
 	crt_->set_new_display_type(cycles_per_line * 2 - 1, display_type);
 
-/*	speaker_->set_input_rate((float)(get_clock_rate() / 38.0));*/
+/*	speaker_->set_input_rate(static_cast<float>(get_clock_rate() / 38.0));*/
 }
 
 void TIA::run_for(const Cycles cycles) {
@@ -412,11 +412,11 @@ void TIA::output_for_cycles(int number_of_cycles) {
 #define Period(function, target)	\
 	if(output_cursor < target) { \
 		if(horizontal_counter_ <= target) { \
-			if(crt_) crt_->function((unsigned int)((horizontal_counter_ - output_cursor) * 2)); \
+			if(crt_) crt_->function(static_cast<unsigned int>((horizontal_counter_ - output_cursor) * 2)); \
 			horizontal_counter_ %= cycles_per_line; \
 			return; \
 		} else { \
-			if(crt_) crt_->function((unsigned int)((target - output_cursor) * 2)); \
+			if(crt_) crt_->function(static_cast<unsigned int>((target - output_cursor) * 2)); \
 			output_cursor = target; \
 		} \
 	}
@@ -442,12 +442,12 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	if(output_mode_ & blank_flag) {
 		if(pixel_target_) {
 			output_pixels(pixels_start_location_, output_cursor);
-			if(crt_) crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
+			if(crt_) crt_->output_data(static_cast<unsigned int>(output_cursor - pixels_start_location_) * 2, 2);
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
-		if(crt_) crt_->output_blank((unsigned int)(duration * 2));
+		if(crt_) crt_->output_blank(static_cast<unsigned int>(duration * 2));
 	} else {
 		if(!pixels_start_location_ && crt_) {
 			pixels_start_location_ = output_cursor;
@@ -464,7 +464,7 @@ void TIA::output_for_cycles(int number_of_cycles) {
 		}
 
 		if(horizontal_counter_ == cycles_per_line && crt_) {
-			crt_->output_data((unsigned int)(output_cursor - pixels_start_location_) * 2, 2);
+			crt_->output_data(static_cast<unsigned int>(output_cursor - pixels_start_location_) * 2, 2);
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}

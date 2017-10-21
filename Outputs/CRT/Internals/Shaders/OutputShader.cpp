@@ -92,7 +92,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 }
 
 void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area) {
-	GLfloat outputAspectRatioMultiplier = ((float)output_width / (float)output_height) / (4.0f / 3.0f);
+	GLfloat outputAspectRatioMultiplier = (static_cast<float>(output_width) / static_cast<float>(output_height)) / (4.0f / 3.0f);
 
 	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * visible_area.size.width;
 	visible_area.origin.x -= bonusWidth * 0.5f * visible_area.size.width;
@@ -107,9 +107,9 @@ void OutputShader::set_source_texture_unit(GLenum unit) {
 }
 
 void OutputShader::set_timing(unsigned int height_of_display, unsigned int cycles_per_line, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider) {
-	GLfloat scan_angle = atan2f(1.0f / (float)height_of_display, 1.0f);
+	GLfloat scan_angle = atan2f(1.0f / static_cast<float>(height_of_display), 1.0f);
 	GLfloat scan_normal[] = { -sinf(scan_angle), cosf(scan_angle)};
-	GLfloat multiplier = (float)cycles_per_line / ((float)height_of_display * (float)horizontal_scan_period);
+	GLfloat multiplier = static_cast<float>(cycles_per_line) / (static_cast<float>(height_of_display) * static_cast<float>(horizontal_scan_period));
 	scan_normal[0] *= multiplier;
 	scan_normal[1] *= multiplier;
 

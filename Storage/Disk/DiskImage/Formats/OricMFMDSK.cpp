@@ -108,7 +108,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 		}
 	}
 
-	segment.number_of_bits = (unsigned int)(segment.data.size() * 8);
+	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 
 	std::shared_ptr<PCMTrack> track(new PCMTrack(segment));
 	return track;

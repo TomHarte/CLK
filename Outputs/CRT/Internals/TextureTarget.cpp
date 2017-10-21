@@ -114,14 +114,14 @@ void TextureTarget::draw(float aspect_ratio) {
 		buffer[2] = 0.0f;
 		buffer[3] = 0.0f;
 		buffer[6] = 0.0f;
-		buffer[7] = (float)_height / (float)_expanded_height;
-		buffer[10] = (float)_width / (float)_expanded_width;
+		buffer[7] = static_cast<float>(_height) / static_cast<float>(_expanded_height);
+		buffer[10] = static_cast<float>(_width) / static_cast<float>(_expanded_width);
 		buffer[11] = 0;
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
 
 		// determine positions; rule is to keep the same height and centre
-		float internal_aspect_ratio = (float)_width / (float)_height;
+		float internal_aspect_ratio = static_cast<float>(_width) / static_cast<float>(_height);
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
 
 		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;

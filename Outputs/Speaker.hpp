@@ -144,13 +144,13 @@ template <class T> class Filter: public Speaker {
 
 		void run_for(const Cycles cycles) {
 			enqueue([=]() {
-				unsigned int cycles_remaining = (unsigned int)cycles.as_int();
+				unsigned int cycles_remaining = static_cast<unsigned int>(cycles.as_int());
 				if(coefficients_are_dirty_) update_filter_coefficients();
 
 				// if input and output rates exactly match, just accumulate results and pass on
 				if(input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ < 0.0) {
 					while(cycles_remaining) {
-						unsigned int cycles_to_read = (unsigned int)(buffer_in_progress_.size() - (size_t)buffer_in_progress_pointer_);
+						unsigned int cycles_to_read = static_cast<unsigned int>(buffer_in_progress_.size() - (size_t)buffer_in_progress_pointer_);
 						if(cycles_to_read > cycles_remaining) cycles_to_read = cycles_remaining;
 
 						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_[(size_t)buffer_in_progress_pointer_]);
@@ -173,7 +173,7 @@ template <class T> class Filter: public Speaker {
 				// if the output rate is less than the input rate, use the filter
 				if(input_cycles_per_second_ > output_cycles_per_second_ || (input_cycles_per_second_ == output_cycles_per_second_ && high_frequency_cut_off_ >= 0.0)) {
 					while(cycles_remaining) {
-						unsigned int cycles_to_read = (unsigned int)std::min((size_t)cycles_remaining, number_of_taps_ - input_buffer_depth_);
+						unsigned int cycles_to_read = static_cast<unsigned int>(std::min((size_t)cycles_remaining, number_of_taps_ - input_buffer_depth_));
 						static_cast<T *>(this)->get_samples(cycles_to_read, &input_buffer_[(size_t)input_buffer_depth_]);
 						cycles_remaining -= cycles_to_read;
 						input_buffer_depth_ += cycles_to_read;
@@ -200,7 +200,7 @@ template <class T> class Filter: public Speaker {
 								input_buffer_depth_ -= steps;
 							} else {
 								if(steps > number_of_taps_)
-									static_cast<T *>(this)->skip_samples((unsigned int)steps - (unsigned int)number_of_taps_);
+									static_cast<T *>(this)->skip_samples(static_cast<unsigned int>(steps) - static_cast<unsigned int>(number_of_taps_));
 								input_buffer_depth_ = 0;
 							}
 						}
@@ -241,7 +241,7 @@ template <class T> class Filter: public Speaker {
 			} else {
 				high_pass_frequency = output_cycles_per_second_ / 2.0f;
 			}
-			filter_.reset(new SignalProcessing::FIRFilter((unsigned int)number_of_taps_, (float)input_cycles_per_second_, 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
+			filter_.reset(new SignalProcessing::FIRFilter(static_cast<unsigned int>(number_of_taps_), static_cast<float>(input_cycles_per_second_), 0.0, high_pass_frequency, SignalProcessing::FIRFilter::DefaultAttenuation));
 
 			input_buffer_.resize((size_t)number_of_taps_);
 			input_buffer_depth_ = 0;

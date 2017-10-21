@@ -66,7 +66,7 @@ template <class T> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_->set_input_rate((float)(clock_rate / 4.0));
+			speaker_->set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
@@ -128,7 +128,7 @@ template <class T> class MOS6560 {
 				break;
 			}
 
-			crt_->set_new_display_type((unsigned int)(timing_.cycles_per_line*4), display_type);
+			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
 			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
