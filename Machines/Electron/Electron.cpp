@@ -13,11 +13,10 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 
-#include "../Typer.hpp"
+#include "../Utility/Typer.hpp"
 
-#include "CharacterMapper.hpp"
 #include "Interrupts.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 #include "Plus3.hpp"
 #include "Speaker.hpp"
 #include "Tape.hpp"

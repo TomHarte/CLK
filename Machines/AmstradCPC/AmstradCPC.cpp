@@ -8,8 +8,7 @@
 
 #include "AmstradCPC.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
@@ -18,8 +17,8 @@
 #include "../../Components/8272/i8272.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
-#include "../MemoryFuzzer.hpp"
-#include "../Typer.hpp"
+#include "../Utility/MemoryFuzzer.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 

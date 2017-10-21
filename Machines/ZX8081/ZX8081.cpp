@@ -14,11 +14,10 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
-#include "../MemoryFuzzer.hpp"
-#include "../Typer.hpp"
+#include "../Utility/MemoryFuzzer.hpp"
+#include "../Utility/Typer.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 #include "Video.hpp"
 
 #include <memory>

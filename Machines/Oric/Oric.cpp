@@ -8,13 +8,12 @@
 
 #include "Oric.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 #include "Microdisc.hpp"
 #include "Video.hpp"
 
-#include "../MemoryFuzzer.hpp"
-#include "../Typer.hpp"
+#include "../Utility/MemoryFuzzer.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "../../Processors/6502/6502.hpp"
 #include "../../Components/6522/6522.hpp"
