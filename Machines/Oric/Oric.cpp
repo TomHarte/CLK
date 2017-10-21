@@ -8,8 +8,7 @@
 
 #include "Oric.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 #include "Microdisc.hpp"
 #include "Video.hpp"
 

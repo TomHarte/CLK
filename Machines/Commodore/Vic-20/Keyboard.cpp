@@ -1,5 +1,5 @@
 //
-//  KeyboardMapper.cpp
+//  Keyboard.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/10/2017.
@@ -7,7 +7,6 @@
 //
 
 #include "Keyboard.hpp"
-#include "Vic20.hpp"
 
 using namespace Commodore::Vic20;
 

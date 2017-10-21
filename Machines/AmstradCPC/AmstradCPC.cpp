@@ -8,8 +8,7 @@
 
 #include "AmstradCPC.hpp"
 
-#include "CharacterMapper.hpp"
-#include "KeyboardMapper.hpp"
+#include "Keyboard.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
