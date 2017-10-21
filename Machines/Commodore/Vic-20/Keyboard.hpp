@@ -1,13 +1,13 @@
 //
-//  KeyboardMapper.hpp
+//  Keyboard.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/10/2017.
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Commodore_Vic20_KeyboardMapper_hpp
-#define Machines_Commodore_Vic20_KeyboardMapper_hpp
+#ifndef Machines_Commodore_Vic20_Keyboard_hpp
+#define Machines_Commodore_Vic20_Keyboard_hpp
 
 #include "../../KeyboardMachine.hpp"
 #include "../../Typer.hpp"
@@ -49,4 +49,4 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 }
 }
 
-#endif /* KeyboardMapper_hpp */
+#endif /* Keyboard_hpp */
