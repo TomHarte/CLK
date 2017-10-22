@@ -97,7 +97,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				pixel_target_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(240, 2));
+				pixel_target_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(240));
 
 				if(!counter_) {
 					frame_counter_++;

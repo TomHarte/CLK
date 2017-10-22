@@ -153,7 +153,7 @@ template <class T> class Filter: public Speaker {
 						unsigned int cycles_to_read = static_cast<unsigned int>(buffer_in_progress_.size() - static_cast<size_t>(buffer_in_progress_pointer_));
 						if(cycles_to_read > cycles_remaining) cycles_to_read = cycles_remaining;
 
-						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_[static_cast<size_t>(buffer_in_progress_pointer_]));
+						static_cast<T *>(this)->get_samples(cycles_to_read, &buffer_in_progress_[static_cast<size_t>(buffer_in_progress_pointer_)]);
 						buffer_in_progress_pointer_ += cycles_to_read;
 
 						// announce to delegate if full
