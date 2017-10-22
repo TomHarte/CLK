@@ -107,11 +107,12 @@ class TextureBuilder {
 		struct Bookender {
 			/// Writes to left_bookend the sample that should appear as a continuation before the left_value;
 			/// writes to right_bookend the sample that should appear as a continuation after right_value.
-			void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend);
+			virtual void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) = 0;
 		};
 
-		/// Sets the current bookender. Will be called synchronously within the builder-writing thread.
-		void set_bookender(Bookender *bookender);
+		/// Sets the current bookender. The bookender be called synchronously within the builder-writing thread.
+		/// Supply nullptr to engage the default bookender.
+		void set_bookender(std::unique_ptr<Bookender> bookender);
 
 	private:
 		// the buffer size
@@ -135,6 +136,8 @@ class TextureBuilder {
 		// Caveat: reset to the origin upon a submit. So used in comparison by flush to
 		// determine whether the current batch of write areas needs to be relocated.
 		uint16_t write_areas_start_x_, write_areas_start_y_;
+
+		std::unique_ptr<Bookender> bookender_;
 };
 
 }
