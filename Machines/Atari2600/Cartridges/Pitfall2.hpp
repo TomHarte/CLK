@@ -73,7 +73,7 @@ class Pitfall2: public BusExtender {
 					mask_[address & 7] = 0x00;
 				break;
 				case 0x1058: case 0x1059: case 0x105a: case 0x105b: case 0x105c: case 0x105d: case 0x105e: case 0x105f:
-					featcher_address_[address & 7] = (featcher_address_[address & 7] & 0x00ff) | (uint16_t)(*value << 8);
+					featcher_address_[address & 7] = (featcher_address_[address & 7] & 0x00ff) | static_cast<uint16_t>(*value << 8);
 				break;
 				case 0x1070: case 0x1071: case 0x1072: case 0x1073: case 0x1074: case 0x1075: case 0x1076: case 0x1077:
 					random_number_generator_ = 0;

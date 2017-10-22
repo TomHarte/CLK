@@ -13,7 +13,7 @@ using namespace Electron;
 void Speaker::get_samples(unsigned int number_of_samples, int16_t *target) {
 	if(is_enabled_) {
 		while(number_of_samples--) {
-			*target = (int16_t)((counter_ / (divider_+1)) * 8192);
+			*target = static_cast<int16_t>((counter_ / (divider_+1)) * 8192);
 			target++;
 			counter_ = (counter_ + 1) % ((divider_+1) * 2);
 		}

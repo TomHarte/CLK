@@ -105,7 +105,7 @@ void UEF::virtual_reset() {
 #pragma mark - Chunk navigator
 
 bool UEF::get_next_chunk(UEF::Chunk &result) {
-	uint16_t chunk_id = (uint16_t)gzget16(file_);
+	uint16_t chunk_id = static_cast<uint16_t>(gzget16(file_));
 	uint32_t chunk_length = (uint32_t)gzget32(file_);
 	z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
 

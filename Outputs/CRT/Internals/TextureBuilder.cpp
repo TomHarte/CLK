@@ -82,9 +82,10 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t requ
 	}
 
 	// Queue up the latest write area.
-	write_area_.x = write_areas_start_x_ + 1 + static_cast<uint16_t>(alignment_offset);
+	write_areas_start_x_ += static_cast<uint16_t>(alignment_offset);
+	write_area_.x = write_areas_start_x_ + 1;
 	write_area_.y = write_areas_start_y_;
-	write_area_.length = (uint16_t)required_length;
+	write_area_.length = static_cast<uint16_t>(required_length);
 
 	// Return a video pointer.
 	return pointer_to_location(write_area_.x, write_area_.y);
@@ -95,7 +96,7 @@ void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
 	if(was_full_) return;
 
 	// Update the length of the current write area.
-	write_area_.length = (uint16_t)actual_length;
+	write_area_.length = static_cast<uint16_t>(actual_length);
 
 	// Bookend the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn.

@@ -57,8 +57,8 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 		if(start_sector < 2) continue;
 		while(data_length > 0) {
-			uint8_t sector = (uint8_t)(start_sector % 10);
-			uint8_t track = (uint8_t)(start_sector / 10);
+			uint8_t sector = static_cast<uint8_t>(start_sector % 10);
+			uint8_t track = static_cast<uint8_t>(start_sector / 10);
 			start_sector++;
 
 			Storage::Encodings::MFM::Sector *next_sector = parser.get_sector(0, track, sector);

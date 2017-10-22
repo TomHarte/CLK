@@ -246,11 +246,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 void VideoOutput::set_register(int address, uint8_t value) {
 	switch(address & 0xf) {
 		case 0x02:
-			start_screen_address_ = (start_screen_address_ & 0xfe00) | (uint16_t)((value & 0xe0) << 1);
+			start_screen_address_ = (start_screen_address_ & 0xfe00) | static_cast<uint16_t>((value & 0xe0) << 1);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x03:
-			start_screen_address_ = (start_screen_address_ & 0x01ff) | (uint16_t)((value & 0x3f) << 9);
+			start_screen_address_ = (start_screen_address_ & 0x01ff) | static_cast<uint16_t>((value & 0x3f) << 9);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x07: {
@@ -292,7 +292,7 @@ void VideoOutput::set_register(int address, uint8_t value) {
 			}
 
 			// regenerate all palette tables for now
-#define pack(a, b) (uint8_t)((a << 4) | (b))
+#define pack(a, b) static_cast<uint8_t>((a << 4) | (b))
 			for(int byte = 0; byte < 256; byte++) {
 				uint8_t *target = (uint8_t *)&palette_tables_.forty1bpp[byte];
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);

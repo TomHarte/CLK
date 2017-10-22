@@ -16,8 +16,8 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// if this is a 2kb cartridge then it's definitely either unpaged or a CommaVid
 	uint16_t entry_address, break_address;
 
-	entry_address = ((uint16_t)(segment.data[0x7fc] | (segment.data[0x7fd] << 8))) & 0x1fff;
-	break_address = ((uint16_t)(segment.data[0x7fe] | (segment.data[0x7ff] << 8))) & 0x1fff;
+	entry_address = (static_cast<uint16_t>(segment.data[0x7fc] | (segment.data[0x7fd] << 8))) & 0x1fff;
+	break_address = (static_cast<uint16_t>(segment.data[0x7fe] | (segment.data[0x7ff] << 8))) & 0x1fff;
 
 	// a CommaVid start address needs to be outside of its RAM
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
@@ -122,8 +122,8 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 
 	uint16_t entry_address, break_address;
 
-	entry_address = (uint16_t)(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
-	break_address = (uint16_t)(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
+	entry_address = static_cast<uint16_t>(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
+	break_address = static_cast<uint16_t>(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
 
 	std::function<size_t(uint16_t address)> address_mapper = [](uint16_t address) {
 		if(!(address & 0x1000)) return (size_t)-1;

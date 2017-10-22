@@ -15,7 +15,7 @@ Tape::Tape() : TapePlayer(2000000) {
 }
 
 void Tape::push_tape_bit(uint16_t bit) {
-	data_register_ = (uint16_t)((data_register_ >> 1) | (bit << 10));
+	data_register_ = static_cast<uint16_t>((data_register_ >> 1) | (bit << 10));
 
 	if(input_.minimum_bits_until_full) input_.minimum_bits_until_full--;
 	if(input_.minimum_bits_until_full == 8) interrupt_status_ &= ~Interrupt::ReceiveDataFull;
@@ -57,12 +57,12 @@ void Tape::set_counter(uint8_t value) {
 }
 
 void Tape::set_data_register(uint8_t value) {
-	data_register_ = (uint16_t)((value << 2) | 1);
+	data_register_ = static_cast<uint16_t>((value << 2) | 1);
 	output_.bits_remaining_until_empty = 9;
 }
 
 uint8_t Tape::get_data_register() {
-	return (uint8_t)(data_register_ >> 2);
+	return static_cast<uint8_t>(data_register_ >> 2);
 }
 
 void Tape::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
@@ -70,7 +70,7 @@ void Tape::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 }
 
 void Tape::acorn_shifter_output_bit(int value) {
-	push_tape_bit((uint16_t)value);
+	push_tape_bit(static_cast<uint16_t>(value));
 }
 
 void Tape::run_for(const Cycles cycles) {

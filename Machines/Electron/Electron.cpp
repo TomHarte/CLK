@@ -257,7 +257,7 @@ class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::X);
+									uint8_t service_call = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);

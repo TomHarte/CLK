@@ -76,8 +76,8 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 	// Grab the track information.
 	fseek(file_, 5, SEEK_CUR);	// skip track number, side number, sector size — each is given per sector
 	int number_of_sectors = fgetc(file_);
-	uint8_t gap3_length = (uint8_t)fgetc(file_);
-	uint8_t filler_byte = (uint8_t)fgetc(file_);
+	uint8_t gap3_length = static_cast<uint8_t>(fgetc(file_));
+	uint8_t filler_byte = static_cast<uint8_t>(fgetc(file_));
 
 	// Grab the sector information
 	struct SectorInfo {
@@ -93,12 +93,12 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 	while(number_of_sectors--) {
 		SectorInfo sector_info;
 
-		sector_info.track = (uint8_t)fgetc(file_);
-		sector_info.side = (uint8_t)fgetc(file_);
-		sector_info.sector = (uint8_t)fgetc(file_);
-		sector_info.length = (uint8_t)fgetc(file_);
-		sector_info.status1 = (uint8_t)fgetc(file_);
-		sector_info.status2 = (uint8_t)fgetc(file_);
+		sector_info.track = static_cast<uint8_t>(fgetc(file_));
+		sector_info.side = static_cast<uint8_t>(fgetc(file_));
+		sector_info.sector = static_cast<uint8_t>(fgetc(file_));
+		sector_info.length = static_cast<uint8_t>(fgetc(file_));
+		sector_info.status1 = static_cast<uint8_t>(fgetc(file_));
+		sector_info.status2 = static_cast<uint8_t>(fgetc(file_));
 		sector_info.actual_length = fgetc16le();
 
 		sector_infos.push_back(sector_info);

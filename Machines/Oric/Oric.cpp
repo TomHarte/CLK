@@ -87,7 +87,7 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 			@returns The next byte from the tape.
 		*/
 		uint8_t get_next_byte(bool use_fast_encoding) {
-			return (uint8_t)parser_.get_next_byte(get_tape(), use_fast_encoding);
+			return static_cast<uint8_t>(parser_.get_next_byte(get_tape(), use_fast_encoding));
 		}
 
 	private:

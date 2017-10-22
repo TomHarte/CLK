@@ -72,7 +72,7 @@ CSW::CSW(const char *file_name) :
 		// uncompress will tell how many compressed bytes there actually were, so use its
 		// modification of output_length to throw away all the memory that isn't actually
 		// needed.
-		uLongf output_length = (uLongf)(number_of_waves * 5);
+		uLongf output_length = static_cast<uLongf>(number_of_waves * 5);
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
 		source_data_.resize((size_t)output_length);
 	} else {

@@ -47,7 +47,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
 	unsigned int real_clock_scan_period = (multiplied_cycles_per_line * height_of_display) / (time_multiplier_ * common_output_divisor_);
-	vertical_flywheel_output_divider_ = (uint16_t)(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_ * common_output_divisor_));
+	vertical_flywheel_output_divider_ = static_cast<uint16_t>(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_ * common_output_divisor_));
 
 	openGL_output_builder_.set_timing(cycles_per_line, multiplied_cycles_per_line, height_of_display, horizontal_flywheel_->get_scan_period(), vertical_flywheel_->get_scan_period(), vertical_flywheel_output_divider_);
 }
@@ -68,7 +68,7 @@ void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType display
 
 void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_first_sample) {
 	if(type == DiscreteFourSamplesPerCycle) {
-		colour_burst_phase_adjustment_ = (uint8_t)(offset_of_first_sample * 256.0f) & 63;
+		colour_burst_phase_adjustment_ = static_cast<uint8_t>(offset_of_first_sample * 256.0f) & 63;
 	} else {
 		colour_burst_phase_adjustment_ = 0xff;
 	}
@@ -170,7 +170,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		if(next_run) {
 			// output_y and texture locations will be written later; we won't necessarily know what they are
 			// outside of the locked region
-			source_output_position_x1() = (uint16_t)horizontal_flywheel_->get_current_output_position();
+			source_output_position_x1() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 			source_phase() = colour_burst_phase_;
 			source_amplitude() = colour_burst_amplitude_;
 		}
@@ -184,7 +184,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 		vertical_flywheel_->apply_event(next_run_length, (next_run_length == time_until_vertical_sync_event) ? next_vertical_sync_event : Flywheel::SyncEvent::None);
 
 		if(next_run) {
-			source_output_position_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
+			source_output_position_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 		}
 
 		// if this is horizontal retrace then advance the output line counter and bookend an output run
@@ -203,8 +203,8 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 				!openGL_output_builder_.composite_output_buffer_is_full()) {
 
 				if(!is_writing_composite_run_) {
-					output_run_.x1 = (uint16_t)horizontal_flywheel_->get_current_output_position();
-					output_run_.y = (uint16_t)(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+					output_run_.x1 = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
+					output_run_.y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
 				} else {
 					// Get and write all those previously unwritten output ys
 					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
@@ -215,7 +215,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						output_x1() = output_run_.x1;
 						output_position_y() = output_run_.y;
 						output_tex_y() = output_y;
-						output_x2() = (uint16_t)horizontal_flywheel_->get_current_output_position();
+						output_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 					}
 					openGL_output_builder_.array_builder.flush(
 						[=] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
@@ -378,7 +378,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 }
 
 void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
-	output_colour_burst(number_of_cycles, (uint8_t)((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
+	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
 }
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {

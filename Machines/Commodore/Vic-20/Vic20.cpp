@@ -357,7 +357,7 @@ class ConcreteMachine:
 			if(!media.cartridges.empty()) {
 				rom_address_ = 0xa000;
 				std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
-				rom_length_ = (uint16_t)(rom_image.size());
+				rom_length_ = static_cast<uint16_t>(rom_image.size());
 
 				rom_ = new uint8_t[0x2000];
 				memcpy(rom_, rom_image.data(), rom_image.size());
@@ -467,7 +467,7 @@ class ConcreteMachine:
 						std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->get_tape());
 
 						// serialise to wherever b2:b3 points
-						uint16_t tape_buffer_pointer = (uint16_t)user_basic_memory_[0xb2] | (uint16_t)(user_basic_memory_[0xb3] << 8);
+						uint16_t tape_buffer_pointer = static_cast<uint16_t>(user_basic_memory_[0xb2]) | static_cast<uint16_t>(user_basic_memory_[0xb3] << 8);
 						if(header) {
 							header->serialise(&user_basic_memory_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 						} else {
@@ -481,13 +481,13 @@ class ConcreteMachine:
 
 						*value = 0x0c;	// i.e. NOP abs
 					} else if(address == 0xf90b) {
-						uint8_t x = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::X);
+						uint8_t x = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
 							uint16_t start_address, end_address;
-							start_address = (uint16_t)(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
-							end_address = (uint16_t)(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
+							start_address = static_cast<uint16_t>(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
+							end_address = static_cast<uint16_t>(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
 
 							// perform a via-processor_write_memory_map_ memcpy
 							uint8_t *data_ptr = data->data.data();
@@ -502,8 +502,8 @@ class ConcreteMachine:
 
 							// set tape status, carry and flag
 							user_basic_memory_[0x90] |= 0x40;
-							uint8_t	flags = (uint8_t)m6502_.get_value_of_register(CPU::MOS6502::Register::Flags);
-							flags &= ~(uint8_t)(CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt);
+							uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+							flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
 							m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
 
 							// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and

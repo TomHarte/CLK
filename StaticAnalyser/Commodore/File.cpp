@@ -39,7 +39,7 @@ bool StaticAnalyser::Commodore::File::is_basic() {
 
 		if(next_line_number <= line_number) break;
 
-		line_number = (uint16_t)next_line_number;
+		line_number = static_cast<uint16_t>(next_line_number);
 		line_address = next_line_address;
 	}
 

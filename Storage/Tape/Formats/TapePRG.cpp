@@ -61,7 +61,7 @@ PRG::PRG(const char *file_name) :
 		throw ErrorBadFormat;
 
 	load_address_ = fgetc16le();
-	length_ = (uint16_t)(file_stats_.st_size - 2);
+	length_ = static_cast<uint16_t>(file_stats_.st_size - 2);
 
 	if (load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;

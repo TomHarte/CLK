@@ -55,8 +55,8 @@ uint32_t FileHolder::fgetc24le() {
 }
 
 uint16_t FileHolder::fgetc16le() {
-	uint16_t result = (uint16_t)fgetc(file_);
-	result |= (uint16_t)(fgetc(file_) << 8);
+	uint16_t result = static_cast<uint16_t>(fgetc(file_));
+	result |= static_cast<uint16_t>(fgetc(file_) << 8);
 
 	return result;
 }
@@ -71,8 +71,8 @@ uint32_t FileHolder::fgetc32be() {
 }
 
 uint16_t FileHolder::fgetc16be() {
-	uint16_t result = (uint16_t)(fgetc(file_) << 8);
-	result |= (uint16_t)fgetc(file_);
+	uint16_t result = static_cast<uint16_t>(fgetc(file_) << 8);
+	result |= static_cast<uint16_t>(fgetc(file_));
 
 	return result;
 }
