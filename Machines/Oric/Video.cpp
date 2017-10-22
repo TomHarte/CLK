@@ -63,7 +63,7 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 
 	// check for big endianness and byte swap if required
 	uint16_t test_value = 0x0001;
-	if(*(uint8_t *)&test_value != 0x01) {
+	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
 		for(size_t c = 0; c < 8; c++) {
 			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
 		}
@@ -97,7 +97,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
+				pixel_target_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(240, 2));
 
 				if(!counter_) {
 					frame_counter_++;

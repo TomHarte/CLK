@@ -188,7 +188,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 	}
 
 	// parse directory
-	size_t header_pointer = (size_t)-32;
+	size_t header_pointer = static_cast<size_t>(-32);
 	while(header_pointer+32+31 < directory.size()) {
 		header_pointer += 32;
 
@@ -212,7 +212,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 		}
 		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
 
-		size_t number_of_sectors = (size_t)directory[header_pointer + 0x1e] + ((size_t)directory[header_pointer + 0x1f] << 8);
+		size_t number_of_sectors = static_cast<size_t>(directory[header_pointer + 0x1e]) + (static_cast<size_t>(directory[header_pointer + 0x1f]) << 8);
 		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
 
 		bool is_first_sector = true;

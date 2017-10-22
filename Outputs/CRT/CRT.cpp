@@ -120,17 +120,17 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return horizontal_flywheel_->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_x1()			(*(uint16_t *)&next_output_run[OutputVertexOffsetOfHorizontal + 0])
-#define output_x2()			(*(uint16_t *)&next_output_run[OutputVertexOffsetOfHorizontal + 2])
-#define output_position_y()	(*(uint16_t *)&next_output_run[OutputVertexOffsetOfVertical + 0])
-#define output_tex_y()		(*(uint16_t *)&next_output_run[OutputVertexOffsetOfVertical + 2])
+#define output_x1()			(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfHorizontal + 0]))
+#define output_x2()			(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfHorizontal + 2]))
+#define output_position_y()	(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 0]))
+#define output_tex_y()		(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 2]))
 
-#define source_input_position_x1()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 0])
-#define source_input_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfInputStart + 2])
-#define source_input_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 0])
-#define source_output_position_x1()	(*(uint16_t *)&next_run[SourceVertexOffsetOfOutputStart + 0])
-#define source_output_position_y()	(*(uint16_t *)&next_run[SourceVertexOffsetOfOutputStart + 2])
-#define source_output_position_x2()	(*(uint16_t *)&next_run[SourceVertexOffsetOfEnds + 2])
+#define source_input_position_x1()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfInputStart + 0]))
+#define source_input_position_y()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfInputStart + 2]))
+#define source_input_position_x2()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfEnds + 0]))
+#define source_output_position_x1()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfOutputStart + 0]))
+#define source_output_position_y()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfOutputStart + 2]))
+#define source_output_position_x2()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfEnds + 2]))
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
 
@@ -223,13 +223,13 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
 									assert(number_of_write_areas * SourceVertexSize == input_size);
 									for(size_t run = 0; run < number_of_write_areas; run++) {
-										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0] = write_areas[run].x;
-										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2] = write_areas[run].y;
-										*(uint16_t *)&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0] = write_areas[run].x + write_areas[run].length;
+										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0]) = write_areas[run].x;
+										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2]) = write_areas[run].y;
+										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0]) = write_areas[run].x + write_areas[run].length;
 									}
 								});
 							for(size_t position = 0; position < input_size; position += SourceVertexSize) {
-								(*(uint16_t *)&input_buffer[position + SourceVertexOffsetOfOutputStart + 2]) = output_y;
+								(*reinterpret_cast<uint16_t *>(&input_buffer[position + SourceVertexOffsetOfOutputStart + 2])) = output_y;
 							}
 						});
 					colour_burst_amplitude_ = 0;

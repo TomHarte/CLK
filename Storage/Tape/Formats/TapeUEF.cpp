@@ -173,7 +173,7 @@ void UEF::queue_implicit_bit_pattern(uint32_t length) {
 }
 
 void UEF::queue_explicit_bit_pattern(uint32_t length) {
-	size_t length_in_bits = (length << 3) - (size_t)gzget8(file_);
+	size_t length_in_bits = (length << 3) - static_cast<size_t>(gzget8(file_));
 	uint8_t current_byte = 0;
 	for(size_t bit = 0; bit < length_in_bits; bit++) {
 		if(!(bit&7)) current_byte = gzget8(file_);

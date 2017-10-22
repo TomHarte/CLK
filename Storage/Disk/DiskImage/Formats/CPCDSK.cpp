@@ -30,7 +30,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 		// Skip two unused bytes and grab the track size table.
 		fseek(file_, 2, SEEK_CUR);
 		for(int c = 0; c < head_position_count_ * head_count_; c++) {
-			track_sizes_.push_back((size_t)(fgetc(file_) << 8));
+			track_sizes_.push_back(static_cast<size_t>(fgetc(file_) << 8));
 		}
 	} else {
 		size_of_a_track_ = fgetc16le();
@@ -118,7 +118,7 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 		if(is_extended_) {
 			data_size = sector_info.actual_length;
 		} else {
-			data_size = (size_t)(128 << sector_info.length);
+			data_size = static_cast<size_t>(128 << sector_info.length);
 			if(data_size == 0x2000) data_size = 0x1800;
 		}
 		new_sector.data.resize(data_size);

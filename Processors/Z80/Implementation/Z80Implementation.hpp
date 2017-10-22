@@ -97,11 +97,11 @@ template <	class T,
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 				break;
 
-				case MicroOp::Increment16:			(*(uint16_t *)operation->source)++;											break;
-				case MicroOp::IncrementPC:			pc_.full += pc_increment_;													break;
-				case MicroOp::Decrement16:			(*(uint16_t *)operation->source)--;											break;
-				case MicroOp::Move8:				*(uint8_t *)operation->destination = *(uint8_t *)operation->source;			break;
-				case MicroOp::Move16:				*(uint16_t *)operation->destination = *(uint16_t *)operation->source;		break;
+				case MicroOp::Increment16:			(*static_cast<uint16_t *>(operation->source))++;		break;
+				case MicroOp::IncrementPC:			pc_.full += pc_increment_;								break;
+				case MicroOp::Decrement16:			(*static_cast<uint16_t *>(operation->source))--;		break;
+				case MicroOp::Move8:				*static_cast<uint8_t *>(operation->destination) = *static_cast<uint8_t *>(operation->source);		break;
+				case MicroOp::Move16:				*static_cast<uint16_t *>(operation->destination) = *static_cast<uint16_t *>(operation->source);		break;
 
 				case MicroOp::AssembleAF:
 					temp16_.bytes.high = a_;
@@ -122,17 +122,17 @@ template <	class T,
 	carry_result_ = 0;
 
 				case MicroOp::And:
-					a_ &= *(uint8_t *)operation->source;
+					a_ &= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(Flag::HalfCarry);
 				break;
 
 				case MicroOp::Or:
-					a_ |= *(uint8_t *)operation->source;
+					a_ |= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(0);
 				break;
 
 				case MicroOp::Xor:
-					a_ ^= *(uint8_t *)operation->source;
+					a_ ^= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(0);
 				break;
 
@@ -183,7 +183,7 @@ template <	class T,
 	bit53_result_ = static_cast<uint8_t>(b53);
 
 				case MicroOp::CP8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = a_ - value;
 					int half_result = (a_&0xf) - (value&0xf);
 
@@ -196,7 +196,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::SUB8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = a_ - value;
 					int half_result = (a_&0xf) - (value&0xf);
 
@@ -209,7 +209,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::SBC8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = a_ - value - (carry_result_ & Flag::Carry);
 					int half_result = (a_&0xf) - (value&0xf) - (carry_result_ & Flag::Carry);
 
@@ -222,7 +222,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::ADD8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = a_ + value;
 					int half_result = (a_&0xf) + (value&0xf);
 
@@ -235,7 +235,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::ADC8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = a_ + value + (carry_result_ & Flag::Carry);
 					int half_result = (a_&0xf) + (value&0xf) + (carry_result_ & Flag::Carry);
 
@@ -263,7 +263,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::Increment8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = value + 1;
 
 					// with an increment, overflow occurs if the sign changes from
@@ -271,7 +271,7 @@ template <	class T,
 					int overflow = (value ^ result) & ~value;
 					int half_result = (value&0xf) + 1;
 
-					*(uint8_t *)operation->source = static_cast<uint8_t>(result);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(result);
 
 					// sign, zero and 5 & 3 are set directly from the result
 					bit53_result_ = sign_result_ = zero_result_ = static_cast<uint8_t>(result);
@@ -281,7 +281,7 @@ template <	class T,
 				} break;
 
 				case MicroOp::Decrement8: {
-					uint8_t value = *(uint8_t *)operation->source;
+					uint8_t value = *static_cast<uint8_t *>(operation->source);
 					int result = value - 1;
 
 					// with a decrement, overflow occurs if the sign changes from
@@ -289,7 +289,7 @@ template <	class T,
 					int overflow = (value ^ result) & value;
 					int half_result = (value&0xf) - 1;
 
-					*(uint8_t *)operation->source = static_cast<uint8_t>(result);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(result);
 
 					// sign, zero and 5 & 3 are set directly from the result
 					bit53_result_ = sign_result_ = zero_result_ = static_cast<uint8_t>(result);
@@ -356,8 +356,8 @@ template <	class T,
 #pragma mark - 16-bit arithmetic
 
 				case MicroOp::ADD16: {
-					memptr_.full = *(uint16_t *)operation->destination;
-					uint16_t sourceValue = *(uint16_t *)operation->source;
+					memptr_.full = *static_cast<uint16_t *>(operation->destination);
+					uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					uint16_t destinationValue = memptr_.full;
 					int result = sourceValue + destinationValue;
 					int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
@@ -367,13 +367,13 @@ template <	class T,
 					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
 					subtract_flag_ = 0;
 
-					*(uint16_t *)operation->destination = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
 					memptr_.full++;
 				} break;
 
 				case MicroOp::ADC16: {
-					memptr_.full = *(uint16_t *)operation->destination;
-					uint16_t sourceValue = *(uint16_t *)operation->source;
+					memptr_.full = *static_cast<uint16_t *>(operation->destination);
+					uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					uint16_t destinationValue = memptr_.full;
 					int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
 					int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
@@ -388,13 +388,13 @@ template <	class T,
 					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
 					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 13);
 
-					*(uint16_t *)operation->destination = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
 					memptr_.full++;
 				} break;
 
 				case MicroOp::SBC16: {
-					memptr_.full = *(uint16_t *)operation->destination;
-					uint16_t sourceValue = *(uint16_t *)operation->source;
+					memptr_.full = *static_cast<uint16_t *>(operation->destination);
+					uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					uint16_t destinationValue = memptr_.full;
 					int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
 					int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
@@ -412,7 +412,7 @@ template <	class T,
 					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
 					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 13);
 
-					*(uint16_t *)operation->destination = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
 					memptr_.full++;
 				} break;
 
@@ -619,12 +619,12 @@ template <	class T,
 #pragma mark - Bit Manipulation
 
 				case MicroOp::BIT: {
-					uint8_t result = *(uint8_t *)operation->source & (1 << ((operation_ >> 3)&7));
+					uint8_t result = *static_cast<uint8_t *>(operation->source) & (1 << ((operation_ >> 3)&7));
 
 					if(current_instruction_page_->is_indexed || ((operation_&0x08) == 7)) {
 						bit53_result_ = memptr_.bytes.high;
 					} else {
-						bit53_result_ = *(uint8_t *)operation->source;
+						bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					}
 
 					sign_result_ = zero_result_ = result;
@@ -634,11 +634,11 @@ template <	class T,
 				} break;
 
 				case MicroOp::RES:
-					*(uint8_t *)operation->source &= ~(1 << ((operation_ >> 3)&7));
+					*static_cast<uint8_t *>(operation->source) &= ~(1 << ((operation_ >> 3)&7));
 				break;
 
 				case MicroOp::SET:
-					*(uint8_t *)operation->source |= (1 << ((operation_ >> 3)&7));
+					*static_cast<uint8_t *>(operation->source) |= (1 << ((operation_ >> 3)&7));
 				break;
 
 #pragma mark - Rotation and shifting
@@ -675,58 +675,58 @@ template <	class T,
 #undef set_rotate_flags
 
 #define set_shift_flags()	\
-	sign_result_ = zero_result_ = bit53_result_ = *(uint8_t *)operation->source;	\
+	sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);	\
 	set_parity(sign_result_);	\
 	half_carry_result_ = 0;	\
 	subtract_flag_ = 0;
 
 				case MicroOp::RLC:
-					carry_result_ = *(uint8_t *)operation->source >> 7;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source << 1) | carry_result_);
+					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) << 1) | carry_result_);
 					set_shift_flags();
 				break;
 
 				case MicroOp::RRC:
-					carry_result_ = *(uint8_t *)operation->source;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source >> 1) | (carry_result_ << 7));
+					carry_result_ = *static_cast<uint8_t *>(operation->source);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
 					set_shift_flags();
 				break;
 
 				case MicroOp::RL: {
-					uint8_t next_carry = *(uint8_t *)operation->source >> 7;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source << 1) | (carry_result_ & Flag::Carry));
+					uint8_t next_carry = *static_cast<uint8_t *>(operation->source) >> 7;
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) << 1) | (carry_result_ & Flag::Carry));
 					carry_result_ = next_carry;
 					set_shift_flags();
 				} break;
 
 				case MicroOp::RR: {
-					uint8_t next_carry = *(uint8_t *)operation->source;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source >> 1) | (carry_result_ << 7));
+					uint8_t next_carry = *static_cast<uint8_t *>(operation->source);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
 					carry_result_ = next_carry;
 					set_shift_flags();
 				} break;
 
 				case MicroOp::SLA:
-					carry_result_ = *(uint8_t *)operation->source >> 7;
-					*(uint8_t *)operation->source = static_cast<uint8_t>(*(uint8_t *)operation->source << 1);
+					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(*static_cast<uint8_t *>(operation->source) << 1);
 					set_shift_flags();
 				break;
 
 				case MicroOp::SRA:
-					carry_result_ = *(uint8_t *)operation->source;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source >> 1) | (*(uint8_t *)operation->source & 0x80));
+					carry_result_ = *static_cast<uint8_t *>(operation->source);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (*static_cast<uint8_t *>(operation->source) & 0x80));
 					set_shift_flags();
 				break;
 
 				case MicroOp::SLL:
-					carry_result_ = *(uint8_t *)operation->source >> 7;
-					*(uint8_t *)operation->source = static_cast<uint8_t>(*(uint8_t *)operation->source << 1) | 1;
+					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(*static_cast<uint8_t *>(operation->source) << 1) | 1;
 					set_shift_flags();
 				break;
 
 				case MicroOp::SRL:
-					carry_result_ = *(uint8_t *)operation->source;
-					*(uint8_t *)operation->source = static_cast<uint8_t>((*(uint8_t *)operation->source >> 1));
+					carry_result_ = *static_cast<uint8_t *>(operation->source);
+					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1));
 					set_shift_flags();
 				break;
 
@@ -782,7 +782,7 @@ template <	class T,
 
 				case MicroOp::SetInFlags:
 					subtract_flag_ = half_carry_result_ = 0;
-					sign_result_ = zero_result_ = bit53_result_ = *(uint8_t *)operation->source;
+					sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					set_parity(sign_result_);
 				break;
 
@@ -845,7 +845,7 @@ template <	class T,
 				break;
 
 				case MicroOp::CalculateIndexAddress:
-					memptr_.full = static_cast<uint16_t>(*(uint16_t *)operation->source + (int8_t)temp8_);
+					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + (int8_t)temp8_);
 				break;
 
 				case MicroOp::IndexedPlaceHolder:

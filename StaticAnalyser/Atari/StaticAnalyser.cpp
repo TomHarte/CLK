@@ -24,7 +24,7 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 
 	std::function<size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
 		address &= 0x1fff;
-		return (size_t)(address - 0x1800);
+		return static_cast<size_t>(address - 0x1800);
 	};
 	StaticAnalyser::MOS6502::Disassembly high_location_disassembly =
 		StaticAnalyser::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
@@ -126,8 +126,8 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	break_address = static_cast<uint16_t>(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
 
 	std::function<size_t(uint16_t address)> address_mapper = [](uint16_t address) {
-		if(!(address & 0x1000)) return (size_t)-1;
-		return (size_t)(address & 0xfff);
+		if(!(address & 0x1000)) return static_cast<size_t>(-1);
+		return static_cast<size_t>(address & 0xfff);
 	};
 
 	std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());

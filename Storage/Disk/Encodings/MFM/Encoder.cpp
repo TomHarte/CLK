@@ -161,7 +161,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 				shifter.add_data_address_mark();
 
 			size_t c = 0;
-			size_t declared_length = (size_t)(128 << sector.size);
+			size_t declared_length = static_cast<size_t>(128 << sector.size);
 			for(c = 0; c < sector.data.size() && c < declared_length; c++) {
 				shifter.add_byte(sector.data[c]);
 			}
@@ -200,7 +200,7 @@ void Encoder::add_crc(bool incorrectly) {
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
 
-const size_t Storage::Encodings::MFM::DefaultSectorGapLength = (size_t)~0;
+const size_t Storage::Encodings::MFM::DefaultSectorGapLength = std::numeric_limits<size_t>::max();
 
 std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(

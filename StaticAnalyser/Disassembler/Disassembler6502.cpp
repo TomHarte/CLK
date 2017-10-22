@@ -332,6 +332,6 @@ Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &mem
 
 std::function<size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
 	return [start_address](uint16_t argument) {
-		return (size_t)(argument - start_address);
+		return static_cast<size_t>(argument - start_address);
 	};
 }

@@ -52,7 +52,7 @@ class ConcreteMachine:
 				break;
 			}
 
-			memcpy(target, &data[0], std::min((size_t)16384, data.size()));
+			memcpy(target, &data[0], std::min(static_cast<size_t>(16384), data.size()));
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) override final {

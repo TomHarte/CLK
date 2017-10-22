@@ -43,7 +43,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	if(address.head >= 1) return resulting_track;
 
 	// seek to this track's entry in the track table
-	fseek(file_, (long)((address.position * 4) + 0xc), SEEK_SET);
+	fseek(file_, static_cast<long>((address.position * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
 	uint32_t track_offset;
@@ -64,7 +64,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	fread(&track_contents[0], 1, track_length, file_);
 
 	// seek to this track's entry in the speed zone table
-	fseek(file_, (long)((address.position * 4) + 0x15c), SEEK_SET);
+	fseek(file_, static_cast<long>((address.position * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
 	uint32_t speed_zone_offset;

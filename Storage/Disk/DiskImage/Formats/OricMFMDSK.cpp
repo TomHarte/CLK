@@ -158,7 +158,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track
 
 		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
 		fseek(file_, file_offset, SEEK_SET);
-		size_t track_size = std::min((size_t)6400, parsed_track.size());
+		size_t track_size = std::min(static_cast<size_t>(6400), parsed_track.size());
 		fwrite(parsed_track.data(), 1, track_size, file_);
 	}
 }

@@ -16,12 +16,12 @@ AllRAMProcessor::AllRAMProcessor(size_t memory_size) :
 	timestamp_(0) {}
 
 void AllRAMProcessor::set_data_at_address(uint16_t startAddress, size_t length, const uint8_t *data) {
-	size_t endAddress = std::min(startAddress + length, (size_t)65536);
+	size_t endAddress = std::min(startAddress + length, static_cast<size_t>(65536));
 	memcpy(&memory_[startAddress], data, endAddress - startAddress);
 }
 
 void AllRAMProcessor::get_data_at_address(uint16_t startAddress, size_t length, uint8_t *data) {
-	size_t endAddress = std::min(startAddress + length, (size_t)65536);
+	size_t endAddress = std::min(startAddress + length, static_cast<size_t>(65536));
 	memcpy(data, &memory_[startAddress], endAddress - startAddress);
 }
 

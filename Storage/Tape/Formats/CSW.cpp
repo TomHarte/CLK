@@ -62,10 +62,10 @@ CSW::CSW(const char *file_name) :
 		// The only clue given by CSW as to the output size in bytes is that there will be
 		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
 		// is pessimistic.
-		source_data_.resize((size_t)number_of_waves * 5);
+		source_data_.resize(static_cast<size_t>(number_of_waves) * 5);
 
 		std::vector<uint8_t> file_data;
-		size_t remaining_data = (size_t)file_stats_.st_size - (size_t)ftell(file_);
+		size_t remaining_data = static_cast<size_t>(file_stats_.st_size) - static_cast<size_t>(ftell(file_));
 		file_data.resize(remaining_data);
 		fread(file_data.data(), sizeof(uint8_t), remaining_data, file_);
 
@@ -74,7 +74,7 @@ CSW::CSW(const char *file_name) :
 		// needed.
 		uLongf output_length = static_cast<uLongf>(number_of_waves * 5);
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
-		source_data_.resize((size_t)output_length);
+		source_data_.resize(static_cast<size_t>(output_length));
 	} else {
 		rle_start_ = ftell(file_);
 	}

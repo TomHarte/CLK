@@ -58,7 +58,7 @@ void Video::flush(bool next_sync) {
 		}
 
 		// Any pending pixels being dealt with, pad with the white level.
-		uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
 		if(colour_pointer) *colour_pointer = 0xff;
 		crt_->output_level(cycles_since_update_);
 	}

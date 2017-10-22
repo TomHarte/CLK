@@ -28,11 +28,11 @@ PRG::PRG(const char *file_name) {
 	int loading_address = fgetc(file);
 	loading_address |= fgetc(file) << 8;
 
-	size_t data_length = (size_t)file_stats.st_size - 2;
+	size_t data_length = static_cast<size_t>(file_stats.st_size) - 2;
 	size_t padded_data_length = 1;
 	while(padded_data_length < data_length) padded_data_length <<= 1;
 	std::vector<uint8_t> contents(padded_data_length);
-	fread(&contents[0], 1, (size_t)(data_length), file);
+	fread(&contents[0], 1, static_cast<size_t>(data_length), file);
 	fclose(file);
 
 	// accept only files intended to load at 0xa000

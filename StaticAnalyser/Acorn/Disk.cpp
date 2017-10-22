@@ -51,9 +51,9 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 		new_file.execution_address = (uint32_t)(details->data[file_offset+2] | (details->data[file_offset+3] << 8) | ((details->data[file_offset+6]&0xc0) << 10));
 		new_file.is_protected = !!(names->data[file_offset + 7] & 0x80);
 
-		long data_length = (long)(details->data[file_offset+4] | (details->data[file_offset+5] << 8) | ((details->data[file_offset+6]&0x30) << 12));
+		long data_length = static_cast<long>(details->data[file_offset+4] | (details->data[file_offset+5] << 8) | ((details->data[file_offset+6]&0x30) << 12));
 		int start_sector = details->data[file_offset+7] | ((details->data[file_offset+6]&0x03) << 8);
-		new_file.data.reserve((size_t)data_length);
+		new_file.data.reserve(static_cast<size_t>(data_length));
 
 		if(start_sector < 2) continue;
 		while(data_length > 0) {

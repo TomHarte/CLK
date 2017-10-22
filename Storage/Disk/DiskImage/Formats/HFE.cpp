@@ -23,7 +23,7 @@ HFE::HFE(const char *file_name) :
 	head_count_ = fgetc(file_);
 
 	fseek(file_, 7, SEEK_CUR);
-	track_list_offset_ = (long)fgetc16le() << 9;
+	track_list_offset_ = static_cast<long>(fgetc16le() << 9);
 }
 
 HFE::~HFE() {
@@ -49,7 +49,7 @@ uint16_t HFE::seek_track(Track::Address address) {
 	// based on an assumption of two heads.
 	fseek(file_, track_list_offset_ + address.position * 4, SEEK_SET);
 
-	long track_offset = (long)fgetc16le() << 9;
+	long track_offset = static_cast<long>(fgetc16le() << 9);
 	uint16_t track_length = fgetc16le();
 
 	fseek(file_, track_offset, SEEK_SET);

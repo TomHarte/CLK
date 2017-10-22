@@ -56,7 +56,7 @@ std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::secto
 						case 2:	new_sector->address.sector = shifter.get_byte(); ++position; break;
 						case 3:
 							new_sector->size = shifter.get_byte();
-							size = (size_t)(128 << new_sector->size);
+							size = static_cast<size_t>(128 << new_sector->size);
 							++position;
 							is_reading = false;
 							shifter.set_should_obey_syncs(true);

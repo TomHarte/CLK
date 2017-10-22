@@ -121,7 +121,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*(uint32_t *)current_output_target_ = palette_tables_.eighty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.eighty1bpp[last_pixel_byte_];
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
@@ -132,7 +132,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.eighty2bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.eighty2bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
@@ -154,7 +154,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 4;
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						number_of_cycles--;
@@ -162,11 +162,11 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 					}
 					while(number_of_cycles > 1) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						last_pixel_byte_ <<= 4;
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						number_of_cycles -= 2;
@@ -174,7 +174,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 					}
 					if(number_of_cycles) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
@@ -294,15 +294,15 @@ void VideoOutput::set_register(int address, uint8_t value) {
 			// regenerate all palette tables for now
 #define pack(a, b) static_cast<uint8_t>((a << 4) | (b))
 			for(int byte = 0; byte < 256; byte++) {
-				uint8_t *target = (uint8_t *)&palette_tables_.forty1bpp[byte];
+				uint8_t *target = reinterpret_cast<uint8_t *>(&palette_tables_.forty1bpp[byte]);
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
 				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
 
-				target = (uint8_t *)&palette_tables_.eighty2bpp[byte];
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty2bpp[byte]);
 				target[0] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
 				target[1] = pack(palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
 
-				target = (uint8_t *)&palette_tables_.eighty1bpp[byte];
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty1bpp[byte]);
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
 				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
 				target[2] = pack(palette_[(byte&0x08) >> 0], palette_[(byte&0x04) << 1]);
