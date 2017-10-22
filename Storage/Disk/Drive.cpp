@@ -67,7 +67,7 @@ void Drive::set_head(int head) {
 Storage::Time Drive::get_time_into_track() {
 	// `result` will initially be amount of time since the index hole was seen as a
 	// proportion of a second; convert it into proportion of a rotation, simplify and return.
-	Time result(cycles_since_index_hole_, (int)get_input_clock_rate());
+	Time result(cycles_since_index_hole_, static_cast<int>(get_input_clock_rate()));
 	result /= rotational_multiplier_;
 	result.simplify();
 	assert(result <= Time(1));
@@ -112,10 +112,10 @@ void Drive::run_for(const Cycles cycles) {
 
 		int number_of_cycles = cycles.as_int();
 		while(number_of_cycles) {
-			int cycles_until_next_event = (int)get_cycles_until_next_event();
+			int cycles_until_next_event = static_cast<int>(get_cycles_until_next_event());
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 			if(!is_reading_ && cycles_until_bits_written_ > zero) {
-				int write_cycles_target = (int)cycles_until_bits_written_.get_unsigned_int();
+				int write_cycles_target = static_cast<int>(cycles_until_bits_written_.get_unsigned_int());
 				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
 				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
 			}

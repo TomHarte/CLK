@@ -111,7 +111,7 @@ class ConcreteMachine:
 			ROMSlot slot = ROMSlot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
 				set_rom(slot, cartridge->get_segments().front().data, false);
-				slot = (ROMSlot)(((int)slot + 1)&15);
+				slot = static_cast<ROMSlot>((static_cast<int>(slot) + 1)&15);
 			}
 
 			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
@@ -310,10 +310,10 @@ class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles((int)cycles);
-			cycles_since_audio_update_ += Cycles((int)cycles);
+			cycles_since_display_update_ += Cycles(static_cast<int>(cycles));
+			cycles_since_audio_update_ += Cycles(static_cast<int>(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
-			tape_.run_for(Cycles((int)cycles));
+			tape_.run_for(Cycles(static_cast<int>(cycles)));
 
 			cycles_until_display_interrupt_ -= cycles;
 			if(cycles_until_display_interrupt_ < 0) {
@@ -322,8 +322,8 @@ class ConcreteMachine:
 				queue_next_display_interrupt();
 			}
 
-			if(typer_) typer_->run_for(Cycles((int)cycles));
-			if(plus3_) plus3_->run_for(Cycles(4*(int)cycles));
+			if(typer_) typer_->run_for(Cycles(static_cast<int>(cycles)));
+			if(plus3_) plus3_->run_for(Cycles(4*static_cast<int>(cycles)));
 			if(shift_restart_counter_) {
 				shift_restart_counter_ -= cycles;
 				if(shift_restart_counter_ <= 0) {
@@ -334,7 +334,7 @@ class ConcreteMachine:
 				}
 			}
 
-			return Cycles((int)cycles);
+			return Cycles(static_cast<int>(cycles));
 		}
 
 		forceinline void flush() {

@@ -920,7 +920,7 @@ class ConcreteMachine:
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
-			roms_[(int)type] = data;
+			roms_[static_cast<int>(type)] = data;
 		}
 
 		void set_component_is_sleeping(void *component, bool is_sleeping) override final {

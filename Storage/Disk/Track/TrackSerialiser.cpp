@@ -40,7 +40,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(Track &track, Time 
 		Time extended_length = next_event.length * length_multiplier + time_error;
 		time_error.clock_rate = extended_length.clock_rate;
 		time_error.length = extended_length.length % extended_length.clock_rate;
-		pll.run_for(Cycles((int)extended_length.get_unsigned_int()));
+		pll.run_for(Cycles(static_cast<int>(extended_length.get_unsigned_int())));
 		pll.add_pulse();
 
 		// If the PLL is now sufficiently primed, restart, and start recording bits this time.

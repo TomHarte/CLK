@@ -44,12 +44,12 @@ TIA::TIA(bool create_crt) :
 	}
 
 	for(int c = 0; c < 64; c++) {
-		bool has_playfield = c & (int)(CollisionType::Playfield);
-		bool has_ball = c & (int)(CollisionType::Ball);
-		bool has_player0 = c & (int)(CollisionType::Player0);
-		bool has_player1 = c & (int)(CollisionType::Player1);
-		bool has_missile0 = c & (int)(CollisionType::Missile0);
-		bool has_missile1 = c & (int)(CollisionType::Missile1);
+		bool has_playfield = c & static_cast<int>(CollisionType::Playfield);
+		bool has_ball = c & static_cast<int>(CollisionType::Ball);
+		bool has_player0 = c & static_cast<int>(CollisionType::Player0);
+		bool has_player1 = c & static_cast<int>(CollisionType::Player1);
+		bool has_missile0 = c & static_cast<int>(CollisionType::Missile0);
+		bool has_missile1 = c & static_cast<int>(CollisionType::Missile1);
 
 		uint8_t collision_registers[8];
 		collision_registers[0] = ((has_missile0 && has_player1) ? 0x80 : 0x00)		|	((has_missile0 && has_player0) ? 0x40 : 0x00);
@@ -71,51 +71,51 @@ TIA::TIA(bool create_crt) :
 			(collision_registers[7] << 8);
 
 		// all priority modes show the background if nothing else is present
-		colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
-		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
-		colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-		colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::Background);
+		colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::Standard)][c] =
+		colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][c] =
+		colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][c] =
+		colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::OnTop)][c] = static_cast<uint8_t>(ColourIndex::Background);
 
 		// test 1 for standard priority: if there is a playfield or ball pixel, plot that colour
 		if(has_playfield || has_ball) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::Standard)][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 
 		// test 1 for score mode: if there is a ball pixel, plot that colour
 		if(has_ball) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 
 		// test 1 for on-top mode, test 2 for everbody else: if there is a player 1 or missile 1 pixel, plot that colour
 		if(has_player1 || has_missile1) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::Standard)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::OnTop)][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
 		}
 
 		// in the right-hand side of score mode, the playfield has the same priority as player 1
 		if(has_playfield) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile1);
 		}
 
 		// next test for everybody: if there is a player 0 or missile 0 pixel, plot that colour instead
 		if(has_player0 || has_missile0) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::Standard][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][c] =
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::Standard)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][c] =
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::OnTop)][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
 		}
 
 		// if this is the left-hand side of score mode, the playfield has the same priority as player 0
 		if(has_playfield) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][c] = static_cast<uint8_t>(ColourIndex::PlayerMissile0);
 		}
 
 		// a final test for 'on top' priority mode: if the playfield or ball are visible, prefer that colour to all others
 		if(has_playfield || has_ball) {
-			colour_mask_by_mode_collision_flags_[(int)ColourMode::OnTop][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
+			colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::OnTop)][c] = static_cast<uint8_t>(ColourIndex::PlayfieldBall);
 		}
 	}
 }
@@ -203,7 +203,7 @@ int TIA::get_cycles_until_horizontal_blank(const Cycles from_offset) {
 }
 
 void TIA::set_background_colour(uint8_t colour) {
-	colour_palette_[(int)ColourIndex::Background] = colour;
+	colour_palette_[static_cast<int>(ColourIndex::Background)] = colour;
 }
 
 void TIA::set_playfield(uint16_t offset, uint8_t value) {
@@ -243,7 +243,7 @@ void TIA::set_playfield_control_and_ball_size(uint8_t value) {
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour) {
-	colour_palette_[(int)ColourIndex::PlayfieldBall] = colour;
+	colour_palette_[static_cast<int>(ColourIndex::PlayfieldBall)] = colour;
 }
 
 void TIA::set_player_number_and_size(int player, uint8_t value) {
@@ -305,7 +305,7 @@ void TIA::set_player_motion(int player, uint8_t motion) {
 
 void TIA::set_player_missile_colour(int player, uint8_t colour) {
 	assert(player >= 0 && player < 2);
-	colour_palette_[(int)ColourIndex::PlayerMissile0 + player] = colour;
+	colour_palette_[static_cast<int>(ColourIndex::PlayerMissile0) + player] = colour;
 }
 
 void TIA::set_missile_enable(int missile, bool enabled) {
@@ -490,18 +490,18 @@ void TIA::output_pixels(int start, int end) {
 	if(playfield_priority_ == PlayfieldPriority::Score) {
 		while(start < end && start < first_pixel_cycle + 80) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreLeft][buffer_value]];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][buffer_value]];
 			start++;
 			target_position++;
 		}
 		while(start < end) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[(int)ColourMode::ScoreRight][buffer_value]];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][buffer_value]];
 			start++;
 			target_position++;
 		}
 	} else {
-		int table_index = (int)((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
+		int table_index = static_cast<int>((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
 		while(start < end) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
 			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]];

@@ -87,10 +87,10 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 	std::unique_ptr<Catalogue> result(new Catalogue);
 
-	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * (int)sector_size / parameters.block_size) >= 256;
+	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * static_cast<int>(sector_size) / parameters.block_size) >= 256;
 	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * (size_t)parameters.block_size;
-	int sectors_per_block = parameters.block_size / (int)sector_size;
-	int records_per_sector = (int)sector_size / 128;
+	int sectors_per_block = parameters.block_size / static_cast<int>(sector_size);
+	int records_per_sector = static_cast<int>(sector_size) / 128;
 
 	auto entry = catalogue_entries.begin();
 	while(entry != catalogue_entries.end()) {

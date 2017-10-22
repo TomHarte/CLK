@@ -81,9 +81,9 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			// check are 8 and 3.
 			size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
-				case 8:		push_symbol(SymbolType::One, (int)(number_of_pulses + gaps_to_swallow));	break;
-				case 3:		push_symbol(SymbolType::Zero, (int)(number_of_pulses + gaps_to_swallow));	break;
-				default:	push_symbol(SymbolType::Unrecognised, 1);									break;
+				case 8:		push_symbol(SymbolType::One, static_cast<int>(number_of_pulses + gaps_to_swallow));		break;
+				case 3:		push_symbol(SymbolType::Zero, static_cast<int>(number_of_pulses + gaps_to_swallow));	break;
+				default:	push_symbol(SymbolType::Unrecognised, 1);												break;
 			}
 		}
 	}

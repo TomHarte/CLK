@@ -53,7 +53,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	if(!track_offset) return resulting_track;
 
 	// seek to the track start
-	fseek(file_, (int)track_offset, SEEK_SET);
+	fseek(file_, static_cast<long>(track_offset), SEEK_SET);
 
 	// get the real track length
 	uint16_t track_length;
@@ -73,7 +73,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
-		fseek(file_, (int)speed_zone_offset, SEEK_SET);
+		fseek(file_, static_cast<long>(speed_zone_offset), SEEK_SET);
 
 		uint16_t speed_zone_length = (track_length + 3) >> 2;
 

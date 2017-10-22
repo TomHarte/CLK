@@ -40,7 +40,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
 		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector) {
-			int difference = (int)track - (int)track_;
+			int difference = static_cast<int>(track) - static_cast<int>(track_);
 			track_ = track;
 
 			if(difference) {

@@ -80,7 +80,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
 	assert(cycles_until_event_ == 0);
-	cycles_until_event_ += (int)(numerator / denominator);
+	cycles_until_event_ += static_cast<int>(numerator / denominator);
 	assert(cycles_until_event_ >= 0);
 	subcycles_until_event_.length = static_cast<unsigned int>(numerator % denominator);
 	subcycles_until_event_.clock_rate = static_cast<unsigned int>(denominator);

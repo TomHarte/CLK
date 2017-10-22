@@ -403,10 +403,10 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	unsigned int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
-	if(static_cast<unsigned int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = (int)horizontal_retrace_period;
-	if(static_cast<unsigned int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
+	if(static_cast<unsigned int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
+	if(static_cast<unsigned int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = static_cast<int>(horizontal_scan_period - static_cast<unsigned int>(first_cycle_after_sync));
 
-	float start_x = static_cast<float>((unsigned)first_cycle_after_sync - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
+	float start_x = static_cast<float>(static_cast<unsigned int>(first_cycle_after_sync) - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
 	float width = static_cast<float>(number_of_cycles) / static_cast<float>(horizontal_scan_period);
 
 	// determine prima facie y extent
@@ -415,13 +415,13 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	unsigned int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// make sure that the requested range is visible
-//	if((unsigned)first_line_after_sync * horizontal_period < vertical_retrace_period)
+//	if(static_cast<unsigned int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
 //		first_line_after_sync = (vertical_retrace_period + horizontal_period - 1) / horizontal_period;
 //	if((first_line_after_sync + number_of_lines) * horizontal_period > vertical_scan_period)
-//		number_of_lines = (int)(horizontal_scan_period - (unsigned)first_cycle_after_sync);
+//		number_of_lines = static_cast<int>(horizontal_scan_period - static_cast<unsigned int>(first_cycle_after_sync));
 
-	float start_y = static_cast<float>(((unsigned)first_line_after_sync * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
-	float height = static_cast<float>((unsigned)number_of_lines * horizontal_period) / vertical_scan_period;
+	float start_y = static_cast<float>((static_cast<unsigned int>(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
+	float height = static_cast<float>(static_cast<unsigned int>(number_of_lines) * horizontal_period) / vertical_scan_period;
 
 	// adjust to ensure aspect ratio is correct
 	float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);

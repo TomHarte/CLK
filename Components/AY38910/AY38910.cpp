@@ -67,7 +67,7 @@ AY38910::AY38910() :
 	float max_volume = 8192;
 	float root_two = sqrtf(2.0f);
 	for(int v = 0; v < 16; v++) {
-		volumes_[v] = (int)(max_volume / powf(root_two, static_cast<float>(v ^ 0xf)));
+		volumes_[v] = static_cast<int>(max_volume / powf(root_two, static_cast<float>(v ^ 0xf)));
 	}
 	volumes_[0] = 0;
 }
@@ -201,7 +201,7 @@ void AY38910::set_register_value(uint8_t value) {
 				break;
 
 				case 12:
-					envelope_period_ = (envelope_period_ & 0xff) | (int)(value << 8);
+					envelope_period_ = (envelope_period_ & 0xff) | static_cast<int>(value << 8);
 				break;
 
 				case 13:
@@ -262,15 +262,15 @@ uint8_t AY38910::get_data_output() {
 }
 
 void AY38910::set_control_lines(ControlLines control_lines) {
-	switch((int)control_lines) {
+	switch(static_cast<int>(control_lines)) {
 		default:					control_state_ = Inactive;		break;
 
-		case (int)(BDIR | BC2 | BC1):
+		case static_cast<int>(BDIR | BC2 | BC1):
 		case BDIR:
 		case BC1:					control_state_ = LatchAddress;	break;
 
-		case (int)(BC2 | BC1):		control_state_ = Read;			break;
-		case (int)(BDIR | BC2):		control_state_ = Write;			break;
+		case static_cast<int>(BC2 | BC1):		control_state_ = Read;			break;
+		case static_cast<int>(BDIR | BC2):		control_state_ = Write;			break;
 	}
 
 	update_bus();
