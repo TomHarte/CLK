@@ -23,12 +23,12 @@ class CRC16 {
 		CRC16(uint16_t polynomial, uint16_t reset_value) :
 				reset_value_(reset_value), value_(reset_value) {
 			for(int c = 0; c < 256; c++) {
-				uint16_t shift_value = (uint16_t)(c << 8);
+				uint16_t shift_value = static_cast<uint16_t>(c << 8);
 				for(int b = 0; b < 8; b++) {
 					uint16_t exclusive_or = (shift_value&0x8000) ? polynomial : 0x0000;
-					shift_value = (uint16_t)(shift_value << 1) ^ exclusive_or;
+					shift_value = static_cast<uint16_t>(shift_value << 1) ^ exclusive_or;
 				}
-				xor_table[c] = (uint16_t)shift_value;
+				xor_table[c] = static_cast<uint16_t>(shift_value);
 			}
 		}
 
@@ -37,7 +37,7 @@ class CRC16 {
 
 		/// Updates the CRC to include @c byte.
 		inline void add(uint8_t byte) {
-			value_ = (uint16_t)((value_ << 8) ^ xor_table[(value_ >> 8) ^ byte]);
+			value_ = static_cast<uint16_t>((value_ << 8) ^ xor_table[(value_ >> 8) ^ byte]);
 		}
 
 		/// @returns The current value of the CRC.

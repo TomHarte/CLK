@@ -350,7 +350,7 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 
 //		int halfSize = (taps >> 1);
 //		while(c < halfSize && sample < 5) {
-//			offsets[sample] = (float)(halfSize - c);
+//			offsets[sample] = static_cast<float>(halfSize - c);
 //			if((coefficients[c] < 0.0f) == (coefficients[c+1] < 0.0f) && c+1 < (taps >> 1)) {
 //				weights[sample] = coefficients[c] + coefficients[c+1];
 //				offsets[sample] -= (coefficients[c+1] / weights[sample]);

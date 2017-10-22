@@ -66,7 +66,7 @@ template <class T> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_->set_input_rate((float)(clock_rate / 4.0));
+			speaker_->set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
@@ -128,7 +128,7 @@ template <class T> class MOS6560 {
 				break;
 			}
 
-			crt_->set_new_display_type((unsigned int)(timing_.cycles_per_line*4), display_type);
+			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
 			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
@@ -141,7 +141,7 @@ template <class T> class MOS6560 {
 //			}
 
 			for(int c = 0; c < 16; c++) {
-				uint8_t *colour = (uint8_t *)&colours_[c];
+				uint8_t *colour = reinterpret_cast<uint8_t *>(&colours_[c]);
 				colour[0] = luminances[c];
 				colour[1] = chrominances[c];
 			}
@@ -270,7 +270,7 @@ template <class T> class MOS6560 {
 
 					pixel_pointer = nullptr;
 					if(output_state_ == State::Pixels) {
-						pixel_pointer = (uint16_t *)crt_->allocate_write_area(260);
+						pixel_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(260));
 					}
 				}
 				cycles_in_state_++;
@@ -454,7 +454,7 @@ template <class T> class MOS6560 {
 
 		uint16_t *pixel_pointer;
 		void output_border(unsigned int number_of_cycles) {
-			uint16_t *colour_pointer = (uint16_t *)crt_->allocate_write_area(1);
+			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
 			crt_->output_level(number_of_cycles);
 		}

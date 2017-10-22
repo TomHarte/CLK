@@ -117,7 +117,7 @@ void MachineBase::process_input_bit(int value) {
 	}
 	bit_window_offset_++;
 	if(bit_window_offset_ == 8) {
-		drive_VIA_port_handler_.set_data_input((uint8_t)shift_register_);
+		drive_VIA_port_handler_.set_data_input(static_cast<uint8_t>(shift_register_));
 		bit_window_offset_ = 0;
 		if(drive_VIA_port_handler_.get_should_set_overflow()) {
 			m6502_.set_overflow_line(true);
@@ -136,7 +136,7 @@ void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
-	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)density));
+	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(density)));
 }
 
 #pragma mark - SerialPortVIA

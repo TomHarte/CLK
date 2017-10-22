@@ -31,7 +31,7 @@ Video::Video() :
 
 void Video::run_for(const HalfCycles half_cycles) {
 	// Just keep a running total of the amount of time that remains owed to the CRT.
-	cycles_since_update_ += (unsigned int)half_cycles.as_int();
+	cycles_since_update_ += static_cast<unsigned int>(half_cycles.as_int());
 }
 
 void Video::flush() {
@@ -48,7 +48,7 @@ void Video::flush(bool next_sync) {
 		if(line_data_) {
 			// If there is output data queued, output it either if it's being interrupted by
 			// sync, or if we're past its end anyway. Otherwise let it be.
-			unsigned int data_length = (unsigned int)(line_data_pointer_ - line_data_);
+			unsigned int data_length = static_cast<unsigned int>(line_data_pointer_ - line_data_);
 			if(data_length < cycles_since_update_ || next_sync) {
 				unsigned int output_length = std::min(data_length, cycles_since_update_);
 				crt_->output_data(output_length, 1);
@@ -58,7 +58,7 @@ void Video::flush(bool next_sync) {
 		}
 
 		// Any pending pixels being dealt with, pad with the white level.
-		uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
 		if(colour_pointer) *colour_pointer = 0xff;
 		crt_->output_level(cycles_since_update_);
 	}

@@ -51,7 +51,7 @@ template <class T> class MOS6532 {
 				case 0x04: case 0x05: case 0x06: case 0x07:
 					if(address & 0x10) {
 						timer_.writtenShift = timer_.activeShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						timer_.value = ((unsigned int)value << timer_.activeShift) ;
+						timer_.value = (static_cast<unsigned int>(value) << timer_.activeShift) ;
 						timer_.interrupt_enabled = !!(address&0x08);
 						interrupt_status_ &= ~InterruptFlag::Timer;
 						evaluate_interrupts();
@@ -107,7 +107,7 @@ template <class T> class MOS6532 {
 		}
 
 		inline void run_for(const Cycles cycles) {
-			unsigned int number_of_cycles = (unsigned int)cycles.as_int();
+			unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_int());
 
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 			if(timer_.value >= number_of_cycles) {
@@ -126,7 +126,7 @@ template <class T> class MOS6532 {
 			port_{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}},
 			a7_interrupt_({.last_port_value = 0, .enabled = false}),
 			interrupt_line_(false),
-			timer_{.value = (unsigned int)((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false} {}
+			timer_{.value = static_cast<unsigned int>((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false} {}
 
 		inline void set_port_did_change(int port) {
 			if(!port) {

@@ -135,7 +135,7 @@ template<bool is_zx81> class ConcreteMachine:
 						z80_.set_interrupt_line(false);
 					}
 					if(has_latched_video_byte_) {
-						size_t char_address = (size_t)((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+						size_t char_address = static_cast<size_t>((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 						uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 						if(char_address < ram_base_) {
 							latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
@@ -155,7 +155,7 @@ template<bool is_zx81> class ConcreteMachine:
 						int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
 							uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
-							ram_[hl & ram_mask_] = (uint8_t)next_byte;
+							ram_[hl & ram_mask_] = static_cast<uint8_t>(next_byte);
 							*cycle.value = 0x00;
 							z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 
@@ -249,7 +249,7 @@ template<bool is_zx81> class ConcreteMachine:
 				automatic_tape_motor_start_address_ = 0x0206;
 				automatic_tape_motor_end_address_ = 0x024d;
 			}
-			rom_mask_ = (uint16_t)(rom_.size() - 1);
+			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
 
 			switch(target.zx8081.memory_model) {
 				case StaticAnalyser::ZX8081MemoryModel::Unexpanded:
@@ -301,9 +301,9 @@ template<bool is_zx81> class ConcreteMachine:
 
 		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(isPressed)
-				key_states_[key >> 8] &= (uint8_t)(~key);
+				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
 			else
-				key_states_[key >> 8] |= (uint8_t)key;
+				key_states_[key >> 8] |= static_cast<uint8_t>(key);
 		}
 
 		void clear_all_keys() override final {

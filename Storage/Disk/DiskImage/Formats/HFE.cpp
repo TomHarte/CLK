@@ -23,7 +23,7 @@ HFE::HFE(const char *file_name) :
 	head_count_ = fgetc(file_);
 
 	fseek(file_, 7, SEEK_CUR);
-	track_list_offset_ = (long)fgetc16le() << 9;
+	track_list_offset_ = static_cast<long>(fgetc16le() << 9);
 }
 
 HFE::~HFE() {
@@ -49,7 +49,7 @@ uint16_t HFE::seek_track(Track::Address address) {
 	// based on an assumption of two heads.
 	fseek(file_, track_list_offset_ + address.position * 4, SEEK_SET);
 
-	long track_offset = (long)fgetc16le() << 9;
+	long track_offset = static_cast<long>(fgetc16le() << 9);
 	uint16_t track_length = fgetc16le();
 
 	fseek(file_, track_offset, SEEK_SET);
@@ -69,7 +69,7 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 
 		uint16_t c = 0;
 		while(c < track_length) {
-			uint16_t length = (uint16_t)std::min(256, track_length - c);
+			uint16_t length = static_cast<uint16_t>(std::min(256, track_length - c));
 			fread(&segment.data[c], 1, length, file_);
 			c += length;
 			fseek(file_, 256, SEEK_CUR);
@@ -99,7 +99,7 @@ void HFE::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 
 		uint16_t c = 0;
 		while(c < data_length) {
-			uint16_t length = (uint16_t)std::min(256, data_length - c);
+			uint16_t length = static_cast<uint16_t>(std::min(256, data_length - c));
 			fwrite(&segment.data[c], 1, length, file_);
 			c += length;
 			fseek(file_, 256, SEEK_CUR);

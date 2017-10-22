@@ -56,16 +56,16 @@ void VideoOutput::set_output_device(Outputs::CRT::OutputDevice output_device) {
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	for(size_t c = 0; c < 8; c++) {
 		size_t index = (c << 2);
-		uint16_t rom_value = (uint16_t)(((uint16_t)rom[index] << 8) | (uint16_t)rom[index+1]);
+		uint16_t rom_value = static_cast<uint16_t>((static_cast<uint16_t>(rom[index]) << 8) | static_cast<uint16_t>(rom[index+1]));
 		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
 		colour_forms_[c] = rom_value;
 	}
 
 	// check for big endianness and byte swap if required
 	uint16_t test_value = 0x0001;
-	if(*(uint8_t *)&test_value != 0x01) {
+	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
 		for(size_t c = 0; c < 8; c++) {
-			colour_forms_[c] = (uint16_t)((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
+			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
 		}
 	}
 }
@@ -89,7 +89,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_) {
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
-			clamp(crt_->output_sync((unsigned int)(v_sync_end_position_ - v_sync_start_position_) * 6));
+			clamp(crt_->output_sync(static_cast<unsigned int>(v_sync_end_position_ - v_sync_start_position_) * 6));
 		} else if(counter_ < 224*64 && h_counter < 40) {
 			// this is a pixel line
 			if(!h_counter) {
@@ -97,7 +97,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				pixel_target_ = (uint16_t *)crt_->allocate_write_area(240);
+				pixel_target_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(240));
 
 				if(!counter_) {
 					frame_counter_++;
@@ -133,8 +133,8 @@ void VideoOutput::run_for(const Cycles cycles) {
 					if(pixel_target_) {
 						uint16_t colours[2];
 						if(output_device_ == Outputs::CRT::Monitor) {
-							colours[0] = (uint8_t)(paper_ ^ inverse_mask);
-							colours[1] = (uint8_t)(ink_ ^ inverse_mask);
+							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
+							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
 						} else {
 							colours[0] = colour_forms_[paper_ ^ inverse_mask];
 							colours[1] = colour_forms_[ink_ ^ inverse_mask];
@@ -202,7 +202,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				cycles_run_for = 48 - h_counter;
 				clamp(
 					int period = (counter_ < 224*64) ? 8 : 48;
-					crt_->output_blank((unsigned int)period * 6);
+					crt_->output_blank(static_cast<unsigned int>(period) * 6);
 				);
 			} else if(h_counter < 54) {
 				cycles_run_for = 54 - h_counter;

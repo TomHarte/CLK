@@ -174,7 +174,7 @@ struct Flywheel {
 		@returns `true` if a sync is expected soon or the time at which it was expected was recent.
 	*/
 	inline bool is_near_expected_sync() {
-		return abs((int)counter_ - (int)expected_next_sync_) < (int)standard_period_ / 50;
+		return abs(static_cast<int>(counter_) - static_cast<int>(expected_next_sync_)) < static_cast<int>(standard_period_) / 50;
 	}
 
 	private:

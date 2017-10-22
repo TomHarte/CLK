@@ -25,14 +25,14 @@ static float gzgetfloat(gzFile file) {
 	int mantissa;
 	mantissa = bytes[0] | (bytes[1] << 8) | ((bytes[2]&0x7f)|0x80) << 16;
 
-	float result = (float)mantissa;
-	result = (float)ldexp(result, -23);
+	float result = static_cast<float>(mantissa);
+	result = static_cast<float>(ldexp(result, -23));
 
 	/* decode exponent */
 	int exponent;
 	exponent = ((bytes[2]&0x80) >> 7) | (bytes[3]&0x7f) << 1;
 	exponent -= 127;
-	result = (float)ldexp(result, exponent);
+	result = static_cast<float>(ldexp(result, exponent));
 
 	/* flip sign if necessary */
 	if(bytes[3]&0x80)
@@ -105,7 +105,7 @@ void UEF::virtual_reset() {
 #pragma mark - Chunk navigator
 
 bool UEF::get_next_chunk(UEF::Chunk &result) {
-	uint16_t chunk_id = (uint16_t)gzget16(file_);
+	uint16_t chunk_id = static_cast<uint16_t>(gzget16(file_));
 	uint32_t chunk_length = (uint32_t)gzget32(file_);
 	z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
 
@@ -145,7 +145,7 @@ void UEF::get_next_pulses() {
 			case 0x0113: {
 				// TODO: something smarter than just converting this to an int
 				float new_time_base = gzgetfloat(file_);
-				time_base_ = (unsigned int)roundf(new_time_base);
+				time_base_ = static_cast<unsigned int>(roundf(new_time_base));
 			}
 			break;
 
@@ -173,7 +173,7 @@ void UEF::queue_implicit_bit_pattern(uint32_t length) {
 }
 
 void UEF::queue_explicit_bit_pattern(uint32_t length) {
-	size_t length_in_bits = (length << 3) - (size_t)gzget8(file_);
+	size_t length_in_bits = (length << 3) - static_cast<size_t>(gzget8(file_));
 	uint8_t current_byte = 0;
 	for(size_t bit = 0; bit < length_in_bits; bit++) {
 		if(!(bit&7)) current_byte = gzget8(file_);
@@ -184,7 +184,7 @@ void UEF::queue_explicit_bit_pattern(uint32_t length) {
 
 void UEF::queue_integer_gap() {
 	Time duration;
-	duration.length = (unsigned int)gzget16(file_);
+	duration.length = static_cast<unsigned int>(gzget16(file_));
 	duration.clock_rate = time_base_;
 	emplace_back(Pulse::Zero, duration);
 }
@@ -192,19 +192,19 @@ void UEF::queue_integer_gap() {
 void UEF::queue_floating_point_gap() {
 	float length = gzgetfloat(file_);
 	Time duration;
-	duration.length = (unsigned int)(length * 4000000);
+	duration.length = static_cast<unsigned int>(length * 4000000);
 	duration.clock_rate = 4000000;
 	emplace_back(Pulse::Zero, duration);
 }
 
 void UEF::queue_carrier_tone() {
-	unsigned int number_of_cycles = (unsigned int)gzget16(file_);
+	unsigned int number_of_cycles = static_cast<unsigned int>(gzget16(file_));
 	while(number_of_cycles--) queue_bit(1);
 }
 
 void UEF::queue_carrier_tone_with_dummy() {
-	unsigned int pre_cycles = (unsigned int)gzget16(file_);
-	unsigned int post_cycles = (unsigned int)gzget16(file_);
+	unsigned int pre_cycles = static_cast<unsigned int>(gzget16(file_));
+	unsigned int post_cycles = static_cast<unsigned int>(gzget16(file_));
 	while(pre_cycles--) queue_bit(1);
 	queue_implicit_byte(0xaa);
 	while(post_cycles--) queue_bit(1);

@@ -69,11 +69,11 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoeffici
 	/* work out the right hand side of the filter coefficients */
 	unsigned int Np = (numberOfTaps - 1) / 2;
 	float I0 = ino(a);
-	float NpSquared = (float)(Np * Np);
+	float NpSquared = static_cast<float>(Np * Np);
 	for(unsigned int i = 0; i <= Np; i++) {
 		filterCoefficientsFloat[Np + i] = 
 				A[i] * 
-				ino(a * sqrtf(1.0f - ((float)(i * i) / NpSquared) )) /
+				ino(a * sqrtf(1.0f - (static_cast<float>(i * i) / NpSquared) )) /
 				I0;
 	}
 
@@ -99,7 +99,7 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoeffici
 
 void FIRFilter::get_coefficients(float *coefficients) {
 	for(unsigned int i = 0; i < number_of_taps_; i++) {
-		coefficients[i] = (float)filter_coefficients_[i] / kCSKaiserBesselFilterFixedMultiplier;
+		coefficients[i] = static_cast<float>(filter_coefficients_[i]) / kCSKaiserBesselFilterFixedMultiplier;
 	}
 }
 
@@ -123,7 +123,7 @@ FIRFilter::FIRFilter(unsigned int number_of_taps, float input_sample_rate, float
 	float *A = new float[Np+1];
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; i++) {
-		float iPi = (float)i * (float)M_PI;
+		float iPi = static_cast<float>(i) * static_cast<float>(M_PI);
 		A[i] = 
 			(
 				sinf(twoOverSampleRate * iPi * high_frequency) -

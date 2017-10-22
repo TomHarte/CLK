@@ -105,8 +105,8 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	// parse if this is not pure data
 	if(header->type != Header::DataBlock)
 	{
-		header->starting_address	= (uint16_t)(header->data[0] | (header->data[1] << 8));
-		header->ending_address		= (uint16_t)(header->data[2] | (header->data[3] << 8));
+		header->starting_address	= static_cast<uint16_t>(header->data[0] | (header->data[1] << 8));
+		header->ending_address		= static_cast<uint16_t>(header->data[2] | (header->data[3] << 8));
 
 		for(size_t c = 0; c < 16; c++)
 		{

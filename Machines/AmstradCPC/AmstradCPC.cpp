@@ -221,26 +221,26 @@ class CRTCBusHandler {
 					// fetch two bytes and translate into pixels
 					switch(mode_) {
 						case 0:
-							((uint16_t *)pixel_pointer_)[0] = mode0_output_[ram_[address]];
-							((uint16_t *)pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
+							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
+							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
 							pixel_pointer_ += 4;
 						break;
 
 						case 1:
-							((uint32_t *)pixel_pointer_)[0] = mode1_output_[ram_[address]];
-							((uint32_t *)pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
+							reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
+							reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
 							pixel_pointer_ += 8;
 						break;
 
 						case 2:
-							((uint64_t *)pixel_pointer_)[0] = mode2_output_[ram_[address]];
-							((uint64_t *)pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
+							reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
+							reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
 							pixel_pointer_ += 16;
 						break;
 
 						case 3:
-							((uint16_t *)pixel_pointer_)[0] = mode3_output_[ram_[address]];
-							((uint16_t *)pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
+							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
+							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
 							pixel_pointer_ += 4;
 						break;
 
@@ -344,7 +344,7 @@ class CRTCBusHandler {
 
 	private:
 		void output_border(unsigned int length) {
-			uint8_t *colour_pointer = (uint8_t *)crt_->allocate_write_area(1);
+			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
 			if(colour_pointer) *colour_pointer = border_;
 			crt_->output_level(length * 16);
 		}
@@ -381,7 +381,7 @@ class CRTCBusHandler {
 					// Mode 0: abcdefgh -> [gcea] [hdfb]
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 0
-						uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+						uint8_t *mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
 						mode0_pixels[0] = palette_[Mode0Colour0(c)];
 						mode0_pixels[1] = palette_[Mode0Colour1(c)];
 					}
@@ -390,7 +390,7 @@ class CRTCBusHandler {
 				case 1:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 1
-						uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+						uint8_t *mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
 						mode1_pixels[0] = palette_[Mode1Colour0(c)];
 						mode1_pixels[1] = palette_[Mode1Colour1(c)];
 						mode1_pixels[2] = palette_[Mode1Colour2(c)];
@@ -401,7 +401,7 @@ class CRTCBusHandler {
 				case 2:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 2
-						uint8_t *mode2_pixels = (uint8_t *)&mode2_output_[c];
+						uint8_t *mode2_pixels = reinterpret_cast<uint8_t *>(&mode2_output_[c]);
 						mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
 						mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
 						mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
@@ -416,7 +416,7 @@ class CRTCBusHandler {
 				case 3:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 3
-						uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+						uint8_t *mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
 						mode3_pixels[0] = palette_[Mode3Colour0(c)];
 						mode3_pixels[1] = palette_[Mode3Colour1(c)];
 					}
@@ -428,7 +428,7 @@ class CRTCBusHandler {
 			switch(mode_) {
 				case 0: {
 					for(uint8_t c : mode0_palette_hits_[pen]) {
-						uint8_t *mode0_pixels = (uint8_t *)&mode0_output_[c];
+						uint8_t *mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
 						mode0_pixels[0] = palette_[Mode0Colour0(c)];
 						mode0_pixels[1] = palette_[Mode0Colour1(c)];
 					}
@@ -436,7 +436,7 @@ class CRTCBusHandler {
 				case 1:
 					if(pen > 3) return;
 					for(uint8_t c : mode1_palette_hits_[pen]) {
-						uint8_t *mode1_pixels = (uint8_t *)&mode1_output_[c];
+						uint8_t *mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
 						mode1_pixels[0] = palette_[Mode1Colour0(c)];
 						mode1_pixels[1] = palette_[Mode1Colour1(c)];
 						mode1_pixels[2] = palette_[Mode1Colour2(c)];
@@ -453,7 +453,7 @@ class CRTCBusHandler {
 					if(pen > 3) return;
 					// Same argument applies here as to case 1, as the unused bits aren't masked out.
 					for(uint8_t c : mode3_palette_hits_[pen]) {
-						uint8_t *mode3_pixels = (uint8_t *)&mode3_output_[c];
+						uint8_t *mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
 						mode3_pixels[0] = palette_[Mode3Colour0(c)];
 						mode3_pixels[1] = palette_[Mode3Colour1(c)];
 					}
@@ -920,7 +920,7 @@ class ConcreteMachine:
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
-			roms_[(int)type] = data;
+			roms_[static_cast<int>(type)] = data;
 		}
 
 		void set_component_is_sleeping(void *component, bool is_sleeping) override final {

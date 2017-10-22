@@ -27,12 +27,12 @@ void ::Commodore::Serial::AttachPortAndBus(std::shared_ptr<Port> port, std::shar
 
 void Bus::add_port(std::shared_ptr<Port> port) {
 	ports_.push_back(port);
-	for(int line = (int)ServiceRequest; line <= (int)Reset; line++) {
+	for(int line = static_cast<int>(ServiceRequest); line <= static_cast<int>(Reset); line++) {
 		// the addition of a new device may change the line output...
-		set_line_output_did_change((Line)line);
+		set_line_output_did_change(static_cast<Line>(line));
 
 		// ... but the new device will need to be told the current state regardless
-		port->set_input((Line)line, line_levels_[line]);
+		port->set_input(static_cast<Line>(line), line_levels_[line]);
 	}
 }
 

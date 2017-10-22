@@ -109,5 +109,5 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 	bit_pointer_ = 1 + (relative_time / segment_->length_of_a_bit).get_unsigned_int();
 
 	// map up to the correct amount of time
-	return half_bit_length + segment_->length_of_a_bit * (unsigned int)(bit_pointer_ - 1);
+	return half_bit_length + segment_->length_of_a_bit * static_cast<unsigned int>(bit_pointer_ - 1);
 }

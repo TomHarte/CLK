@@ -134,7 +134,7 @@ class OpenGLOutputBuilder {
 		}
 
 		inline uint16_t get_composite_output_y() {
-			return (uint16_t)composite_src_output_y_;
+			return static_cast<uint16_t>(composite_src_output_y_);
 		}
 
 		inline bool composite_output_buffer_is_full() {

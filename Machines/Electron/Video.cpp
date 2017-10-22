@@ -86,7 +86,7 @@ void VideoOutput::start_pixel_line() {
 }
 
 void VideoOutput::end_pixel_line() {
-	if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+	if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 	current_character_row_++;
 }
 
@@ -104,7 +104,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
-			if(current_output_target_) crt_->output_data((unsigned int)((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+			if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_, 4);
 		}
@@ -121,7 +121,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*(uint32_t *)current_output_target_ = palette_tables_.eighty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.eighty1bpp[last_pixel_byte_];
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
@@ -132,7 +132,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.eighty2bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.eighty2bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
@@ -154,7 +154,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 4;
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						number_of_cycles--;
@@ -162,11 +162,11 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 					}
 					while(number_of_cycles > 1) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						last_pixel_byte_ <<= 4;
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 
 						number_of_cycles -= 2;
@@ -174,7 +174,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 					}
 					if(number_of_cycles) {
 						get_pixel();
-						*(uint16_t *)current_output_target_ = palette_tables_.forty1bpp[last_pixel_byte_];
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
@@ -223,16 +223,16 @@ void VideoOutput::run_for(const Cycles cycles) {
 	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;
 		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
-		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels((unsigned int)time_left_in_action);
+		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels(static_cast<unsigned int>(time_left_in_action));
 
 		number_of_cycles -= time_left_in_action;
 		cycles_into_draw_action_ += time_left_in_action;
 		if(cycles_into_draw_action_ == draw_action_length) {
 			switch(screen_map_[screen_map_pointer_].type) {
-				case DrawAction::Sync:			crt_->output_sync((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::ColourBurst:	crt_->output_default_colour_burst((unsigned int)(draw_action_length * crt_cycles_multiplier));	break;
-				case DrawAction::Blank:			crt_->output_blank((unsigned int)(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::Pixels:		end_pixel_line();																				break;
+				case DrawAction::Sync:			crt_->output_sync(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::ColourBurst:	crt_->output_default_colour_burst(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));	break;
+				case DrawAction::Blank:			crt_->output_blank(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
+				case DrawAction::Pixels:		end_pixel_line();																							break;
 			}
 			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();
 			cycles_into_draw_action_ = 0;
@@ -246,11 +246,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 void VideoOutput::set_register(int address, uint8_t value) {
 	switch(address & 0xf) {
 		case 0x02:
-			start_screen_address_ = (start_screen_address_ & 0xfe00) | (uint16_t)((value & 0xe0) << 1);
+			start_screen_address_ = (start_screen_address_ & 0xfe00) | static_cast<uint16_t>((value & 0xe0) << 1);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x03:
-			start_screen_address_ = (start_screen_address_ & 0x01ff) | (uint16_t)((value & 0x3f) << 9);
+			start_screen_address_ = (start_screen_address_ & 0x01ff) | static_cast<uint16_t>((value & 0x3f) << 9);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x07: {
@@ -292,17 +292,17 @@ void VideoOutput::set_register(int address, uint8_t value) {
 			}
 
 			// regenerate all palette tables for now
-#define pack(a, b) (uint8_t)((a << 4) | (b))
+#define pack(a, b) static_cast<uint8_t>((a << 4) | (b))
 			for(int byte = 0; byte < 256; byte++) {
-				uint8_t *target = (uint8_t *)&palette_tables_.forty1bpp[byte];
+				uint8_t *target = reinterpret_cast<uint8_t *>(&palette_tables_.forty1bpp[byte]);
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
 				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
 
-				target = (uint8_t *)&palette_tables_.eighty2bpp[byte];
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty2bpp[byte]);
 				target[0] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
 				target[1] = pack(palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
 
-				target = (uint8_t *)&palette_tables_.eighty1bpp[byte];
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty1bpp[byte]);
 				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
 				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
 				target[2] = pack(palette_[(byte&0x08) >> 0], palette_[(byte&0x04) << 1]);
@@ -376,9 +376,9 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) 
 				int output_position_line = graphics_line(output_position_);
 				int implied_row = current_character_row_ + (current_line - output_position_line) % 10;
 				if(implied_row < 8)
-					result += (unsigned int)(80 - current_column);
+					result += static_cast<unsigned int>(80 - current_column);
 			}
-			else result += (unsigned int)(80 - current_column);
+			else result += static_cast<unsigned int>(80 - current_column);
 		}
 	}
 	return result;

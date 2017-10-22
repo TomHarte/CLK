@@ -11,7 +11,7 @@
 #include <cstdlib>
 
 void Memory::Fuzz(uint8_t *buffer, size_t size) {
-	unsigned int divider = ((unsigned int)RAND_MAX + 1) / 256;
+	unsigned int divider = (static_cast<unsigned int>(RAND_MAX) + 1) / 256;
 	unsigned int shift = 1, value = 1;
 	while(value < divider) {
 		value <<= 1;

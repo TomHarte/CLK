@@ -29,7 +29,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	glGenTextures(1, &_texture);
 	glActiveTexture(texture_unit);
 	glBindTexture(GL_TEXTURE_2D, _texture);
-	uint8_t *blank_buffer = (uint8_t *)calloc((size_t)(_expanded_width * _expanded_height), 4);
+	uint8_t *blank_buffer = static_cast<uint8_t *>(calloc(static_cast<size_t>(_expanded_width * _expanded_height), 4));
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer);
 	free(blank_buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
@@ -114,14 +114,14 @@ void TextureTarget::draw(float aspect_ratio) {
 		buffer[2] = 0.0f;
 		buffer[3] = 0.0f;
 		buffer[6] = 0.0f;
-		buffer[7] = (float)_height / (float)_expanded_height;
-		buffer[10] = (float)_width / (float)_expanded_width;
+		buffer[7] = static_cast<float>(_height) / static_cast<float>(_expanded_height);
+		buffer[10] = static_cast<float>(_width) / static_cast<float>(_expanded_width);
 		buffer[11] = 0;
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
 
 		// determine positions; rule is to keep the same height and centre
-		float internal_aspect_ratio = (float)_width / (float)_height;
+		float internal_aspect_ratio = static_cast<float>(_width) / static_cast<float>(_height);
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
 
 		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;

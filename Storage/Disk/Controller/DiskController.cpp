@@ -15,7 +15,7 @@ using namespace Storage::Disk;
 Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_int()),
 		clock_rate_(clock_rate.as_int() * clock_rate_multiplier_),
-		empty_drive_(new Drive((unsigned int)clock_rate.as_int(), 1, 1)) {
+		empty_drive_(new Drive(static_cast<unsigned int>(clock_rate.as_int()), 1, 1)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);
 	set_expected_bit_length(one);
@@ -66,7 +66,7 @@ void Controller::set_expected_bit_length(Time bit_length) {
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
-	int clocks_per_bit = (int)cycles_per_bit.get_unsigned_int();
+	int clocks_per_bit = static_cast<int>(cycles_per_bit.get_unsigned_int());
 	pll_.reset(new DigitalPhaseLockedLoop(clocks_per_bit, 3));
 	pll_->set_delegate(this);
 }

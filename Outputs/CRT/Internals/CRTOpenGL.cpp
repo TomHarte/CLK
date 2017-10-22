@@ -103,7 +103,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 	// make sure there's a target to draw to
-	if(!framebuffer_ || (unsigned int)framebuffer_->get_height() != output_height || (unsigned int)framebuffer_->get_width() != output_width) {
+	if(!framebuffer_ || static_cast<unsigned int>(framebuffer_->get_height()) != output_height || static_cast<unsigned int>(framebuffer_->get_width()) != output_width) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit, GL_LINEAR));
 		if(framebuffer_) {
 			new_framebuffer->bind_framebuffer();
@@ -111,7 +111,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			glActiveTexture(pixel_accumulation_texture_unit);
 			framebuffer_->bind_texture();
-			framebuffer_->draw((float)output_width / (float)output_height);
+			framebuffer_->draw(static_cast<float>(output_width) / static_cast<float>(output_height));
 
 			new_framebuffer->bind_texture();
 		}
@@ -223,7 +223,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	glActiveTexture(pixel_accumulation_texture_unit);
 	framebuffer_->bind_texture();
-	framebuffer_->draw((float)output_width / (float)output_height);
+	framebuffer_->draw(static_cast<float>(output_width) / static_cast<float>(output_height));
 
 	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	draw_mutex_.unlock();
@@ -381,7 +381,7 @@ void OpenGLOutputBuilder::set_gamma() {
 }
 
 float OpenGLOutputBuilder::get_composite_output_width() const {
-	return ((float)colour_cycle_numerator_ * 4.0f) / (float)(colour_cycle_denominator_ * IntermediateBufferWidth);
+	return (static_cast<float>(colour_cycle_numerator_) * 4.0f) / static_cast<float>(colour_cycle_denominator_ * IntermediateBufferWidth);
 }
 
 void OpenGLOutputBuilder::set_output_shader_width() {
@@ -392,7 +392,7 @@ void OpenGLOutputBuilder::set_output_shader_width() {
 }
 
 void OpenGLOutputBuilder::set_timing_uniforms() {
-	const float colour_subcarrier_frequency = (float)colour_cycle_numerator_ / (float)colour_cycle_denominator_;
+	const float colour_subcarrier_frequency = static_cast<float>(colour_cycle_numerator_) / static_cast<float>(colour_cycle_denominator_);
 	const float output_width = get_composite_output_width();
 	const float sample_cycles_per_line = cycles_per_line_ / output_width;
 
@@ -407,7 +407,7 @@ void OpenGLOutputBuilder::set_timing_uniforms() {
 	}
 	if(rgb_filter_shader_program_) {
 		rgb_filter_shader_program_->set_width_scalers(1.0f, 1.0f);
-		rgb_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, (float)input_frequency_ * 0.5f);
+		rgb_filter_shader_program_->set_filter_coefficients(sample_cycles_per_line, static_cast<float>(input_frequency_) * 0.5f);
 	}
 	if(output_shader_program_) {
 		set_output_shader_width();

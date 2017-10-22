@@ -30,7 +30,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 		// Skip two unused bytes and grab the track size table.
 		fseek(file_, 2, SEEK_CUR);
 		for(int c = 0; c < head_position_count_ * head_count_; c++) {
-			track_sizes_.push_back((size_t)(fgetc(file_) << 8));
+			track_sizes_.push_back(static_cast<size_t>(fgetc(file_) << 8));
 		}
 	} else {
 		size_of_a_track_ = fgetc16le();
@@ -76,8 +76,8 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 	// Grab the track information.
 	fseek(file_, 5, SEEK_CUR);	// skip track number, side number, sector size — each is given per sector
 	int number_of_sectors = fgetc(file_);
-	uint8_t gap3_length = (uint8_t)fgetc(file_);
-	uint8_t filler_byte = (uint8_t)fgetc(file_);
+	uint8_t gap3_length = static_cast<uint8_t>(fgetc(file_));
+	uint8_t filler_byte = static_cast<uint8_t>(fgetc(file_));
 
 	// Grab the sector information
 	struct SectorInfo {
@@ -93,12 +93,12 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 	while(number_of_sectors--) {
 		SectorInfo sector_info;
 
-		sector_info.track = (uint8_t)fgetc(file_);
-		sector_info.side = (uint8_t)fgetc(file_);
-		sector_info.sector = (uint8_t)fgetc(file_);
-		sector_info.length = (uint8_t)fgetc(file_);
-		sector_info.status1 = (uint8_t)fgetc(file_);
-		sector_info.status2 = (uint8_t)fgetc(file_);
+		sector_info.track = static_cast<uint8_t>(fgetc(file_));
+		sector_info.side = static_cast<uint8_t>(fgetc(file_));
+		sector_info.sector = static_cast<uint8_t>(fgetc(file_));
+		sector_info.length = static_cast<uint8_t>(fgetc(file_));
+		sector_info.status1 = static_cast<uint8_t>(fgetc(file_));
+		sector_info.status2 = static_cast<uint8_t>(fgetc(file_));
 		sector_info.actual_length = fgetc16le();
 
 		sector_infos.push_back(sector_info);
@@ -118,7 +118,7 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(Track::Address address) {
 		if(is_extended_) {
 			data_size = sector_info.actual_length;
 		} else {
-			data_size = (size_t)(128 << sector_info.length);
+			data_size = static_cast<size_t>(128 << sector_info.length);
 			if(data_size == 0x2000) data_size = 0x1800;
 		}
 		new_sector.data.resize(data_size);

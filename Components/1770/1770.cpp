@@ -26,7 +26,7 @@ WD1770::Status::Status() :
 
 WD1770::WD1770(Personality p) :
 		Storage::Disk::MFMController(8000000),
-		interesting_event_mask_((int)Event1770::Command),
+		interesting_event_mask_(static_cast<int>(Event1770::Command)),
 		resume_point_(0),
 		delay_time_(0),
 		index_hole_count_target_(-1),
@@ -34,7 +34,7 @@ WD1770::WD1770(Personality p) :
 		personality_(p),
 		head_is_loaded_(false) {
 	set_is_double_density(false);
-	posit_event((int)Event1770::Command);
+	posit_event(static_cast<int>(Event1770::Command));
 }
 
 void WD1770::set_register(int address, uint8_t value) {
@@ -47,7 +47,7 @@ void WD1770::set_register(int address, uint8_t value) {
 				});
 			} else {
 				command_ = value;
-				posit_event((int)Event1770::Command);
+				posit_event(static_cast<int>(Event1770::Command));
 			}
 		}
 		break;
@@ -115,24 +115,24 @@ void WD1770::run_for(const Cycles cycles) {
 	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {
-		unsigned int number_of_cycles = (unsigned int)cycles.as_int();
+		unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_int());
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
-			posit_event((int)Event1770::Timer);
+			posit_event(static_cast<int>(Event1770::Timer));
 		} else {
 			delay_time_ -= number_of_cycles;
 		}
 	}
 }
 
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = (int)mask; return; case __LINE__:
+#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = static_cast<int>(mask); return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
-#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = (int)Event::Token; return; }
+#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = static_cast<int>(Event::Token); return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	0; }
 
 #define READ_ID()	\
-		if(new_event_type == (int)Event::Token) {	\
+		if(new_event_type == static_cast<int>(Event::Token)) {	\
 			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }	\
 			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
 				header_[distance_into_section_ - 1] = get_latest_token().byte_value;	\
@@ -169,10 +169,10 @@ void WD1770::run_for(const Cycles cycles) {
 //     +--------+----------+-------------------------+
 
 void WD1770::posit_event(int new_event_type) {
-	if(new_event_type == (int)Event::IndexHole) {
+	if(new_event_type == static_cast<int>(Event::IndexHole)) {
 		index_hole_count_++;
 		if(index_hole_count_target_ == index_hole_count_) {
-			posit_event((int)Event1770::IndexHoleTarget);
+			posit_event(static_cast<int>(Event1770::IndexHoleTarget));
 			index_hole_count_target_ = -1;
 		}
 
@@ -187,7 +187,7 @@ void WD1770::posit_event(int new_event_type) {
 		}
 	}
 
-	if(!(interesting_event_mask_ & (int)new_event_type)) return;
+	if(!(interesting_event_mask_ & static_cast<int>(new_event_type))) return;
 	interesting_event_mask_ &= ~new_event_type;
 
 	Status new_status;
@@ -310,7 +310,7 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_ = 0;
 
 	verify_read_data:
-		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
+		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
@@ -394,7 +394,7 @@ void WD1770::posit_event(int new_event_type) {
 		}
 
 	type2_get_header:
-		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
+		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
@@ -611,8 +611,8 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_ = 0;
 
 	read_address_get_header:
-		WAIT_FOR_EVENT((int)Event::IndexHole | (int)Event::Token);
-		if(new_event_type == (int)Event::Token) {
+		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
+		if(new_event_type == static_cast<int>(Event::Token)) {
 			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }
 			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {
 				if(status_.data_request) {
@@ -652,7 +652,7 @@ void WD1770::posit_event(int new_event_type) {
 		index_hole_count_ = 0;
 
 	read_track_read_byte:
-		WAIT_FOR_EVENT((int)Event::Token | (int)Event::IndexHole);
+		WAIT_FOR_EVENT(static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole));
 		if(index_hole_count_) {
 			goto wait_for_command;
 		}
@@ -785,5 +785,5 @@ void WD1770::set_motor_on(bool motor_on) {}
 
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;
-	if(head_loaded) posit_event((int)Event1770::HeadLoad);
+	if(head_loaded) posit_event(static_cast<int>(Event1770::HeadLoad));
 }

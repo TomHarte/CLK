@@ -98,7 +98,7 @@ static uint8_t noise_pattern[] = {
 
 #define shift(r) shift_registers_[r] = (shift_registers_[r] << 1) | (((shift_registers_[r]^0x80)&control_registers_[r]) >> 7)
 #define increment(r) shift_registers_[r] = (shift_registers_[r]+1)%8191
-#define update(r, m, up) counters_[r]++; if((counters_[r] >> m) == 0x80) { up(r); counters_[r] = (unsigned int)(control_registers_[r]&0x7f) << m; }
+#define update(r, m, up) counters_[r]++; if((counters_[r] >> m) == 0x80) { up(r); counters_[r] = static_cast<unsigned int>(control_registers_[r]&0x7f) << m; }
 // Note on slightly askew test: as far as I can make out, if the value in the register is 0x7f then what's supposed to happen
 // is that the 0x7f is loaded, on the next clocked cycle the Vic spots a 0x7f, pumps the output, reloads, etc. No increment
 // ever occurs. It's conditional. I don't really want two conditionals if I can avoid it so I'm incrementing regardless and

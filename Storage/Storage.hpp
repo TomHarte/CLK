@@ -24,9 +24,9 @@ struct Time {
 	unsigned int length, clock_rate;
 	Time() : length(0), clock_rate(1) {}
 	Time(unsigned int unsigned_int_value) : length(unsigned_int_value), clock_rate(1) {}
-	Time(int int_value) : Time((unsigned int)int_value) {}
+	Time(int int_value) : Time(static_cast<unsigned int>(int_value)) {}
 	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
-	Time(int length, int clock_rate) : Time((unsigned int)length, (unsigned int)clock_rate) {}
+	Time(int length, int clock_rate) : Time(static_cast<unsigned int>(length), static_cast<unsigned int>(clock_rate)) {}
 	Time(uint64_t length, uint64_t clock_rate) {
 		install_result(length, clock_rate);
 	}
@@ -48,7 +48,7 @@ struct Time {
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
 	inline float get_float() const {
-		return (float)length / (float)clock_rate;
+		return static_cast<float>(length) / static_cast<float>(clock_rate);
 	}
 
 	inline unsigned int get_unsigned_int() const {
@@ -210,8 +210,8 @@ struct Time {
 	private:
 		inline void install_result(uint64_t long_length, uint64_t long_clock_rate) {
 			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
-				length = (unsigned int)long_length;
-				clock_rate = (unsigned int)long_clock_rate;
+				length = static_cast<unsigned int>(long_length);
+				clock_rate = static_cast<unsigned int>(long_clock_rate);
 				return;
 			}
 
@@ -247,8 +247,8 @@ struct Time {
 			}
 
 			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
-				length = (unsigned int)long_length;
-				clock_rate = (unsigned int)long_clock_rate;
+				length = static_cast<unsigned int>(long_length);
+				clock_rate = static_cast<unsigned int>(long_clock_rate);
 			} else {
 				length = std::numeric_limits<unsigned int>::max();
 				clock_rate = 1u;

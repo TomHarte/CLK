@@ -43,7 +43,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	if(address.head >= 1) return resulting_track;
 
 	// seek to this track's entry in the track table
-	fseek(file_, (long)((address.position * 4) + 0xc), SEEK_SET);
+	fseek(file_, static_cast<long>((address.position * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
 	uint32_t track_offset;
@@ -53,7 +53,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	if(!track_offset) return resulting_track;
 
 	// seek to the track start
-	fseek(file_, (int)track_offset, SEEK_SET);
+	fseek(file_, static_cast<long>(track_offset), SEEK_SET);
 
 	// get the real track length
 	uint16_t track_length;
@@ -64,7 +64,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	fread(&track_contents[0], 1, track_length, file_);
 
 	// seek to this track's entry in the speed zone table
-	fseek(file_, (long)((address.position * 4) + 0x15c), SEEK_SET);
+	fseek(file_, static_cast<long>((address.position * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
 	uint32_t speed_zone_offset;
@@ -73,7 +73,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
-		fseek(file_, (int)speed_zone_offset, SEEK_SET);
+		fseek(file_, static_cast<long>(speed_zone_offset), SEEK_SET);
 
 		uint16_t speed_zone_length = (track_length + 3) >> 2;
 
@@ -106,7 +106,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	} else {
 		PCMSegment segment;
 		segment.number_of_bits = track_length * 8;
-		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone((unsigned int)speed_zone_offset);
+		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset));
 		segment.data = std::move(track_contents);
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));

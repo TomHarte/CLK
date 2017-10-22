@@ -91,7 +91,7 @@ void TZX::get_next_pulses() {
 
 void TZX::get_generalised_data_block() {
 	uint32_t block_length = fgetc32le();
-	long endpoint = ftell(file_) + (long)block_length;
+	long endpoint = ftell(file_) + static_cast<long>(block_length);
 	uint16_t pause_after_block = fgetc16le();
 
 	uint32_t total_pilot_symbols = fgetc32le();
@@ -200,7 +200,7 @@ void TZX::get_turbo_speed_data_block() {
 	data_block.data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
 	data_block.data.pause_after_block = fgetc16le();
 	data_block.data.data_length = fgetc16le();
-	data_block.data.data_length |= (long)(fgetc(file_) << 16);
+	data_block.data.data_length |= static_cast<long>(fgetc(file_) << 16);
 
 	get_data_block(data_block);
 }
@@ -251,7 +251,7 @@ void TZX::get_pure_data_block() {
 	data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
 	data.pause_after_block = fgetc16le();
 	data.data_length = fgetc16le();
-	data.data_length |= (long)(fgetc(file_) << 16);
+	data.data_length |= static_cast<long>(fgetc(file_) << 16);
 
 	get_data(data);
 }

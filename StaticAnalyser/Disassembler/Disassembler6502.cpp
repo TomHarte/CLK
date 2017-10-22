@@ -249,7 +249,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 				if(low_operand_address >= memory.size() || high_operand_address >= memory.size()) return;
 				address += 2;
 
-				instruction.operand = memory[low_operand_address] | (uint16_t)(memory[high_operand_address] << 8);
+				instruction.operand = memory[low_operand_address] | static_cast<uint16_t>(memory[high_operand_address] << 8);
 			}
 			break;
 		}
@@ -301,7 +301,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			return;
 		}
 		if(instruction.addressing_mode == Instruction::Relative) {
-			uint16_t destination = (uint16_t)(address + (int8_t)instruction.operand);
+			uint16_t destination = static_cast<uint16_t>(address + (int8_t)instruction.operand);
 			disassembly.remaining_entry_points.push_back(destination);
 		}
 	}
@@ -332,6 +332,6 @@ Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &mem
 
 std::function<size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
 	return [start_address](uint16_t argument) {
-		return (size_t)(argument - start_address);
+		return static_cast<size_t>(argument - start_address);
 	};
 }
