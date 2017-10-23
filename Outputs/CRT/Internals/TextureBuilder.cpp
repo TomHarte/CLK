@@ -13,7 +13,9 @@
 
 using namespace Outputs::CRT;
 
-static const GLint internalFormatForDepth(size_t depth) {
+namespace {
+
+const GLint internalFormatForDepth(size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_R8UI;
@@ -23,7 +25,7 @@ static const GLint internalFormatForDepth(size_t depth) {
 	}
 }
 
-static const GLenum formatForDepth(size_t depth) {
+const GLenum formatForDepth(size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_RED_INTEGER;
@@ -31,6 +33,21 @@ static const GLenum formatForDepth(size_t depth) {
 		case 3: return GL_RGB_INTEGER;
 		case 4: return GL_RGBA_INTEGER;
 	}
+}
+
+struct DefaultBookender: public TextureBuilder::Bookender {
+	public:
+		DefaultBookender(size_t bytes_per_pixel) : bytes_per_pixel_(bytes_per_pixel) {}
+
+		void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) {
+			memcpy(left_bookend, left_value, bytes_per_pixel_);
+			memcpy(right_bookend, right_value, bytes_per_pixel_);
+		}
+
+	private:
+		size_t bytes_per_pixel_;
+};
+
 }
 
 TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
@@ -50,6 +67,8 @@ TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
+
+	set_bookender(nullptr);
 }
 
 TextureBuilder::~TextureBuilder() {
@@ -103,13 +122,14 @@ void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
 	// TODO: allow somebody else to specify the rule for generating a left-padding value and
 	// a right-padding value.
 	uint8_t *start_pointer = pointer_to_location(write_area_.x, write_area_.y) - bytes_per_pixel_;
-	memcpy(	start_pointer,
-			&start_pointer[bytes_per_pixel_],
-			bytes_per_pixel_);
+	bookender_->add_bookends(&start_pointer[bytes_per_pixel_], &start_pointer[actual_length * bytes_per_pixel_], start_pointer, &start_pointer[(actual_length + 1) * bytes_per_pixel_]);
+}
 
-	memcpy(	&start_pointer[(actual_length + 1) * bytes_per_pixel_],
-			&start_pointer[actual_length * bytes_per_pixel_],
-			bytes_per_pixel_);
+void TextureBuilder::set_bookender(std::unique_ptr<TextureBuilder::Bookender> bookender) {
+	bookender_ = std::move(bookender);
+	if(!bookender_) {
+		bookender_.reset(new DefaultBookender(bytes_per_pixel_));
+	}
 }
 
 bool TextureBuilder::retain_latest() {

@@ -98,6 +98,22 @@ class TextureBuilder {
 		/// allocated, indicating their final resting locations and their lengths.
 		void flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &);
 
+		/// A Bookender helps to paper over precision errors when rendering; its job is to provide single-sample
+		/// extensions that duplicate the left and right edges of a written area. By default the texture builder will
+		/// simply copy the appropriate number of bytes per pixel, but if the client is using a packed pixel format
+		/// then that may be incorrect, e.g. if each sample is a byte but contains two pixels, each in a single nibble,
+		/// then the correct duplication might be a byte composed of copies of the two top nibbles as the left bookend,
+		/// and one composed of copies of the two bottom nibbles on the right.
+		struct Bookender {
+			/// Writes to left_bookend the sample that should appear as a continuation before the left_value;
+			/// writes to right_bookend the sample that should appear as a continuation after right_value.
+			virtual void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) = 0;
+		};
+
+		/// Sets the current bookender. The bookender be called synchronously within the builder-writing thread.
+		/// Supply nullptr to engage the default bookender.
+		void set_bookender(std::unique_ptr<Bookender> bookender);
+
 	private:
 		// the buffer size
 		size_t bytes_per_pixel_;
@@ -120,6 +136,8 @@ class TextureBuilder {
 		// Caveat: reset to the origin upon a submit. So used in comparison by flush to
 		// determine whether the current batch of write areas needs to be relocated.
 		uint16_t write_areas_start_x_, write_areas_start_y_;
+
+		std::unique_ptr<Bookender> bookender_;
 };
 
 }
