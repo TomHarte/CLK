@@ -312,6 +312,10 @@ class CRT {
 			});
 		}
 
+		inline void set_bookender(std::unique_ptr<TextureBuilder::Bookender> bookender) {
+			openGL_output_builder_.texture_builder.set_bookender(std::move(bookender));
+		}
+
 		inline void set_output_device(OutputDevice output_device) {
 			enqueue_openGL_function([output_device, this] {
 				openGL_output_builder_.set_output_device(output_device);
