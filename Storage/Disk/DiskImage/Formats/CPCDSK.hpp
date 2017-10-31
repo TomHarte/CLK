@@ -38,18 +38,42 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 		int get_head_position_count() override;
 		int get_head_count() override;
 		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
+		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
 
 	private:
+		struct Track {
+			uint8_t track;
+			uint8_t side;
+			enum class DataRate {
+				Unknown, SingleOrDoubleDensity, HighDensity, ExtendedDensity
+			} data_rate;
+			enum class DataEncoding {
+				Unknown, FM, MFM
+			} data_encoding;
+			uint8_t sector_length;
+			uint8_t gap3_length;
+			uint8_t filler_byte;
+
+			struct Sector {
+				uint8_t track;
+				uint8_t side;
+				uint8_t sector;
+				uint8_t size;
+				uint8_t fdc_status1;
+				uint8_t fdc_status2;
+				
+				// If multiple copies are present, that implies a sector with weak bits, for which multiple
+				// samplings were obtained.
+				std::vector<std::vector<uint8_t>> data;
+			};
+
+			std::vector<Sector> sectors;
+		};
+		std::vector<std::unique_ptr<Track>> tracks_;
+
 		int head_count_;
 		int head_position_count_;
 		bool is_extended_;
-
-		// Used only for non-extended disks.
-		long size_of_a_track_;
-
-		// Used only for extended disks.
-		std::vector<size_t> track_sizes_;
 };
 
 }
