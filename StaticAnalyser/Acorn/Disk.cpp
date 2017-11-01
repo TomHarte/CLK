@@ -23,17 +23,18 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	Storage::Encodings::MFM::Sector *details = parser.get_sector(0, 0, 1);
 
 	if(!names || !details) return nullptr;
-	if(names->data.size() != 256 || details->data.size() != 256) return nullptr;
+	if(names->samples.empty() || details->samples.empty()) return nullptr;
+	if(names->samples[0].size() != 256 || details->samples[0].size() != 256) return nullptr;
 
-	uint8_t final_file_offset = details->data[5];
+	uint8_t final_file_offset = details->samples[0][5];
 	if(final_file_offset&7) return nullptr;
 	if(final_file_offset < 8) return nullptr;
 
 	char disk_name[13];
-	snprintf(disk_name, 13, "%.8s%.4s", &names->data[0], &details->data[0]);
+	snprintf(disk_name, 13, "%.8s%.4s", &names->samples[0][0], &details->samples[0][0]);
 	catalogue->name = disk_name;
 
-	switch((details->data[6] >> 4)&3) {
+	switch((details->samples[0][6] >> 4)&3) {
 		case 0: catalogue->bootOption = Catalogue::BootOption::None;		break;
 		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
 		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;
@@ -45,14 +46,14 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 	for(size_t file_offset = final_file_offset - 8; file_offset > 0; file_offset -= 8) {
 		File new_file;
 		char name[10];
-		snprintf(name, 10, "%c.%.7s", names->data[file_offset + 7] & 0x7f, &names->data[file_offset]);
+		snprintf(name, 10, "%c.%.7s", names->samples[0][file_offset + 7] & 0x7f, &names->samples[0][file_offset]);
 		new_file.name = name;
-		new_file.load_address = (uint32_t)(details->data[file_offset] | (details->data[file_offset+1] << 8) | ((details->data[file_offset+6]&0x0c) << 14));
-		new_file.execution_address = (uint32_t)(details->data[file_offset+2] | (details->data[file_offset+3] << 8) | ((details->data[file_offset+6]&0xc0) << 10));
-		new_file.is_protected = !!(names->data[file_offset + 7] & 0x80);
+		new_file.load_address = (uint32_t)(details->samples[0][file_offset] | (details->samples[0][file_offset+1] << 8) | ((details->samples[0][file_offset+6]&0x0c) << 14));
+		new_file.execution_address = (uint32_t)(details->samples[0][file_offset+2] | (details->samples[0][file_offset+3] << 8) | ((details->samples[0][file_offset+6]&0xc0) << 10));
+		new_file.is_protected = !!(names->samples[0][file_offset + 7] & 0x80);
 
-		long data_length = static_cast<long>(details->data[file_offset+4] | (details->data[file_offset+5] << 8) | ((details->data[file_offset+6]&0x30) << 12));
-		int start_sector = details->data[file_offset+7] | ((details->data[file_offset+6]&0x03) << 8);
+		long data_length = static_cast<long>(details->samples[0][file_offset+4] | (details->samples[0][file_offset+5] << 8) | ((details->samples[0][file_offset+6]&0x30) << 12));
+		int start_sector = details->samples[0][file_offset+7] | ((details->samples[0][file_offset+6]&0x03) << 8);
 		new_file.data.reserve(static_cast<size_t>(data_length));
 
 		if(start_sector < 2) continue;
@@ -65,7 +66,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 			if(!next_sector) break;
 
 			long length_from_sector = std::min(data_length, 256l);
-			new_file.data.insert(new_file.data.end(), next_sector->data.begin(), next_sector->data.begin() + length_from_sector);
+			new_file.data.insert(new_file.data.end(), next_sector->samples[0].begin(), next_sector->samples[0].begin() + length_from_sector);
 			data_length -= length_from_sector;
 		}
 		if(!data_length) catalogue->files.push_front(new_file);
@@ -85,7 +86,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 	for(uint8_t c = 2; c < 7; c++) {
 		Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, c);
 		if(!sector) return nullptr;
-		root_directory.insert(root_directory.end(), sector->data.begin(), sector->data.end());
+		root_directory.insert(root_directory.end(), sector->samples[0].begin(), sector->samples[0].end());
 	}
 
 	// Quick sanity checks.
@@ -93,7 +94,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetADFSCatalogue(const std::sh
 	if(root_directory[1] != 'H' || root_directory[2] != 'u' || root_directory[3] != 'g' || root_directory[4] != 'o') return nullptr;
 	if(root_directory[0x4FB] != 'H' || root_directory[0x4FC] != 'u' || root_directory[0x4FD] != 'g' || root_directory[0x4FE] != 'o') return nullptr;
 
-	switch(free_space_map_second_half->data[0xfd]) {
+	switch(free_space_map_second_half->samples[0][0xfd]) {
 		default: catalogue->bootOption = Catalogue::BootOption::None;		break;
 		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
 		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;

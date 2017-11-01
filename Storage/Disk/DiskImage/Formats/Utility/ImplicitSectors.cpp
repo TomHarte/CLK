@@ -31,7 +31,8 @@ std::shared_ptr<Track> Storage::Disk::track_for_sectors(uint8_t *const source, u
 		first_sector++;
 		new_sector.size = size;
 
-		new_sector.data.insert(new_sector.data.begin(), source + source_pointer, source + source_pointer + byte_size);
+		new_sector.samples.emplace_back();
+		new_sector.samples[0].insert(new_sector.samples[0].begin(), source + source_pointer, source + source_pointer + byte_size);
 		source_pointer += byte_size;
 	}
 
@@ -53,6 +54,7 @@ void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uin
 		if(pair.second.address.sector > last_sector) continue;
 		if(pair.second.address.sector < first_sector) continue;
 		if(pair.second.size != sector_size) continue;
-		memcpy(&destination[pair.second.address.sector * byte_size], pair.second.data.data(), std::min(pair.second.data.size(), byte_size));
+		if(pair.second.samples.empty()) continue;
+		memcpy(&destination[pair.second.address.sector * byte_size], pair.second.samples[0].data(), std::min(pair.second.samples[0].size(), byte_size));
 	}
 }

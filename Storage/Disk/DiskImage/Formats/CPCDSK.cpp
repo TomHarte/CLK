@@ -27,7 +27,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 	head_count_ = fgetc(file_);
 
 	// Used only for non-extended disks.
-	long size_of_a_track;
+	long size_of_a_track = 0;
 
 	// Used only for extended disks.
 	std::vector<size_t> track_sizes;
@@ -89,12 +89,32 @@ CPCDSK::CPCDSK(const char *file_name) :
 
 				// Track, side, sector, size and two FDC8272-esque status bytes are stored
 				// per sector, in both regular and extended DSK files.
-				sector.track = static_cast<uint8_t>(fgetc(file_));
-				sector.side = static_cast<uint8_t>(fgetc(file_));
-				sector.sector = static_cast<uint8_t>(fgetc(file_));
+				sector.address.track = static_cast<uint8_t>(fgetc(file_));
+				sector.address.side = static_cast<uint8_t>(fgetc(file_));
+				sector.address.sector = static_cast<uint8_t>(fgetc(file_));
 				sector.size = static_cast<uint8_t>(fgetc(file_));
 				sector.fdc_status1 = static_cast<uint8_t>(fgetc(file_));
 				sector.fdc_status2 = static_cast<uint8_t>(fgetc(file_));
+
+				if(sector.fdc_status2 & 0x20) {
+					// The CRC failed in the data field.
+					sector.has_data_crc_error = true;
+				} else {
+					if(sector.fdc_status1 & 0x20) {
+						// The CRC failed in the ID field.
+						sector.has_header_crc_error = true;
+					}
+				}
+
+				if(sector.fdc_status2 & 0x40) {
+					// This sector is marked as deleted.
+					sector.is_deleted = true;
+				}
+
+				if(sector.fdc_status2 & 0x01) {
+					// Data field wasn't found.
+					sector.samples.clear();
+				}
 
 				// Figuring out the actual data size is a little more work...
 				size_t data_size = static_cast<size_t>(128 << sector.size);
@@ -130,16 +150,17 @@ CPCDSK::CPCDSK(const char *file_name) :
 
 				// As per the weak/fuzzy sector extension, multiple samplings may be stored here.
 				// Plan to tead as many as there were.
-				sector.data.resize(number_of_samplings);
+				sector.samples.emplace_back();
+				sector.samples.resize(number_of_samplings);
 				while(number_of_samplings--) {
-					sector.data[number_of_samplings].resize(stored_data_size);
+					sector.samples[number_of_samplings].resize(stored_data_size);
 				}
 			}
-			
+
 			// Sector contents are at offset 0x100 into the track.
 			fseek(file_, file_offset + 0x100, SEEK_SET);
 			for(auto &sector: track->sectors) {
-				for(auto &data : sector.data) {
+				for(auto &data : sector.samples) {
 					fread(data.data(), 1, data.size(), file_);
 				}
 			}
@@ -174,40 +195,9 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Add
 	Track *track = tracks_[chronological_track].get();
 	if(!track) return nullptr;
 
-	// Transcribe sectors and return.
-	// TODO: is this transcription really necessary?
-	std::vector<Storage::Encodings::MFM::Sector> sectors;
+	std::vector<const Storage::Encodings::MFM::Sector *> sectors;
 	for(auto &sector : track->sectors) {
-		Storage::Encodings::MFM::Sector new_sector;
-		new_sector.address.track = sector.track;
-		new_sector.address.side = sector.side;
-		new_sector.address.sector = sector.sector;
-		new_sector.size = sector.size;
-
-		// TODO: deal with weak/fuzzy sectors.
-		new_sector.data.insert(new_sector.data.begin(), sector.data[0].begin(), sector.data[0].end());
-
-		if(sector.fdc_status2 & 0x20) {
-			// The CRC failed in the data field.
-			new_sector.has_data_crc_error = true;
-		} else {
-			if(sector.fdc_status1 & 0x20) {
-				// The CRC failed in the ID field.
-				new_sector.has_header_crc_error = true;
-			}
-		}
-
-		if(sector.fdc_status2 & 0x40) {
-			// This sector is marked as deleted.
-			new_sector.is_deleted = true;
-		}
-
-		if(sector.fdc_status2 & 0x01) {
-			// Data field wasn't found.
-			new_sector.data.clear();
-		}
-
-		sectors.push_back(std::move(new_sector));
+		sectors.push_back(&sector);
 	}
 
 	// TODO: FM encoding, data rate?

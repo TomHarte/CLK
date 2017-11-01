@@ -62,7 +62,8 @@ std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::secto
 							shifter.set_should_obey_syncs(true);
 						break;
 						default:
-							new_sector->data.push_back(shifter.get_byte());
+							if(new_sector->samples.empty()) new_sector->samples.emplace_back();
+							new_sector->samples[0].push_back(shifter.get_byte());
 							++position;
 							if(position == size + 4) {
 								result.insert(std::make_pair(start_location, std::move(*new_sector)));

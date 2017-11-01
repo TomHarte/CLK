@@ -34,7 +34,9 @@ struct Sector {
 
 	Address address;
 	uint8_t size = 0;
-	std::vector<uint8_t> data;
+
+	// Multiple samplings of the underlying data are accepted, to allow weak and fuzzy data to be communicated.
+	std::vector<std::vector<uint8_t>> samples;
 
 	bool has_data_crc_error = false;
 	bool has_header_crc_error = false;
@@ -45,7 +47,7 @@ struct Sector {
 	Sector(const Sector &&rhs) noexcept :
 		address(rhs.address),
 		size(rhs.size),
-		data(std::move(rhs.data)),
+		samples(std::move(rhs.samples)),
 		has_data_crc_error(rhs.has_data_crc_error),
 		has_header_crc_error(rhs.has_header_crc_error),
 		is_deleted(rhs.is_deleted ){}

@@ -11,6 +11,7 @@
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
+#include "../../Encodings/MFM/Sector.hpp"
 
 #include <vector>
 
@@ -54,17 +55,9 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 			uint8_t gap3_length;
 			uint8_t filler_byte;
 
-			struct Sector {
-				uint8_t track;
-				uint8_t side;
-				uint8_t sector;
-				uint8_t size;
+			struct Sector: public ::Storage::Encodings::MFM::Sector {
 				uint8_t fdc_status1;
 				uint8_t fdc_status2;
-				
-				// If multiple copies are present, that implies a sector with weak bits, for which multiple
-				// samplings were obtained.
-				std::vector<std::vector<uint8_t>> data;
 			};
 
 			std::vector<Sector> sectors;
