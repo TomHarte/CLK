@@ -57,6 +57,11 @@ A corollary of emulating the continuous nature CRT, not merely performing end-of
 
 ## Accurate Emulation
 
-Cycle-accurate emulation for the supported target machines is fairly trite now; this emulator seeks to follow that well-trodden path. All emulation logic is written in C++ for explicit control over costs but, where a conflict arises, the presumption is towards clarity and simplicity of code. This emulator is willing to spend the processing resources available on modern hardware.
+Cycle-accurate emulation for the supported target machines is fairly trite; this emulator seeks to follow that precedent. All emulation logic is written in C++ for explicit control over costs but, where a conflict arises, the presumption is towards clarity and simplicity of code. This emulator is willing to spend the processing resources available on modern hardware.
 
-Which are polite ways of saying that it's generally slower than the standard bearers for each supported platform but that if it's comfortably within the processing ability of a semi-modern computer then that's not considered problematic.
+Self-ratings:
+* the Electron, Oric and Vic-20 are pretty much perfect;
+* the ZX80 and ZX81 are very strong;
+* the Amstrad CPC has known accuracy deficiencies in its 8272 and 6845;
+* the Atari 2600 has some known accuracy deficiencies in its TIA;
+* the C-1540(/1) is locked in reading mode and doesn't yet support writing.
