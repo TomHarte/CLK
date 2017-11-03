@@ -21,7 +21,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing an Amstrad CPC-stype disk image — some arrangement of sectors with status bits.
 */
-class CPCDSK: public DiskImage, public Storage::FileHolder {
+class CPCDSK: public DiskImage {
 	public:
 		/*!
 			Construct an @c AcornADF containing content from the file with name @c file_name.
@@ -38,7 +38,9 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;
 		int get_head_count() override;
-		using DiskImage::get_is_read_only;
+		bool get_is_read_only() override;
+
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
 
 	private:
@@ -63,10 +65,12 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 			std::vector<Sector> sectors;
 		};
 		std::vector<std::unique_ptr<Track>> tracks_;
+		size_t index_for_track(::Storage::Disk::Track::Address address);
 
 		int head_count_;
 		int head_position_count_;
 		bool is_extended_;
+		bool is_read_only_;
 };
 
 }

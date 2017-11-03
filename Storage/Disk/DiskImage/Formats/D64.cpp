@@ -17,13 +17,13 @@
 using namespace Storage::Disk;
 
 D64::D64(const char *file_name) :
-		Storage::FileHolder(file_name) {
+		file_(file_name) {
 	// in D64, this is it for validation without imposing potential false-negative tests — check that
 	// the file size appears to be correct. Stone-age stuff.
-	if(file_stats_.st_size != 174848 && file_stats_.st_size != 196608)
+	if(file_.stats().st_size != 174848 && file_.stats().st_size != 196608)
 		throw ErrorNotD64;
 
-	number_of_tracks_ = (file_stats_.st_size == 174848) ? 35 : 40;
+	number_of_tracks_ = (file_.stats().st_size == 174848) ? 35 : 40;
 
 	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
 	// being the most stable thing available
@@ -59,7 +59,7 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 	}
 
 	// seek to start of data
-	fseek(file_, offset_to_track * 256, SEEK_SET);
+	file_.seek(offset_to_track * 256, SEEK_SET);
 
 	// build up a PCM sampling of the GCR version of this track
 
@@ -117,7 +117,7 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 
 		// get the actual contents
 		uint8_t source_data[256];
-		fread(source_data, 1, 256, file_);
+		file_.read(source_data, sizeof(source_data));
 
 		// compute the latest checksum
 		checksum = 0;

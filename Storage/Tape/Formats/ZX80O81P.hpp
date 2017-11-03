@@ -23,7 +23,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
 */
-class ZX80O81P: public Tape, public Storage::FileHolder, public TargetPlatform::TypeDistinguisher {
+class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 	public:
 		/*!
 			Constructs a @c ZX80O containing content from the file with name @c file_name.

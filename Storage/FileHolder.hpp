@@ -14,84 +14,76 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace Storage {
 
-class FileHolder {
+class FileHolder final {
 	public:
 		enum {
 			ErrorCantOpen = -1
 		};
+	
+		enum class FileMode {
+			ReadWrite,
+			Read,
+			Rewrite
+		};
 
-		virtual ~FileHolder();
-
-	protected:
-		FileHolder(const std::string &file_name);
-
-		/*!
-			Reads @c length bytes from the file and compares them to the first
-			@c length bytes of @c signature. If @c length is 0, it is computed
-			as the length of @c signature up to and including the terminating null.
-			
-			@returns @c true if the bytes read match the signature; @c false otherwise.
-		*/
-		bool check_signature(const char *signature, size_t length);
+		~FileHolder();
+		FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
 		/*!
-			Performs @c fgetc four times on @c file_, casting each result to a @c uint32_t
+			Performs @c get8 four times on @c file, casting each result to a @c uint32_t
 			and returning the four assembled in little endian order.
 		*/
-		uint32_t fgetc32le();
+		uint32_t get32le();
 
 		/*!
-			Performs @c fgetc three times on @c file_, casting each result to a @c uint32_t
-			and returning the three assembled in little endian order.
-		*/
-		uint32_t fgetc24le();
-
-		/*!
-			Performs @c fgetc two times on @c file_, casting each result to a @c uint32_t
-			and returning the two assembled in little endian order.
-		*/
-		uint16_t fgetc16le();
-
-		/*!
-			Performs @c fgetc four times on @c file_, casting each result to a @c uint32_t
+			Performs @c get8 four times on @c file, casting each result to a @c uint32_t
 			and returning the four assembled in big endian order.
 		*/
-		uint32_t fgetc32be();
+		uint32_t get32be();
 
 		/*!
-			Performs @c fgetc two times on @c file_, casting each result to a @c uint32_t
+			Performs @c get8 three times on @c file, casting each result to a @c uint32_t
+			and returning the three assembled in little endian order.
+		*/
+		uint32_t get24le();
+
+		/*!
+			Performs @c get8 three times on @c file, casting each result to a @c uint32_t
+			and returning the three assembled in big endian order.
+		*/
+		uint32_t get24be();
+
+		/*!
+			Performs @c get8 two times on @c file, casting each result to a @c uint32_t
+			and returning the two assembled in little endian order.
+		*/
+		uint16_t get16le();
+
+		/*!
+			Performs @c get8 two times on @c file, casting each result to a @c uint32_t
 			and returning the two assembled in big endian order.
 		*/
-		uint16_t fgetc16be();
+		uint16_t get16be();
 
-		/*!
-			Determines and returns the file extension — everything from the final character
-			back to the first dot. The string is converted to lowercase before being returned.
-		*/
-		std::string extension();
-
-		/*!
-			Ensures the file is at least @c length bytes long, appending 0s until it is
-			if necessary.
-		*/
-		void ensure_file_is_at_least_length(long length);
-
-		/*!
-			@returns @c true if this file is read-only; @c false otherwise.
-		*/
-		bool get_is_read_only();
+		/*! Reads a single byte from @c file */
+		uint8_t get8();
+	
+		std::vector<uint8_t> read(size_t size);
+		size_t read(uint8_t *buffer, size_t size);
+		size_t write(const std::vector<uint8_t> &);
+		size_t write(const uint8_t *buffer, size_t size);
+	
+		void seek(long offset, int whence);
+		long tell();
+		void flush();
+		bool eof();
 
 		class BitStream {
 			public:
-				BitStream(FILE *f, bool lsb_first) :
-					file_(f),
-					lsb_first_(lsb_first),
-					next_value_(0),
-					bits_remaining_(0) {}
-
 				uint8_t get_bits(int q) {
 					uint8_t result = 0;
 					while(q--) {
@@ -101,6 +93,13 @@ class FileHolder {
 				}
 
 			private:
+				BitStream(FILE *file, bool lsb_first) :
+					file_(file),
+					lsb_first_(lsb_first),
+					next_value_(0),
+					bits_remaining_(0) {}
+				friend FileHolder;
+
 				FILE *file_;
 				bool lsb_first_;
 				uint8_t next_value_;
@@ -126,14 +125,53 @@ class FileHolder {
 					return bit;
 				}
 		};
+	
+		/*!
+			Obtains a BitStream for reading from the file from the current reading cursor.
+		*/
+		BitStream get_bitstream(bool lsb_first);
 
-		FILE *file_;
-		struct stat file_stats_;
-		std::mutex file_access_mutex_;
+		/*!
+			Reads @c length bytes from the file and compares them to the first
+			@c length bytes of @c signature. If @c length is 0, it is computed
+			as the length of @c signature not including the terminating null.
 
-		const std::string name_;
+			@returns @c true if the bytes read match the signature; @c false otherwise.
+		*/
+		bool check_signature(const char *signature, size_t length = 0);
+
+		/*!
+			Determines and returns the file extension — everything from the final character
+			back to the first dot. The string is converted to lowercase before being returned.
+		*/
+		std::string extension();
+
+		/*!
+			Ensures the file is at least @c length bytes long, appending 0s until it is
+			if necessary.
+		*/
+		void ensure_is_at_least_length(long length);
+
+		/*!
+			@returns @c true if this file is read-only; @c false otherwise.
+		*/
+		bool get_is_known_read_only();
+
+		/*!
+			@returns the stat struct describing this file.
+		*/
+		struct stat &stats();
+	
+		std::mutex &get_file_access_mutex();
+
 	private:
-		bool is_read_only_;
+		FILE *file_ = nullptr;
+		const std::string name_;
+
+		struct stat file_stats_;
+		bool is_read_only_ = false;
+
+		std::mutex file_access_mutex_;
 };
 
 }

@@ -20,17 +20,17 @@ using namespace Storage::Disk;
 AcornADF::AcornADF(const char *file_name) : MFMSectorDump(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
-	if(file_stats_.st_size % static_cast<off_t>(128 << sector_size)) throw ErrorNotAcornADF;
-	if(file_stats_.st_size < 7 * static_cast<off_t>(128 << sector_size)) throw ErrorNotAcornADF;
+	if(file_.stats().st_size % static_cast<off_t>(128 << sector_size)) throw ErrorNotAcornADF;
+	if(file_.stats().st_size < 7 * static_cast<off_t>(128 << sector_size)) throw ErrorNotAcornADF;
 
 	// check that the initial directory's 'Hugo's are present
-	fseek(file_, 513, SEEK_SET);
+	file_.seek(513, SEEK_SET);
 	uint8_t bytes[4];
-	fread(bytes, 1, 4, file_);
+	file_.read(bytes, 4);
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 
-	fseek(file_, 0x6fb, SEEK_SET);
-	fread(bytes, 1, 4, file_);
+	file_.seek(0x6fb, SEEK_SET);
+	file_.read(bytes, 4);
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 
 	set_geometry(sectors_per_track, sector_size, true);

@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-MFMSectorDump::MFMSectorDump(const char *file_name) : Storage::FileHolder(file_name) {}
+MFMSectorDump::MFMSectorDump(const char *file_name) : file_(file_name) {}
 
 void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, bool is_double_density) {
 	sectors_per_track_ = sectors_per_track;
@@ -27,9 +27,9 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address addre
 	long file_offset = get_file_offset_for_position(address);
 
 	{
-		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-		fseek(file_, file_offset, SEEK_SET);
-		fread(sectors, 1, sizeof(sectors), file_);
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(file_offset, SEEK_SET);
+		file_.read(sectors, sizeof(sectors));
 	}
 
 	return track_for_sectors(sectors, static_cast<uint8_t>(address.position), static_cast<uint8_t>(address.head), 0, sector_size_, is_double_density_);
@@ -46,10 +46,14 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Tr
 		decode_sectors(*track.second, parsed_track, 0, static_cast<uint8_t>(sectors_per_track_-1), sector_size_, is_double_density_);
 		long file_offset = get_file_offset_for_position(track.first);
 
-		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-		ensure_file_is_at_least_length(file_offset);
-		fseek(file_, file_offset, SEEK_SET);
-		fwrite(parsed_track, 1, sizeof(parsed_track), file_);
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.ensure_is_at_least_length(file_offset);
+		file_.seek(file_offset, SEEK_SET);
+		file_.write(parsed_track, sizeof(parsed_track));
 	}
-	fflush(file_);
+	file_.flush();
+}
+
+bool MFMSectorDump::get_is_read_only() {
+	return file_.get_is_known_read_only();
 }

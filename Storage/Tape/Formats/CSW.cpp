@@ -11,22 +11,21 @@
 using namespace Storage::Tape;
 
 CSW::CSW(const char *file_name) :
-	Storage::FileHolder(file_name),
+	file_(file_name),
 	source_data_pointer_(0) {
-	if(file_stats_.st_size < 0x20) throw ErrorNotCSW;
+	if(file_.stats().st_size < 0x20) throw ErrorNotCSW;
 
 	// Check signature.
-	char identifier[22];
-	char signature[] = "Compressed Square Wave";
-	fread(identifier, 1, strlen(signature), file_);
-	if(memcmp(identifier, signature, strlen(signature))) throw ErrorNotCSW;
+	if(!file_.check_signature("Compressed Square Wave")) {
+		throw ErrorNotCSW;
+	}
 
 	// Check terminating byte.
-	if(fgetc(file_) != 0x1a) throw ErrorNotCSW;
+	if(file_.get8() != 0x1a) throw ErrorNotCSW;
 
 	// Get version file number.
-	uint8_t major_version = static_cast<uint8_t>(fgetc(file_));
-	uint8_t minor_version = static_cast<uint8_t>(fgetc(file_));
+	uint8_t major_version = file_.get8();
+	uint8_t minor_version = file_.get8();
 
 	// Reject if this is an unknown version.
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
@@ -34,28 +33,28 @@ CSW::CSW(const char *file_name) :
 	// The header now diverges based on version.
 	uint32_t number_of_waves = 0;
 	if(major_version == 1) {
-		pulse_.length.clock_rate = fgetc16le();
+		pulse_.length.clock_rate = file_.get16le();
 
-		if(fgetc(file_) != 1) throw ErrorNotCSW;
+		if(file_.get8() != 1) throw ErrorNotCSW;
 		compression_type_ = RLE;
 
-		pulse_.type = (fgetc(file_) & 1) ? Pulse::High : Pulse::Low;
+		pulse_.type = (file_.get8() & 1) ? Pulse::High : Pulse::Low;
 
-		fseek(file_, 0x20, SEEK_SET);
+		file_.seek(0x20, SEEK_SET);
 	} else {
-		pulse_.length.clock_rate = fgetc32le();
-		number_of_waves = fgetc32le();
-		switch(fgetc(file_)) {
+		pulse_.length.clock_rate = file_.get32le();
+		number_of_waves = file_.get32le();
+		switch(file_.get8()) {
 			case 1: compression_type_ = RLE;	break;
 			case 2: compression_type_ = ZRLE;	break;
 			default: throw ErrorNotCSW;
 		}
 
-		pulse_.type = (fgetc(file_) & 1) ? Pulse::High : Pulse::Low;
-		uint8_t extension_length = static_cast<uint8_t>(fgetc(file_));
+		pulse_.type = (file_.get8() & 1) ? Pulse::High : Pulse::Low;
+		uint8_t extension_length = file_.get8();
 
-		if(file_stats_.st_size < 0x34 + extension_length) throw ErrorNotCSW;
-		fseek(file_, 0x34 + extension_length, SEEK_SET);
+		if(file_.stats().st_size < 0x34 + extension_length) throw ErrorNotCSW;
+		file_.seek(0x34 + extension_length, SEEK_SET);
 	}
 
 	if(compression_type_ == ZRLE) {
@@ -65,9 +64,9 @@ CSW::CSW(const char *file_name) :
 		source_data_.resize(static_cast<size_t>(number_of_waves) * 5);
 
 		std::vector<uint8_t> file_data;
-		size_t remaining_data = static_cast<size_t>(file_stats_.st_size) - static_cast<size_t>(ftell(file_));
+		size_t remaining_data = static_cast<size_t>(file_.stats().st_size) - static_cast<size_t>(file_.tell());
 		file_data.resize(remaining_data);
-		fread(file_data.data(), sizeof(uint8_t), remaining_data, file_);
+		file_.read(file_data.data(), remaining_data);
 
 		// uncompress will tell how many compressed bytes there actually were, so use its
 		// modification of output_length to throw away all the memory that isn't actually
@@ -76,7 +75,7 @@ CSW::CSW(const char *file_name) :
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
 		source_data_.resize(static_cast<size_t>(output_length));
 	} else {
-		rle_start_ = ftell(file_);
+		rle_start_ = file_.tell();
 	}
 
 	invert_pulse();
@@ -84,7 +83,7 @@ CSW::CSW(const char *file_name) :
 
 uint8_t CSW::get_next_byte() {
 	switch(compression_type_) {
-		case RLE: return static_cast<uint8_t>(fgetc(file_));
+		case RLE: return file_.get8();
 		case ZRLE: {
 			if(source_data_pointer_ == source_data_.size()) return 0xff;
 			uint8_t result = source_data_[source_data_pointer_];
@@ -96,7 +95,7 @@ uint8_t CSW::get_next_byte() {
 
 uint32_t CSW::get_next_int32le() {
 	switch(compression_type_) {
-		case RLE: return fgetc32le();
+		case RLE: return file_.get32le();
 		case ZRLE: {
 			if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
 			uint32_t result = (uint32_t)(
@@ -116,14 +115,14 @@ void CSW::invert_pulse() {
 
 bool CSW::is_at_end() {
 	switch(compression_type_) {
-		case RLE: return (bool)feof(file_);
+		case RLE: return file_.eof();
 		case ZRLE: return source_data_pointer_ == source_data_.size();
 	}
 }
 
 void CSW::virtual_reset() {
 	switch(compression_type_) {
-		case RLE:	fseek(file_, rle_start_, SEEK_SET);	break;
+		case RLE:	file_.seek(rle_start_, SEEK_SET);	break;
 		case ZRLE:	source_data_pointer_ = 0;			break;
 	}
 }

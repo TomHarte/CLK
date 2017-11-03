@@ -53,22 +53,21 @@ PRG::PRG(const char *file_name) :
 	file_phase_(FilePhaseLeadIn),
 	phase_offset_(0),
 	copy_mask_(0x80),
-	Storage::FileHolder(file_name)
+	file_(file_name)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
-	if(file_stats_.st_size >= 65538 || file_stats_.st_size < 3)
+	if(file_.stats().st_size >= 65538 || file_.stats().st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = fgetc16le();
-	length_ = static_cast<uint16_t>(file_stats_.st_size - 2);
+	load_address_ = file_.get16le();
+	length_ = static_cast<uint16_t>(file_.stats().st_size - 2);
 
 	if (load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
 }
 
-Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
-{
+Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse() {
 	// these are all microseconds per pole
 	static const unsigned int leader_zero_length = 179;
 	static const unsigned int zero_length = 169;
@@ -81,8 +80,7 @@ Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 	Tape::Pulse pulse;
 	pulse.length.clock_rate = 1000000;
 	pulse.type = (bit_phase_&1) ? Tape::Pulse::High : Tape::Pulse::Low;
-	switch(output_token_)
-	{
+	switch(output_token_) {
 		case Leader:		pulse.length.length = leader_zero_length;							break;
 		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;		break;
 		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;		break;
@@ -93,29 +91,25 @@ Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse()
 	return pulse;
 }
 
-void PRG::virtual_reset()
-{
+void PRG::virtual_reset() {
 	bit_phase_ = 3;
-	fseek(file_, 2, SEEK_SET);
+	file_.seek(2, SEEK_SET);
 	file_phase_ = FilePhaseLeadIn;
 	phase_offset_ = 0;
 	copy_mask_ = 0x80;
 }
 
-bool PRG::is_at_end()
-{
+bool PRG::is_at_end() {
 	return file_phase_ == FilePhaseAtEnd;
 }
 
-void PRG::get_next_output_token()
-{
+void PRG::get_next_output_token() {
 	static const int block_length = 192;	// not counting the checksum
 	static const int countdown_bytes = 9;
 	static const int leadin_length = 20000;
 	static const int block_leadin_length = 5000;
 
-	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd)
-	{
+	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd) {
 		output_token_ = Silence;
 		if(file_phase_ != FilePhaseAtEnd) file_phase_ = FilePhaseData;
 		return;
@@ -123,12 +117,10 @@ void PRG::get_next_output_token()
 
 	// the lead-in is 20,000 instances of the lead-in pair; every other phase begins with 5000
 	// before doing whatever it should be doing
-	if(file_phase_ == FilePhaseLeadIn || phase_offset_ < block_leadin_length)
-	{
+	if(file_phase_ == FilePhaseLeadIn || phase_offset_ < block_leadin_length) {
 		output_token_ = Leader;
 		phase_offset_++;
-		if(file_phase_ == FilePhaseLeadIn && phase_offset_ == leadin_length)
-		{
+		if(file_phase_ == FilePhaseLeadIn && phase_offset_ == leadin_length) {
 			phase_offset_ = 0;
 			file_phase_ = (file_phase_ == FilePhaseLeadIn) ? FilePhaseHeader : FilePhaseData;
 		}
@@ -144,15 +136,13 @@ void PRG::get_next_output_token()
 	if(!bit_offset &&
 		(
 			(file_phase_ == FilePhaseHeader && byte_offset == block_length + countdown_bytes + 1) ||
-			feof(file_)
+			file_.eof()
 		)
-	)
-	{
+	) {
 		output_token_ = EndOfBlock;
 		phase_offset_ = 0;
 
-		switch(file_phase_)
-		{
+		switch(file_phase_) {
 			default: break;
 			case FilePhaseHeader:
 				copy_mask_ ^= 0x80;
@@ -160,35 +150,25 @@ void PRG::get_next_output_token()
 			break;
 			case FilePhaseData:
 				copy_mask_ ^= 0x80;
-				fseek(file_, 2, SEEK_SET);
+				file_.seek(2, SEEK_SET);
 				if(copy_mask_) file_phase_ = FilePhaseAtEnd;
 			break;
 		}
 		return;
 	}
 
-	if(bit_offset == 0)
-	{
+	if(bit_offset == 0) {
 		// the first nine bytes are countdown; the high bit is set if this is a header
-		if(byte_offset < countdown_bytes)
-		{
+		if(byte_offset < countdown_bytes) {
 			output_byte_ = static_cast<uint8_t>(countdown_bytes - byte_offset) | copy_mask_;
-		}
-		else
-		{
-			if(file_phase_ == FilePhaseHeader)
-			{
-				if(byte_offset == countdown_bytes + block_length)
-				{
+		} else {
+			if(file_phase_ == FilePhaseHeader) {
+				if(byte_offset == countdown_bytes + block_length) {
 					output_byte_ = check_digit_;
-				}
-				else
-				{
+				} else {
 					if(byte_offset == countdown_bytes) check_digit_ = 0;
-					if(file_phase_ == FilePhaseHeader)
-					{
-						switch(byte_offset - countdown_bytes)
-						{
+					if(file_phase_ == FilePhaseHeader) {
+						switch(byte_offset - countdown_bytes) {
 							case 0:	output_byte_ = 0x03;										break;
 							case 1: output_byte_ = load_address_ & 0xff;						break;
 							case 2: output_byte_ = (load_address_ >> 8)&0xff;					break;
@@ -204,12 +184,9 @@ void PRG::get_next_output_token()
 						}
 					}
 				}
-			}
-			else
-			{
-				output_byte_ = static_cast<uint8_t>(fgetc(file_));
-				if(feof(file_))
-				{
+			} else {
+				output_byte_ = file_.get8();
+				if(file_.eof()) {
 					output_byte_ = check_digit_;
 				}
 			}
@@ -218,16 +195,14 @@ void PRG::get_next_output_token()
 		}
 	}
 
-	switch(bit_offset)
-	{
+	switch(bit_offset) {
 		case 0:
 			output_token_ = WordMarker;
 		break;
 		default:	// i.e. 1–8
 			output_token_ = (output_byte_ & (1 << (bit_offset - 1))) ? One : Zero;
 		break;
-		case 9:
-		{
+		case 9: {
 			uint8_t parity = output_byte_;
 			parity ^= (parity >> 4);
 			parity ^= (parity >> 2);

@@ -21,7 +21,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a CSW tape image, which is a compressed 1-bit sampling.
 */
-class CSW: public Tape, public Storage::FileHolder {
+class CSW: public Tape {
 	public:
 		/*!
 			Constructs a @c CSW containing content from the file with name @c file_name.
@@ -38,6 +38,8 @@ class CSW: public Tape, public Storage::FileHolder {
 		bool is_at_end();
 
 	private:
+		Storage::FileHolder file_;
+
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 

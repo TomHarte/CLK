@@ -16,19 +16,16 @@ const unsigned int TZXClockMSMultiplier = 3500;
 }
 
 TZX::TZX(const char *file_name) :
-	Storage::FileHolder(file_name),
+	file_(file_name),
 	current_level_(false) {
 
 	// Check for signature followed by a 0x1a
-	char identifier[7];
-	char signature[] = "ZXTape!";
-	fread(identifier, 1, strlen(signature), file_);
-	if(memcmp(identifier, signature, strlen(signature))) throw ErrorNotTZX;
-	if(fgetc(file_) != 0x1a) throw ErrorNotTZX;
+	if(!file_.check_signature("ZXTape!")) throw ErrorNotTZX;
+	if(file_.get8() != 0x1a) throw ErrorNotTZX;
 
 	// Get version number
-	uint8_t major_version = static_cast<uint8_t>(fgetc(file_));
-	uint8_t minor_version = static_cast<uint8_t>(fgetc(file_));
+	uint8_t major_version = file_.get8();
+	uint8_t minor_version = file_.get8();
 
 	// Reject if an incompatible version
 	if(major_version != 1 || minor_version > 20)  throw ErrorNotTZX;
@@ -39,7 +36,7 @@ TZX::TZX(const char *file_name) :
 void TZX::virtual_reset() {
 	clear();
 	set_is_at_end(false);
-	fseek(file_, 0x0a, SEEK_SET);
+	file_.seek(0x0a, SEEK_SET);
 
 	// This is a workaround for arguably dodgy ZX80/ZX81 TZXs; they launch straight
 	// into data but both machines require a gap before data begins. So impose
@@ -50,8 +47,8 @@ void TZX::virtual_reset() {
 
 void TZX::get_next_pulses() {
 	while(empty()) {
-		uint8_t chunk_id = static_cast<uint8_t>(fgetc(file_));
-		if(feof(file_)) {
+		uint8_t chunk_id = file_.get8();
+		if(file_.eof()) {
 			set_is_at_end(true);
 			return;
 		}
@@ -90,24 +87,24 @@ void TZX::get_next_pulses() {
 }
 
 void TZX::get_generalised_data_block() {
-	uint32_t block_length = fgetc32le();
-	long endpoint = ftell(file_) + static_cast<long>(block_length);
-	uint16_t pause_after_block = fgetc16le();
+	uint32_t block_length = file_.get32le();
+	long endpoint = file_.tell() + static_cast<long>(block_length);
+	uint16_t pause_after_block = file_.get16le();
 
-	uint32_t total_pilot_symbols = fgetc32le();
-	uint8_t maximum_pulses_per_pilot_symbol = static_cast<uint8_t>(fgetc(file_));
-	uint8_t symbols_in_pilot_table = static_cast<uint8_t>(fgetc(file_));
+	uint32_t total_pilot_symbols = file_.get32le();
+	uint8_t maximum_pulses_per_pilot_symbol = file_.get8();
+	uint8_t symbols_in_pilot_table = file_.get8();
 
-	uint32_t total_data_symbols = fgetc32le();
-	uint8_t maximum_pulses_per_data_symbol = static_cast<uint8_t>(fgetc(file_));
-	uint8_t symbols_in_data_table = static_cast<uint8_t>(fgetc(file_));
+	uint32_t total_data_symbols = file_.get32le();
+	uint8_t maximum_pulses_per_data_symbol = file_.get8();
+	uint8_t symbols_in_data_table = file_.get8();
 
 	get_generalised_segment(total_pilot_symbols, maximum_pulses_per_pilot_symbol, symbols_in_pilot_table, false);
 	get_generalised_segment(total_data_symbols, maximum_pulses_per_data_symbol, symbols_in_data_table, true);
 	post_gap(pause_after_block);
 
 	// This should be unnecessary, but intends to preserve sanity.
-	fseek(file_, endpoint, SEEK_SET);
+	file_.seek(endpoint, SEEK_SET);
 }
 
 void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_per_symbol, uint8_t number_of_symbols, bool is_data) {
@@ -121,15 +118,15 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 	std::vector<Symbol> symbol_table;
 	for(int c = 0; c < number_of_symbols; c++) {
 		Symbol symbol;
-		symbol.flags = static_cast<uint8_t>(fgetc(file_));
+		symbol.flags = file_.get8();
 		for(int ic = 0; ic < max_pulses_per_symbol; ic++) {
-			symbol.pulse_lengths.push_back(fgetc16le());
+			symbol.pulse_lengths.push_back(file_.get16le());
 		}
 		symbol_table.push_back(symbol);
 	}
 
 	// Hence produce the output.
-	BitStream stream(file_, false);
+	FileHolder::BitStream stream = file_.get_bitstream(false);
 	int base = 2;
 	int bits = 1;
 	while(base < number_of_symbols) {
@@ -143,8 +140,8 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			symbol_value = stream.get_bits(bits);
 			count = 1;
 		} else {
-			symbol_value = static_cast<uint8_t>(fgetc(file_));
-			count = fgetc16le();
+			symbol_value = file_.get8();
+			count = file_.get16le();
 		}
 		if(symbol_value > number_of_symbols) {
 			continue;
@@ -178,29 +175,28 @@ void TZX::get_standard_speed_data_block() {
 	data_block.data.length_of_one_bit_pulse = 1710;
 	data_block.data.number_of_bits_in_final_byte = 8;
 
-	data_block.data.pause_after_block = fgetc16le();
-	data_block.data.data_length = fgetc16le();
+	data_block.data.pause_after_block = file_.get16le();
+	data_block.data.data_length = file_.get16le();
 	if(!data_block.data.data_length) return;
 
-	uint8_t first_byte = static_cast<uint8_t>(fgetc(file_));
+	uint8_t first_byte = file_.get8();
 	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
-	ungetc(first_byte, file_);
+	file_.seek(-1, SEEK_CUR);
 
 	get_data_block(data_block);
 }
 
 void TZX::get_turbo_speed_data_block() {
 	DataBlock data_block;
-	data_block.length_of_pilot_pulse = fgetc16le();
-	data_block.length_of_sync_first_pulse = fgetc16le();
-	data_block.length_of_sync_second_pulse = fgetc16le();
-	data_block.data.length_of_zero_bit_pulse = fgetc16le();
-	data_block.data.length_of_one_bit_pulse = fgetc16le();
-	data_block.length_of_pilot_tone = fgetc16le();
-	data_block.data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
-	data_block.data.pause_after_block = fgetc16le();
-	data_block.data.data_length = fgetc16le();
-	data_block.data.data_length |= static_cast<long>(fgetc(file_) << 16);
+	data_block.length_of_pilot_pulse = file_.get16le();
+	data_block.length_of_sync_first_pulse = file_.get16le();
+	data_block.length_of_sync_second_pulse = file_.get16le();
+	data_block.data.length_of_zero_bit_pulse = file_.get16le();
+	data_block.data.length_of_one_bit_pulse = file_.get16le();
+	data_block.length_of_pilot_tone = file_.get16le();
+	data_block.data.number_of_bits_in_final_byte = file_.get8();
+	data_block.data.pause_after_block = file_.get16le();
+	data_block.data.data_length = file_.get24le();
 
 	get_data_block(data_block);
 }
@@ -221,7 +217,7 @@ void TZX::get_data_block(const DataBlock &data_block) {
 void TZX::get_data(const Data &data) {
 	// Output data.
 	for(unsigned int c = 0; c < data.data_length; c++) {
-		uint8_t next_byte = static_cast<uint8_t>(fgetc(file_));
+		uint8_t next_byte = file_.get8();
 
 		unsigned int bits = (c != data.data_length-1) ? 8 : data.number_of_bits_in_final_byte;
 		while(bits--) {
@@ -238,33 +234,32 @@ void TZX::get_data(const Data &data) {
 }
 
 void TZX::get_pure_tone_data_block() {
-	uint16_t length_of_pulse = fgetc16le();
-	uint16_t nunber_of_pulses = fgetc16le();
+	uint16_t length_of_pulse = file_.get16le();
+	uint16_t nunber_of_pulses = file_.get16le();
 
 	while(nunber_of_pulses--) post_pulse(length_of_pulse);
 }
 
 void TZX::get_pure_data_block() {
 	Data data;
-	data.length_of_zero_bit_pulse = fgetc16le();
-	data.length_of_one_bit_pulse = fgetc16le();
-	data.number_of_bits_in_final_byte = static_cast<uint8_t>(fgetc(file_));
-	data.pause_after_block = fgetc16le();
-	data.data_length = fgetc16le();
-	data.data_length |= static_cast<long>(fgetc(file_) << 16);
+	data.length_of_zero_bit_pulse = file_.get16le();
+	data.length_of_one_bit_pulse = file_.get16le();
+	data.number_of_bits_in_final_byte = file_.get8();
+	data.pause_after_block = file_.get16le();
+	data.data_length = file_.get24le();
 
 	get_data(data);
 }
 
 void TZX::get_pulse_sequence() {
-	uint8_t number_of_pulses = static_cast<uint8_t>(fgetc(file_));
+	uint8_t number_of_pulses = file_.get8();
 	while(number_of_pulses--) {
-		post_pulse(fgetc16le());
+		post_pulse(file_.get16le());
 	}
 }
 
 void TZX::get_pause() {
-	uint16_t duration = fgetc16le();
+	uint16_t duration = file_.get16le();
 	if(!duration) {
 		// TODO (maybe): post a 'pause the tape' suggestion
 	} else {
@@ -297,20 +292,20 @@ void TZX::post_pulse(const Storage::Time &time) {
 
 void TZX::ignore_group_start() {
 	printf("Ignoring TZX group\n");
-	uint8_t length = static_cast<uint8_t>(fgetc(file_));
-	fseek(file_, length, SEEK_CUR);
+	uint8_t length = file_.get8();
+	file_.seek(length, SEEK_CUR);
 }
 
 void TZX::ignore_group_end() {
 }
 
 void TZX::ignore_jump_to_block() {
-	__unused uint16_t target = fgetc16le();
+	__unused uint16_t target = file_.get16le();
 	printf("Ignoring TZX jump\n");
 }
 
 void TZX::ignore_loop_start() {
-	__unused uint16_t number_of_repetitions = fgetc16le();
+	__unused uint16_t number_of_repetitions = file_.get16le();
 	printf("Ignoring TZX loop\n");
 }
 
@@ -318,8 +313,8 @@ void TZX::ignore_loop_end() {
 }
 
 void TZX::ignore_call_sequence() {
-	__unused uint16_t number_of_entries = fgetc16le();
-	fseek(file_, number_of_entries * sizeof(uint16_t), SEEK_CUR);
+	__unused uint16_t number_of_entries = file_.get16le();
+	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
 	printf("Ignoring TZX call sequence\n");
 }
 
@@ -328,29 +323,29 @@ void TZX::ignore_return_from_sequence() {
 }
 
 void TZX::ignore_select_block() {
-	__unused uint16_t length_of_block = fgetc16le();
-	fseek(file_, length_of_block, SEEK_CUR);
+	__unused uint16_t length_of_block = file_.get16le();
+	file_.seek(length_of_block, SEEK_CUR);
 	printf("Ignoring TZX select block\n");
 }
 
 #pragma mark - Messaging
 
 void TZX::ignore_text_description() {
-	uint8_t length = static_cast<uint8_t>(fgetc(file_));
-	fseek(file_, length, SEEK_CUR);
+	uint8_t length = file_.get8();
+	file_.seek(length, SEEK_CUR);
 	printf("Ignoring TZX text description\n");
 }
 
 void TZX::ignore_message_block() {
-	__unused uint8_t time_for_display = static_cast<uint8_t>(fgetc(file_));
-	uint8_t length = static_cast<uint8_t>(fgetc(file_));
-	fseek(file_, length, SEEK_CUR);
+	__unused uint8_t time_for_display = file_.get8();
+	uint8_t length = file_.get8();
+	file_.seek(length, SEEK_CUR);
 	printf("Ignoring TZX message\n");
 }
 
 void TZX::get_hardware_type() {
 	// TODO: pick a way to retain and communicate this.
-	uint8_t number_of_machines = static_cast<uint8_t>(fgetc(file_));
-	fseek(file_, number_of_machines * 3, SEEK_CUR);
+	uint8_t number_of_machines = file_.get8();
+	file_.seek(number_of_machines * 3, SEEK_CUR);
 	printf("Ignoring TZX hardware types (%d)\n", number_of_machines);
 }
