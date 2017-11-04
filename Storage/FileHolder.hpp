@@ -31,6 +31,19 @@ class FileHolder final {
 		};
 
 		~FileHolder();
+
+		/*!
+			Attempts to open the file indicated by @c file_name. @c ideal_mode nominates how the file would
+			most ideally be opened. It can be one of:
+
+				ReadWrite	attempt to open this file for random access reading and writing. If that fails,
+							will attept to open in Read mode.
+				Read		attempts to open this file for reading only.
+				Rewrite		opens the file for rewriting — none of the original content is preserved; whatever
+							the caller outputs will replace the existing file.
+
+			@raises ErrorCantOpen if the file cannot be opened.
+		*/
 		FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
 		/*!
@@ -62,6 +75,10 @@ class FileHolder final {
 			and returning the two assembled in little endian order.
 		*/
 		uint16_t get16le();
+
+		/*!
+			Writes @c value using two successive @c put8s, in little endian order.
+		*/
 		void put16le(uint16_t value);
 
 		/*!
@@ -69,6 +86,10 @@ class FileHolder final {
 			and returning the two assembled in big endian order.
 		*/
 		uint16_t get16be();
+
+		/*!
+			Writes @c value using two successive @c put8s, in big endian order.
+		*/
 		void put16be(uint16_t value);
 
 		/*! Reads a single byte from @c file. */
@@ -76,16 +97,32 @@ class FileHolder final {
 
 		/*! Writes a single byte from @c file. */
 		void put8(uint8_t value);
+
+		/*! Writes @c value a total of @c repeats times. */
 		void putn(size_t repeats, uint8_t value);
 
+		/*! Reads @c size bytes and returns them as a vector. */
 		std::vector<uint8_t> read(size_t size);
+
+		/*! Reads @c size bytes and writes them to @c buffer. */
 		size_t read(uint8_t *buffer, size_t size);
-		size_t write(const std::vector<uint8_t> &);
+
+		/*! Writes @c buffer one byte at a time in order. */
+		size_t write(const std::vector<uint8_t> &buffer);
+
+		/*! Writes @c buffer one byte at a time in order, writing @c size bytes in total. */
 		size_t write(const uint8_t *buffer, size_t size);
 
+		/*! Moves @c bytes from the anchor indicated by @c whence — SEEK_SET, SEEK_CUR or SEEK_END. */
 		void seek(long offset, int whence);
+
+		/*! @returns The current cursor position within this file. */
 		long tell();
+
+		/*! Flushes any queued content that has not yet been written to disk. */
 		void flush();
+
+		/*! @returns @c true if the end-of-file indicator is set, @c false otherwise. */
 		bool eof();
 
 		class BitStream {
@@ -159,7 +196,7 @@ class FileHolder final {
 		void ensure_is_at_least_length(long length);
 
 		/*!
-			@returns @c true if this file is read-only; @c false otherwise.
+			@returns @c true if an attempt was made to read this file in ReadWrite mode but it could be opened only for reading; @c false otherwise.
 		*/
 		bool get_is_known_read_only();
 
@@ -168,6 +205,9 @@ class FileHolder final {
 		*/
 		struct stat &stats();
 	
+		/*!
+			@returns a mutex owned by the file that can be used to serialise file access.
+		*/
 		std::mutex &get_file_access_mutex();
 
 	private:
