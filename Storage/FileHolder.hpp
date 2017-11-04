@@ -62,21 +62,27 @@ class FileHolder final {
 			and returning the two assembled in little endian order.
 		*/
 		uint16_t get16le();
+		void put16le(uint16_t value);
 
 		/*!
 			Performs @c get8 two times on @c file, casting each result to a @c uint32_t
 			and returning the two assembled in big endian order.
 		*/
 		uint16_t get16be();
+		void put16be(uint16_t value);
 
-		/*! Reads a single byte from @c file */
+		/*! Reads a single byte from @c file. */
 		uint8_t get8();
-	
+
+		/*! Writes a single byte from @c file. */
+		void put8(uint8_t value);
+		void putn(size_t repeats, uint8_t value);
+
 		std::vector<uint8_t> read(size_t size);
 		size_t read(uint8_t *buffer, size_t size);
 		size_t write(const std::vector<uint8_t> &);
 		size_t write(const uint8_t *buffer, size_t size);
-	
+
 		void seek(long offset, int whence);
 		long tell();
 		void flush();

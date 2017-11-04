@@ -18,6 +18,7 @@
 using namespace Storage::Disk;
 
 CPCDSK::CPCDSK(const char *file_name) :
+	file_name_(file_name),
 	is_extended_(false) {
 	FileHolder file(file_name);
 	is_read_only_ = file.get_is_known_read_only();
@@ -230,6 +231,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		size_t chronological_track = index_for_track(pair.first);
 		if(chronological_track >= tracks_.size()) {
 			tracks_.resize(chronological_track+1);
+			head_position_count_ = pair.first.position;
 		}
 
 		// Get the track, or create it if necessary.
@@ -263,6 +265,113 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 	}
 	
 	// Rewrite the entire disk image, in extended form.
+	Storage::FileHolder output(file_name_, Storage::FileHolder::FileMode::Rewrite);
+	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
+	output.write(reinterpret_cast<const uint8_t *>("Clock Signal  "), 14);
+	output.put8(static_cast<uint8_t>(head_position_count_));
+	output.put8(static_cast<uint8_t>(head_count_));
+	output.putn(2, 0);
+
+	// Output size table.
+	for(size_t index = 0; index < static_cast<size_t>(head_position_count_ * head_count_); ++index) {
+		if(index >= tracks_.size()) {
+			output.put8(0);
+			continue;
+		}
+		Track *track = tracks_[index].get();
+		if(!track) {
+			output.put8(0);
+			continue;
+		}
+		
+		// Calculate size of track.
+		size_t track_size = 256;
+		for(auto &sector: track->sectors) {
+			for(auto &sample: sector.samples) {
+				track_size += sample.size();
+			}
+		}
+
+		// Round upward and output.
+		track_size += (256 - (track_size & 255)) & 255;
+		output.put8(static_cast<uint8_t>(track_size >> 8));
+	}
+	
+	// Advance to offset 256.
+	output.putn(static_cast<size_t>(256 - output.tell()), 0);
+
+	// Output each track.
+	for(size_t index = 0; index < static_cast<size_t>(head_position_count_ * head_count_); ++index) {
+		if(index >= tracks_.size()) continue;
+		Track *track = tracks_[index].get();
+		if(!track) continue;
+
+		// Output track header.
+		output.write(reinterpret_cast<const uint8_t *>("Track-Info\r\n"), 13);
+		output.putn(3, 0);
+		output.put8(track->track);
+		output.put8(track->side);
+		switch (track->data_rate) {
+			default:
+				output.put8(0);
+			break;
+			case Track::DataRate::SingleOrDoubleDensity:
+				output.put8(1);
+			break;
+			case Track::DataRate::HighDensity:
+				output.put8(2);
+			break;
+			case Track::DataRate::ExtendedDensity:
+				output.put8(3);
+			break;
+		}
+		switch (track->data_encoding) {
+			default:
+				output.put8(0);
+			break;
+			case Track::DataEncoding::FM:
+				output.put8(1);
+			break;
+			case Track::DataEncoding::MFM:
+				output.put8(2);
+			break;
+		}
+		output.put8(track->sector_length);
+		output.put8(static_cast<uint8_t>(track->sectors.size()));
+		output.put8(track->gap3_length);
+		output.put8(track->filler_byte);
+
+		// Output sector information list.
+		for(auto &sector: track->sectors) {
+			output.put8(sector.address.track);
+			output.put8(sector.address.side);
+			output.put8(sector.address.sector);
+			output.put8(sector.size);
+			output.put8(sector.fdc_status1);
+			output.put8(sector.fdc_status2);
+
+			size_t data_size = 0;
+			for(auto &sample: sector.samples) {
+				data_size += sample.size();
+			}
+			output.put16le(static_cast<uint16_t>(data_size));
+		}
+		
+		// Move to next 256-byte boundary.
+		long distance = (256 - output.tell()&255)&255;
+		output.putn(static_cast<size_t>(distance), 0);
+
+		// Output sector contents.
+		for(auto &sector: track->sectors) {
+			for(auto &sample: sector.samples) {
+				output.write(sample);
+			}
+		}
+
+		// Move to next 256-byte boundary.
+		distance = (256 - output.tell()&255)&255;
+		output.putn(static_cast<size_t>(distance), 0);
+	}
 }
 
 bool CPCDSK::get_is_read_only() {

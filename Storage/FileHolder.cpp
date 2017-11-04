@@ -92,6 +92,24 @@ uint8_t FileHolder::get8() {
     return static_cast<uint8_t>(fgetc(file_));
 }
 
+void FileHolder::put16be(uint16_t value) {
+	fputc(value >> 8, file_);
+	fputc(value, file_);
+}
+
+void FileHolder::put16le(uint16_t value) {
+	fputc(value, file_);
+	fputc(value >> 8, file_);
+}
+
+void FileHolder::put8(uint8_t value) {
+	fputc(value, file_);
+}
+
+void FileHolder::putn(size_t repeats, uint8_t value) {
+	while(repeats--) put8(value);
+}
+
 std::vector<uint8_t> FileHolder::read(size_t size) {
 	std::vector<uint8_t> result(size);
 	fread(result.data(), 1, size, file_);
