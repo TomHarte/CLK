@@ -9,6 +9,71 @@
 /* Begin PBXBuildFile section */
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
+		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
+		4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055A7C1FAE84A50060FFFF /* main.cpp */; };
+		4B055A7F1FAE852F0060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */; };
+		4B055A801FAE85350060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
+		4B055A811FAE853A0060FFFF /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF829641D8F732B001BAE39 /* Disk.cpp */; };
+		4B055A821FAE853D0060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */; };
+		4B055A831FAE85410060FFFF /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
+		4B055A841FAE85450060FFFF /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA22B051D8817CE0008C640 /* Disk.cpp */; };
+		4B055A851FAE85480060FFFF /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE77A2C1D84ADFB00BC3827 /* File.cpp */; };
+		4B055A861FAE854C0060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5E4901D7ED365008CF980 /* StaticAnalyser.cpp */; };
+		4B055A871FAE854F0060FFFF /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC830CF1D6E7C690000A26F /* Tape.cpp */; };
+		4B055A881FAE85530060FFFF /* Disassembler6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5A12551DD55862007A2231 /* Disassembler6502.cpp */; };
+		4B055A891FAE85580060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA91DADD41B0039D2E7 /* StaticAnalyser.cpp */; };
+		4B055A8A1FAE855B0060FFFF /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805FC1DD02552003085B1 /* Tape.cpp */; };
+		4B055A8B1FAE85670060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497891EE4AC5E00CE2596 /* StaticAnalyser.cpp */; };
+		4B055A8C1FAE85670060FFFF /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3421F2EB3E900D9235D /* StaticAnalyser.cpp */; };
+		4B055A8D1FAE85920060FFFF /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
+		4B055A8E1FAE85920060FFFF /* BestEffortUpdater.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */; };
+		4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
+		4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
+		4B055A911FAE85B50060FFFF /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
+		4B055A921FAE85B50060FFFF /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
+		4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
+		4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */; };
+		4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
+		4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
+		4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
+		4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
+		4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187A1F75E91900926311 /* DiskController.cpp */; };
+		4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187C1F75E91900926311 /* MFMDiskController.cpp */; };
+		4B055A9B1FAE85DA0060FFFF /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45188D1F75FD1B00926311 /* AcornADF.cpp */; };
+		4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45188F1F75FD1B00926311 /* CPCDSK.cpp */; };
+		4B055A9D1FAE85DA0060FFFF /* D64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518911F75FD1B00926311 /* D64.cpp */; };
+		4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518931F75FD1B00926311 /* G64.cpp */; };
+		4B055A9F1FAE85DA0060FFFF /* HFE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518951F75FD1B00926311 /* HFE.cpp */; };
+		4B055AA01FAE85DA0060FFFF /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
+		4B055AA11FAE85DA0060FFFF /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */; };
+		4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518991F75FD1B00926311 /* SSD.cpp */; };
+		4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */; };
+		4B055AA41FAE85E50060FFFF /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187F1F75E91900926311 /* DigitalPhaseLockedLoop.cpp */; };
+		4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136841F78724F008B8ED9 /* Encoder.cpp */; };
+		4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
+		4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
+		4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
+		4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
+		4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
+		4B055AAB1FAE85FD0060FFFF /* PCMPatchedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */; };
+		4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
+		4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518751F75E91800926311 /* PCMTrack.cpp */; };
+		4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
+		4B055AAF1FAE85FD0060FFFF /* UnformattedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518771F75E91800926311 /* UnformattedTrack.cpp */; };
+		4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */; };
+		4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
+		4B055AB21FAE860F0060FFFF /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
+		4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BF5AE1F146264005B6C36 /* CSW.cpp */; };
+		4B055AB41FAE860F0060FFFF /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
+		4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */; };
+		4B055AB61FAE860F0060FFFF /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
+		4B055AB71FAE860F0060FFFF /* TZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E7F1F1C45A00009ABD6 /* TZX.cpp */; };
+		4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497861EE4A1DA00CE2596 /* ZX80O81P.cpp */; };
+		4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
+		4B055ABA1FAE86170060FFFF /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
+		4B055ABB1FAE86170060FFFF /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F91DCFF807003085B1 /* Oric.cpp */; };
+		4B055ABC1FAE86170060FFFF /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
+		4B055ABD1FAE86530060FFFF /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
@@ -481,10 +546,25 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		4B055A681FAE763F0060FFFF /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* CRTMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTMachine.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
+		4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Clock Signal Kiosk"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B055A771FAE78210060FFFF /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../../../../Library/Frameworks/SDL2.framework; sourceTree = "<group>"; };
+		4B055A7C1FAE84A50060FFFF /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80InterruptTests.swift; sourceTree = "<group>"; };
 		4B08A2761EE39306008B7065 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
@@ -1134,6 +1214,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4B055A671FAE763F0060FFFF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B055ABD1FAE86530060FFFF /* libz.tbd in Frameworks */,
+				4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4BB73E9B1B587A5100552FC2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1160,6 +1249,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4B055A761FAE78210060FFFF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4B055A771FAE78210060FFFF /* SDL2.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4B055A7B1FAE84A50060FFFF /* SDL */ = {
+			isa = PBXGroup;
+			children = (
+				4B055A7C1FAE84A50060FFFF /* main.cpp */,
+			);
+			name = SDL;
+			path = ../SDL;
+			sourceTree = "<group>";
+		};
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
 			isa = PBXGroup;
 			children = (
@@ -2095,12 +2201,14 @@
 				4BF660691F281573002CB053 /* ClockReceiver */,
 				4BC9DF4A1D04691600F44158 /* Components */,
 				4B3940E81DA83C8700427841 /* Concurrency */,
+				4B055A761FAE78210060FFFF /* Frameworks */,
 				4B86E2581F8C628F006FAA45 /* Inputs */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
 				4BB697C81D4B559300248BDF /* NumberTheory */,
 				4B366DFD1B5C165F0026627B /* Outputs */,
 				4BB73EDD1B587CA500552FC2 /* Processors */,
 				4BB73E9F1B587A5100552FC2 /* Products */,
+				4B055A7B1FAE84A50060FFFF /* SDL */,
 				4B2409591C45DF85004DA684 /* SignalProcessing */,
 				4BF1354D1D6D2C360054B2EA /* StaticAnalyser */,
 				4B69FB391C4D908A00B5F0AA /* Storage */,
@@ -2116,6 +2224,7 @@
 				4BB73E9E1B587A5100552FC2 /* Clock Signal.app */,
 				4BB73EB21B587A5100552FC2 /* Clock SignalTests.xctest */,
 				4BB73EBD1B587A5100552FC2 /* Clock SignalUITests.xctest */,
+				4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2496,6 +2605,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4B055A691FAE763F0060FFFF /* Clock Signal Kiosk */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B055A701FAE763F0060FFFF /* Build configuration list for PBXNativeTarget "Clock Signal Kiosk" */;
+			buildPhases = (
+				4B055A661FAE763F0060FFFF /* Sources */,
+				4B055A671FAE763F0060FFFF /* Frameworks */,
+				4B055A681FAE763F0060FFFF /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Clock Signal Kiosk";
+			productName = "Clock Signal Kiosk";
+			productReference = 4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */;
+			productType = "com.apple.product-type.tool";
+		};
 		4BB73E9D1B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4BB73EC61B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock Signal" */;
@@ -2559,6 +2685,10 @@
 				LastUpgradeCheck = 0900;
 				ORGANIZATIONNAME = "Thomas Harte";
 				TargetAttributes = {
+					4B055A691FAE763F0060FFFF = {
+						CreatedOnToolsVersion = 9.1;
+						ProvisioningStyle = Automatic;
+					};
 					4BB73E9D1B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
 						LastSwiftMigration = 0900;
@@ -2596,6 +2726,7 @@
 				4BB73E9D1B587A5100552FC2 /* Clock Signal */,
 				4BB73EB11B587A5100552FC2 /* Clock SignalTests */,
 				4BB73EBC1B587A5100552FC2 /* Clock SignalUITests */,
+				4B055A691FAE763F0060FFFF /* Clock Signal Kiosk */,
 			);
 		};
 /* End PBXProject section */
@@ -2913,6 +3044,76 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4B055A661FAE763F0060FFFF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
+				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
+				4B055AA41FAE85E50060FFFF /* DigitalPhaseLockedLoop.cpp in Sources */,
+				4B055A9B1FAE85DA0060FFFF /* AcornADF.cpp in Sources */,
+				4B055A811FAE853A0060FFFF /* Disk.cpp in Sources */,
+				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
+				4B055A8A1FAE855B0060FFFF /* Tape.cpp in Sources */,
+				4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */,
+				4B055A851FAE85480060FFFF /* File.cpp in Sources */,
+				4B055AB41FAE860F0060FFFF /* OricTAP.cpp in Sources */,
+				4B055AB71FAE860F0060FFFF /* TZX.cpp in Sources */,
+				4B055A8C1FAE85670060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055AB61FAE860F0060FFFF /* TapeUEF.cpp in Sources */,
+				4B055A9D1FAE85DA0060FFFF /* D64.cpp in Sources */,
+				4B055ABB1FAE86170060FFFF /* Oric.cpp in Sources */,
+				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
+				4B055AAB1FAE85FD0060FFFF /* PCMPatchedTrack.cpp in Sources */,
+				4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */,
+				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
+				4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */,
+				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
+				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
+				4B055A8E1FAE85920060FFFF /* BestEffortUpdater.cpp in Sources */,
+				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
+				4B055A801FAE85350060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
+				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
+				4B055A881FAE85530060FFFF /* Disassembler6502.cpp in Sources */,
+				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
+				4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */,
+				4B055ABA1FAE86170060FFFF /* Commodore.cpp in Sources */,
+				4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */,
+				4B055A861FAE854C0060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055ABC1FAE86170060FFFF /* ZX8081.cpp in Sources */,
+				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
+				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
+				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
+				4B055A7F1FAE852F0060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055AA01FAE85DA0060FFFF /* MFMSectorDump.cpp in Sources */,
+				4B055AA11FAE85DA0060FFFF /* OricMFMDSK.cpp in Sources */,
+				4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */,
+				4B055A891FAE85580060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055A8D1FAE85920060FFFF /* AsyncTaskQueue.cpp in Sources */,
+				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
+				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
+				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
+				4B055A841FAE85450060FFFF /* Disk.cpp in Sources */,
+				4B055A831FAE85410060FFFF /* Tape.cpp in Sources */,
+				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
+				4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */,
+				4B055A911FAE85B50060FFFF /* Cartridge.cpp in Sources */,
+				4B055A8B1FAE85670060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055AB21FAE860F0060FFFF /* CommodoreTAP.cpp in Sources */,
+				4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */,
+				4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */,
+				4B055A821FAE853D0060FFFF /* StaticAnalyser.cpp in Sources */,
+				4B055A921FAE85B50060FFFF /* PRG.cpp in Sources */,
+				4B055AAF1FAE85FD0060FFFF /* UnformattedTrack.cpp in Sources */,
+				4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */,
+				4B055A9F1FAE85DA0060FFFF /* HFE.cpp in Sources */,
+				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
+				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
+				4B055A871FAE854F0060FFFF /* Tape.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4BB73E9A1B587A5100552FC2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -3182,6 +3383,44 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		4B055A6E1FAE763F0060FFFF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(USER_LIBRARY_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		4B055A6F1FAE763F0060FFFF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(USER_LIBRARY_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		4BB73EC41B587A5100552FC2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3294,6 +3533,10 @@
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(USER_LIBRARY_DIR)/Frameworks",
+				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
@@ -3324,6 +3567,10 @@
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(USER_LIBRARY_DIR)/Frameworks",
+				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
@@ -3408,6 +3655,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4B055A701FAE763F0060FFFF /* Build configuration list for PBXNativeTarget "Clock Signal Kiosk" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B055A6E1FAE763F0060FFFF /* Debug */,
+				4B055A6F1FAE763F0060FFFF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		4BB73E991B587A5100552FC2 /* Build configuration list for PBXProject "Clock Signal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
