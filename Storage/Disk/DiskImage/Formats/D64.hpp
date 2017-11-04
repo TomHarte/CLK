@@ -18,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing a D64 disk image — a decoded sector dump of a C1540-format disk.
 */
-class D64: public DiskImage, public Storage::FileHolder {
+class D64: public DiskImage {
 	public:
 		/*!
 			Construct a @c D64 containing content from the file with name @c file_name.
@@ -38,6 +38,7 @@ class D64: public DiskImage, public Storage::FileHolder {
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
 	private:
+		Storage::FileHolder file_;
 		int number_of_tracks_;
 		uint16_t disk_id_;
 };

@@ -153,12 +153,12 @@ static void InspectCatalogue(
 static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, StaticAnalyser::Target &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
 	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
-	if(boot_sector != nullptr) {
+	if(boot_sector != nullptr && !boot_sector->samples.empty()) {
 		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
 		// this disk was formatted and the filler byte never replaced.
 		bool matched = true;
 		for(size_t c = 1; c < 64; c++) {
-			if(boot_sector->data[c] != boot_sector->data[0]) {
+			if(boot_sector->samples[0][c] != boot_sector->samples[0][0]) {
 				matched = false;
 				break;
 			}

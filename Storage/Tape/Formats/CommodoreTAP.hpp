@@ -19,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
-class CommodoreTAP: public Tape, public Storage::FileHolder {
+class CommodoreTAP: public Tape {
 	public:
 		/*!
 			Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
@@ -36,6 +36,7 @@ class CommodoreTAP: public Tape, public Storage::FileHolder {
 		bool is_at_end();
 
 	private:
+		Storage::FileHolder file_;
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 

@@ -19,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
 */
-class PRG: public Tape, public Storage::FileHolder {
+class PRG: public Tape {
 	public:
 		/*!
 			Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
@@ -37,6 +37,7 @@ class PRG: public Tape, public Storage::FileHolder {
 		bool is_at_end();
 
 	private:
+		FileHolder file_;
 		Pulse virtual_get_next_pulse();
 		void virtual_reset();
 

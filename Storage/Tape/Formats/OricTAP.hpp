@@ -19,7 +19,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing an Oric-format tape image, which is a byte stream capture.
 */
-class OricTAP: public Tape, public Storage::FileHolder {
+class OricTAP: public Tape {
 	public:
 		/*!
 			Constructs an @c OricTAP containing content from the file with name @c file_name.
@@ -36,6 +36,7 @@ class OricTAP: public Tape, public Storage::FileHolder {
 		bool is_at_end();
 
 	private:
+		Storage::FileHolder file_;
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 

@@ -18,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing an HFE disk image — a bit stream representation of a floppy.
 */
-class HFE: public DiskImage, public Storage::FileHolder {
+class HFE: public DiskImage {
 	public:
 		/*!
 			Construct an @c SSD containing content from the file with name @c file_name.
@@ -36,11 +36,12 @@ class HFE: public DiskImage, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;
 		int get_head_count() override;
-		using Storage::FileHolder::get_is_read_only;
+		bool get_is_read_only() override;
 		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
 	private:
+		Storage::FileHolder file_;
 		uint16_t seek_track(Track::Address address);
 
 		int head_count_;

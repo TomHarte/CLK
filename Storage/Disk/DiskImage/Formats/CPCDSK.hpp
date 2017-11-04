@@ -11,6 +11,7 @@
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
+#include "../../Encodings/MFM/Sector.hpp"
 
 #include <vector>
 
@@ -20,7 +21,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing an Amstrad CPC-stype disk image — some arrangement of sectors with status bits.
 */
-class CPCDSK: public DiskImage, public Storage::FileHolder {
+class CPCDSK: public DiskImage {
 	public:
 		/*!
 			Construct an @c AcornADF containing content from the file with name @c file_name.
@@ -37,19 +38,40 @@ class CPCDSK: public DiskImage, public Storage::FileHolder {
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;
 		int get_head_count() override;
-		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
+		bool get_is_read_only() override;
+
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
+		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
 
 	private:
+		struct Track {
+			uint8_t track;
+			uint8_t side;
+			enum class DataRate {
+				Unknown, SingleOrDoubleDensity, HighDensity, ExtendedDensity
+			} data_rate;
+			enum class DataEncoding {
+				Unknown, FM, MFM
+			} data_encoding;
+			uint8_t sector_length;
+			uint8_t gap3_length;
+			uint8_t filler_byte;
+
+			struct Sector: public ::Storage::Encodings::MFM::Sector {
+				uint8_t fdc_status1;
+				uint8_t fdc_status2;
+			};
+
+			std::vector<Sector> sectors;
+		};
+		std::string file_name_;
+		std::vector<std::unique_ptr<Track>> tracks_;
+		size_t index_for_track(::Storage::Disk::Track::Address address);
+
 		int head_count_;
 		int head_position_count_;
 		bool is_extended_;
-
-		// Used only for non-extended disks.
-		long size_of_a_track_;
-
-		// Used only for extended disks.
-		std::vector<size_t> track_sizes_;
+		bool is_read_only_;
 };
 
 }

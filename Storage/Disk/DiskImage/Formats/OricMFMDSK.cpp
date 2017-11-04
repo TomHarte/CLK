@@ -17,13 +17,13 @@
 using namespace Storage::Disk;
 
 OricMFMDSK::OricMFMDSK(const char *file_name) :
-		Storage::FileHolder(file_name) {
-	if(!check_signature("MFM_DISK", 8))
+		file_(file_name) {
+	if(!file_.check_signature("MFM_DISK"))
 		throw ErrorNotOricMFMDSK;
 
-	head_count_ = fgetc32le();
-	track_count_ = fgetc32le();
-	geometry_type_ = fgetc32le();
+	head_count_ = file_.get32le();
+	track_count_ = file_.get32le();
+	geometry_type_ = file_.get32le();
 
 	if(geometry_type_ < 1 || geometry_type_ > 2)
 		throw ErrorNotOricMFMDSK;
@@ -53,8 +53,8 @@ long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
 std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address) {
 	PCMSegment segment;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-		fseek(file_, get_file_offset_for_position(address), SEEK_SET);
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(get_file_offset_for_position(address), SEEK_SET);
 
 		// The file format omits clock bits. So it's not a genuine MFM capture.
 		// A consumer must contextually guess when an FB, FC, etc is meant to be a control mark.
@@ -63,7 +63,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 		std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
 		bool did_sync = false;
 		while(track_offset < 6250) {
-			uint8_t next_byte = static_cast<uint8_t>(fgetc(file_));
+			uint8_t next_byte = file_.get8();
 			track_offset++;
 
 			switch(next_byte) {
@@ -75,7 +75,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 
 							case 0xfe:
 								for(int byte = 0; byte < 6; byte++) {
-									last_header[byte] = static_cast<uint8_t>(fgetc(file_));
+									last_header[byte] = file_.get8();
 									encoder->add_byte(last_header[byte]);
 									track_offset++;
 									if(track_offset == 6250) break;
@@ -84,7 +84,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 
 							case 0xfb:
 								for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++) {
-									encoder->add_byte(static_cast<uint8_t>(fgetc(file_)));
+									encoder->add_byte(file_.get8());
 									track_offset++;
 									if(track_offset == 6250) break;
 								}
@@ -156,9 +156,13 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track
 
 		long file_offset = get_file_offset_for_position(track.first);
 
-		std::lock_guard<std::mutex> lock_guard(file_access_mutex_);
-		fseek(file_, file_offset, SEEK_SET);
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(file_offset, SEEK_SET);
 		size_t track_size = std::min(static_cast<size_t>(6400), parsed_track.size());
-		fwrite(parsed_track.data(), 1, track_size, file_);
+		file_.write(parsed_track.data(), track_size);
 	}
+}
+
+bool OricMFMDSK::get_is_read_only() {
+	return file_.get_is_known_read_only();
 }

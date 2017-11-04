@@ -18,7 +18,7 @@ namespace Disk {
 /*!
 	Provies a @c Disk containing a G64 disk image — a raw but perfectly-clocked GCR stream.
 */
-class G64: public DiskImage, public Storage::FileHolder {
+class G64: public DiskImage {
 	public:
 		/*!
 			Construct a @c G64 containing content from the file with name @c file_name.
@@ -41,6 +41,7 @@ class G64: public DiskImage, public Storage::FileHolder {
 		using DiskImage::get_is_read_only;
 
 	private:
+		Storage::FileHolder file_;
 		uint8_t number_of_tracks_;
 		uint16_t maximum_track_size_;
 };

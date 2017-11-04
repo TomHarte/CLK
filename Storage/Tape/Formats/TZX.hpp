@@ -18,7 +18,7 @@ namespace Tape {
 /*!
 	Provides a @c Tape containing a CSW tape image, which is a compressed 1-bit sampling.
 */
-class TZX: public PulseQueuedTape, public Storage::FileHolder {
+class TZX: public PulseQueuedTape {
 	public:
 		/*!
 			Constructs a @c TZX containing content from the file with name @c file_name.
@@ -32,6 +32,8 @@ class TZX: public PulseQueuedTape, public Storage::FileHolder {
 		};
 
 	private:
+		Storage::FileHolder file_;
+
 		void virtual_reset();
 		void get_next_pulses();
 
