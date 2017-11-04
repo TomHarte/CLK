@@ -261,6 +261,13 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 			sector.has_header_crc_error = source_sector.second.has_header_crc_error;
 			sector.is_deleted = source_sector.second.is_deleted;
 			sector.samples = std::move(source_sector.second.samples);
+
+			sector.fdc_status1 = 0;
+			sector.fdc_status2 = 0;
+
+			if(source_sector.second.has_data_crc_error) 	sector.fdc_status2 |= 0x20;
+			if(source_sector.second.has_header_crc_error)	sector.fdc_status1 |= 0x20;
+			if(source_sector.second.is_deleted)				sector.fdc_status2 |= 0x40;
 		}
 	}
 	
