@@ -23,7 +23,6 @@
 namespace {
 
 struct CRTMachineDelegate: public CRTMachine::Machine::Delegate {
-
 	void machine_did_change_clock_rate(CRTMachine::Machine *machine) {
 		best_effort_updater->set_clock_rate(machine->get_clock_rate());
 	}
@@ -35,12 +34,25 @@ struct CRTMachineDelegate: public CRTMachine::Machine::Delegate {
 };
 
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-
 	void update(Concurrency::BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) {
 		machine->crt_machine()->run_for(Cycles(cycles));
 	}
 
 	Machine::DynamicMachine *machine;
+};
+
+// This is set to a relatively large number for now.
+const int AudioBufferSize = 1024;
+
+struct SpeakerDelegate: public Outputs::Speaker::Delegate {
+	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
+		if(SDL_GetQueuedAudioSize(audio_device) < AudioBufferSize*3)
+			SDL_QueueAudio(audio_device, reinterpret_cast<const void *>(buffer.data()), static_cast<Uint32>(buffer.size() * sizeof(uint16_t)));
+		updater->update();
+	}
+
+	SDL_AudioDeviceID audio_device;
+	Concurrency::BestEffortUpdater *updater;
 };
 
 bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
@@ -124,6 +136,7 @@ int main(int argc, char *argv[]) {
 	Concurrency::BestEffortUpdater updater;
 	BestEffortUpdaterDelegate best_effort_updater_delegate;
 	CRTMachineDelegate crt_delegate;
+	SpeakerDelegate speaker_delegate;
 
 	// Create and configure a machine.
 	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTarget(targets.front()));
@@ -131,6 +144,7 @@ int main(int argc, char *argv[]) {
 	updater.set_clock_rate(machine->crt_machine()->get_clock_rate());
 	crt_delegate.best_effort_updater = &updater;
 	best_effort_updater_delegate.machine = machine.get();
+	speaker_delegate.updater = &updater;
 
 	machine->crt_machine()->set_delegate(&crt_delegate);
 	updater.set_delegate(&best_effort_updater_delegate);
@@ -161,13 +175,6 @@ int main(int argc, char *argv[]) {
 	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, gl_context);
 	
-	// Create an audio pipe.
-//	SDL_AudioSpec desired_audio_spec;
-//	SDL_AudioSpec obtained_audio_spec;
-//	desired_audio_spec.freq = 192000;	// An arbitrary high number.
-//	desired_audio_spec.format = AUDIO_S16;
-//	desired_audio_spec.channels = 1;
-
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	machine->crt_machine()->setup_output(4.0 / 3.0);
 	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
@@ -202,7 +209,21 @@ int main(int argc, char *argv[]) {
 	// For now, lie about audio output intentions.
 	auto speaker = machine->crt_machine()->get_speaker();
 	if(speaker) {
-		speaker->set_output_rate(44100, 1024);
+		// Create an audio pipe.
+		SDL_AudioSpec desired_audio_spec;
+		SDL_AudioSpec obtained_audio_spec;
+		
+		SDL_zero(desired_audio_spec);
+		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
+		desired_audio_spec.format = AUDIO_S16;
+		desired_audio_spec.channels = 1;
+		desired_audio_spec.samples = AudioBufferSize;
+		
+		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+
+		speaker->set_output_rate(obtained_audio_spec.freq, obtained_audio_spec.samples);
+		speaker->set_delegate(&speaker_delegate);
+		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
 
 	// Run the main event loop until the OS tells us to quit.
