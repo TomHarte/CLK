@@ -109,7 +109,7 @@ class Speaker {
 		size_t buffer_in_progress_pointer_;
 		size_t number_of_taps_, requested_number_of_taps_;
 		bool coefficients_are_dirty_;
-		Delegate *delegate_;
+		Delegate *delegate_ = nullptr;
 
 		float input_cycles_per_second_, output_cycles_per_second_;
 
