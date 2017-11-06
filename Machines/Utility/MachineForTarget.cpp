@@ -46,11 +46,21 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 ::Machine::DynamicMachine *::Machine::MachineForTarget(const StaticAnalyser::Target &target) {
 	switch(target.machine) {
 		case StaticAnalyser::Target::AmstradCPC:	return new TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());
-//		case StaticAnalyser::Target::Atari2600:		return new TypedDynamicMachine(Atari2600::Machine::Atari2600());
-//		case StaticAnalyser::Target::Electron:		return new TypedDynamicMachine(Electron::Machine::Electron());
-//		case StaticAnalyser::Target::Oric:			return new TypedDynamicMachine(Oric::Machine::Oric());
-//		case StaticAnalyser::Target::Vic20:			return new TypedDynamicMachine(Commodore::Vic20::Machine::Vic20());
-//		case StaticAnalyser::Target::ZX8081:		return new TypedDynamicMachine(ZX8081::Machine::ZX8081(target));
-	default: return nullptr;
+		case StaticAnalyser::Target::Atari2600:		return new TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
+		case StaticAnalyser::Target::Electron:		return new TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());
+		case StaticAnalyser::Target::Oric:			return new TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());
+		case StaticAnalyser::Target::Vic20:			return new TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());
+		case StaticAnalyser::Target::ZX8081:		return new TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));
+	}
+}
+
+std::string Machine::NameForTarget(const StaticAnalyser::Target &target) {
+	switch(target.machine) {
+		case StaticAnalyser::Target::AmstradCPC:	return "AmstradCPC";
+		case StaticAnalyser::Target::Atari2600:		return "Atari2600";
+		case StaticAnalyser::Target::Electron:		return "Electron";
+		case StaticAnalyser::Target::Oric:			return "Oric";
+		case StaticAnalyser::Target::Vic20:			return "Vic20";
+		case StaticAnalyser::Target::ZX8081:		return "ZX8081";
 	}
 }

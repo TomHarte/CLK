@@ -35,6 +35,11 @@ class Machine {
 			OpenGL context is bound.
 		*/
 		virtual void close_output() = 0;
+	
+		/*!
+			Provides the machine with a way to obtain such ROMs as it needs.
+		*/
+		virtual bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) { return true; }
 
 		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;

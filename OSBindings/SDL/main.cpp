@@ -8,6 +8,8 @@
 
 #include <iostream>
 #include <memory>
+#include <cstdio>
+
 #include <SDL2/SDL.h>
 
 #include "../../StaticAnalyser/StaticAnalyser.hpp"
@@ -65,8 +67,8 @@ int main(int argc, char *argv[]) {
 
 	// Create and configure a machine.
 	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTarget(targets.front()));
-	machine->configuration_target()->configure_as_target(targets.front());
-	
+
+	updater.set_clock_rate(machine->crt_machine()->get_clock_rate());
 	crt_delegate.best_effort_updater = &updater;
 	best_effort_updater_delegate.machine = machine.get();
 
@@ -98,9 +100,50 @@ int main(int argc, char *argv[]) {
 
 	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, gl_context);
+	
+	// Create an audio pipe.
+//	SDL_AudioSpec desired_audio_spec;
+//	SDL_AudioSpec obtained_audio_spec;
+//	desired_audio_spec.freq = 192000;	// An arbitrary high number.
+//	desired_audio_spec.format = AUDIO_S16;
+//	desired_audio_spec.channels = 1;
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	machine->crt_machine()->setup_output(4.0 / 3.0);
+	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
+
+	// For vanilla SDL purposes, assume system ROMs can be found in one of:
+	//
+	//	/usr/local/share/CLK/[system]; or
+	//	/usr/share/CLK/[system]
+	machine->crt_machine()->install_roms( [] (const std::string &machine, const std::string &name) -> std::unique_ptr<std::vector<uint8_t>> {
+ 		std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
+		FILE *file = fopen(local_path.c_str(), "r");
+		if(!file) {
+			std::string path = "/usr/share/CLK/" + machine + "/" + name;
+			file = fopen(path.c_str(), "r");
+		}
+
+		if(!file) return nullptr;
+		
+		std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+
+		fseek(file, 0, SEEK_END);
+		data->resize(ftell(file));
+		fseek(file, 0, SEEK_SET);
+		fread(data->data(), 1, data->size(), file);
+		fclose(file);
+
+		return data;
+	});
+
+	machine->configuration_target()->configure_as_target(targets.front());
+
+	// For now, lie about audio output intentions.
+	auto speaker = machine->crt_machine()->get_speaker();
+	if(speaker) {
+		speaker->set_output_rate(44100, 1024);
+	}
 
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
@@ -109,7 +152,7 @@ int main(int argc, char *argv[]) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
-				default: std::cout << "Unhandled " << event.type << std::endl; break;
+//				default: std::cout << "Unhandled " << event.type << std::endl; break;
 				case SDL_QUIT:	should_quit = true;	break;
 
 				case SDL_KEYDOWN:
@@ -123,7 +166,7 @@ int main(int argc, char *argv[]) {
 		updater.update();
 		int width, height;
 		SDL_GetWindowSize(window, &width, &height);
-		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(width), static_cast<unsigned int>(height), true);
+		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(width), static_cast<unsigned int>(height), false);
 		SDL_GL_SwapWindow(window);
 	}
 

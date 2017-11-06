@@ -16,6 +16,8 @@
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include <string>
+
 namespace Machine {
 
 /*!
@@ -35,6 +37,13 @@ struct DynamicMachine {
 	It is the caller's responsibility to delete the class when finished.
 */
 DynamicMachine *MachineForTarget(const StaticAnalyser::Target &target);
+
+/*!
+	Returns a short string name for the machine identified by the target,
+	which is guaranteed not to have any spaces or other potentially
+	filesystem-bothering contents.
+*/
+std::string NameForTarget(const StaticAnalyser::Target &target);
 
 }
 

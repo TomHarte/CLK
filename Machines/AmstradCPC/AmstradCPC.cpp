@@ -923,6 +923,24 @@ class ConcreteMachine:
 			roms_[static_cast<int>(type)] = data;
 		}
 
+		// Obtains the system ROMs.
+		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
+			const char *os_files[] = {
+				"os464.rom",	"basic464.rom",
+				"os664.rom",	"basic664.rom",
+				"os6128.rom",	"basic6128.rom",
+				"amsdos.rom"
+			};
+
+			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
+				auto data = rom_with_name("AmstradCPC", os_files[index]);
+				if(!data) return false;
+				set_rom(static_cast<ROMType>(index), *data);
+			}
+
+			return true;
+		}
+
 		void set_component_is_sleeping(void *component, bool is_sleeping) override final {
 			fdc_is_sleeping_ = fdc_.is_sleeping();
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
