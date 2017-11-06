@@ -97,8 +97,7 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 		BIND(KP_EQUALS, KeyPadEquals)
 		BIND(HELP, Help)
 
-//		BIND(HASH, Hash)
-//		BIND(KP_DELE, KeyPadAsterisk)
+		// SDL doesn't seem to have scancodes for hash or keypad delete?
 	}
 #undef BIND
 	return true;
