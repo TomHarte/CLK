@@ -43,6 +43,67 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 	Machine::DynamicMachine *machine;
 };
 
+bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
+#define BIND(x, y) case SDL_SCANCODE_##x: key = Inputs::Keyboard::Key::y; break;
+	switch(scancode) {
+		default: return false;
+
+		BIND(F1, F1)	BIND(F2, F2)	BIND(F3, F3)	BIND(F4, F4)	BIND(F5, F5)	BIND(F6, F6)
+		BIND(F7, F7)	BIND(F8, F8)	BIND(F9, F9)	BIND(F10, F10)	BIND(F11, F11)	BIND(F12, F12)
+
+		BIND(1, k1)		BIND(2, k2)		BIND(3, k3)		BIND(4, k4)		BIND(5, k5)
+		BIND(6, k6)		BIND(7, k7)		BIND(8, k8)		BIND(9, k9)		BIND(0, k0)
+
+		BIND(Q, Q)		BIND(W, W)		BIND(E, E)		BIND(R, R)		BIND(T, T)
+		BIND(Y, Y)		BIND(U, U)		BIND(I, I)		BIND(O, O)		BIND(P, P)
+		BIND(A, A)		BIND(S, S)		BIND(D, D)		BIND(F, F)		BIND(G, G)
+		BIND(H, H)		BIND(J, J)		BIND(K, K)		BIND(L, L)
+		BIND(Z, Z)		BIND(X, X)		BIND(C, C)		BIND(V, V)
+		BIND(B, B)		BIND(N, N)		BIND(M, M)
+
+		BIND(KP_7, KeyPad7)	BIND(KP_8, KeyPad8)	BIND(KP_9, KeyPad9)
+		BIND(KP_4, KeyPad4)	BIND(KP_5, KeyPad5)	BIND(KP_6, KeyPad6)
+		BIND(KP_1, KeyPad1)	BIND(KP_2, KeyPad2)	BIND(KP_3, KeyPad3)
+		BIND(KP_0, KeyPad0)
+
+		BIND(ESCAPE, Escape)
+
+		BIND(PRINTSCREEN, PrintScreen)	BIND(SCROLLLOCK, ScrollLock)	BIND(PAUSE, Pause)
+
+		BIND(GRAVE, BackTick)		BIND(MINUS, Hyphen)		BIND(EQUALS, Equals)	BIND(BACKSPACE, BackSpace)
+
+		BIND(TAB, Tab)
+		BIND(LEFTBRACKET, OpenSquareBracket)	BIND(RIGHTBRACKET, CloseSquareBracket)
+		BIND(BACKSLASH, BackSlash)
+		
+		BIND(CAPSLOCK, CapsLock)	BIND(SEMICOLON, Semicolon)
+		BIND(APOSTROPHE, Quote)		BIND(RETURN, Enter)
+
+		BIND(LSHIFT, LeftShift)		BIND(COMMA, Comma)		BIND(PERIOD, FullStop)
+		BIND(SLASH, ForwardSlash)	BIND(RSHIFT, RightShift)
+
+		BIND(LCTRL, LeftControl)	BIND(LALT, LeftOption)		BIND(LGUI, LeftMeta)
+		BIND(SPACE, Space)
+		BIND(RCTRL, RightControl)	BIND(RALT, RightOption)	BIND(RGUI, RightMeta)
+
+		BIND(LEFT, Left)	BIND(RIGHT, Right)		BIND(UP, Up)	BIND(DOWN, Down)
+
+		BIND(INSERT, Insert)	BIND(HOME, Home)	BIND(PAGEUP, PageUp)
+		BIND(DELETE, Delete)	BIND(END, End)		BIND(PAGEDOWN, PageDown)
+
+		BIND(NUMLOCKCLEAR, NumLock)		BIND(KP_DIVIDE, KeyPadSlash)		BIND(KP_MULTIPLY, KeyPadAsterisk)
+		BIND(KP_PLUS, KeyPadPlus)		BIND(KP_MINUS, KeyPadMinus)			BIND(KP_ENTER, KeyPadEnter)
+		BIND(KP_DECIMAL, KeyPadDecimalPoint)
+		BIND(KP_EQUALS, KeyPadEquals)
+		BIND(HELP, Help)
+
+//		BIND(HASH, Hash)
+//		BIND(KP_DELE, KeyPadAsterisk)
+	}
+#undef BIND
+	return true;
+}
+
 }
 
 int main(int argc, char *argv[]) {
@@ -152,12 +213,16 @@ int main(int argc, char *argv[]) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
-//				default: std::cout << "Unhandled " << event.type << std::endl; break;
 				case SDL_QUIT:	should_quit = true;	break;
 
 				case SDL_KEYDOWN:
-				break;
 				case SDL_KEYUP:
+					KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
+					if(!keyboard_machine) break;
+
+					Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
+					if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
+					keyboard_machine->get_keyboard().set_key_pressed(key, event.type == SDL_KEYDOWN);
 				break;
 			}
 		}
