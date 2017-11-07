@@ -174,10 +174,6 @@ int main(int argc, char *argv[]) {
 
 	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, gl_context);
-	
-	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	machine->crt_machine()->setup_output(4.0 / 3.0);
-	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
 	//
@@ -205,6 +201,10 @@ int main(int argc, char *argv[]) {
 	});
 
 	machine->configuration_target()->configure_as_target(targets.front());
+
+	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
+	machine->crt_machine()->setup_output(4.0 / 3.0);
+	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
 
 	// For now, lie about audio output intentions.
 	auto speaker = machine->crt_machine()->get_speaker();
