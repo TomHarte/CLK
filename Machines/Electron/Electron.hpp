@@ -28,7 +28,8 @@ enum ROMSlot: uint8_t {
 
 	ROMSlot12,	ROMSlot13,	ROMSlot14,	ROMSlot15,
 
-	ROMSlotOS,	ROMSlotDFS,	ROMSlotADFS
+	ROMSlotOS,		ROMSlotDFS,
+	ROMSlotADFS1,	ROMSlotADFS2
 };
 
 /*!

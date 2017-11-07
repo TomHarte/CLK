@@ -297,6 +297,21 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
+		// Obtains the system ROMs.
+		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
+			const char *os_files[] = {
+				"zx80.rom",	"zx81.rom",
+			};
+
+			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
+				auto data = rom_with_name("ZX8081", os_files[index]);
+				if(!data) return false;
+				set_rom(static_cast<ROMType>(index), *data);
+			}
+
+			return true;
+		}
+
 #pragma mark - Keyboard
 
 		void set_key_state(uint16_t key, bool isPressed) override final {

@@ -19,7 +19,7 @@
 namespace ZX8081 {
 
 enum ROMType: uint8_t {
-	ZX80, ZX81
+	ZX80 = 0, ZX81
 };
 
 class Machine:

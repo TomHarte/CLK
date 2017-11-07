@@ -203,6 +203,22 @@ class ConcreteMachine:
 			}
 		}
 
+		// Obtains the system ROMs.
+		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
+			const char *os_files[] = {
+				"basic10.rom",	"basic11.rom",
+				"microdisc.rom", "colour.rom"
+			};
+
+			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
+				auto data = rom_with_name("Oric", os_files[index]);
+				if(!data) return false;
+				set_rom(static_cast<ROM>(index), *data);
+			}
+
+			return true;
+		}
+
 		void set_key_state(uint16_t key, bool is_pressed) override final {
 			if(key == KeyNMI) {
 				m6502_.set_nmi_line(is_pressed);

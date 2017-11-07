@@ -19,7 +19,7 @@
 namespace Oric {
 
 enum ROM {
-	BASIC10, BASIC11, Microdisc, Colour
+	BASIC10 = 0, BASIC11, Microdisc, Colour
 };
 
 /*!
