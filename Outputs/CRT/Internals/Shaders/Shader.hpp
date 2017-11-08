@@ -46,7 +46,7 @@ public:
 
 	/*!
 		Performs an @c glUseProgram to make this the active shader unless:
-			(i) it was the previous shader bound; and 
+			(i) it was the previous shader bound; and
 			(ii) no calls have been received to unbind in the interim.
 
 		Subsequently performs all work queued up for the next bind irrespective of whether a @c glUseProgram call occurred.

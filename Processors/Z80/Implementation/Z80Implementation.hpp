@@ -400,7 +400,7 @@ template <	class T,
 					int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
 					// subtraction, so parity rules are:
-					// signs of operands were different, 
+					// signs of operands were different,
 					// sign of result is different
 					int overflow = (result ^ destinationValue) & (sourceValue ^ destinationValue);
 

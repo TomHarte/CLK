@@ -23,7 +23,7 @@ class FileHolder final {
 		enum {
 			ErrorCantOpen = -1
 		};
-	
+
 		enum class FileMode {
 			ReadWrite,
 			Read,
@@ -168,7 +168,7 @@ class FileHolder final {
 					return bit;
 				}
 		};
-	
+
 		/*!
 			Obtains a BitStream for reading from the file from the current reading cursor.
 		*/
@@ -204,7 +204,7 @@ class FileHolder final {
 			@returns the stat struct describing this file.
 		*/
 		struct stat &stats();
-	
+
 		/*!
 			@returns a mutex owned by the file that can be used to serialise file access.
 		*/

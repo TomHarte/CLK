@@ -20,7 +20,7 @@ namespace Inputs {
 class Joystick {
 	public:
 		virtual ~Joystick() {}
-	
+
 		enum class DigitalInput {
 			Up, Down, Left, Right, Fire
 		};

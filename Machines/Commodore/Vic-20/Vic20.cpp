@@ -237,7 +237,7 @@ class Joystick: public Inputs::Joystick {
 		Joystick(UserPortVIA &user_port_via_port_handler, KeyboardVIA &keyboard_via_port_handler) :
 			user_port_via_port_handler_(user_port_via_port_handler),
 			keyboard_via_port_handler_(keyboard_via_port_handler) {}
-	
+
 		void set_digital_input(DigitalInput digital_input, bool is_active) override {
 			JoystickInput mapped_input;
 			switch (digital_input) {
@@ -444,7 +444,7 @@ class ConcreteMachine:
 			write_to_map(processor_read_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
 			write_to_map(processor_read_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
 			write_to_map(processor_read_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
-			
+
 			write_to_map(processor_write_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
 			write_to_map(processor_write_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
 			write_to_map(processor_write_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));

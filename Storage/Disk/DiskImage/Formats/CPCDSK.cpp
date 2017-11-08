@@ -63,7 +63,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 			// Track and side are stored, being a byte each.
 			track->track = file.get8();
 			track->side = file.get8();
-			
+
 			// If this is an extended disk image then John Elliott's extension provides some greater
 			// data rate and encoding context. Otherwise the next two bytes have no defined meaning.
 			if(is_extended_) {
@@ -83,7 +83,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 				track->data_encoding = Track::DataEncoding::Unknown;
 				file.seek(2, SEEK_CUR);
 			}
-			
+
 			// Sector size, number of sectors, gap 3 length and the filler byte are then common
 			// between both variants of DSK.
 			track->sector_length = file.get8();
@@ -204,7 +204,7 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Add
 
 	// Return a nullptr if out of range or not provided.
 	if(chronological_track >= tracks_.size()) return nullptr;
-	
+
 	Track *track = tracks_[chronological_track].get();
 	if(!track) return nullptr;
 
@@ -270,7 +270,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 			if(source_sector.second.is_deleted)				sector.fdc_status2 |= 0x40;
 		}
 	}
-	
+
 	// Rewrite the entire disk image, in extended form.
 	Storage::FileHolder output(file_name_, Storage::FileHolder::FileMode::Rewrite);
 	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
@@ -290,7 +290,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 			output.put8(0);
 			continue;
 		}
-		
+
 		// Calculate size of track.
 		size_t track_size = 256;
 		for(auto &sector: track->sectors) {
@@ -303,7 +303,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		track_size += (256 - (track_size & 255)) & 255;
 		output.put8(static_cast<uint8_t>(track_size >> 8));
 	}
-	
+
 	// Advance to offset 256.
 	output.putn(static_cast<size_t>(256 - output.tell()), 0);
 
@@ -363,7 +363,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 			}
 			output.put16le(static_cast<uint16_t>(data_size));
 		}
-		
+
 		// Move to next 256-byte boundary.
 		long distance = (256 - output.tell()&255)&255;
 		output.putn(static_cast<size_t>(distance), 0);

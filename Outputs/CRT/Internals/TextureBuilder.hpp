@@ -33,17 +33,17 @@ namespace CRT {
 
 		(i)		allocate a write area with allocate_write_area, supplying a maximum size.
 		(ii)	call reduce_previous_allocation_to to announce the actual size written.
-		
+
 	This will cause you to have added source data to the target texture. You can then either use that data
 	or allow it to expire.
-	
+
 		(iii)	call retain_latest to add the most recently written write area to the flush queue.
 
 	The flush queue contains provisional data, that can sit in the CPU's memory space indefinitely. This facility
 	is provided because it is expected that a texture will be built alontside some other collection of data —
 	that data in the flush queue is expected to become useful in coordination with something else but should
 	be retained at least until then.
-	
+
 		(iv)	call flush to move data to the submit queue.
 
 	When you flush, you'll receive a record of the bounds of all newly-flushed areas of source data. That gives

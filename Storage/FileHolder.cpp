@@ -31,7 +31,7 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 		case FileMode::Read:
 			file_ = fopen(file_name.c_str(), "rb");
 		break;
-		
+
 		case FileMode::Rewrite:
 			file_ = fopen(file_name.c_str(), "w");
 		break;

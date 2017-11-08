@@ -37,7 +37,7 @@ class FIRFilter {
 	public:
 		/*!
 			Creates an instance of @c FIRFilter.
-			
+
 			@param number_of_taps The size of window for input data.
 			@param input_sample_rate The sampling rate of the input signal.
 			@param low_frequency The lowest frequency of signal to retain in the output.
@@ -53,7 +53,7 @@ class FIRFilter {
 
 		/*!
 			Applies the filter to one batch of input samples, returning the net result.
-			
+
 			@param src The source buffer to apply the filter to.
 			@returns The result of applying the filter.
 		*/

@@ -20,7 +20,7 @@ namespace Tape {
 
 	If is-at-end is set then get_next_pulse() returns a second of silence and
 	is_at_end() returns true.
-	
+
 	Otherwise get_next_pulse() returns something from the pulse queue if there is
 	anything there, and otherwise calls get_next_pulses(). get_next_pulses() is
 	virtual, giving subclasses a chance to provide the next batch of pulses.

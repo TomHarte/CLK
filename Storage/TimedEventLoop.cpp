@@ -88,7 +88,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 }
 
 Time TimedEventLoop::get_time_into_next_event() {
-	// TODO: calculate, presumably as [length of interval] - ([cycles left] + [subcycles left]) 
+	// TODO: calculate, presumably as [length of interval] - ([cycles left] + [subcycles left])
 	Time zero;
 	return zero;
 }

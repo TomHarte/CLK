@@ -25,7 +25,7 @@ namespace Tape {
 		- high pulses exit from zero upward before returning to it;
 		- low pulses exit from zero downward before returning to it;
 		- zero pulses run along zero.
-		
+
 	Subclasses should implement at least @c get_next_pulse and @c reset to provide a serial feeding
 	of pulses and the ability to return to the start of the feed. They may also implement @c seek if
 	a better implementation than a linear search from the @c reset time can be implemented.

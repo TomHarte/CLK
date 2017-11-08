@@ -34,7 +34,7 @@ enum ROMSlot: uint8_t {
 
 /*!
 	@abstract Represents an Acorn Electron.
-	
+
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */

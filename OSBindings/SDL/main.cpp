@@ -87,7 +87,7 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 		BIND(TAB, Tab)
 		BIND(LEFTBRACKET, OpenSquareBracket)	BIND(RIGHTBRACKET, CloseSquareBracket)
 		BIND(BACKSLASH, BackSlash)
-		
+
 		BIND(CAPSLOCK, CapsLock)	BIND(SEMICOLON, Semicolon)
 		BIND(APOSTROPHE, Quote)		BIND(RETURN, Enter)
 
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 				results.emplace_back(nullptr);
 				continue;
 			}
-			
+
 			std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
 
 			fseek(file, 0, SEEK_END);
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
 		return results;
 	});
-	
+
 	if(!roms_loaded) {
 		std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/" << std::endl;
 		return -1;
@@ -225,13 +225,13 @@ int main(int argc, char *argv[]) {
 		// Create an audio pipe.
 		SDL_AudioSpec desired_audio_spec;
 		SDL_AudioSpec obtained_audio_spec;
-		
+
 		SDL_zero(desired_audio_spec);
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
 		desired_audio_spec.channels = 1;
 		desired_audio_spec.samples = AudioBufferSize;
-		
+
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
 		speaker->set_output_rate(obtained_audio_spec.freq, obtained_audio_spec.samples);

@@ -27,7 +27,7 @@ class Machine: public MachineBase, public ROMMachine::Machine {
 			C1541
 		};
 		Machine(Personality p);
-	
+
 		/*!
 			Sets the source for this drive's ROM image.
 		*/

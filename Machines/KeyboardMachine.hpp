@@ -16,7 +16,7 @@ namespace KeyboardMachine {
 class Machine: public Inputs::Keyboard::Delegate {
 	public:
 		Machine();
-	
+
 		/*!
 			Indicates that the key @c key has been either pressed or released, according to
 			the state of @c isPressed.

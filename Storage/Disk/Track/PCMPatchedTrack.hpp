@@ -34,7 +34,7 @@ class PCMPatchedTrack: public Track {
 		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
 			with the contents of @c segment.
-			
+
 			@param start_time The time at which this segment begins. Must be in the range [0, 1).
 			@param segment The PCM segment to add.
 			@param clamp_to_index_hole If @c true then the new segment will be truncated if it overruns the index hole;
