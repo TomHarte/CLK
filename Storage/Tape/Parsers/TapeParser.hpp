@@ -105,7 +105,7 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 	protected:
 		/*!
 			Sets @c symbol as the newly-recognised symbol and removes @c nunber_of_waves waves from the front of the list.
-			
+
 			Expected to be called by subclasses from @c process_pulse when it recognises that the first @c number_of_waves
 			waves together represent @c symbol.
 		*/
@@ -116,7 +116,7 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 
 		/*!
 			Adds @c wave to the back of the list of recognised waves and calls @c inspect_waves to check for a new symbol.
-			
+
 			Expected to be called by subclasses from @c process_pulse as and when recognised waves arise.
 		*/
 		void push_wave(WaveType wave) {
@@ -126,7 +126,7 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 
 		/*!
 			Removes @c nunber_of_waves waves from the front of the list.
-			
+
 			Expected to be called by subclasses from @c process_pulse if it is recognised that the first set of waves
 			do not form a valid symbol.
 		*/

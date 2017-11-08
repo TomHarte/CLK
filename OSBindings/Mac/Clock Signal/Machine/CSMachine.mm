@@ -249,7 +249,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 				BIND(VK_ANSI_KeypadMultiply, KeyPadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeyPadSlash);
 				BIND(VK_ANSI_KeypadPlus, KeyPadPlus);				BIND(VK_ANSI_KeypadMinus, KeyPadMinus);
 				BIND(VK_ANSI_KeypadClear, KeyPadDelete);			BIND(VK_ANSI_KeypadEnter, KeyPadEnter);
-				
+
 				BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
 				BIND(VK_Space, Space);					BIND(VK_Delete, BackSpace);
 				BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);

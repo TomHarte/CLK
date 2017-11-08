@@ -26,7 +26,7 @@ class PortHandler {
 	public:
 		/*!
 			Requests the current input on an AY port.
-			
+
 			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
 		*/
 		virtual uint8_t get_port_input(bool port_b) {
@@ -35,7 +35,7 @@ class PortHandler {
 
 		/*!
 			Requests the current input on an AY port.
-			
+
 			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
 		*/
 		virtual void set_port_output(bool port_b, uint8_t value) {}

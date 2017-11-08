@@ -10,7 +10,7 @@ import XCTest
 import Foundation
 
 class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
-	
+
 	func testWolfgangLorenzStart()	{
 		self.runWolfgangLorenzTest(" start")
 	}

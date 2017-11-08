@@ -21,7 +21,7 @@ namespace Inputs {
 class Keyboard {
 	public:
 		Keyboard();
-	
+
 		enum class Key {
 			Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, PrintScreen, ScrollLock, Pause,
 			BackTick, k1, k2, k3, k4, k5, k6, k7, k8, k9, k0, Hyphen, Equals, BackSpace,
@@ -55,7 +55,7 @@ class Keyboard {
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;
 };
-	
+
 }
 
 #endif /* Keyboard_hpp */

@@ -36,7 +36,7 @@ class Machine: public ROMMachine::Machine {
 			OpenGL context is bound.
 		*/
 		virtual void close_output() = 0;
-	
+
 		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;
 

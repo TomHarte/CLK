@@ -12,7 +12,7 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 	std::wstring result;
 
 	wchar_t unshifted_characters[256] = {
-		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',	
+		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\b',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',
 		L' ',	L'!',	L'"',	L'#',	L'$',	L'%',	L'&',	L'\'',	L'(',	L')',	L'*',	L'+',	L',',	L'-',	L'.',	L'/',
 		L'0',	L'1',	L'2',	L'3',	L'4',	L'5',	L'6',	L'7',	L'8',	L'9',	L'"',	L';',	L'<',	L'=',	L'>',	L'?',
@@ -31,7 +31,7 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 	};
 
 	wchar_t shifted_characters[256] = {
-		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',	
+		L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\r',	L'\0',	L'\0',
 		L'\0',	L'\0',	L'\0',	L'\0',	L'\b',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',	L'\0',
 		L' ',	L'!',	L'"',	L'#',	L'$',	L'%',	L'&',	L'\'',	L'(',	L')',	L'*',	L'+',	L',',	L'-',	L'.',	L'/',
 		L'0',	L'1',	L'2',	L'3',	L'4',	L'5',	L'6',	L'7',	L'8',	L'9',	L'"',	L';',	L'<',	L'=',	L'>',	L'?',

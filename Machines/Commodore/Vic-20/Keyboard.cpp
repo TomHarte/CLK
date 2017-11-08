@@ -60,7 +60,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Enter, KeyReturn);
 		BIND(Space, KeySpace);
 		BIND(BackSpace, KeyDelete);
-		
+
 		BIND(Escape, KeyRunStop);
 		BIND(F1, KeyF1);
 		BIND(F3, KeyF3);

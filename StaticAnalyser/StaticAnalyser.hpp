@@ -116,7 +116,7 @@ struct Target {
 
 /*!
 	Attempts, through any available means, to return a list of potential targets for the file with the given name.
-	
+
 	@returns The list of potential targets, sorted from most to least probable.
 */
 std::list<Target> GetTargets(const char *file_name);
