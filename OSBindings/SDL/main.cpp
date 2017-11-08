@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
 	//
 	//	/usr/local/share/CLK/[system]; or
 	//	/usr/share/CLK/[system]
-	machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+	bool roms_loaded = machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
 		std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 		for(auto &name: names) {
 			std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
@@ -207,6 +207,11 @@ int main(int argc, char *argv[]) {
 
 		return results;
 	});
+	
+	if(!roms_loaded) {
+		std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/" << std::endl;
+		return -1;
+	}
 
 	machine->configuration_target()->configure_as_target(targets.front());
 
