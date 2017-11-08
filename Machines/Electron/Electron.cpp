@@ -39,11 +39,12 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 		}
 
-		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) override final {
+		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) override final {
 			uint8_t *target = nullptr;
 			switch(slot) {
 				case ROMSlotDFS:	dfs_ = data;			return;
-				case ROMSlotADFS:	adfs_ = data;			return;
+				case ROMSlotADFS1:	adfs1_ = data;			return;
+				case ROMSlotADFS2:	adfs2_ = data;			return;
 
 				case ROMSlotOS:		target = os_;			break;
 				default:
@@ -53,6 +54,30 @@ class ConcreteMachine:
 			}
 
 			memcpy(target, &data[0], std::min(static_cast<size_t>(16384), data.size()));
+		}
+
+		// Obtains the system ROMs.
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"Electron",
+				{
+					"DFS-1770-2.20.rom",
+					"ADFS-E00_1.rom",	"ADFS-E00_2.rom",
+					"basic.rom",		"os.rom"
+				});
+			ROMSlot slots[] = {
+				ROMSlotDFS,
+				ROMSlotADFS1, ROMSlotADFS2,
+				ROMSlotBASIC, ROMSlotOS
+			};
+
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
+				if(!data) return false;
+				set_rom(slots[index], *data, false);
+			}
+
+			return true;
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) override final {
@@ -91,8 +116,8 @@ class ConcreteMachine:
 					set_rom(ROMSlot0, dfs_, true);
 				}
 				if(target.acorn.has_adfs) {
-					set_rom(ROMSlot4, adfs_, true);
-					set_rom(ROMSlot5, std::vector<uint8_t>(adfs_.begin() + 16384, adfs_.end()), true);
+					set_rom(ROMSlot4, adfs1_, true);
+					set_rom(ROMSlot5, adfs2_, true);
 				}
 			}
 
@@ -435,7 +460,7 @@ class ConcreteMachine:
 		uint8_t roms_[16][16384];
 		bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 		uint8_t os_[16384], ram_[32768];
-		std::vector<uint8_t> dfs_, adfs_;
+		std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 		// Paging
 		ROMSlot active_rom_ = ROMSlot::ROMSlot0;

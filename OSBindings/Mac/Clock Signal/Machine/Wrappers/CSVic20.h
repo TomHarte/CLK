@@ -11,11 +11,11 @@
 
 typedef NS_ENUM(NSInteger, CSVic20Country)
 {
+	CSVic20CountryAmerican,
 	CSVic20CountryDanish,
 	CSVic20CountryEuropean,
 	CSVic20CountryJapanese,
-	CSVic20CountrySwedish,
-	CSVic20CountryAmerican
+	CSVic20CountrySwedish
 };
 
 typedef NS_ENUM(NSInteger, CSVic20MemorySize)

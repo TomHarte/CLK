@@ -135,42 +135,27 @@ class TIA {
 		// objects
 		template<class T> struct Object {
 			// the two programmer-set values
-			int position;
-			int motion;
+			int position = 0;
+			int motion = 0;
 
 			// motion_step_ is the current motion counter value; motion_time_ is the next time it will fire
-			int motion_step;
-			int motion_time;
+			int motion_step = 0;
+			int motion_time = 0;
 
 			// indicates whether this object is currently undergoing motion
-			bool is_moving;
-
-			Object() : position(0), motion(0), motion_step(0), motion_time(0), is_moving(false) {};
+			bool is_moving = false;
 		};
 
 		// player state
 		struct Player: public Object<Player> {
-			Player() :
-				adder(4),
-				copy_flags(0),
-				graphic{0, 0},
-				reverse_mask(false),
-				graphic_index(0),
-				pixel_position(32),
-				pixel_counter(0),
-				latched_pixel4_time(-1),
-				copy_index_(0),
-				queue_read_pointer_(0),
-				queue_write_pointer_(0) {}
+			int adder = 4;
+			int copy_flags = 0;				// a bit field, corresponding to the first few values of NUSIZ
+			uint8_t graphic[2] = {0, 0};	// the player graphic; 1 = new, 0 = current
+			int reverse_mask = false;		// 7 for a reflected player, 0 for normal
+			int graphic_index = 0;
 
-			int adder;
-			int copy_flags;		// a bit field, corresponding to the first few values of NUSIZ
-			uint8_t graphic[2];	// the player graphic; 1 = new, 0 = current
-			int reverse_mask;	// 7 for a reflected player, 0 for normal
-			int graphic_index;
-
-			int pixel_position, pixel_counter;
-			int latched_pixel4_time;
+			int pixel_position = 32, pixel_counter = 0;
+			int latched_pixel4_time = -1;
 			const bool enqueues = true;
 
 			inline void skip_pixels(const int count, int from_horizontal_counter) {
@@ -219,15 +204,14 @@ class TIA {
 			}
 
 			private:
-				int copy_index_;
+				int copy_index_ = 0;
 				struct QueuedPixels {
-					int start, end;
-					int pixel_position;
-					int adder;
-					int reverse_mask;
-					QueuedPixels() : start(0), end(0), pixel_position(0), adder(0), reverse_mask(false) {}
+					int start = 0, end = 0;
+					int pixel_position = 0;
+					int adder = 0;
+					int reverse_mask = false;
 				} queue_[4];
-				int queue_read_pointer_, queue_write_pointer_;
+				int queue_read_pointer_ = 0, queue_write_pointer_ = 0;
 
 				inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int output_pixel_position, int output_adder, int output_reverse_mask) {
 					if(output_pixel_position == 32 || !graphic[graphic_index]) return;
@@ -244,8 +228,8 @@ class TIA {
 
 		// common actor for things that appear as a horizontal run of pixels
 		struct HorizontalRun: public Object<HorizontalRun> {
-			int pixel_position;
-			int size;
+			int pixel_position = 0;
+			int size = 1;
 			const bool enqueues = false;
 
 			inline void skip_pixels(const int count, int from_horizontal_counter) {
@@ -268,16 +252,13 @@ class TIA {
 
 			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now) {}
 			void enqueue_pixels(const int start, const int end, int from_horizontal_counter) {}
-
-			HorizontalRun() : pixel_position(0), size(1) {}
 		};
-
 
 		// missile state
 		struct Missile: public HorizontalRun {
-			bool enabled;
-			bool locked_to_player;
-			int copy_flags;
+			bool enabled = false;
+			bool locked_to_player = false;
+			int copy_flags = 0;
 
 			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
 				if(!pixel_position) return;
@@ -287,14 +268,12 @@ class TIA {
 					skip_pixels(count, from_horizontal_counter);
 				}
 			}
-
-			Missile() : enabled(false), copy_flags(0) {}
 		} missile_[2];
 
 		// ball state
 		struct Ball: public HorizontalRun {
-			bool enabled[2];
-			int enabled_index;
+			bool enabled[2] = {false, false};
+			int enabled_index = 0;
 			const int copy_flags = 0;
 
 			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
@@ -305,8 +284,6 @@ class TIA {
 					skip_pixels(count, from_horizontal_counter);
 				}
 			}
-
-			Ball() : enabled{false, false}, enabled_index(0) {}
 		} ball_;
 
 		// motion

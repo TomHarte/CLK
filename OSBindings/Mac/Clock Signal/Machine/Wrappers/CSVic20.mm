@@ -9,12 +9,6 @@
 #import "CSVic20.h"
 
 #include "Vic20.hpp"
-#include "CommodoreTAP.hpp"
-#include "G64.hpp"
-#include "D64.hpp"
-
-#import "CSmachine+Subclassing.h"
-#import "NSBundle+DataResource.h"
 
 using namespace Commodore::Vic20;
 
@@ -31,39 +25,9 @@ using namespace Commodore::Vic20;
 	self = [super initWithMachine:machine];
 	if(self) {
 		_vic20.reset(machine);
-		[self setDriveROM:[[NSBundle mainBundle] dataForResource:@"1540" withExtension:@"bin" subdirectory:@"ROMImages/Commodore1540"]];
-		[self setBASICROM:[self rom:@"basic"]];
 		[self setCountry:CSVic20CountryEuropean];
 	}
 	return self;
-}
-
-- (NSData *)rom:(NSString *)name {
-	return [[NSBundle mainBundle] dataForResource:name withExtension:@"bin" subdirectory:@"ROMImages/Vic20"];
-}
-
-#pragma mark - ROM setting
-
-- (void)setROM:(nonnull NSData *)rom slot:(ROMSlot)slot {
-	@synchronized(self) {
-		_vic20->set_rom(slot, rom.length, (const uint8_t *)rom.bytes);
-	}
-}
-
-- (void)setKernelROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:Kernel];
-}
-
-- (void)setBASICROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:BASIC];
-}
-
-- (void)setCharactersROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:Characters];
-}
-
-- (void)setDriveROM:(nonnull NSData *)rom {
-	[self setROM:rom slot:Drive];
 }
 
 #pragma mark - Keyboard map
@@ -89,40 +53,17 @@ using namespace Commodore::Vic20;
 
 - (void)setCountry:(CSVic20Country)country {
 	_country = country;
-	NSString *charactersROM, *kernelROM;
 	Commodore::Vic20::Region region;
 	switch(country) {
-		case CSVic20CountryDanish:
-			region = Commodore::Vic20::Region::PAL;
-			charactersROM = @"characters-danish";
-			kernelROM = @"kernel-danish";
-		break;
-		case CSVic20CountryEuropean:
-			region = Commodore::Vic20::Region::PAL;
-			charactersROM = @"characters-english";
-			kernelROM = @"kernel-pal";
-		break;
-		case CSVic20CountryJapanese:
-			region = Commodore::Vic20::Region::NTSC;
-			charactersROM = @"characters-japanese";
-			kernelROM = @"kernel-japanese";
-		break;
-		case CSVic20CountrySwedish:
-			region = Commodore::Vic20::Region::PAL;
-			charactersROM = @"characters-swedish";
-			kernelROM = @"kernel-swedish";
-		break;
-		case CSVic20CountryAmerican:
-			region = Commodore::Vic20::Region::NTSC;
-			charactersROM = @"characters-english";
-			kernelROM = @"kernel-ntsc";
-		break;
+		case CSVic20CountryDanish:		region = Commodore::Vic20::Danish;		break;
+		case CSVic20CountryEuropean:	region = Commodore::Vic20::European;	break;
+		case CSVic20CountryJapanese:	region = Commodore::Vic20::Japanese;	break;
+		case CSVic20CountrySwedish:		region = Commodore::Vic20::Swedish;		break;
+		case CSVic20CountryAmerican:	region = Commodore::Vic20::American;	break;
 	}
 
 	@synchronized(self) {
 		_vic20->set_region(region);
-		[self setCharactersROM:[self rom:charactersROM]];
-		[self setKernelROM:[self rom:kernelROM]];
 	}
 }
 

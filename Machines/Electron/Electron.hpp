@@ -28,7 +28,8 @@ enum ROMSlot: uint8_t {
 
 	ROMSlot12,	ROMSlot13,	ROMSlot14,	ROMSlot15,
 
-	ROMSlotOS,	ROMSlotDFS,	ROMSlotADFS
+	ROMSlotOS,		ROMSlotDFS,
+	ROMSlotADFS1,	ROMSlotADFS2
 };
 
 /*!
@@ -51,7 +52,7 @@ class Machine:
 			Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
 			is enabled — it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
 		*/
-		virtual void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) = 0;
+		virtual void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) = 0;
 
 		/// Enables or disables turbo-speed tape loading.
 		virtual void set_use_fast_tape_hack(bool activate) = 0;

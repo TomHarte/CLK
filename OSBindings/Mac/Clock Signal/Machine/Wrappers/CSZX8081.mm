@@ -10,10 +10,6 @@
 
 #include "ZX8081.hpp"
 
-#import "CSMachine+Subclassing.h"
-#import "NSData+StdVector.h"
-#import "NSBundle+DataResource.h"
-
 @implementation CSZX8081 {
 	std::unique_ptr<ZX8081::Machine> _zx8081;
 }
@@ -24,14 +20,8 @@
 	self = [super initWithMachine:machine];
 	if(self) {
 		_zx8081.reset(machine);
-		_zx8081->set_rom(ZX8081::ROMType::ZX80, [self rom:@"zx80"].stdVector8);
-		_zx8081->set_rom(ZX8081::ROMType::ZX81, [self rom:@"zx81"].stdVector8);
 	}
 	return self;
-}
-
-- (NSData *)rom:(NSString *)name {
-	return [[NSBundle mainBundle] dataForResource:name withExtension:@"rom" subdirectory:@"ROMImages/ZX8081"];
 }
 
 - (NSString *)userDefaultsPrefix {	return @"zx8081";	}

@@ -37,6 +37,18 @@ enum JoystickInput {
 	Fire = 0x20
 };
 
+enum ROM {
+	CharactersDanish = 0,
+	CharactersEnglish,
+	CharactersJapanese,
+	CharactersSwedish,
+	KernelDanish,
+	KernelJapanese,
+	KernelNTSC,
+	KernelPAL,
+	KernelSwedish
+};
+
 /*!
 	Models the user-port VIA, which is the Vic's connection point for controlling its tape recorder —
 	sensing the presence or absence of a tape and controlling the tape motor — and reading the current
@@ -280,12 +292,6 @@ class ConcreteMachine:
 			keyboard_via_port_handler_->set_interrupt_delegate(this);
 			tape_->set_delegate(this);
 
-			// establish the memory maps
-			set_memory_size(MemorySize::Default);
-
-			// set the NTSC clock rate
-			set_region(NTSC);
-
 			// install a joystick
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 		}
@@ -294,24 +300,32 @@ class ConcreteMachine:
 			delete[] rom_;
 		}
 
-		void set_rom(ROMSlot slot, size_t length, const uint8_t *data) override final {
-			uint8_t *target = nullptr;
-			size_t max_length = 0x2000;
-			switch(slot) {
-				case Kernel:		target = kernel_rom_;								break;
-				case Characters:	target = character_rom_;	max_length = 0x1000;	break;
-				case BASIC:			target = basic_rom_;								break;
-				case Drive:
-					drive_rom_.resize(length);
-					memcpy(drive_rom_.data(), data, length);
-					install_disk_rom();
-				return;
-			}
+		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) override final {
+		}
 
-			if(target) {
-				size_t length_to_copy = std::min(max_length, length);
-				memcpy(target, data, length_to_copy);
+		// Obtains the system ROMs.
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"Vic20",
+				{
+					"characters-danish.bin",
+					"characters-english.bin",
+					"characters-japanese.bin",
+					"characters-swedish.bin",
+					"kernel-danish.bin",
+					"kernel-japanese.bin",
+					"kernel-ntsc.bin",
+					"kernel-pal.bin",
+					"kernel-swedish.bin",
+					"basic.bin"
+				});
+
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
+				if(!data) return false;
+				if(index < 9) roms_[index] = *data; else basic_rom_ = *data;
 			}
+			return true;
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) override final {
@@ -333,13 +347,13 @@ class ConcreteMachine:
 
 			if(target.media.disks.size()) {
 				// construct the 1540
-				c1540_.reset(new ::Commodore::C1540::Machine);
+				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
 
 				// attach it to the serial bus
 				c1540_->set_serial_bus(serial_bus_);
 
-				// install the ROM if it was previously set
-				install_disk_rom();
+				// give it a means to obtain its ROM
+				c1540_->set_rom_fetcher(rom_fetcher_);
 			}
 
 			insert_media(target.media);
@@ -383,10 +397,38 @@ class ConcreteMachine:
 		}
 
 		void set_memory_size(MemorySize size) override final {
+			memory_size_ = size;
+			needs_configuration_ = true;
+		}
+
+		void set_region(Region region) override final {
+			region_ = region;
+			needs_configuration_ = true;
+		}
+
+		void configure_memory() {
+			// Determine PAL/NTSC
+			if(region_ == American || region_ == Japanese) {
+				// NTSC
+				set_clock_rate(1022727);
+				if(mos6560_) {
+					mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+					mos6560_->set_clock_rate(1022727);
+				}
+			} else {
+				// PAL
+				set_clock_rate(1108404);
+				if(mos6560_) {
+					mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+					mos6560_->set_clock_rate(1108404);
+				}
+			}
+
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
+			memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
 
-			switch(size) {
+			switch(memory_size_) {
 				default: break;
 				case ThreeKB:
 					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x1000);
@@ -402,37 +444,49 @@ class ConcreteMachine:
 			write_to_map(processor_read_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
 			write_to_map(processor_read_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
 			write_to_map(processor_read_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
-			write_to_map(processor_read_memory_map_, character_rom_, 0x8000, sizeof(character_rom_));
-			write_to_map(processor_read_memory_map_, basic_rom_, 0xc000, sizeof(basic_rom_));
-			write_to_map(processor_read_memory_map_, kernel_rom_, 0xe000, sizeof(kernel_rom_));
-
+			
 			write_to_map(processor_write_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
 			write_to_map(processor_write_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
 			write_to_map(processor_write_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
 
+			write_to_map(mos6560_->video_memory_map, user_basic_memory_, 0x2000, sizeof(user_basic_memory_));
+			write_to_map(mos6560_->video_memory_map, screen_memory_, 0x3000, sizeof(screen_memory_));
+			mos6560_->colour_memory = colour_memory_;
+
+			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, basic_rom_.size());
+
+			ROM character_rom;
+			ROM kernel_rom;
+			switch(region_) {
+				case American:
+					character_rom = CharactersEnglish;
+					kernel_rom = KernelNTSC;
+				break;
+				case Danish:
+					character_rom = CharactersDanish;
+					kernel_rom = KernelDanish;
+				break;
+				case Japanese:
+					character_rom = CharactersJapanese;
+					kernel_rom = KernelJapanese;
+				break;
+				case European:
+					character_rom = CharactersEnglish;
+					kernel_rom = KernelPAL;
+				break;
+				case Swedish:
+					character_rom = CharactersSwedish;
+					kernel_rom = KernelSwedish;
+				break;
+			}
+
+			write_to_map(processor_read_memory_map_, roms_[character_rom].data(), 0x8000, roms_[character_rom].size());
+			write_to_map(mos6560_->video_memory_map, roms_[character_rom].data(), 0x0000, roms_[character_rom].size());
+			write_to_map(processor_read_memory_map_, roms_[kernel_rom].data(), 0xe000, roms_[kernel_rom].size());
+
 			// install the inserted ROM if there is one
 			if(rom_) {
 				write_to_map(processor_read_memory_map_, rom_, rom_address_, rom_length_);
-			}
-		}
-
-		void set_region(Region region) override final {
-			region_ = region;
-			switch(region) {
-				case PAL:
-					set_clock_rate(1108404);
-					if(mos6560_) {
-						mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
-						mos6560_->set_clock_rate(1108404);
-					}
-				break;
-				case NTSC:
-					set_clock_rate(1022727);
-					if(mos6560_) {
-						mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
-						mos6560_->set_clock_rate(1022727);
-					}
-				break;
 			}
 		}
 
@@ -542,19 +596,16 @@ class ConcreteMachine:
 		}
 
 		void run_for(const Cycles cycles) override final {
+			if(needs_configuration_) {
+				needs_configuration_ = false;
+				configure_memory();
+			}
 			m6502_.run_for(cycles);
 		}
 
 		void setup_output(float aspect_ratio) override final {
 			mos6560_.reset(new Vic6560());
 			mos6560_->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
-			set_region(region_);
-
-			memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
-			write_to_map(mos6560_->video_memory_map, character_rom_, 0x0000, sizeof(character_rom_));
-			write_to_map(mos6560_->video_memory_map, user_basic_memory_, 0x2000, sizeof(user_basic_memory_));
-			write_to_map(mos6560_->video_memory_map, screen_memory_, 0x3000, sizeof(screen_memory_));
-			mos6560_->colour_memory = colour_memory_;
 		}
 
 		void close_output() override final {
@@ -590,9 +641,11 @@ class ConcreteMachine:
 	private:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
-		uint8_t character_rom_[0x1000];
-		uint8_t basic_rom_[0x2000];
-		uint8_t kernel_rom_[0x2000];
+		std::vector<uint8_t>  roms_[9];
+
+		std::vector<uint8_t>  character_rom_;
+		std::vector<uint8_t>  basic_rom_;
+		std::vector<uint8_t>  kernel_rom_;
 		uint8_t expansion_ram_[0x8000];
 
 		uint8_t *rom_;
@@ -601,7 +654,8 @@ class ConcreteMachine:
 		uint8_t user_basic_memory_[0x0400];
 		uint8_t screen_memory_[0x1000];
 		uint8_t colour_memory_[0x0400];
-		std::vector<uint8_t> drive_rom_;
+
+		std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> rom_fetcher_;
 
 		uint8_t *processor_read_memory_map_[64];
 		uint8_t *processor_write_memory_map_[64];
@@ -615,7 +669,10 @@ class ConcreteMachine:
 			}
 		}
 
-		Region region_;
+		Region region_ = European;
+		MemorySize memory_size_ = MemorySize::Default;
+		bool needs_configuration_ = true;
+
 		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
@@ -635,13 +692,6 @@ class ConcreteMachine:
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
-		void install_disk_rom() {
-			if(!drive_rom_.empty() && c1540_) {
-				c1540_->set_rom(drive_rom_);
-				c1540_->run_for(Cycles(2000000));
-				drive_rom_.clear();
-			}
-		}
 };
 
 }

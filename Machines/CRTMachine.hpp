@@ -12,6 +12,7 @@
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
+#include "ROMMachine.hpp"
 
 namespace CRTMachine {
 
@@ -20,7 +21,7 @@ namespace CRTMachine {
 	that optionally provide a speaker, and that nominate a clock rate and can announce to a delegate
 	should that clock rate change.
 */
-class Machine {
+class Machine: public ROMMachine::Machine {
 	public:
 		Machine() : clock_is_unlimited_(false), delegate_(nullptr) {}
 
@@ -35,7 +36,7 @@ class Machine {
 			OpenGL context is bound.
 		*/
 		virtual void close_output() = 0;
-
+	
 		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;
 

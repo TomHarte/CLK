@@ -919,8 +919,28 @@ class ConcreteMachine:
 		}
 
 		// See header; provides the system ROMs.
-		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
+		void set_rom(ROMType type, const std::vector<uint8_t> &data) override final {
 			roms_[static_cast<int>(type)] = data;
+		}
+
+		// Obtains the system ROMs.
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"AmstradCPC",
+				{
+					"os464.rom",	"basic464.rom",
+					"os664.rom",	"basic664.rom",
+					"os6128.rom",	"basic6128.rom",
+					"amsdos.rom"
+				});
+
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
+				if(!data) return false;
+				set_rom(static_cast<ROMType>(index), *data);
+			}
+
+			return true;
 		}
 
 		void set_component_is_sleeping(void *component, bool is_sleeping) override final {
