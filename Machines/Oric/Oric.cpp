@@ -204,14 +204,16 @@ class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
-			const char *os_files[] = {
-				"basic10.rom",	"basic11.rom",
-				"microdisc.rom", "colour.rom"
-			};
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"Oric",
+				{
+					"basic10.rom",	"basic11.rom",
+					"microdisc.rom", "colour.rom"
+				});
 
-			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
-				auto data = rom_with_name("Oric", os_files[index]);
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(static_cast<ROM>(index), *data);
 			}

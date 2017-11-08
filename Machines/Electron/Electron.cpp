@@ -39,7 +39,7 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 		}
 
-		void set_rom(ROMSlot slot, std::vector<uint8_t> data, bool is_writeable) override final {
+		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) override final {
 			uint8_t *target = nullptr;
 			switch(slot) {
 				case ROMSlotDFS:	dfs_ = data;			return;
@@ -57,20 +57,22 @@ class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"Electron",
+				{
+					"DFS-1770-2.20.rom",
+					"ADFS-E00_1.rom",	"ADFS-E00_2.rom",
+					"basic.rom",		"os.rom"
+				});
 			ROMSlot slots[] = {
 				ROMSlotDFS,
 				ROMSlotADFS1, ROMSlotADFS2,
 				ROMSlotBASIC, ROMSlotOS
 			};
-			const char *os_files[] = {
-				"DFS-1770-2.20.rom",
-				"ADFS-E00_1.rom",	"ADFS-E00_2.rom",
-				"basic.rom",		"os.rom"
-			};
 
-			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
-				auto data = rom_with_name("Electron", os_files[index]);
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(slots[index], *data, false);
 			}

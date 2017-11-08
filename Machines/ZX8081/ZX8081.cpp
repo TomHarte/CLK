@@ -290,7 +290,7 @@ template<bool is_zx81> class ConcreteMachine:
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
-		void set_rom(ROMType type, std::vector<uint8_t> data) override final {
+		void set_rom(ROMType type, const std::vector<uint8_t> &data) override final {
 			switch(type) {
 				case ZX80: zx80_rom_ = data; break;
 				case ZX81: zx81_rom_ = data; break;
@@ -298,13 +298,15 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) override {
-			const char *os_files[] = {
-				"zx80.rom",	"zx81.rom",
-			};
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"ZX8081",
+				{
+					"zx80.rom",	"zx81.rom",
+				});
 
-			for(size_t index = 0; index < sizeof(os_files) / sizeof(*os_files); ++index) {
-				auto data = rom_with_name("ZX8081", os_files[index]);
+			for(size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(static_cast<ROMType>(index), *data);
 			}

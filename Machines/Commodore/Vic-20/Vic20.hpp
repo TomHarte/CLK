@@ -20,7 +20,7 @@ namespace Commodore {
 namespace Vic20 {
 
 enum ROMSlot {
-	Kernel,
+	Kernel = 0,
 	BASIC,
 	Characters,
 	Drive
@@ -33,8 +33,11 @@ enum MemorySize {
 };
 
 enum Region {
-	NTSC,
-	PAL
+	American,
+	Danish,
+	Japanese,
+	European,
+	Swedish
 };
 
 class Machine:
@@ -49,8 +52,7 @@ class Machine:
 		static Machine *Vic20();
 
 		/// Sets the contents of the rom in @c slot to the buffer @c data of length @c length.
-		virtual void set_rom(ROMSlot slot, size_t length, const uint8_t *data) = 0;
-		// TODO: take a std::vector<uint8_t> to collapse length and data.
+		virtual void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) = 0;
 
 		/// Sets the memory size of this Vic-20.
 		virtual void set_memory_size(MemorySize size) = 0;

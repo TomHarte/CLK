@@ -30,7 +30,7 @@ class Machine:
 		static Machine *ZX8081(const StaticAnalyser::Target &target_hint);
 		virtual ~Machine();
 
-		virtual void set_rom(ROMType type, std::vector<uint8_t> data) = 0;
+		virtual void set_rom(ROMType type, const std::vector<uint8_t> &data) = 0;
 
 		virtual void set_use_fast_tape_hack(bool activate) = 0;
 		virtual void set_tape_is_playing(bool is_playing) = 0;

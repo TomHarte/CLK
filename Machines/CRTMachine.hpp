@@ -12,6 +12,7 @@
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
+#include "ROMMachine.hpp"
 
 namespace CRTMachine {
 
@@ -20,7 +21,7 @@ namespace CRTMachine {
 	that optionally provide a speaker, and that nominate a clock rate and can announce to a delegate
 	should that clock rate change.
 */
-class Machine {
+class Machine: public ROMMachine::Machine {
 	public:
 		Machine() : clock_is_unlimited_(false), delegate_(nullptr) {}
 
@@ -36,11 +37,6 @@ class Machine {
 		*/
 		virtual void close_output() = 0;
 	
-		/*!
-			Provides the machine with a way to obtain such ROMs as it needs.
-		*/
-		virtual bool install_roms(const std::function<std::unique_ptr<std::vector<uint8_t>>(const std::string &machine, const std::string &name)> &rom_with_name) { return true; }
-
 		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
 		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;
 

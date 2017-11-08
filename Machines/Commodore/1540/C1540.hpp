@@ -10,6 +10,7 @@
 #define Commodore1540_hpp
 
 #include "../SerialBus.hpp"
+#include "../../ROMMachine.hpp"
 #include "../../../Storage/Disk/Disk.hpp"
 #include "Implementation/C1540Base.hpp"
 
@@ -19,12 +20,18 @@ namespace C1540 {
 /*!
 	Provides an emulation of the C1540.
 */
-class Machine: public MachineBase {
+class Machine: public MachineBase, public ROMMachine::Machine {
 	public:
+		enum Personality {
+			C1540,
+			C1541
+		};
+		Machine(Personality p);
+	
 		/*!
-			Sets the ROM image to use for this drive; it is asserted that the buffer provided is 16 kb in size.
+			Sets the source for this drive's ROM image.
 		*/
-		void set_rom(const std::vector<uint8_t> &rom);
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names);
 
 		/*!
 			Sets the serial bus to which this drive should attach itself.
@@ -36,6 +43,9 @@ class Machine: public MachineBase {
 
 		/// Inserts @c disk into the drive.
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
+
+	private:
+		Personality personality_;
 };
 
 }

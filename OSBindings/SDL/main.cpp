@@ -179,25 +179,33 @@ int main(int argc, char *argv[]) {
 	//
 	//	/usr/local/share/CLK/[system]; or
 	//	/usr/share/CLK/[system]
-	machine->crt_machine()->install_roms( [] (const std::string &machine, const std::string &name) -> std::unique_ptr<std::vector<uint8_t>> {
- 		std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
-		FILE *file = fopen(local_path.c_str(), "r");
-		if(!file) {
-			std::string path = "/usr/share/CLK/" + machine + "/" + name;
-			file = fopen(path.c_str(), "r");
+	machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+		std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
+		for(auto &name: names) {
+			std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
+			FILE *file = fopen(local_path.c_str(), "r");
+			if(!file) {
+				std::string path = "/usr/share/CLK/" + machine + "/" + name;
+				file = fopen(path.c_str(), "r");
+			}
+
+			if(!file) {
+				results.emplace_back(nullptr);
+				continue;
+			}
+			
+			std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+
+			fseek(file, 0, SEEK_END);
+			data->resize(ftell(file));
+			fseek(file, 0, SEEK_SET);
+			fread(data->data(), 1, data->size(), file);
+			fclose(file);
+
+			results.emplace_back(std::move(data));
 		}
 
-		if(!file) return nullptr;
-		
-		std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
-
-		fseek(file, 0, SEEK_END);
-		data->resize(ftell(file));
-		fseek(file, 0, SEEK_SET);
-		fread(data->data(), 1, data->size(), file);
-		fclose(file);
-
-		return data;
+		return results;
 	});
 
 	machine->configuration_target()->configure_as_target(targets.front());
