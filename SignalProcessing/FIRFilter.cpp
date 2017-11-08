@@ -71,8 +71,8 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoeffici
 	float I0 = ino(a);
 	float NpSquared = static_cast<float>(Np * Np);
 	for(unsigned int i = 0; i <= Np; i++) {
-		filterCoefficientsFloat[Np + i] = 
-				A[i] * 
+		filterCoefficientsFloat[Np + i] =
+				A[i] *
 				ino(a * sqrtf(1.0f - (static_cast<float>(i * i) / NpSquared) )) /
 				I0;
 	}
@@ -81,7 +81,7 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoeffici
 	for(unsigned int i = 0; i < Np; i++) {
 		filterCoefficientsFloat[i] = filterCoefficientsFloat[numberOfTaps - 1 - i];
 	}
-	
+
 	/* scale back up so that we retain 100% of input volume */
 	float coefficientTotal = 0.0f;
 	for(unsigned int i = 0; i < numberOfTaps; i++) {
@@ -124,7 +124,7 @@ FIRFilter::FIRFilter(unsigned int number_of_taps, float input_sample_rate, float
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; i++) {
 		float iPi = static_cast<float>(i) * static_cast<float>(M_PI);
-		A[i] = 
+		A[i] =
 			(
 				sinf(twoOverSampleRate * iPi * high_frequency) -
 				sinf(twoOverSampleRate * iPi * low_frequency)

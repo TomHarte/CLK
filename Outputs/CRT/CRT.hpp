@@ -250,7 +250,7 @@ class CRT {
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
 
-			@param should_delete_resources If @c true then all resources — textures, vertex arrays, etc — 
+			@param should_delete_resources If @c true then all resources — textures, vertex arrays, etc —
 			currently held by the CRT will be deleted now via calls to glDeleteTexture and equivalent. If
 			@c false then the references are simply marked as invalid.
 		*/
@@ -263,7 +263,7 @@ class CRT {
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
 
 			@param shader A GLSL fragment including a function with the signature
-			`float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)` 
+			`float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)`
 			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
 			carrier phase and amplitude.
 		*/
@@ -299,7 +299,7 @@ class CRT {
 			format will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour 
+			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour
 			as a function of:
 
 			* `usampler2D sampler` representing the source buffer;

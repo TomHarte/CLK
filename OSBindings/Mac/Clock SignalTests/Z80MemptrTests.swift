@@ -282,15 +282,15 @@ class Z80MemptrTests: XCTestCase {
 		CPIR
 			when BC=1 or A=(HL): exactly as CPI
 			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
-			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 + 1 
-			  (if there were not interrupts during the execution) 
+			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 + 1
+			  (if there were not interrupts during the execution)
 	*/
 
 	/* TODO:
 		CPDR
 			when BC=1 or A=(HL): exactly as CPD
 			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
-			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 - 1 
+			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 - 1
 			  (if there were not interrupts during the execution)
 	*/
 
@@ -307,13 +307,13 @@ class Z80MemptrTests: XCTestCase {
 	/* TODO:
 		INIR
 			exactly as INI on each execution.
-			I.e. resulting MEMPTR = ((1 << 8) + C) + 1 
+			I.e. resulting MEMPTR = ((1 << 8) + C) + 1
 	*/
 
 	/* TODO:
 		INDR
 			exactly as IND on each execution.
-			I.e. resulting MEMPTR = ((1 << 8) + C) - 1 
+			I.e. resulting MEMPTR = ((1 << 8) + C) - 1
 	*/
 
 	/* TODO:
@@ -328,7 +328,7 @@ class Z80MemptrTests: XCTestCase {
 
 	/* TODO:
 		OTIR
-			exactly as OUTI on each execution. I.e. resulting MEMPTR = C + 1 
+			exactly as OUTI on each execution. I.e. resulting MEMPTR = C + 1
 	*/
 
 	/* TODO:

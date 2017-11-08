@@ -203,7 +203,7 @@ class ProcessorBase: public ProcessorStorage {
 
 		/*!
 			Sets the logical value of the non-maskable interrupt line.
-			
+
 			@param offset See discussion in set_interrupt_line.
 		*/
 		inline void set_non_maskable_interrupt_line(bool value, int offset = 0);

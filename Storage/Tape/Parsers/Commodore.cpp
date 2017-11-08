@@ -221,7 +221,7 @@ uint8_t Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape)
 }
 
 /*!
-	Reads the next nine symbols and applies a binary test to each to differentiate between ::One and not-::One. 
+	Reads the next nine symbols and applies a binary test to each to differentiate between ::One and not-::One.
 	Returns a byte composed of the first eight of those as bits; sets the error flag if any symbol is not
 	::One and not ::Zero, or if the ninth bit is not equal to the odd parity of the other eight.
 */
@@ -285,7 +285,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 }
 
 /*!
-	Per the contract with StaticAnalyser::TapeParser; produces any of a word marker, an end-of-block marker, 
+	Per the contract with StaticAnalyser::TapeParser; produces any of a word marker, an end-of-block marker,
 	a zero, a one or a lead-in symbol based on the currently captured waves.
 */
 void Parser::inspect_waves(const std::vector<WaveType> &waves)
