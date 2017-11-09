@@ -29,6 +29,9 @@
 
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
+#else
+#define kCSKaiserBesselFilterFixedMultiplier	32767.0f
+#define kCSKaiserBesselFilterFixedShift			15
 #endif
 
 namespace SignalProcessing {

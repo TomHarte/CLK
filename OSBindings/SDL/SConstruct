@@ -1,0 +1,20 @@
+import glob
+
+# create build environment
+env = Environment()
+
+# determine compiler and linker flags for SDL
+env.ParseConfig('sdl2-config --cflags')
+env.ParseConfig('sdl2-config --libs')
+
+# gather a list of source files
+SOURCES = glob.glob('*.cpp')
+
+# add additional compiler flags
+env.Append(CCFLAGS = ['-g', '-Wall', '--std=c++11'])
+# add additional libraries to link against
+env.Append(LIBS = ['libz'])
+
+# build target
+# output executable will be "game"
+env.Program(target = 'game', source = SOURCES)

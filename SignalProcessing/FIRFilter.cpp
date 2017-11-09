@@ -31,11 +31,6 @@ using namespace SignalProcessing;
 		"DIGITAL SIGNAL PROCESSING, II", IEEE Press, pages 123–126.
 */
 
-
-// our little fixed point scheme
-#define kCSKaiserBesselFilterFixedMultiplier	32767.0f
-#define kCSKaiserBesselFilterFixedShift			15
-
 /*! Evaluates the 0th order Bessel function at @c a. */
 float FIRFilter::ino(float a) {
 	float d = 0.0f;

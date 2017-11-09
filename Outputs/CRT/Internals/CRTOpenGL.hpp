@@ -13,7 +13,7 @@
 #include "CRTConstants.hpp"
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"
-#include "Shader.hpp"
+#include "Shaders/Shader.hpp"
 
 #include "ArrayBuilder.hpp"
 #include "TextureBuilder.hpp"

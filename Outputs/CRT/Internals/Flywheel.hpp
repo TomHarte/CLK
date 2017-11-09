@@ -34,8 +34,8 @@ struct Flywheel {
 		retrace_time_(retrace_time),
 		sync_error_window_(sync_error_window),
 		counter_(0),
-		expected_next_sync_(standard_period),
 		counter_before_retrace_(standard_period - retrace_time),
+		expected_next_sync_(standard_period),
 		number_of_surprises_(0) {}
 
 	enum SyncEvent {

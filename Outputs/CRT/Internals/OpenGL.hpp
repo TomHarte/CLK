@@ -17,6 +17,8 @@
 		#include <OpenGL/gl3.h>
 		#include <OpenGL/gl3ext.h>
 	#endif
+#else
+#include <GL/gl.h>
 #endif
 
 #endif /* OpenGL_h */

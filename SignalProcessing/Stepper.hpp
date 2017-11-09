@@ -87,10 +87,10 @@ class Stepper {
 		}
 
 	private:
-		uint64_t whole_step_;
-		int64_t adjustment_up_, adjustment_down_;
 		int64_t accumulated_error_;
 		uint64_t input_rate_, output_rate_;
+		uint64_t whole_step_;
+		int64_t adjustment_up_, adjustment_down_;
 };
 
 }

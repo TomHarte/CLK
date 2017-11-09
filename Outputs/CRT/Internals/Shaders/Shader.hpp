@@ -9,7 +9,7 @@
 #ifndef Shader_hpp
 #define Shader_hpp
 
-#include "OpenGL.hpp"
+#include "../OpenGL.hpp"
 #include <string>
 #include <functional>
 #include <vector>

@@ -9,10 +9,12 @@
 #ifndef AsyncTaskQueue_hpp
 #define AsyncTaskQueue_hpp
 
+#include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <list>
 #include <memory>
 #include <thread>
-#include <list>
-#include <condition_variable>
 
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
