@@ -29,14 +29,15 @@
 
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
-#else
-#define kCSKaiserBesselFilterFixedMultiplier	32767.0f
-#define kCSKaiserBesselFilterFixedShift			15
 #endif
 
 namespace SignalProcessing {
 
 class FIRFilter {
+	private:
+		static constexpr float kCSKaiserBesselFilterFixedMultiplier = 32767.0f;
+		static constexpr int kCSKaiserBesselFilterFixedShift = 15;
+
 	public:
 		/*!
 			Creates an instance of @c FIRFilter.
