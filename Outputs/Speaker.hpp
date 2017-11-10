@@ -9,8 +9,10 @@
 #ifndef Speaker_hpp
 #define Speaker_hpp
 
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 
 #include <memory>

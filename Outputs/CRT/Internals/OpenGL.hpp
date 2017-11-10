@@ -18,6 +18,7 @@
 		#include <OpenGL/gl3ext.h>
 	#endif
 #else
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #endif
 

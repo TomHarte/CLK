@@ -8,6 +8,8 @@
 
 #include "6560.hpp"
 
+#include <cstring>
+
 using namespace MOS;
 
 Speaker::Speaker() :

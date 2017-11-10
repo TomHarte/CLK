@@ -7,7 +7,7 @@
 //
 
 #include "CRT.hpp"
-#include "CRTOpenGL.hpp"
+#include "Internals/CRTOpenGL.hpp"
 #include <cstdarg>
 #include <cmath>
 #include <algorithm>
@@ -343,37 +343,33 @@ void CRT::output_scan(const Scan *const scan) {
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
 void CRT::output_sync(unsigned int number_of_cycles) {
-	Scan scan{
-		.type = Scan::Type::Sync,
-		.number_of_cycles = number_of_cycles
-	};
+	Scan scan;
+	scan.type = Scan::Type::Sync;
+	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 
 void CRT::output_blank(unsigned int number_of_cycles) {
-	Scan scan {
-		.type = Scan::Type::Blank,
-		.number_of_cycles = number_of_cycles
-	};
+	Scan scan;
+	scan.type = Scan::Type::Blank;
+	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 
 void CRT::output_level(unsigned int number_of_cycles) {
 	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(1);
-	Scan scan {
-		.type = Scan::Type::Level,
-		.number_of_cycles = number_of_cycles,
-	};
+	Scan scan;
+	scan.type = Scan::Type::Level;
+	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 
 void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude) {
-	Scan scan {
-		.type = Scan::Type::ColourBurst,
-		.number_of_cycles = number_of_cycles,
-		.phase = phase,
-		.amplitude = amplitude
-	};
+	Scan scan;
+	scan.type = Scan::Type::ColourBurst;
+	scan.number_of_cycles = number_of_cycles;
+	scan.phase = phase;
+	scan.amplitude = amplitude;
 	output_scan(&scan);
 }
 
@@ -383,10 +379,9 @@ void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
 
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {
 	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
-	Scan scan {
-		.type = Scan::Type::Data,
-		.number_of_cycles = number_of_cycles,
-	};
+	Scan scan;
+	scan.type = Scan::Type::Data;
+	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 

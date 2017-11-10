@@ -8,6 +8,7 @@
 
 #include "FileHolder.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 using namespace Storage;

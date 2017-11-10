@@ -8,6 +8,8 @@
 
 #include "ArrayBuilder.hpp"
 
+#include <cstring>
+
 using namespace Outputs::CRT;
 
 ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size) :

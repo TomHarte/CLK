@@ -9,6 +9,8 @@
 #ifndef Atari2600_PIA_h
 #define Atari2600_PIA_h
 
+#include <cstdint>
+
 #include "../../Components/6532/6532.hpp"
 
 namespace Atari2600 {

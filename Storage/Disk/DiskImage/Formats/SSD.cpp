@@ -8,6 +8,8 @@
 
 #include "SSD.hpp"
 
+#include <cstring>
+
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {

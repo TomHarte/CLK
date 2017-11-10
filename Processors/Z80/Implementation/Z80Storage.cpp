@@ -7,6 +7,7 @@
 //
 
 #include "../Z80.hpp"
+#include <cstring>
 
 using namespace CPU::Z80;
 
