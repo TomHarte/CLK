@@ -20,7 +20,6 @@ namespace Tape {
 
 template <typename SymbolType> class Parser {
 	public:
-		Parser() : has_next_symbol_(false), error_flag_(false) {}
 		/// Resets the error flag.
 		void reset_error_flag()		{	error_flag_ = false;		}
 		/// @returns @c true if an error has occurred since the error flag was last reset; @c false otherwise.
@@ -81,9 +80,9 @@ template <typename SymbolType> class Parser {
 			error_flag_ = true;
 		}
 
-		bool error_flag_;
+		bool error_flag_ = false;
 		SymbolType next_symbol_;
-		bool has_next_symbol_;
+		bool has_next_symbol_ = false;
 };
 
 /*!

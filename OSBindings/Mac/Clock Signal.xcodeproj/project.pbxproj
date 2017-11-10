@@ -3651,6 +3651,10 @@
 				GCC_WARN_SIGN_COMPARE = YES;
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-Wreorder",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock Signal/ClockSignal-Bridging-Header.h";
@@ -3685,6 +3689,10 @@
 				GCC_WARN_SIGN_COMPARE = YES;
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-Wreorder",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock Signal/ClockSignal-Bridging-Header.h";

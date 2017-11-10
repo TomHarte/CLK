@@ -11,11 +11,7 @@
 using namespace ZX8081;
 
 Video::Video() :
-	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)),
-	line_data_(nullptr),
-	line_data_pointer_(nullptr),
-	cycles_since_update_(0),
-	sync_(false) {
+	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)) {
 
 	// Set a composite sampling function that assumes 8bpp input grayscale.
 	// TODO: lessen this to 1bpp.
