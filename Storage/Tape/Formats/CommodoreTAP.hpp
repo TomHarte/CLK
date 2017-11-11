@@ -44,7 +44,7 @@ class CommodoreTAP: public Tape {
 		uint32_t file_size_;
 
 		Pulse current_pulse_;
-		bool is_at_end_;
+		bool is_at_end_ = false;
 };
 
 }
