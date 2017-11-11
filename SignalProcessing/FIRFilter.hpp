@@ -60,7 +60,7 @@ class FIRFilter {
 				for(size_t c = 0; c < filter_coefficients_.size(); ++c) {
 					outputValue += filter_coefficients_[c] * src[c];
 				}
-				return (short)(outputValue >> FixedShift);
+				return static_cast<short>(outputValue >> FixedShift);
 			#endif
 		}
 

@@ -86,7 +86,7 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filter_coeffic
 	/* we'll also need integer versions, potentially */
 	float coefficientMultiplier = 1.0f / coefficientTotal;
 	for(size_t i = 0; i < number_of_taps; ++i) {
-		filter_coefficients[i] = (short)(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier);
+		filter_coefficients[i] = static_cast<short>(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier);
 	}
 }
 
