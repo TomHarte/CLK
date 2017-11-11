@@ -7,20 +7,11 @@
 //
 
 #include "../Z80.hpp"
+#include <cstring>
 
 using namespace CPU::Z80;
 
-ProcessorStorage::ProcessorStorage() :
-			halt_mask_(0xff),
-			interrupt_mode_(0),
-			wait_line_(false),
-			request_status_(Interrupt::PowerOn),
-			last_request_status_(Interrupt::PowerOn),
-			irq_line_(false),
-			nmi_line_(false),
-			bus_request_line_(false),
-			pc_increment_(1),
-			scheduled_program_counter_(nullptr) {
+ProcessorStorage::ProcessorStorage() {
 	set_flags(0xff);
 }
 

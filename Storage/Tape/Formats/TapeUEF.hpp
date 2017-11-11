@@ -41,11 +41,11 @@ class UEF : public PulseQueuedTape, public TargetPlatform::TypeDistinguisher {
 
 		void set_platform_type();
 		TargetPlatform::Type target_platform_type();
-		TargetPlatform::Type platform_type_;
+		TargetPlatform::Type platform_type_ = TargetPlatform::Acorn;
 
 		gzFile file_;
-		unsigned int time_base_;
-		bool is_300_baud_;
+		unsigned int time_base_ = 1200;
+		bool is_300_baud_ = false;
 
 		struct Chunk {
 			uint16_t id;

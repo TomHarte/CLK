@@ -602,9 +602,9 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc,
 			AYDeferrer &ay,
 			Storage::Tape::BinaryTapePlayer &tape_player) :
-				key_state_(key_state),
-				crtc_(crtc),
 				ay_(ay),
+				crtc_(crtc),
+				key_state_(key_state),
 				tape_player_(tape_player) {}
 
 		/// The i8255 will call this to set a new output value of @c value for @c port.
@@ -658,8 +658,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		AYDeferrer &ay_;
-		KeyboardState &key_state_;
 		const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc_;
+		KeyboardState &key_state_;
 		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
 
@@ -674,12 +674,13 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			crtc_counter_(HalfCycles(4)),	// This starts the CRTC exactly out of phase with the CPU's memory accesses
-			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			crtc_bus_handler_(ram_, interrupt_timer_),
-			i8255_(i8255_port_handler_),
+			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
 			i8255_port_handler_(key_state_, crtc_, ay_, tape_player_),
-			tape_player_(8000000) {
+			i8255_(i8255_port_handler_),
+			tape_player_(8000000),
+			crtc_counter_(HalfCycles(4))	// This starts the CRTC exactly out of phase with the CPU's memory accesses
+		{
 			// primary clock is 4Mhz
 			set_clock_rate(4000000);
 

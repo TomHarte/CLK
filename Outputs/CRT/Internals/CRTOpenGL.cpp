@@ -5,7 +5,7 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "CRT.hpp"
+#include "../CRT.hpp"
 
 #include <cstdlib>
 #include <cmath>

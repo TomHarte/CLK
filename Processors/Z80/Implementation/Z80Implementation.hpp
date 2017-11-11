@@ -849,7 +849,6 @@ template <	class T,
 				break;
 
 				case MicroOp::IndexedPlaceHolder:
-					printf("Hit placeholder!!!\n");
 				return;
 			}
 #undef set_parity

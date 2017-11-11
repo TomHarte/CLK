@@ -20,16 +20,7 @@ namespace {
 	uint8_t reverse_table[256];
 }
 
-TIA::TIA(bool create_crt) :
-	horizontal_counter_(0),
-	pixels_start_location_(0),
-	output_mode_(0),
-	pixel_target_(nullptr),
-	background_{0, 0},
-	background_half_mask_(0),
-	horizontal_blank_extend_(false),
-	collision_flags_(0)
-{
+TIA::TIA(bool create_crt) {
 	if(create_crt) {
 		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
 		crt_->set_output_device(Outputs::CRT::Television);

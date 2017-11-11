@@ -121,8 +121,8 @@ class ProcessorStorage {
 		RegisterPair ix_, iy_, pc_, sp_;
 		RegisterPair ir_, refresh_addr_;
 		bool iff1_, iff2_;
-		int interrupt_mode_;
-		uint16_t pc_increment_;
+		int interrupt_mode_ = 0;
+		uint16_t pc_increment_ = 1;
 		uint8_t sign_result_;				// the sign flag is set if the value in sign_result_ is negative
 		uint8_t zero_result_;				// the zero flag is set if the value in zero_result_ is zero
 		uint8_t half_carry_result_;			// the half-carry flag is set if bit 4 of half_carry_result_ is set
@@ -130,7 +130,7 @@ class ProcessorStorage {
 		uint8_t parity_overflow_result_;	// the parity/overflow flag is set if the corresponding bit of parity_overflow_result_ is set
 		uint8_t subtract_flag_;				// contains a copy of the subtract flag in isolation
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
-		uint8_t halt_mask_;
+		uint8_t halt_mask_ = 0xff;
 
 		HalfCycles number_of_cycles_;
 
@@ -140,17 +140,17 @@ class ProcessorStorage {
 			Reset		= 0x04,
 			PowerOn		= 0x08
 		};
-		uint8_t request_status_;
-		uint8_t last_request_status_;
-		bool irq_line_, nmi_line_;
-		bool bus_request_line_;
-		bool wait_line_;
+		uint8_t request_status_ = Interrupt::PowerOn;
+		uint8_t last_request_status_ = Interrupt::PowerOn;
+		bool irq_line_ = false, nmi_line_ = false;
+		bool bus_request_line_ = false;
+		bool wait_line_ = false;
 
 		uint8_t operation_;
 		RegisterPair temp16_, memptr_;
 		uint8_t temp8_;
 
-		const MicroOp *scheduled_program_counter_;
+		const MicroOp *scheduled_program_counter_ = nullptr;
 
 		std::vector<MicroOp> conditional_call_untaken_program_;
 		std::vector<MicroOp> reset_program_;

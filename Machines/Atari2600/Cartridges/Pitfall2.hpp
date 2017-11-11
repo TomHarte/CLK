@@ -16,11 +16,7 @@ class Pitfall2: public BusExtender {
 	public:
 		Pitfall2(uint8_t *rom_base, size_t rom_size) :
 			BusExtender(rom_base, rom_size),
-			rom_ptr_(rom_base),
-			random_number_generator_(0),
-			featcher_address_{0, 0, 0, 0, 0, 0, 0, 0},
-			mask_{0, 0, 0, 0, 0, 0, 0, 0},
-			cycles_since_audio_update_(0) {}
+			rom_ptr_(rom_base) {}
 
 		void advance_cycles(int cycles) {
 			cycles_since_audio_update_ += cycles;
@@ -119,13 +115,13 @@ class Pitfall2: public BusExtender {
 			return level_table[table_position];
 		}
 
-		uint16_t featcher_address_[8];
-		uint8_t top_[8], bottom_[8], mask_[8];
+		uint16_t featcher_address_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+		uint8_t top_[8], bottom_[8], mask_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t music_mode_[3];
-		uint8_t random_number_generator_;
+		uint8_t random_number_generator_ = 0;
 		uint8_t *rom_ptr_;
 		uint8_t audio_channel_[3];
-		Cycles cycles_since_audio_update_;
+		Cycles cycles_since_audio_update_ = 0;
 };
 
 }

@@ -8,13 +8,9 @@
 
 #include "6560.hpp"
 
-using namespace MOS;
+#include <cstring>
 
-Speaker::Speaker() :
-	volume_(0),
-	control_registers_{0, 0, 0, 0},
-	shift_registers_{0, 0, 0, 0},
-	counters_{2, 1, 0, 0} {}	// create a slight phase offset for the three channels
+using namespace MOS;
 
 void Speaker::set_volume(uint8_t volume) {
 	enqueue([=]() {

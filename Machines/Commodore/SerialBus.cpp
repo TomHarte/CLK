@@ -8,6 +8,8 @@
 
 #include "SerialBus.hpp"
 
+#include <cstdio>
+
 using namespace Commodore::Serial;
 
 const char *::Commodore::Serial::StringForLine(Line line) {

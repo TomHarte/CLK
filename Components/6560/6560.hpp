@@ -18,8 +18,6 @@ namespace MOS {
 // audio state
 class Speaker: public ::Outputs::Filter<Speaker> {
 	public:
-		Speaker();
-
 		void set_volume(uint8_t volume);
 		void set_control(int channel, uint8_t value);
 
@@ -27,10 +25,10 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 		void skip_samples(unsigned int number_of_samples);
 
 	private:
-		unsigned int counters_[4];
-		unsigned int shift_registers_[4];
-		uint8_t control_registers_[4];
-		uint8_t volume_;
+		unsigned int counters_[4] = {2, 1, 0, 0}; 	// create a slight phase offset for the three channels
+		unsigned int shift_registers_[4] = {0, 0, 0, 0};
+		uint8_t control_registers_[4] = {0, 0, 0, 0};
+		uint8_t volume_ = 0;
 };
 
 /*!
@@ -45,12 +43,7 @@ template <class T> class MOS6560 {
 	public:
 		MOS6560() :
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
-				speaker_(new Speaker),
-				horizontal_counter_(0),
-				vertical_counter_(0),
-				cycles_since_speaker_update_(0),
-				is_odd_frame_(false),
-				is_odd_line_(false) {
+				speaker_(new Speaker) {
 			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
@@ -432,7 +425,7 @@ template <class T> class MOS6560 {
 		unsigned int cycles_in_state_;
 
 		// counters that cover an entire field
-		int horizontal_counter_, vertical_counter_, full_frame_counter_;
+		int horizontal_counter_ = 0, vertical_counter_ = 0, full_frame_counter_;
 
 		// latches dictating start and length of drawing
 		bool vertical_drawing_latch_, horizontal_drawing_latch_;
@@ -447,7 +440,7 @@ template <class T> class MOS6560 {
 		// data latched from the bus
 		uint8_t character_code_, character_colour_, character_value_;
 
-		bool is_odd_frame_, is_odd_line_;
+		bool is_odd_frame_ = false, is_odd_line_ = false;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
 		uint16_t colours_[16];

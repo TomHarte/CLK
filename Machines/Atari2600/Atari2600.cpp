@@ -53,8 +53,8 @@ class Joystick: public Inputs::Joystick {
 		}
 
 	private:
-		size_t shift_, fire_tia_input_;
 		Bus *bus_;
+		size_t shift_, fire_tia_input_;
 };
 
 class ConcreteMachine:

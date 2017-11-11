@@ -9,6 +9,7 @@
 #include "D64.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <sys/stat.h>
 
 #include "../../Track/PCMTrack.hpp"

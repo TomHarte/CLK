@@ -9,8 +9,10 @@
 #ifndef Speaker_hpp
 #define Speaker_hpp
 
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 
 #include <memory>
@@ -81,7 +83,7 @@ class Speaker {
 			set_needs_updated_filter_coefficients();
 		}
 
-		Speaker() : buffer_in_progress_pointer_(0), requested_number_of_taps_(0), high_frequency_cut_off_(-1.0), _queue(new Concurrency::AsyncTaskQueue) {}
+		Speaker() : _queue(new Concurrency::AsyncTaskQueue) {}
 
 		/*!
 			Ensures any deferred processing occurs now.
@@ -105,9 +107,10 @@ class Speaker {
 		std::shared_ptr<std::list<std::function<void(void)>>> queued_functions_;
 
 		std::vector<int16_t> buffer_in_progress_;
-		float high_frequency_cut_off_;
-		size_t buffer_in_progress_pointer_;
-		size_t number_of_taps_, requested_number_of_taps_;
+		float high_frequency_cut_off_ = -1.0;
+		size_t buffer_in_progress_pointer_ = 0;
+		size_t number_of_taps_;
+		size_t requested_number_of_taps_ = 0;
 		bool coefficients_are_dirty_;
 		Delegate *delegate_ = nullptr;
 

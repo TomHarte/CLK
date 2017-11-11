@@ -10,6 +10,7 @@
 #define PCMSegment_hpp
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "../../Storage.hpp"

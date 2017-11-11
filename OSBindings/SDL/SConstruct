@@ -1,0 +1,77 @@
+import glob
+
+# create build environment
+env = Environment()
+
+# determine compiler and linker flags for SDL
+env.ParseConfig('sdl2-config --cflags')
+env.ParseConfig('sdl2-config --libs')
+
+# gather a list of source files
+SOURCES = glob.glob('*.cpp')
+
+SOURCES += glob.glob('../../Components/1770/*.cpp')
+SOURCES += glob.glob('../../Components/6522/Implementation/*.cpp')
+SOURCES += glob.glob('../../Components/6560/*.cpp')
+SOURCES += glob.glob('../../Components/8272/*.cpp')
+SOURCES += glob.glob('../../Components/AY38910/*.cpp')
+
+SOURCES += glob.glob('../../Concurrency/*.cpp')
+
+SOURCES += glob.glob('../../Inputs/*.cpp')
+
+SOURCES += glob.glob('../../Machines/*.cpp')
+SOURCES += glob.glob('../../Machines/AmstradCPC/*.cpp')
+SOURCES += glob.glob('../../Machines/Atari2600/*.cpp')
+SOURCES += glob.glob('../../Machines/Commodore/*.cpp')
+SOURCES += glob.glob('../../Machines/Commodore/1540/Implementation/*.cpp')
+SOURCES += glob.glob('../../Machines/Commodore/Vic-20/*.cpp')
+SOURCES += glob.glob('../../Machines/Electron/*.cpp')
+SOURCES += glob.glob('../../Machines/Oric/*.cpp')
+SOURCES += glob.glob('../../Machines/Utility/*.cpp')
+SOURCES += glob.glob('../../Machines/ZX8081/*.cpp')
+
+SOURCES += glob.glob('../../Outputs/CRT/*.cpp')
+SOURCES += glob.glob('../../Outputs/CRT/Internals/*.cpp')
+SOURCES += glob.glob('../../Outputs/CRT/Internals/Shaders/*.cpp')
+
+SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
+SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
+
+SOURCES += glob.glob('../../SignalProcessing/*.cpp')
+
+SOURCES += glob.glob('../../StaticAnalyser/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/Acorn/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/AmstradCPC/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/Atari/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/Commodore/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/Disassembler/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/Oric/*.cpp')
+SOURCES += glob.glob('../../StaticAnalyser/ZX8081/*.cpp')
+
+SOURCES += glob.glob('../../Storage/*.cpp')
+SOURCES += glob.glob('../../Storage/Cartridge/*.cpp')
+SOURCES += glob.glob('../../Storage/Cartridge/Encodings/*.cpp')
+SOURCES += glob.glob('../../Storage/Cartridge/Formats/*.cpp')
+SOURCES += glob.glob('../../Storage/Data/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Controller/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/DiskImage/Formats/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/DiskImage/Formats/Utility/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/DPLL/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Encodings/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Encodings/MFM/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Parsers/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Track/*.cpp')
+SOURCES += glob.glob('../../Storage/Disk/Data/*.cpp')
+SOURCES += glob.glob('../../Storage/Tape/*.cpp')
+SOURCES += glob.glob('../../Storage/Tape/Formats/*.cpp')
+SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
+
+# add additional compiler flags
+env.Append(CCFLAGS = ['--std=c++11', '-O3'])
+# add additional libraries to link against
+env.Append(LIBS = ['libz', 'pthread', 'GL'])
+
+# build target
+env.Program(target = 'clksignal', source = SOURCES)

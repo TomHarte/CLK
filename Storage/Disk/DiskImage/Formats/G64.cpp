@@ -8,7 +8,9 @@
 
 #include "G64.hpp"
 
+#include <cstring>
 #include <vector>
+
 #include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/CommodoreGCR.hpp"
 

@@ -300,12 +300,14 @@ void TZX::ignore_group_end() {
 }
 
 void TZX::ignore_jump_to_block() {
-	__unused uint16_t target = file_.get16le();
+	uint16_t target = file_.get16le();
+	(void)target;
 	printf("Ignoring TZX jump\n");
 }
 
 void TZX::ignore_loop_start() {
-	__unused uint16_t number_of_repetitions = file_.get16le();
+	uint16_t number_of_repetitions = file_.get16le();
+	(void)number_of_repetitions;
 	printf("Ignoring TZX loop\n");
 }
 
@@ -313,7 +315,7 @@ void TZX::ignore_loop_end() {
 }
 
 void TZX::ignore_call_sequence() {
-	__unused uint16_t number_of_entries = file_.get16le();
+	uint16_t number_of_entries = file_.get16le();
 	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
 	printf("Ignoring TZX call sequence\n");
 }
@@ -323,7 +325,7 @@ void TZX::ignore_return_from_sequence() {
 }
 
 void TZX::ignore_select_block() {
-	__unused uint16_t length_of_block = file_.get16le();
+	uint16_t length_of_block = file_.get16le();
 	file_.seek(length_of_block, SEEK_CUR);
 	printf("Ignoring TZX select block\n");
 }
@@ -337,9 +339,10 @@ void TZX::ignore_text_description() {
 }
 
 void TZX::ignore_message_block() {
-	__unused uint8_t time_for_display = file_.get8();
+	uint8_t time_for_display = file_.get8();
 	uint8_t length = file_.get8();
 	file_.seek(length, SEEK_CUR);
+	(void)time_for_display;
 	printf("Ignoring TZX message\n");
 }
 

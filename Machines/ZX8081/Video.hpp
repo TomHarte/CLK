@@ -42,9 +42,10 @@ class Video {
 		void output_byte(uint8_t byte);
 
 	private:
-		bool sync_;
-		uint8_t *line_data_, *line_data_pointer_;
-		unsigned int cycles_since_update_;
+		bool sync_ = false;
+		uint8_t *line_data_ = nullptr;
+		uint8_t *line_data_pointer_ = nullptr;
+		unsigned int cycles_since_update_ = 0;
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		void flush(bool next_sync);

@@ -85,20 +85,19 @@ class WD1770: public Storage::Disk::MFMController {
 		inline bool has_head_load_line() { return (personality_ == P1793 ); }
 
 		struct Status {
-			Status();
-			bool write_protect;
-			bool record_type;
-			bool spin_up;
-			bool record_not_found;
-			bool crc_error;
-			bool seek_error;
-			bool lost_data;
-			bool data_request;
-			bool interrupt_request;
-			bool busy;
+			bool write_protect = false;
+			bool record_type = false;
+			bool spin_up = false;
+			bool record_not_found = false;
+			bool crc_error = false;
+			bool seek_error = false;
+			bool lost_data = false;
+			bool data_request = false;
+			bool interrupt_request = false;
+			bool busy = false;
 			enum {
 				One, Two, Three
-			} type;
+			} type = One;
 		} status_;
 		uint8_t track_;
 		uint8_t sector_;
@@ -106,7 +105,7 @@ class WD1770: public Storage::Disk::MFMController {
 		uint8_t command_;
 
 		int index_hole_count_;
-		int index_hole_count_target_;
+		int index_hole_count_target_ = -1;
 		int distance_into_section_;
 
 		int step_direction_;
@@ -121,17 +120,17 @@ class WD1770: public Storage::Disk::MFMController {
 		};
 		void posit_event(int type);
 		int interesting_event_mask_;
-		int resume_point_;
-		unsigned int delay_time_;
+		int resume_point_ = 0;
+		unsigned int delay_time_ = 0;
 
 		// ID buffer
 		uint8_t header_[6];
 
 		// 1793 head-loading logic
-		bool head_is_loaded_;
+		bool head_is_loaded_ = false;
 
 		// delegate
-		Delegate *delegate_;
+		Delegate *delegate_ = nullptr;
 };
 
 }

@@ -8,13 +8,16 @@
 
 #include "StaticAnalyser.hpp"
 
+#include <algorithm>
+#include <cstring>
+
 #include "../../Storage/Disk/Parsers/CPM.hpp"
 #include "../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
 static bool strcmp_insensitive(const char *a, const char *b) {
 	if(strlen(a) != strlen(b)) return false;
 	while(*a) {
-		if(tolower(*a) != towlower(*b)) return false;
+		if(tolower(*a) != tolower(*b)) return false;
 		a++;
 		b++;
 	}

@@ -15,7 +15,7 @@
 using namespace Storage::Encodings::MFM;
 
 Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
-		is_mfm_(is_mfm), disk_(disk) {}
+		disk_(disk), is_mfm_(is_mfm) {}
 
 void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &address) {
 	if(sectors_by_address_by_track_.find(address) != sectors_by_address_by_track_.end()) {

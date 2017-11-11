@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include <cstdlib>
+#include <cstring>
 
 // Analysers
 #include "Acorn/StaticAnalyser.hpp"

@@ -34,6 +34,10 @@
 namespace SignalProcessing {
 
 class FIRFilter {
+	private:
+		static constexpr float kCSKaiserBesselFilterFixedMultiplier = 32767.0f;
+		static constexpr int kCSKaiserBesselFilterFixedShift = 15;
+
 	public:
 		/*!
 			Creates an instance of @c FIRFilter.

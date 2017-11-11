@@ -13,7 +13,6 @@
 using namespace Storage::Tape;
 
 CommodoreTAP::CommodoreTAP(const char *file_name) :
-	is_at_end_(false),
 	file_(file_name)
 {
 	if(!file_.check_signature("C64-TAPE-RAW"))

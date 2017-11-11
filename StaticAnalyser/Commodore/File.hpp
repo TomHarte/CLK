@@ -16,14 +16,12 @@ namespace StaticAnalyser {
 namespace Commodore {
 
 struct File {
-	File() : is_closed(false), is_locked(false) {}
-
 	std::wstring name;
 	std::vector<uint8_t> raw_name;
 	uint16_t starting_address;
 	uint16_t ending_address;
-	bool is_locked;
-	bool is_closed;
+	bool is_locked = false;
+	bool is_closed = false;
 	enum {
 		RelocatableProgram,
 		NonRelocatableProgram,

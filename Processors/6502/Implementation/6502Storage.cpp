@@ -244,19 +244,7 @@ const ProcessorStorage::MicroOp ProcessorStorage::operations[256][10] = {
 #undef Immediate
 #undef Implied
 
-ProcessorStorage::ProcessorStorage() :
-		is_jammed_(false),
-		ready_line_is_enabled_(false),
-		ready_is_active_(false),
-		inverse_interrupt_flag_(0),
-		irq_request_history_(0),
-		s_(0),
-		next_bus_operation_(BusOperation::None),
-		interrupt_requests_(InterruptRequestFlags::PowerOn),
-		irq_line_(0),
-		nmi_line_is_enabled_(false),
-		set_overflow_line_is_enabled_(false),
-		scheduled_program_counter_(nullptr) {
+ProcessorStorage::ProcessorStorage() {
 	// only the interrupt flag is defined upon reset but get_flags isn't going to
 	// mask the other flags so we need to do that, at least
 	carry_flag_ &= Flag::Carry;

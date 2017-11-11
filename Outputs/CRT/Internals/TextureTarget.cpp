@@ -15,11 +15,8 @@ using namespace OpenGL;
 TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter) :
 		_width(width),
 		_height(height),
-		_pixel_shader(nullptr),
-		_drawing_vertex_array(0),
-		_drawing_array_buffer(0),
-		_set_aspect_ratio(0.0f),
-		_texture_unit(texture_unit) {
+		_texture_unit(texture_unit),
+		_set_aspect_ratio(0.0f) {
 	glGenFramebuffers(1, &_framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
 

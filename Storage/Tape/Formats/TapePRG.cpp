@@ -49,10 +49,6 @@
 using namespace Storage::Tape;
 
 PRG::PRG(const char *file_name) :
-	bit_phase_(3),
-	file_phase_(FilePhaseLeadIn),
-	phase_offset_(0),
-	copy_mask_(0x80),
 	file_(file_name)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,

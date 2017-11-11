@@ -147,7 +147,7 @@ class MachineBase:
 		MOS::MOS6522::MOS6522<DriveVIA> drive_VIA_;
 		MOS::MOS6522::MOS6522<SerialPortVIA> serial_port_VIA_;
 
-		int shift_register_, bit_window_offset_;
+		int shift_register_ = 0, bit_window_offset_;
 		virtual void process_input_bit(int value);
 		virtual void process_index_hole();
 };

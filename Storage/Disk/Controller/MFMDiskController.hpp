@@ -157,7 +157,7 @@ class MFMController: public Controller {
 
 		// input configuration
 		bool is_double_density_;
-		DataMode data_mode_;
+		DataMode data_mode_ = DataMode::Scanning;
 
 		// writing
 		int last_bit_;

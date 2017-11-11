@@ -89,24 +89,25 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		void get_samples(unsigned int number_of_samples, int16_t *target);
 
 	private:
-		int selected_register_;
-		uint8_t registers_[16], output_registers_[16];
+		int selected_register_ = 0;
+		uint8_t registers_[16];
+		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t port_inputs_[2];
 
-		int master_divider_;
+		int master_divider_ = 0;
 
-		int tone_periods_[3];
-		int tone_counters_[3];
-		int tone_outputs_[3];
+		int tone_periods_[3] = {0, 0, 0};
+		int tone_counters_[3] = {0, 0, 0};
+		int tone_outputs_[3] = {0, 0, 0};
 
-		int noise_period_;
-		int noise_counter_;
-		int noise_shift_register_;
-		int noise_output_;
+		int noise_period_ = 0;
+		int noise_counter_ = 0;
+		int noise_shift_register_ = 0xffff;
+		int noise_output_ = 0;
 
-		int envelope_period_;
-		int envelope_divider_;
-		int envelope_position_;
+		int envelope_period_ = 0;
+		int envelope_divider_ = 0;
+		int envelope_position_ = 0;
 		int envelope_shapes_[16][32];
 		int envelope_overflow_masks_[16];
 
@@ -129,7 +130,7 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		inline void evaluate_output_volume();
 
 		inline void update_bus();
-		PortHandler *port_handler_;
+		PortHandler *port_handler_ = nullptr;
 };
 
 }

@@ -51,12 +51,7 @@ struct DefaultBookender: public TextureBuilder::Bookender {
 }
 
 TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
-		bytes_per_pixel_(bytes_per_pixel),
-		write_areas_start_x_(0),
-		write_areas_start_y_(0),
-		first_unsubmitted_y_(0),
-		is_full_(false),
-		number_of_write_areas_(0) {
+		bytes_per_pixel_(bytes_per_pixel) {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
 

@@ -125,23 +125,23 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 			// Sync is 0x16, either encoded fast or slow; i.e. 0 0110 1000 1
 			Pattern slow_sync[] =
 			{
-				{.type = WaveType::Long, 8},
-				{.type = WaveType::Short, 16},
-				{.type = WaveType::Long, 4},
-				{.type = WaveType::Short, 8},
-				{.type = WaveType::Long, 12},
-				{.type = WaveType::Short, 8},
-				{.type = WaveType::Unrecognised}
+				{WaveType::Long, 8},
+				{WaveType::Short, 16},
+				{WaveType::Long, 4},
+				{WaveType::Short, 8},
+				{WaveType::Long, 12},
+				{WaveType::Short, 8},
+				{WaveType::Unrecognised}
 			};
 			Pattern fast_sync[] =
 			{
-				{.type = WaveType::Medium,	2},
-				{.type = WaveType::Short,	2},
-				{.type = WaveType::Medium,	1},
-				{.type = WaveType::Short,	1},
-				{.type = WaveType::Medium,	3},
-				{.type = WaveType::Short,	1},
-				{.type = WaveType::Unrecognised}
+				{WaveType::Medium,	2},
+				{WaveType::Short,	2},
+				{WaveType::Medium,	1},
+				{WaveType::Short,	1},
+				{WaveType::Medium,	3},
+				{WaveType::Short,	1},
+				{WaveType::Unrecognised}
 			};
 
 			size_t slow_sync_matching_depth = pattern_matching_depth(waves, slow_sync);

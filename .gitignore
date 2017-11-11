@@ -22,6 +22,10 @@ DerivedData
 ROMImages/*
 OSBindings/Mac/Clock SignalTests/Atari\ ROMs
 
+# Exclude intermediate build products
+*.o
+.sconsign.dblite
+
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However

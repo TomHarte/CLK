@@ -7,16 +7,16 @@
 //
 
 #include "Typer.hpp"
-#include <stdlib.h>
+
+#include <cstdlib>
+#include <cstring>
 
 using namespace Utility;
 
 Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
-		counter_(-delay),
 		frequency_(frequency),
-		string_pointer_(0),
+		counter_(-delay),
 		delegate_(delegate),
-		phase_(0),
 		character_mapper_(std::move(character_mapper)) {
 	size_t string_size = strlen(string) + 3;
 	string_ = (char *)malloc(string_size);

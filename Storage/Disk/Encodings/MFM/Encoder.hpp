@@ -10,7 +10,9 @@
 #define Storage_Disk_Encodings_MFM_hpp
 
 #include <cstdint>
+#include <memory>
 #include <vector>
+
 #include "Sector.hpp"
 #include "../../Track/Track.hpp"
 #include "../../../../NumberTheory/CRC.hpp"

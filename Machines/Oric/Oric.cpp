@@ -182,9 +182,9 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
-				paged_rom_(rom_),
+				via_port_handler_(tape_player_, keyboard_),
 				via_(via_port_handler_),
-				via_port_handler_(tape_player_, keyboard_) {
+				paged_rom_(rom_) {
 			set_clock_rate(1000000);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);

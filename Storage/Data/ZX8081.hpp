@@ -9,9 +9,10 @@
 #ifndef Storage_Data_ZX8081_hpp
 #define Storage_Data_ZX8081_hpp
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace Storage {
 namespace Data {

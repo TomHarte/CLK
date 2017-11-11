@@ -9,6 +9,8 @@
 #ifndef KeyboardMachine_h
 #define KeyboardMachine_h
 
+#include <cstdint>
+
 #include "../Inputs/Keyboard.hpp"
 
 namespace KeyboardMachine {

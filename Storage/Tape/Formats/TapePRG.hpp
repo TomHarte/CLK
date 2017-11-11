@@ -50,10 +50,10 @@ class PRG: public Tape {
 			FilePhaseHeaderDataGap,
 			FilePhaseData,
 			FilePhaseAtEnd
-		} file_phase_;
-		int phase_offset_;
+		} file_phase_ = FilePhaseLeadIn;
+		int phase_offset_ = 0;
 
-		int bit_phase_;
+		int bit_phase_ = 3;
 		enum OutputToken {
 			Leader,
 			Zero,
@@ -65,7 +65,7 @@ class PRG: public Tape {
 		void get_next_output_token();
 		uint8_t output_byte_;
 		uint8_t check_digit_;
-		uint8_t copy_mask_;
+		uint8_t copy_mask_ = 0x80;
 };
 
 }

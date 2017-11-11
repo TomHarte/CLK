@@ -36,13 +36,7 @@ template<bool is_zx81> class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			vsync_(false),
-			hsync_(false),
-			nmi_is_enabled_(false),
-			tape_player_(ZX8081ClockRate),
-			use_fast_tape_hack_(false),
-			tape_advance_delay_(0),
-			has_latched_video_byte_(false) {
+			tape_player_(ZX8081ClockRate) {
 			set_clock_rate(ZX8081ClockRate);
 			clear_all_keys();
 		}
@@ -367,8 +361,8 @@ template<bool is_zx81> class ConcreteMachine:
 		std::vector<uint8_t> rom_;
 		uint16_t rom_mask_;
 
-		bool vsync_, hsync_;
-		int line_counter_;
+		bool vsync_ = false, hsync_ = false;
+		int line_counter_ = 0;
 
 		uint8_t key_states_[8];
 		ZX8081::KeyboardMapper keyboard_mapper_;
@@ -377,17 +371,17 @@ template<bool is_zx81> class ConcreteMachine:
 		Storage::Tape::ZX8081::Parser parser_;
 
 		bool is_zx81_;
-		bool nmi_is_enabled_;
+		bool nmi_is_enabled_ = false;
 
 		HalfCycles vsync_start_, vsync_end_;
 		HalfCycles horizontal_counter_;
 
-		uint8_t latched_video_byte_;
-		bool has_latched_video_byte_;
+		uint8_t latched_video_byte_ = 0;
+		bool has_latched_video_byte_ = false;
 
-		bool use_fast_tape_hack_;
+		bool use_fast_tape_hack_ = false;
 		bool use_automatic_tape_motor_control_;
-		HalfCycles tape_advance_delay_;
+		HalfCycles tape_advance_delay_ = 0;
 
 #pragma mark - Video
 

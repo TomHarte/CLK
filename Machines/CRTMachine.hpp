@@ -23,8 +23,6 @@ namespace CRTMachine {
 */
 class Machine: public ROMMachine::Machine {
 	public:
-		Machine() : clock_is_unlimited_(false), delegate_(nullptr) {}
-
 		/*!
 			Causes the machine to set up its CRT and, if it has one, speaker. The caller guarantees
 			that an OpenGL context is bound.
@@ -75,9 +73,9 @@ class Machine: public ROMMachine::Machine {
 		}
 
 	private:
-		Delegate *delegate_;
-		double clock_rate_;
-		bool clock_is_unlimited_;
+		Delegate *delegate_ = nullptr;
+		double clock_rate_ = 1.0;
+		bool clock_is_unlimited_ = false;
 };
 
 }

@@ -18,13 +18,7 @@ namespace {
 	const int head_load_request_counter_target = 7653333;
 }
 
-Microdisc::Microdisc() :
-		irq_enable_(false),
-		delegate_(nullptr),
-		paging_flags_(BASICDisable),
-		head_load_request_counter_(-1),
-		WD1770(P1793),
-		last_control_(0) {
+Microdisc::Microdisc() : WD1770(P1793) {
 	set_control_register(last_control_, 0xff);
 }
 
