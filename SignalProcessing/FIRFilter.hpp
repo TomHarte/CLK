@@ -9,34 +9,24 @@
 #ifndef FIRFilter_hpp
 #define FIRFilter_hpp
 
-/*
-
-	The FIR filter takes a 1d PCM signal with
-	a given sample rate and filters it according
-	to a specified filter (band pass only at
-	present, more to come if required). The number
-	of taps (ie, samples considered simultaneously
-	to make an output sample) is configurable;
-	smaller numbers permit a filter that operates
-	more quickly and with less lag but less
-	effectively.
-
-	FIR filters are window functions; expected use is
-	to point sample an input that has been subject to
-	a filter.
-
-*/
-
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
 #endif
 
+#include <vector>
+
 namespace SignalProcessing {
 
+/*!
+	The FIR filter takes a 1d PCM signal with a given sample rate and applies a band-pass filter to it.
+
+	The number of taps (ie, samples considered simultaneously to make an output sample) is configurable;
+	smaller numbers permit a filter that operates more quickly and with less lag but less effectively.
+*/
 class FIRFilter {
 	private:
-		static constexpr float kCSKaiserBesselFilterFixedMultiplier = 32767.0f;
-		static constexpr int kCSKaiserBesselFilterFixedShift = 15;
+		static constexpr float FixedMultiplier = 32767.0f;
+		static constexpr int FixedShift = 15;
 
 	public:
 		/*!
@@ -48,9 +38,8 @@ class FIRFilter {
 			@param high_frequency The highest frequency of signal to retain in the output.
 			@param attenuation The attenuation of the discarded frequencies.
 		*/
-		FIRFilter(unsigned int number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
-
-		~FIRFilter();
+		FIRFilter(size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
+		FIRFilter(const std::vector<float> &coefficients);
 
 		/*! A suggested default attenuation value. */
 		constexpr static float DefaultAttenuation = 60.0f;
@@ -61,31 +50,44 @@ class FIRFilter {
 			@param src The source buffer to apply the filter to.
 			@returns The result of applying the filter.
 		*/
-		inline short apply(const short *src) {
+		inline short apply(const short *src) const {
 			#ifdef __APPLE__
 				short result;
-				vDSP_dotpr_s1_15(filter_coefficients_, 1, src, 1, &result, number_of_taps_);
+				vDSP_dotpr_s1_15(filter_coefficients_.data(), 1, src, 1, &result, filter_coefficients_.size());
 				return result;
 			#else
 				int outputValue = 0;
-				for(unsigned int c = 0; c < number_of_taps_; c++) {
+				for(size_t c = 0; c < filter_coefficients_.size(); ++c) {
 					outputValue += filter_coefficients_[c] * src[c];
 				}
-				return (short)(outputValue >> kCSKaiserBesselFilterFixedShift);
+				return (short)(outputValue >> FixedShift);
 			#endif
 		}
 
-		inline unsigned int get_number_of_taps() {
-			return number_of_taps_;
+		/*! @returns The number of taps used by this filter. */
+		inline size_t get_number_of_taps() const {
+			return filter_coefficients_.size();
 		}
 
-		void get_coefficients(float *coefficients);
+		/*! @returns The weighted coefficients that describe this filter. */
+		std::vector<float> get_coefficients() const;
+
+		/*!
+			@returns A filter that would have the effect of adding (and scaling) the outputs of the two filters.
+			Defined only if both have the same number of taps.
+		*/
+		FIRFilter operator+(const FIRFilter &) const;
+
+		/*!
+			@returns A filter that would have the effect of applying the two filters in succession.
+			Defined only if both have the same number of taps.
+		*/
+		FIRFilter operator*(const FIRFilter &) const;
 
 	private:
-		short *filter_coefficients_;
-		unsigned int number_of_taps_;
+		std::vector<short> filter_coefficients_;
 
-		static void coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps);
+		static void coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, size_t numberOfTaps);
 		static float ino(float a);
 };
 
