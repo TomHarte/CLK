@@ -39,20 +39,20 @@ CPCDSK::CPCDSK(const char *file_name) :
 	long size_of_a_track = 0;
 
 	// Used only for extended disks.
-	std::vector<size_t> track_sizes;
+	std::vector<std::size_t> track_sizes;
 
 	if(is_extended_) {
 		// Skip two unused bytes and grab the track size table.
 		file.seek(2, SEEK_CUR);
 		for(int c = 0; c < head_position_count_ * head_count_; c++) {
-			track_sizes.push_back(static_cast<size_t>(file.get8()) << 8);
+			track_sizes.push_back(static_cast<std::size_t>(file.get8()) << 8);
 		}
 	} else {
 		size_of_a_track = file.get16le();
 	}
 
 	long file_offset = 0x100;
-	for(size_t c = 0; c < static_cast<size_t>(head_position_count_ * head_count_); c++) {
+	for(std::size_t c = 0; c < static_cast<std::size_t>(head_position_count_ * head_count_); c++) {
 		if(!is_extended_ || (track_sizes[c] > 0)) {
 			// Skip the introductory text, 'Track-Info\r\n' and its unused bytes.
 			file.seek(file_offset + 16, SEEK_SET);
@@ -87,7 +87,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 			// Sector size, number of sectors, gap 3 length and the filler byte are then common
 			// between both variants of DSK.
 			track->sector_length = file.get8();
-			size_t number_of_sectors = file.get8();
+			std::size_t number_of_sectors = file.get8();
 			track->gap3_length = file.get8();
 			track->filler_byte = file.get8();
 
@@ -126,9 +126,9 @@ CPCDSK::CPCDSK(const char *file_name) :
 				}
 
 				// Figuring out the actual data size is a little more work...
-				size_t data_size = static_cast<size_t>(128 << sector.size);
-				size_t stored_data_size = data_size;
-				size_t number_of_samplings = 1;
+				std::size_t data_size = static_cast<std::size_t>(128 << sector.size);
+				std::size_t stored_data_size = data_size;
+				std::size_t number_of_samplings = 1;
 
 				if(is_extended_) {
 					// In an extended DSK, oblige two Simon Owen extensions:
@@ -140,7 +140,7 @@ CPCDSK::CPCDSK(const char *file_name) :
 					// sector was weak or fuzzy and that multiple samplings are provided. If the greater size
 					// is not an exact multiple then my reading of the documentation is that this is an invalid
 					// disk image.
-					size_t declared_data_size = file.get16le();
+					std::size_t declared_data_size = file.get16le();
 					if(declared_data_size != stored_data_size) {
 						if(declared_data_size > data_size) {
 							number_of_samplings = declared_data_size / data_size;
@@ -194,13 +194,13 @@ int CPCDSK::get_head_count() {
 	return head_count_;
 }
 
-size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
-	return static_cast<size_t>((address.position * head_count_) + address.head);
+std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
+	return static_cast<std::size_t>((address.position * head_count_) + address.head);
 }
 
 std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Address address) {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
-	size_t chronological_track = index_for_track(address);
+	std::size_t chronological_track = index_for_track(address);
 
 	// Return a nullptr if out of range or not provided.
 	if(chronological_track >= tracks_.size()) return nullptr;
@@ -222,13 +222,13 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 	for(auto &pair: tracks) {
 		// Assume MFM for now; with extensions DSK can contain FM tracks.
 		const bool is_double_density = true;
-		std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
+		std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 			Storage::Encodings::MFM::sectors_from_segment(
 				Storage::Disk::track_serialisation(*pair.second, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
 				is_double_density);
 
 		// Find slot for track, making it if neccessary.
-		size_t chronological_track = index_for_track(pair.first);
+		std::size_t chronological_track = index_for_track(pair.first);
 		if(chronological_track >= tracks_.size()) {
 			tracks_.resize(chronological_track+1);
 			head_position_count_ = pair.first.position;
@@ -280,7 +280,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 	output.putn(2, 0);
 
 	// Output size table.
-	for(size_t index = 0; index < static_cast<size_t>(head_position_count_ * head_count_); ++index) {
+	for(std::size_t index = 0; index < static_cast<std::size_t>(head_position_count_ * head_count_); ++index) {
 		if(index >= tracks_.size()) {
 			output.put8(0);
 			continue;
@@ -292,7 +292,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		}
 
 		// Calculate size of track.
-		size_t track_size = 256;
+		std::size_t track_size = 256;
 		for(auto &sector: track->sectors) {
 			for(auto &sample: sector.samples) {
 				track_size += sample.size();
@@ -305,10 +305,10 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 	}
 
 	// Advance to offset 256.
-	output.putn(static_cast<size_t>(256 - output.tell()), 0);
+	output.putn(static_cast<std::size_t>(256 - output.tell()), 0);
 
 	// Output each track.
-	for(size_t index = 0; index < static_cast<size_t>(head_position_count_ * head_count_); ++index) {
+	for(std::size_t index = 0; index < static_cast<std::size_t>(head_position_count_ * head_count_); ++index) {
 		if(index >= tracks_.size()) continue;
 		Track *track = tracks_[index].get();
 		if(!track) continue;
@@ -357,7 +357,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 			output.put8(sector.fdc_status1);
 			output.put8(sector.fdc_status2);
 
-			size_t data_size = 0;
+			std::size_t data_size = 0;
 			for(auto &sample: sector.samples) {
 				data_size += sample.size();
 			}
@@ -366,7 +366,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 
 		// Move to next 256-byte boundary.
 		long distance = (256 - output.tell()&255)&255;
-		output.putn(static_cast<size_t>(distance), 0);
+		output.putn(static_cast<std::size_t>(distance), 0);
 
 		// Output sector contents.
 		for(auto &sector: track->sectors) {
@@ -377,7 +377,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 
 		// Move to next 256-byte boundary.
 		distance = (256 - output.tell()&255)&255;
-		output.putn(static_cast<size_t>(distance), 0);
+		output.putn(static_cast<std::size_t>(distance), 0);
 	}
 }
 

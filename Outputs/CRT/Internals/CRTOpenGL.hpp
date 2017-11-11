@@ -105,7 +105,7 @@ class OpenGLOutputBuilder {
 		TextureBuilder texture_builder;
 		ArrayBuilder array_builder;
 
-		OpenGLOutputBuilder(size_t bytes_per_pixel);
+		OpenGLOutputBuilder(std::size_t bytes_per_pixel);
 		~OpenGLOutputBuilder();
 
 		inline void set_colour_format(ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator) {

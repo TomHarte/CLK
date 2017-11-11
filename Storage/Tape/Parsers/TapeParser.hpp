@@ -11,9 +11,9 @@
 
 #include "../Tape.hpp"
 
+#include <cassert>
 #include <memory>
 #include <vector>
-#include <assert.h>
 
 namespace Storage {
 namespace Tape {

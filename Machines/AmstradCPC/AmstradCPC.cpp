@@ -935,7 +935,7 @@ class ConcreteMachine:
 					"amsdos.rom"
 				});
 
-			for(size_t index = 0; index < roms.size(); ++index) {
+			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(static_cast<ROMType>(index), *data);

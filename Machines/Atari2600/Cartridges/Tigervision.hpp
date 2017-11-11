@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class Tigervision: public BusExtender {
 	public:
-		Tigervision(uint8_t *rom_base, size_t rom_size) :
+		Tigervision(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size) {
 			rom_ptr_[0] = rom_base + rom_size - 4096;
 			rom_ptr_[1] = rom_ptr_[0] + 2048;

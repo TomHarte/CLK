@@ -24,7 +24,7 @@ class DigitalPhaseLockedLoop {
 			@param clocks_per_bit The expected number of cycles between each bit of input.
 			@param length_of_history The number of historic pulses to consider in locking to phase.
 		*/
-		DigitalPhaseLockedLoop(int clocks_per_bit, size_t length_of_history);
+		DigitalPhaseLockedLoop(int clocks_per_bit, std::size_t length_of_history);
 
 		/*!
 			Runs the loop, impliedly posting no pulses during that period.
@@ -55,7 +55,7 @@ class DigitalPhaseLockedLoop {
 		void post_phase_offset(int phase, int offset);
 
 		std::vector<int> offset_history_;
-		size_t offset_history_pointer_ = 0;
+		std::size_t offset_history_pointer_ = 0;
 		int offset_ = 0;
 
 		int phase_ = 0;

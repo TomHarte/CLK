@@ -96,7 +96,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 				segment.number_of_bits = number_of_bytes * 8;
 				segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(current_speed);
 				segment.data.resize(number_of_bytes);
-				memcpy(&segment.data[0], &track_contents[start_byte_in_current_speed], number_of_bytes);
+				std::memcpy(&segment.data[0], &track_contents[start_byte_in_current_speed], number_of_bytes);
 				segments.push_back(std::move(segment));
 
 				current_speed = byte_speed;

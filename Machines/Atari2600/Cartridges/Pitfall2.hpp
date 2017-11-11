@@ -14,7 +14,7 @@ namespace Cartridge {
 
 class Pitfall2: public BusExtender {
 	public:
-		Pitfall2(uint8_t *rom_base, size_t rom_size) :
+		Pitfall2(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size),
 			rom_ptr_(rom_base) {}
 

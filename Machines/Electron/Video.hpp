@@ -124,7 +124,7 @@ class VideoOutput {
 		void setup_screen_map();
 		void emplace_blank_line();
 		void emplace_pixel_line();
-		size_t screen_map_pointer_ = 0;
+		std::size_t screen_map_pointer_ = 0;
 		int cycles_into_draw_action_ = 0;
 };
 

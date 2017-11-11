@@ -18,8 +18,8 @@ Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::un
 		counter_(-delay),
 		delegate_(delegate),
 		character_mapper_(std::move(character_mapper)) {
-	size_t string_size = strlen(string) + 3;
-	string_ = (char *)malloc(string_size);
+	std::size_t string_size = std::strlen(string) + 3;
+	string_ = (char *)std::malloc(string_size);
 	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
 }
 
@@ -63,7 +63,7 @@ bool Typer::type_next_character() {
 	if(!try_type_next_character()) {
 		phase_ = 0;
 		if(!string_[string_pointer_]) {
-			free(string_);
+			std::free(string_);
 			string_ = nullptr;
 			return false;
 		}
@@ -77,13 +77,13 @@ bool Typer::type_next_character() {
 }
 
 Typer::~Typer() {
-	free(string_);
+	std::free(string_);
 }
 
 #pragma mark - Character mapper
 
-uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character) {
-	size_t ucharacter = static_cast<size_t>((unsigned char)character);
+uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) {
+	std::size_t ucharacter = static_cast<std::size_t>((unsigned char)character);
 	if(ucharacter > (length / sizeof(KeySequence))) return nullptr;
 	if(sequences[ucharacter][0] == KeyboardMachine::Machine::KeyNotMapped) return nullptr;
 	return sequences[ucharacter];

@@ -9,13 +9,14 @@
 #include "TextureBuilder.hpp"
 #include "CRTOpenGL.hpp"
 #include "OpenGL.hpp"
-#include <string.h>
+
+#include <cstring>
 
 using namespace Outputs::CRT;
 
 namespace {
 
-const GLint internalFormatForDepth(size_t depth) {
+const GLint internalFormatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_R8UI;
@@ -25,7 +26,7 @@ const GLint internalFormatForDepth(size_t depth) {
 	}
 }
 
-const GLenum formatForDepth(size_t depth) {
+const GLenum formatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_RED_INTEGER;
@@ -37,20 +38,20 @@ const GLenum formatForDepth(size_t depth) {
 
 struct DefaultBookender: public TextureBuilder::Bookender {
 	public:
-		DefaultBookender(size_t bytes_per_pixel) : bytes_per_pixel_(bytes_per_pixel) {}
+		DefaultBookender(std::size_t bytes_per_pixel) : bytes_per_pixel_(bytes_per_pixel) {}
 
 		void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) {
-			memcpy(left_bookend, left_value, bytes_per_pixel_);
-			memcpy(right_bookend, right_value, bytes_per_pixel_);
+			std::memcpy(left_bookend, left_value, bytes_per_pixel_);
+			std::memcpy(right_bookend, right_value, bytes_per_pixel_);
 		}
 
 	private:
-		size_t bytes_per_pixel_;
+		std::size_t bytes_per_pixel_;
 };
 
 }
 
-TextureBuilder::TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit) :
+TextureBuilder::TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit) :
 		bytes_per_pixel_(bytes_per_pixel) {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
@@ -74,7 +75,7 @@ inline uint8_t *TextureBuilder::pointer_to_location(uint16_t x, uint16_t y) {
 	return &image_[((y * InputBufferBuilderWidth) + x) * bytes_per_pixel_];
 }
 
-uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t required_alignment) {
+uint8_t *TextureBuilder::allocate_write_area(std::size_t required_length, std::size_t required_alignment) {
 	// Keep a flag to indicate whether the buffer was full at allocate_write_area; if it was then
 	// don't return anything now, and decline to act upon follow-up methods. is_full_ may be reset
 	// by asynchronous calls to submit. was_full_ will not be touched by it.
@@ -83,7 +84,7 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t requ
 
 	// If there's not enough space on this line, move to the next. If the next is where the current
 	// submission group started, trigger is/was_full_ and return nothing.
-	size_t alignment_offset = (required_alignment - ((write_areas_start_x_ + 1) % required_alignment)) % required_alignment;
+	std::size_t alignment_offset = (required_alignment - ((write_areas_start_x_ + 1) % required_alignment)) % required_alignment;
 	if(write_areas_start_x_ + required_length + 2 + alignment_offset > InputBufferBuilderWidth) {
 		write_areas_start_x_ = 0;
 		alignment_offset = required_alignment - 1;
@@ -105,7 +106,7 @@ uint8_t *TextureBuilder::allocate_write_area(size_t required_length, size_t requ
 	return pointer_to_location(write_area_.x, write_area_.y);
 }
 
-void TextureBuilder::reduce_previous_allocation_to(size_t actual_length) {
+void TextureBuilder::reduce_previous_allocation_to(std::size_t actual_length) {
 	// If the previous allocate_write_area declined to act, decline also.
 	if(was_full_) return;
 
@@ -187,7 +188,7 @@ void TextureBuilder::submit() {
 	is_full_ = false;
 }
 
-void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &function) {
+void TextureBuilder::flush(const std::function<void(const std::vector<WriteArea> &write_areas, std::size_t count)> &function) {
 	// Just throw everything currently in the flush queue to the provided function, and note that
 	// the queue is now empty.
 	if(number_of_write_areas_) {

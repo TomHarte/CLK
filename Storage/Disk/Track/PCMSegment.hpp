@@ -33,7 +33,7 @@ struct PCMSegment {
 		: length_of_a_bit(length_of_a_bit), number_of_bits(number_of_bits), data(data) {}
 	PCMSegment() {}
 
-	int bit(size_t index) const {
+	int bit(std::size_t index) const {
 		return (data[index >> 3] >> (7 ^ (index & 7)))&1;
 	}
 };
@@ -81,7 +81,7 @@ class PCMSegmentEventSource {
 
 	private:
 		std::shared_ptr<PCMSegment> segment_;
-		size_t bit_pointer_;
+		std::size_t bit_pointer_;
 		Track::Event next_event_;
 };
 

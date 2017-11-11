@@ -55,7 +55,7 @@ Tape::Pulse PulseQueuedTape::virtual_get_next_pulse() {
 		}
 	}
 
-	size_t read_pointer = pulse_pointer_;
+	std::size_t read_pointer = pulse_pointer_;
 	pulse_pointer_++;
 	return queued_pulses_[read_pointer];
 }

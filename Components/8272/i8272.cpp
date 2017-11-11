@@ -291,7 +291,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event8272::CommandByte)
 			SetBusy();
 
-			static const size_t required_lengths[32] = {
+			static const std::size_t required_lengths[32] = {
 				0,	0,	9,	3,	2,	9,	9,	2,
 				1,	9,	2,	0,	9,	6,	0,	3,
 				0,	9,	0,	0,	0,	0,	0,	0,
@@ -833,7 +833,7 @@ void i8272::posit_event(int event_type) {
 	// last thing in it will be returned first.
 	post_result:
 			printf("Result to %02x, main %02x: ", command_[0] & 0x1f, main_status_);
-			for(size_t c = 0; c < result_stack_.size(); c++) {
+			for(std::size_t c = 0; c < result_stack_.size(); c++) {
 				printf("%02x ", result_stack_[result_stack_.size() - 1 - c]);
 			}
 			printf("\n");

@@ -12,11 +12,11 @@
 
 using namespace Outputs::CRT;
 
-ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size) :
+ArrayBuilder::ArrayBuilder(std::size_t input_size, std::size_t output_size) :
 		output_(output_size, nullptr),
 		input_(input_size, nullptr) {}
 
-ArrayBuilder::ArrayBuilder(size_t input_size, size_t output_size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
+ArrayBuilder::ArrayBuilder(std::size_t input_size, std::size_t output_size, std::function<void(bool is_input, uint8_t *, std::size_t)> submission_function) :
 		output_(output_size, submission_function),
 		input_(input_size, submission_function) {}
 
@@ -26,17 +26,17 @@ bool ArrayBuilder::is_full() {
 	return was_full;
 }
 
-uint8_t *ArrayBuilder::get_input_storage(size_t size) {
+uint8_t *ArrayBuilder::get_input_storage(std::size_t size) {
 	return get_storage(size, input_);
 }
 
-uint8_t *ArrayBuilder::get_output_storage(size_t size) {
+uint8_t *ArrayBuilder::get_output_storage(std::size_t size) {
 	return get_storage(size, output_);
 }
 
-void ArrayBuilder::flush(const std::function<void(uint8_t *input, size_t input_size, uint8_t *output, size_t output_size)> &function) {
+void ArrayBuilder::flush(const std::function<void(uint8_t *input, std::size_t input_size, uint8_t *output, std::size_t output_size)> &function) {
 	if(!is_full_) {
-		size_t input_size = 0, output_size = 0;
+		std::size_t input_size = 0, output_size = 0;
 		uint8_t *input = input_.get_unflushed(input_size);
 		uint8_t *output = output_.get_unflushed(output_size);
 		function(input, input_size, output, output_size);
@@ -68,7 +68,7 @@ ArrayBuilder::Submission ArrayBuilder::submit() {
 	return submission;
 }
 
-ArrayBuilder::Buffer::Buffer(size_t size, std::function<void(bool is_input, uint8_t *, size_t)> submission_function) :
+ArrayBuilder::Buffer::Buffer(std::size_t size, std::function<void(bool is_input, uint8_t *, std::size_t)> submission_function) :
 		submission_function_(submission_function) {
 	if(!submission_function_) {
 		glGenBuffers(1, &buffer);
@@ -83,13 +83,13 @@ ArrayBuilder::Buffer::~Buffer() {
 		glDeleteBuffers(1, &buffer);
 }
 
-uint8_t *ArrayBuilder::get_storage(size_t size, Buffer &buffer) {
+uint8_t *ArrayBuilder::get_storage(std::size_t size, Buffer &buffer) {
 	uint8_t *pointer = buffer.get_storage(size);
 	if(!pointer) is_full_ = true;
 	return pointer;
 }
 
-uint8_t *ArrayBuilder::Buffer::get_storage(size_t size) {
+uint8_t *ArrayBuilder::Buffer::get_storage(std::size_t size) {
 	if(is_full || allocated_data + size > data.size()) {
 		is_full = true;
 		return nullptr;
@@ -99,7 +99,7 @@ uint8_t *ArrayBuilder::Buffer::get_storage(size_t size) {
 	return pointer;
 }
 
-uint8_t *ArrayBuilder::Buffer::get_unflushed(size_t &size) {
+uint8_t *ArrayBuilder::Buffer::get_unflushed(std::size_t &size) {
 	if(is_full) {
 		return nullptr;
 	}
@@ -118,14 +118,14 @@ void ArrayBuilder::Buffer::flush() {
 	flushed_data = allocated_data;
 }
 
-size_t ArrayBuilder::Buffer::submit(bool is_input) {
-	size_t length = flushed_data;
+std::size_t ArrayBuilder::Buffer::submit(bool is_input) {
+	std::size_t length = flushed_data;
 	if(submission_function_) {
 		submission_function_(is_input, data.data(), length);
 	} else {
 		glBindBuffer(GL_ARRAY_BUFFER, buffer);
 		uint8_t *destination = static_cast<uint8_t *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT));
-		memcpy(destination, data.data(), length);
+		std::memcpy(destination, data.data(), length);
 		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length);
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}

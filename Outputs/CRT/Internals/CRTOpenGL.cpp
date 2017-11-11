@@ -27,7 +27,7 @@ namespace {
 	static const GLenum work_texture_unit				= GL_TEXTURE2;
 }
 
-OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
+OpenGLOutputBuilder::OpenGLOutputBuilder(std::size_t bytes_per_pixel) :
 		visible_area_(Rect(0, 0, 1, 1)),
 		composite_src_output_y_(0),
 		last_output_width_(0),
@@ -51,7 +51,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(size_t bytes_per_pixel) :
 //
 //	for(GLuint c = 0; c < (GLuint)number_of_extensions; c++) {
 //		const char *extension_name = (const char *)glGetStringi(GL_EXTENSIONS, c);
-//		if(!strcmp(extension_name, "GL_NV_texture_barrier")) {
+//		if(!std::strcmp(extension_name, "GL_NV_texture_barrier")) {
 //			supports_texture_barrier = true;
 //		}
 //	}

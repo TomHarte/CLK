@@ -893,12 +893,12 @@ template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 				::assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
-	size_t number_of_micro_ops = 0;
-	size_t lengths[256];
+	std::size_t number_of_micro_ops = 0;
+	std::size_t lengths[256];
 
 	// Count number of micro-ops required.
 	for(int c = 0; c < 256; c++) {
-		size_t length = 0;
+		std::size_t length = 0;
 		while(!isTerminal(table[c][length].type)) length++;
 		length++;
 		lengths[c] = length;
@@ -906,15 +906,15 @@ template <	class T,
 	}
 
 	// Allocate a landing area.
-	std::vector<size_t> operation_indices;
+	std::vector<std::size_t> operation_indices;
 	target.all_operations.reserve(number_of_micro_ops);
 	target.instructions.resize(256, nullptr);
 
 	// Copy in all programs, recording where they go.
-	size_t destination = 0;
-	for(size_t c = 0; c < 256; c++) {
+	std::size_t destination = 0;
+	for(std::size_t c = 0; c < 256; c++) {
 		operation_indices.push_back(target.all_operations.size());
-		for(size_t t = 0; t < lengths[c];) {
+		for(std::size_t t = 0; t < lengths[c];) {
 			// Skip zero-length bus cycles.
 			if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
 				t++;
@@ -944,8 +944,8 @@ template <	class T,
 	}
 
 	// Since the vector won't change again, it's now safe to set pointers.
-	size_t c = 0;
-	for(size_t index : operation_indices) {
+	std::size_t c = 0;
+	for(std::size_t index : operation_indices) {
 		target.instructions[c] = &target.all_operations[index];
 		c++;
 	}
@@ -955,9 +955,9 @@ template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 		::copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
-	size_t length = 0;
+	std::size_t length = 0;
 	while(!isTerminal(source[length].type)) length++;
-	size_t pointer = 0;
+	std::size_t pointer = 0;
 	while(true) {
 		// TODO: This test is duplicated from assemble_page; can a better factoring be found?
 		// Skip optional waits if this instance doesn't use the wait line.

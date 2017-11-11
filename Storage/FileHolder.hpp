@@ -99,19 +99,19 @@ class FileHolder final {
 		void put8(uint8_t value);
 
 		/*! Writes @c value a total of @c repeats times. */
-		void putn(size_t repeats, uint8_t value);
+		void putn(std::size_t repeats, uint8_t value);
 
 		/*! Reads @c size bytes and returns them as a vector. */
-		std::vector<uint8_t> read(size_t size);
+		std::vector<uint8_t> read(std::size_t size);
 
 		/*! Reads @c size bytes and writes them to @c buffer. */
-		size_t read(uint8_t *buffer, size_t size);
+		std::size_t read(uint8_t *buffer, std::size_t size);
 
 		/*! Writes @c buffer one byte at a time in order. */
-		size_t write(const std::vector<uint8_t> &buffer);
+		std::size_t write(const std::vector<uint8_t> &buffer);
 
 		/*! Writes @c buffer one byte at a time in order, writing @c size bytes in total. */
-		size_t write(const uint8_t *buffer, size_t size);
+		std::size_t write(const uint8_t *buffer, std::size_t size);
 
 		/*! Moves @c bytes from the anchor indicated by @c whence — SEEK_SET, SEEK_CUR or SEEK_END. */
 		void seek(long offset, int whence);
@@ -181,7 +181,7 @@ class FileHolder final {
 
 			@returns @c true if the bytes read match the signature; @c false otherwise.
 		*/
-		bool check_signature(const char *signature, size_t length = 0);
+		bool check_signature(const char *signature, std::size_t length = 0);
 
 		/*!
 			Determines and returns the file extension — everything from the final character

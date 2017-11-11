@@ -107,25 +107,25 @@ void FileHolder::put8(uint8_t value) {
 	fputc(value, file_);
 }
 
-void FileHolder::putn(size_t repeats, uint8_t value) {
+void FileHolder::putn(std::size_t repeats, uint8_t value) {
 	while(repeats--) put8(value);
 }
 
-std::vector<uint8_t> FileHolder::read(size_t size) {
+std::vector<uint8_t> FileHolder::read(std::size_t size) {
 	std::vector<uint8_t> result(size);
 	fread(result.data(), 1, size, file_);
 	return result;
 }
 
-size_t FileHolder::read(uint8_t *buffer, size_t size) {
+std::size_t FileHolder::read(uint8_t *buffer, std::size_t size) {
     return fread(buffer, 1, size, file_);
 }
 
-size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
+std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
 	return fwrite(buffer.data(), 1, buffer.size(), file_);
 }
 
-size_t FileHolder::write(const uint8_t *buffer, size_t size) {
+std::size_t FileHolder::write(const uint8_t *buffer, std::size_t size) {
     return fwrite(buffer, 1, size, file_);
 }
 
@@ -149,8 +149,8 @@ FileHolder::BitStream FileHolder::get_bitstream(bool lsb_first) {
 	return BitStream(file_, lsb_first);
 }
 
-bool FileHolder::check_signature(const char *signature, size_t length) {
-	if(!length) length = strlen(signature);
+bool FileHolder::check_signature(const char *signature, std::size_t length) {
+	if(!length) length = std::strlen(signature);
 
 	// read and check the file signature
 	std::vector<uint8_t> stored_signature = read(length);
@@ -160,7 +160,7 @@ bool FileHolder::check_signature(const char *signature, size_t length) {
 }
 
 std::string FileHolder::extension() {
-    size_t pointer = name_.size() - 1;
+    std::size_t pointer = name_.size() - 1;
     while(pointer > 0 && name_[pointer] != '.') pointer--;
     if(name_[pointer] == '.') pointer++;
 
@@ -173,9 +173,9 @@ void FileHolder::ensure_is_at_least_length(long length) {
     fseek(file_, 0, SEEK_END);
     long bytes_to_write = length - ftell(file_);
     if(bytes_to_write > 0) {
-        uint8_t *empty = new uint8_t[static_cast<size_t>(bytes_to_write)];
-        memset(empty, 0, static_cast<size_t>(bytes_to_write));
-        fwrite(empty, sizeof(uint8_t), static_cast<size_t>(bytes_to_write), file_);
+        uint8_t *empty = new uint8_t[static_cast<std::size_t>(bytes_to_write)];
+        memset(empty, 0, static_cast<std::size_t>(bytes_to_write));
+        fwrite(empty, sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
         delete[] empty;
     }
 }

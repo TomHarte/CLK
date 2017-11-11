@@ -30,7 +30,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 		GLint logLength;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[static_cast<size_t>(logLength)];
+			GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
 			glGetShaderInfoLog(shader, logLength, &logLength, log);
 			printf("Compile log:\n%s\n", log);
 			delete[] log;
@@ -67,7 +67,7 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 		GLint logLength;
 		glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[static_cast<size_t>(logLength)];
+			GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
 			glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
 			printf("Link log:\n%s\n", log);
 			delete[] log;
@@ -187,9 +187,9 @@ void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, 
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values) {
-	size_t number_of_values = static_cast<size_t>(count) * static_cast<size_t>(size);
+	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
 	GLint *values_copy = new GLint[number_of_values];
-	memcpy(values_copy, values, sizeof(*values) * static_cast<size_t>(number_of_values));
+	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
@@ -203,9 +203,9 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values) {
-	size_t number_of_values = static_cast<size_t>(count) * static_cast<size_t>(size);
+	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
 	GLfloat *values_copy = new GLfloat[number_of_values];
-	memcpy(values_copy, values, sizeof(*values) * static_cast<size_t>(number_of_values));
+	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
@@ -219,9 +219,9 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values) {
-	size_t number_of_values = static_cast<size_t>(count) * static_cast<size_t>(size);
+	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
 	GLuint *values_copy = new GLuint[number_of_values];
-	memcpy(values_copy, values, sizeof(*values) * static_cast<size_t>(number_of_values));
+	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
@@ -239,9 +239,9 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 }
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
-	size_t number_of_values = static_cast<size_t>(count) * static_cast<size_t>(size) * static_cast<size_t>(size);
+	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
 	GLfloat *values_copy = new GLfloat[number_of_values];
-	memcpy(values_copy, values, sizeof(*values) * number_of_values);
+	std::memcpy(values_copy, values, sizeof(*values) * number_of_values);
 
 	enqueue_function([name, size, count, transpose, values_copy, this] {
 		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;

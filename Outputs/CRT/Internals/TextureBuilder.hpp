@@ -63,18 +63,18 @@ class TextureBuilder {
 	public:
 		/// Constructs an instance of InputTextureBuilder that contains a texture of colour depth @c bytes_per_pixel;
 		/// this creates a new texture and binds it to the current active texture unit.
-		TextureBuilder(size_t bytes_per_pixel, GLenum texture_unit);
+		TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit);
 		virtual ~TextureBuilder();
 
 		/// Finds the first available space of at least @c required_length pixels in size which is suitably aligned
 		/// for writing of @c required_alignment number of pixels at a time.
 		/// Calls must be paired off with calls to @c reduce_previous_allocation_to.
 		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1);
+		uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1);
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
-		void reduce_previous_allocation_to(size_t actual_length);
+		void reduce_previous_allocation_to(std::size_t actual_length);
 
 		/// Allocated runs are provisional; they will not appear in the next flush queue unless retained.
 		/// @returns @c true if a retain succeeded; @c false otherwise.
@@ -96,7 +96,7 @@ class TextureBuilder {
 		/// Finalises all write areas allocated since the last call to @c flush. Only finalised areas will be
 		/// submitted upon the next @c submit. The supplied function will be called with a list of write areas
 		/// allocated, indicating their final resting locations and their lengths.
-		void flush(const std::function<void(const std::vector<WriteArea> &write_areas, size_t count)> &);
+		void flush(const std::function<void(const std::vector<WriteArea> &write_areas, std::size_t count)> &);
 
 		/// A Bookender helps to paper over precision errors when rendering; its job is to provide single-sample
 		/// extensions that duplicate the left and right edges of a written area. By default the texture builder will
@@ -116,7 +116,7 @@ class TextureBuilder {
 
 	private:
 		// the buffer size
-		size_t bytes_per_pixel_;
+		std::size_t bytes_per_pixel_;
 
 		// the buffer
 		std::vector<uint8_t> image_;
@@ -127,7 +127,7 @@ class TextureBuilder {
 
 		// the list of write areas that have ascended to the flush queue
 		std::vector<WriteArea> write_areas_;
-		size_t number_of_write_areas_ = 0;
+		std::size_t number_of_write_areas_ = 0;
 		bool is_full_ = false, was_full_ = false;
 		uint16_t first_unsubmitted_y_ = 0;
 		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);

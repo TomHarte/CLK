@@ -91,7 +91,7 @@ bool Machine::set_rom_fetcher(const std::function<std::vector<std::unique_ptr<st
 
 	auto roms = roms_with_names("Commodore1540", {rom_name});
 	if(!roms[0]) return false;
-	memcpy(rom_, roms[0]->data(), std::min(sizeof(rom_), roms[0]->size()));
+	std::memcpy(rom_, roms[0]->data(), std::min(sizeof(rom_), roms[0]->size()));
 	return true;
 }
 

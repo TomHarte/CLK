@@ -46,7 +46,7 @@ void PCMSegmentEventSource::reset() {
 Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// track the initial bit pointer for potentially considering whether this was an
 	// initial index hole or a subsequent one later on
-	size_t initial_bit_pointer = bit_pointer_;
+	std::size_t initial_bit_pointer = bit_pointer_;
 
 	// if starting from the beginning, pull half a bit backward, as if the initial bit
 	// is set, it should be in the centre of its window

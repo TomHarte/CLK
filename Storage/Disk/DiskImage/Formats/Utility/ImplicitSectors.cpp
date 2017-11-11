@@ -46,17 +46,17 @@ std::shared_ptr<Track> Storage::Disk::track_for_sectors(uint8_t *const source, u
 }
 
 void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uint8_t first_sector, uint8_t last_sector, uint8_t sector_size, bool is_double_density) {
-	std::map<size_t, Storage::Encodings::MFM::Sector> sectors =
+	std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 		Storage::Encodings::MFM::sectors_from_segment(
 			Storage::Disk::track_serialisation(track, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
 			is_double_density);
 
-	size_t byte_size = static_cast<size_t>(128 << sector_size);
+	std::size_t byte_size = static_cast<std::size_t>(128 << sector_size);
 	for(auto &pair : sectors) {
 		if(pair.second.address.sector > last_sector) continue;
 		if(pair.second.address.sector < first_sector) continue;
 		if(pair.second.size != sector_size) continue;
 		if(pair.second.samples.empty()) continue;
-		memcpy(&destination[pair.second.address.sector * byte_size], pair.second.samples[0].data(), std::min(pair.second.samples[0].size(), byte_size));
+		std::memcpy(&destination[pair.second.address.sector * byte_size], pair.second.samples[0].data(), std::min(pair.second.samples[0].size(), byte_size));
 	}
 }

@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class CommaVid: public BusExtender {
 	public:
-		CommaVid(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size) {}
+		CommaVid(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(!(address & 0x1000)) return;

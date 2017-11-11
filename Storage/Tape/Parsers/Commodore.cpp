@@ -93,7 +93,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 
 	// grab rest of data
 	header->data.reserve(191);
-	for(size_t c = 0; c < 191; c++)
+	for(std::size_t c = 0; c < 191; c++)
 	{
 		header->data.push_back(get_next_byte(tape));
 	}
@@ -107,7 +107,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 		header->starting_address	= static_cast<uint16_t>(header->data[0] | (header->data[1] << 8));
 		header->ending_address		= static_cast<uint16_t>(header->data[2] | (header->data[3] << 8));
 
-		for(size_t c = 0; c < 16; c++)
+		for(std::size_t c = 0; c < 16; c++)
 		{
 			header->raw_name.push_back(header->data[4 + c]);
 		}
@@ -129,7 +129,7 @@ void Header::serialise(uint8_t *target, uint16_t length) {
 		case Header::EndOfTape:				target[0] = 0x05;	break;
 	}
 
-	memcpy(&target[1], data.data(), 191);
+	std::memcpy(&target[1], data.data(), 191);
 }
 
 std::unique_ptr<Data> Parser::get_next_data_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original)

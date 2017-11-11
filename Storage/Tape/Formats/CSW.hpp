@@ -54,7 +54,7 @@ class CSW: public Tape {
 		void invert_pulse();
 
 		std::vector<uint8_t> source_data_;
-		size_t source_data_pointer_;
+		std::size_t source_data_pointer_;
 
 		long rle_start_;
 };

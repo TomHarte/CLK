@@ -38,7 +38,7 @@ class FIRFilter {
 			@param high_frequency The highest frequency of signal to retain in the output.
 			@param attenuation The attenuation of the discarded frequencies.
 		*/
-		FIRFilter(size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
+		FIRFilter(std::size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
 		FIRFilter(const std::vector<float> &coefficients);
 
 		/*! A suggested default attenuation value. */
@@ -57,7 +57,7 @@ class FIRFilter {
 				return result;
 			#else
 				int outputValue = 0;
-				for(size_t c = 0; c < filter_coefficients_.size(); ++c) {
+				for(std::size_t c = 0; c < filter_coefficients_.size(); ++c) {
 					outputValue += filter_coefficients_[c] * src[c];
 				}
 				return static_cast<short>(outputValue >> FixedShift);
@@ -65,7 +65,7 @@ class FIRFilter {
 		}
 
 		/*! @returns The number of taps used by this filter. */
-		inline size_t get_number_of_taps() const {
+		inline std::size_t get_number_of_taps() const {
 			return filter_coefficients_.size();
 		}
 
@@ -87,7 +87,7 @@ class FIRFilter {
 	private:
 		std::vector<short> filter_coefficients_;
 
-		static void coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, size_t numberOfTaps);
+		static void coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, std::size_t numberOfTaps);
 		static float ino(float a);
 };
 

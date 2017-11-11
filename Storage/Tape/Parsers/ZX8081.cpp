@@ -62,14 +62,14 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 	}
 
 	if(waves.size() >= 4) {
-		size_t wave_offset = 0;
+		std::size_t wave_offset = 0;
 		// If the very first thing is a gap, swallow it.
 		if(waves[0] == WaveType::Gap) {
 			wave_offset = 1;
 		}
 
 		// Count the number of pulses at the start of this vector
-		size_t number_of_pulses = 0;
+		std::size_t number_of_pulses = 0;
 		while(number_of_pulses + wave_offset < waves.size() && waves[number_of_pulses + wave_offset] == WaveType::Pulse) {
 			number_of_pulses++;
 		}
@@ -79,7 +79,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			// A 1 is 9 waves, a 0 is 4. Counting upward zero transitions, the first in either group will
 			// act simply to terminate the gap beforehand and won't be logged as a pulse. So counts to
 			// check are 8 and 3.
-			size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
+			std::size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
 				case 8:		push_symbol(SymbolType::One, static_cast<int>(number_of_pulses + gaps_to_swallow));		break;
 				case 3:		push_symbol(SymbolType::Zero, static_cast<int>(number_of_pulses + gaps_to_swallow));	break;

@@ -55,7 +55,7 @@ class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 		bool is_high_;
 
 		std::vector<uint8_t> data_;
-		size_t data_pointer_;
+		std::size_t data_pointer_;
 };
 
 }

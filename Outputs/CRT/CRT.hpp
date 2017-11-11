@@ -9,7 +9,7 @@
 #ifndef CRT_hpp
 #define CRT_hpp
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "CRTTypes.hpp"
 #include "Internals/Flywheel.hpp"
@@ -221,7 +221,7 @@ class CRT {
 			@param required_length The number of samples to allocate.
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
-		inline uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1) {
+		inline uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1) {
 			std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
 			return openGL_output_builder_.texture_builder.allocate_write_area(required_length, required_alignment);
 		}

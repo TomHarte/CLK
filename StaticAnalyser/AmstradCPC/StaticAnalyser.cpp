@@ -15,9 +15,9 @@
 #include "../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
 static bool strcmp_insensitive(const char *a, const char *b) {
-	if(strlen(a) != strlen(b)) return false;
+	if(std::strlen(a) != std::strlen(b)) return false;
 	while(*a) {
-		if(tolower(*a) != tolower(*b)) return false;
+		if(std::tolower(*a) != std::tolower(*b)) return false;
 		a++;
 		b++;
 	}
@@ -104,10 +104,10 @@ static void InspectCatalogue(
 	int basic_files = 0;
 	int implicit_suffixed_files = 0;
 
-	size_t last_basic_file = 0;
-	size_t last_implicit_suffixed_file = 0;
+	std::size_t last_basic_file = 0;
+	std::size_t last_implicit_suffixed_file = 0;
 
-	for(size_t c = 0; c < candidate_files.size(); c++) {
+	for(std::size_t c = 0; c < candidate_files.size(); c++) {
 		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
 		if(candidate_files[c]->type == "   " && candidate_files[c]->name == "        ")
 			continue;
@@ -125,7 +125,7 @@ static void InspectCatalogue(
 		}
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
-		size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
+		std::size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
 		target.loadingCommand = RunCommandFor(*candidate_files[selected_file]);
 		return;
 	}
@@ -133,8 +133,8 @@ static void InspectCatalogue(
 	// One more guess: if only one remaining candidate file has a different name than the others,
 	// assume it is intended to stand out.
 	std::map<std::string, int> name_counts;
-	std::map<std::string, size_t> indices_by_name;
-	size_t index = 0;
+	std::map<std::string, std::size_t> indices_by_name;
+	std::size_t index = 0;
 	for(auto file : candidate_files) {
 		name_counts[file->name]++;
 		indices_by_name[file->name] = index;
@@ -160,7 +160,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, St
 		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
 		// this disk was formatted and the filler byte never replaced.
 		bool matched = true;
-		for(size_t c = 1; c < 64; c++) {
+		for(std::size_t c = 1; c < 64; c++) {
 			if(boot_sector->samples[0][c] != boot_sector->samples[0][0]) {
 				matched = false;
 				break;

@@ -43,7 +43,7 @@ class PulseQueuedTape: public Tape {
 		Pulse silence();
 
 		std::vector<Pulse> queued_pulses_;
-		size_t pulse_pointer_;
+		std::size_t pulse_pointer_;
 		bool is_at_end_;
 };
 

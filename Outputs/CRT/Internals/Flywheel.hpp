@@ -9,7 +9,7 @@
 #ifndef Flywheel_hpp
 #define Flywheel_hpp
 
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace Outputs {
 namespace CRT {

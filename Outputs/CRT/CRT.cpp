@@ -218,17 +218,17 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						output_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 					}
 					openGL_output_builder_.array_builder.flush(
-						[=] (uint8_t *input_buffer, size_t input_size, uint8_t *output_buffer, size_t output_size) {
+						[=] (uint8_t *input_buffer, std::size_t input_size, uint8_t *output_buffer, std::size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
-								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, size_t number_of_write_areas) {
+								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, std::size_t number_of_write_areas) {
 									assert(number_of_write_areas * SourceVertexSize == input_size);
-									for(size_t run = 0; run < number_of_write_areas; run++) {
+									for(std::size_t run = 0; run < number_of_write_areas; run++) {
 										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0]) = write_areas[run].x;
 										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2]) = write_areas[run].y;
 										*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0]) = write_areas[run].x + write_areas[run].length;
 									}
 								});
-							for(size_t position = 0; position < input_size; position += SourceVertexSize) {
+							for(std::size_t position = 0; position < input_size; position += SourceVertexSize) {
 								(*reinterpret_cast<uint16_t *>(&input_buffer[position + SourceVertexOffsetOfOutputStart + 2])) = output_y;
 							}
 						});

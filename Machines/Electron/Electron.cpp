@@ -53,7 +53,7 @@ class ConcreteMachine:
 				break;
 			}
 
-			memcpy(target, &data[0], std::min(static_cast<size_t>(16384), data.size()));
+			std::memcpy(target, &data[0], std::min(static_cast<std::size_t>(16384), data.size()));
 		}
 
 		// Obtains the system ROMs.
@@ -71,7 +71,7 @@ class ConcreteMachine:
 				ROMSlotBASIC, ROMSlotOS
 			};
 
-			for(size_t index = 0; index < roms.size(); ++index) {
+			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(slots[index], *data, false);

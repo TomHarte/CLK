@@ -9,9 +9,9 @@
 #ifndef IntermediateShader_hpp
 #define IntermediateShader_hpp
 
-#include <stdio.h>
-
 #include "Shader.hpp"
+
+#include <cstdio>
 #include <memory>
 
 namespace OpenGL {

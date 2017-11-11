@@ -70,8 +70,8 @@ struct Disassembly {
 	std::set<uint16_t> internal_stores, internal_loads, internal_modifies;
 };
 
-Disassembly Disassemble(const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points);
-std::function<size_t(uint16_t)> OffsetMapper(uint16_t start_address);
+Disassembly Disassemble(const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points);
+std::function<std::size_t(uint16_t)> OffsetMapper(uint16_t start_address);
 
 }
 }
