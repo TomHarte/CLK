@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <string>
 
 #include "../../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 
