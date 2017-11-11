@@ -17,13 +17,13 @@ namespace Cartridge {
 
 class BusExtender: public CPU::MOS6502::BusHandler {
 	public:
-		BusExtender(uint8_t *rom_base, size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
+		BusExtender(uint8_t *rom_base, std::size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
 
 		void advance_cycles(int cycles) {}
 
 	protected:
 		uint8_t *rom_base_;
-		size_t rom_size_;
+		std::size_t rom_size_;
 };
 
 template<class T> class Cartridge:

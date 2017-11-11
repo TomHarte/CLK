@@ -120,12 +120,12 @@ class FMEncoder: public Encoder {
 template<class T> std::shared_ptr<Storage::Disk::Track>
 		GetTrackWithSectors(
 			const std::vector<const Sector *> &sectors,
-			size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
-			size_t pre_address_mark_bytes,
-			size_t post_address_mark_bytes, uint8_t post_address_mark_value,
-			size_t pre_data_mark_bytes,
-			size_t post_data_bytes, uint8_t post_data_value,
-			size_t expected_track_bytes) {
+			std::size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
+			std::size_t pre_address_mark_bytes,
+			std::size_t post_address_mark_bytes, uint8_t post_address_mark_value,
+			std::size_t pre_data_mark_bytes,
+			std::size_t post_data_bytes, uint8_t post_data_value,
+			std::size_t expected_track_bytes) {
 	Storage::Disk::PCMSegment segment;
 	segment.data.reserve(expected_track_bytes);
 	T shifter(segment.data);
@@ -134,12 +134,12 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	shifter.add_index_address_mark();
 
 	// add the post-index mark
-	for(size_t c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
+	for(std::size_t c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
 
 	// add sectors
 	for(const Sector *sector : sectors) {
 		// gap
-		for(size_t c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
+		for(std::size_t c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// sector header
 		shifter.add_ID_address_mark();
@@ -150,8 +150,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_crc(sector->has_header_crc_error);
 
 		// gap
-		for(size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(post_address_mark_value);
-		for(size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
+		for(std::size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(post_address_mark_value);
+		for(std::size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// data, if attached
 		// TODO: allow for weak/fuzzy data.
@@ -161,8 +161,8 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 			else
 				shifter.add_data_address_mark();
 
-			size_t c = 0;
-			size_t declared_length = static_cast<size_t>(128 << sector->size);
+			std::size_t c = 0;
+			std::size_t declared_length = static_cast<std::size_t>(128 << sector->size);
 			for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
 				shifter.add_byte(sector->samples[0][c]);
 			}
@@ -173,13 +173,13 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		}
 
 		// gap
-		for(size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
+		for(std::size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
 	}
 
 	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
 
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
-	size_t max_size = expected_track_bytes + (expected_track_bytes / 10);
+	std::size_t max_size = expected_track_bytes + (expected_track_bytes / 10);
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
 	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
@@ -201,7 +201,7 @@ void Encoder::add_crc(bool incorrectly) {
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
 
-const size_t Storage::Encodings::MFM::DefaultSectorGapLength = std::numeric_limits<size_t>::max();
+const std::size_t Storage::Encodings::MFM::DefaultSectorGapLength = std::numeric_limits<std::size_t>::max();
 
 static std::vector<const Sector *> sector_pointers(const std::vector<Sector> &sectors) {
 	std::vector<const Sector *> pointers;
@@ -211,7 +211,7 @@ static std::vector<const Sector *> sector_pointers(const std::vector<Sector> &se
 	return pointers;
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(
 		sector_pointers(sectors),
 		26, 0xff,
@@ -222,7 +222,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<FMEncoder>(
 		sectors,
 		26, 0xff,
@@ -233,7 +233,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<MFMEncoder>(
 		sector_pointers(sectors),
 		50, 0x4e,
@@ -244,7 +244,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<const Sector *> &sectors, size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
 	return GetTrackWithSectors<MFMEncoder>(
 		sectors,
 		50, 0x4e,

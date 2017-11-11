@@ -73,7 +73,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 	} catch(...) {}
 
 #define Format(extension, list, class, platforms) \
-	if(!strcmp(lowercase_extension, extension))	{	\
+	if(!std::strcmp(lowercase_extension, extension))	{	\
 		TryInsert(list, class, platforms)	\
 	}
 
@@ -96,7 +96,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
 
 		// PRG
-		if(!strcmp(lowercase_extension, "prg")) {
+		if(!std::strcmp(lowercase_extension, "prg")) {
 			// try instantiating as a ROM; failing that accept as a tape
 			try {
 				Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore)

@@ -13,6 +13,6 @@
 
 @interface NSData (StdVector)
 
-- (std::vector<uint8_t>)stdVector8;
+- (std::vector<std::uint8_t>)stdVector8;
 
 @end

@@ -11,17 +11,17 @@
 
 using namespace Storage::Encodings::MFM;
 
-std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::sectors_from_segment(const Storage::Disk::PCMSegment &&segment, bool is_double_density) {
-	std::map<size_t, Sector> result;
+std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::sectors_from_segment(const Storage::Disk::PCMSegment &&segment, bool is_double_density) {
+	std::map<std::size_t, Sector> result;
 	Shifter shifter;
 	shifter.set_is_double_density(is_double_density);
 	shifter.set_should_obey_syncs(true);
 
 	std::unique_ptr<Storage::Encodings::MFM::Sector> new_sector;
 	bool is_reading = false;
-	size_t position = 0;
-	size_t size = 0;
-	size_t start_location = 0;
+	std::size_t position = 0;
+	std::size_t size = 0;
+	std::size_t start_location = 0;
 
 	for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
 		shifter.add_input_bit(segment.bit(bit));
@@ -56,7 +56,7 @@ std::map<size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::secto
 						case 2:	new_sector->address.sector = shifter.get_byte(); ++position; break;
 						case 3:
 							new_sector->size = shifter.get_byte();
-							size = static_cast<size_t>(128 << new_sector->size);
+							size = static_cast<std::size_t>(128 << new_sector->size);
 							++position;
 							is_reading = false;
 							shifter.set_should_obey_syncs(true);

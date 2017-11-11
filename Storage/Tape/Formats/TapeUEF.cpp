@@ -73,7 +73,7 @@ UEF::UEF(const char *file_name) {
 
 	char identifier[10];
 	int bytes_read = gzread(file_, identifier, 10);
-	if(bytes_read < 10 || strcmp(identifier, "UEF File!")) {
+	if(bytes_read < 10 || std::strcmp(identifier, "UEF File!")) {
 		throw ErrorNotUEF;
 	}
 
@@ -170,9 +170,9 @@ void UEF::queue_implicit_bit_pattern(uint32_t length) {
 }
 
 void UEF::queue_explicit_bit_pattern(uint32_t length) {
-	size_t length_in_bits = (length << 3) - static_cast<size_t>(gzget8(file_));
+	std::size_t length_in_bits = (length << 3) - static_cast<std::size_t>(gzget8(file_));
 	uint8_t current_byte = 0;
-	for(size_t bit = 0; bit < length_in_bits; bit++) {
+	for(std::size_t bit = 0; bit < length_in_bits; bit++) {
 		if(!(bit&7)) current_byte = gzget8(file_);
 		queue_bit(current_byte&1);
 		current_byte >>= 1;

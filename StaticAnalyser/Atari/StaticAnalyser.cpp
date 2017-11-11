@@ -22,9 +22,9 @@ static void DeterminePagingFor2kCartridge(StaticAnalyser::Target &target, const 
 	// a CommaVid start address needs to be outside of its RAM
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
 
-	std::function<size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
+	std::function<std::size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
 		address &= 0x1fff;
-		return static_cast<size_t>(address - 0x1800);
+		return static_cast<std::size_t>(address - 0x1800);
 	};
 	StaticAnalyser::MOS6502::Disassembly high_location_disassembly =
 		StaticAnalyser::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
@@ -125,9 +125,9 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	entry_address = static_cast<uint16_t>(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
 	break_address = static_cast<uint16_t>(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
 
-	std::function<size_t(uint16_t address)> address_mapper = [](uint16_t address) {
-		if(!(address & 0x1000)) return static_cast<size_t>(-1);
-		return static_cast<size_t>(address & 0xfff);
+	std::function<std::size_t(uint16_t address)> address_mapper = [](uint16_t address) {
+		if(!(address & 0x1000)) return static_cast<std::size_t>(-1);
+		return static_cast<std::size_t>(address & 0xfff);
 	};
 
 	std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
@@ -162,7 +162,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	if(	target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::CBSRamPlus &&
 		target.atari.paging_model != StaticAnalyser::Atari2600PagingModel::MNetwork) {
 		bool has_superchip = true;
-		for(size_t address = 0; address < 128; address++) {
+		for(std::size_t address = 0; address < 128; address++) {
 			if(segment.data[address] != segment.data[address+128]) {
 				has_superchip = false;
 				break;

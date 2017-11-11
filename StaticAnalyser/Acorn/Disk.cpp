@@ -43,7 +43,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 	// DFS files are stored contiguously, and listed in descending order of distance from track 0.
 	// So iterating backwards implies the least amount of seeking.
-	for(size_t file_offset = final_file_offset - 8; file_offset > 0; file_offset -= 8) {
+	for(std::size_t file_offset = final_file_offset - 8; file_offset > 0; file_offset -= 8) {
 		File new_file;
 		char name[10];
 		snprintf(name, 10, "%c.%.7s", names->samples[0][file_offset + 7] & 0x7f, &names->samples[0][file_offset]);
@@ -54,7 +54,7 @@ std::unique_ptr<Catalogue> StaticAnalyser::Acorn::GetDFSCatalogue(const std::sha
 
 		long data_length = static_cast<long>(details->samples[0][file_offset+4] | (details->samples[0][file_offset+5] << 8) | ((details->samples[0][file_offset+6]&0x30) << 12));
 		int start_sector = details->samples[0][file_offset+7] | ((details->samples[0][file_offset+6]&0x03) << 8);
-		new_file.data.reserve(static_cast<size_t>(data_length));
+		new_file.data.reserve(static_cast<std::size_t>(data_length));
 
 		if(start_sector < 2) continue;
 		while(data_length > 0) {

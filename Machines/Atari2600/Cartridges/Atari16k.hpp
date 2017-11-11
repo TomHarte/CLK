@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class Atari16k: public BusExtender {
 	public:
-		Atari16k(uint8_t *rom_base, size_t rom_size) :
+		Atari16k(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size),
 			rom_ptr_(rom_base) {}
 
@@ -37,7 +37,7 @@ class Atari16k: public BusExtender {
 
 class Atari16kSuperChip: public BusExtender {
 	public:
-		Atari16kSuperChip(uint8_t *rom_base, size_t rom_size) :
+		Atari16kSuperChip(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size),
 			rom_ptr_(rom_base) {}
 

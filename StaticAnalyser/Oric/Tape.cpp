@@ -69,9 +69,9 @@ std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Ta
 		new_file.name = file_name;
 
 		// read body
-		size_t body_length = new_file.ending_address - new_file.starting_address + 1;
+		std::size_t body_length = new_file.ending_address - new_file.starting_address + 1;
 		new_file.data.reserve(body_length);
-		for(size_t c = 0; c < body_length; c++) {
+		for(std::size_t c = 0; c < body_length; c++) {
 			new_file.data.push_back(static_cast<uint8_t>(parser.get_next_byte(tape, is_fast)));
 		}
 

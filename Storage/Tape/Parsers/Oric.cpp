@@ -105,7 +105,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 #define CHECK_RUN(length, type, symbol)	\
 			if(waves.size() >= length)\
 			{\
-				size_t c;\
+				std::size_t c;\
 				for(c = 0; c < length; c++) if(waves[c] != type) break;\
 				if(c == length)\
 				{\
@@ -144,8 +144,8 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 				{WaveType::Unrecognised}
 			};
 
-			size_t slow_sync_matching_depth = pattern_matching_depth(waves, slow_sync);
-			size_t fast_sync_matching_depth = pattern_matching_depth(waves, fast_sync);
+			std::size_t slow_sync_matching_depth = pattern_matching_depth(waves, slow_sync);
+			std::size_t fast_sync_matching_depth = pattern_matching_depth(waves, fast_sync);
 
 			if(slow_sync_matching_depth == 52)
 			{
@@ -171,9 +171,9 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves)
 	remove_waves(1);
 }
 
-size_t Parser::pattern_matching_depth(const std::vector<WaveType> &waves, Pattern *pattern)
+std::size_t Parser::pattern_matching_depth(const std::vector<WaveType> &waves, Pattern *pattern)
 {
-	size_t depth = 0;
+	std::size_t depth = 0;
 	int pattern_depth = 0;
 	while(depth < waves.size() && pattern->type != WaveType::Unrecognised)
 	{

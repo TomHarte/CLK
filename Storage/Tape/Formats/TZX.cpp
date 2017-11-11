@@ -133,7 +133,7 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 		base <<= 1;
 		bits++;
 	}
-	for(size_t c = 0; c < output_symbols; c++) {
+	for(std::size_t c = 0; c < output_symbols; c++) {
 		uint8_t symbol_value;
 		int count;
 		if(is_data) {

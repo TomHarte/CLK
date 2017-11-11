@@ -318,7 +318,7 @@ class ConcreteMachine:
 					"basic.bin"
 				});
 
-			for(size_t index = 0; index < roms.size(); ++index) {
+			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
 				if(index < 9) roms_[index] = *data; else basic_rom_ = *data;
@@ -372,7 +372,7 @@ class ConcreteMachine:
 				rom_length_ = static_cast<uint16_t>(rom_image.size());
 
 				rom_ = new uint8_t[0x2000];
-				memcpy(rom_, rom_image.data(), rom_image.size());
+				std::memcpy(rom_, rom_image.data(), rom_image.size());
 				write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
 			}
 
@@ -543,7 +543,7 @@ class ConcreteMachine:
 
 							// perform a via-processor_write_memory_map_ memcpy
 							uint8_t *data_ptr = data->data.data();
-							size_t data_left = data->data.size();
+							std::size_t data_left = data->data.size();
 							while(data_left && start_address != end_address) {
 								uint8_t *page = processor_write_memory_map_[start_address >> 10];
 								if(page) page[start_address & 0x3ff] = *data_ptr;

@@ -513,7 +513,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair 
 		InstructionTable copy_table = {
 			StdInstr(FINDEX(), Read5Inc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_))
 		};
-		memcpy(&base_program_table[0x36], &copy_table[0], sizeof(copy_table[0]));
+		std::memcpy(&base_program_table[0x36], &copy_table[0], sizeof(copy_table[0]));
 	}
 
 	assemble_cb_page(cb_page, index, add_offsets);

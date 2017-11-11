@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class MegaBoy: public BusExtender {
 	public:
-		MegaBoy(uint8_t *rom_base, size_t rom_size) :
+		MegaBoy(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size),
 			rom_ptr_(rom_base),
 			current_page_(0) {

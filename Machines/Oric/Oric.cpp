@@ -212,7 +212,7 @@ class ConcreteMachine:
 					"microdisc.rom", "colour.rom"
 				});
 
-			for(size_t index = 0; index < roms.size(); ++index) {
+			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(static_cast<ROM>(index), *data);
@@ -254,14 +254,14 @@ class ConcreteMachine:
 			}
 
 			if(target.oric.use_atmos_rom) {
-				memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
+				std::memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
 
 				is_using_basic11_ = true;
 				tape_get_byte_address_ = 0xe6c9;
 				scan_keyboard_address_ = 0xf495;
 				tape_speed_address_ = 0x024d;
 			} else {
-				memcpy(rom_, basic10_rom_.data(), std::min(basic10_rom_.size(), sizeof(rom_)));
+				std::memcpy(rom_, basic10_rom_.data(), std::min(basic10_rom_.size(), sizeof(rom_)));
 
 				is_using_basic11_ = false;
 				tape_get_byte_address_ = 0xe630;

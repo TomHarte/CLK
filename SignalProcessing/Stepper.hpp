@@ -9,7 +9,7 @@
 #ifndef Stepper_hpp
 #define Stepper_hpp
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace SignalProcessing {
 

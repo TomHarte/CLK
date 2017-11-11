@@ -32,7 +32,7 @@ class CharacterMapper {
 			with @c length entries, returns the sequence for character @c character if it exists; otherwise
 			returns @c nullptr.
 		*/
-		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, size_t length, char character);
+		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character);
 };
 
 /*!
@@ -63,7 +63,7 @@ class Typer {
 
 	private:
 		char *string_;
-		size_t string_pointer_ = 0;
+		std::size_t string_pointer_ = 0;
 
 		HalfCycles frequency_;
 		HalfCycles counter_;

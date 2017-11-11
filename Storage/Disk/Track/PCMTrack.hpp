@@ -51,7 +51,7 @@ class PCMTrack: public Track {
 		std::vector<PCMSegmentEventSource> segment_event_sources_;
 
 		// a pointer to the first bit to consider as the next event
-		size_t segment_pointer_;
+		std::size_t segment_pointer_;
 
 		PCMTrack();
 };

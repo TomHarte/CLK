@@ -10,7 +10,7 @@
 
 using namespace Storage::Data::ZX8081;
 
-static uint16_t short_at(size_t address, const std::vector<uint8_t> &data) {
+static uint16_t short_at(std::size_t address, const std::vector<uint8_t> &data) {
 	return static_cast<uint16_t>(data[address] | (data[address + 1] << 8));
 }
 
@@ -49,9 +49,9 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 	// Does this look like a ZX81 file?
 
 	// Look for a file name.
-	size_t data_pointer = 0;
+	std::size_t data_pointer = 0;
 	std::vector<uint8_t> name_data;
-	size_t c = 11;
+	std::size_t c = 11;
 	while(c < data.size() && c--) {
 		name_data.push_back(data[data_pointer] & 0x3f);
 		if(data[data_pointer] & 0x80) break;

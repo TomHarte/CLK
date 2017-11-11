@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class Atari8k: public BusExtender {
 	public:
-		Atari8k(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
+		Atari8k(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;
@@ -36,7 +36,7 @@ class Atari8k: public BusExtender {
 
 class Atari8kSuperChip: public BusExtender {
 	public:
-		Atari8kSuperChip(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
+		Atari8kSuperChip(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;

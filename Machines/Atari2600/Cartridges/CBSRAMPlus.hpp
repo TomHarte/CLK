@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class CBSRAMPlus: public BusExtender {
 	public:
-		CBSRAMPlus(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
+		CBSRAMPlus(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			address &= 0x1fff;

@@ -12,7 +12,7 @@
 
 using namespace Storage;
 
-DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, size_t length_of_history) :
+DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, std::size_t length_of_history) :
 		offset_history_(length_of_history, 0),
 		window_length_(clocks_per_bit),
 		clocks_per_bit_(clocks_per_bit) {}

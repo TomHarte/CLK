@@ -129,7 +129,7 @@ template<bool is_zx81> class ConcreteMachine:
 						z80_.set_interrupt_line(false);
 					}
 					if(has_latched_video_byte_) {
-						size_t char_address = static_cast<size_t>((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+						std::size_t char_address = static_cast<std::size_t>((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 						uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 						if(char_address < ram_base_) {
 							latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
@@ -299,7 +299,7 @@ template<bool is_zx81> class ConcreteMachine:
 					"zx80.rom",	"zx81.rom",
 				});
 
-			for(size_t index = 0; index < roms.size(); ++index) {
+			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
 				set_rom(static_cast<ROMType>(index), *data);

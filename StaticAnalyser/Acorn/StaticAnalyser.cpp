@@ -82,9 +82,9 @@ void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &de
 
 			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
 			// so that's also justification to *RUN
-			size_t pointer = 0;
+			std::size_t pointer = 0;
 			uint8_t *data = &files.front().data[0];
-			size_t data_size = files.front().data.size();
+			std::size_t data_size = files.front().data.size();
 			while(1) {
 				if(pointer >= data_size-1 || data[pointer] != 13) {
 					is_basic = false;

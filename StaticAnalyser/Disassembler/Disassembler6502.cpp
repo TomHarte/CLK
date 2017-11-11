@@ -16,11 +16,11 @@ struct PartialDisassembly {
 	std::vector<uint16_t> remaining_entry_points;
 };
 
-static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
+static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
 	disassembly.disassembly.internal_calls.insert(entry_point);
 	uint16_t address = entry_point;
 	while(1) {
-		size_t local_address = address_mapper(address);
+		std::size_t local_address = address_mapper(address);
 		if(local_address >= memory.size()) return;
 
 		struct Instruction instruction;
@@ -233,7 +233,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			case Instruction::ZeroPage: case Instruction::ZeroPageX: case Instruction::ZeroPageY:
 			case Instruction::IndexedIndirectX: case Instruction::IndirectIndexedY:
 			case Instruction::Relative: {
-				size_t operand_address = address_mapper(address);
+				std::size_t operand_address = address_mapper(address);
 				if(operand_address >= memory.size()) return;
 				address++;
 
@@ -244,8 +244,8 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			// two-byte operands
 			case Instruction::Absolute: case Instruction::AbsoluteX: case Instruction::AbsoluteY:
 			case Instruction::Indirect: {
-				size_t low_operand_address = address_mapper(address);
-				size_t high_operand_address = address_mapper(address + 1);
+				std::size_t low_operand_address = address_mapper(address);
+				std::size_t high_operand_address = address_mapper(address + 1);
 				if(low_operand_address >= memory.size() || high_operand_address >= memory.size()) return;
 				address += 2;
 
@@ -259,7 +259,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 
 		// TODO: something wider-ranging than this
 		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage) {
-			size_t mapped_address = address_mapper(instruction.operand);
+			std::size_t mapped_address = address_mapper(instruction.operand);
 			bool is_external = mapped_address >= memory.size();
 
 			switch(instruction.operation) {
@@ -307,7 +307,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 	}
 }
 
-Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, const std::function<size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points) {
+Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points) {
 	PartialDisassembly partialDisassembly;
 	partialDisassembly.remaining_entry_points = entry_points;
 
@@ -320,7 +320,7 @@ Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &mem
 		if(partialDisassembly.disassembly.instructions_by_address.find(next_entry_point) != partialDisassembly.disassembly.instructions_by_address.end()) continue;
 
 		// if it's outgoing, log it as such and forget about it; otherwise disassemble
-		size_t mapped_entry_point = address_mapper(next_entry_point);
+		std::size_t mapped_entry_point = address_mapper(next_entry_point);
 		if(mapped_entry_point >= memory.size())
 			partialDisassembly.disassembly.outward_calls.insert(next_entry_point);
 		else
@@ -330,8 +330,8 @@ Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &mem
 	return std::move(partialDisassembly.disassembly);
 }
 
-std::function<size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
+std::function<std::size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
 	return [start_address](uint16_t argument) {
-		return static_cast<size_t>(argument - start_address);
+		return static_cast<std::size_t>(argument - start_address);
 	};
 }

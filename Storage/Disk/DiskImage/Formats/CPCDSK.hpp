@@ -66,7 +66,7 @@ class CPCDSK: public DiskImage {
 		};
 		std::string file_name_;
 		std::vector<std::unique_ptr<Track>> tracks_;
-		size_t index_for_track(::Storage::Disk::Track::Address address);
+		std::size_t index_for_track(::Storage::Disk::Track::Address address);
 
 		int head_count_;
 		int head_position_count_;

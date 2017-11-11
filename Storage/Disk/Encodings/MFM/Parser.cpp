@@ -27,7 +27,7 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 		return;
 	}
 
-	std::map<size_t, Sector> sectors = sectors_from_segment(
+	std::map<std::size_t, Sector> sectors = sectors_from_segment(
 		Storage::Disk::track_serialisation(*track, is_mfm_ ? MFMBitLength : FMBitLength),
 		is_mfm_);
 

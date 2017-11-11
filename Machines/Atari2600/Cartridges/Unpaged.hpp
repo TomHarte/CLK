@@ -16,7 +16,7 @@ namespace Cartridge {
 
 class Unpaged: public BusExtender {
 	public:
-		Unpaged(uint8_t *rom_base, size_t rom_size) : BusExtender(rom_base, rom_size) {}
+		Unpaged(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size) {}
 
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(isReadOperation(operation) && (address & 0x1000)) {

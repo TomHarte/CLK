@@ -20,14 +20,14 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 	// Assemble the actual bytes of the catalogue.
 	std::vector<uint8_t> catalogue;
-	size_t sector_size = 1;
+	std::size_t sector_size = 1;
 	uint16_t catalogue_allocation_bitmap = parameters.catalogue_allocation_bitmap;
 	if(!catalogue_allocation_bitmap) return nullptr;
 	int sector = 0;
 	int track = parameters.reserved_tracks;
 	while(catalogue_allocation_bitmap) {
 		if(catalogue_allocation_bitmap & 0x8000) {
-			size_t size_read = 0;
+			std::size_t size_read = 0;
 			do {
 				Storage::Encodings::MFM::Sector *sector_contents = parser.get_sector(0, static_cast<uint8_t>(track), static_cast<uint8_t>(parameters.first_sector + sector));
 				if(!sector_contents || sector_contents->samples.empty()) {
@@ -43,7 +43,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 					sector = 0;
 					track++;
 				}
-			} while(size_read < static_cast<size_t>(parameters.block_size));
+			} while(size_read < static_cast<std::size_t>(parameters.block_size));
 		}
 
 		catalogue_allocation_bitmap <<= 1;
@@ -55,9 +55,9 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		std::string type;
 		bool read_only;
 		bool system;
-		size_t extent;
+		std::size_t extent;
 		uint8_t number_of_records;
-		size_t catalogue_index;
+		std::size_t catalogue_index;
 
 		bool operator < (const CatalogueEntry &rhs) const {
 			return std::tie(user_number, name, type, extent) < std::tie(rhs.user_number, rhs.name, rhs.type, rhs.extent);
@@ -69,7 +69,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 	// From the catalogue, get catalogue entries.
 	std::vector<CatalogueEntry> catalogue_entries;
-	for(size_t c = 0; c < catalogue.size(); c += 32) {
+	for(std::size_t c = 0; c < catalogue.size(); c += 32) {
 		// Skip this file if it's deleted; this is marked by it having 0xe5 as its user number
 		if(catalogue[c] == 0xe5) continue;
 
@@ -77,10 +77,10 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		CatalogueEntry &entry = catalogue_entries.back();
 		entry.user_number = catalogue[c];
 		entry.name.insert(entry.name.begin(), &catalogue[c+1], &catalogue[c+9]);
-		for(size_t s = 0; s < 3; s++) entry.type.push_back((char)catalogue[c + s + 9] & 0x7f);
+		for(std::size_t s = 0; s < 3; s++) entry.type.push_back((char)catalogue[c + s + 9] & 0x7f);
 		entry.read_only = catalogue[c + 9] & 0x80;
 		entry.system = catalogue[c + 10] & 0x80;
-		entry.extent = static_cast<size_t>(catalogue[c + 12] + (catalogue[c + 14] << 5));
+		entry.extent = static_cast<std::size_t>(catalogue[c + 12] + (catalogue[c + 14] << 5));
 		entry.number_of_records = catalogue[c + 15];
 		entry.catalogue_index = c;
 	}
@@ -91,7 +91,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 	std::unique_ptr<Catalogue> result(new Catalogue);
 
 	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * static_cast<int>(sector_size) / parameters.block_size) >= 256;
-	size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * static_cast<size_t>(parameters.block_size);
+	std::size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * static_cast<std::size_t>(parameters.block_size);
 	int sectors_per_block = parameters.block_size / static_cast<int>(sector_size);
 	int records_per_sector = static_cast<int>(sector_size) / 128;
 
@@ -114,14 +114,14 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		new_file.system = entry->system;
 
 		// Create storage for data.
-		size_t required_size = final_entry->extent * bytes_per_catalogue_entry + static_cast<size_t>(final_entry->number_of_records) * 128;
+		std::size_t required_size = final_entry->extent * bytes_per_catalogue_entry + static_cast<std::size_t>(final_entry->number_of_records) * 128;
 		new_file.data.resize(required_size);
 
 		// Accumulate all data.
 		while(entry <= final_entry) {
 			int record = 0;
 			int number_of_records = (entry->number_of_records != 0x80) ? entry->number_of_records : (has_long_allocation_units ? 8 : 16);
-			for(size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
+			for(std::size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
 				int block_number;
 				if(has_long_allocation_units) {
 					block_number = catalogue[entry->catalogue_index + 16 + (block << 1)] + (catalogue[entry->catalogue_index + 16 + (block << 1) + 1] << 8);
@@ -147,7 +147,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 					}
 
 					int records_to_copy = std::min(entry->number_of_records - record, records_per_sector);
-					memcpy(&new_file.data[entry->extent * bytes_per_catalogue_entry + static_cast<size_t>(record) * 128], sector_contents->samples[0].data(), static_cast<size_t>(records_to_copy) * 128);
+					std::memcpy(&new_file.data[entry->extent * bytes_per_catalogue_entry + static_cast<std::size_t>(record) * 128], sector_contents->samples[0].data(), static_cast<std::size_t>(records_to_copy) * 128);
 					record += records_to_copy;
 				}
 			}

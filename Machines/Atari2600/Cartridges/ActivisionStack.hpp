@@ -14,7 +14,7 @@ namespace Cartridge {
 
 class ActivisionStack: public BusExtender {
 	public:
-		ActivisionStack(uint8_t *rom_base, size_t rom_size) :
+		ActivisionStack(uint8_t *rom_base, std::size_t rom_size) :
 			BusExtender(rom_base, rom_size),
 			rom_ptr_(rom_base),
 			last_opcode_(0x00) {}

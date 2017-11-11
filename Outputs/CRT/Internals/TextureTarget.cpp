@@ -7,8 +7,9 @@
 //
 
 #include "TextureTarget.hpp"
-#include <math.h>
-#include <stdlib.h>
+
+#include <cmath>
+#include <cstdlib>
 
 using namespace OpenGL;
 
@@ -26,7 +27,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	glGenTextures(1, &_texture);
 	glActiveTexture(texture_unit);
 	glBindTexture(GL_TEXTURE_2D, _texture);
-	uint8_t *blank_buffer = static_cast<uint8_t *>(calloc(static_cast<size_t>(_expanded_width * _expanded_height), 4));
+	uint8_t *blank_buffer = static_cast<uint8_t *>(calloc(static_cast<std::size_t>(_expanded_width * _expanded_height), 4));
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer);
 	free(blank_buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);

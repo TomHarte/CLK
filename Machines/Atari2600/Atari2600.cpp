@@ -7,8 +7,9 @@
 //
 
 #include "Atari2600.hpp"
+
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 
 #include "Cartridges/Atari8k.hpp"
 #include "Cartridges/Atari16k.hpp"
@@ -32,7 +33,7 @@ namespace Atari2600 {
 
 class Joystick: public Inputs::Joystick {
 	public:
-		Joystick(Bus *bus, size_t shift, size_t fire_tia_input) :
+		Joystick(Bus *bus, std::size_t shift, std::size_t fire_tia_input) :
 			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
 
 		void set_digital_input(DigitalInput digital_input, bool is_active) {
@@ -54,7 +55,7 @@ class Joystick: public Inputs::Joystick {
 
 	private:
 		Bus *bus_;
-		size_t shift_, fire_tia_input_;
+		std::size_t shift_, fire_tia_input_;
 };
 
 class ConcreteMachine:
@@ -159,7 +160,7 @@ class ConcreteMachine:
 
 		// to satisfy Outputs::CRT::Delegate
 		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) override {
-			const size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
+			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 			frame_record_pointer_ ++;
@@ -167,13 +168,13 @@ class ConcreteMachine:
 			if(frame_record_pointer_ >= 6) {
 				unsigned int total_number_of_frames = 0;
 				unsigned int total_number_of_unexpected_vertical_syncs = 0;
-				for(size_t c = 0; c < number_of_frame_records; c++) {
+				for(std::size_t c = 0; c < number_of_frame_records; c++) {
 					total_number_of_frames += frame_records_[c].number_of_frames;
 					total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
 				}
 
 				if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
-					for(size_t c = 0; c < number_of_frame_records; c++) {
+					for(std::size_t c = 0; c < number_of_frame_records; c++) {
 						frame_records_[c].number_of_frames = 0;
 						frame_records_[c].number_of_unexpected_vertical_syncs = 0;
 					}

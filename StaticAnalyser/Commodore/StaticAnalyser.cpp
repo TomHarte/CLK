@@ -98,7 +98,7 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 
 		// General approach: increase memory size conservatively such that the largest file found will fit.
 		for(File &file : files) {
-			size_t file_size = file.data.size();
+			std::size_t file_size = file.data.size();
 //			bool is_basic = file.is_basic();
 
 			/*if(is_basic)

@@ -149,7 +149,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 				}
 
 				checksum = 0;
-				for(size_t c = 0; c < 256; c++) {
+				for(std::size_t c = 0; c < 256; c++) {
 					sector->data[c] = static_cast<uint8_t>(get_next_byte());
 					checksum ^= sector->data[c];
 				}
@@ -188,7 +188,7 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 	}
 
 	// parse directory
-	size_t header_pointer = static_cast<size_t>(-32);
+	std::size_t header_pointer = static_cast<std::size_t>(-32);
 	while(header_pointer+32+31 < directory.size()) {
 		header_pointer += 32;
 
@@ -207,12 +207,12 @@ std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storag
 		next_sector = directory[header_pointer + 4];
 
 		new_file.raw_name.reserve(16);
-		for(size_t c = 0; c < 16; c++) {
+		for(std::size_t c = 0; c < 16; c++) {
 			new_file.raw_name.push_back(directory[header_pointer + 5 + c]);
 		}
 		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
 
-		size_t number_of_sectors = static_cast<size_t>(directory[header_pointer + 0x1e]) + (static_cast<size_t>(directory[header_pointer + 0x1f]) << 8);
+		std::size_t number_of_sectors = static_cast<std::size_t>(directory[header_pointer + 0x1e]) + (static_cast<std::size_t>(directory[header_pointer + 0x1f]) << 8);
 		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
 
 		bool is_first_sector = true;

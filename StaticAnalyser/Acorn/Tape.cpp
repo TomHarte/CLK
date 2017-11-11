@@ -38,7 +38,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 
 	// read out name
 	char name[11];
-	size_t name_ptr = 0;
+	std::size_t name_ptr = 0;
 	while(!tape->is_at_end() && name_ptr < sizeof(name)) {
 		name[name_ptr] = (char)parser.get_next_byte(tape);
 		if(!name[name_ptr]) break;

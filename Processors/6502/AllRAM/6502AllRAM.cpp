@@ -7,8 +7,9 @@
 //
 
 #include "6502AllRAM.hpp"
+
 #include <algorithm>
-#include <string.h>
+#include <cstring>
 
 using namespace CPU::MOS6502;
 
