@@ -63,11 +63,11 @@ class Typer {
 
 	private:
 		char *string_;
-		size_t string_pointer_;
+		size_t string_pointer_ = 0;
 
 		HalfCycles frequency_;
 		HalfCycles counter_;
-		int phase_;
+		int phase_ = 0;
 
 		Delegate *delegate_;
 		std::unique_ptr<CharacterMapper> character_mapper_;

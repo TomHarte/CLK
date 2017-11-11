@@ -21,12 +21,9 @@ namespace {
 
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
-		frame_counter_(0), counter_(0),
-		is_graphics_mode_(false),
-		character_set_base_address_(0xb400),
+		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2)),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
-		counter_period_(PAL50Period), next_frame_is_sixty_hertz_(false),
-		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2)) {
+		counter_period_(PAL50Period) {
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"

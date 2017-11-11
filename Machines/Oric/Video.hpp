@@ -27,7 +27,7 @@ class VideoOutput {
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 
 		// Counters and limits
-		int counter_, frame_counter_;
+		int counter_ = 0, frame_counter_ = 0;
 		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
 		// Output target and device
@@ -38,11 +38,11 @@ class VideoOutput {
 		// Registers
 		uint8_t ink_, paper_;
 
-		int character_set_base_address_;
+		int character_set_base_address_ = 0xb400;
 		inline void set_character_set_base_address();
 
-		bool is_graphics_mode_;
-		bool next_frame_is_sixty_hertz_;
+		bool is_graphics_mode_ = false;
+		bool next_frame_is_sixty_hertz_ = false;
 		bool use_alternative_character_set_;
 		bool use_double_height_characters_;
 		bool blink_text_;
