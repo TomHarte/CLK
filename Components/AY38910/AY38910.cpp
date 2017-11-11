@@ -10,16 +10,7 @@
 
 using namespace GI::AY38910;
 
-AY38910::AY38910() :
-		selected_register_(0),
-		tone_counters_{0, 0, 0}, tone_periods_{0, 0, 0}, tone_outputs_{0, 0, 0},
-		noise_shift_register_(0xffff), noise_period_(0), noise_counter_(0), noise_output_(0),
-		envelope_divider_(0), envelope_period_(0), envelope_position_(0),
-		master_divider_(0),
-		output_registers_{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		port_handler_(nullptr) {
-	output_registers_[8] = output_registers_[9] = output_registers_[10] = 0;
-
+AY38910::AY38910() {
 	// set up envelope lookup tables
 	for(int c = 0; c < 16; c++) {
 		for(int p = 0; p < 32; p++) {

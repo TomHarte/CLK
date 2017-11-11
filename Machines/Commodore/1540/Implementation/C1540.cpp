@@ -17,14 +17,13 @@
 using namespace Commodore::C1540;
 
 MachineBase::MachineBase() :
-		m6502_(*this),
-		shift_register_(0),
 		Storage::Disk::Controller(1000000),
-		serial_port_(new SerialPort),
+		m6502_(*this),
+		drive_(new Storage::Disk::Drive(1000000, 300, 2)),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
+		serial_port_(new SerialPort),
 		drive_VIA_(drive_VIA_port_handler_),
-		serial_port_VIA_(*serial_port_VIA_port_handler_),
-		drive_(new Storage::Disk::Drive(1000000, 300, 2)) {
+		serial_port_VIA_(*serial_port_VIA_port_handler_) {
 	// attach the serial port to its VIA and vice versa
 	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
 	serial_port_VIA_port_handler_->set_serial_port(serial_port_);
