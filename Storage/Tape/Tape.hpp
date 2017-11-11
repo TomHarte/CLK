@@ -146,10 +146,10 @@ class BinaryTapePlayer: public TapePlayer {
 		bool is_sleeping();
 
 	protected:
-		Delegate *delegate_;
+		Delegate *delegate_ = nullptr;
 		virtual void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse);
-		bool input_level_;
-		bool motor_is_running_;
+		bool input_level_ = false;
+		bool motor_is_running_ = false;
 };
 
 }

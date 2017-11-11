@@ -127,15 +127,15 @@ class TextureBuilder {
 
 		// the list of write areas that have ascended to the flush queue
 		std::vector<WriteArea> write_areas_;
-		size_t number_of_write_areas_;
-		bool is_full_, was_full_;
-		uint16_t first_unsubmitted_y_;
+		size_t number_of_write_areas_ = 0;
+		bool is_full_ = false, was_full_ = false;
+		uint16_t first_unsubmitted_y_ = 0;
 		inline uint8_t *pointer_to_location(uint16_t x, uint16_t y);
 
 		// Usually: the start position for the current batch of write areas.
 		// Caveat: reset to the origin upon a submit. So used in comparison by flush to
 		// determine whether the current batch of write areas needs to be relocated.
-		uint16_t write_areas_start_x_, write_areas_start_y_;
+		uint16_t write_areas_start_x_ = 0, write_areas_start_y_ = 0;
 
 		std::unique_ptr<Bookender> bookender_;
 };

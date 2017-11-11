@@ -73,7 +73,7 @@ class TextureTarget {
 		GLenum _texture_unit;
 
 		std::unique_ptr<Shader> _pixel_shader;
-		GLuint _drawing_vertex_array, _drawing_array_buffer;
+		GLuint _drawing_vertex_array = 0, _drawing_array_buffer = 0;
 		float _set_aspect_ratio;
 };
 
