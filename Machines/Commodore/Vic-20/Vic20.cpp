@@ -451,7 +451,7 @@ class ConcreteMachine:
 			write_to_map(mos6560_->video_memory_map, screen_memory_, 0x3000, sizeof(screen_memory_));
 			mos6560_->colour_memory = colour_memory_;
 
-			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, basic_rom_.size());
+			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, static_cast<uint16_t>(basic_rom_.size()));
 
 			ROM character_rom;
 			ROM kernel_rom;
@@ -478,9 +478,9 @@ class ConcreteMachine:
 				break;
 			}
 
-			write_to_map(processor_read_memory_map_, roms_[character_rom].data(), 0x8000, roms_[character_rom].size());
-			write_to_map(mos6560_->video_memory_map, roms_[character_rom].data(), 0x0000, roms_[character_rom].size());
-			write_to_map(processor_read_memory_map_, roms_[kernel_rom].data(), 0xe000, roms_[kernel_rom].size());
+			write_to_map(processor_read_memory_map_, roms_[character_rom].data(), 0x8000, static_cast<uint16_t>(roms_[character_rom].size()));
+			write_to_map(mos6560_->video_memory_map, roms_[character_rom].data(), 0x0000, static_cast<uint16_t>(roms_[character_rom].size()));
+			write_to_map(processor_read_memory_map_, roms_[kernel_rom].data(), 0xe000, static_cast<uint16_t>(roms_[kernel_rom].size()));
 
 			// install the inserted ROM if there is one
 			if(rom_) {
