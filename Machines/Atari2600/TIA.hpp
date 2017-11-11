@@ -81,10 +81,10 @@ class TIA {
 		std::function<void(uint8_t *output_buffer)> line_end_function_;
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
-		int horizontal_counter_;
+		int horizontal_counter_ = 0;
 
 		// contains flags to indicate whether sync or blank are currently active
-		int output_mode_;
+		int output_mode_ = 0;
 
 		// keeps track of the target pixel buffer for this line and when it was acquired, and a corresponding collision buffer
 		alignas(alignof(uint32_t)) uint8_t collision_buffer_[160];
@@ -97,7 +97,7 @@ class TIA {
 			Missile1	= (1 << 5)
 		};
 
-		int collision_flags_;
+		int collision_flags_ = 0;
 		int collision_flags_by_buffer_vaules_[64];
 
 		// colour mapping tables
@@ -118,19 +118,20 @@ class TIA {
 		uint8_t colour_palette_[4];
 
 		// playfield state
-		int background_half_mask_;
+		int background_half_mask_ = 0;
 		enum class PlayfieldPriority {
 			Standard,
 			Score,
 			OnTop
 		} playfield_priority_;
-		uint32_t background_[2];	// contains two 20-bit bitfields representing the background state;
-									// at index 0 is the left-hand side of the playfield with bit 0 being
-									// the first bit to display, bit 1 the second, etc. Index 1 contains
-									// a mirror image of index 0. If the playfield is being displayed in
-									// mirroring mode, background_[0] will be output on the left and
-									// background_[1] on the right; otherwise background_[0] will be
-									// output twice.
+		uint32_t background_[2] = {0, 0};
+				// contains two 20-bit bitfields representing the background state;
+				// at index 0 is the left-hand side of the playfield with bit 0 being
+				// the first bit to display, bit 1 the second, etc. Index 1 contains
+				// a mirror image of index 0. If the playfield is being displayed in
+				// mirroring mode, background_[0] will be output on the left and
+				// background_[1] on the right; otherwise background_[0] will be
+				// output twice.
 
 		// objects
 		template<class T> struct Object {
@@ -287,7 +288,7 @@ class TIA {
 		} ball_;
 
 		// motion
-		bool horizontal_blank_extend_;
+		bool horizontal_blank_extend_ = false;
 		template<class T> void perform_border_motion(T &object, int start, int end);
 		template<class T> void perform_motion_step(T &object);
 
@@ -300,8 +301,8 @@ class TIA {
 		inline void output_for_cycles(int number_of_cycles);
 		inline void output_line();
 
-		int pixels_start_location_;
-		uint8_t *pixel_target_;
+		int pixels_start_location_ = 0;
+		uint8_t *pixel_target_ = nullptr;
 		inline void output_pixels(int start, int end);
 };
 
