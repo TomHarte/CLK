@@ -14,9 +14,8 @@ using namespace Storage::Disk;
 
 MFMController::MFMController(Cycles clock_rate) :
 	Storage::Disk::Controller(clock_rate),
-	crc_generator_(0x1021, 0xffff),
-	data_mode_(DataMode::Scanning),
-	shifter_(&crc_generator_) {
+	shifter_(&crc_generator_),
+	crc_generator_(0x1021, 0xffff) {
 }
 
 void MFMController::process_index_hole() {

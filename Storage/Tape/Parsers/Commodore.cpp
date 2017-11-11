@@ -14,10 +14,7 @@
 using namespace Storage::Tape::Commodore;
 
 Parser::Parser() :
-	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>(),
-	wave_period_(0.0f),
-	previous_was_high_(false),
-	parity_byte_(0) {}
+	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>() {}
 
 /*!
 	Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.

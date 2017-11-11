@@ -267,15 +267,13 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
-				rom_(nullptr),
-				is_running_at_zero_cost_(false),
-				tape_(new Storage::Tape::BinaryTapePlayer(1022727)),
 				user_port_via_port_handler_(new UserPortVIA),
 				keyboard_via_port_handler_(new KeyboardVIA),
 				serial_port_(new SerialPort),
 				serial_bus_(new ::Commodore::Serial::Bus),
 				user_port_via_(*user_port_via_port_handler_),
-				keyboard_via_(*keyboard_via_port_handler_) {
+				keyboard_via_(*keyboard_via_port_handler_),
+				tape_(new Storage::Tape::BinaryTapePlayer(1022727)) {
 			// communicate the tape to the user-port VIA
 			user_port_via_port_handler_->set_tape(tape_);
 
@@ -648,7 +646,7 @@ class ConcreteMachine:
 		std::vector<uint8_t>  kernel_rom_;
 		uint8_t expansion_ram_[0x8000];
 
-		uint8_t *rom_;
+		uint8_t *rom_ = nullptr;
 		uint16_t rom_address_, rom_length_;
 
 		uint8_t user_basic_memory_[0x0400];
@@ -688,7 +686,7 @@ class ConcreteMachine:
 		// Tape
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 		bool use_fast_tape_hack_;
-		bool is_running_at_zero_cost_;
+		bool is_running_at_zero_cost_ = false;
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;

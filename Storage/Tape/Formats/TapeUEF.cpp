@@ -68,10 +68,7 @@ static int gzget32(gzFile file) {
 
 using namespace Storage::Tape;
 
-UEF::UEF(const char *file_name) :
-	time_base_(1200),
-	is_300_baud_(false),
-	platform_type_(TargetPlatform::Acorn) {
+UEF::UEF(const char *file_name) {
 	file_ = gzopen(file_name, "rb");
 
 	char identifier[10];

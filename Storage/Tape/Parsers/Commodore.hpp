@@ -99,7 +99,7 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		*/
 		void expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value);
 
-		uint8_t parity_byte_;
+		uint8_t parity_byte_ = 0;
 		void reset_parity_byte();
 		uint8_t get_parity_byte();
 		void add_parity_byte(uint8_t byte);
@@ -127,8 +127,8 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 			a long, medium, short or unrecognised wave period.
 		*/
 		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
-		bool previous_was_high_;
-		float wave_period_;
+		bool previous_was_high_ = false;
+		float wave_period_ = 0.0f;
 
 		/*!
 			Per the contract with StaticAnalyser::TapeParser; produces any of a word marker, an end-of-block marker,
