@@ -334,9 +334,9 @@ void IntermediateShader::set_filter_coefficients(float sampling_rate, float cuto
 	unsigned int taps = 11;
 //	unsigned int taps = 21;
 //	while(1) {
-		float coefficients[21];
+//		float coefficients[21];
 		SignalProcessing::FIRFilter luminance_filter(taps, sampling_rate, 0.0f, cutoff_frequency, SignalProcessing::FIRFilter::DefaultAttenuation);
-		luminance_filter.get_coefficients(coefficients);
+		std::vector<float> coefficients = luminance_filter.get_coefficients();
 
 //		int sample = 0;
 //		int c = 0;

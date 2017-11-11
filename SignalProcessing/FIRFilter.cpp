@@ -46,7 +46,7 @@ float FIRFilter::ino(float a) {
 	return s;
 }
 
-void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoefficients, float *A, float attenuation, unsigned int numberOfTaps) {
+void FIRFilter::coefficients_for_idealised_filter_response(short *filter_coefficients, float *A, float attenuation, size_t number_of_taps) {
 	/* calculate alpha, which is the Kaiser-Bessel window shape factor */
 	float a;	// to take the place of alpha in the normal derivation
 
@@ -59,46 +59,46 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filterCoeffici
 			a = 0.5842f * powf(attenuation - 21.0f, 0.4f) + 0.7886f * (attenuation - 21.0f);
 	}
 
-	float *filterCoefficientsFloat = new float[numberOfTaps];
+	std::vector<float> filter_coefficients_float(number_of_taps);
 
 	/* work out the right hand side of the filter coefficients */
-	unsigned int Np = (numberOfTaps - 1) / 2;
+	size_t Np = (number_of_taps - 1) / 2;
 	float I0 = ino(a);
-	float NpSquared = static_cast<float>(Np * Np);
-	for(unsigned int i = 0; i <= Np; i++) {
-		filterCoefficientsFloat[Np + i] =
+	float Np_squared = static_cast<float>(Np * Np);
+	for(unsigned int i = 0; i <= Np; ++i) {
+		filter_coefficients_float[Np + i] =
 				A[i] *
-				ino(a * sqrtf(1.0f - (static_cast<float>(i * i) / NpSquared) )) /
+				ino(a * sqrtf(1.0f - (static_cast<float>(i * i) / Np_squared) )) /
 				I0;
 	}
 
 	/* coefficients are symmetrical, so copy from right hand side to left side */
-	for(unsigned int i = 0; i < Np; i++) {
-		filterCoefficientsFloat[i] = filterCoefficientsFloat[numberOfTaps - 1 - i];
+	for(size_t i = 0; i < Np; ++i) {
+		filter_coefficients_float[i] = filter_coefficients_float[number_of_taps - 1 - i];
 	}
 
 	/* scale back up so that we retain 100% of input volume */
 	float coefficientTotal = 0.0f;
-	for(unsigned int i = 0; i < numberOfTaps; i++) {
-		coefficientTotal += filterCoefficientsFloat[i];
+	for(size_t i = 0; i < number_of_taps; ++i) {
+		coefficientTotal += filter_coefficients_float[i];
 	}
 
 	/* we'll also need integer versions, potentially */
 	float coefficientMultiplier = 1.0f / coefficientTotal;
-	for(unsigned int i = 0; i < numberOfTaps; i++) {
-		filterCoefficients[i] = (short)(filterCoefficientsFloat[i] * kCSKaiserBesselFilterFixedMultiplier * coefficientMultiplier);
-	}
-
-	delete[] filterCoefficientsFloat;
-}
-
-void FIRFilter::get_coefficients(float *coefficients) {
-	for(unsigned int i = 0; i < number_of_taps_; i++) {
-		coefficients[i] = static_cast<float>(filter_coefficients_[i]) / kCSKaiserBesselFilterFixedMultiplier;
+	for(size_t i = 0; i < number_of_taps; ++i) {
+		filter_coefficients[i] = (short)(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier);
 	}
 }
 
-FIRFilter::FIRFilter(unsigned int number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation) {
+std::vector<float> FIRFilter::get_coefficients() const {
+	std::vector<float> coefficients;
+	for(auto short_coefficient: filter_coefficients_) {
+		coefficients.push_back(static_cast<float>(short_coefficient) / FixedMultiplier);
+	}
+	return coefficients;
+}
+
+FIRFilter::FIRFilter(size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation) {
 	// we must be asked to filter based on an odd number of
 	// taps, and at least three
 	if(number_of_taps < 3) number_of_taps = 3;
@@ -108,30 +108,52 @@ FIRFilter::FIRFilter(unsigned int number_of_taps, float input_sample_rate, float
 	number_of_taps |= 1;
 
 	// store instance variables
-	number_of_taps_ = number_of_taps;
-	filter_coefficients_ = new short[number_of_taps_];
+	filter_coefficients_.resize(number_of_taps);
 
 	/* calculate idealised filter response */
-	unsigned int Np = (number_of_taps - 1) / 2;
-	float twoOverSampleRate = 2.0f / input_sample_rate;
+	size_t Np = (number_of_taps - 1) / 2;
+	float two_over_sample_rate = 2.0f / input_sample_rate;
 
-	float *A = new float[Np+1];
+	std::vector<float> A(Np+1);
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
-	for(unsigned int i = 1; i <= Np; i++) {
-		float iPi = static_cast<float>(i) * static_cast<float>(M_PI);
+	for(unsigned int i = 1; i <= Np; ++i) {
+		float i_pi = static_cast<float>(i) * static_cast<float>(M_PI);
 		A[i] =
 			(
-				sinf(twoOverSampleRate * iPi * high_frequency) -
-				sinf(twoOverSampleRate * iPi * low_frequency)
-			) / iPi;
+				sinf(two_over_sample_rate * i_pi * high_frequency) -
+				sinf(two_over_sample_rate * i_pi * low_frequency)
+			) / i_pi;
 	}
 
-	FIRFilter::coefficients_for_idealised_filter_response(filter_coefficients_, A, attenuation, number_of_taps_);
-
-	/* clean up */
-	delete[] A;
+	FIRFilter::coefficients_for_idealised_filter_response(filter_coefficients_.data(), A.data(), attenuation, number_of_taps);
 }
 
-FIRFilter::~FIRFilter() {
-	delete[] filter_coefficients_;
+FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
+	for(auto coefficient: coefficients) {
+		filter_coefficients_.push_back(static_cast<short>(coefficient * FixedMultiplier));
+	}
+}
+
+FIRFilter FIRFilter::operator+(const FIRFilter &rhs) const {
+	std::vector<float> coefficients = get_coefficients();
+	std::vector<float> rhs_coefficients = rhs.get_coefficients();
+
+	std::vector<float> sum;
+	for(size_t i = 0; i < coefficients.size(); ++i) {
+		sum.push_back((coefficients[i] + rhs_coefficients[i]) / 2.0f);
+	}
+
+	return FIRFilter(sum);
+}
+
+FIRFilter FIRFilter::operator*(const FIRFilter &rhs) const {
+	std::vector<float> coefficients = get_coefficients();
+	std::vector<float> rhs_coefficients = rhs.get_coefficients();
+
+	std::vector<float> sum;
+	for(size_t i = 0; i < coefficients.size(); ++i) {
+		sum.push_back(coefficients[i] * rhs_coefficients[i]);
+	}
+
+	return FIRFilter(sum);
 }
