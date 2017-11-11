@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <cstring>
+
 using namespace Electron;
 
 #define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)

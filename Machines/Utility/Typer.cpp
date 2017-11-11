@@ -7,7 +7,9 @@
 //
 
 #include "Typer.hpp"
-#include <stdlib.h>
+
+#include <cstdlib>
+#include <cstring>
 
 using namespace Utility;
 

@@ -9,6 +9,8 @@
 #ifndef SerialBus_hpp
 #define SerialBus_hpp
 
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace Commodore {
