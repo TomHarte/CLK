@@ -74,5 +74,4 @@ env.Append(CCFLAGS = ['--std=c++11', '-O3'])
 env.Append(LIBS = ['libz', 'pthread', 'GL'])
 
 # build target
-# output executable will be "game"
 env.Program(target = 'clksignal', source = SOURCES)
