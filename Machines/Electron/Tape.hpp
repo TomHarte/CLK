@@ -52,12 +52,12 @@ class Tape:
 		inline void get_next_tape_pulse();
 
 		struct {
-			int minimum_bits_until_full;
-		} input_ = {0};
+			int minimum_bits_until_full = 0;
+		} input_;
 		struct {
-			unsigned int cycles_into_pulse;
-			unsigned int bits_remaining_until_empty;
-		} output_ = {.bits_remaining_until_empty = 0, .cycles_into_pulse = 0};
+			unsigned int cycles_into_pulse = 0;
+			unsigned int bits_remaining_until_empty = 0;
+		} output_;
 
 		bool is_running_ = false;
 		bool is_enabled_ = false;

@@ -121,12 +121,9 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		MOS6532() :
-			interrupt_status_(0),
-			port_{{.output_mask = 0, .output = 0}, {.output_mask = 0, .output = 0}},
-			a7_interrupt_({.last_port_value = 0, .enabled = false}),
-			interrupt_line_(false),
-			timer_{.value = static_cast<unsigned int>((rand() & 0xff) << 10), .activeShift = 10, .writtenShift = 10, .interrupt_enabled = false} {}
+		MOS6532() {
+			timer_.value = static_cast<unsigned int>((rand() & 0xff) << 10);
+		}
 
 		inline void set_port_did_change(int port) {
 			if(!port) {
@@ -154,26 +151,26 @@ template <class T> class MOS6532 {
 
 		struct {
 			unsigned int value;
-			unsigned int activeShift, writtenShift;
-			bool interrupt_enabled;
+			unsigned int activeShift = 10, writtenShift = 10;
+			bool interrupt_enabled = false;
 		} timer_;
 
 		struct {
-			bool enabled;
-			bool active_on_positive;
-			uint8_t last_port_value;
+			bool enabled = false;
+			bool active_on_positive = false;
+			uint8_t last_port_value = 0;
 		} a7_interrupt_;
 
 		struct {
-			uint8_t output_mask, output;
+			uint8_t output_mask = 0, output = 0;
 		} port_[2];
 
-		uint8_t interrupt_status_;
+		uint8_t interrupt_status_ = 0;
 		enum InterruptFlag: uint8_t {
 			Timer = 0x80,
 			PA7 = 0x40
 		};
-		bool interrupt_line_;
+		bool interrupt_line_ = false;
 
 		// expected to be overridden
 		uint8_t get_port_input(int port)										{	return 0xff;	}

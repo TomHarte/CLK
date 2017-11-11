@@ -23,7 +23,7 @@ struct Rect {
 
 	Rect() {}
 	Rect(float x, float y, float width, float height) :
-		origin({.x = x, .y = y}), size({.width = width, .height = height}) {}
+		origin({x, y}), size({width, height}) {}
 };
 
 enum DisplayType {
