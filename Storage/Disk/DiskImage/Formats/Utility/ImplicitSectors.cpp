@@ -8,6 +8,8 @@
 
 #include "ImplicitSectors.hpp"
 
+#include <cstring>
+
 #include "../../../Encodings/MFM/Sector.hpp"
 #include "../../../Encodings/MFM/Encoder.hpp"
 #include "../../../Encodings/MFM/Constants.hpp"

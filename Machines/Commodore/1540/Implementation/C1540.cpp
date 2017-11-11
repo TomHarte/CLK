@@ -6,10 +6,10 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "C1540.hpp"
+#include "../C1540.hpp"
 
-#include <string>
 #include <cassert>
+#include <cstring>
 
 #include "../../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
 

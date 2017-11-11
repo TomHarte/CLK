@@ -8,7 +8,8 @@
 
 #include "Shader.hpp"
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 
 using namespace OpenGL;
 

@@ -7,6 +7,8 @@
 //
 
 #include "Commodore.hpp"
+
+#include <cstring>
 #include "../../Data/Commodore.hpp"
 
 using namespace Storage::Tape::Commodore;
