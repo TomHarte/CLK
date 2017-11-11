@@ -151,8 +151,7 @@ void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
 
 #pragma mark - SerialPortVIA
 
-SerialPortVIA::SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via) :
-	port_b_(0x00), attention_acknowledge_level_(false), attention_level_input_(true), data_level_output_(false), via_(via) {}
+SerialPortVIA::SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via) : via_(via) {}
 
 uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 	if(port) return port_b_;
