@@ -69,7 +69,7 @@ SOURCES += glob.glob('../../Storage/Tape/Formats/*.cpp')
 SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
 
 # add additional compiler flags
-env.Append(CCFLAGS = ['-g', '--std=c++11'])
+env.Append(CCFLAGS = ['--std=c++11', '-O3'])
 # add additional libraries to link against
 env.Append(LIBS = ['libz', 'pthread', 'GL'])
 
