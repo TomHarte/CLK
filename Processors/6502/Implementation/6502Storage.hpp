@@ -64,14 +64,14 @@ class ProcessorStorage {
 
 		static const MicroOp operations[256][10];
 
-		const MicroOp *scheduled_program_counter_;
+		const MicroOp *scheduled_program_counter_ = nullptr;
 
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
 		*/
 		RegisterPair pc_, last_operation_pc_;
-		uint8_t a_, x_, y_, s_;
-		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_;
+		uint8_t a_, x_, y_, s_ = 0;
+		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
 
 		/*
 			Temporary state for the micro programs.
@@ -83,7 +83,7 @@ class ProcessorStorage {
 			Temporary storage allowing a common dispatch point for calling perform_bus_operation;
 			possibly deferring is no longer of value.
 		*/
-		BusOperation next_bus_operation_;
+		BusOperation next_bus_operation_ = BusOperation::None;
 		uint16_t bus_address_;
 		uint8_t *bus_value_;
 
@@ -105,7 +105,7 @@ class ProcessorStorage {
 		*/
 		inline void set_flags(uint8_t flags);
 
-		bool is_jammed_;
+		bool is_jammed_ = false;
 		Cycles cycles_left_to_run_;
 
 		enum InterruptRequestFlags: uint8_t {
@@ -115,13 +115,13 @@ class ProcessorStorage {
 
 			PowerOn		= 0x10,
 		};
-		uint8_t interrupt_requests_;
+		uint8_t interrupt_requests_ = InterruptRequestFlags::PowerOn;
 
-		bool ready_is_active_;
-		bool ready_line_is_enabled_;
+		bool ready_is_active_ = false;
+		bool ready_line_is_enabled_ = false;
 
-		uint8_t irq_line_, irq_request_history_;
-		bool nmi_line_is_enabled_, set_overflow_line_is_enabled_;
+		uint8_t irq_line_ = 0, irq_request_history_ = 0;
+		bool nmi_line_is_enabled_ = false, set_overflow_line_is_enabled_ = false;
 
 		/*!
 			Gets the program representing an RST response.

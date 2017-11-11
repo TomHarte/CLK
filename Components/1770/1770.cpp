@@ -11,28 +11,10 @@
 
 using namespace WD;
 
-WD1770::Status::Status() :
-		type(Status::One),
-		write_protect(false),
-		record_type(false),
-		spin_up(false),
-		record_not_found(false),
-		crc_error(false),
-		seek_error(false),
-		lost_data(false),
-		data_request(false),
-		interrupt_request(false),
-		busy(false) {}
-
 WD1770::WD1770(Personality p) :
 		Storage::Disk::MFMController(8000000),
-		interesting_event_mask_(static_cast<int>(Event1770::Command)),
-		resume_point_(0),
-		delay_time_(0),
-		index_hole_count_target_(-1),
-		delegate_(nullptr),
 		personality_(p),
-		head_is_loaded_(false) {
+		interesting_event_mask_(static_cast<int>(Event1770::Command)) {
 	set_is_double_density(false);
 	posit_event(static_cast<int>(Event1770::Command));
 }

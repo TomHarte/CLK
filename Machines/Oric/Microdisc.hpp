@@ -45,11 +45,11 @@ class Microdisc: public WD::WD1770 {
 		bool get_drive_is_ready();
 		std::shared_ptr<Storage::Disk::Drive> drives_[4];
 		int selected_drive_;
-		bool irq_enable_;
-		int paging_flags_;
-		int head_load_request_counter_;
-		Delegate *delegate_;
-		uint8_t last_control_;
+		bool irq_enable_ = false;
+		int paging_flags_ = BASICDisable;
+		int head_load_request_counter_ = -1;
+		Delegate *delegate_ = nullptr;
+		uint8_t last_control_ = 0;
 };
 
 }
