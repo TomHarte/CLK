@@ -19,6 +19,7 @@ const char *::Commodore::Serial::StringForLine(Line line) {
 		case Clock: return "Clock";
 		case Data: return "Data";
 		case Reset: return "Reset";
+		default: return nullptr;
 	}
 }
 
