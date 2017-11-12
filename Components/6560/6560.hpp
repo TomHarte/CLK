@@ -102,7 +102,7 @@ template <class T> class MOS6560 {
 			Outputs::CRT::DisplayType display_type;
 
 			switch(output_mode) {
-				case OutputMode::PAL:
+				default:
 					chrominances = pal_chrominances;
 					display_type = Outputs::CRT::PAL50;
 					timing_.cycles_per_line = 71;
