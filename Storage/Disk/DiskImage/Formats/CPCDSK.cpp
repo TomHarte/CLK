@@ -365,7 +365,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		}
 
 		// Move to next 256-byte boundary.
-		long distance = (256 - output.tell()&255)&255;
+		long distance = (256 - (output.tell()&255))&255;
 		output.putn(static_cast<std::size_t>(distance), 0);
 
 		// Output sector contents.
@@ -376,7 +376,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		}
 
 		// Move to next 256-byte boundary.
-		distance = (256 - output.tell()&255)&255;
+		distance = (256 - (output.tell()&255))&255;
 		output.putn(static_cast<std::size_t>(distance), 0);
 	}
 }

@@ -8,6 +8,8 @@
 
 #include "CSW.hpp"
 
+#include <cassert>
+
 using namespace Storage::Tape;
 
 CSW::CSW(const char *file_name) :
@@ -90,6 +92,8 @@ uint8_t CSW::get_next_byte() {
 			source_data_pointer_++;
 			return result;
 		}
+
+		default: assert(false);	break;
 	}
 }
 
@@ -107,7 +111,7 @@ uint32_t CSW::get_next_int32le() {
 			return result;
 		}
 
-		default: return 0;
+		default: assert(false);	break;
 	}
 }
 
@@ -120,7 +124,7 @@ bool CSW::is_at_end() {
 		case CompressionType::RLE: return file_.eof();
 		case CompressionType::ZRLE: return source_data_pointer_ == source_data_.size();
 
-		default: return true;
+		default: assert(false);	break;
 	}
 }
 
@@ -129,7 +133,7 @@ void CSW::virtual_reset() {
 		case CompressionType::RLE:	file_.seek(rle_start_, SEEK_SET);	break;
 		case CompressionType::ZRLE:	source_data_pointer_ = 0;			break;
 
-		default: break;
+		default: assert(false);	break;
 	}
 }
 

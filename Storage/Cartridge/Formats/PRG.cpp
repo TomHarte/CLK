@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <sys/stat.h>
+
 #include "../Encodings/CommodoreROM.hpp"
 
 using namespace Storage::Cartridge;
@@ -23,7 +24,7 @@ PRG::PRG(const char *file_name) {
 		throw ErrorNotROM;
 
 	// get the loading address, and the rest of the contents
-	FILE *file = fopen(file_name, "rb");
+	FILE *file = std::fopen(file_name, "rb");
 
 	int loading_address = fgetc(file);
 	loading_address |= fgetc(file) << 8;
@@ -32,11 +33,11 @@ PRG::PRG(const char *file_name) {
 	std::size_t padded_data_length = 1;
 	while(padded_data_length < data_length) padded_data_length <<= 1;
 	std::vector<uint8_t> contents(padded_data_length);
-	fread(&contents[0], 1, static_cast<std::size_t>(data_length), file);
-	fclose(file);
+	std::size_t length = std::fread(contents.data(), 1, static_cast<std::size_t>(data_length), file);
+	std::fclose(file);
 
 	// accept only files intended to load at 0xa000
-	if(loading_address != 0xa000)
+	if(loading_address != 0xa000 || length != static_cast<std::size_t>(data_length))
 		throw ErrorNotROM;
 
 	// also accept only cartridges with the proper signature
