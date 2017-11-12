@@ -7,8 +7,9 @@
 
 #include "../CRT.hpp"
 
-#include <cstdlib>
+#include <cassert>
 #include <cmath>
+#include <cstdlib>
 
 #include "CRTOpenGL.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
