@@ -139,7 +139,7 @@ void MachineBase::process_input_bit(int value) {
 // the 1540 does not recognise index holes
 void MachineBase::process_index_hole()	{}
 
-#pragma mak - Drive VIA delegate
+// MARK: - Drive VIA delegate
 
 void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
 	drive_->step(direction);
