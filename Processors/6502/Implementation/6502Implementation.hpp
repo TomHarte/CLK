@@ -84,7 +84,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 				switch(cycle) {
 
-#pragma mark - Fetch/Decode
+// MARK: - Fetch/Decode
 
 					case CycleFetchOperation: {
 						last_operation_pc_ = pc_;
@@ -156,20 +156,20 @@ if(number_of_cycles <= Cycles(0)) break;
 						throwaway_read(oldPC);
 					} break;
 
-#pragma mark - JAM
+// MARK: - JAM
 
 					case CycleScheduleJam: {
 						is_jammed_ = true;
 						scheduled_program_counter_ = operations[CPU::MOS6502::JamOpcode];
 					} continue;
 
-#pragma mark - Bitwise
+// MARK: - Bitwise
 
 					case OperationORA:	a_ |= operand_;	negative_result_ = zero_result_ = a_;		continue;
 					case OperationAND:	a_ &= operand_;	negative_result_ = zero_result_ = a_;		continue;
 					case OperationEOR:	a_ ^= operand_;	negative_result_ = zero_result_ = a_;		continue;
 
-#pragma mark - Load and Store
+// MARK: - Load and Store
 
 					case OperationLDA:	a_ = negative_result_ = zero_result_ = operand_;			continue;
 					case OperationLDX:	x_ = negative_result_ = zero_result_ = operand_;			continue;
@@ -190,7 +190,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						negative_result_ = zero_result_ = a_;
 					continue;
 
-#pragma mark - Compare
+// MARK: - Compare
 
 					case OperationCMP: {
 						const uint16_t temp16 = a_ - operand_;
@@ -208,7 +208,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 
-#pragma mark - BIT
+// MARK: - BIT
 
 					case OperationBIT:
 						zero_result_ = operand_ & a_;
@@ -216,7 +216,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						overflow_flag_ = operand_&Flag::Overflow;
 					continue;
 
-#pragma mark ADC/SBC (and INS)
+// MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
 						operand_++;			// deliberate fallthrough
@@ -270,7 +270,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						if(cycle == OperationINS) operand_ = ~operand_;
 					continue;
 
-#pragma mark - Shifts and Rolls
+// MARK: - Shifts and Rolls
 
 					case OperationASL:
 						carry_flag_ = operand_ >> 7;
@@ -366,7 +366,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						negative_result_ = zero_result_ = a_;
 					continue;
 
-#pragma mark - Addressing Mode Work
+// MARK: - Addressing Mode Work
 
 					case CycleAddXToAddressLow:
 						nextAddress.full = address_.full + x_;
@@ -452,7 +452,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationCopyOperandFromA:		operand_ = a_;					continue;
 					case OperationCopyOperandToA:		a_ = operand_;					continue;
 
-#pragma mark - Branching
+// MARK: - Branching
 
 #define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = doBranch
 
@@ -478,7 +478,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 #undef BRA
 
-#pragma mark - Transfers
+// MARK: - Transfers
 
 					case OperationTXA: zero_result_ = negative_result_ = a_ = x_;	continue;
 					case OperationTYA: zero_result_ = negative_result_ = a_ = y_;	continue;

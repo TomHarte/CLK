@@ -28,7 +28,7 @@ class Pitfall2: public BusExtender {
 
 			switch(address) {
 
-#pragma mark - Reads
+// MARK: - Reads
 
 				// The random number generator
 				case 0x1000: case 0x1001: case 0x1002: case 0x1003: case 0x1004:
@@ -56,7 +56,7 @@ class Pitfall2: public BusExtender {
 					*value = rom_base_[8192 + address_for_counter(address & 7)] & mask_[address & 7];
 				break;
 
-#pragma mark - Writes
+// MARK: - Writes
 
 				case 0x1040: case 0x1041: case 0x1042: case 0x1043: case 0x1044: case 0x1045: case 0x1046: case 0x1047:
 					top_[address & 7] = *value;
@@ -75,12 +75,12 @@ class Pitfall2: public BusExtender {
 					random_number_generator_ = 0;
 				break;
 
-#pragma mark - Paging
+// MARK: - Paging
 
 				case 0x1ff8: rom_ptr_ = rom_base_;			break;
 				case 0x1ff9: rom_ptr_ = rom_base_ + 4096;	break;
 
-#pragma mark - Business as usual
+// MARK: - Business as usual
 
 				default:
 					if(isReadOperation(operation)) {

@@ -529,7 +529,7 @@ void TIA::output_line() {
 	}
 }
 
-#pragma mark - Playfield output
+// MARK: - Playfield output
 
 void TIA::draw_playfield(int start, int end) {
 	// don't do anything if this window ends too early
@@ -549,7 +549,7 @@ void TIA::draw_playfield(int start, int end) {
 	}
 }
 
-#pragma mark - Motion
+// MARK: - Motion
 
 template<class T> void TIA::perform_motion_step(T &object) {
 	if((object.motion_step ^ (object.motion ^ 8)) == 0xf) {
@@ -657,7 +657,7 @@ template<class T> void TIA::draw_object_visible(T &object, const uint8_t collisi
 	}
 }
 
-#pragma mark - Missile drawing
+// MARK: - Missile drawing
 
 void TIA::draw_missile(Missile &missile, Player &player, const uint8_t collision_identity, int start, int end) {
 	if(!missile.locked_to_player || player.latched_pixel4_time < 0) {

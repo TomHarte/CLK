@@ -43,7 +43,7 @@ namespace {
 	};
 }
 
-#pragma mark - Lifecycle
+// MARK: - Lifecycle
 
 VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 	memset(palette_, 0xf, sizeof(palette_));
@@ -64,13 +64,13 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 3, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
 
-#pragma mark - CRT getter
+// MARK: - CRT getter
 
 std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
 	return crt_;
 }
 
-#pragma mark - Display update methods
+// MARK: - Display update methods
 
 void VideoOutput::start_pixel_line() {
 	current_pixel_line_ = (current_pixel_line_+1)&255;
@@ -252,7 +252,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 	}
 }
 
-#pragma mark - Register hub
+// MARK: - Register hub
 
 void VideoOutput::set_register(int address, uint8_t value) {
 	switch(address & 0xf) {
@@ -338,7 +338,7 @@ void VideoOutput::setup_base_address() {
 	}
 }
 
-#pragma mark - Interrupts
+// MARK: - Interrupts
 
 VideoOutput::Interrupt VideoOutput::get_next_interrupt() {
 	VideoOutput::Interrupt interrupt;
@@ -372,7 +372,7 @@ VideoOutput::Interrupt VideoOutput::get_next_interrupt() {
 	return interrupt;
 }
 
-#pragma mark - RAM timing and access information
+// MARK: - RAM timing and access information
 
 unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) {
 	unsigned int result = 0;
@@ -407,7 +407,7 @@ VideoOutput::Range VideoOutput::get_memory_access_range() {
 	return range;
 }
 
-#pragma mark - The screen map
+// MARK: - The screen map
 
 void VideoOutput::setup_screen_map() {
 	/*

@@ -38,7 +38,7 @@ Drive &Controller::get_drive() {
 	return *drive_.get();
 }
 
-#pragma mark - Drive::EventDelegate
+// MARK: - Drive::EventDelegate
 
 void Controller::process_event(const Track::Event &event) {
 	switch(event.type) {
@@ -55,7 +55,7 @@ void Controller::process_write_completed() {
 	// Provided for subclasses to override.
 }
 
-#pragma mark - PLL control and delegate
+// MARK: - PLL control and delegate
 
 void Controller::set_expected_bit_length(Time bit_length) {
 	bit_length_ = bit_length;

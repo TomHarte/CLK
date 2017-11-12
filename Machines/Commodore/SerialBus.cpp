@@ -63,7 +63,7 @@ void Bus::set_line_output_did_change(Line line) {
 	}
 }
 
-#pragma mark - The debug port
+// MARK: - The debug port
 
 void DebugPort::set_input(Line line, LineLevel value) {
 	input_levels_[line] = value;

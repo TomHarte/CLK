@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#pragma mark - ZLib extensions
+// MARK: - ZLib extensions
 
 static float gzgetfloat(gzFile file) {
 	uint8_t bytes[4];
@@ -91,7 +91,7 @@ UEF::~UEF() {
 	gzclose(file_);
 }
 
-#pragma mark - Public methods
+// MARK: - Public methods
 
 void UEF::virtual_reset() {
 	gzseek(file_, 12, SEEK_SET);
@@ -99,7 +99,7 @@ void UEF::virtual_reset() {
 	clear();
 }
 
-#pragma mark - Chunk navigator
+// MARK: - Chunk navigator
 
 bool UEF::get_next_chunk(UEF::Chunk &result) {
 	uint16_t chunk_id = static_cast<uint16_t>(gzget16(file_));
@@ -161,7 +161,7 @@ void UEF::get_next_pulses() {
 	}
 }
 
-#pragma mark - Chunk parsers
+// MARK: - Chunk parsers
 
 void UEF::queue_implicit_bit_pattern(uint32_t length) {
 	while(length--) {
@@ -277,7 +277,7 @@ void UEF::queue_defined_data(uint32_t length) {
 	}
 }
 
-#pragma mark - Queuing helpers
+// MARK: - Queuing helpers
 
 void UEF::queue_implicit_byte(uint8_t byte) {
 	queue_bit(0);
@@ -312,7 +312,7 @@ void UEF::queue_bit(int bit) {
 	}
 }
 
-#pragma mark - TypeDistinguisher
+// MARK: - TypeDistinguisher
 
 TargetPlatform::Type UEF::target_platform_type() {
 	return platform_type_;

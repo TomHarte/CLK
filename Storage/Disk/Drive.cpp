@@ -140,7 +140,7 @@ void Drive::run_for(const Cycles cycles) {
 	}
 }
 
-#pragma mark - Track timed event loop
+// MARK: - Track timed event loop
 
 void Drive::get_next_event(const Time &duration_already_passed) {
 	// Grab a new track if not already in possession of one. This will recursively call get_next_event,
@@ -181,7 +181,7 @@ void Drive::process_next_event() {
 	get_next_event(Time(0));
 }
 
-#pragma mark - Track management
+// MARK: - Track management
 
 std::shared_ptr<Track> Drive::get_track() {
 	if(disk_) return disk_->get_track_at_position(Track::Address(head_, head_position_));
@@ -217,7 +217,7 @@ void Drive::invalidate_track() {
 	}
 }
 
-#pragma mark - Writing
+// MARK: - Writing
 
 void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	is_reading_ = false;
