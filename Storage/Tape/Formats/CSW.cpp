@@ -106,6 +106,8 @@ uint32_t CSW::get_next_int32le() {
 			source_data_pointer_ += 4;
 			return result;
 		}
+
+		default: return 0;
 	}
 }
 
@@ -117,6 +119,8 @@ bool CSW::is_at_end() {
 	switch(compression_type_) {
 		case CompressionType::RLE: return file_.eof();
 		case CompressionType::ZRLE: return source_data_pointer_ == source_data_.size();
+
+		default: return true;
 	}
 }
 
@@ -124,6 +128,8 @@ void CSW::virtual_reset() {
 	switch(compression_type_) {
 		case CompressionType::RLE:	file_.seek(rle_start_, SEEK_SET);	break;
 		case CompressionType::ZRLE:	source_data_pointer_ = 0;			break;
+
+		default: break;
 	}
 }
 
