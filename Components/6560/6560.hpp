@@ -42,7 +42,7 @@ class Speaker: public ::Outputs::Filter<Speaker> {
 template <class T> class MOS6560 {
 	public:
 		MOS6560() :
-				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::NTSC60, 2)),
+				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::DisplayType::NTSC60, 2)),
 				speaker_(new Speaker) {
 			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
@@ -102,9 +102,9 @@ template <class T> class MOS6560 {
 			Outputs::CRT::DisplayType display_type;
 
 			switch(output_mode) {
-				case OutputMode::PAL:
+				default:
 					chrominances = pal_chrominances;
-					display_type = Outputs::CRT::PAL50;
+					display_type = Outputs::CRT::DisplayType::PAL50;
 					timing_.cycles_per_line = 71;
 					timing_.line_counter_increment_offset = 0;
 					timing_.lines_per_progressive_field = 312;
@@ -113,7 +113,7 @@ template <class T> class MOS6560 {
 
 				case OutputMode::NTSC:
 					chrominances = ntsc_chrominances;
-					display_type = Outputs::CRT::NTSC60;
+					display_type = Outputs::CRT::DisplayType::NTSC60;
 					timing_.cycles_per_line = 65;
 					timing_.line_counter_increment_offset = 65 - 33;	// TODO: this is a bit of a hack; separate vertical and horizontal counting
 					timing_.lines_per_progressive_field = 261;

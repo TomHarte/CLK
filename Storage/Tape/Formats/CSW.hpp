@@ -44,7 +44,7 @@ class CSW: public Tape {
 		Pulse virtual_get_next_pulse();
 
 		Pulse pulse_;
-		enum CompressionType {
+		enum class CompressionType {
 			RLE,
 			ZRLE
 		} compression_type_;

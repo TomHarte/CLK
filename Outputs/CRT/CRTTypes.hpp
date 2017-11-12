@@ -26,17 +26,17 @@ struct Rect {
 		origin({x, y}), size({width, height}) {}
 };
 
-enum DisplayType {
+enum class DisplayType {
 	PAL50,
 	NTSC60
 };
 
-enum ColourSpace {
+enum class ColourSpace {
 	YIQ,
 	YUV
 };
 
-enum OutputDevice {
+enum class OutputDevice {
 	Monitor,
 	Television
 };

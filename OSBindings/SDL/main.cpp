@@ -183,10 +183,10 @@ int main(int argc, char *argv[]) {
 		std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 		for(auto &name: names) {
 			std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
-			FILE *file = fopen(local_path.c_str(), "r");
+			FILE *file = std::fopen(local_path.c_str(), "rb");
 			if(!file) {
 				std::string path = "/usr/share/CLK/" + machine + "/" + name;
-				file = fopen(path.c_str(), "r");
+				file = std::fopen(path.c_str(), "rb");
 			}
 
 			if(!file) {
@@ -196,13 +196,16 @@ int main(int argc, char *argv[]) {
 
 			std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
 
-			fseek(file, 0, SEEK_END);
-			data->resize(ftell(file));
-			fseek(file, 0, SEEK_SET);
-			fread(data->data(), 1, data->size(), file);
-			fclose(file);
+			std::fseek(file, 0, SEEK_END);
+			data->resize(std::ftell(file));
+			std::fseek(file, 0, SEEK_SET);
+			std::size_t read = fread(data->data(), 1, data->size(), file);
+			std::fclose(file);
 
-			results.emplace_back(std::move(data));
+			if(read == data->size())
+				results.emplace_back(std::move(data));
+			else
+				results.emplace_back(nullptr);
 		}
 
 		return results;

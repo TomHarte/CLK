@@ -210,7 +210,7 @@ uint8_t i8272::get_register(int address) {
 	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
 	\
 	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
-	CONCAT(header_found, __LINE__):	0;\
+	CONCAT(header_found, __LINE__):	(void)0;\
 
 #define FIND_DATA()	\
 	set_data_mode(DataMode::Scanning);	\
@@ -563,7 +563,6 @@ void i8272::posit_event(int event_type) {
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
 			index_hole_limit_ = 2;
-		read_id_find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				SetMissingAddressMark();

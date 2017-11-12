@@ -23,7 +23,7 @@ namespace {
 TIA::TIA(bool create_crt) {
 	if(create_crt) {
 		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
-		crt_->set_output_device(Outputs::CRT::Television);
+		crt_->set_output_device(Outputs::CRT::OutputDevice::Television);
 		set_output_mode(OutputMode::NTSC);
 	}
 

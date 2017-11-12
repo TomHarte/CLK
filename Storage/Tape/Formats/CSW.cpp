@@ -8,6 +8,8 @@
 
 #include "CSW.hpp"
 
+#include <cassert>
+
 using namespace Storage::Tape;
 
 CSW::CSW(const char *file_name) :
@@ -36,7 +38,7 @@ CSW::CSW(const char *file_name) :
 		pulse_.length.clock_rate = file_.get16le();
 
 		if(file_.get8() != 1) throw ErrorNotCSW;
-		compression_type_ = RLE;
+		compression_type_ = CompressionType::RLE;
 
 		pulse_.type = (file_.get8() & 1) ? Pulse::High : Pulse::Low;
 
@@ -45,8 +47,8 @@ CSW::CSW(const char *file_name) :
 		pulse_.length.clock_rate = file_.get32le();
 		number_of_waves = file_.get32le();
 		switch(file_.get8()) {
-			case 1: compression_type_ = RLE;	break;
-			case 2: compression_type_ = ZRLE;	break;
+			case 1: compression_type_ = CompressionType::RLE;	break;
+			case 2: compression_type_ = CompressionType::ZRLE;	break;
 			default: throw ErrorNotCSW;
 		}
 
@@ -57,7 +59,7 @@ CSW::CSW(const char *file_name) :
 		file_.seek(0x34 + extension_length, SEEK_SET);
 	}
 
-	if(compression_type_ == ZRLE) {
+	if(compression_type_ == CompressionType::ZRLE) {
 		// The only clue given by CSW as to the output size in bytes is that there will be
 		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
 		// is pessimistic.
@@ -83,20 +85,22 @@ CSW::CSW(const char *file_name) :
 
 uint8_t CSW::get_next_byte() {
 	switch(compression_type_) {
-		case RLE: return file_.get8();
-		case ZRLE: {
+		case CompressionType::RLE: return file_.get8();
+		case CompressionType::ZRLE: {
 			if(source_data_pointer_ == source_data_.size()) return 0xff;
 			uint8_t result = source_data_[source_data_pointer_];
 			source_data_pointer_++;
 			return result;
 		}
+
+		default: assert(false);	break;
 	}
 }
 
 uint32_t CSW::get_next_int32le() {
 	switch(compression_type_) {
-		case RLE: return file_.get32le();
-		case ZRLE: {
+		case CompressionType::RLE: return file_.get32le();
+		case CompressionType::ZRLE: {
 			if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
 			uint32_t result = (uint32_t)(
 				(source_data_[source_data_pointer_ + 0] << 0) |
@@ -106,6 +110,8 @@ uint32_t CSW::get_next_int32le() {
 			source_data_pointer_ += 4;
 			return result;
 		}
+
+		default: assert(false);	break;
 	}
 }
 
@@ -115,15 +121,19 @@ void CSW::invert_pulse() {
 
 bool CSW::is_at_end() {
 	switch(compression_type_) {
-		case RLE: return file_.eof();
-		case ZRLE: return source_data_pointer_ == source_data_.size();
+		case CompressionType::RLE: return file_.eof();
+		case CompressionType::ZRLE: return source_data_pointer_ == source_data_.size();
+
+		default: assert(false);	break;
 	}
 }
 
 void CSW::virtual_reset() {
 	switch(compression_type_) {
-		case RLE:	file_.seek(rle_start_, SEEK_SET);	break;
-		case ZRLE:	source_data_pointer_ = 0;			break;
+		case CompressionType::RLE:	file_.seek(rle_start_, SEEK_SET);	break;
+		case CompressionType::ZRLE:	source_data_pointer_ = 0;			break;
+
+		default: assert(false);	break;
 	}
 }
 

@@ -300,7 +300,7 @@ class CRTCBusHandler {
 					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 				"}");
 			crt_->set_visible_area(Outputs::CRT::Rect(0.075f, 0.05f, 0.9f, 0.9f));
-			crt_->set_output_device(Outputs::CRT::Monitor);
+			crt_->set_output_device(Outputs::CRT::OutputDevice::Monitor);
 		}
 
 		/// Destructs the CRT.

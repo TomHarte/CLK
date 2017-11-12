@@ -456,6 +456,10 @@ class ConcreteMachine:
 			ROM character_rom;
 			ROM kernel_rom;
 			switch(region_) {
+				default:
+					character_rom = CharactersEnglish;
+					kernel_rom = KernelPAL;
+				break;
 				case American:
 					character_rom = CharactersEnglish;
 					kernel_rom = KernelNTSC;
@@ -467,10 +471,6 @@ class ConcreteMachine:
 				case Japanese:
 					character_rom = CharactersJapanese;
 					kernel_rom = KernelJapanese;
-				break;
-				case European:
-					character_rom = CharactersEnglish;
-					kernel_rom = KernelPAL;
 				break;
 				case Swedish:
 					character_rom = CharactersSwedish;

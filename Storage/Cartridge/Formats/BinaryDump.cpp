@@ -19,12 +19,12 @@ BinaryDump::BinaryDump(const char *file_name) {
 	stat(file_name, &file_stats);
 
 	// grab contents
-	FILE *file = fopen(file_name, "rb");
+	FILE *file = std::fopen(file_name, "rb");
 	if(!file) throw ErrorNotAccessible;
 	std::size_t data_length = static_cast<std::size_t>(file_stats.st_size);
 	std::vector<uint8_t> contents(data_length);
-	fread(&contents[0], 1, static_cast<std::size_t>(data_length), file);
-	fclose(file);
+	contents.resize(std::fread(&contents[0], 1, static_cast<std::size_t>(data_length), file));
+	std::fclose(file);
 
 	// enshrine
 	segments_.emplace_back(
