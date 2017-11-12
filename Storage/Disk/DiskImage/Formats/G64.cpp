@@ -89,7 +89,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 		unsigned int start_byte_in_current_speed = 0;
 		for(unsigned int byte = 0; byte < track_length; byte ++) {
 			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 - (byte&3)*2);
-			if(byte_speed != current_speed || byte == (track_length-1)) {
+			if(byte_speed != current_speed || byte == static_cast<uint16_t>(track_length-1)) {
 				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
 
 				PCMSegment segment;
