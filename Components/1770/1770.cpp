@@ -111,7 +111,7 @@ void WD1770::run_for(const Cycles cycles) {
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
 #define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = static_cast<int>(Event::Token); return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
-#define END_SECTION()	0; }
+#define END_SECTION()	(void)0; }
 
 #define READ_ID()	\
 		if(new_event_type == static_cast<int>(Event::Token)) {	\
@@ -656,7 +656,6 @@ void WD1770::posit_event(int new_event_type) {
 			status.lost_data = false;
 		});
 
-	write_track_test_write_protect:
 		if(get_drive().get_is_read_only()) {
 			update_status([] (Status &status) {
 				status.write_protect = true;
