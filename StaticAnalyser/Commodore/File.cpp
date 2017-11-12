@@ -23,7 +23,7 @@ bool StaticAnalyser::Commodore::File::is_basic() {
 	//		... null-terminated code ...
 	//	(with a next line address of 0000 indicating end of program)ß
 	while(1) {
-		if(line_address - starting_address >= data.size() + 2) break;
+		if(static_cast<size_t>(line_address - starting_address) >= data.size() + 2) break;
 
 		uint16_t next_line_address = data[line_address - starting_address];
 		next_line_address |= data[line_address - starting_address + 1] << 8;
@@ -33,7 +33,7 @@ bool StaticAnalyser::Commodore::File::is_basic() {
 		}
 		if(next_line_address < line_address + 5) break;
 
-		if(line_address - starting_address >= data.size() + 5) break;
+		if(static_cast<size_t>(line_address - starting_address) >= data.size() + 5) break;
 		uint16_t next_line_number = data[line_address - starting_address + 2];
 		next_line_number |= data[line_address - starting_address + 3] << 8;
 

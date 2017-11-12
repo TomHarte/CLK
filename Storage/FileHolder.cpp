@@ -14,7 +14,7 @@
 using namespace Storage;
 
 FileHolder::~FileHolder() {
-	if(file_) fclose(file_);
+	if(file_) std::fclose(file_);
 }
 
 FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
@@ -24,17 +24,17 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 
 	switch(ideal_mode) {
 		case FileMode::ReadWrite:
-			file_ = fopen(file_name.c_str(), "rb+");
+			file_ = std::fopen(file_name.c_str(), "rb+");
 			if(file_) break;
 			is_read_only_ = true;
 
 		// deliberate fallthrough...
 		case FileMode::Read:
-			file_ = fopen(file_name.c_str(), "rb");
+			file_ = std::fopen(file_name.c_str(), "rb");
 		break;
 
 		case FileMode::Rewrite:
-			file_ = fopen(file_name.c_str(), "w");
+			file_ = std::fopen(file_name.c_str(), "w");
 		break;
 	}
 
@@ -42,69 +42,69 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 }
 
 uint32_t FileHolder::get32le() {
-    uint32_t result = (uint32_t)fgetc(file_);
-    result |= (uint32_t)(fgetc(file_) << 8);
-    result |= (uint32_t)(fgetc(file_) << 16);
-    result |= (uint32_t)(fgetc(file_) << 24);
+    uint32_t result = (uint32_t)std::fgetc(file_);
+    result |= (uint32_t)(std::fgetc(file_) << 8);
+    result |= (uint32_t)(std::fgetc(file_) << 16);
+    result |= (uint32_t)(std::fgetc(file_) << 24);
 
     return result;
 }
 
 uint32_t FileHolder::get32be() {
-    uint32_t result = (uint32_t)(fgetc(file_) << 24);
-    result |= (uint32_t)(fgetc(file_) << 16);
-    result |= (uint32_t)(fgetc(file_) << 8);
-    result |= (uint32_t)fgetc(file_);
+    uint32_t result = (uint32_t)(std::fgetc(file_) << 24);
+    result |= (uint32_t)(std::fgetc(file_) << 16);
+    result |= (uint32_t)(std::fgetc(file_) << 8);
+    result |= (uint32_t)std::fgetc(file_);
 
     return result;
 }
 
 uint32_t FileHolder::get24le() {
-    uint32_t result = (uint32_t)fgetc(file_);
-    result |= (uint32_t)(fgetc(file_) << 8);
-    result |= (uint32_t)(fgetc(file_) << 16);
+    uint32_t result = (uint32_t)std::fgetc(file_);
+    result |= (uint32_t)(std::fgetc(file_) << 8);
+    result |= (uint32_t)(std::fgetc(file_) << 16);
 
     return result;
 }
 
 uint32_t FileHolder::get24be() {
-    uint32_t result = (uint32_t)(fgetc(file_) << 16);
-    result |= (uint32_t)(fgetc(file_) << 8);
-    result |= (uint32_t)fgetc(file_);
+    uint32_t result = (uint32_t)(std::fgetc(file_) << 16);
+    result |= (uint32_t)(std::fgetc(file_) << 8);
+    result |= (uint32_t)std::fgetc(file_);
 
     return result;
 }
 
 uint16_t FileHolder::get16le() {
-    uint16_t result = static_cast<uint16_t>(fgetc(file_));
-    result |= static_cast<uint16_t>(fgetc(file_) << 8);
+    uint16_t result = static_cast<uint16_t>(std::fgetc(file_));
+    result |= static_cast<uint16_t>(std::fgetc(file_) << 8);
 
     return result;
 }
 
 uint16_t FileHolder::get16be() {
-    uint16_t result = static_cast<uint16_t>(fgetc(file_) << 8);
-    result |= static_cast<uint16_t>(fgetc(file_));
+    uint16_t result = static_cast<uint16_t>(std::fgetc(file_) << 8);
+    result |= static_cast<uint16_t>(std::fgetc(file_));
 
     return result;
 }
 
 uint8_t FileHolder::get8() {
-    return static_cast<uint8_t>(fgetc(file_));
+    return static_cast<uint8_t>(std::fgetc(file_));
 }
 
 void FileHolder::put16be(uint16_t value) {
-	fputc(value >> 8, file_);
-	fputc(value, file_);
+	std::fputc(value >> 8, file_);
+	std::fputc(value, file_);
 }
 
 void FileHolder::put16le(uint16_t value) {
-	fputc(value, file_);
-	fputc(value >> 8, file_);
+	std::fputc(value, file_);
+	std::fputc(value >> 8, file_);
 }
 
 void FileHolder::put8(uint8_t value) {
-	fputc(value, file_);
+	std::fputc(value, file_);
 }
 
 void FileHolder::putn(std::size_t repeats, uint8_t value) {
@@ -113,36 +113,36 @@ void FileHolder::putn(std::size_t repeats, uint8_t value) {
 
 std::vector<uint8_t> FileHolder::read(std::size_t size) {
 	std::vector<uint8_t> result(size);
-	fread(result.data(), 1, size, file_);
+	result.resize(std::fread(result.data(), 1, size, file_));
 	return result;
 }
 
 std::size_t FileHolder::read(uint8_t *buffer, std::size_t size) {
-    return fread(buffer, 1, size, file_);
+    return std::fread(buffer, 1, size, file_);
 }
 
 std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
-	return fwrite(buffer.data(), 1, buffer.size(), file_);
+	return std::fwrite(buffer.data(), 1, buffer.size(), file_);
 }
 
 std::size_t FileHolder::write(const uint8_t *buffer, std::size_t size) {
-    return fwrite(buffer, 1, size, file_);
+    return std::fwrite(buffer, 1, size, file_);
 }
 
 void FileHolder::seek(long offset, int whence) {
-	fseek(file_, offset, whence);
+	std::fseek(file_, offset, whence);
 }
 
 long FileHolder::tell() {
-	return ftell(file_);
+	return std::ftell(file_);
 }
 
 void FileHolder::flush() {
-	fflush(file_);
+	std::fflush(file_);
 }
 
 bool FileHolder::eof() {
-	return feof(file_);
+	return std::feof(file_);
 }
 
 FileHolder::BitStream FileHolder::get_bitstream(bool lsb_first) {
@@ -154,8 +154,8 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 
 	// read and check the file signature
 	std::vector<uint8_t> stored_signature = read(length);
-	if(stored_signature.size() != length)					return false;
-	if(memcmp(stored_signature.data(), signature, length)) 	return false;
+	if(stored_signature.size() != length)							return false;
+	if(std::memcmp(stored_signature.data(), signature, length)) 	return false;
 	return true;
 }
 
@@ -170,12 +170,12 @@ std::string FileHolder::extension() {
 }
 
 void FileHolder::ensure_is_at_least_length(long length) {
-    fseek(file_, 0, SEEK_END);
+    std::fseek(file_, 0, SEEK_END);
     long bytes_to_write = length - ftell(file_);
     if(bytes_to_write > 0) {
         uint8_t *empty = new uint8_t[static_cast<std::size_t>(bytes_to_write)];
-        memset(empty, 0, static_cast<std::size_t>(bytes_to_write));
-        fwrite(empty, sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
+        std::memset(empty, 0, static_cast<std::size_t>(bytes_to_write));
+        std::fwrite(empty, sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
         delete[] empty;
     }
 }
