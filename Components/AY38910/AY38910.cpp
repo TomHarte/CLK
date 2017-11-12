@@ -158,7 +158,7 @@ void AY38910::evaluate_output_volume() {
 	);
 }
 
-#pragma mark - Register manipulation
+// MARK: - Register manipulation
 
 void AY38910::select_register(uint8_t r) {
 	selected_register_ = r;
@@ -224,13 +224,13 @@ uint8_t AY38910::get_register_value() {
 	}
 }
 
-#pragma mark - Port handling
+// MARK: - Port handling
 
 uint8_t AY38910::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
 }
 
-#pragma mark - Bus handling
+// MARK: - Bus handling
 
 void AY38910::set_port_handler(PortHandler *handler) {
 	port_handler_ = handler;

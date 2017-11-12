@@ -108,14 +108,14 @@ void Machine::run_for(const Cycles cycles) {
 		Storage::Disk::Controller::run_for(cycles);
 }
 
-#pragma mark - 6522 delegate
+// MARK: - 6522 delegate
 
 void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
 	// both VIAs are connected to the IRQ line
 	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
-#pragma mark - Disk drive
+// MARK: - Disk drive
 
 void MachineBase::process_input_bit(int value) {
 	shift_register_ = (shift_register_ << 1) | value;
@@ -149,7 +149,7 @@ void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(density)));
 }
 
-#pragma mark - SerialPortVIA
+// MARK: - SerialPortVIA
 
 SerialPortVIA::SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via) : via_(via) {}
 
@@ -200,7 +200,7 @@ void SerialPortVIA::update_data_line() {
 	}
 }
 
-#pragma mark - DriveVIA
+// MARK: - DriveVIA
 
 void DriveVIA::set_delegate(Delegate *delegate) {
 	delegate_ = delegate;
@@ -261,7 +261,7 @@ void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t d
 	}
 }
 
-#pragma mark - SerialPort
+// MARK: - SerialPort
 
 void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();

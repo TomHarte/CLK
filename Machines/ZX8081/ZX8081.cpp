@@ -308,7 +308,7 @@ template<bool is_zx81> class ConcreteMachine:
 			return true;
 		}
 
-#pragma mark - Keyboard
+// MARK: - Keyboard
 
 		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(isPressed)
@@ -321,7 +321,7 @@ template<bool is_zx81> class ConcreteMachine:
 			memset(key_states_, 0xff, 8);
 		}
 
-#pragma mark - Tape control
+// MARK: - Tape control
 
 		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
@@ -337,7 +337,7 @@ template<bool is_zx81> class ConcreteMachine:
 			tape_player_.set_motor_control(is_playing);
 		}
 
-#pragma mark - Typer timing
+// MARK: - Typer timing
 
 		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
@@ -383,7 +383,7 @@ template<bool is_zx81> class ConcreteMachine:
 		bool use_automatic_tape_motor_control_;
 		HalfCycles tape_advance_delay_ = 0;
 
-#pragma mark - Video
+// MARK: - Video
 
 		inline void set_vsync(bool sync) {
 			vsync_ = sync;

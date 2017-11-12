@@ -267,7 +267,7 @@ void TZX::get_pause() {
 	}
 }
 
-#pragma mark - Output
+// MARK: - Output
 
 void TZX::post_pulse(unsigned int length) {
 	post_pulse(Storage::Time(length, StandardTZXClock));
@@ -288,7 +288,7 @@ void TZX::post_pulse(const Storage::Time &time) {
 	current_level_ ^= true;
 }
 
-#pragma mark - Flow control; currently ignored
+// MARK: - Flow control; currently ignored
 
 void TZX::ignore_group_start() {
 	printf("Ignoring TZX group\n");
@@ -330,7 +330,7 @@ void TZX::ignore_select_block() {
 	printf("Ignoring TZX select block\n");
 }
 
-#pragma mark - Messaging
+// MARK: - Messaging
 
 void TZX::ignore_text_description() {
 	uint8_t length = file_.get8();

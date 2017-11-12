@@ -258,7 +258,7 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader) {
 	reset_all_OpenGL_state();
 }
 
-#pragma mark - Program compilation
+// MARK: - Program compilation
 
 void OpenGLOutputBuilder::prepare_composite_input_shaders() {
 	composite_input_shader_program_ = OpenGL::IntermediateShader::make_source_conversion_shader(composite_shader_, rgb_shader_);
@@ -324,7 +324,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array() {
 	}
 }
 
-#pragma mark - Public Configuration
+// MARK: - Public Configuration
 
 void OpenGLOutputBuilder::set_output_device(OutputDevice output_device) {
 	if(output_device_ != output_device) {
@@ -348,7 +348,7 @@ void OpenGLOutputBuilder::set_timing(unsigned int input_frequency, unsigned int 
 	set_timing_uniforms();
 }
 
-#pragma mark - Internal Configuration
+// MARK: - Internal Configuration
 
 void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};

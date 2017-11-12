@@ -94,7 +94,7 @@ std::shared_ptr<File> Storage::Data::ZX8081::FileFromData(const std::vector<uint
 	return ZX80FileFromData(data);
 }
 
-#pragma mark - String conversion
+// MARK: - String conversion
 
 std::wstring Storage::Data::ZX8081::StringFromData(const std::vector<uint8_t> &data, bool is_zx81) {
 	std::wstring string;

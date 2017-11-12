@@ -11,13 +11,13 @@
 
 using namespace Storage::Tape;
 
-#pragma mark - Lifecycle
+// MARK: - Lifecycle
 
 TapePlayer::TapePlayer(unsigned int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
-#pragma mark - Seeking
+// MARK: - Seeking
 
 void Storage::Tape::Tape::seek(Time &seek_time) {
 	Time next_time(0);
@@ -63,7 +63,7 @@ void Tape::set_offset(uint64_t offset) {
 	while(offset--) get_next_pulse();
 }
 
-#pragma mark - Player
+// MARK: - Player
 
 bool TapePlayer::is_sleeping() {
 	return !tape_ || tape_->is_at_end();
@@ -114,7 +114,7 @@ void TapePlayer::process_next_event() {
 	get_next_pulse();
 }
 
-#pragma mark - Binary Player
+// MARK: - Binary Player
 
 BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
 	TapePlayer(input_clock_rate)

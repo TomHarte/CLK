@@ -949,7 +949,7 @@ class ConcreteMachine:
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}
 
-#pragma mark - Keyboard
+// MARK: - Keyboard
 
 		void set_typer_for_string(const char *string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());

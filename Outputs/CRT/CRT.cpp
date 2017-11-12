@@ -110,7 +110,7 @@ CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, Displ
 	set_new_display_type(cycles_per_line, displayType);
 }
 
-#pragma mark - Sync loop
+// MARK: - Sync loop
 
 Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced) {
 	return vertical_flywheel_->get_next_event_in_period(vsync_is_requested, cycles_to_run_for, cycles_advanced);
@@ -272,7 +272,7 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 #undef source_amplitude
 #undef source_phase_time
 
-#pragma mark - stream feeding methods
+// MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
 	// simplified colour burst logic: if it's within the back porch we'll take it

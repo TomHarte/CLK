@@ -112,7 +112,7 @@ template <	class T,
 					set_flags(temp16_.bytes.low);
 				break;
 
-#pragma mark - Logical
+// MARK: - Logical
 
 #define set_logical_flags(hf)	\
 	sign_result_ = zero_result_ = bit53_result_ = a_;	\
@@ -159,7 +159,7 @@ template <	class T,
 					bit53_result_ = a_;
 				break;
 
-#pragma mark - Flow control
+// MARK: - Flow control
 
 				case MicroOp::DJNZ:
 					bc_.bytes.high--;
@@ -172,7 +172,7 @@ template <	class T,
 					memptr_.full = operation_ & 0x38;
 				break;
 
-#pragma mark - 8-bit arithmetic
+// MARK: - 8-bit arithmetic
 
 #define set_arithmetic_flags(sub, b53)	\
 	sign_result_ = zero_result_ = static_cast<uint8_t>(result);	\
@@ -353,7 +353,7 @@ template <	class T,
 					set_parity(a_);
 				} break;
 
-#pragma mark - 16-bit arithmetic
+// MARK: - 16-bit arithmetic
 
 				case MicroOp::ADD16: {
 					memptr_.full = *static_cast<uint16_t *>(operation->destination);
@@ -416,7 +416,7 @@ template <	class T,
 					memptr_.full++;
 				} break;
 
-#pragma mark - Conditionals
+// MARK: - Conditionals
 
 #define decline_conditional()	\
 	if(operation->source) {		\
@@ -436,7 +436,7 @@ template <	class T,
 
 #undef decline_conditional
 
-#pragma mark - Exchange
+// MARK: - Exchange
 
 #define swap(a, b)	temp = a.full; a.full = b.full; b.full = temp;
 
@@ -463,7 +463,7 @@ template <	class T,
 
 #undef swap
 
-#pragma mark - Repetition
+// MARK: - Repetition
 
 #define REPEAT(test)	\
 	if(test) {	\
@@ -616,7 +616,7 @@ template <	class T,
 
 #undef OUTxR_STEP
 
-#pragma mark - Bit Manipulation
+// MARK: - Bit Manipulation
 
 				case MicroOp::BIT: {
 					uint8_t result = *static_cast<uint8_t *>(operation->source) & (1 << ((operation_ >> 3)&7));
@@ -641,7 +641,7 @@ template <	class T,
 					*static_cast<uint8_t *>(operation->source) |= (1 << ((operation_ >> 3)&7));
 				break;
 
-#pragma mark - Rotation and shifting
+// MARK: - Rotation and shifting
 
 #define set_rotate_flags()	\
 	bit53_result_ = a_;	\
@@ -757,7 +757,7 @@ template <	class T,
 #undef set_decimal_rotate_flags
 
 
-#pragma mark - Interrupt state
+// MARK: - Interrupt state
 
 				case MicroOp::EI:
 					iff1_ = iff2_ = true;
@@ -778,7 +778,7 @@ template <	class T,
 					}
 				break;
 
-#pragma mark - Input
+// MARK: - Input
 
 				case MicroOp::SetInFlags:
 					subtract_flag_ = half_carry_result_ = 0;
@@ -796,7 +796,7 @@ template <	class T,
 					temp8_ = 0;
 				break;
 
-#pragma mark - Special-case Flow
+// MARK: - Special-case Flow
 
 				case MicroOp::BeginIRQMode0:
 					pc_increment_ = 0;			// deliberate fallthrough
@@ -825,7 +825,7 @@ template <	class T,
 					halt_mask_ = 0x00;
 				break;
 
-#pragma mark - Interrupt handling
+// MARK: - Interrupt handling
 
 				case MicroOp::Reset:
 					iff1_ = iff2_ = false;
@@ -837,7 +837,7 @@ template <	class T,
 					ir_.full = 0;
 				break;
 
-#pragma mark - Internal bookkeeping
+// MARK: - Internal bookkeeping
 
 				case MicroOp::SetInstructionPage:
 					current_instruction_page_ = (InstructionPage *)operation->source;
