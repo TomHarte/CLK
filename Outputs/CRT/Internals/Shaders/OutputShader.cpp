@@ -25,7 +25,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
 
 	char *vertex_shader;
-	asprintf(&vertex_shader,
+	(void)asprintf(&vertex_shader,
 		"#version 150\n"
 
 		"in vec2 horizontal;"
@@ -64,7 +64,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"}", sampler_type);
 
 	char *fragment_shader;
-	asprintf(&fragment_shader,
+	(void)asprintf(&fragment_shader,
 		"#version 150\n"
 
 		"in float lateralVarying;"
@@ -85,8 +85,8 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 	sampler_type, fragment_methods, colour_expression);
 
 	std::unique_ptr<OutputShader> result(new OutputShader(vertex_shader, fragment_shader, bindings));
-	free(vertex_shader);
-	free(fragment_shader);
+	std::free(vertex_shader);
+	std::free(fragment_shader);
 
 	return result;
 }

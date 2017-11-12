@@ -41,7 +41,7 @@
 - (void)setUseTelevisionOutput:(BOOL)useTelevisionOutput {
 	@synchronized(self) {
 		_useTelevisionOutput = useTelevisionOutput;
-		_electron->get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::Television : Outputs::CRT::Monitor);
+		_electron->get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::OutputDevice::Television : Outputs::CRT::OutputDevice::Monitor);
 	}
 }
 @end

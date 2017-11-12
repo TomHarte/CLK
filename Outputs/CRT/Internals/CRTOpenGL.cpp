@@ -71,7 +71,7 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder() {
 }
 
 bool OpenGLOutputBuilder::get_is_television_output() {
-	return output_device_ == Television || !rgb_input_shader_program_;
+	return output_device_ == OutputDevice::Television || !rgb_input_shader_program_;
 }
 
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty) {
@@ -369,6 +369,8 @@ void OpenGLOutputBuilder::set_colour_space_uniforms() {
 			fromRGB = rgbToYUV;
 			toRGB = yuvToRGB;
 		break;
+
+		default:	assert(false);	break;
 	}
 
 	if(composite_input_shader_program_)					composite_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
