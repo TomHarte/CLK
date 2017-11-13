@@ -11,7 +11,6 @@
 #include <cstdio>
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
 
 #include "../../StaticAnalyser/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
@@ -247,6 +246,9 @@ int main(int argc, char *argv[]) {
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
 
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
+
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
 	while(!should_quit) {
@@ -256,23 +258,36 @@ int main(int argc, char *argv[]) {
 			switch(event.type) {
 				case SDL_QUIT:	should_quit = true;	break;
 
+				case SDL_WINDOWEVENT:
+					switch (event.window.event) {
+						case SDL_WINDOWEVENT_RESIZED: {
+							GLint target_framebuffer = 0;
+							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
+							machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
+							SDL_GetWindowSize(window, &window_width, &window_height);
+						} break;
+
+						default: break;
+					}
+				break;
+
 				case SDL_KEYDOWN:
-				case SDL_KEYUP:
+				case SDL_KEYUP: {
 					KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
 					if(!keyboard_machine) break;
 
 					Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
 					if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
 					keyboard_machine->get_keyboard().set_key_pressed(key, event.type == SDL_KEYDOWN);
-				break;
+				} break;
+
+				default: break;
 			}
 		}
 
 		// Display a new frame and wait for vsync.
 		updater.update();
-		int width, height;
-		SDL_GetWindowSize(window, &width, &height);
-		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(width), static_cast<unsigned int>(height), false);
+		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(window_width), static_cast<unsigned int>(window_height), false);
 		SDL_GL_SwapWindow(window);
 	}
 
