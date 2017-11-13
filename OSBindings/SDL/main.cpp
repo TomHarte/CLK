@@ -177,6 +177,7 @@ int main(int argc, char *argv[]) {
 
 	GLint target_framebuffer = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
+	std::cout << "Target framebuffer has ID " << target_framebuffer << std::endl;
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
 	//
@@ -248,6 +249,7 @@ int main(int argc, char *argv[]) {
 
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
+	std::cout << "Window size is " << window_width << ", " << window_height << std::endl;
 
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
@@ -265,6 +267,8 @@ int main(int argc, char *argv[]) {
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 							machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
+
+							std::cout << "Resized; framebuffer is " << target_framebuffer << ", and window size is " << window_width << ", " << window_height << std::endl;
 						} break;
 
 						default: break;
