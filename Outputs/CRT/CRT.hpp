@@ -241,6 +241,13 @@ class CRT {
 			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
 		}
 
+		/*! Sets the OpenGL framebuffer to which output is drawn. */
+		inline void set_target_framebuffer(GLint framebuffer) {
+			enqueue_openGL_function( [framebuffer, this] {
+				openGL_output_builder_.set_target_framebuffer(framebuffer);
+			});
+		}
+
 		/*!	Sets the gamma exponent for the simulated screen. */
 		void set_input_gamma(float gamma);
 

@@ -75,6 +75,10 @@ bool OpenGLOutputBuilder::get_is_television_output() {
 	return output_device_ == OutputDevice::Television || !rgb_input_shader_program_;
 }
 
+void OpenGLOutputBuilder::set_target_framebuffer(GLint target_framebuffer) {
+	target_framebuffer_ = target_framebuffer;
+}
+
 void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty) {
 	// lock down any other draw_frames
 	draw_mutex_.lock();
@@ -219,7 +223,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// copy framebuffer to the intended place
 	glDisable(GL_BLEND);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(target_framebuffer_));
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 	glActiveTexture(pixel_accumulation_texture_unit);

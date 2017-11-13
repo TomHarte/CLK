@@ -50,6 +50,7 @@ class OpenGLOutputBuilder {
 		// Other things the caller may have provided.
 		std::string composite_shader_;
 		std::string rgb_shader_;
+		GLint target_framebuffer_ = 0;
 
 		// Methods used by the OpenGL code
 		void prepare_output_shader();
@@ -145,7 +146,8 @@ class OpenGLOutputBuilder {
 			if(!composite_output_buffer_is_full())
 				composite_src_output_y_++;
 		}
-
+	
+		void set_target_framebuffer(GLint target_framebuffer);
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
 		void set_composite_sampling_function(const std::string &shader);

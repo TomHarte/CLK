@@ -170,6 +170,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
 	_machine->get_crt()->set_output_gamma(2.2f);
+	_machine->get_crt()->set_target_framebuffer(0);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
