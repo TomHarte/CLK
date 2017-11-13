@@ -11,6 +11,7 @@
 #include <cstdio>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 
 #include "../../StaticAnalyser/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
@@ -175,6 +176,9 @@ int main(int argc, char *argv[]) {
 	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, gl_context);
 
+	GLint target_framebuffer = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
+
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
 	//
 	//	/usr/local/share/CLK/[system]; or
@@ -221,6 +225,7 @@ int main(int argc, char *argv[]) {
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	machine->crt_machine()->setup_output(4.0 / 3.0);
 	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
+	machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
 
 	// For now, lie about audio output intentions.
 	auto speaker = machine->crt_machine()->get_speaker();
