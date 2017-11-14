@@ -47,14 +47,14 @@ class TextureTarget {
 			@returns the width of the texture target.
 		*/
 		GLsizei get_width() {
-			return _width;
+			return width_;
 		}
 
 		/*!
 			@returns the height of the texture target.
 		*/
 		GLsizei get_height() {
-			return _height;
+			return height_;
 		}
 
 		/*!
@@ -67,14 +67,14 @@ class TextureTarget {
 		};
 
 	private:
-		GLuint _framebuffer, _texture;
-		GLsizei _width, _height;
-		GLsizei _expanded_width, _expanded_height;
-		GLenum _texture_unit;
+		GLuint framebuffer_ = 0, texture_ = 0;
+		GLsizei width_ = 0, height_ = 0;
+		GLsizei expanded_width_ = 0, expanded_height_ = 0;
+		GLenum texture_unit_ = 0;
 
-		std::unique_ptr<Shader> _pixel_shader;
-		GLuint _drawing_vertex_array = 0, _drawing_array_buffer = 0;
-		float _set_aspect_ratio;
+		std::unique_ptr<Shader> pixel_shader_;
+		GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
+		float set_aspect_ratio_ = 0.0f;
 };
 
 }

@@ -10,53 +10,58 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <vector>
+
+#include <iostream>
 
 using namespace OpenGL;
 
 TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter) :
-		_width(width),
-		_height(height),
-		_texture_unit(texture_unit),
-		_set_aspect_ratio(0.0f) {
-	glGenFramebuffers(1, &_framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+		width_(width),
+		height_(height),
+		texture_unit_(texture_unit) {
+	glGenFramebuffers(1, &framebuffer_);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
 
-	_expanded_width = 1 << (GLsizei)ceil(log2(width));
-	_expanded_height = 1 << (GLsizei)ceil(log2(height));
+	expanded_width_ = 1;
+	while(expanded_width_ < width)		expanded_width_ <<= 1;
+	expanded_height_ = 1;
+	while(expanded_height_ < height)	expanded_height_ <<= 1;
 
-	glGenTextures(1, &_texture);
+	glGenTextures(1, &texture_);
 	glActiveTexture(texture_unit);
-	glBindTexture(GL_TEXTURE_2D, _texture);
-	uint8_t *blank_buffer = static_cast<uint8_t *>(calloc(static_cast<std::size_t>(_expanded_width * _expanded_height), 4));
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_expanded_width, (GLsizei)_expanded_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer);
-	free(blank_buffer);
+	glBindTexture(GL_TEXTURE_2D, texture_);
+
+	std::vector<uint8_t> blank_buffer(static_cast<size_t>(expanded_width_ * expanded_height_ * 4), 0);
+	std::cout << blank_buffer.size() << std::endl;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(expanded_width_), static_cast<GLsizei>(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
 
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		throw ErrorFramebufferIncomplete;
 }
 
 TextureTarget::~TextureTarget() {
-	glDeleteFramebuffers(1, &_framebuffer);
-	glDeleteTextures(1, &_texture);
-	if(_drawing_vertex_array) glDeleteVertexArrays(1, &_drawing_vertex_array);
-	if(_drawing_array_buffer) glDeleteBuffers(1, &_drawing_array_buffer);
+	glDeleteFramebuffers(1, &framebuffer_);
+	glDeleteTextures(1, &texture_);
+	if(drawing_vertex_array_) glDeleteVertexArrays(1, &drawing_vertex_array_);
+	if(drawing_array_buffer_) glDeleteBuffers(1, &drawing_array_buffer_);
 }
 
 void TextureTarget::bind_framebuffer() {
-	glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
-	glViewport(0, 0, _width, _height);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+	glViewport(0, 0, width_, height_);
 }
 
 void TextureTarget::bind_texture() {
-	glBindTexture(GL_TEXTURE_2D, _texture);
+	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
 void TextureTarget::draw(float aspect_ratio) {
-	if(!_pixel_shader) {
+	if(!pixel_shader_) {
 		const char *vertex_shader =
 			"#version 150\n"
 
@@ -81,45 +86,45 @@ void TextureTarget::draw(float aspect_ratio) {
 			"{"
 				"fragColour = texture(texID, texCoordVarying);"
 			"}";
-		_pixel_shader.reset(new Shader(vertex_shader, fragment_shader, nullptr));
-		_pixel_shader->bind();
+		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader, nullptr));
+		pixel_shader_->bind();
 
-		glGenVertexArrays(1, &_drawing_vertex_array);
-		glGenBuffers(1, &_drawing_array_buffer);
+		glGenVertexArrays(1, &drawing_vertex_array_);
+		glGenBuffers(1, &drawing_array_buffer_);
 
-		glBindVertexArray(_drawing_vertex_array);
-		glBindBuffer(GL_ARRAY_BUFFER, _drawing_array_buffer);
+		glBindVertexArray(drawing_vertex_array_);
+		glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
 
-		GLint positionAttribute			= _pixel_shader->get_attrib_location("position");
-		GLint texCoordAttribute			= _pixel_shader->get_attrib_location("texCoord");
+		GLint position_attribute	= pixel_shader_->get_attrib_location("position");
+		GLint tex_coord_attribute	= pixel_shader_->get_attrib_location("texCoord");
 
-		glEnableVertexAttribArray((GLuint)positionAttribute);
-		glEnableVertexAttribArray((GLuint)texCoordAttribute);
+		glEnableVertexAttribArray(static_cast<GLuint>(position_attribute));
+		glEnableVertexAttribArray(static_cast<GLuint>(tex_coord_attribute));
 
-		const GLsizei vertexStride = 4 * sizeof(GLfloat);
-		glVertexAttribPointer((GLuint)positionAttribute,	2, GL_FLOAT,	GL_FALSE,	vertexStride, (void *)0);
-		glVertexAttribPointer((GLuint)texCoordAttribute,	2, GL_FLOAT,	GL_FALSE,	vertexStride, (void *)(2 * sizeof(GLfloat)));
+		const GLsizei vertex_stride = 4 * sizeof(GLfloat);
+		glVertexAttribPointer((GLuint)position_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)0);
+		glVertexAttribPointer((GLuint)tex_coord_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)(2 * sizeof(GLfloat)));
 
-		GLint texIDUniform = _pixel_shader->get_uniform_location("texID");
-		glUniform1i(texIDUniform, (GLint)(_texture_unit - GL_TEXTURE0));
+		GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
+		glUniform1i(texIDUniform, static_cast<GLint>(texture_unit_ - GL_TEXTURE0));
 	}
 
-	if(_set_aspect_ratio != aspect_ratio) {
-		_set_aspect_ratio = aspect_ratio;
+	if(set_aspect_ratio_ != aspect_ratio) {
+		set_aspect_ratio_ = aspect_ratio;
 		float buffer[4*4];
 
 		// establish texture coordinates
 		buffer[2] = 0.0f;
 		buffer[3] = 0.0f;
 		buffer[6] = 0.0f;
-		buffer[7] = static_cast<float>(_height) / static_cast<float>(_expanded_height);
-		buffer[10] = static_cast<float>(_width) / static_cast<float>(_expanded_width);
-		buffer[11] = 0;
+		buffer[7] = static_cast<float>(height_) / static_cast<float>(expanded_height_);
+		buffer[10] = static_cast<float>(width_) / static_cast<float>(expanded_width_);
+		buffer[11] = 0.0f;
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
 
 		// determine positions; rule is to keep the same height and centre
-		float internal_aspect_ratio = static_cast<float>(_width) / static_cast<float>(_height);
+		float internal_aspect_ratio = static_cast<float>(width_) / static_cast<float>(height_);
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
 
 		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
@@ -128,11 +133,11 @@ void TextureTarget::draw(float aspect_ratio) {
 		buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
 
 		// upload buffer
-		glBindBuffer(GL_ARRAY_BUFFER, _drawing_array_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
 	}
 
-	_pixel_shader->bind();
-	glBindVertexArray(_drawing_vertex_array);
+	pixel_shader_->bind();
+	glBindVertexArray(drawing_vertex_array_);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
