@@ -12,6 +12,11 @@
 
 using namespace Concurrency;
 
+BestEffortUpdater::BestEffortUpdater() {
+	// ATOMIC_FLAG_INIT isn't necessarily safe to use, so establish default state by other means.
+	update_is_ongoing_.clear();
+}
+
 void BestEffortUpdater::update() {
 	// Perform an update only if one is not currently ongoing.
 	if(!update_is_ongoing_.test_and_set()) {

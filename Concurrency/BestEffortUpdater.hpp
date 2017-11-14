@@ -25,6 +25,8 @@ namespace Concurrency {
 */
 class BestEffortUpdater {
 	public:
+		BestEffortUpdater();
+
 		/// A delegate receives timing cues.
 		struct Delegate {
 			virtual void update(BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) = 0;
