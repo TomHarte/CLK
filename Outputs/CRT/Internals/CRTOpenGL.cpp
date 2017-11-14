@@ -167,11 +167,11 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glBindVertexArray(source_vertex_array_);
 		glDisable(GL_BLEND);
 
-#ifdef GL_NV_texture_barrier
-		if(work_texture_) {
-			work_texture_->bind_framebuffer();
-			glClear(GL_COLOR_BUFFER_BIT);
-		}
+#ifdef #ifdef GL_NV_texture_barrier
+//		if(work_texture_) {
+//			work_texture_->bind_framebuffer();
+//			glClear(GL_COLOR_BUFFER_BIT);
+//		}
 #endif
 
 		while(active_pipeline->shader) {
@@ -194,7 +194,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 			active_pipeline++;
 #ifdef GL_NV_texture_barrier
-			glTextureBarrierNV();
+//			glTextureBarrierNV();
 #endif
 		}
 
@@ -218,7 +218,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	}
 
 #ifdef GL_NV_texture_barrier
-	glTextureBarrierNV();
+//	glTextureBarrierNV();
 #endif
 
 	// copy framebuffer to the intended place
