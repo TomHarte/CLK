@@ -125,9 +125,13 @@ std::size_t ArrayBuilder::Buffer::submit(bool is_input) {
 	} else {
 		glBindBuffer(GL_ARRAY_BUFFER, buffer);
 		uint8_t *destination = static_cast<uint8_t *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT));
-		std::memcpy(destination, data.data(), length);
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length);
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+		if(false) {
+			std::memcpy(destination, data.data(), length);
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length);
+			glUnmapBuffer(GL_ARRAY_BUFFER);
+		} else {
+			glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)length, data.data(), GL_STREAM_DRAW);
+		}
 	}
 	submitted_data = flushed_data;
 	return length;

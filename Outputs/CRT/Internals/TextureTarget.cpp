@@ -8,11 +8,8 @@
 
 #include "TextureTarget.hpp"
 
-#include <cmath>
 #include <cstdlib>
 #include <vector>
-
-#include <iostream>
 
 using namespace OpenGL;
 
@@ -33,7 +30,6 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	glBindTexture(GL_TEXTURE_2D, texture_);
 
 	std::vector<uint8_t> blank_buffer(static_cast<size_t>(expanded_width_ * expanded_height_ * 4), 0);
-	std::cout << blank_buffer.size() << std::endl;
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(expanded_width_), static_cast<GLsizei>(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
