@@ -102,9 +102,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}";
 
-	std::unique_ptr<IntermediateShader> shader(new IntermediateShader(vertex_shader.str(), fragment_shader, bindings));
-
-	return shader;
+	return std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader.str(), fragment_shader, bindings));
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader) {
@@ -143,9 +141,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 			"fragColour = vec4(composite_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x, phaseAndAmplitudeVarying.y));"
 		"}";
 
-	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader.str(), true, true);
-
-	return shader;
+	return make_shader(fragment_shader.str(), true, true);
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const std::string &rgb_shader) {
@@ -168,9 +164,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 			"fragColour = rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
 		"}";
 
-	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader.str(), true, true);
-
-	return shader;
+	return make_shader(fragment_shader.str(), true, true);
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separation_shader() {
