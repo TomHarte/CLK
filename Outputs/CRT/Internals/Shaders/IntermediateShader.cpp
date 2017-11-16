@@ -8,10 +8,8 @@
 
 #include "IntermediateShader.hpp"
 
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <cmath>
+#include <sstream>
 
 #include "../../../../SignalProcessing/FIRFilter.hpp"
 
@@ -28,11 +26,8 @@ namespace {
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition) {
-	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
-	const char *input_variable = input_is_inputPosition ? "inputPosition" : "outputPosition";
-
-	char *vertex_shader;
-	int length = asprintf(&vertex_shader,
+	std::ostringstream vertex_shader;
+	vertex_shader <<
 		"#version 150\n"
 
 		"in vec2 inputStart;"
@@ -42,7 +37,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 
 		"uniform ivec2 outputTextureSize;"
 		"uniform float extension;"
-		"uniform %s texID;"
+		"uniform " << (use_usampler ? "usampler2D" : "sampler2D") << " texID;"
 		"uniform float offsets[5];"
 		"uniform vec2 widthScalers;"
 		"uniform float inputVerticalOffset;"
@@ -73,7 +68,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			"vec2 extensionVector = vec2(extension, 0.0) * 2.0 * (extent - 0.5);"
 
 			// extended[Input/Output]Position are [input/output]Position with the necessary applied extension
-			"vec2 extendedInputPosition = %s + extensionVector;"
+			"vec2 extendedInputPosition = " << (input_is_inputPosition ? "inputPosition" : "outputPosition") << " + extensionVector;"
 			"vec2 extendedOutputPosition = outputPosition + extensionVector;"
 
 			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
@@ -105,39 +100,14 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			// determine output position by scaling the output position according to the texture size
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0);"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-		"}", sampler_type, input_variable);
+		"}";
 
-	if(length <= 0) return nullptr;
-
-	std::unique_ptr<IntermediateShader> shader(new IntermediateShader(vertex_shader, fragment_shader, bindings));
-	std::free(vertex_shader);
-
-	return shader;
+	return std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader.str(), fragment_shader, bindings));
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader) {
-	char *derived_composite_sample = nullptr;
-	const char *composite_sample = composite_shader.c_str();
-	if(!composite_shader.size()) {
-		int length = asprintf(&derived_composite_sample,
-			"%s\n"
-			"uniform mat3 rgbToLumaChroma;"
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
-			"{"
-				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
-				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
-				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
-				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
-			"}",
-			rgb_shader.c_str());
-		if(length <= 0) {
-			derived_composite_sample = nullptr;
-		}
-		composite_sample = derived_composite_sample;
-	}
-
-	char *fragment_shader;
-	int length = asprintf(&fragment_shader,
+	std::ostringstream fragment_shader;
+	fragment_shader <<
 		"#version 150\n"
 
 		"in vec2 inputPositionsVarying[11];"
@@ -146,28 +116,37 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 
 		"out vec4 fragColour;"
 
-		"uniform usampler2D texID;"
+		"uniform usampler2D texID;";
 
-		"\n%s\n"
+	if(!composite_shader.size()) {
+		std::ostringstream derived_composite_sample;
+		derived_composite_sample <<
+			rgb_shader <<
+			"uniform mat3 rgbToLumaChroma;"
+			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+			"{"
+				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
+				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
+				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
+				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
+			"}";
+		fragment_shader <<  derived_composite_sample.str();
+	} else {
+		fragment_shader << composite_shader;
+	}
 
+	fragment_shader <<
 		"void main(void)"
 		"{"
 			"fragColour = vec4(composite_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x, phaseAndAmplitudeVarying.y));"
-		"}"
-	, composite_sample);
-	std::free(derived_composite_sample);
+		"}";
 
-	if(!length) return nullptr;
-
-	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader, true, true);
-	std::free(fragment_shader);
-
-	return shader;
+	return make_shader(fragment_shader.str(), true, true);
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(const std::string &rgb_shader) {
-	char *fragment_shader;
-	int length = asprintf(&fragment_shader,
+	std::ostringstream fragment_shader;
+	fragment_shader <<
 		"#version 150\n"
 
 		"in vec2 inputPositionsVarying[11];"
@@ -178,20 +157,14 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_rgb_source_shader(c
 
 		"uniform usampler2D texID;"
 
-		"\n%s\n"
+		<< rgb_shader <<
 
 		"void main(void)"
 		"{"
 			"fragColour = rgb_sample(texID, inputPositionsVarying[5], iInputPositionVarying);"
-		"}"
-	, rgb_shader.c_str());
+		"}";
 
-	if(length <= 0) return nullptr;
-
-	std::unique_ptr<IntermediateShader> shader = make_shader(fragment_shader, true, true);
-	std::free(fragment_shader);
-
-	return shader;
+	return make_shader(fragment_shader.str(), true, true);
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separation_shader() {
