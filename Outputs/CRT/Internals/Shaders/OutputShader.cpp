@@ -8,6 +8,7 @@
 
 #include "OutputShader.hpp"
 
+#include <cmath>
 #include <sstream>
 
 using namespace OpenGL;
