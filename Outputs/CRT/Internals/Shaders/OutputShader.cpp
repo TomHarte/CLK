@@ -8,8 +8,7 @@
 
 #include "OutputShader.hpp"
 
-#include <cstdlib>
-#include <cmath>
+#include <sstream>
 
 using namespace OpenGL;
 
@@ -22,10 +21,10 @@ namespace {
 }
 
 std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_methods, const char *colour_expression, bool use_usampler) {
-	const char *sampler_type = use_usampler ? "usampler2D" : "sampler2D";
+	const std::string sampler_type = use_usampler ? "usampler2D" : "sampler2D";
 
-	char *vertex_shader;
-	int vertex_length = asprintf(&vertex_shader,
+	std::ostringstream vertex_shader;
+	vertex_shader <<
 		"#version 150\n"
 
 		"in vec2 horizontal;"
@@ -35,7 +34,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 		"uniform vec2 boundsSize;"
 		"uniform vec2 positionConversion;"
 		"uniform vec2 scanNormal;"
-		"uniform %s texID;"
+		"uniform " << sampler_type << " texID;"
 		"uniform float inputScaler;"
 		"uniform int textureHeightDivisor;"
 
@@ -61,10 +60,10 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 			"vec2 floatingPosition = (vPosition / positionConversion) + lateral * scanNormal;"
 			"vec2 mappedPosition = (floatingPosition - boundsOrigin) / boundsSize;"
 			"gl_Position = vec4(mappedPosition.x * 2.0 - 1.0, 1.0 - mappedPosition.y * 2.0, 0.0, 1.0);"
-		"}", sampler_type);
+		"}";
 
-	char *fragment_shader;
-	int fragment_length = asprintf(&fragment_shader,
+	std::ostringstream fragment_shader;
+	fragment_shader <<
 		"#version 150\n"
 
 		"in float lateralVarying;"
@@ -73,24 +72,17 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"out vec4 fragColour;"
 
-		"uniform %s texID;"
+		"uniform " << sampler_type << " texID;"
 		"uniform float gamma;"
 
-		"\n%s\n"
+		<< fragment_methods <<
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(pow(%s, vec3(gamma)), 0.5);"//*cos(lateralVarying)
-		"}",
-	sampler_type, fragment_methods, colour_expression);
+			"fragColour = vec4(pow(" << colour_expression << ", vec3(gamma)), 0.5);"//*cos(lateralVarying)
+		"}";
 
-	if(vertex_length <= 0 || fragment_length <= 0) return nullptr;
-
-	std::unique_ptr<OutputShader> result(new OutputShader(vertex_shader, fragment_shader, bindings));
-	std::free(vertex_shader);
-	std::free(fragment_shader);
-
-	return result;
+	return std::unique_ptr<OutputShader>(new OutputShader(vertex_shader.str(), fragment_shader.str(), bindings));
 }
 
 void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area) {
