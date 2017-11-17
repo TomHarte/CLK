@@ -17,10 +17,10 @@ using namespace OpenGL;
 
 namespace {
 	const OpenGL::Shader::AttributeBinding bindings[] = {
-		{"inputPosition", 0},
-		{"outputPosition", 1},
-		{"phaseAndAmplitude", 2},
-		{"phaseTime", 3},
+		{"inputStart", 0},
+		{"outputStart", 1},
+		{"ends", 2},
+		{"phaseTimeAndAmplitude", 3},
 		{nullptr}
 	};
 }
