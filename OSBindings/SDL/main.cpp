@@ -252,6 +252,12 @@ int main(int argc, char *argv[]) {
 	SDL_GetWindowSize(window, &window_width, &window_height);
 	std::cout << "Window size is " << window_width << ", " << window_height << std::endl;
 
+	// Establish user-friendly options by default.
+	Configurable::Device *configurable_device = machine->configurable_device();
+	if(configurable_device) {
+		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
+	}
+
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
 	while(!should_quit) {

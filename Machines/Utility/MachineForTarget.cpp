@@ -21,23 +21,30 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 	public:
 		TypedDynamicMachine(T *machine) : machine_(machine) {}
 
-		ConfigurationTarget::Machine *configuration_target() {
-			return dynamic_cast<ConfigurationTarget::Machine *>(machine_.get());
+		ConfigurationTarget::Machine *configuration_target() override {
+			return get<ConfigurationTarget::Machine>();
 		}
 
-		CRTMachine::Machine *crt_machine() {
-			return dynamic_cast<CRTMachine::Machine *>(machine_.get());
+		CRTMachine::Machine *crt_machine() override {
+			return get<CRTMachine::Machine>();
 		}
 
-		JoystickMachine::Machine *joystick_machine() {
-			return dynamic_cast<JoystickMachine::Machine *>(machine_.get());
+		JoystickMachine::Machine *joystick_machine() override {
+			return get<JoystickMachine::Machine>();
 		}
 
-		KeyboardMachine::Machine *keyboard_machine() {
-			return dynamic_cast<KeyboardMachine::Machine *>(machine_.get());
+		KeyboardMachine::Machine *keyboard_machine() override {
+			return get<KeyboardMachine::Machine>();
+		}
+
+		Configurable::Device *configurable_device() override {
+			return get<Configurable::Device>();
 		}
 
 	private:
+		template <typename Class> Class *get() {
+			return dynamic_cast<Class *>(machine_.get());
+		}
 		std::unique_ptr<T> machine_;
 };
 
