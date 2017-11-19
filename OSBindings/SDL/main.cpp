@@ -339,6 +339,11 @@ int main(int argc, char *argv[]) {
 					}
 				break;
 
+				case SDL_DROPFILE: {
+					StaticAnalyser::Media media = StaticAnalyser::GetMedia(event.drop.file);
+					machine->configuration_target()->insert_media(media);
+				} break;
+				
 				case SDL_KEYDOWN:
 				case SDL_KEYUP: {
 					KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
