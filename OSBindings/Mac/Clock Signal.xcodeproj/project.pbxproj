@@ -123,6 +123,8 @@
 		4B055AEF1FAE9BF00060FFFF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
 		4B055AF11FAE9C160060FFFF /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4B055AF21FAE9C1C0060FFFF /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055AF01FAE9C080060FFFF /* OpenGL.framework */; };
+		4B07835A1FC11D10001D12BB /* Configurable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0783591FC11D10001D12BB /* Configurable.cpp */; };
+		4B07835B1FC11D42001D12BB /* Configurable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0783591FC11D10001D12BB /* Configurable.cpp */; };
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
@@ -617,6 +619,7 @@
 		4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MachineForTarget.cpp; sourceTree = "<group>"; };
 		4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineForTarget.hpp; sourceTree = "<group>"; };
 		4B055AF01FAE9C080060FFFF /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		4B0783591FC11D10001D12BB /* Configurable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Configurable.cpp; sourceTree = "<group>"; };
 		4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80InterruptTests.swift; sourceTree = "<group>"; };
 		4B08A2761EE39306008B7065 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
@@ -1514,6 +1517,7 @@
 			isa = PBXGroup;
 			children = (
 				4B31B88F1FBFBCD800C140D5 /* Configurable.hpp */,
+				4B0783591FC11D10001D12BB /* Configurable.cpp */,
 			);
 			name = Configurable;
 			path = ../../Configurable;
@@ -3218,6 +3222,7 @@
 				4B055AAF1FAE85FD0060FFFF /* UnformattedTrack.cpp in Sources */,
 				4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */,
 				4B055A9F1FAE85DA0060FFFF /* HFE.cpp in Sources */,
+				4B07835B1FC11D42001D12BB /* Configurable.cpp in Sources */,
 				4B055AE71FAE9B6F0060FFFF /* Shader.cpp in Sources */,
 				4B055AEC1FAE9BA20060FFFF /* Z80Base.cpp in Sources */,
 				4B055AE31FAE9B6F0060FFFF /* TextureBuilder.cpp in Sources */,
@@ -3254,6 +3259,7 @@
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
 				4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */,
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
+				4B07835A1FC11D10001D12BB /* Configurable.cpp in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,

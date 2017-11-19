@@ -37,20 +37,31 @@ struct ListOption: public Option {
 	ListOption(const std::string &long_name, const std::string &short_name, const std::vector<std::string> &options) : Option(long_name, short_name), options(options) {}
 };
 
+struct BooleanSelection;
+struct ListSelection;
+
 /*!
 	Selections are responses to Options.
 */
 struct Selection {
 	virtual ~Selection() {}
+	virtual ListSelection *list_selection() = 0;
+	virtual BooleanSelection *boolean_selection() = 0;
 };
 
 struct BooleanSelection: public Selection {
 	bool value;
+
+	ListSelection *list_selection();
+	BooleanSelection *boolean_selection();
 	BooleanSelection(bool value) : value(value) {}
 };
 
 struct ListSelection: public Selection {
 	std::string value;
+	
+	ListSelection *list_selection();
+	BooleanSelection *boolean_selection();
 	ListSelection(const std::string value) : value(value) {}
 };
 

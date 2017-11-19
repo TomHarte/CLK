@@ -298,6 +298,22 @@ int main(int argc, char *argv[]) {
 	Configurable::Device *configurable_device = machine->configurable_device();
 	if(configurable_device) {
 		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
+		
+		// Consider transcoding any list selections that map to Boolean options.
+		for(auto &option: configurable_device->get_options()) {
+			// Check for a corresponding selection.
+			auto selection = arguments.selections.find(option->short_name);
+			if(selection != arguments.selections.end()) {
+				// Transcode selection if necessary.
+				if(dynamic_cast<Configurable::BooleanOption *>(option.get())) {
+					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->boolean_selection());
+				}
+
+				if(dynamic_cast<Configurable::ListOption *>(option.get())) {
+					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->list_selection());
+				}
+			}
+		}
 		configurable_device->set_selections(arguments.selections);
 	}
 
