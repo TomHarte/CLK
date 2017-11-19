@@ -680,6 +680,7 @@
 		4B30512C1D989E2200B4FED8 /* Drive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Drive.hpp; sourceTree = "<group>"; };
 		4B30512E1D98ACC600B4FED8 /* Plus3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Plus3.cpp; path = Electron/Plus3.cpp; sourceTree = "<group>"; };
 		4B30512F1D98ACC600B4FED8 /* Plus3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Plus3.hpp; path = Electron/Plus3.hpp; sourceTree = "<group>"; };
+		4B31B88F1FBFBCD800C140D5 /* Configurable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Configurable.hpp; sourceTree = "<group>"; };
 		4B322DF31F5A26BF004EB04C /* 6502Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Implementation.hpp; sourceTree = "<group>"; };
 		4B322DF41F5A2714004EB04C /* 6502Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Storage.hpp; sourceTree = "<group>"; };
 		4B322DFD1F5A2981004EB04C /* Z80AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80AllRAM.cpp; sourceTree = "<group>"; };
@@ -1509,6 +1510,15 @@
 			name = Electron;
 			sourceTree = "<group>";
 		};
+		4B31B88E1FBFBCD800C140D5 /* Configurable */ = {
+			isa = PBXGroup;
+			children = (
+				4B31B88F1FBFBCD800C140D5 /* Configurable.hpp */,
+			);
+			name = Configurable;
+			path = ../../Configurable;
+			sourceTree = "<group>";
+		};
 		4B322DFC1F5A2981004EB04C /* AllRAM */ = {
 			isa = PBXGroup;
 			children = (
@@ -2259,6 +2269,7 @@
 				4BF660691F281573002CB053 /* ClockReceiver */,
 				4BC9DF4A1D04691600F44158 /* Components */,
 				4B3940E81DA83C8700427841 /* Concurrency */,
+				4B31B88E1FBFBCD800C140D5 /* Configurable */,
 				4B055A761FAE78210060FFFF /* Frameworks */,
 				4B86E2581F8C628F006FAA45 /* Inputs */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,

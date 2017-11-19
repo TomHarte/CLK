@@ -636,6 +636,30 @@ class ConcreteMachine:
 			return keyboard_mapper_;
 		}
 
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			std::vector<std::unique_ptr<Configurable::Option>> options;
+			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
+			return options;
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
+			if(quickload) set_use_fast_tape_hack(quickload->value);
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			return selection_set;
+		}
+
 	private:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 

@@ -9,6 +9,7 @@
 #ifndef ZX8081_hpp
 #define ZX8081_hpp
 
+#include "../../Configurable/Configurable.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -25,7 +26,8 @@ enum ROMType: uint8_t {
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public Configurable::Device {
 	public:
 		static Machine *ZX8081(const StaticAnalyser::Target &target_hint);
 		virtual ~Machine();

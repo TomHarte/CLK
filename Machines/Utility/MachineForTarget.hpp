@@ -11,6 +11,7 @@
 
 #include "../../StaticAnalyser/StaticAnalyser.hpp"
 
+#include "../../Configurable/Configurable.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
@@ -29,6 +30,7 @@ struct DynamicMachine {
 	virtual CRTMachine::Machine *crt_machine() = 0;
 	virtual JoystickMachine::Machine *joystick_machine() = 0;
 	virtual KeyboardMachine::Machine *keyboard_machine() = 0;
+	virtual Configurable::Device *configurable_device() = 0;
 };
 
 /*!

@@ -9,6 +9,7 @@
 #ifndef Vic20_hpp
 #define Vic20_hpp
 
+#include "../../../Configurable/Configurable.hpp"
 #include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../KeyboardMachine.hpp"
@@ -44,7 +45,8 @@ class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
-	public JoystickMachine::Machine {
+	public JoystickMachine::Machine,
+	public Configurable::Device {
 	public:
 		virtual ~Machine();
 

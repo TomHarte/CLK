@@ -10,6 +10,9 @@
 #define ConfigurationTarget_hpp
 
 #include "../StaticAnalyser/StaticAnalyser.hpp"
+#include "../Configurable/Configurable.hpp"
+
+#include <string>
 
 namespace ConfigurationTarget {
 

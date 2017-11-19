@@ -9,6 +9,7 @@
 #ifndef Electron_hpp
 #define Electron_hpp
 
+#include "../../Configurable/Configurable.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -41,7 +42,8 @@ enum ROMSlot: uint8_t {
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public Configurable::Device {
 	public:
 		virtual ~Machine();
 

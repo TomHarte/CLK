@@ -9,6 +9,7 @@
 #ifndef Oric_hpp
 #define Oric_hpp
 
+#include "../../Configurable/Configurable.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -28,7 +29,8 @@ enum ROM {
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public Configurable::Device {
 	public:
 		virtual ~Machine();
 

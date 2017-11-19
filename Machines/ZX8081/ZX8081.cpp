@@ -308,8 +308,7 @@ template<bool is_zx81> class ConcreteMachine:
 			return true;
 		}
 
-// MARK: - Keyboard
-
+		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool isPressed) override final {
 			if(isPressed)
 				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
@@ -321,8 +320,7 @@ template<bool is_zx81> class ConcreteMachine:
 			memset(key_states_, 0xff, 8);
 		}
 
-// MARK: - Tape control
-
+		// MARK: - Tape control
 		void set_use_fast_tape_hack(bool activate) override final {
 			use_fast_tape_hack_ = activate;
 		}
@@ -337,13 +335,42 @@ template<bool is_zx81> class ConcreteMachine:
 			tape_player_.set_motor_control(is_playing);
 		}
 
-// MARK: - Typer timing
-
+		// MARK: - Typer timing
 		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
 		KeyboardMapper &get_keyboard_mapper() override {
 			return keyboard_mapper_;
+		}
+
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			std::vector<std::unique_ptr<Configurable::Option>> options;
+			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
+			options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
+			return options;
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
+			if(quickload) set_use_fast_tape_hack(quickload->value);
+
+			auto autotapemotor = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "autotapemotor");
+			if(autotapemotor) set_use_automatic_tape_motor_control(autotapemotor->value);
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			selection_set["autotapemotor"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			selection_set["autotapemotor"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			return selection_set;
 		}
 
 	private:
@@ -383,8 +410,7 @@ template<bool is_zx81> class ConcreteMachine:
 		bool use_automatic_tape_motor_control_;
 		HalfCycles tape_advance_delay_ = 0;
 
-// MARK: - Video
-
+		// MARK: - Video
 		inline void set_vsync(bool sync) {
 			vsync_ = sync;
 			update_sync();
