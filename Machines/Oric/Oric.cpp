@@ -427,6 +427,36 @@ class ConcreteMachine:
 			return keyboard_mapper_;
 		}
 
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			std::vector<std::unique_ptr<Configurable::Option>> options;
+			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
+			options.emplace_back(new Configurable::ListOption("Display", "display", {"composite", "rgb"}));
+			return options;
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
+			if(quickload) set_use_fast_tape_hack(quickload->value);
+
+			auto display = Configurable::selection<Configurable::ListSelection>(selections_by_option, "display");
+			if(display) get_crt()->set_output_device((display->value == "rgb") ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection("composite"));
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection("rgb"));
+			return selection_set;
+		}
+
 	private:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 

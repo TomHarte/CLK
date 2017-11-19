@@ -416,6 +416,7 @@ class ConcreteMachine:
 			return keyboard_mapper_;
 		}
 
+		// MARK: - Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
 			std::vector<std::unique_ptr<Configurable::Option>> options;
 			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
@@ -446,6 +447,7 @@ class ConcreteMachine:
 		}
 
 	private:
+		// MARK: - Work deferral updates.
 		inline void update_display() {
 			if(cycles_since_display_update_ > 0) {
 				video_output_->run_for(cycles_since_display_update_.flush());
