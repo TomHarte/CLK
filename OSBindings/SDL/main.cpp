@@ -6,9 +6,9 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
+#include <cstdio>
 #include <iostream>
 #include <memory>
-#include <cstdio>
 
 #include <SDL2/SDL.h>
 
@@ -117,19 +117,63 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 
 }
 
+struct ParsedArguments {
+	std::string file_name;
+	Configurable::SelectionSet selections;
+};
+
+/*! Parses an argc/argv pair to discern program arguments. */
+ParsedArguments parse_arguments(int argc, char *argv[]) {
+	ParsedArguments arguments;
+
+	for(int index = 1; index < argc; ++index) {
+		char *arg = argv[index];
+
+		// Accepted format is:
+		//
+		//	--flag			sets a Boolean option to true.
+		//	--flag=value	sets the value for a list option.
+		//	name			sets the file name to load.
+		
+		// Anything starting with a dash always makes a selection; otherwise it's a file name.
+		if(arg[0] == '-') {
+			while(*arg == '-') arg++;
+
+			// Check for an equals sign, to discern a Boolean selection from a list selection.
+			std::string argument = arg;
+			std::size_t split_index = argument.find("=");
+
+			if(split_index == std::string::npos) {
+				arguments.selections[argument] =  std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			} else {
+				std::string name = argument.substr(0, split_index);
+				std::string value = argument.substr(split_index+1, std::string::npos);
+				arguments.selections[name] =  std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(value));
+			}
+		} else {
+			arguments.file_name = arg;
+		}
+	}
+
+	return arguments;
+}
+
 int main(int argc, char *argv[]) {
 	SDL_Window *window = nullptr;
 
+	// Attempt to parse arguments.
+	ParsedArguments arguments = parse_arguments(argc, argv);
+
 	// Perform a sanity check on arguments.
-	if(argc < 2) {
+	if(arguments.file_name.empty()) {
 		std::cerr << "Usage: " << argv[0] << " [file]" << std::endl;
 		return -1;
 	}
 
 	// Determine the machine for the supplied file.
-	std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets(argv[1]);
+	std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets(arguments.file_name.c_str());
 	if(targets.empty()) {
-		std::cerr << "Cannot open " << argv[1] << std::endl;
+		std::cerr << "Cannot open " << arguments.file_name << std::endl;
 		return -1;
 	}
 
@@ -256,6 +300,7 @@ int main(int argc, char *argv[]) {
 	Configurable::Device *configurable_device = machine->configurable_device();
 	if(configurable_device) {
 		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
+		configurable_device->set_selections(arguments.selections);
 	}
 
 	// Run the main event loop until the OS tells us to quit.
