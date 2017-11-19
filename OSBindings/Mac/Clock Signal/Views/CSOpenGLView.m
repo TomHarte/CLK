@@ -169,8 +169,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems])
 	{
 		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
-
-		NSLog(@"%@", URL);
 		[self.delegate openGLView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
