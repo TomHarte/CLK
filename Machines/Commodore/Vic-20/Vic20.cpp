@@ -24,10 +24,16 @@
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../../../Storage/Disk/Disk.hpp"
 
+#include "../../../Configurable/StandardOptions.hpp"
+
 #include <algorithm>
 
 namespace Commodore {
 namespace Vic20 {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(Configurable::QuickLoadTape);
+}
 
 enum JoystickInput {
 	Up = 0x04,
@@ -638,25 +644,25 @@ class ConcreteMachine:
 
 		// MARK: - Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			std::vector<std::unique_ptr<Configurable::Option>> options;
-			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
-			return options;
+			return Commodore::Vic20::get_options();
 		}
 
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
-			if(quickload) set_use_fast_tape_hack(quickload->value);
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				set_use_fast_tape_hack(quickload);
+			}
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			Configurable::append_quick_load_tape_selection(selection_set, false);
 			return selection_set;
 		}
 
 		Configurable::SelectionSet get_user_friendly_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			Configurable::append_quick_load_tape_selection(selection_set, true);
 			return selection_set;
 		}
 

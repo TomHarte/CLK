@@ -17,6 +17,7 @@
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include <map>
 #include <string>
 
 namespace Machine {
@@ -45,7 +46,19 @@ DynamicMachine *MachineForTarget(const StaticAnalyser::Target &target);
 	which is guaranteed not to have any spaces or other potentially
 	filesystem-bothering contents.
 */
-std::string NameForTarget(const StaticAnalyser::Target &target);
+std::string ShortNameForTargetMachine(const StaticAnalyser::Target::Machine target);
+
+/*!
+	Returns a long string name for the machine identified by the target,
+	usable for presentation to a human.
+*/
+std::string LongNameForTargetMachine(const StaticAnalyser::Target::Machine target);
+
+/*!
+	Returns a map from machine name to the list of options that machine
+	exposes, for all machines.
+*/
+std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> AllOptionsByMachineName();
 
 }
 

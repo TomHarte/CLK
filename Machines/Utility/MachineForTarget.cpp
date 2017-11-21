@@ -63,8 +63,8 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 	}
 }
 
-std::string Machine::NameForTarget(const StaticAnalyser::Target &target) {
-	switch(target.machine) {
+std::string Machine::ShortNameForTargetMachine(const StaticAnalyser::Target::Machine machine) {
+	switch(machine) {
 		case StaticAnalyser::Target::AmstradCPC:	return "AmstradCPC";
 		case StaticAnalyser::Target::Atari2600:		return "Atari2600";
 		case StaticAnalyser::Target::Electron:		return "Electron";
@@ -74,4 +74,28 @@ std::string Machine::NameForTarget(const StaticAnalyser::Target &target) {
 
 		default:	return "";
 	}
+}
+
+std::string Machine::LongNameForTargetMachine(StaticAnalyser::Target::Machine machine) {
+	switch(machine) {
+		case StaticAnalyser::Target::AmstradCPC:	return "Amstrad CPC";
+		case StaticAnalyser::Target::Atari2600:		return "Atari 2600";
+		case StaticAnalyser::Target::Electron:		return "Acorn Electron";
+		case StaticAnalyser::Target::Oric:			return "Oric";
+		case StaticAnalyser::Target::Vic20:			return "Vic 20";
+		case StaticAnalyser::Target::ZX8081:		return "ZX80/81";
+
+		default:	return "";
+	}
+}
+
+std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machine::AllOptionsByMachineName() {
+	std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> options;
+
+	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Electron), Electron::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Oric), Oric::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Vic20), Commodore::Vic20::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::ZX8081), ZX8081::get_options()));
+
+	return options;
 }

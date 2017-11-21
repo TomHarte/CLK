@@ -23,6 +23,9 @@ enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
 
+/// @returns The options available for a ZX80 or ZX81.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,

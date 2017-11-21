@@ -33,6 +33,9 @@ enum ROMSlot: uint8_t {
 	ROMSlotADFS1,	ROMSlotADFS2
 };
 
+/// @returns The options available for an Electron.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 /*!
 	@abstract Represents an Acorn Electron.
 

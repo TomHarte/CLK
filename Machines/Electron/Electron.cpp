@@ -8,6 +8,7 @@
 
 #include "Electron.hpp"
 
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Processors/6502/6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -23,6 +24,12 @@
 #include "Video.hpp"
 
 namespace Electron {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGBComposite | Configurable::QuickLoadTape)
+	);
+}
 
 class ConcreteMachine:
 	public Machine,
@@ -418,31 +425,32 @@ class ConcreteMachine:
 
 		// MARK: - Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			std::vector<std::unique_ptr<Configurable::Option>> options;
-			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
-			options.emplace_back(new Configurable::ListOption("Display", "display", {"composite", "rgb"}));
-			return options;
+			return Electron::get_options();
 		}
 
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
-			if(quickload) set_use_fast_tape_hack(quickload->value);
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				set_use_fast_tape_hack(quickload);
+			}
 
-			auto display = Configurable::selection<Configurable::ListSelection>(selections_by_option, "display");
-			if(display) get_crt()->set_output_device((display->value == "rgb") ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				get_crt()->set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+			}
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
-			selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection("composite"));
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
 			return selection_set;
 		}
 
 		Configurable::SelectionSet get_user_friendly_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
-			selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection("rgb"));
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
