@@ -157,18 +157,25 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 }
 
 std::string final_path_component(const std::string &path) {
+	// An empty path has no final component.
 	if(path.empty()) {
 		return "";
 	}
 
+	// Find the last slash...
 	auto final_slash = path.find_last_of("/\\");
+	
+	// If no slash was found at all, return the whole path.
 	if(final_slash == std::string::npos) {
 		return path;
 	}
+
+	// If a slash was found in the final position, remove it and recurse.
 	if(final_slash == path.size() - 1) {
 		return final_path_component(path.substr(0, path.size() - 1));
 	}
 
+	// Otherwise return everything from just after the slash to the end of the path.
 	return path.substr(final_slash+1, path.size() - final_slash - 1);
 }
 
@@ -211,7 +218,8 @@ int main(int argc, char *argv[]) {
 
 	// Perform a sanity check on arguments.
 	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << final_path_component(argv[0]) << " [file]" << std::endl;
+		std::cerr << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return -1;
 	}
 
