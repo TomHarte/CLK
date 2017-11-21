@@ -41,6 +41,9 @@ enum Region {
 	Swedish
 };
 
+/// @returns The options available for a Vic-20.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 class Machine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,

@@ -23,6 +23,9 @@ enum ROM {
 	BASIC10 = 0, BASIC11, Microdisc, Colour
 };
 
+/// @returns The options available for an Oric.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 /*!
 	Models an Oric 1/Atmos with or without a Microdisc.
 */

@@ -66,7 +66,7 @@ struct Media {
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
 */
 struct Target {
-	enum  {
+	enum Machine {
 		AmstradCPC,
 		Atari2600,
 		Electron,

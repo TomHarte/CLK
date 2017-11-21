@@ -115,8 +115,6 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 	return true;
 }
 
-}
-
 struct ParsedArguments {
 	std::string file_name;
 	Configurable::SelectionSet selections;
@@ -158,15 +156,62 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 	return arguments;
 }
 
+std::string final_path_component(const std::string &path) {
+	if(path.empty()) {
+		return "";
+	}
+
+	auto final_slash = path.find_last_of("/\\");
+	if(final_slash == std::string::npos) {
+		return path;
+	}
+	if(final_slash == path.size() - 1) {
+		return final_path_component(path.substr(0, path.size() - 1));
+	}
+
+	return path.substr(final_slash+1, path.size() - final_slash - 1);
+}
+
+}
+
 int main(int argc, char *argv[]) {
 	SDL_Window *window = nullptr;
 
 	// Attempt to parse arguments.
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
+	// Print a help message if requested.
+	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
+		std::cout << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
+
+		auto all_options = Machine::AllOptionsByMachineName();
+		for(auto &machine_options: all_options) {
+			std::cout << machine_options.first << ":" << std::endl;
+			for(auto &option: machine_options.second) {
+				std::cout << '\t' << "--" << option->short_name;
+				
+				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
+				if(list_option) {
+					std::cout << "={";
+					bool is_first = true;
+					for(auto option: list_option->options) {
+						if(!is_first) std::cout << '|';
+						is_first = false;
+						std::cout << option;
+					}
+					std::cout << "}";
+				}
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+		}
+		return 0;
+	}
+
 	// Perform a sanity check on arguments.
 	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << argv[0] << " [file]" << std::endl;
+		std::cerr << "Usage: " << final_path_component(argv[0]) << " [file]" << std::endl;
 		return -1;
 	}
 
@@ -206,7 +251,7 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetSwapInterval(1);
 
-	window = SDL_CreateWindow(	"Clock Signal",
+	window = SDL_CreateWindow(	final_path_component(arguments.file_name).c_str(),
 								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);

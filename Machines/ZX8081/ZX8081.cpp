@@ -13,6 +13,7 @@
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
@@ -28,6 +29,12 @@ namespace {
 }
 
 namespace ZX8081 {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::AutomaticTapeMotorControl | Configurable::QuickLoadTape)
+	);
+}
 
 template<bool is_zx81> class ConcreteMachine:
 	public Utility::TypeRecipient,
@@ -345,31 +352,32 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			std::vector<std::unique_ptr<Configurable::Option>> options;
-			options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
-			options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
-			return options;
+			return ZX8081::get_options();
 		}
 
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
-			if(quickload) set_use_fast_tape_hack(quickload->value);
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				set_use_fast_tape_hack(quickload);
+			}
 
-			auto autotapemotor = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "autotapemotor");
-			if(autotapemotor) set_use_automatic_tape_motor_control(autotapemotor->value);
+			bool autotapemotor;
+			if(Configurable::get_automatic_tape_motor_control_selection(selections_by_option, autotapemotor)) {
+				set_use_automatic_tape_motor_control(autotapemotor);
+			}
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
-			selection_set["autotapemotor"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(false));
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			Configurable::append_automatic_tape_motor_control_selection(selection_set, false);
 			return selection_set;
 		}
 
 		Configurable::SelectionSet get_user_friendly_selections() override {
 			Configurable::SelectionSet selection_set;
-			selection_set["quickload"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
-			selection_set["autotapemotor"] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			Configurable::append_automatic_tape_motor_control_selection(selection_set, true);
 			return selection_set;
 		}
 
