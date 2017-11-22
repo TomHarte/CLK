@@ -382,6 +382,7 @@ int main(int argc, char *argv[]) {
 
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
+	Uint32 fullscreen_mode = 0;
 	while(!should_quit) {
 		// Process all pending events.
 		SDL_Event event;
@@ -408,6 +409,23 @@ int main(int argc, char *argv[]) {
 				} break;
 				
 				case SDL_KEYDOWN:
+					// Syphon off the key-press if it's control+shift+V (paste).
+					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
+						Utility::TypeRecipient *type_recipient = machine->type_recipient();
+						if(type_recipient) {
+							type_recipient->set_typer_for_string(SDL_GetClipboardText());
+							break;
+						}
+					}
+
+					// Also syphon off alt+enter (toggle full-screen).
+					if(event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
+						SDL_SetWindowFullscreen(window, fullscreen_mode);
+						break;
+					}
+
+				// deliberate fallthrough...
 				case SDL_KEYUP: {
 					KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
 					if(!keyboard_machine) break;
