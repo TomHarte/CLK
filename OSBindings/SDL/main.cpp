@@ -280,40 +280,50 @@ int main(int argc, char *argv[]) {
 	//
 	//	/usr/local/share/CLK/[system]; or
 	//	/usr/share/CLK/[system]
-	bool roms_loaded = machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-		std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-		for(auto &name: names) {
-			std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
-			FILE *file = std::fopen(local_path.c_str(), "rb");
-			if(!file) {
-				std::string path = "/usr/share/CLK/" + machine + "/" + name;
-				file = std::fopen(path.c_str(), "rb");
+	std::vector<std::string> rom_names;
+	std::string machine_name;
+	bool roms_loaded = machine->crt_machine()->set_rom_fetcher( [&rom_names, &machine_name]
+		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+			rom_names.insert(rom_names.end(), names.begin(), names.end());
+			machine_name = machine;
+
+			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
+			for(auto &name: names) {
+				std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
+				FILE *file = std::fopen(local_path.c_str(), "rb");
+				if(!file) {
+					std::string path = "/usr/share/CLK/" + machine + "/" + name;
+					file = std::fopen(path.c_str(), "rb");
+				}
+
+				if(!file) {
+					results.emplace_back(nullptr);
+					continue;
+				}
+
+				std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+
+				std::fseek(file, 0, SEEK_END);
+				data->resize(std::ftell(file));
+				std::fseek(file, 0, SEEK_SET);
+				std::size_t read = fread(data->data(), 1, data->size(), file);
+				std::fclose(file);
+
+				if(read == data->size())
+					results.emplace_back(std::move(data));
+				else
+					results.emplace_back(nullptr);
 			}
 
-			if(!file) {
-				results.emplace_back(nullptr);
-				continue;
-			}
-
-			std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
-
-			std::fseek(file, 0, SEEK_END);
-			data->resize(std::ftell(file));
-			std::fseek(file, 0, SEEK_SET);
-			std::size_t read = fread(data->data(), 1, data->size(), file);
-			std::fclose(file);
-
-			if(read == data->size())
-				results.emplace_back(std::move(data));
-			else
-				results.emplace_back(nullptr);
-		}
-
-		return results;
-	});
+			return results;
+		});
 
 	if(!roms_loaded) {
-		std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/" << std::endl;
+		std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
+		std::cerr << "One or more of the following were needed but not found:" << std::endl;
+		for(auto &name: rom_names) {
+			std::cerr << machine_name << '/' << name << std::endl;
+		}
 		return -1;
 	}
 
