@@ -422,6 +422,7 @@ int main(int argc, char *argv[]) {
 					if(event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
 						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
 						SDL_SetWindowFullscreen(window, fullscreen_mode);
+						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 						break;
 					}
 
