@@ -16,6 +16,7 @@
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
+#include "Typer.hpp"
 
 #include <map>
 #include <string>
@@ -32,6 +33,7 @@ struct DynamicMachine {
 	virtual JoystickMachine::Machine *joystick_machine() = 0;
 	virtual KeyboardMachine::Machine *keyboard_machine() = 0;
 	virtual Configurable::Device *configurable_device() = 0;
+	virtual Utility::TypeRecipient *type_recipient() = 0;
 };
 
 /*!
