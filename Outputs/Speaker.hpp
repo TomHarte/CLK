@@ -114,7 +114,8 @@ class Speaker {
 		bool coefficients_are_dirty_;
 		Delegate *delegate_ = nullptr;
 
-		float input_cycles_per_second_, output_cycles_per_second_;
+		float input_cycles_per_second_ = 0.0f;
+		float output_cycles_per_second_ = 0.0f;
 
 		void set_needs_updated_filter_coefficients() {
 			coefficients_are_dirty_ = true;
