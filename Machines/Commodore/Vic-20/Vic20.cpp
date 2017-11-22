@@ -410,22 +410,30 @@ class ConcreteMachine:
 			needs_configuration_ = true;
 		}
 
+		void set_ntsc_6560() {
+			set_clock_rate(1022727);
+			if(mos6560_) {
+				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+				mos6560_->set_clock_rate(1022727);
+			}
+		}
+
+		void set_pal_6560() {
+			set_clock_rate(1108404);
+			if(mos6560_) {
+				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+				mos6560_->set_clock_rate(1108404);
+			}
+		}
+
 		void configure_memory() {
 			// Determine PAL/NTSC
 			if(region_ == American || region_ == Japanese) {
 				// NTSC
-				set_clock_rate(1022727);
-				if(mos6560_) {
-					mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
-					mos6560_->set_clock_rate(1022727);
-				}
+				set_ntsc_6560();
 			} else {
 				// PAL
-				set_clock_rate(1108404);
-				if(mos6560_) {
-					mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
-					mos6560_->set_clock_rate(1108404);
-				}
+				set_pal_6560();
 			}
 
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
@@ -610,6 +618,8 @@ class ConcreteMachine:
 		void setup_output(float aspect_ratio) override final {
 			mos6560_.reset(new Vic6560());
 			mos6560_->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
+			// Make a guess: PAL. Without setting a clock rate the 6560 isn't fully set up so contractually something must be set.
+			set_pal_6560();
 		}
 
 		void close_output() override final {
