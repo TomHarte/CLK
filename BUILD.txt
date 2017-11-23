@@ -1,7 +1,7 @@
 Linux, BSD
 ==========
 
-Prerequisites are SDL 2, ZLib and OpenGL (or Mesa), and SConstruct for the provided build script. OpenGL 3.2 or better is required at runtime.
+Prerequisites are SDL 2, ZLib and OpenGL (or Mesa), and SCons for the provided build script. OpenGL 3.2 or better is required at runtime.
 
 Build:
 
