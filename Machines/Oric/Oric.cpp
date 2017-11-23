@@ -373,6 +373,7 @@ class ConcreteMachine:
 
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
+			set_output_device(Configurable::Display::RGB);
 		}
 
 		void close_output() override final {
@@ -447,7 +448,7 @@ class ConcreteMachine:
 
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
-				get_crt()->set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+				set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
 			}
 		}
 
