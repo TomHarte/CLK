@@ -214,6 +214,7 @@ int main(int argc, char *argv[]) {
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
 		std::cout << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
 		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
 
 		auto all_options = Machine::AllOptionsByMachineName();
