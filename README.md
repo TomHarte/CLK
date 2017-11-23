@@ -1,5 +1,7 @@
 # CLK
-CLK is an emulator for tourists that seeks best-in-class accuracy while minimising latency.
+CLK is an emulator for tourists that seeks to be invisible. Users directly launch classic software with no emulator or per-emulated-machine learning curve.
+
+On the Mac it is a native Cocoa application. Under Linux, BSD and other UNIXes and UNIX-alikes it relies upon SDL 2.
 
 So its aims are:
 * single-click load of any piece of source media for any supported platform;
