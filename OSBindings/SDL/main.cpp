@@ -42,17 +42,41 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 };
 
 // This is set to a relatively large number for now.
-const int AudioBufferSize = 1024;
-
 struct SpeakerDelegate: public Outputs::Speaker::Delegate {
+	static const int buffer_size = 1024;
+
 	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
-		if(SDL_GetQueuedAudioSize(audio_device) < AudioBufferSize*3)
-			SDL_QueueAudio(audio_device, reinterpret_cast<const void *>(buffer.data()), static_cast<Uint32>(buffer.size() * sizeof(uint16_t)));
+		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+		if(audio_buffer_.size() > buffer_size) {
+			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
+		}
+		audio_buffer_.insert(audio_buffer_.end(), buffer.begin(), buffer.end());
+	}
+
+	void audio_callback(Uint8 *stream, int len) {
 		updater->update();
+		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+
+		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
+		std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
+		int16_t *target = static_cast<int16_t *>(static_cast<void *>(stream));
+
+		std::memcpy(stream, audio_buffer_.data(), copy_length * sizeof(int16_t));
+		if(copy_length < sample_length) {
+			std::memset(&target[copy_length], 0, (sample_length - copy_length) * sizeof(int16_t));
+		}
+		audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.begin() + copy_length);
+	}
+
+	static void SDL_audio_callback(void *userdata, Uint8 *stream, int len) {
+		reinterpret_cast<SpeakerDelegate *>(userdata)->audio_callback(stream, len);
 	}
 
 	SDL_AudioDeviceID audio_device;
 	Concurrency::BestEffortUpdater *updater;
+
+	std::mutex audio_buffer_mutex_;
+	std::vector<int16_t> audio_buffer_;
 };
 
 bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
@@ -345,11 +369,13 @@ int main(int argc, char *argv[]) {
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
 		desired_audio_spec.channels = 1;
-		desired_audio_spec.samples = AudioBufferSize;
+		desired_audio_spec.samples = SpeakerDelegate::buffer_size;
+		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
+		desired_audio_spec.userdata = &speaker_delegate;
 
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-		speaker->set_output_rate(obtained_audio_spec.freq, obtained_audio_spec.samples);
+		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples);
 		speaker->set_delegate(&speaker_delegate);
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
