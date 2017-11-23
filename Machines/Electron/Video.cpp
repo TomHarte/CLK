@@ -376,18 +376,37 @@ VideoOutput::Interrupt VideoOutput::get_next_interrupt() {
 
 unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) {
 	unsigned int result = 0;
-	int position = output_position_ + from_time;
+	int position = (output_position_ + from_time) % cycles_per_frame;
 
+	// Apply the standard cost of aligning to the available 1Mhz of RAM bandwidth.
 	result += 1 + (position&1);
+
+	// In Modes 0–3 there is also a complete block on any access while pixels are being fetched.
 	if(screen_mode_ < 4) {
 		const int current_column = graphics_column(position + (position&1));
 		int current_line = graphics_line(position);
 		if(current_column < 80 && current_line < 256) {
+			// Mode 3 is a further special case: in 'every ten line block', the final two aren't painted,
+			// so the CPU is allowed access. But the offset of the ten-line blocks depends on when the
+			// user switched into Mode 3, so that needs to be calculated relative to current output.
 			if(screen_mode_ == 3) {
+				// Get the line the display was on.
 				int output_position_line = graphics_line(output_position_);
-				int implied_row = current_character_row_ + (current_line - output_position_line) % 10;
-				if(implied_row < 8)
-					result += static_cast<unsigned int>(80 - current_column);
+
+				int implied_row;
+				if(current_line >= output_position_line) {
+					// Get the number of lines since then if still in the same frame.
+					int lines_since_output_position = current_line - output_position_line;
+				
+					// Therefore get the character row at the proposed time, modulo 10.
+					implied_row = (current_character_row_ + lines_since_output_position) % 10;
+				} else {
+					// If the frame has rolled over, the implied row is just related to the current line.
+					implied_row = current_line % 10;
+				}
+
+				// Mode 3 ends after 250 lines, not the usual 256.
+				if(implied_row < 8 && current_line < 250) result += static_cast<unsigned int>(80 - current_column);
 			}
 			else result += static_cast<unsigned int>(80 - current_column);
 		}
