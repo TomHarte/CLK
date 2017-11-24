@@ -150,14 +150,14 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{composite_input_shader_program_.get(),					composite_texture_.get(),		{0.0, 0.0, 0.0}},
 		{composite_separation_filter_program_.get(),			separated_texture_.get(),		{0.0, 0.5, 0.5}},
 		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
-		{nullptr}
+		{nullptr, nullptr}
 	};
 
 	// for RGB video, there's only two steps
 	RenderStage rgb_render_stages[] = {
 		{rgb_input_shader_program_.get(),	composite_texture_.get(),	{0.0, 0.0, 0.0}},
 		{rgb_filter_shader_program_.get(),	filtered_texture_.get(),	{0.0, 0.0, 0.0}},
-		{nullptr}
+		{nullptr, nullptr}
 	};
 
 	RenderStage *active_pipeline = get_is_television_output() ? composite_render_stages : rgb_render_stages;
