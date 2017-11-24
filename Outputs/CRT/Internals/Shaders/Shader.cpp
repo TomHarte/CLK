@@ -43,7 +43,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	return shader;
 }
 
-Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const AttributeBinding *attribute_bindings) {
+Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
 	shader_program_ = glCreateProgram();
 	GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
@@ -51,11 +51,8 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 	glAttachShader(shader_program_, vertex);
 	glAttachShader(shader_program_, fragment);
 
-	if(attribute_bindings) {
-		while(attribute_bindings->name) {
-			glBindAttribLocation(shader_program_, attribute_bindings->index, attribute_bindings->name);
-			attribute_bindings++;
-		}
+	for(auto &binding : attribute_bindings) {
+		glBindAttribLocation(shader_program_, binding.index, binding.name.c_str());
 	}
 
 	glLinkProgram(shader_program_);
@@ -95,15 +92,15 @@ void Shader::unbind() {
 	glUseProgram(0);
 }
 
-GLint Shader::get_attrib_location(const GLchar *name) {
-	return glGetAttribLocation(shader_program_, name);
+GLint Shader::get_attrib_location(const std::string &name) {
+	return glGetAttribLocation(shader_program_, name.c_str());
 }
 
-GLint Shader::get_uniform_location(const GLchar *name) {
-	return glGetUniformLocation(shader_program_, name);
+GLint Shader::get_uniform_location(const std::string &name) {
+	return glGetUniformLocation(shader_program_, name.c_str());
 }
 
-void Shader::enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
+void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
 	GLint location = get_attrib_location(name);
 	glEnableVertexAttribArray((GLuint)location);
 	glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);

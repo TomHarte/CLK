@@ -15,14 +15,13 @@
 
 using namespace OpenGL;
 
-namespace {
-	const OpenGL::Shader::AttributeBinding bindings[] = {
-		{"inputStart", 0},
-		{"outputStart", 1},
-		{"ends", 2},
-		{"phaseTimeAndAmplitude", 3},
-		{nullptr, 0}
-	};
+std::string IntermediateShader::get_input_name(Input input) {
+	switch(input) {
+		case Input::InputStart:				return "inputStart";
+		case Input::OutputStart:			return "outputStart";
+		case Input::Ends:					return "ends";
+		case Input::PhaseTimeAndAmplitude:	return "phaseTimeAndAmplitude";
+	}
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition) {
@@ -30,10 +29,10 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 	vertex_shader <<
 		"#version 150\n"
 
-		"in vec2 inputStart;"
-		"in vec2 outputStart;"
-		"in vec2 ends;"
-		"in vec3 phaseTimeAndAmplitude;"
+		"in vec2 " << get_input_name(Input::InputStart) << ";"
+		"in vec2 " << get_input_name(Input::OutputStart) << ";"
+		"in vec2 " << get_input_name(Input::Ends) << ";"
+		"in vec3 " << get_input_name(Input::PhaseTimeAndAmplitude) << ";"
 
 		"uniform ivec2 outputTextureSize;"
 		"uniform float extension;"
@@ -102,7 +101,12 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 		"}";
 
-	return std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader.str(), fragment_shader, bindings));
+	return std::unique_ptr<IntermediateShader>(new IntermediateShader(vertex_shader.str(), fragment_shader, {
+		{get_input_name(Input::InputStart), 0},
+		{get_input_name(Input::OutputStart), 1},
+		{get_input_name(Input::Ends), 2},
+		{get_input_name(Input::PhaseTimeAndAmplitude), 3}
+	}));
 }
 
 std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader) {

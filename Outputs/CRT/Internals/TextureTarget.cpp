@@ -82,7 +82,7 @@ void TextureTarget::draw(float aspect_ratio) {
 			"{"
 				"fragColour = texture(texID, texCoordVarying);"
 			"}";
-		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader, nullptr));
+		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader));
 		pixel_shader_->bind();
 
 		glGenVertexArrays(1, &drawing_vertex_array_);

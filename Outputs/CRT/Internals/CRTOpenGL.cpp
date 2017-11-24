@@ -306,10 +306,26 @@ void OpenGLOutputBuilder::prepare_source_vertex_array() {
 		glBindVertexArray(source_vertex_array_);
 		array_builder.bind_input();
 
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer("inputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfInputStart, 1);
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer("outputStart", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfOutputStart, 1);
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer("ends", 2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfEnds, 1);
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer("phaseTimeAndAmplitude", 3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize, (void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
+		using Shader = OpenGL::IntermediateShader;
+		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::InputStart),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfInputStart, 1);
+
+		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::OutputStart),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfOutputStart, 1);
+
+		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::Ends),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfEnds, 1);
+
+		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::PhaseTimeAndAmplitude),
+			3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
 	}
 }
 
@@ -324,8 +340,17 @@ void OpenGLOutputBuilder::prepare_output_vertex_array() {
 	if(output_shader_program_) {
 		glBindVertexArray(output_vertex_array_);
 		array_builder.bind_output();
-		output_shader_program_->enable_vertex_attribute_with_pointer("horizontal", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfHorizontal, 1);
-		output_shader_program_->enable_vertex_attribute_with_pointer("vertical", 2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize, (void *)OutputVertexOffsetOfVertical, 1);
+		
+		using Shader = OpenGL::OutputShader;
+		output_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::Horizontal),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize,
+			(void *)OutputVertexOffsetOfHorizontal, 1);
+
+		output_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::Vertical),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, OutputVertexSize,
+			(void *)OutputVertexOffsetOfVertical, 1);
 	}
 }
 

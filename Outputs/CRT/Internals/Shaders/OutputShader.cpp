@@ -13,12 +13,11 @@
 
 using namespace OpenGL;
 
-namespace {
-	const OpenGL::Shader::AttributeBinding bindings[] = {
-		{"position", 0},
-		{"srcCoordinates", 1},
-		{nullptr, 0}
-	};
+std::string OutputShader::get_input_name(Input input) {
+	switch(input) {
+		case Input::Horizontal:	return "horizontal";
+		case Input::Vertical:	return "vertical";
+	}
 }
 
 std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_methods, const char *colour_expression, bool use_usampler) {
@@ -28,8 +27,8 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 	vertex_shader <<
 		"#version 150\n"
 
-		"in vec2 horizontal;"
-		"in vec2 vertical;"
+		"in vec2 " << get_input_name(Input::Horizontal) << ";"
+		"in vec2 " << get_input_name(Input::Vertical) << ";"
 
 		"uniform vec2 boundsOrigin;"
 		"uniform vec2 boundsSize;"
@@ -83,7 +82,10 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 			"fragColour = vec4(pow(" << colour_expression << ", vec3(gamma)), 0.5);"//*cos(lateralVarying)
 		"}";
 
-	return std::unique_ptr<OutputShader>(new OutputShader(vertex_shader.str(), fragment_shader.str(), bindings));
+	return std::unique_ptr<OutputShader>(new OutputShader(vertex_shader.str(), fragment_shader.str(), {
+		{get_input_name(Input::Horizontal), 0},
+		{get_input_name(Input::Vertical), 1}
+	}));
 }
 
 void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area) {

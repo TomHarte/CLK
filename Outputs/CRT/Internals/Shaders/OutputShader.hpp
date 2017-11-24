@@ -17,6 +17,23 @@ namespace OpenGL {
 
 class OutputShader: public Shader {
 public:
+	enum class Input {
+		/// A 2d vector; the first element is the horizontal start of this scan, the second element is the end.
+		Horizontal,
+		/// A 2d vector; the first element is the vertical start of this scan, the second element is the end.
+		Vertical
+	};
+
+	/*!
+		Obtains the name of a designated input. Designated inputs are guaranteed to have the same attribute location
+		across multiple instances of OutputShader. So binding a vertex array to these inputs for any instance of
+		OutputShader allows that array to work with all instances of OutputShader.
+
+		@param input The input to query.
+		@returns The name used in this shader's source for the nominated input.
+	*/
+	static std::string get_input_name(Input input);
+
 	/*!
 		Constructs and returns an instance of OutputShader. OutputShaders are intended to read source data
 		from a texture and draw a single raster scan containing that data as output.
