@@ -21,7 +21,7 @@ namespace {
 		{"outputStart", 1},
 		{"ends", 2},
 		{"phaseTimeAndAmplitude", 3},
-		{nullptr}
+		{nullptr, 0}
 	};
 }
 

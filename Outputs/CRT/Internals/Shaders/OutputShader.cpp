@@ -17,7 +17,7 @@ namespace {
 	const OpenGL::Shader::AttributeBinding bindings[] = {
 		{"position", 0},
 		{"srcCoordinates", 1},
-		{nullptr}
+		{nullptr, 0}
 	};
 }
 
