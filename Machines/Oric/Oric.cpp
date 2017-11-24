@@ -25,9 +25,15 @@
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
 
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace Oric {
+
+enum ROM {
+	BASIC10 = 0, BASIC11, Microdisc, Colour
+};
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
@@ -198,7 +204,7 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
-		void set_rom(ROM rom, const std::vector<uint8_t> &data) override final {
+		void set_rom(ROM rom, const std::vector<uint8_t> &data) {
 			switch(rom) {
 				case BASIC11:	basic11_rom_ = std::move(data);		break;
 				case BASIC10:	basic10_rom_ = std::move(data);		break;
@@ -240,11 +246,11 @@ class ConcreteMachine:
 			keyboard_.clear_all_keys();
 		}
 
-		void set_use_fast_tape_hack(bool activate) override final {
+		void set_use_fast_tape_hack(bool activate) {
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_output_device(Outputs::CRT::OutputDevice output_device) override final {
+		void set_output_device(Outputs::CRT::OutputDevice output_device) {
 			video_output_->set_output_device(output_device);
 		}
 

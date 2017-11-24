@@ -9,6 +9,7 @@
 #import "CSOric.h"
 
 #include "Oric.hpp"
+#include "StandardOptions.hpp"
 
 @implementation CSOric {
 	std::unique_ptr<Oric::Machine> _oric;
@@ -29,14 +30,20 @@
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
-		_oric->set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+
+		Configurable::SelectionSet selection_set;
+		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
+		_oric->set_selections(selection_set);
 	}
 }
 
 - (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
 	@synchronized(self) {
 		_useCompositeOutput = useCompositeOutput;
-		_oric->set_output_device(useCompositeOutput ? Outputs::CRT::OutputDevice::Television : Outputs::CRT::OutputDevice::Monitor);
+
+		Configurable::SelectionSet selection_set;
+		append_display_selection(selection_set, useCompositeOutput ? Configurable::Display::Composite : Configurable::Display::RGB);
+		_oric->set_selections(selection_set);
 	}
 }
 
