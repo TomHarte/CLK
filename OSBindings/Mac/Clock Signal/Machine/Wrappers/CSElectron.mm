@@ -9,7 +9,7 @@
 #import "CSElectron.h"
 
 #include "Electron.hpp"
-
+#include "StandardOptions.hpp"
 
 @implementation CSElectron {
 	std::unique_ptr<Electron::Machine> _electron;
@@ -34,14 +34,20 @@
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
-		_electron->set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+
+		Configurable::SelectionSet selection_set;
+		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
+		_electron->set_selections(selection_set);
 	}
 }
 
 - (void)setUseTelevisionOutput:(BOOL)useTelevisionOutput {
 	@synchronized(self) {
 		_useTelevisionOutput = useTelevisionOutput;
-		_electron->get_crt()->set_output_device(useTelevisionOutput ? Outputs::CRT::OutputDevice::Television : Outputs::CRT::OutputDevice::Monitor);
+
+		Configurable::SelectionSet selection_set;
+		append_display_selection(selection_set, useTelevisionOutput ? Configurable::Display::Composite : Configurable::Display::RGB);
+		_electron->set_selections(selection_set);
 	}
 }
 @end

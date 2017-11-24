@@ -13,17 +13,7 @@
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
-#include <cstdint>
-#include <vector>
-
 namespace AmstradCPC {
-
-enum ROMType: int {
-	OS464 = 0,	BASIC464,
-	OS664,		BASIC664,
-	OS6128,		BASIC6128,
-	AMSDOS
-};
 
 /*!
 	Models an Amstrad CPC.
@@ -37,9 +27,6 @@ class Machine:
 
 		/// Creates and returns an Amstrad CPC.
 		static Machine *AmstradCPC();
-
-		/// Sets the contents of rom @c type to @c data. Assumed to be a setup step; has no effect once a machine is running.
-		virtual void set_rom(ROMType type, const std::vector<uint8_t> &data) = 0;
 };
 
 }

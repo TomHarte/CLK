@@ -27,9 +27,17 @@
 #include "../../../Configurable/StandardOptions.hpp"
 
 #include <algorithm>
+#include <cstdint>
 
 namespace Commodore {
 namespace Vic20 {
+
+enum ROMSlot {
+	Kernel = 0,
+	BASIC,
+	Characters,
+	Drive
+};
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(Configurable::QuickLoadTape);
@@ -304,7 +312,7 @@ class ConcreteMachine:
 			delete[] rom_;
 		}
 
-		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) override final {
+		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) {
 		}
 
 		// Obtains the system ROMs.
@@ -502,7 +510,7 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_use_fast_tape_hack(bool activate) override final {
+		void set_use_fast_tape_hack(bool activate) {
 			use_fast_tape_hack_ = activate;
 		}
 

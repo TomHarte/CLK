@@ -24,7 +24,17 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
+#include <cstdint>
+#include <vector>
+
 namespace AmstradCPC {
+
+enum ROMType: int {
+	OS464 = 0,	BASIC464,
+	OS664,		BASIC664,
+	OS6128,		BASIC6128,
+	AMSDOS
+};
 
 /*!
 	Models the CPC's interrupt timer. Inputs are vsync, hsync, interrupt acknowledge and reset, and its output
@@ -920,7 +930,7 @@ class ConcreteMachine:
 		}
 
 		// See header; provides the system ROMs.
-		void set_rom(ROMType type, const std::vector<uint8_t> &data) override final {
+		void set_rom(ROMType type, const std::vector<uint8_t> &data) {
 			roms_[static_cast<int>(type)] = data;
 		}
 

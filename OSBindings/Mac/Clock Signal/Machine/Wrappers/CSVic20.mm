@@ -9,6 +9,7 @@
 #import "CSVic20.h"
 
 #include "Vic20.hpp"
+#include "StandardOptions.hpp"
 
 using namespace Commodore::Vic20;
 
@@ -47,7 +48,9 @@ using namespace Commodore::Vic20;
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	_useFastLoadingHack = useFastLoadingHack;
 	@synchronized(self) {
-		_vic20->set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+		Configurable::SelectionSet selection_set;
+		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
+		_vic20->set_selections(selection_set);
 	}
 }
 

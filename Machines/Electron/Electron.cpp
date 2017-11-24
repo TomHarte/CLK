@@ -103,7 +103,7 @@ class ConcreteMachine:
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		void set_use_fast_tape_hack(bool activate) override final {
+		void set_use_fast_tape_hack(bool activate) {
 			use_fast_tape_hack_ = activate;
 		}
 

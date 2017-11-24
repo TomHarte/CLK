@@ -9,6 +9,7 @@
 #import "CSZX8081.h"
 
 #include "ZX8081.hpp"
+#include "StandardOptions.hpp"
 
 @implementation CSZX8081 {
 	std::unique_ptr<ZX8081::Machine> _zx8081;
@@ -31,7 +32,10 @@
 - (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
-		_zx8081->set_use_fast_tape_hack(useFastLoadingHack ? true : false);
+
+		Configurable::SelectionSet selection_set;
+		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
+		_zx8081->set_selections(selection_set);
 	}
 }
 
@@ -45,7 +49,10 @@
 - (void)setUseAutomaticTapeMotorControl:(BOOL)useAutomaticTapeMotorControl {
 	@synchronized(self) {
 		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
-		_zx8081->set_use_automatic_tape_motor_control(useAutomaticTapeMotorControl ? true : false);
+
+		Configurable::SelectionSet selection_set;
+		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
+		_zx8081->set_selections(selection_set);
 	}
 }
 

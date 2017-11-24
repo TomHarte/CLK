@@ -15,17 +15,8 @@
 #include "../../KeyboardMachine.hpp"
 #include "../../JoystickMachine.hpp"
 
-#include <cstdint>
-
 namespace Commodore {
 namespace Vic20 {
-
-enum ROMSlot {
-	Kernel = 0,
-	BASIC,
-	Characters,
-	Drive
-};
 
 enum MemorySize {
 	Default,
@@ -56,17 +47,11 @@ class Machine:
 		/// Creates and returns a Vic-20.
 		static Machine *Vic20();
 
-		/// Sets the contents of the rom in @c slot to the buffer @c data of length @c length.
-		virtual void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) = 0;
-
 		/// Sets the memory size of this Vic-20.
 		virtual void set_memory_size(MemorySize size) = 0;
 
 		/// Sets the region of this Vic-20.
 		virtual void set_region(Region region) = 0;
-
-		/// Enables or disables turbo-speed tape loading.
-		virtual void set_use_fast_tape_hack(bool activate) = 0;
 };
 
 }
