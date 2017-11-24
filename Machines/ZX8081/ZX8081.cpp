@@ -21,7 +21,9 @@
 #include "Keyboard.hpp"
 #include "Video.hpp"
 
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace {
 	// The clock rate is 3.25Mhz.
@@ -29,6 +31,10 @@ namespace {
 }
 
 namespace ZX8081 {
+
+enum ROMType: uint8_t {
+	ZX80 = 0, ZX81
+};
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
@@ -291,7 +297,7 @@ template<bool is_zx81> class ConcreteMachine:
 			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
 		}
 
-		void set_rom(ROMType type, const std::vector<uint8_t> &data) override final {
+		void set_rom(ROMType type, const std::vector<uint8_t> &data) {
 			switch(type) {
 				case ZX80: zx80_rom_ = data; break;
 				case ZX81: zx81_rom_ = data; break;
@@ -328,11 +334,11 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Tape control
-		void set_use_fast_tape_hack(bool activate) override final {
+		void set_use_fast_tape_hack(bool activate) {
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_use_automatic_tape_motor_control(bool enabled) override final {
+		void set_use_automatic_tape_motor_control(bool enabled) {
 			use_automatic_tape_motor_control_ = enabled;
 			if(!enabled) {
 				tape_player_.set_motor_control(false);
