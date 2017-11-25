@@ -10,10 +10,11 @@
 #define Shader_hpp
 
 #include "../OpenGL.hpp"
-#include <string>
+
 #include <functional>
-#include <vector>
 #include <mutex>
+#include <string>
+#include <vector>
 
 namespace OpenGL {
 
@@ -31,7 +32,7 @@ public:
 	};
 
 	struct AttributeBinding {
-		const GLchar *const name;
+		const std::string name;
 		const GLuint index;
 	};
 
@@ -39,9 +40,9 @@ public:
 		Attempts to compile a shader, throwing @c VertexShaderCompilationError, @c FragmentShaderCompilationError or @c ProgramLinkageError upon failure.
 		@param vertex_shader The vertex shader source code.
 		@param fragment_shader The fragment shader source code.
-		@param attribute_bindings Either @c nullptr or an array terminated by an entry with a @c nullptr-name of attribute bindings.
+		@param attribute_bindings A vector of attribute bindings.
 	*/
-	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const AttributeBinding *attribute_bindings);
+	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings = {});
 	~Shader();
 
 	/*!
@@ -63,14 +64,14 @@ public:
 		@param name The name of the attribute to locate.
 		@returns The location of the requested attribute.
 	*/
-	GLint get_attrib_location(const GLchar *name);
+	GLint get_attrib_location(const std::string &name);
 
 	/*!
 		Performs a @c glGetUniformLocation call.
 		@param name The name of the uniform to locate.
 		@returns The location of the requested uniform.
 	*/
-	GLint get_uniform_location(const GLchar *name);
+	GLint get_uniform_location(const std::string &name);
 
 	/*!
 		Shorthand for an appropriate sequence of:
@@ -79,7 +80,7 @@ public:
 		* @c glVertexAttribPointer;
 		* @c glVertexAttribDivisor.
 	*/
-	void enable_vertex_attribute_with_pointer(const char *name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor);
+	void enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor);
 
 	/*!
 		All @c set_uniforms queue up the requested uniform changes. Changes are applied automatically the next time the shader is bound.

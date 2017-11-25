@@ -19,6 +19,27 @@ namespace OpenGL {
 class IntermediateShader: public Shader {
 public:
 	using Shader::Shader;
+	
+	enum class Input {
+		/// Contains the 2d start position of this run's input data.
+		InputStart,
+		/// Contains the 2d start position of this run's output position.
+		OutputStart,
+		/// A 2d vector comprised of (the final x position for input, the final x position for output).
+		Ends,
+		/// A 3d vector recording the colour subcarrier's (phase, time, amplitude) at the start of this span of data.
+		PhaseTimeAndAmplitude
+	};
+
+	/*!
+		Obtains the name of a designated input. Designated inputs are guaranteed to have the same attribute location
+		across multiple instances of IntermediateShader. So binding a vertex array to these inputs for any instance of
+		IntermediateShader allows that array to work with all instances of IntermediateShader.
+
+		@param input The input to query.
+		@returns The name used in this shader's source for the nominated input.
+	*/
+	static std::string get_input_name(Input input);
 
 	/*!
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,
