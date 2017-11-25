@@ -8,11 +8,19 @@
 
 #include "MSX.hpp"
 
+#include "../../Processors/Z80/Z80.hpp"
+
 namespace MSX {
 
 class ConcreteMachine:
+	public CPU::Z80::BusHandler,
 	public Machine {
-	
+	public:
+		ConcreteMachine():
+			z80_(*this) {}
+
+	private:
+		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 };
 
 }
