@@ -17,7 +17,7 @@ class ElectronOptionsPanel: MachinePanel {
 
 	@IBOutlet var displayTypeButton: NSPopUpButton?
 	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
-		electron.useTelevisionOutput = (sender.indexOfSelectedItem == 1)
+		electron.useCompositeOutput = (sender.indexOfSelectedItem == 1)
 		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
 	}
 
@@ -29,7 +29,7 @@ class ElectronOptionsPanel: MachinePanel {
 		])
 
 		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
-		electron.useTelevisionOutput = (displayType == 1)
+		electron.useCompositeOutput = (displayType == 1)
 		self.displayTypeButton?.selectItem(at: displayType)
 	}
 }

@@ -11,9 +11,6 @@
 
 @interface CSZX8081 : CSMachine <CSFastLoading>
 
-@property (nonatomic, assign) BOOL useFastLoadingHack;
-
-@property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
 @property (nonatomic, assign) BOOL tapeIsPlaying;
 
 @end

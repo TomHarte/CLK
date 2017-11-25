@@ -10,11 +10,13 @@
 #import "CSMachine+Subclassing.h"
 #import "CSMachine+Target.h"
 
-#include "KeyCodes.h"
-#include "Typer.hpp"
 #include "ConfigurationTarget.hpp"
 #include "JoystickMachine.hpp"
 #include "KeyboardMachine.hpp"
+#include "KeyCodes.h"
+#include "MachineForTarget.hpp"
+#include "StandardOptions.hpp"
+#include "Typer.hpp"
 
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
@@ -57,13 +59,13 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	SpeakerDelegate _speakerDelegate;
 	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
-	CRTMachine::Machine *_machine;
+	Machine::DynamicMachine *_machine;
 }
 
 - (instancetype)initWithMachine:(void *)machine {
 	self = [super init];
 	if(self) {
-		_machine = (CRTMachine::Machine *)machine;
+		_machine = (Machine::DynamicMachine *)machine;
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
 		_machineDelegate.machine = self;
@@ -71,8 +73,8 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		_machineDelegate.machineAccessLock = _delegateMachineAccessLock;
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
-		_machine->set_delegate(&_machineDelegate);
-		_machine->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
+		_machine->crt_machine()->set_delegate(&_machineDelegate);
+		_machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
 			NSString *subDirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
 			std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
 			for(auto &name: names) {
@@ -119,14 +121,14 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 	[_view performWithGLContext:^{
 		@synchronized(self) {
-			_machine->close_output();
+			_machine->crt_machine()->close_output();
 		}
 	}];
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -142,7 +144,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = _machine->get_speaker();
+		std::shared_ptr<Outputs::Speaker> speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize);
 			speaker->set_delegate(delegate);
@@ -154,7 +156,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (void)runForNumberOfCycles:(int)numberOfCycles {
 	@synchronized(self) {
-		_machine->run_for(Cycles(numberOfCycles));
+		_machine->crt_machine()->run_for(Cycles(numberOfCycles));
 	}
 }
 
@@ -166,49 +168,47 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_machine->setup_output(aspectRatio);
+	_machine->crt_machine()->setup_output(aspectRatio);
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
-	_machine->get_crt()->set_output_gamma(2.2f);
-	_machine->get_crt()->set_target_framebuffer(0);
+	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
+	_machine->crt_machine()->get_crt()->set_target_framebuffer(0);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_machine->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (double)clockRate {
-	return _machine->get_clock_rate();
+	return _machine->crt_machine()->get_clock_rate();
 }
 
 - (BOOL)clockIsUnlimited {
-	return _machine->get_clock_is_unlimited() ? YES : NO;
+	return _machine->crt_machine()->get_clock_is_unlimited() ? YES : NO;
 }
 
 - (void)paste:(NSString *)paste {
-	Utility::TypeRecipient *typeRecipient = dynamic_cast<Utility::TypeRecipient *>(_machine);
+	Utility::TypeRecipient *typeRecipient = _machine->type_recipient();
 	if(typeRecipient)
 		typeRecipient->set_typer_for_string([paste UTF8String]);
 }
 
 - (void)applyTarget:(const StaticAnalyser::Target &)target {
 	@synchronized(self) {
-		ConfigurationTarget::Machine *const configurationTarget =
-			dynamic_cast<ConfigurationTarget::Machine *>(_machine);
+		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
 		if(configurationTarget) configurationTarget->configure_as_target(target);
 	}
 }
 
 - (void)applyMedia:(const StaticAnalyser::Media &)media {
 	@synchronized(self) {
-		ConfigurationTarget::Machine *const configurationTarget =
-			dynamic_cast<ConfigurationTarget::Machine *>(_machine);
+		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
 		if(configurationTarget) configurationTarget->insert_media(media);
 	}
 }
 
 - (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
-	auto keyboard_machine = dynamic_cast<KeyboardMachine::Machine *>(_machine);
+	auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
 		@synchronized(self) {
 			Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
@@ -272,7 +272,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		return;
 	}
 
-	auto joystick_machine = dynamic_cast<JoystickMachine::Machine *>(_machine);
+	auto joystick_machine = _machine->joystick_machine();
 	if(joystick_machine) {
 		@synchronized(self) {
 			std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
@@ -292,20 +292,61 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 }
 
 - (void)clearAllKeys {
-	auto keyboard_machine = dynamic_cast<KeyboardMachine::Machine *>(_machine);
+	auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
 		@synchronized(self) {
 			keyboard_machine->get_keyboard().reset_all_keys();
 		}
 	}
 
-	auto joystick_machine = dynamic_cast<JoystickMachine::Machine *>(_machine);
+	auto joystick_machine = _machine->joystick_machine();
 	if(joystick_machine) {
 		@synchronized(self) {
 			for(auto &joystick : joystick_machine->get_joysticks()) {
 				joystick->reset_all_inputs();
 			}
 		}
+	}
+}
+
+#pragma mark - Options
+
+- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useFastLoadingHack = useFastLoadingHack;
+
+		Configurable::SelectionSet selection_set;
+		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
+		configurable_device->set_selections(selection_set);
+	}
+}
+
+- (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useCompositeOutput = useCompositeOutput;
+
+		Configurable::SelectionSet selection_set;
+		append_display_selection(selection_set, useCompositeOutput ? Configurable::Display::Composite : Configurable::Display::RGB);
+		configurable_device->set_selections(selection_set);
+	}
+}
+
+- (void)setUseAutomaticTapeMotorControl:(BOOL)useAutomaticTapeMotorControl {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
+
+		Configurable::SelectionSet selection_set;
+		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
+		configurable_device->set_selections(selection_set);
 	}
 }
 
