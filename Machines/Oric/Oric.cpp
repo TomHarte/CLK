@@ -204,18 +204,6 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
-		void set_rom(ROM rom, const std::vector<uint8_t> &data) {
-			switch(rom) {
-				case BASIC11:	basic11_rom_ = std::move(data);		break;
-				case BASIC10:	basic10_rom_ = std::move(data);		break;
-				case Microdisc:	microdisc_rom_ = std::move(data);	break;
-				case Colour:
-					colour_rom_ = std::move(data);
-					if(video_output_) video_output_->set_colour_rom(colour_rom_);
-				break;
-			}
-		}
-
 		// Obtains the system ROMs.
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
 			auto roms = roms_with_names(
@@ -226,10 +214,20 @@ class ConcreteMachine:
 				});
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
-				auto &data = roms[index];
-				if(!data) return false;
-				set_rom(static_cast<ROM>(index), *data);
+				if(!roms[index]) return false;
 			}
+			
+			basic10_rom_ = std::move(*roms[0]);
+			basic11_rom_ = std::move(*roms[1]);
+			microdisc_rom_ = std::move(*roms[2]);
+			colour_rom_ = std::move(*roms[3]);
+
+			basic10_rom_.resize(16384);
+			basic11_rom_.resize(16384);
+			microdisc_rom_.resize(8192);
+			colour_rom_.resize(128);
+
+			if(video_output_) video_output_->set_colour_rom(colour_rom_);
 
 			return true;
 		}

@@ -931,7 +931,8 @@ class ConcreteMachine:
 
 		// See header; provides the system ROMs.
 		void set_rom(ROMType type, const std::vector<uint8_t> &data) {
-			roms_[static_cast<int>(type)] = data;
+			roms_[static_cast<int>(type)] = std::move(data);
+			roms_[static_cast<int>(type)].resize(16384);
 		}
 
 		// Obtains the system ROMs.
