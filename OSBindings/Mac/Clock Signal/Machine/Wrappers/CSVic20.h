@@ -29,7 +29,6 @@ typedef NS_ENUM(NSInteger, CSVic20MemorySize)
 
 - (instancetype)init;
 
-@property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) CSVic20Country country;
 @property (nonatomic, assign) CSVic20MemorySize memorySize;
 

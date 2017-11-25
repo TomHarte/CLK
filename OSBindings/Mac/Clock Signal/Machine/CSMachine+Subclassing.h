@@ -12,4 +12,5 @@
 @interface CSMachine (Subclassing)
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio;
+
 @end

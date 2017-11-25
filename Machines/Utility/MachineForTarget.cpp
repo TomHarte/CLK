@@ -15,44 +15,7 @@
 #include "../Oric/Oric.hpp"
 #include "../ZX8081/ZX8081.hpp"
 
-namespace {
-
-template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine {
-	public:
-		TypedDynamicMachine(T *machine) : machine_(machine) {}
-
-		ConfigurationTarget::Machine *configuration_target() override {
-			return get<ConfigurationTarget::Machine>();
-		}
-
-		CRTMachine::Machine *crt_machine() override {
-			return get<CRTMachine::Machine>();
-		}
-
-		JoystickMachine::Machine *joystick_machine() override {
-			return get<JoystickMachine::Machine>();
-		}
-
-		KeyboardMachine::Machine *keyboard_machine() override {
-			return get<KeyboardMachine::Machine>();
-		}
-
-		Configurable::Device *configurable_device() override {
-			return get<Configurable::Device>();
-		}
-
-		Utility::TypeRecipient *type_recipient() override {
-			return get<Utility::TypeRecipient>();
-		}
-
-	private:
-		template <typename Class> Class *get() {
-			return dynamic_cast<Class *>(machine_.get());
-		}
-		std::unique_ptr<T> machine_;
-};
-
-}
+#include "TypedDynamicMachine.hpp"
 
 ::Machine::DynamicMachine *::Machine::MachineForTarget(const StaticAnalyser::Target &target) {
 	switch(target.machine) {

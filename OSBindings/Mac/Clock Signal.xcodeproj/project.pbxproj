@@ -823,6 +823,7 @@
 		4B7913CB1DFCD80E00175A82 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = Electron/Video.hpp; sourceTree = "<group>"; };
 		4B79A4F91FC8FF9400EEDAD5 /* MSX.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MSX.cpp; sourceTree = "<group>"; };
 		4B79A4FA1FC8FF9400EEDAD5 /* MSX.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MSX.hpp; sourceTree = "<group>"; };
+		4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TypedDynamicMachine.hpp; sourceTree = "<group>"; };
 		4B79E4411E3AF38600141F11 /* cassette.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cassette.png; sourceTree = "<group>"; };
 		4B79E4421E3AF38600141F11 /* floppy35.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy35.png; sourceTree = "<group>"; };
 		4B79E4431E3AF38600141F11 /* floppy525.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy525.png; sourceTree = "<group>"; };
@@ -1475,11 +1476,12 @@
 			isa = PBXGroup;
 			children = (
 				4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */,
-				4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */,
-				4B2B3A471F9B8FA70062DABF /* Typer.cpp */,
 				4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */,
+				4B2B3A471F9B8FA70062DABF /* Typer.cpp */,
+				4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */,
 				4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */,
 				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
+				4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */,
 			);
 			path = Utility;
 			sourceTree = "<group>";

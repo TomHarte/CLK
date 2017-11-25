@@ -9,19 +9,15 @@
 #import "CSAmstradCPC.h"
 
 #include "AmstradCPC.hpp"
+#include "TypedDynamicMachine.hpp"
 
 @implementation CSAmstradCPC {
-	std::unique_ptr<AmstradCPC::Machine> _amstradCPC;
+	Machine::TypedDynamicMachine<AmstradCPC::Machine> _amstradCPC;
 }
 
 - (instancetype)init {
-	AmstradCPC::Machine *machine = AmstradCPC::Machine::AmstradCPC();
-
-	self = [super initWithMachine:machine];
-	if(self) {
-		_amstradCPC.reset(machine);
-	}
-	return self;
+	_amstradCPC = Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());
+	return [super initWithMachine:&_amstradCPC];
 }
 
 - (NSString *)userDefaultsPrefix {	return @"amstradCPC";	}
