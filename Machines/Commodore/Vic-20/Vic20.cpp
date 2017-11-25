@@ -335,8 +335,14 @@ class ConcreteMachine:
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) return false;
-				if(index < 9) roms_[index] = *data; else basic_rom_ = *data;
+				if(index < 9) roms_[index] = std::move(*data); else basic_rom_ = std::move(*data);
 			}
+
+			// Characters ROMs should be 4kb.
+			for(std::size_t index = 0; index < 4; ++index) roms_[index].resize(4096);
+			// Kernel ROMs and the BASIC ROM should be 8kb.
+			for(std::size_t index = 4; index < roms.size(); ++index) roms_[index].resize(8192);
+
 			return true;
 		}
 
