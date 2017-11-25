@@ -8,6 +8,7 @@
 
 #include "OutputShader.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <sstream>
 
@@ -17,6 +18,9 @@ std::string OutputShader::get_input_name(Input input) {
 	switch(input) {
 		case Input::Horizontal:	return "horizontal";
 		case Input::Vertical:	return "vertical";
+
+		// Intended to be unreachable.
+		default: assert(false);
 	}
 }
 

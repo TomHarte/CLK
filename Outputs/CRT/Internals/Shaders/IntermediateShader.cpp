@@ -8,6 +8,7 @@
 
 #include "IntermediateShader.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <sstream>
 
@@ -21,6 +22,9 @@ std::string IntermediateShader::get_input_name(Input input) {
 		case Input::OutputStart:			return "outputStart";
 		case Input::Ends:					return "ends";
 		case Input::PhaseTimeAndAmplitude:	return "phaseTimeAndAmplitude";
+
+		// Intended to be unreachable.
+		default: assert(false);
 	}
 }
 
