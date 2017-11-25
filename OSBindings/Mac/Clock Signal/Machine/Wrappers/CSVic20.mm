@@ -9,27 +9,18 @@
 #import "CSVic20.h"
 
 #include "Vic20.hpp"
-#include "StandardOptions.hpp"
-
-using namespace Commodore::Vic20;
+#include "TypedDynamicMachine.hpp"
 
 @implementation CSVic20 {
-	std::unique_ptr<Machine> _vic20;
-	BOOL _joystickMode;
+	Machine::TypedDynamicMachine<Commodore::Vic20::Machine> _vic20;
+}
+
+- (instancetype)init {
+	_vic20 = Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());
+	return [super initWithMachine:&_vic20];
 }
 
 - (NSString *)userDefaultsPrefix		{	return @"vic20";	}
-
-- (instancetype)init {
-	Machine *machine = Commodore::Vic20::Machine::Vic20();
-
-	self = [super initWithMachine:machine];
-	if(self) {
-		_vic20.reset(machine);
-		[self setCountry:CSVic20CountryEuropean];
-	}
-	return self;
-}
 
 #pragma mark - Keyboard map
 
@@ -45,15 +36,6 @@ using namespace Commodore::Vic20;
 
 #pragma mark - Public configuration options
 
-- (void)setUseFastLoadingHack:(BOOL)useFastLoadingHack {
-	_useFastLoadingHack = useFastLoadingHack;
-	@synchronized(self) {
-		Configurable::SelectionSet selection_set;
-		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
-		_vic20->set_selections(selection_set);
-	}
-}
-
 - (void)setCountry:(CSVic20Country)country {
 	_country = country;
 	Commodore::Vic20::Region region;
@@ -66,7 +48,7 @@ using namespace Commodore::Vic20;
 	}
 
 	@synchronized(self) {
-		_vic20->set_region(region);
+		_vic20.get()->set_region(region);
 	}
 }
 
@@ -74,9 +56,9 @@ using namespace Commodore::Vic20;
 	_memorySize = memorySize;
 	@synchronized(self) {
 		switch(memorySize) {
-			case CSVic20MemorySize5Kb: _vic20->set_memory_size(Commodore::Vic20::Default);	break;
-			case CSVic20MemorySize8Kb: _vic20->set_memory_size(Commodore::Vic20::ThreeKB);	break;
-			case CSVic20MemorySize32Kb: _vic20->set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
+			case CSVic20MemorySize5Kb: _vic20.get()->set_memory_size(Commodore::Vic20::Default);		break;
+			case CSVic20MemorySize8Kb: _vic20.get()->set_memory_size(Commodore::Vic20::ThreeKB);		break;
+			case CSVic20MemorySize32Kb: _vic20.get()->set_memory_size(Commodore::Vic20::ThirtyTwoKB);	break;
 		}
 	}
 }

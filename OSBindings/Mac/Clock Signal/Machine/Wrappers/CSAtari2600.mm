@@ -9,24 +9,21 @@
 #import "CSAtari2600.h"
 
 #include "Atari2600.hpp"
+#include "TypedDynamicMachine.hpp"
 #import "CSMachine+Subclassing.h"
 
 @implementation CSAtari2600 {
-	std::unique_ptr<Atari2600::Machine> _atari2600;
+	Machine::TypedDynamicMachine<Atari2600::Machine> _atari2600;
 }
 
 - (instancetype)init {
-	Atari2600::Machine *machine = Atari2600::Machine::Atari2600();
-	self = [super initWithMachine:machine];
-	if(self) {
-		_atari2600.reset(machine);
-	}
-	return self;
+	_atari2600 = Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
+	return [super initWithMachine:&_atari2600];
 }
 
 - (void)setResetLineEnabled:(BOOL)enabled {
 	@synchronized(self) {
-		_atari2600->set_reset_switch(enabled ? true : false);
+		_atari2600.get()->set_reset_switch(enabled ? true : false);
 	}
 }
 
@@ -41,31 +38,31 @@
 - (void)setColourButton:(BOOL)colourButton {
 	_colourButton = colourButton;
 	@synchronized(self) {
-		_atari2600->set_switch_is_enabled(Atari2600SwitchColour, colourButton);
+		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchColour, colourButton);
 	}
 }
 
 - (void)setLeftPlayerDifficultyButton:(BOOL)leftPlayerDifficultyButton {
 	_leftPlayerDifficultyButton = leftPlayerDifficultyButton;
 	@synchronized(self) {
-		_atari2600->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
+		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
 	}
 }
 
 - (void)setRightPlayerDifficultyButton:(BOOL)rightPlayerDifficultyButton {
 	_rightPlayerDifficultyButton = rightPlayerDifficultyButton;
 	@synchronized(self) {
-		_atari2600->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
+		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
 	}
 }
 
 - (void)toggleSwitch:(Atari2600Switch)toggleSwitch {
 	@synchronized(self) {
-		_atari2600->set_switch_is_enabled(toggleSwitch, true);
+		_atari2600.get()->set_switch_is_enabled(toggleSwitch, true);
 	}
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 		@synchronized(self) {
-			_atari2600->set_switch_is_enabled(toggleSwitch, false);
+			_atari2600.get()->set_switch_is_enabled(toggleSwitch, false);
 		}
 	});
 }

@@ -22,7 +22,7 @@
 /*!
 	Initialises an instance of CSMachine.
 
-	@param machine The pointer to an instance of @c CRTMachine::Machine* . C++ type is omitted because
+	@param machine The pointer to an instance of @c Machine::DynamicMachine . C++ type is omitted because
 	this header is visible to Swift, and the designated initialiser cannot be placed into a category.
 */
 - (instancetype)initWithMachine:(void *)machine NS_DESIGNATED_INITIALIZER;
@@ -48,5 +48,9 @@
 @property (nonatomic, readonly) NSString *userDefaultsPrefix;
 
 - (void)paste:(NSString *)string;
+
+@property (nonatomic, assign) BOOL useFastLoadingHack;
+@property (nonatomic, assign) BOOL useCompositeOutput;
+@property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
 
 @end
