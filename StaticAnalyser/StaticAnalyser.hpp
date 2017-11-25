@@ -70,6 +70,7 @@ struct Target {
 		AmstradCPC,
 		Atari2600,
 		Electron,
+		MSX,
 		Oric,
 		Vic20,
 		ZX8081

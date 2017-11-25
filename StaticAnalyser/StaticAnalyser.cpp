@@ -16,6 +16,7 @@
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
+#include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
 
@@ -33,6 +34,7 @@
 #include "../Storage/Disk/DiskImage/Formats/SSD.hpp"
 
 // Tapes
+#include "../Storage/Tape/Formats/CAS.hpp"
 #include "../Storage/Tape/Formats/CommodoreTAP.hpp"
 #include "../Storage/Tape/Formats/CSW.hpp"
 #include "../Storage/Tape/Formats/OricTAP.hpp"
@@ -83,6 +85,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// A26
 		Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)		// ADF
 		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// BIN
+		Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)												// CAS
 		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)										// CDT
 		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)										// CSW
 		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
@@ -145,6 +148,7 @@ std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
 	if(potential_platforms & TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::MSX)			MSX::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Oric)			Oric::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets, potential_platforms);
 
