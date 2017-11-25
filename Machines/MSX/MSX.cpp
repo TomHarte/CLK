@@ -10,6 +10,10 @@
 
 #include "../../Processors/Z80/Z80.hpp"
 
+#include "../../Components/1770/1770.hpp"
+#include "../../Components/8255/i8255.hpp"
+#include "../../Components/AY38910/AY38910.hpp"
+
 namespace MSX {
 
 class ConcreteMachine:
