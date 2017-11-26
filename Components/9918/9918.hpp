@@ -12,6 +12,8 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
+#include <cstdint>
+
 namespace TI {
 
 class TMS9918 {
@@ -33,6 +35,9 @@ class TMS9918 {
 			that the input clock rate is 3579545 Hz — the NTSC colour clock rate.
 		*/
 		void run_for(const Cycles cycles);
+
+		void set_register(int address, uint8_t value);
+		uint8_t get_register(int address);
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;

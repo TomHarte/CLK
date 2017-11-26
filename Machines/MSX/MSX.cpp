@@ -20,6 +20,12 @@
 
 namespace MSX {
 
+class i8255PortHandler: public Intel::i8255::PortHandler {
+};
+
+class AYPortHandler: public GI::AY38910::PortHandler {
+};
+
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
@@ -27,7 +33,9 @@ class ConcreteMachine:
 	public ConfigurationTarget::Machine {
 	public:
 		ConcreteMachine():
-			z80_(*this) {
+			z80_(*this),
+			i8255_(i8255_port_handler_) {
+			ay_.set_port_handler(&ay_port_handler_);
 			set_clock_rate(3579545);
 		}
 
@@ -57,9 +65,99 @@ class ConcreteMachine:
 			return true;
 		}
 
+		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			uint16_t address = cycle.address ? *cycle.address : 0x0000;
+			switch(cycle.operation) {
+				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+				case CPU::Z80::PartialMachineCycle::Read:
+					*cycle.value = read_pointers_[address >> 14][address & 16383];
+				break;
+
+				case CPU::Z80::PartialMachineCycle::Write:
+					write_pointers_[address >> 14][address & 16383] = *cycle.value;
+				break;
+
+				case CPU::Z80::PartialMachineCycle::Input:
+					switch(address & 0xff) {
+						case 0x98:	case 0x99:
+							*cycle.value = vdp_->get_register(address);
+						break;
+
+						case 0xa2:
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC1));
+							ay_.set_data_input(*cycle.value);
+						break;
+
+						case 0xa8:	case 0xa9:
+						case 0xaa:	case 0xab:
+							*cycle.value = i8255_.get_register(address);
+						break;
+					}
+				break;
+
+				case CPU::Z80::PartialMachineCycle::Output:
+					switch(address & 0xff) {
+						case 0x98:	case 0x99:
+							vdp_->set_register(address, *cycle.value);
+						break;
+
+						case 0xa0:
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+							ay_.set_data_input(*cycle.value);
+						break;
+
+						case 0xa1:
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2));
+							ay_.set_data_input(*cycle.value);
+						break;
+
+						case 0xa8:	case 0xa9:
+						case 0xaa:	case 0xab:
+							i8255_.set_register(address, *cycle.value);
+						break;
+					}
+				break;
+
+				default: break;
+			}
+
+			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
+			// but otherwise runs without pause.
+			return HalfCycles((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);;
+		}
+
+		// Obtains the system ROMs.
+		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			auto roms = roms_with_names(
+				"MSX",
+				{
+					"basic.rom",	"main_msx1.rom"
+				});
+
+			if(!roms[0] || !roms[1]) return false;
+
+			basic_ = std::move(*roms[0]);
+			basic_.resize(16384);
+
+			main_ = std::move(*roms[1]);
+			main_.resize(16384);
+
+			return true;
+		}
+
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS9918> vdp_;
+		Intel::i8255::i8255<i8255PortHandler> i8255_;
+		GI::AY38910::AY38910 ay_;
+
+		i8255PortHandler i8255_port_handler_;
+		AYPortHandler ay_port_handler_;
+
+		uint8_t *read_pointers_[4];
+		uint8_t *write_pointers_[4];
+		uint8_t ram_[65536];
+		std::vector<uint8_t> basic_, main_;
 };
 
 }

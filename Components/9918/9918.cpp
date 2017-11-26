@@ -25,3 +25,10 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 
 void TMS9918::run_for(const Cycles cycles) {
 }
+
+void TMS9918::set_register(int address, uint8_t value) {
+}
+
+uint8_t TMS9918::get_register(int address) {
+	return 0;
+}
