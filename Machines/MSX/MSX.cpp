@@ -98,6 +98,7 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
+							printf("VDP %d %02x\n", address&1, *cycle.value);
 							vdp_->set_register(address, *cycle.value);
 						break;
 
@@ -113,6 +114,7 @@ class ConcreteMachine:
 
 						case 0xa8:	case 0xa9:
 						case 0xaa:	case 0xab:
+							printf("8255 %d %02x\n", address&3, *cycle.value);
 							i8255_.set_register(address, *cycle.value);
 						break;
 					}
@@ -131,7 +133,8 @@ class ConcreteMachine:
 			auto roms = roms_with_names(
 				"MSX",
 				{
-					"basic.rom",	"main_msx1.rom"
+					"basic.rom",
+					"main_msx1.rom"
 				});
 
 			if(!roms[0] || !roms[1]) return false;
@@ -141,6 +144,15 @@ class ConcreteMachine:
 
 			main_ = std::move(*roms[1]);
 			main_.resize(16384);
+
+			for(size_t c = 0; c < 4; ++c) {
+				write_pointers_[c] = &ram_[c * 16384];
+				read_pointers_[c] = &ram_[c * 16384];
+			}
+			read_pointers_[0] = main_.data();
+			write_pointers_[0] = scratch_;
+			read_pointers_[1] = basic_.data();
+			write_pointers_[1] = scratch_;
 
 			return true;
 		}
@@ -157,6 +169,7 @@ class ConcreteMachine:
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
 		uint8_t ram_[65536];
+		uint8_t scratch_[16384];
 		std::vector<uint8_t> basic_, main_;
 };
 
