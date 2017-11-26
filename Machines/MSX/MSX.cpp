@@ -21,6 +21,10 @@
 namespace MSX {
 
 class i8255PortHandler: public Intel::i8255::PortHandler {
+	public:
+		void set_value(int port, uint8_t value) {
+			printf("8255 set %d to %02x\n", port, value);
+		}
 };
 
 class AYPortHandler: public GI::AY38910::PortHandler {
@@ -114,7 +118,6 @@ class ConcreteMachine:
 
 						case 0xa8:	case 0xa9:
 						case 0xaa:	case 0xab:
-							printf("8255 %d %02x\n", address&3, *cycle.value);
 							i8255_.set_register(address, *cycle.value);
 						break;
 					}
