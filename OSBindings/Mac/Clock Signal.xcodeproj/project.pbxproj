@@ -133,6 +133,8 @@
 		4B0E04EE1FC9E88300F43484 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04EC1FC9E88300F43484 /* StaticAnalyser.cpp */; };
 		4B0E04F11FC9EA9500F43484 /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */; };
 		4B0E04F21FC9EAA800F43484 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04EC1FC9E88300F43484 /* StaticAnalyser.cpp */; };
+		4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
+		4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */; };
@@ -639,6 +641,8 @@
 		4B0E04E91FC9E5DA00F43484 /* CAS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CAS.hpp; sourceTree = "<group>"; };
 		4B0E04EC1FC9E88300F43484 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/MSX/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B0E04ED1FC9E88300F43484 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/MSX/StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4B0E04F81FC9FA3000F43484 /* 9918.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 9918.hpp; path = 9918/9918.hpp; sourceTree = "<group>"; };
+		4B0E04F91FC9FA3100F43484 /* 9918.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 9918.cpp; path = 9918/9918.cpp; sourceTree = "<group>"; };
 		4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMPatchedTrackTests.mm; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ClockSignal-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -1362,6 +1366,15 @@
 				4B0E04ED1FC9E88300F43484 /* StaticAnalyser.hpp */,
 			);
 			name = MSX;
+			sourceTree = "<group>";
+		};
+		4B0E04F71FC9F2C800F43484 /* 9918 */ = {
+			isa = PBXGroup;
+			children = (
+				4B0E04F91FC9FA3100F43484 /* 9918.cpp */,
+				4B0E04F81FC9FA3000F43484 /* 9918.hpp */,
+			);
+			name = 9918;
 			sourceTree = "<group>";
 		};
 		4B1414561B58879D00E04248 /* 6502 */ = {
@@ -2515,6 +2528,7 @@
 				4BE845221F2FF7F400A5EA22 /* 6845 */,
 				4BD9137C1F3115AC009BCF85 /* 8255 */,
 				4BBC951F1F368D87008F4C34 /* 8272 */,
+				4B0E04F71FC9F2C800F43484 /* 9918 */,
 			);
 			name = Components;
 			path = ../../Components;
@@ -3164,6 +3178,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B055ACB1FAE9AFB0060FFFF /* SerialBus.cpp in Sources */,
@@ -3370,6 +3385,7 @@
 				4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
 				4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */,
+				4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */,
 				4B8FE2291DA1EDDF0090D3CE /* ElectronOptionsPanel.swift in Sources */,
