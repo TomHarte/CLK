@@ -23,7 +23,7 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 	return crt_;
 }
 
-void TMS9918::run_for(const Cycles cycles) {
+void TMS9918::run_for(const HalfCycles cycles) {
 }
 
 void TMS9918::set_register(int address, uint8_t value) {

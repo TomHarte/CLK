@@ -61,7 +61,7 @@ class ConcreteMachine:
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
 		}
-		
+
 		void configure_as_target(const StaticAnalyser::Target &target) override {
 		}
 		
@@ -84,6 +84,8 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
+							vdp_->run_for(time_since_vdp_update_);
+							time_since_vdp_update_ = 0;
 							*cycle.value = vdp_->get_register(address);
 						break;
 
@@ -102,6 +104,8 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
+							vdp_->run_for(time_since_vdp_update_);
+							time_since_vdp_update_ = 0;
 							vdp_->set_register(address, *cycle.value);
 						break;
 
@@ -127,7 +131,14 @@ class ConcreteMachine:
 
 			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
 			// but otherwise runs without pause.
-			return HalfCycles((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);;
+			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
+			time_since_vdp_update_ += cycle.length + addition;
+			return addition;
+		}
+
+		void flush() {
+			vdp_->run_for(time_since_vdp_update_);
+			time_since_vdp_update_ = 0;
 		}
 
 		// Obtains the system ROMs.
@@ -173,6 +184,8 @@ class ConcreteMachine:
 		uint8_t ram_[65536];
 		uint8_t scratch_[16384];
 		std::vector<uint8_t> basic_, main_;
+
+		HalfCycles time_since_vdp_update_;
 };
 
 }
