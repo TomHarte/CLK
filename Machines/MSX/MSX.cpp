@@ -102,7 +102,6 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
-							printf("VDP %d %02x\n", address&1, *cycle.value);
 							vdp_->set_register(address, *cycle.value);
 						break;
 

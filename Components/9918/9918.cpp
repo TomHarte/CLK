@@ -27,8 +27,95 @@ void TMS9918::run_for(const Cycles cycles) {
 }
 
 void TMS9918::set_register(int address, uint8_t value) {
+	// Writes to address 0 are writes to the video RAM. Store
+	// the value and return.
+	if(!(address & 1)) {
+		write_phase_ = false;
+		read_ahead_buffer_ = value;
+		ram_[ram_pointer_ & 16383] = value;
+		ram_pointer_++;
+		return;
+	}
+
+	// Writes to address 1 are performed in pairs; if this is the
+	// low byte of a value, store it and wait for the high byte.
+	if(!write_phase_) {
+		low_write_ = value;
+		write_phase_ = true;
+		return;
+	}
+
+	write_phase_ = false;
+	if(value & 0x80) {
+		// This is a write to a register.
+		switch(value & 7) {
+			case 0:
+				screen_mode_ = (screen_mode_ & 6) | ((low_write_ & 2) >> 1);
+			break;
+
+			case 1:
+				blank_screen_ = !!(low_write_ & 0x40);
+				generate_interrupts_ = !!(low_write_ & 0x20);
+				screen_mode_ = (screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
+				sprites_16x16_ = !!(low_write_ & 0x02);
+				sprites_magnified_ = !!(low_write_ & 0x01);
+				reevaluate_interrupts();
+			break;
+
+			case 2:
+				pattern_name_address_ = (low_write_ & 0xf) << 10;
+			break;
+
+			case 3:
+				colour_table_address_ = low_write_ << 6;
+			break;
+
+			case 4:
+				pattern_generator_table_address_ = (low_write_ & 0x07) << 11;
+			break;
+
+			case 5:
+				sprite_attribute_table_address_ = (low_write_ & 0x7f) << 7;
+			break;
+
+			case 6:
+				sprite_generator_table_address_ = (low_write_ & 0x07) << 11;
+			break;
+
+			case 7:
+				text_colour_ = low_write_ >> 4;
+				background_colour_ = low_write_ & 0xf;
+			break;
+		}
+	} else {
+		// This is a write to the RAM pointer.
+		ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
+		if(!(value & 0x40)) {
+			// Officially a 'read' set, so perform lookahead.
+			read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
+			ram_pointer_++;
+		}
+	}
 }
 
 uint8_t TMS9918::get_register(int address) {
-	return 0;
+	write_phase_ = false;
+
+	// Reads from address 0 read video RAM, via the read-ahead buffer.
+	if(!(address & 1)) {
+		uint8_t result = read_ahead_buffer_;
+		read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
+		ram_pointer_++;
+		return result;
+	}
+
+	// Reads from address 1 get the status register;
+	uint8_t result = status_;
+	status_ &= ~(0x80 | 0x20);
+	reevaluate_interrupts();
+	return result;
+}
+
+void TMS9918::reevaluate_interrupts() {
+	
 }

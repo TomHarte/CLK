@@ -41,6 +41,32 @@ class TMS9918 {
 
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
+	
+		uint16_t ram_[16384];
+
+		uint16_t ram_pointer_ = 0;
+		uint8_t read_ahead_buffer_ = 0;
+
+		uint8_t status_ = 0;
+
+		bool write_phase_ = false;
+		uint8_t low_write_ = 0;
+
+		// The various register flags.
+		int screen_mode_ = 0;
+		bool blank_screen_ = true;
+		bool sprites_16x16_ = false;
+		bool sprites_magnified_ = false;
+		bool generate_interrupts_ = false;
+		uint16_t pattern_name_address_ = 0;
+		uint16_t colour_table_address_ = 0;
+		uint16_t pattern_generator_table_address_ = 0;
+		uint16_t sprite_attribute_table_address_ = 0;
+		uint16_t sprite_generator_table_address_ = 0;
+		uint8_t text_colour_ = 0;
+		uint8_t background_colour_ = 0;
+
+		void reevaluate_interrupts();
 };
 
 };
