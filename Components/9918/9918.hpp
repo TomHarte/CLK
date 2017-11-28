@@ -70,7 +70,9 @@ class TMS9918 {
 
 		int column_ = 0, row_ = 0, output_column_ = 0;
 		int cycles_error_ = 0;
-		uint8_t *pixel_target_ = nullptr;
+		uint32_t *pixel_target_ = nullptr;
+
+		void output_border(int cycles);
 };
 
 };

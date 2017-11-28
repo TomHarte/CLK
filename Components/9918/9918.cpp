@@ -10,12 +10,48 @@
 
 using namespace TI;
 
+namespace {
+
+const uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
+	uint32_t result = 0;
+	uint8_t *result_ptr = reinterpret_cast<uint8_t *>(&result);
+	result_ptr[0] = r;
+	result_ptr[1] = g;
+	result_ptr[2] = b;
+	result_ptr[3] = 0;
+	return result;
+}
+
+const uint32_t palette[16] = {
+	palette_pack(0, 0, 0),
+	palette_pack(0, 0, 0),
+	palette_pack(90, 201, 81),
+	palette_pack(149, 231, 133),
+
+	palette_pack(113, 104, 183),
+	palette_pack(146, 132, 255),
+	palette_pack(200, 114, 89),
+	palette_pack(115, 222, 255),
+
+	palette_pack(238, 124, 90),
+	palette_pack(255, 166, 132),
+	palette_pack(219, 232, 92),
+	palette_pack(240, 247, 143),
+
+	palette_pack(78, 176, 63),
+	palette_pack(202, 118, 216),
+	palette_pack(233, 233, 233),
+	palette_pack(255, 255, 255)
+};
+
+}
+
 TMS9918::TMS9918(Personality p) :
 	crt_(new Outputs::CRT::CRT(342, 1, Outputs::CRT::DisplayType::NTSC60, 4)) {
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
-			"return texture(sampler, coordinate).rgb;"
+			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 		"}");
 }
 
@@ -51,17 +87,23 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				output_column_ = 26;
 			}
 			// TODO: colour burst.
-			if(output_column_ == 26 && column_ >= 69) {	// TODO: modes other than text
-				crt_->output_blank(static_cast<unsigned int>(69 - 26));
-				output_column_ = 69;
-				pixel_target_ = crt_->allocate_write_area(256);
+			if(output_column_ >= 26) {	// TODO: modes other than text
+				int pixels_end = std::min(69, column_);
+				if(output_column_ < pixels_end) {
+					output_border(static_cast<unsigned int>(pixels_end - output_column_));
+					output_column_ = pixels_end;
+
+					if(pixels_end == 69) {
+						pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(256));
+					}
+				}
 			}
 			if(output_column_ >= 69) {
 				int pixels_end = std::min(309, column_);
 				if(output_column_ < pixels_end) {
 					while(output_column_ < pixels_end) {	// TODO: modes other than text
-						pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = pixel_target_[3] = 0xff;
-						pixel_target_ += 4;
+						pixel_target_[0] = 0xff;
+						pixel_target_ ++;
 						output_column_ ++;
 					}
 
@@ -70,8 +112,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 				}
 			}
-			if(column_ == 342) {
-				crt_->output_blank(static_cast<unsigned int>(342 - 309));
+			if(column_ >= 309) {
+				output_border(static_cast<unsigned int>(column_ - output_column_));
+				output_column_ = column_;
 			}
 		} else if(row_ >= 227 && row_ < 230) {	// TODO: don't hard-code NTSC.
 			// Vertical sync.
@@ -84,8 +127,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				crt_->output_sync(static_cast<unsigned int>(26));
 				output_column_ = 26;
 			}
-			if(column_ == 342) {
-				crt_->output_blank(static_cast<unsigned int>(342 - 26));
+			if(column_ >= 26) {
+				output_border(column_ - output_column_);
+				output_column_ = column_;
 			}
 		}
 
@@ -96,6 +140,12 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// TODO: consider triggering an interrupt here.
 		}
 	}
+}
+
+void TMS9918::output_border(int cycles) {
+	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+	if(pixel_target_) *pixel_target_ = palette[background_colour_];
+	crt_->output_level(static_cast<unsigned int>(cycles));
 }
 
 // TODO: as a temporary development measure, memory access below is magically instantaneous. Correct that.
