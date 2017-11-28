@@ -81,7 +81,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			}
 		}
 
-		int_cycles += cycles_left;
+		int_cycles -= cycles_left;
 		column_ = end_column;
 		if(column_ == 342) {
 			column_ = 0;
