@@ -24,8 +24,6 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 }
 
 void TMS9918::run_for(const HalfCycles cycles) {
-	// TODO: all video output (!)
-
 	// As specific as I've been able to get:
 	// Scanline time is always 227.75 cycles.
 	// PAL output is 313 lines total. NTSC output is 262 lines total.
@@ -36,6 +34,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	int int_cycles = (cycles.as_int() * 3) + cycles_error_;
 	cycles_error_ = int_cycles & 3;
 	int_cycles >>= 2;
+	if(!int_cycles) return;
 
 	//
 	// Break that down as:
@@ -43,48 +42,56 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 	while(int_cycles) {
 		int cycles_left = std::min(342 - column_, int_cycles);
-		int end_column = std::min(column_ + int_cycles, 342);
+		column_ += cycles_left;
+
 		if(row_	< 192) {
 			// Pixels.
-			if(column_ < 26 && end_column >= 26) {
+			if(!output_column_ && column_ >= 26) {
 				crt_->output_sync(static_cast<unsigned int>(26));
-				column_ = 26;
+				output_column_ = 26;
 			}
-			if(column_ >= 26 && end_column >= 69) {	// TODO: modes other than text
+			// TODO: colour burst.
+			if(output_column_ == 26 && column_ >= 69) {	// TODO: modes other than text
 				crt_->output_blank(static_cast<unsigned int>(69 - 26));
-				column_ = 69;
+				output_column_ = 69;
 				pixel_target_ = crt_->allocate_write_area(256);
 			}
-			while(column_ < end_column && column_ < 309) {	// TODO: modes other than text
-				pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = pixel_target_[3] = 0xff;
-				pixel_target_ += 4;
-				column_ ++;
+			if(output_column_ >= 69) {
+				int pixels_end = std::min(309, column_);
+				if(output_column_ < pixels_end) {
+					while(output_column_ < pixels_end) {	// TODO: modes other than text
+						pixel_target_[0] = pixel_target_[1] = pixel_target_[2] = pixel_target_[3] = 0xff;
+						pixel_target_ += 4;
+						output_column_ ++;
+					}
+
+					if(output_column_ == 309) {
+						crt_->output_data(240, 1);	// TODO: modes other than text
+					}
+				}
 			}
-			if(column_ == 309 && end_column > 309) {
-				crt_->output_data(240, 1);	// TODO: modes other than text
-			}
-			if(end_column == 342) {
+			if(column_ == 342) {
 				crt_->output_blank(static_cast<unsigned int>(342 - 309));
 			}
 		} else if(row_ >= 227 && row_ < 230) {	// TODO: don't hard-code NTSC.
 			// Vertical sync.
-			crt_->output_sync(static_cast<unsigned int>(cycles_left));
+			if(column_ == 342) {
+				crt_->output_sync(static_cast<unsigned int>(342));
+			}
 		} else {
 			// Blank.
-			if(column_ < 26 && end_column >= 26) {
+			if(!output_column_ && column_ >= 26) {
 				crt_->output_sync(static_cast<unsigned int>(26));
-				column_ = 26;
+				output_column_ = 26;
 			}
-			if(column_ < end_column) {
-				crt_->output_blank(static_cast<unsigned int>(end_column - column_));
-				column_ = end_column;
+			if(column_ == 342) {
+				crt_->output_blank(static_cast<unsigned int>(342 - 26));
 			}
 		}
 
 		int_cycles -= cycles_left;
-		column_ = end_column;
 		if(column_ == 342) {
-			column_ = 0;
+			column_ = output_column_ = 0;
 			row_ = (row_ + 1) % 262;	// TODO: don't hard-code NTSC.
 			// TODO: consider triggering an interrupt here.
 		}
