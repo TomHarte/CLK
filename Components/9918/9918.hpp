@@ -42,7 +42,7 @@ class TMS9918 {
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 	
-		uint16_t ram_[16384];
+		uint8_t ram_[16384];
 
 		uint16_t ram_pointer_ = 0;
 		uint8_t read_ahead_buffer_ = 0;
@@ -53,7 +53,7 @@ class TMS9918 {
 		uint8_t low_write_ = 0;
 
 		// The various register flags.
-		int screen_mode_ = 0;
+		int next_screen_mode_ = 0, screen_mode_ = 0;
 		bool blank_screen_ = true;
 		bool sprites_16x16_ = false;
 		bool sprites_magnified_ = false;
@@ -67,6 +67,10 @@ class TMS9918 {
 		uint8_t background_colour_ = 0;
 
 		void reevaluate_interrupts();
+
+		int column_ = 0, row_ = 0;
+		int cycles_error_ = 0;
+		uint8_t *pixel_target_ = nullptr;
 };
 
 };
