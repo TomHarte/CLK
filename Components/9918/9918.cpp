@@ -92,15 +92,21 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						if(access_pointer_ >= 26) {
 							int end = std::min(154, column_);
 
-							// TODO: optimise this, probably
+							// TODO: optimise this mess.
 							const int row_base = ((row_ << 2)&~31);
 							while(access_pointer_ < end) {
 								int character_column = ((access_pointer_ - 26) >> 2);
 								switch(access_pointer_&3) {
-									case 0:	pattern_name_ = ram_[pattern_name_address_ + row_base + character_column]; break;
+									case 0:
+										pattern_name_ = ram_[pattern_name_address_ + row_base + character_column];
+									break;
 									case 1:	break;	// TODO: sprites / CPU access.
-									case 2:	colour_buffer_[character_column] = ram_[colour_table_address_ + (pattern_name_ >> 3)]; break;
-									case 3:	pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)]; break;
+									case 2:
+										colour_buffer_[character_column] = ram_[colour_table_address_ + (pattern_name_ >> 3)];
+									break;
+									case 3:
+										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
+									break;
 								}
 								access_pointer_++;
 							}
@@ -135,11 +141,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					while(output_column_ < pixels_end) {
 						int base = (output_column_ - first_pixel_column_);
 						int address = base >> 3;
-//						uint8_t colour = line_buffer_[address];
+						uint8_t colour = colour_buffer_[address];
 						uint8_t pattern = pattern_buffer_[address];
-						pattern >>= ((base&3)*2) + (output_column_ & 1);
+						pattern >>= ((base&7)^7);
 
-						*pixel_target_ = (pattern&1) ? 0xffffff : 0x000000;
+						*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
 						pixel_target_ ++;
 						output_column_ ++;
 					}
