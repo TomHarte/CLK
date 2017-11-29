@@ -19,7 +19,7 @@ namespace TI {
 class TMS9918 {
 	public:
 		enum Personality {
-			TMS9918A,	// includes the 9928A
+			TMS9918A,	// includes the 9928A; set TV standard as desired.
 		};
 
 		/*!
@@ -27,6 +27,11 @@ class TMS9918 {
 			@param p The type of controller to emulate.
 		*/
 		TMS9918(Personality p);
+
+		enum TVStandard {
+			PAL, NTSC
+		};
+		void set_tv_standard(TVStandard standard);
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt();
 
@@ -73,6 +78,20 @@ class TMS9918 {
 		uint32_t *pixel_target_ = nullptr;
 
 		void output_border(int cycles);
+
+		// Vertical timing details.
+		int frame_lines_ = 262;
+		int first_vsync_line_ = 227;
+
+		// Horizontal selections.
+		enum class LineMode {
+			Text,
+			Character
+		} line_mode_ = LineMode::Text;
+		int first_pixel_column_, first_right_border_column_;
+
+		uint8_t line_buffer_[171];
+		int access_pointer_ = 0;
 };
 
 };

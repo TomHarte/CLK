@@ -53,6 +53,7 @@ TMS9918::TMS9918(Personality p) :
 		"{"
 			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 		"}");
+	crt_->set_output_device(Outputs::CRT::OutputDevice::Monitor);
 }
 
 std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
@@ -81,42 +82,76 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		column_ += cycles_left;
 
 		if(row_	< 192) {
+			// Do memory accesses.
+			switch(next_screen_mode_) {
+				default:	// TODO: other graphics mode; this is graphics 1.
+					while(access_pointer_ < (column_ >> 1)) {
+						if(access_pointer_ < 26) {
+							access_pointer_ = std::min(26, column_ >> 1);
+						}
+						if(access_pointer_ >= 26) {
+							int end = std::min(154, column_);
+
+							// TODO: optimise this, probably
+							const int row_base = ((row_ >> 3)&~31);
+							while(access_pointer_ < end) {
+								switch(access_pointer_&1) {
+									case 0:	line_buffer_[access_pointer_] = ram_[pattern_name_address_ + row_base + ((access_pointer_ - 26) >> 2)]; break;
+									case 1:	break;	// TODO: sprites / CPU access.
+									case 2:	line_buffer_[access_pointer_] = ram_[colour_table_address_ + (line_buffer_[access_pointer_ - 2] >> 3)]; break;
+									case 3:	line_buffer_[access_pointer_] = ram_[pattern_generator_table_address_ + (line_buffer_[access_pointer_-3] << 3) + (row_ & 7)]; break;
+								}
+								access_pointer_++;
+							}
+						}
+						if(access_pointer_ >= 154) {
+							access_pointer_ = column_ >> 1;
+						}
+					}
+				break;
+			}
+
 			// Pixels.
 			if(!output_column_ && column_ >= 26) {
 				crt_->output_sync(static_cast<unsigned int>(26));
 				output_column_ = 26;
 			}
 			// TODO: colour burst.
-			if(output_column_ >= 26) {	// TODO: modes other than text
-				int pixels_end = std::min(69, column_);
+			if(output_column_ >= 26) {
+				int pixels_end = std::min(first_pixel_column_, column_);
 				if(output_column_ < pixels_end) {
-					output_border(static_cast<unsigned int>(pixels_end - output_column_));
+					output_border(pixels_end - output_column_);
 					output_column_ = pixels_end;
 
-					if(pixels_end == 69) {
-						pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(256));
+					if(pixels_end == first_pixel_column_) {
+						pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_)));
 					}
 				}
 			}
-			if(output_column_ >= 69) {
-				int pixels_end = std::min(309, column_);
+			if(output_column_ >= first_pixel_column_) {
+				int pixels_end = std::min(first_right_border_column_, column_);
 				if(output_column_ < pixels_end) {
-					while(output_column_ < pixels_end) {	// TODO: modes other than text
-						pixel_target_[0] = 0xff;
+					while(output_column_ < pixels_end) {
+						int base = (output_column_ >> 1);
+						int address = base & ~3;
+//						uint8_t colour = line_buffer_[address];
+						uint8_t pattern = line_buffer_[address+1];
+						pattern >>= ((base&3)*2) + (output_column_ & 1);
+						pixel_target_[0] = (pattern&1) ? 0xffffff : 0x000000;
 						pixel_target_ ++;
 						output_column_ ++;
 					}
 
-					if(output_column_ == 309) {
-						crt_->output_data(240, 1);	// TODO: modes other than text
+					if(output_column_ == first_right_border_column_) {
+						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 					}
 				}
 			}
-			if(column_ >= 309) {
-				output_border(static_cast<unsigned int>(column_ - output_column_));
+			if(column_ >= first_pixel_column_) {
+				output_border(column_ - output_column_);
 				output_column_ = column_;
 			}
-		} else if(row_ >= 227 && row_ < 230) {	// TODO: don't hard-code NTSC.
+		} else if(row_ >= first_vsync_line_ && row_ < first_vsync_line_+3) {
 			// Vertical sync.
 			if(column_ == 342) {
 				crt_->output_sync(static_cast<unsigned int>(342));
@@ -135,9 +170,19 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 		int_cycles -= cycles_left;
 		if(column_ == 342) {
-			column_ = output_column_ = 0;
-			row_ = (row_ + 1) % 262;	// TODO: don't hard-code NTSC.
+			access_pointer_ = column_ = output_column_ = 0;
+			row_ = (row_ + 1) % frame_lines_;
+
 			// TODO: consider triggering an interrupt here.
+			screen_mode_ = next_screen_mode_;
+			switch(screen_mode_) {
+				// TODO: text mdoe.
+				default:
+					line_mode_ = LineMode::Character;
+					first_pixel_column_ = 63;
+					first_right_border_column_ = 319;
+				break;
+			}
 		}
 	}
 }
