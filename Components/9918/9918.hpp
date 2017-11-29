@@ -90,8 +90,10 @@ class TMS9918 {
 		} line_mode_ = LineMode::Text;
 		int first_pixel_column_, first_right_border_column_;
 
-		uint8_t line_buffer_[171];
+		uint8_t pattern_buffer_[40];
+		uint8_t colour_buffer_[32];
 		int access_pointer_ = 0;
+		uint8_t pattern_name_;
 };
 
 };
