@@ -20,13 +20,6 @@
 
 namespace MSX {
 
-class i8255PortHandler: public Intel::i8255::PortHandler {
-	public:
-		void set_value(int port, uint8_t value) {
-			printf("8255 set %d to %02x\n", port, value);
-		}
-};
-
 class AYPortHandler: public GI::AY38910::PortHandler {
 };
 
@@ -38,9 +31,11 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine():
 			z80_(*this),
-			i8255_(i8255_port_handler_) {
+			i8255_(i8255_port_handler_),
+			i8255_port_handler_(*this) {
 			ay_.set_port_handler(&ay_port_handler_);
 			set_clock_rate(3579545);
+			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -67,6 +62,28 @@ class ConcreteMachine:
 		
 		bool insert_media(const StaticAnalyser::Media &media) override {
 			return true;
+		}
+
+		void page_memory(uint8_t value) {
+			for(int c = 0; c < 4; ++c) {
+				read_pointers_[c] = unpopulated_;
+				write_pointers_[c] = scratch_;
+			}
+
+			switch(value&3) {
+				case 0:	read_pointers_[0] = main_.data();						break;
+				case 2:	read_pointers_[0] = write_pointers_[0] = &ram_[0];		break;
+			}
+			switch((value >> 2)&3) {
+				case 0:	read_pointers_[1] = basic_.data();						break;
+				case 2:	read_pointers_[1] = write_pointers_[1] = &ram_[16384];	break;
+			}
+			switch((value >> 4)&3) {
+				case 2:	read_pointers_[2] = write_pointers_[2] = &ram_[32768];	break;
+			}
+			switch((value >> 6)&3) {
+				case 2:	read_pointers_[3] = write_pointers_[3] = &ram_[49152];	break;
+			}
 		}
 
 		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
@@ -171,6 +188,31 @@ class ConcreteMachine:
 		}
 
 	private:
+		class i8255PortHandler: public Intel::i8255::PortHandler {
+			public:
+				i8255PortHandler(ConcreteMachine &machine) : machine_(machine) {}
+
+				void set_value(int port, uint8_t value) {
+					switch(port) {
+						case 0:	machine_.page_memory(value);	break;
+						case 2:
+							printf("?? Select keyboard row, etc: %02x\n", value);
+						break;
+						default: break;
+					}
+				}
+
+				uint8_t get_value(int port) {
+					if(port == 1) {
+						printf("?? Read keyboard\n");
+					}
+					return 0xff;
+				}
+
+			private:
+				ConcreteMachine &machine_;
+		};
+
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
@@ -183,6 +225,7 @@ class ConcreteMachine:
 		uint8_t *write_pointers_[4];
 		uint8_t ram_[65536];
 		uint8_t scratch_[16384];
+		uint8_t unpopulated_[16384];
 		std::vector<uint8_t> basic_, main_;
 
 		HalfCycles time_since_vdp_update_;
