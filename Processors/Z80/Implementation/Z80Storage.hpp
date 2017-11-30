@@ -120,7 +120,7 @@ class ProcessorStorage {
 		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
 		RegisterPair ix_, iy_, pc_, sp_;
 		RegisterPair ir_, refresh_addr_;
-		bool iff1_, iff2_;
+		bool iff1_ = false, iff2_ = false;
 		int interrupt_mode_ = 0;
 		uint16_t pc_increment_ = 1;
 		uint8_t sign_result_;				// the sign flag is set if the value in sign_result_ is negative
