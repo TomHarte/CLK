@@ -73,25 +73,10 @@ class ConcreteMachine:
 		}
 
 		void page_memory(uint8_t value) {
-			printf("Page %02x\n", value);
-			for(int c = 0; c < 4; ++c) {
-				read_pointers_[c] = unpopulated_;
-				write_pointers_[c] = scratch_;
-			}
-
-			switch(value&3) {
-				case 0:	read_pointers_[0] = main_.data();						break;
-				case 2:	read_pointers_[0] = write_pointers_[0] = &ram_[0];		break;
-			}
-			switch((value >> 2)&3) {
-				case 0:	read_pointers_[1] = basic_.data();						break;
-				case 2:	read_pointers_[1] = write_pointers_[1] = &ram_[16384];	break;
-			}
-			switch((value >> 4)&3) {
-				case 2:	read_pointers_[2] = write_pointers_[2] = &ram_[32768];	break;
-			}
-			switch((value >> 6)&3) {
-				case 2:	read_pointers_[3] = write_pointers_[3] = &ram_[49152];	break;
+			for(size_t c = 0; c < 4; ++c) {
+				read_pointers_[c] = slot_read_pointers_[value & 3][c];
+				write_pointers_[c] = slot_write_pointers_[value & 3][c];
+				value >>= 2;
 			}
 		}
 
@@ -196,13 +181,20 @@ class ConcreteMachine:
 			main_.resize(16384);
 
 			for(size_t c = 0; c < 4; ++c) {
-				write_pointers_[c] = &ram_[c * 16384];
-				read_pointers_[c] = &ram_[c * 16384];
+				for(size_t slot = 0; slot < 3; ++slot) {
+					slot_read_pointers_[slot][c] = unpopulated_;
+					slot_write_pointers_[slot][c] = scratch_;
+				}
+				slot_read_pointers_[3][c] =
+				slot_write_pointers_[3][c] = &ram_[c * 16384];
 			}
-			read_pointers_[0] = main_.data();
-			write_pointers_[0] = scratch_;
-			read_pointers_[1] = basic_.data();
-			write_pointers_[1] = scratch_;
+			slot_read_pointers_[0][0] = main_.data();
+			slot_read_pointers_[0][1] = basic_.data();
+
+			for(size_t c = 0; c < 4; ++c) {
+				read_pointers_[c] = slot_read_pointers_[0][c];
+				write_pointers_[c] = slot_write_pointers_[0][c];
+			}
 
 			return true;
 		}
@@ -243,6 +235,10 @@ class ConcreteMachine:
 
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
+
+		uint8_t *slot_read_pointers_[4][4];
+		uint8_t *slot_write_pointers_[4][4];
+
 		uint8_t ram_[65536];
 		uint8_t scratch_[16384];
 		uint8_t unpopulated_[16384];
