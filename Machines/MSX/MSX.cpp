@@ -8,6 +8,8 @@
 
 #include "MSX.hpp"
 
+#include "Keyboard.hpp"
+
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/1770/1770.hpp"
@@ -17,6 +19,7 @@
 
 #include "../CRTMachine.hpp"
 #include "../ConfigurationTarget.hpp"
+#include "../KeyboardMachine.hpp"
 
 namespace MSX {
 
@@ -35,7 +38,8 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -44,6 +48,7 @@ class ConcreteMachine:
 			ay_.set_port_handler(&ay_port_handler_);
 			set_clock_rate(3579545);
 			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
+			clear_all_keys();
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -199,6 +204,28 @@ class ConcreteMachine:
 			return true;
 		}
 
+		void set_keyboard_line(int line) {
+			selected_key_line_ = line;
+		}
+
+		uint8_t read_keyboard() {
+			return key_states_[selected_key_line_];
+		}
+
+		void clear_all_keys() override {
+			std::memset(key_states_, 0xff, sizeof(key_states_));
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			int mask = 1 << (key & 7);
+			int line = key >> 4;
+			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
+		}
+
+		KeyboardMapper &get_keyboard_mapper() override {
+			return keyboard_mapper_;
+		}
+
 	private:
 		class i8255PortHandler: public Intel::i8255::PortHandler {
 			public:
@@ -208,7 +235,12 @@ class ConcreteMachine:
 					switch(port) {
 						case 0:	machine_.page_memory(value);	break;
 						case 2:
-							printf("?? Select keyboard row, etc: %02x\n", value);
+							// TODO:
+							//	b7	keyboard click
+							//	b6	caps lock LED
+							//	b5 	audio output
+							//	b4	cassette motor relay
+							machine_.set_keyboard_line(value & 0xf);
 						break;
 						default: break;
 					}
@@ -216,7 +248,7 @@ class ConcreteMachine:
 
 				uint8_t get_value(int port) {
 					if(port == 1) {
-						printf("?? Read keyboard\n");
+						return machine_.read_keyboard();
 					} else printf("What what?\n");
 					return 0xff;
 				}
@@ -246,6 +278,11 @@ class ConcreteMachine:
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_until_interrupt_;
+
+		uint8_t key_states_[16];
+		int selected_key_line_ = 0;
+
+		MSX::KeyboardMapper keyboard_mapper_;
 };
 
 }
