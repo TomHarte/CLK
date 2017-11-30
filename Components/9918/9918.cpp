@@ -184,8 +184,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		if(column_ == 342) {
 			access_pointer_ = column_ = output_column_ = 0;
 			row_ = (row_ + 1) % frame_lines_;
+			if(row_ == 192) status_ |= 0x80;
 
-			// TODO: consider triggering an interrupt here.
 			screen_mode_ = next_screen_mode_;
 			switch(screen_mode_) {
 				// TODO: text mdoe.
@@ -232,6 +232,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 		switch(value & 7) {
 			case 0:
 				next_screen_mode_ = (next_screen_mode_ & 6) | ((low_write_ & 2) >> 1);
+				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 1:
@@ -240,7 +241,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 				next_screen_mode_ = (screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
-				reevaluate_interrupts();
+				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 2:
@@ -293,15 +294,10 @@ uint8_t TMS9918::get_register(int address) {
 	// Reads from address 1 get the status register;
 	uint8_t result = status_;
 	status_ &= ~(0x80 | 0x20);
-	reevaluate_interrupts();
 	return result;
 }
 
-void TMS9918::reevaluate_interrupts() {
-	
-}
-
-HalfCycles TMS9918::get_time_until_interrupt() {
+ HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!generate_interrupts_) return HalfCycles(-1);
 	if(get_interrupt_line()) return HalfCycles(-1);
 

@@ -74,8 +74,6 @@ class TMS9918 {
 		uint8_t text_colour_ = 0;
 		uint8_t background_colour_ = 0;
 
-		void reevaluate_interrupts();
-
 		HalfCycles half_cycles_into_frame_;
 		int column_ = 0, row_ = 0, output_column_ = 0;
 		int cycles_error_ = 0;
