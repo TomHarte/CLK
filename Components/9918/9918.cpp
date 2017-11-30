@@ -66,11 +66,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	// PAL output is 313 lines total. NTSC output is 262 lines total.
 	// Interrupt is signalled upon entering the lower border.
 
+	// Keep a count of cycles separate from internal counts to avoid
+	// potential errors mapping back and forth.
+	half_cycles_into_frame_ = (half_cycles_into_frame_ + cycles) % HalfCycles(frame_lines_ * 228 * 2);
+
 	// Convert to 342 cycles per line; the internal clock is 1.5 times the
 	// nominal 3.579545 Mhz that I've advertised for this part.
 	int int_cycles = (cycles.as_int() * 3) + cycles_error_;
-	cycles_error_ = int_cycles & 3;
-	int_cycles >>= 2;
+	cycles_error_ = int_cycles & 7;
+	int_cycles >>= 3;
 	if(!int_cycles) return;
 
 	//
@@ -295,4 +299,17 @@ uint8_t TMS9918::get_register(int address) {
 
 void TMS9918::reevaluate_interrupts() {
 	
+}
+
+HalfCycles TMS9918::get_time_until_interrupt() {
+	if(!generate_interrupts_) return HalfCycles(-1);
+	if(get_interrupt_line()) return HalfCycles(-1);
+
+	const int half_cycles_per_frame = frame_lines_ * 228 * 2;
+	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
+	return HalfCycles(half_cycles_remaining);
+}
+
+bool TMS9918::get_interrupt_line() {
+	return (status_ & 0x80) && generate_interrupts_;
 }

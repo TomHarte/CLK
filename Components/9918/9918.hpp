@@ -44,6 +44,9 @@ class TMS9918 {
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
+		HalfCycles get_time_until_interrupt();
+		bool get_interrupt_line();
+
 	private:
 		std::shared_ptr<Outputs::CRT::CRT> crt_;
 	
@@ -73,6 +76,7 @@ class TMS9918 {
 
 		void reevaluate_interrupts();
 
+		HalfCycles half_cycles_into_frame_;
 		int column_ = 0, row_ = 0, output_column_ = 0;
 		int cycles_error_ = 0;
 		uint32_t *pixel_target_ = nullptr;
@@ -93,7 +97,7 @@ class TMS9918 {
 		uint8_t pattern_buffer_[40];
 		uint8_t colour_buffer_[32];
 		int access_pointer_ = 0;
-		uint8_t pattern_name_;
+		uint8_t pattern_name_ = 0;
 };
 
 };

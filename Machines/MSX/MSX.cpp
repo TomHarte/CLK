@@ -20,7 +20,15 @@
 
 namespace MSX {
 
-class AYPortHandler: public GI::AY38910::PortHandler {
+struct AYPortHandler: public GI::AY38910::PortHandler {
+	void set_port_output(bool port_b, uint8_t value) {
+		printf("AY port %c output: %02x\n", port_b ? 'b' : 'a', value);
+	}
+
+	uint8_t get_port_input(bool port_b) {
+		printf("AY port %c input\n", port_b ? 'b' : 'a');
+		return 0xff;
+	}
 };
 
 class ConcreteMachine:
@@ -65,6 +73,7 @@ class ConcreteMachine:
 		}
 
 		void page_memory(uint8_t value) {
+			printf("Page %02x\n", value);
 			for(int c = 0; c < 4; ++c) {
 				read_pointers_[c] = unpopulated_;
 				write_pointers_[c] = scratch_;
@@ -87,6 +96,13 @@ class ConcreteMachine:
 		}
 
 		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			if(time_until_interrupt_ > 0) {
+				time_until_interrupt_ -= cycle.length;
+				if(time_until_interrupt_ <= HalfCycles(0)) {
+					z80_.set_interrupt_line(true, time_until_interrupt_);
+				}
+			}
+
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
@@ -104,6 +120,8 @@ class ConcreteMachine:
 							vdp_->run_for(time_since_vdp_update_);
 							time_since_vdp_update_ = 0;
 							*cycle.value = vdp_->get_register(address);
+							z80_.set_interrupt_line(vdp_->get_interrupt_line());
+							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
 						case 0xa2:
@@ -124,6 +142,8 @@ class ConcreteMachine:
 							vdp_->run_for(time_since_vdp_update_);
 							time_since_vdp_update_ = 0;
 							vdp_->set_register(address, *cycle.value);
+							z80_.set_interrupt_line(vdp_->get_interrupt_line());
+							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
 						case 0xa0:
@@ -205,7 +225,7 @@ class ConcreteMachine:
 				uint8_t get_value(int port) {
 					if(port == 1) {
 						printf("?? Read keyboard\n");
-					}
+					} else printf("What what?\n");
 					return 0xff;
 				}
 
@@ -229,6 +249,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> basic_, main_;
 
 		HalfCycles time_since_vdp_update_;
+		HalfCycles time_until_interrupt_;
 };
 
 }
