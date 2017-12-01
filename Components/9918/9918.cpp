@@ -87,8 +87,36 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 		if(row_	< 192) {
 			// Do memory accesses.
-			switch(next_screen_mode_) {
-				default:	// TODO: other graphics mode; this is graphics 1.
+			switch(line_mode_) {
+				case LineMode::Text:
+					while(access_pointer_ < (column_ >> 1)) {
+						if(access_pointer_ < 29) {
+							access_pointer_ = std::min(29, column_ >> 1);
+						}
+						if(access_pointer_ >= 29) {
+							int end = std::min(149, column_);
+							const int row_base = pattern_name_address_ + (row_ >> 3) * 40;
+							while(access_pointer_ < end) {
+								// Even worse than below; work to do.
+								int character_column = (access_pointer_ - 29) / 3;
+								switch(access_pointer_%3) {
+									case 2: pattern_name_ = ram_[row_base + character_column];	break;
+									case 1: break;
+									case 0:
+										colour_buffer_[character_column] = text_background_colour_;
+										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
+									break;
+								}
+								access_pointer_++;
+							}
+						}
+						if(access_pointer_ >= 149) {
+							access_pointer_ = column_ >> 1;
+						}
+					}
+				break;
+
+				case LineMode::Character:
 					while(access_pointer_ < (column_ >> 1)) {
 						if(access_pointer_ < 26) {
 							access_pointer_ = std::min(26, column_ >> 1);
@@ -97,12 +125,12 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							int end = std::min(154, column_);
 
 							// TODO: optimise this mess.
-							const int row_base = ((row_ << 2)&~31);
+							const int row_base = pattern_name_address_ + ((row_ << 2)&~31);
 							while(access_pointer_ < end) {
 								int character_column = ((access_pointer_ - 26) >> 2);
 								switch(access_pointer_&3) {
 									case 0:
-										pattern_name_ = ram_[pattern_name_address_ + row_base + character_column];
+										pattern_name_ = ram_[row_base + character_column];
 									break;
 									case 1:	break;	// TODO: sprites / CPU access.
 									case 2:
@@ -141,22 +169,41 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			}
 			if(output_column_ >= first_pixel_column_) {
 				int pixels_end = std::min(first_right_border_column_, column_);
+
 				if(output_column_ < pixels_end) {
-					while(output_column_ < pixels_end) {
-						int base = (output_column_ - first_pixel_column_);
-						int address = base >> 3;
-						uint8_t colour = colour_buffer_[address];
-						uint8_t pattern = pattern_buffer_[address];
-						pattern >>= ((base&7)^7);
+					switch(line_mode_) {
+						case LineMode::Text:
+							while(output_column_ < pixels_end) {
+								int base = (output_column_ - first_pixel_column_);
+								int address = base / 6;
+								uint8_t colour = colour_buffer_[address];
+								uint8_t pattern = pattern_buffer_[address];
+								pattern >>= ((base % 6)^7);
 
-						*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
-						pixel_target_ ++;
-						output_column_ ++;
-					}
+								*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
+								pixel_target_ ++;
+								output_column_ ++;
+							}
+						break;
 
-					if(output_column_ == first_right_border_column_) {
-						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
+						case LineMode::Character:
+							while(output_column_ < pixels_end) {
+								int base = (output_column_ - first_pixel_column_);
+								int address = base >> 3;
+								uint8_t colour = colour_buffer_[address];
+								uint8_t pattern = pattern_buffer_[address];
+								pattern >>= ((base&7)^7);
+
+								*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
+								pixel_target_ ++;
+								output_column_ ++;
+							}
+						break;
 					}
+				}
+
+				if(output_column_ == first_right_border_column_) {
+					crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 				}
 			}
 			if(column_ >= first_pixel_column_) {
@@ -188,7 +235,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 			screen_mode_ = next_screen_mode_;
 			switch(screen_mode_) {
-				// TODO: text mdoe.
+				case 2:
+					line_mode_ = LineMode::Text;
+					first_pixel_column_ = 69;
+					first_right_border_column_ = 309;
+				break;
 				default:
 					line_mode_ = LineMode::Character;
 					first_pixel_column_ = 63;
@@ -265,6 +316,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 7:
+				text_background_colour_ = low_write_;
 				text_colour_ = low_write_ >> 4;
 				background_colour_ = low_write_ & 0xf;
 			break;

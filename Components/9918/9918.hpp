@@ -71,8 +71,10 @@ class TMS9918 {
 		uint16_t pattern_generator_table_address_ = 0;
 		uint16_t sprite_attribute_table_address_ = 0;
 		uint16_t sprite_generator_table_address_ = 0;
+
 		uint8_t text_colour_ = 0;
 		uint8_t background_colour_ = 0;
+		uint8_t text_background_colour_ = 0;
 
 		HalfCycles half_cycles_into_frame_;
 		int column_ = 0, row_ = 0, output_column_ = 0;
@@ -93,7 +95,7 @@ class TMS9918 {
 		int first_pixel_column_, first_right_border_column_;
 
 		uint8_t pattern_buffer_[40];
-		uint8_t colour_buffer_[32];
+		uint8_t colour_buffer_[40];
 		int access_pointer_ = 0;
 		uint8_t pattern_name_ = 0;
 };
