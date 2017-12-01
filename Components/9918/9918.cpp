@@ -85,8 +85,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		int cycles_left = std::min(342 - column_, int_cycles);
 		column_ += cycles_left;
 
-		if(row_	< 192) {
-			// Do memory accesses.
+		if(row_	< 192 && !blank_screen_) {
+			// ------------------------
+			// Perform memory accesses.
+			// ------------------------
 			switch(line_mode_) {
 				case LineMode::Text:
 					while(access_pointer_ < (column_ >> 1)) {
@@ -94,17 +96,20 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							access_pointer_ = std::min(29, column_ >> 1);
 						}
 						if(access_pointer_ >= 29) {
-							int end = std::min(149, column_);
 							const int row_base = pattern_name_address_ + (row_ >> 3) * 40;
+							int character_column = (access_pointer_ - 29) / 3;
+
+							const int end = std::min(149, column_);
+
 							while(access_pointer_ < end) {
-								// Even worse than below; work to do.
-								int character_column = (access_pointer_ - 29) / 3;
 								switch(access_pointer_%3) {
-									case 2: pattern_name_ = ram_[row_base + character_column];	break;
-									case 1: break;
+									case 2:
+										pattern_name_ = ram_[row_base + character_column];
+									break;
+									case 1: break;	// TODO: sprites / CPU access.
 									case 0:
-										colour_buffer_[character_column] = text_background_colour_;
 										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
+										character_column++;
 									break;
 								}
 								access_pointer_++;
@@ -149,24 +154,43 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 				break;
 			}
+			// --------------------
+			// End memory accesses.
+			// --------------------
 
-			// Pixels.
+
+			// ----------------------
+			// Output horizontal sync
+			// ----------------------
 			if(!output_column_ && column_ >= 26) {
 				crt_->output_sync(static_cast<unsigned int>(26));
 				output_column_ = 26;
 			}
-			// TODO: colour burst.
+
+			// --------------------------
+			// TODO: output colour burst.
+			// --------------------------
+
+
+			// -------------------
+			// Output left border.
+			// -------------------
 			if(output_column_ >= 26) {
 				int pixels_end = std::min(first_pixel_column_, column_);
 				if(output_column_ < pixels_end) {
 					output_border(pixels_end - output_column_);
 					output_column_ = pixels_end;
 
+					// Grab a pointer for drawing pixels to, if the moment has arrived.
 					if(pixels_end == first_pixel_column_) {
 						pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_)));
 					}
 				}
 			}
+
+			// --------------
+			// Output pixels.
+			// --------------
 			if(output_column_ >= first_pixel_column_) {
 				int pixels_end = std::min(first_right_border_column_, column_);
 
@@ -174,13 +198,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					switch(line_mode_) {
 						case LineMode::Text:
 							while(output_column_ < pixels_end) {
-								int base = (output_column_ - first_pixel_column_);
-								int address = base / 6;
-								uint8_t colour = colour_buffer_[address];
-								uint8_t pattern = pattern_buffer_[address];
-								pattern >>= ((base % 6)^7);
+								const int base = (output_column_ - first_pixel_column_);
+								const int address = base / 6;
+								const uint8_t pattern = pattern_buffer_[address] << (base % 6);
 
-								*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
+								*pixel_target_ = (pattern&0x80) ? palette[text_colour_] : palette[background_colour_];
 								pixel_target_ ++;
 								output_column_ ++;
 							}
@@ -206,7 +228,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 				}
 			}
-			if(column_ >= first_pixel_column_) {
+
+			// --------------------
+			// Output right border.
+			// --------------------
+			if(output_column_ >= first_right_border_column_) {
 				output_border(column_ - output_column_);
 				output_column_ = column_;
 			}
@@ -221,7 +247,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				crt_->output_sync(static_cast<unsigned int>(26));
 				output_column_ = 26;
 			}
-			if(column_ >= 26) {
+			if(output_column_ >= 26) {
 				output_border(column_ - output_column_);
 				output_column_ = column_;
 			}
@@ -287,7 +313,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 1:
-				blank_screen_ = !!(low_write_ & 0x40);
+				blank_screen_ = !(low_write_ & 0x40);
 				generate_interrupts_ = !!(low_write_ & 0x20);
 				next_screen_mode_ = (screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);
