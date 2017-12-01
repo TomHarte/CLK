@@ -84,29 +84,31 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	while(int_cycles) {
 		int cycles_left = std::min(342 - column_, int_cycles);
 		column_ += cycles_left;
+		int_cycles -= cycles_left;
 
 		if(row_	< 192 && !blank_screen_) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
+			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
 				case LineMode::Text:
-					while(access_pointer_ < (column_ >> 1)) {
+					while(access_pointer_ < access_slot) {
 						if(access_pointer_ < 29) {
-							access_pointer_ = std::min(29, column_ >> 1);
+							access_pointer_ = std::min(29, access_slot);
 						}
 						if(access_pointer_ >= 29) {
-							const int row_base = pattern_name_address_ + (row_ >> 3) * 40;
+							int row_base = pattern_name_address_ + (row_ >> 3) * 40;
 							int character_column = (access_pointer_ - 29) / 3;
 
-							const int end = std::min(149, column_);
+							const int end = std::min(149, access_slot);
 
 							while(access_pointer_ < end) {
 								switch(access_pointer_%3) {
 									case 2:
 										pattern_name_ = ram_[row_base + character_column];
 									break;
-									case 1: break;	// TODO: sprites / CPU access.
+									case 1: break;	// TODO: CPU access.
 									case 0:
 										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
 										character_column++;
@@ -116,18 +118,18 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							}
 						}
 						if(access_pointer_ >= 149) {
-							access_pointer_ = column_ >> 1;
+							access_pointer_ = access_slot;
 						}
 					}
 				break;
 
 				case LineMode::Character:
-					while(access_pointer_ < (column_ >> 1)) {
+					while(access_pointer_ < access_slot) {
 						if(access_pointer_ < 26) {
-							access_pointer_ = std::min(26, column_ >> 1);
+							access_pointer_ = std::min(26, access_slot);
 						}
 						if(access_pointer_ >= 26) {
-							int end = std::min(154, column_);
+							int end = std::min(154, access_slot);
 
 							// TODO: optimise this mess.
 							const int row_base = pattern_name_address_ + ((row_ << 2)&~31);
@@ -149,7 +151,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							}
 						}
 						if(access_pointer_ >= 154) {
-							access_pointer_ = column_ >> 1;
+							access_pointer_ = access_slot;
 						}
 					}
 				break;
@@ -222,10 +224,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							}
 						break;
 					}
-				}
 
-				if(output_column_ == first_right_border_column_) {
-					crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
+					if(output_column_ == first_right_border_column_) {
+						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
+						pixel_target_ = nullptr;
+					}
 				}
 			}
 
@@ -253,13 +256,13 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			}
 		}
 
-		int_cycles -= cycles_left;
 		if(column_ == 342) {
 			access_pointer_ = column_ = output_column_ = 0;
 			row_ = (row_ + 1) % frame_lines_;
 			if(row_ == 192) status_ |= 0x80;
 
 			screen_mode_ = next_screen_mode_;
+			blank_screen_ = next_blank_screen_;
 			switch(screen_mode_) {
 				case 2:
 					line_mode_ = LineMode::Text;
@@ -313,7 +316,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 1:
-				blank_screen_ = !(low_write_ & 0x40);
+				next_blank_screen_ = !(low_write_ & 0x40);
 				generate_interrupts_ = !!(low_write_ & 0x20);
 				next_screen_mode_ = (screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);

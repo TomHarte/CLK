@@ -62,7 +62,7 @@ class TMS9918 {
 
 		// The various register flags.
 		int next_screen_mode_ = 0, screen_mode_ = 0;
-		bool blank_screen_ = true;
+		bool next_blank_screen_ = true, blank_screen_ = true;
 		bool sprites_16x16_ = false;
 		bool sprites_magnified_ = false;
 		bool generate_interrupts_ = false;
