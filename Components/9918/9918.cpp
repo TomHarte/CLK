@@ -131,8 +131,18 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						if(access_pointer_ >= 26) {
 							int end = std::min(154, access_slot);
 
+							int row_base = pattern_name_address_;
+							int pattern_base = pattern_generator_table_address_;
+							int colour_base = colour_table_address_;
+							int colour_shift = 3;
+							if(screen_mode_ == 1) {
+								pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
+								colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
+								colour_shift = 0;
+							}
+							row_base += (row_ << 2)&~31;
+
 							// TODO: optimise this mess.
-							const int row_base = pattern_name_address_ + ((row_ << 2)&~31);
 							while(access_pointer_ < end) {
 								int character_column = ((access_pointer_ - 26) >> 2);
 								switch(access_pointer_&3) {
@@ -141,10 +151,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 									break;
 									case 1:	break;	// TODO: sprites / CPU access.
 									case 2:
-										colour_buffer_[character_column] = ram_[colour_table_address_ + (pattern_name_ >> 3)];
+										colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ >> colour_shift)];
 									break;
 									case 3:
-										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
+										pattern_buffer_[character_column] = ram_[pattern_base + (pattern_name_ << 3) + (row_ & 7)];
 									break;
 								}
 								access_pointer_++;
@@ -318,7 +328,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case 1:
 				next_blank_screen_ = !(low_write_ & 0x40);
 				generate_interrupts_ = !!(low_write_ & 0x20);
-				next_screen_mode_ = (screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
+				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
 				printf("NSM: %02x\n", next_screen_mode_);
