@@ -134,11 +134,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							int row_base = pattern_name_address_;
 							int pattern_base = pattern_generator_table_address_;
 							int colour_base = colour_table_address_;
-							int colour_shift = 3;
 							if(screen_mode_ == 1) {
 								pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
 								colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
-								colour_shift = 0;
 							}
 							row_base += (row_ << 2)&~31;
 
@@ -151,7 +149,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 									break;
 									case 1:	break;	// TODO: sprites / CPU access.
 									case 2:
-										colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ >> colour_shift)];
+										if(screen_mode_ != 1) {
+											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ >> 3)];
+										} else {
+											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ << 3) + (row_ & 7)];
+										}
 									break;
 									case 3:
 										pattern_buffer_[character_column] = ram_[pattern_base + (pattern_name_ << 3) + (row_ & 7)];
