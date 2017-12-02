@@ -110,7 +110,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 			}
 		}
 
-		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn)							// ROM
+		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn | TargetPlatform::MSX)	// ROM
 		Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
 		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)

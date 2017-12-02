@@ -9,7 +9,6 @@
 #ifndef Storage_Cartridge_hpp
 #define Storage_Cartridge_hpp
 
-#include <list>
 #include <vector>
 #include <memory>
 
@@ -29,19 +28,22 @@ namespace Cartridge {
 class Cartridge {
 	public:
 		struct Segment {
-			Segment(int start_address, int end_address, std::vector<uint8_t> data) :
+			Segment(size_t start_address, size_t end_address, std::vector<uint8_t> data) :
 				start_address(start_address), end_address(end_address), data(std::move(data)) {}
 
+			Segment(int start_address, std::vector<uint8_t> data) :
+				Segment(start_address, start_address + data.size(), data) {}
+
 			/// Indicates that an address is unknown.
-			static const int UnknownAddress;
+			static const size_t UnknownAddress;
 
 			/// The initial CPU-exposed starting address for this segment; may be @c UnknownAddress.
-			int start_address;
+			size_t start_address;
 			/*!
 				The initial CPU-exposed ending address for this segment; may be @c UnknownAddress. Not necessarily equal
 				to start_address + data_length due to potential paging.
 			*/
-			int end_address;
+			size_t end_address;
 
 			/*!
 				The data contents for this segment. If @c start_address and @c end_address are suppled then
@@ -51,11 +53,16 @@ class Cartridge {
 			std::vector<uint8_t> data;
 		};
 
-		const std::list<Segment> &get_segments() {	return segments_; }
+		const std::vector<Segment> &get_segments() const {
+			return segments_;
+		}
 		virtual ~Cartridge() {}
 
+		Cartridge() {}
+		Cartridge(const std::vector<Segment> &segments) : segments_(segments) {}
+
 	protected:
-		std::list<Segment> segments_;
+		std::vector<Segment> segments_;
 };
 
 }

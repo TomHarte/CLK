@@ -105,13 +105,13 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 							while(access_pointer_ < end) {
 								switch(access_pointer_%3) {
-									case 2:
-										pattern_name_ = ram_[row_base + character_column];
-									break;
-									case 1: break;	// TODO: CPU access.
 									case 0:
 										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
 										character_column++;
+									break;
+									case 1: break;	// TODO: CPU access.
+									case 2:
+										pattern_name_ = ram_[row_base + character_column];
 									break;
 								}
 								access_pointer_++;

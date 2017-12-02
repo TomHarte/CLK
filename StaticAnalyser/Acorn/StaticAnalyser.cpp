@@ -17,8 +17,8 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		AcornCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> acorn_cartridges;
 
-	for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : cartridges) {
-		const std::list<Storage::Cartridge::Cartridge::Segment> &segments = cartridge->get_segments();
+	for(const auto &cartridge : cartridges) {
+		const auto &segments = cartridge->get_segments();
 
 		// only one mapped item is allowed
 		if(segments.size() != 1) continue;

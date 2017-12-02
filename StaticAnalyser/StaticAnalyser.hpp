@@ -59,6 +59,10 @@ struct Media {
 	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
+
+	bool empty() const {
+		return disks.empty() && tapes.empty() && cartridges.empty();
+	}
 };
 
 /*!

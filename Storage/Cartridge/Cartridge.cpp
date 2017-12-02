@@ -8,4 +8,5 @@
 
 #include "Cartridge.hpp"
 
-const int Storage::Cartridge::Cartridge::Segment::UnknownAddress = -1;
+const size_t Storage::Cartridge::Cartridge::Segment::UnknownAddress = -1;
+
