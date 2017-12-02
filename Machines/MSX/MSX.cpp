@@ -71,9 +71,20 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) override {
+			insert_media(target.media);
 		}
 		
 		bool insert_media(const StaticAnalyser::Media &media) override {
+			if(!media.cartridges.empty()) {
+				const auto &segment = media.cartridges.front()->get_segments().front();
+				cartridge_ = segment.data;
+
+				// TODO: should clear other page 1 pointers, should allow for paging cartridges, etc.
+				size_t base = segment.start_address >> 14;
+				for(size_t c = 0; c < cartridge_.size(); c += 16384) {
+					slot_read_pointers_[1][(c >> 14) + base] = cartridge_.data() + c;
+				}
+			}
 			return true;
 		}
 
@@ -275,6 +286,7 @@ class ConcreteMachine:
 		uint8_t scratch_[16384];
 		uint8_t unpopulated_[16384];
 		std::vector<uint8_t> basic_, main_;
+		std::vector<uint8_t> cartridge_;
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_until_interrupt_;

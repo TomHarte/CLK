@@ -52,8 +52,6 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		}
 
 		// That'll do then, but apply the detected start address.
-//		printf("%04x\n", start_address);
-
 		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge({
 			Storage::Cartridge::Cartridge::Segment(start_address, segment.data)
 		}));
