@@ -45,7 +45,6 @@ class ConcreteMachine:
 			z80_(*this),
 			i8255_(i8255_port_handler_),
 			i8255_port_handler_(*this) {
-			ay_.set_port_handler(&ay_port_handler_);
 			set_clock_rate(3579545);
 			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 			clear_all_keys();
@@ -53,9 +52,14 @@ class ConcreteMachine:
 
 		void setup_output(float aspect_ratio) override {
 			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
+			ay_.reset(new GI::AY38910::AY38910());
+			ay_->set_port_handler(&ay_port_handler_);
+			ay_->set_input_rate(3579545.0f / 2.0f);
 		}
 
 		void close_output() override {
+			vdp_.reset();
+			ay_.reset();
 		}
 
 		std::shared_ptr<Outputs::CRT::CRT> get_crt() override {
@@ -63,7 +67,7 @@ class ConcreteMachine:
 		}
 
 		std::shared_ptr<Outputs::Speaker> get_speaker() override {
-			return nullptr;
+			return ay_;
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -118,16 +122,16 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
-							vdp_->run_for(time_since_vdp_update_);
-							time_since_vdp_update_ = 0;
+							vdp_->run_for(time_since_vdp_update_.flush());
 							*cycle.value = vdp_->get_register(address);
 							z80_.set_interrupt_line(vdp_->get_interrupt_line());
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
 						case 0xa2:
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC1));
-							ay_.set_data_input(*cycle.value);
+							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC1));
+							ay_->set_data_input(*cycle.value);
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -140,21 +144,22 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						case 0x98:	case 0x99:
-							vdp_->run_for(time_since_vdp_update_);
-							time_since_vdp_update_ = 0;
+							vdp_->run_for(time_since_vdp_update_.flush());
 							vdp_->set_register(address, *cycle.value);
 							z80_.set_interrupt_line(vdp_->get_interrupt_line());
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
 						case 0xa0:
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
-							ay_.set_data_input(*cycle.value);
+							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+							ay_->set_data_input(*cycle.value);
 						break;
 
 						case 0xa1:
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2));
-							ay_.set_data_input(*cycle.value);
+							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2));
+							ay_->set_data_input(*cycle.value);
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -171,12 +176,14 @@ class ConcreteMachine:
 			// but otherwise runs without pause.
 			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
 			time_since_vdp_update_ += cycle.length + addition;
+			time_since_ay_update_ += cycle.length + addition;
 			return addition;
 		}
 
 		void flush() {
-			vdp_->run_for(time_since_vdp_update_);
-			time_since_vdp_update_ = 0;
+			vdp_->run_for(time_since_vdp_update_.flush());
+			ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
+			ay_->flush();
 		}
 
 		// Obtains the system ROMs.
@@ -271,7 +278,7 @@ class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
-		GI::AY38910::AY38910 ay_;
+		std::shared_ptr<GI::AY38910::AY38910> ay_;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
@@ -289,6 +296,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> cartridge_;
 
 		HalfCycles time_since_vdp_update_;
+		HalfCycles time_since_ay_update_;
 		HalfCycles time_until_interrupt_;
 
 		uint8_t key_states_[16];

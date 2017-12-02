@@ -169,10 +169,17 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			return Cycles(length_ >> 1);
 		}
 
-		///Flushes the whole cycles in @c this, subtracting that many from the total stored here.
+		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
 		inline Cycles flush_cycles() {
 			Cycles result(length_ >> 1);
 			length_ &= 1;
+			return result;
+		}
+
+		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
+		inline HalfCycles flush() {
+			HalfCycles result(length_);
+			length_ = 0;
 			return result;
 		}
 
