@@ -54,6 +54,7 @@ TMS9918::TMS9918(Personality p) :
 			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 		"}");
 	crt_->set_output_device(Outputs::CRT::OutputDevice::Monitor);
+	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 }
 
 std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
@@ -82,14 +83,23 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	// 26 cycles sync;
 
 	while(int_cycles) {
+		// Determine how much time has passed in the remainder of this line, and proceed.
 		int cycles_left = std::min(342 - column_, int_cycles);
-		column_ += cycles_left;
-		int_cycles -= cycles_left;
+		column_ += cycles_left;		// column_ is now the column that has been reached in this line.
+		int_cycles -= cycles_left;	// Count down duration to run for.
 
+
+
+		// ------------------------------
+		// TODO: memory access slot here.
+		// ------------------------------
+
+
+
+		// ------------------------------
+		// Perform video memory accesses.
+		// ------------------------------
 		if(row_	< 192 && !blank_screen_) {
-			// ------------------------
-			// Perform memory accesses.
-			// ------------------------
 			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
 				case LineMode::Text:
@@ -168,11 +178,17 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 				break;
 			}
-			// --------------------
-			// End memory accesses.
-			// --------------------
+		}
+		// --------------------------
+		// End video memory accesses.
+		// --------------------------
 
 
+
+		// --------------------
+		// Output video stream.
+		// --------------------
+		if(row_	< 192 && !blank_screen_) {
 			// ----------------------
 			// Output horizontal sync
 			// ----------------------
@@ -267,7 +283,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				output_column_ = column_;
 			}
 		}
+		// -----------------
+		// End video stream.
+		// -----------------
 
+
+
+		// -----------------------------------
+		// Prepare for next line, potentially.
+		// -----------------------------------
 		if(column_ == 342) {
 			access_pointer_ = column_ = output_column_ = 0;
 			row_ = (row_ + 1) % frame_lines_;
@@ -357,7 +381,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 7:
-				text_background_colour_ = low_write_;
 				text_colour_ = low_write_ >> 4;
 				background_colour_ = low_write_ & 0xf;
 			break;
@@ -392,7 +415,7 @@ uint8_t TMS9918::get_register(int address) {
 
  HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!generate_interrupts_) return HalfCycles(-1);
-	if(get_interrupt_line()) return HalfCycles(-1);
+	if(get_interrupt_line()) return HalfCycles(0);
 
 	const int half_cycles_per_frame = frame_lines_ * 228 * 2;
 	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;

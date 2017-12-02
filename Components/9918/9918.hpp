@@ -74,7 +74,6 @@ class TMS9918 {
 
 		uint8_t text_colour_ = 0;
 		uint8_t background_colour_ = 0;
-		uint8_t text_background_colour_ = 0;
 
 		HalfCycles half_cycles_into_frame_;
 		int column_ = 0, row_ = 0, output_column_ = 0;
