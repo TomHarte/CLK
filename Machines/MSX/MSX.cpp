@@ -77,7 +77,7 @@ class ConcreteMachine:
 		void configure_as_target(const StaticAnalyser::Target &target) override {
 			insert_media(target.media);
 		}
-		
+
 		bool insert_media(const StaticAnalyser::Media &media) override {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
