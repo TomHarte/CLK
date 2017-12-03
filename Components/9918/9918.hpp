@@ -78,7 +78,7 @@ class TMS9918 {
 		HalfCycles half_cycles_into_frame_;
 		int column_ = 0, row_ = 0, output_column_ = 0;
 		int cycles_error_ = 0;
-		uint32_t *pixel_target_ = nullptr;
+		uint32_t *pixel_target_ = nullptr, *pixel_base_ = nullptr;
 
 		void output_border(int cycles);
 
@@ -95,8 +95,16 @@ class TMS9918 {
 
 		uint8_t pattern_buffer_[40];
 		uint8_t colour_buffer_[40];
+		uint8_t sprite_locations_[32];
+		uint8_t active_sprites_[4];
 		int access_pointer_ = 0;
 		uint8_t pattern_name_ = 0;
+
+		struct Sprite {
+			uint8_t x, y;
+			uint8_t colour, pattern_number;
+			uint8_t pattern[2];
+		} sprites_[4];
 };
 
 };

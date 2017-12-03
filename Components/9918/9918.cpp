@@ -135,10 +135,48 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 				case LineMode::Character:
 					while(access_pointer_ < access_slot) {
-						if(access_pointer_ < 26) {
-							access_pointer_ = std::min(26, access_slot);
+						// Four access windows: no collection.
+						access_pointer_ = std::min(4, access_slot);
+
+						// Then ten access windows are filled with collection of sprite 3 and 4 details.
+						if(access_pointer_ >= 4 && access_pointer_ < 14) {
+							// TODO: this repeats the code below.
+							while(access_pointer_ < access_slot) {
+								const int target = 2 + (access_pointer_ - 4) / 6;
+								const int sprite = active_sprites_[target] & 31;
+								const int subcycle = access_pointer_ % 6;
+								switch(subcycle) {
+									case 2: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
+									case 3: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
+									case 4: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
+									case 5: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
+									case 0:
+									case 1: {
+										const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
+										const int sprite_row = (row_ - sprites_[target].y) & 15;
+										const int sprite_address =
+											sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
+										sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
+									} break;
+								}
+								access_pointer_++;
+							}
 						}
-						if(access_pointer_ >= 26) {
+
+						// Four more access windows: no collection.
+						access_pointer_ = std::min(18, access_slot);
+
+						// Then eight access windows fetch the y position for the first eight sprites.
+						if(access_pointer_ >= 18 && access_pointer_ < 26) {
+							while(access_pointer_ < 26) {
+								const int sprite = access_pointer_ - 18;
+								sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
+								access_pointer_++;
+							}
+						}
+
+						// The next 128 access slots are video and sprite collection interleaved.
+						if(access_pointer_ >= 26 && access_pointer_ < 154) {
 							int end = std::min(154, access_slot);
 
 							int row_base = pattern_name_address_;
@@ -150,31 +188,105 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							}
 							row_base += (row_ << 2)&~31;
 
+							// Sprites 0–7: 18–25; then:
+							//		31, 35, 39 ... 47, 51, 55 ... 63, 67, 71 ... 79, 83, 87 ...
+							//		95, 99, 103 ... 111, 115, 119 ... 127, 131, 135 ... 143, 147, 151
+							//
+							// Relative to 31:
+							//		0, 4, 8, X, ...
+
 							// TODO: optimise this mess.
 							while(access_pointer_ < end) {
 								int character_column = ((access_pointer_ - 26) >> 2);
 								switch(access_pointer_&3) {
-									case 0:
+									case 2:
 										pattern_name_ = ram_[row_base + character_column];
 									break;
-									case 1:	break;	// TODO: sprites / CPU access.
-									case 2:
+									case 3: {
+										const int slot = (access_pointer_ - 31) >> 2;
+										if((slot&3) == 3)
+											break;
+										const int sprite = slot - (slot >> 2) + 8;
+										sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
+									} break;	// TODO: sprites / CPU access.
+									case 0:
 										if(screen_mode_ != 1) {
 											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ >> 3)];
 										} else {
 											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ << 3) + (row_ & 7)];
 										}
 									break;
-									case 3:
+									case 1:
 										pattern_buffer_[character_column] = ram_[pattern_base + (pattern_name_ << 3) + (row_ & 7)];
 									break;
 								}
 								access_pointer_++;
 							}
+
+							if(access_pointer_ == 154) {
+								// Pick some sprites to display.
+								active_sprites_[0] = active_sprites_[1] = active_sprites_[2] = active_sprites_[3] = 0xff;
+								int slot = 0;
+								int last_visible = 0;
+								int sprite_height = 8;
+								if(sprites_16x16_) sprite_height <<= 1;
+								if(sprites_magnified_) sprite_height <<= 1;
+								for(int c = 0; c < 32; ++c) {
+									// A sprite Y of 208 means "don't scan the list any further".
+									if(sprite_locations_[c] == 208) break;
+
+									// Skip sprite if invisible anyway.
+									int ranged_location = ((static_cast<int>(sprite_locations_[c]) + sprite_height) & 255) - sprite_height;
+									if(ranged_location > row_ || ranged_location + sprite_height < row_) continue;
+
+									last_visible = c;
+									if(slot < 4) {
+										active_sprites_[slot] = c;
+										slot++;
+									} else {
+										// Set the fifth sprite bit and store the sprite if this is the first encountered.
+										if(!(status_ & 0x40)) {
+											status_ |= 0x40;
+											status_ = (status_ & ~31) | c;
+										}
+										break;
+									}
+								}
+
+								if(!(status_ & 0x40)) {
+									status_ = (status_ & ~31) | last_visible;
+								}
+							}
 						}
-						if(access_pointer_ >= 154) {
-							access_pointer_ = access_slot;
+
+						// Two access windows: no collection.
+						access_pointer_ = std::min(156, access_slot);
+
+						// Fourteen access windows: collect initial sprite information.
+						if(access_pointer_ >= 156 && access_pointer_ < 170) {
+							while(access_pointer_ < access_slot) {
+								const int target = (access_pointer_ - 156) / 6;
+								const int sprite = active_sprites_[target] & 31;
+								const int subcycle = access_pointer_ % 6;
+								switch(subcycle) {
+									case 0: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
+									case 1: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
+									case 2: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
+									case 3: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
+									case 4:
+									case 5: {
+										const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
+										const int sprite_row = (row_ - sprites_[target].y) & 15;
+										const int sprite_address =
+											sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
+										sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
+									} break;
+								}
+								access_pointer_++;
+							}
 						}
+
+						// There's another unused access window here.
 					}
 				break;
 			}
@@ -213,7 +325,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 					// Grab a pointer for drawing pixels to, if the moment has arrived.
 					if(pixels_end == first_pixel_column_) {
-						pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_)));
+						pixel_base_ = pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_)));
 					}
 				}
 			}
@@ -254,6 +366,18 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 
 					if(output_column_ == first_right_border_column_) {
+						// Just chuck the sprites on. Quick hack!
+						for(size_t c = 0; c < 4; ++c) {
+							if(active_sprites_[c^3] == 255) continue;
+							for(int p = 0; p < (sprites_16x16_ ? 16 : 8); ++p) {
+								int x = sprites_[c^3].x + p;
+								if(sprites_[c^3].colour & 0x80) x -= 32;
+								if(x >= 0 && x < 256) {
+									if(((sprites_[c^3].pattern[p >> 3] << (p&7)) & 0x80)) pixel_base_[x] = palette[sprites_[c^3].colour & 15];
+								}
+							}
+						}
+
 						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 						pixel_target_ = nullptr;
 					}
@@ -407,9 +531,9 @@ uint8_t TMS9918::get_register(int address) {
 		return result;
 	}
 
-	// Reads from address 1 get the status register;
+	// Reads from address 1 get the status register.
 	uint8_t result = status_;
-	status_ &= ~(0x80 | 0x20);
+	status_ &= ~(0x80 | 0x40 | 0x20);
 	return result;
 }
 
