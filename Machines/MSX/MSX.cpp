@@ -25,11 +25,11 @@ namespace MSX {
 
 struct AYPortHandler: public GI::AY38910::PortHandler {
 	void set_port_output(bool port_b, uint8_t value) {
-		printf("AY port %c output: %02x\n", port_b ? 'b' : 'a', value);
+//		printf("AY port %c output: %02x\n", port_b ? 'b' : 'a', value);
 	}
 
 	uint8_t get_port_input(bool port_b) {
-		printf("AY port %c input\n", port_b ? 'b' : 'a');
+//		printf("AY port %c input\n", port_b ? 'b' : 'a');
 		return 0xff;
 	}
 };
@@ -130,13 +130,17 @@ class ConcreteMachine:
 
 						case 0xa2:
 							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC1));
-							ay_->set_data_input(*cycle.value);
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
+							*cycle.value = ay_->get_data_output();
 						break;
 
 						case 0xa8:	case 0xa9:
 						case 0xaa:	case 0xab:
 							*cycle.value = i8255_.get_register(address);
+						break;
+
+						default:
+							*cycle.value = 0xff;
 						break;
 					}
 				break;
@@ -260,7 +264,7 @@ class ConcreteMachine:
 							//	b4	cassette motor relay
 							machine_.set_keyboard_line(value & 0xf);
 						break;
-						default: break;
+						default: printf("What what what what?\n"); break;
 					}
 				}
 
