@@ -96,7 +96,7 @@ class TMS9918 {
 		uint8_t pattern_buffer_[40];
 		uint8_t colour_buffer_[40];
 		uint8_t sprite_locations_[32];
-		uint8_t active_sprites_[4];
+		int active_sprites_[4];
 		int access_pointer_ = 0;
 		uint8_t pattern_name_ = 0;
 

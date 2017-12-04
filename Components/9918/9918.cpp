@@ -250,14 +250,14 @@ void TMS9918::run_for(const HalfCycles cycles) {
 										// Set the fifth sprite bit and store the sprite if this is the first encountered.
 										if(!(status_ & 0x40)) {
 											status_ |= 0x40;
-											status_ = (status_ & ~31) | c;
+											status_ = static_cast<uint8_t>((status_ & ~31) | c);
 										}
 										break;
 									}
 								}
 
 								if(!(status_ & 0x40)) {
-									status_ = (status_ & ~31) | last_visible;
+									status_ = static_cast<uint8_t>((status_ & ~31) | last_visible);
 								}
 							}
 						}
@@ -348,7 +348,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							while(output_column_ < pixels_end) {
 								const int base = (output_column_ - first_pixel_column_);
 								const int address = base / 6;
-								const uint8_t pattern = pattern_buffer_[address] << (base % 6);
+								const int pattern = pattern_buffer_[address] << (base % 6);
 
 								*pixel_target_ = (pattern&0x80) ? palette[text_colour_] : palette[background_colour_];
 								pixel_target_ ++;
@@ -479,7 +479,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 		switch(value & 7) {
 			case 0:
 				next_screen_mode_ = (next_screen_mode_ & 6) | ((low_write_ & 2) >> 1);
-				printf("NSM: %02x\n", next_screen_mode_);
+//				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 1:
@@ -488,7 +488,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
-				printf("NSM: %02x\n", next_screen_mode_);
+//				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 2:
