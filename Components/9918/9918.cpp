@@ -103,197 +103,183 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
 				case LineMode::Text:
-					while(access_pointer_ < access_slot) {
-						if(access_pointer_ < 29) {
-							access_pointer_ = std::min(29, access_slot);
-						}
-						if(access_pointer_ >= 29) {
-							int row_base = pattern_name_address_ + (row_ >> 3) * 40;
-							int character_column = (access_pointer_ - 29) / 3;
+					access_pointer_ = std::min(30, access_slot);
+					if(access_pointer_ >= 30 && access_pointer_ < 150) {
+						const int row_base = pattern_name_address_ + (row_ >> 3) * 40;
+						const int start_column = (access_pointer_ - 30) / 3;
+						const int end = std::min(150, access_slot);
 
-							const int end = std::min(149, access_slot);
-
-							while(access_pointer_ < end) {
-								switch(access_pointer_%3) {
-									case 0:
-										pattern_buffer_[character_column] = ram_[pattern_generator_table_address_ + (pattern_name_ << 3) + (row_ & 7)];
-										character_column++;
-									break;
-									case 1: break;	// TODO: CPU access.
-									case 2:
-										pattern_name_ = ram_[row_base + character_column];
-									break;
-								}
-								access_pointer_++;
-							}
+						// Pattern names are collected every third window starting from window 30.
+						const int pattern_names_end = (end - 30) / 3;
+						for(int column = start_column; column < pattern_names_end; ++column) {
+							pattern_names_[column] = ram_[row_base + column];
 						}
-						if(access_pointer_ >= 149) {
-							access_pointer_ = access_slot;
+
+						// Patterns are collected every third window starting from window 32.
+						const int pattern_buffer_end = (end - 32) / 3;
+						for(int column = start_column; column < pattern_buffer_end; ++column) {
+							pattern_buffer_[column] = ram_[pattern_generator_table_address_ + (pattern_names_[column] << 3) + (row_ & 7)];
 						}
 					}
 				break;
 
 				case LineMode::Character:
-					while(access_pointer_ < access_slot) {
-						// Four access windows: no collection.
-						access_pointer_ = std::min(4, access_slot);
+					// Four access windows: no collection.
+					access_pointer_ = std::min(4, access_slot);
 
-						// Then ten access windows are filled with collection of sprite 3 and 4 details.
-						if(access_pointer_ >= 4 && access_pointer_ < 14) {
-							// TODO: this repeats the code below.
-							int end = std::min(14, access_slot);
-							while(access_pointer_ < end) {
-								const int offset = access_pointer_ - 2;
-								const int target = 2 + (offset / 6);
-								const int sprite = active_sprites_[target] & 31;
-								const int subcycle = offset % 6;
-//								printf("%d: %d %d\n", access_pointer_, target, subcycle);
-								switch(subcycle) {
-									case 0: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
-									case 1: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
-									case 2: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
-									case 3: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
-									case 4:
-									case 5: {
-										const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
-										const int sprite_row = (row_ - sprites_[target].y) & 15;
-										const int sprite_address =
-											sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
-										sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
-									} break;
-								}
-								access_pointer_++;
+					// Then ten access windows are filled with collection of sprite 3 and 4 details.
+					if(access_pointer_ >= 4 && access_pointer_ < 14) {
+						// TODO: this repeats the code below.
+						int end = std::min(14, access_slot);
+						while(access_pointer_ < end) {
+							const int offset = access_pointer_ - 2;
+							const int target = 2 + (offset / 6);
+							const int sprite = active_sprites_[target] & 31;
+							const int subcycle = offset % 6;
+							switch(subcycle) {
+								case 0: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
+								case 1: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
+								case 2: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
+								case 3: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
+								case 4:
+								case 5: {
+									const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
+									const int sprite_row = (row_ - sprites_[target].y) & 15;
+									const int sprite_address =
+										sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
+									sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
+								} break;
 							}
+							access_pointer_++;
 						}
-
-						// Four more access windows: no collection.
-						access_pointer_ = std::min(18, access_slot);
-
-						// Then eight access windows fetch the y position for the first eight sprites.
-						if(access_pointer_ >= 18 && access_pointer_ < 26) {
-							while(access_pointer_ < 26) {
-								const int sprite = access_pointer_ - 18;
-								sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
-								access_pointer_++;
-							}
-						}
-
-						// The next 128 access slots are video and sprite collection interleaved.
-						if(access_pointer_ >= 26 && access_pointer_ < 154) {
-							int end = std::min(154, access_slot);
-
-							int row_base = pattern_name_address_;
-							int pattern_base = pattern_generator_table_address_;
-							int colour_base = colour_table_address_;
-							if(screen_mode_ == 1) {
-								pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
-								colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
-							}
-							row_base += (row_ << 2)&~31;
-
-							// Sprites 0–7: 18–25; then:
-							//		31, 35, 39 ... 47, 51, 55 ... 63, 67, 71 ... 79, 83, 87 ...
-							//		95, 99, 103 ... 111, 115, 119 ... 127, 131, 135 ... 143, 147, 151
-							//
-							// Relative to 31:
-							//		0, 4, 8, X, ...
-
-							// TODO: optimise this mess.
-							while(access_pointer_ < end) {
-								int character_column = ((access_pointer_ - 26) >> 2);
-								switch(access_pointer_&3) {
-									case 2:
-										pattern_name_ = ram_[row_base + character_column];
-									break;
-									case 3: {
-										const int slot = (access_pointer_ - 31) >> 2;
-										if((slot&3) == 3)
-											break;
-										const int sprite = slot - (slot >> 2) + 8;
-										sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
-									} break;
-									case 0:
-										if(screen_mode_ != 1) {
-											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ >> 3)];
-										} else {
-											colour_buffer_[character_column] = ram_[colour_base + (pattern_name_ << 3) + (row_ & 7)];
-										}
-									break;
-									case 1:
-										pattern_buffer_[character_column] = ram_[pattern_base + (pattern_name_ << 3) + (row_ & 7)];
-									break;
-								}
-								access_pointer_++;
-							}
-
-							if(access_pointer_ == 154) {
-								// Pick some sprites to display.
-								active_sprites_[0] = active_sprites_[1] = active_sprites_[2] = active_sprites_[3] = 0xff;
-								int slot = 0;
-								int last_visible = 0;
-								int sprite_height = 8;
-								if(sprites_16x16_) sprite_height <<= 1;
-								if(sprites_magnified_) sprite_height <<= 1;
-								for(int c = 0; c < 32; ++c) {
-									// A sprite Y of 208 means "don't scan the list any further".
-									if(sprite_locations_[c] == 208) break;
-
-									// Skip sprite if invisible anyway.
-									int offset = (row_ - sprite_locations_[c])&255;
-									if(offset < 0 || offset >= sprite_height) continue;
-
-									last_visible = c;
-									if(slot < 4) {
-										active_sprites_[slot] = c;
-										slot++;
-									} else {
-										// Set the fifth sprite bit and store the sprite if this is the first encountered.
-										if(!(status_ & 0x40)) {
-											status_ |= 0x40;
-											status_ = static_cast<uint8_t>((status_ & ~31) | c);
-										}
-										break;
-									}
-								}
-
-								if(!(status_ & 0x40)) {
-									status_ = static_cast<uint8_t>((status_ & ~31) | last_visible);
-								}
-							}
-						}
-
-						// Two access windows: no collection.
-						access_pointer_ = std::min(156, access_slot);
-
-						// Fourteen access windows: collect initial sprite information.
-						if(access_pointer_ >= 156 && access_pointer_ < 170) {
-							int end = std::min(170, access_slot);
-							while(access_pointer_ < end) {
-								const int target = (access_pointer_ - 156) / 6;
-								const int sprite = active_sprites_[target] & 31;
-								const int subcycle = access_pointer_ % 6;
-//								printf("%d: %d %d\n", access_pointer_, target, subcycle);
-								switch(subcycle) {
-									case 0: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
-									case 1: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
-									case 2: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
-									case 3: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
-									case 4:
-									case 5: {
-										const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
-										const int sprite_row = (row_ - sprites_[target].y) & 15;
-										const int sprite_address =
-											sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
-										sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
-									} break;
-								}
-								access_pointer_++;
-							}
-						}
-
-						// There's a single unused access window here.
-						access_pointer_ = std::min(171, access_slot);
 					}
+
+					// Four more access windows: no collection.
+					access_pointer_ = std::min(18, access_slot);
+
+					// Then eight access windows fetch the y position for the first eight sprites.
+					if(access_pointer_ >= 18 && access_pointer_ < 26) {
+						while(access_pointer_ < 26) {
+							const int sprite = access_pointer_ - 18;
+							sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
+							access_pointer_++;
+						}
+					}
+
+					// The next 128 access slots are video and sprite collection interleaved.
+					if(access_pointer_ >= 26 && access_pointer_ < 154) {
+						int end = std::min(154, access_slot);
+
+						int row_base = pattern_name_address_;
+						int pattern_base = pattern_generator_table_address_;
+						int colour_base = colour_table_address_;
+						if(screen_mode_ == 1) {
+							pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
+							colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
+						}
+						row_base += (row_ << 2)&~31;
+
+						// Sprites 0–7: 18–25; then:
+						//		31, 35, 39 ... 47, 51, 55 ... 63, 67, 71 ... 79, 83, 87 ...
+						//		95, 99, 103 ... 111, 115, 119 ... 127, 131, 135 ... 143, 147, 151
+						//
+						// Relative to 31:
+						//		0, 4, 8, X, ...
+
+						// TODO: optimise this mess.
+						while(access_pointer_ < end) {
+							int character_column = ((access_pointer_ - 26) >> 2);
+							switch(access_pointer_&3) {
+								case 2:
+									pattern_names_[character_column] = ram_[row_base + character_column];
+								break;
+								case 3: {
+									const int slot = (access_pointer_ - 31) >> 2;
+									if((slot&3) == 3)
+										break;
+									const int sprite = slot - (slot >> 2) + 8;
+									sprite_locations_[sprite] = ram_[sprite_attribute_table_address_ + (sprite << 2)];
+								} break;
+								case 0:
+									if(screen_mode_ != 1) {
+										colour_buffer_[character_column] = ram_[colour_base + (pattern_names_[character_column] >> 3)];
+									} else {
+										colour_buffer_[character_column] = ram_[colour_base + (pattern_names_[character_column] << 3) + (row_ & 7)];
+									}
+								break;
+								case 1:
+									pattern_buffer_[character_column] = ram_[pattern_base + (pattern_names_[character_column] << 3) + (row_ & 7)];
+								break;
+							}
+							access_pointer_++;
+						}
+
+						if(access_pointer_ == 154) {
+							// Pick some sprites to display.
+							active_sprites_[0] = active_sprites_[1] = active_sprites_[2] = active_sprites_[3] = 0xff;
+							int slot = 0;
+							int last_visible = 0;
+							int sprite_height = 8;
+							if(sprites_16x16_) sprite_height <<= 1;
+							if(sprites_magnified_) sprite_height <<= 1;
+							for(int c = 0; c < 32; ++c) {
+								// A sprite Y of 208 means "don't scan the list any further".
+								if(sprite_locations_[c] == 208) break;
+
+								// Skip sprite if invisible anyway.
+								int offset = (row_ - sprite_locations_[c])&255;
+								if(offset < 0 || offset >= sprite_height) continue;
+
+								last_visible = c;
+								if(slot < 4) {
+									active_sprites_[slot] = c;
+									slot++;
+								} else {
+									// Set the fifth sprite bit and store the sprite if this is the first encountered.
+									if(!(status_ & 0x40)) {
+										status_ |= 0x40;
+										status_ = static_cast<uint8_t>((status_ & ~31) | c);
+									}
+									break;
+								}
+							}
+
+							if(!(status_ & 0x40)) {
+								status_ = static_cast<uint8_t>((status_ & ~31) | last_visible);
+							}
+						}
+					}
+
+					// Two access windows: no collection.
+					access_pointer_ = std::min(156, access_slot);
+
+					// Fourteen access windows: collect initial sprite information.
+					if(access_pointer_ >= 156 && access_pointer_ < 170) {
+						int end = std::min(170, access_slot);
+						while(access_pointer_ < end) {
+							const int target = (access_pointer_ - 156) / 6;
+							const int sprite = active_sprites_[target] & 31;
+							const int subcycle = access_pointer_ % 6;
+							switch(subcycle) {
+								case 0: sprites_[target].y = ram_[sprite_attribute_table_address_ + (sprite << 2)];						break;
+								case 1: sprites_[target].x = ram_[sprite_attribute_table_address_ + (sprite << 2) + 1];					break;
+								case 2: sprites_[target].pattern_number = ram_[sprite_attribute_table_address_ + (sprite << 2) + 2];	break;
+								case 3: sprites_[target].colour = ram_[sprite_attribute_table_address_ + (sprite << 2) + 3];			break;
+								case 4:
+								case 5: {
+									const int sprite_offset = sprites_[target].pattern_number & ~(sprites_16x16_ ? 3 : 0);
+									const int sprite_row = (row_ - sprites_[target].y) & 15;
+									const int sprite_address =
+										sprite_generator_table_address_ + (sprite_offset << 3) + sprite_row + ((subcycle - 4) << 4);
+									sprites_[target].pattern[subcycle - 4] = ram_[sprite_address];
+								} break;
+							}
+							access_pointer_++;
+						}
+					}
+
+					// There's a single unused access window here.
+					access_pointer_ = std::min(171, access_slot);
 				break;
 			}
 		}
@@ -344,17 +330,29 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 				if(output_column_ < pixels_end) {
 					switch(line_mode_) {
-						case LineMode::Text:
-							while(output_column_ < pixels_end) {
-								const int base = (output_column_ - first_pixel_column_);
-								const int address = base / 6;
-								const int pattern = pattern_buffer_[address] << (base % 6);
+						case LineMode::Text: {
+							const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
-								*pixel_target_ = (pattern&0x80) ? palette[text_colour_] : palette[background_colour_];
-								pixel_target_ ++;
-								output_column_ ++;
+							const int shift = (output_column_ - first_pixel_column_) % 6;
+							int byte_column = (output_column_ - first_pixel_column_) / 6;
+							int pattern = pattern_buffer_[byte_column] << shift;
+							int pixels_left = pixels_end - output_column_;
+							int length = std::min(pixels_left, 6 - shift);
+							while(true) {
+								pixels_left -= length;
+								while(length--) {
+									*pixel_target_ = colours[(pattern >> 7)&0x01];
+									pixel_target_++;
+									pattern <<= 1;
+								}
+
+								if(!pixels_left) break;
+								length = std::min(6, pixels_left);
+								byte_column++;
+								pattern = pattern_buffer_[byte_column];
 							}
-						break;
+							output_column_ = pixels_end;
+						} break;
 
 						case LineMode::Character:
 							while(output_column_ < pixels_end) {

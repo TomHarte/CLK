@@ -93,12 +93,13 @@ class TMS9918 {
 		} line_mode_ = LineMode::Text;
 		int first_pixel_column_, first_right_border_column_;
 
+		uint8_t pattern_names_[40];
 		uint8_t pattern_buffer_[40];
 		uint8_t colour_buffer_[40];
 		uint8_t sprite_locations_[32];
+
 		int active_sprites_[4];
 		int access_pointer_ = 0;
-		uint8_t pattern_name_ = 0;
 
 		struct Sprite {
 			uint8_t x, y;
