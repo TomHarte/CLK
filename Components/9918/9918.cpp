@@ -111,9 +111,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 						// Pattern names are collected every third window starting from window 30.
 						const int pattern_names_end = (end - 30) / 3;
-						for(int column = start_column; column < pattern_names_end; ++column) {
-							pattern_names_[column] = ram_[row_base + column];
-						}
+						std::memcpy(&pattern_names_[start_column], &ram_[row_base + start_column], static_cast<size_t>(pattern_names_end - start_column));
 
 						// Patterns are collected every third window starting from window 32.
 						const int pattern_buffer_end = (end - 32) / 3;
