@@ -132,6 +132,7 @@ class ConcreteMachine:
 							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
 							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
 							*cycle.value = ay_->get_data_output();
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -145,8 +146,9 @@ class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Output:
-					switch(address & 0xff) {
+				case CPU::Z80::PartialMachineCycle::Output: {
+					const int port = address & 0xff;
+					switch(port) {
 						case 0x98:	case 0x99:
 							vdp_->run_for(time_since_vdp_update_.flush());
 							vdp_->set_register(address, *cycle.value);
@@ -154,16 +156,11 @@ class ConcreteMachine:
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
-						case 0xa0:
+						case 0xa0:	case 0xa1:
 							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
 							ay_->set_data_input(*cycle.value);
-						break;
-
-						case 0xa1:
-							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2));
-							ay_->set_data_input(*cycle.value);
+							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -171,7 +168,7 @@ class ConcreteMachine:
 							i8255_.set_register(address, *cycle.value);
 						break;
 					}
-				break;
+				} break;
 
 				default: break;
 			}
