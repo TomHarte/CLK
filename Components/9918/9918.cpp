@@ -8,6 +8,7 @@
 
 #include "9918.hpp"
 
+#include <cassert>
 #include <cstring>
 
 using namespace TI;
@@ -64,10 +65,11 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 }
 
 void TMS9918::test_sprite(int sprite_number) {
-	if(sprites_stopped_) return;
 	if(!(status_ & 0x40)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
+	if(sprites_stopped_)
+		return;
 
 	const int sprite_position = ram_[sprite_attribute_table_address_ + (sprite_number << 2)];
 	// A sprite Y of 208 means "don't scan the list any further".
@@ -77,11 +79,7 @@ void TMS9918::test_sprite(int sprite_number) {
 	}
 
 	const int sprite_row = (row_ - sprite_position)&255;
-	int sprite_height = 8;
-	if(sprites_16x16_) sprite_height <<= 1;
-	if(sprites_magnified_) sprite_height <<= 1;
-	if(sprite_row < 0 || sprite_row >= sprite_height) return;
-
+	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 	if(active_sprite_slot_ == 4) {
 		status_ |= 0x40;
 		return;
@@ -92,14 +90,16 @@ void TMS9918::test_sprite(int sprite_number) {
 	active_sprite_slot_++;
 }
 
-void TMS9918::get_sprite_contents(int field, int cycles_left) {
-	int sprite = 2 + (field / 6);
+void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
+	int sprite = field / 6;
 	field %= 6;
 
 	while(true) {
 		const int cycles_in_sprite = std::min(cycles_left, 6 - field);
 		cycles_left -= cycles_in_sprite;
 		const int final_field = cycles_in_sprite + field;
+
+		assert(sprite < 4);
 
 		if(field < 4) {
 			std::memcpy(
@@ -186,16 +186,19 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 				case LineMode::Character:
 					// Four access windows: no collection.
-					access_pointer_ = std::min(5, access_slot);
+					if(access_pointer_ < 5)
+						access_pointer_ = std::min(5, access_slot);
 
 					// Then ten access windows are filled with collection of sprite 3 and 4 details.
 					if(access_pointer_ >= 5 && access_pointer_ < 15) {
-						get_sprite_contents(access_pointer_ - 5 + 14, 15 - access_pointer_);
+						int end = std::min(15, access_slot);
+						get_sprite_contents(access_pointer_ - 5 + 14, end - access_pointer_, row_ - 1);
 						access_pointer_ = std::min(15, access_slot);
 					}
 
 					// Four more access windows: no collection.
-					access_pointer_ = std::min(19, access_slot);
+					if(access_pointer_ >= 15 && access_pointer_ < 19)
+						access_pointer_ = std::min(19, access_slot);
 
 					// Then eight access windows fetch the y position for the first eight sprites.
 					while(access_pointer_ < 27 && access_pointer_ < access_slot) {
@@ -241,25 +244,28 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							pattern_buffer_[column] = ram_[pattern_base + (pattern_names_[column] << 3) + (row_ & 7)];
 						}
 
-						// Sprite slots occur in three quarters of ever fourth window starting from window 32.
-						const int sprite_start = (access_pointer_ - 32 + 3) >> 2;
-						const int sprite_end = (end - 32 + 3) >> 2;
+						// Sprite slots occur in three quarters of ever fourth window starting from window 28.
+						const int sprite_start = (access_pointer_ - 28 + 3) >> 2;
+						const int sprite_end = (end - 28 + 3) >> 2;
+//						assert(sprite_start >= 0 && sprite_end >= 0 && sprite_start <= 24 && sprite_end <= 24);
 						for(int column = sprite_start; column < sprite_end; ++column) {
-							if((column&3) != 3) {
-								test_sprite(8 + column - (column >> 2));
+							if(column&3) {
+								test_sprite(7 + column - (column >> 2));
 							}
 						}
 
-						access_pointer_ = std::min(154, access_pointer_);
+						access_pointer_ = std::min(155, access_slot);
 					}
 
 					// Two access windows: no collection.
-					access_pointer_ = std::min(157, access_slot);
+					if(access_pointer_ < 157)
+						access_pointer_ = std::min(157, access_slot);
 
 					// Fourteen access windows: collect initial sprite information.
-					if(access_pointer_ >= 157 && access_pointer_ < 170) {
-						get_sprite_contents(access_pointer_ - 157, 170 - access_pointer_);
-						access_pointer_ = std::min(170, access_slot);
+					if(access_pointer_ >= 157 && access_pointer_ < 171) {
+						int end = std::min(171, access_slot);
+						get_sprite_contents(access_pointer_ - 157, end - access_pointer_, row_);
+						access_pointer_ = std::min(171, access_slot);
 					}
 				break;
 			}
@@ -368,6 +374,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 						pixel_target_ = nullptr;
+						active_sprite_slot_ = 0;
+						sprites_stopped_ = false;
 					}
 				}
 			}
@@ -408,8 +416,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			access_pointer_ = column_ = output_column_ = 0;
 			row_ = (row_ + 1) % frame_lines_;
 			if(row_ == 192) status_ |= 0x80;
-			active_sprite_slot_ = 0;
-			sprites_stopped_ = false;
 
 			screen_mode_ = next_screen_mode_;
 			blank_screen_ = next_blank_screen_;
@@ -471,6 +477,10 @@ void TMS9918::set_register(int address, uint8_t value) {
 				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
+
+				sprite_height_ = 8;
+				if(sprites_16x16_) sprite_height_ <<= 1;
+				if(sprites_magnified_) sprite_height_ <<= 1;
 //				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 

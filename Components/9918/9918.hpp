@@ -66,6 +66,7 @@ class TMS9918 {
 		bool sprites_16x16_ = false;
 		bool sprites_magnified_ = false;
 		bool generate_interrupts_ = false;
+		int sprite_height_ = 8;
 		uint16_t pattern_name_address_ = 0;
 		uint16_t colour_table_address_ = 0;
 		uint16_t pattern_generator_table_address_ = 0;
@@ -109,7 +110,7 @@ class TMS9918 {
 		int access_pointer_ = 0;
 
 		inline void test_sprite(int sprite_number);
-		inline void get_sprite_contents(int start, int cycles);
+		inline void get_sprite_contents(int start, int cycles, int screen_row);
 };
 
 };
