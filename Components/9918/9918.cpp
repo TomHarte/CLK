@@ -80,14 +80,16 @@ void TMS9918::test_sprite(int sprite_number) {
 
 	const int sprite_row = (row_ - sprite_position)&255;
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
-	if(active_sprite_slot_ == 4) {
+
+	const int active_sprite_slot = sprite_sets_[active_sprite_set_].active_sprite_slot;
+	if(active_sprite_slot == 4) {
 		status_ |= 0x40;
 		return;
 	}
 
-	active_sprites_[active_sprite_slot_].index = sprite_number;
-	active_sprites_[active_sprite_slot_].row = sprite_row;
-	active_sprite_slot_++;
+	sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot].index = sprite_number;
+	sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot].row = sprite_row;
+	sprite_sets_[active_sprite_set_].active_sprite_slot++;
 }
 
 void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
@@ -103,17 +105,17 @@ void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
 
 		if(field < 4) {
 			std::memcpy(
-				&active_sprites_[sprite].info[field],
-				&ram_[sprite_attribute_table_address_ + (active_sprites_[sprite].index << 2) + field],
+				&sprite_sets_[active_sprite_set_].active_sprites[sprite].info[field],
+				&ram_[sprite_attribute_table_address_ + (sprite_sets_[active_sprite_set_].active_sprites[sprite].index << 2) + field],
 				static_cast<size_t>(std::min(4, final_field) - field));
 		}
 
 		field = std::min(4, final_field);
-		const int sprite_offset = active_sprites_[sprite].info[2] & ~(sprites_16x16_ ? 3 : 0);
+		const int sprite_offset = sprite_sets_[active_sprite_set_].active_sprites[sprite].info[2] & ~(sprites_16x16_ ? 3 : 0);
 		const int sprite_address =
-			sprite_generator_table_address_ + (sprite_offset << 3) + active_sprites_[sprite].row;
+			sprite_generator_table_address_ + (sprite_offset << 3) + sprite_sets_[active_sprite_set_].active_sprites[sprite].row;
 		while(field < final_field) {
-			active_sprites_[sprite].image[field - 4] = ram_[sprite_address + ((field - 4) << 4)];
+			sprite_sets_[active_sprite_set_].active_sprites[sprite].image[field - 4] = ram_[sprite_address + ((field - 4) << 4)];
 			field++;
 		}
 
@@ -200,6 +202,13 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					if(access_pointer_ >= 15 && access_pointer_ < 19)
 						access_pointer_ = std::min(19, access_slot);
 
+					// Start new sprite set if this is location 19.
+					if(access_pointer_ == 19) {
+						active_sprite_set_ ^= 1;
+						sprite_sets_[active_sprite_set_].active_sprite_slot = 0;
+						sprites_stopped_ = false;
+					}
+
 					// Then eight access windows fetch the y position for the first eight sprites.
 					while(access_pointer_ < 27 && access_pointer_ < access_slot) {
 						test_sprite(access_pointer_ - 19);
@@ -247,7 +256,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						// Sprite slots occur in three quarters of ever fourth window starting from window 28.
 						const int sprite_start = (access_pointer_ - 28 + 3) >> 2;
 						const int sprite_end = (end - 28 + 3) >> 2;
-//						assert(sprite_start >= 0 && sprite_end >= 0 && sprite_start <= 24 && sprite_end <= 24);
 						for(int column = sprite_start; column < sprite_end; ++column) {
 							if(column&3) {
 								test_sprite(7 + column - (column >> 2));
@@ -358,24 +366,23 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 					if(output_column_ == first_right_border_column_) {
 						// Just chuck the sprites on. Quick hack!
-						for(size_t c = 0; c < 4; ++c) {
-							const size_t sprite_index = c^3;
-							if(static_cast<int>(sprite_index) >= active_sprite_slot_) continue;
-							if(!(active_sprites_[sprite_index].info[3]&15)) continue;
+						int last_sprite_set = active_sprite_set_ ^ 1;
+						int c = sprite_sets_[last_sprite_set].active_sprite_slot;
+						while(c--) {
+							SpriteSet::ActiveSprite &sprite = sprite_sets_[last_sprite_set].active_sprites[c];
+							if(!(sprite.info[3]&15)) continue;
 
 							for(int p = 0; p < (sprites_16x16_ ? 16 : 8); ++p) {
-								int x = active_sprites_[sprite_index].info[1] + p;
-								if(active_sprites_[sprite_index].info[3] & 0x80) x -= 32;
+								int x = sprite.info[1] + p;
+								if(sprite.info[3] & 0x80) x -= 32;
 								if(x >= 0 && x < 256) {
-									if(((active_sprites_[sprite_index].image[p >> 3] << (p&7)) & 0x80)) pixel_base_[x] = palette[active_sprites_[sprite_index].info[3]&15];
+									if(((sprite.image[p >> 3] << (p&7)) & 0x80)) pixel_base_[x] = palette[sprite.info[3]&15];
 								}
 							}
 						}
 
 						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 						pixel_target_ = nullptr;
-						active_sprite_slot_ = 0;
-						sprites_stopped_ = false;
 					}
 				}
 			}

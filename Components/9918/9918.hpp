@@ -98,13 +98,16 @@ class TMS9918 {
 		uint8_t pattern_buffer_[40];
 		uint8_t colour_buffer_[40];
 
-		struct ActiveSprite {
-			int index = 0;
-			int row = 0;
-			uint8_t info[4];
-			uint8_t image[2];
-		} active_sprites_[4];
-		int active_sprite_slot_ = 0;
+		struct SpriteSet {
+			struct ActiveSprite {
+				int index = 0;
+				int row = 0;
+				uint8_t info[4];
+				uint8_t image[2];
+			} active_sprites[4];
+			int active_sprite_slot = 0;
+		} sprite_sets_[2];
+		int active_sprite_set_ = 0;
 		bool sprites_stopped_ = false;
 
 		int access_pointer_ = 0;
