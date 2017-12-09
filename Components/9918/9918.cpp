@@ -87,13 +87,14 @@ void TMS9918::test_sprite(int sprite_number) {
 		return;
 	}
 
-	sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot].index = sprite_number;
-	sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot].row = sprite_row;
+	SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot];
+	sprite.index = sprite_number;
+	sprite.row = sprite_row;
 	sprite_sets_[active_sprite_set_].active_sprite_slot++;
 }
 
 void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
-	int sprite = field / 6;
+	int sprite_id = field / 6;
 	field %= 6;
 
 	while(true) {
@@ -101,27 +102,27 @@ void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
 		cycles_left -= cycles_in_sprite;
 		const int final_field = cycles_in_sprite + field;
 
-		assert(sprite < 4);
+		assert(sprite_id < 4);
+		SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[sprite_id];
 
 		if(field < 4) {
 			std::memcpy(
-				&sprite_sets_[active_sprite_set_].active_sprites[sprite].info[field],
-				&ram_[sprite_attribute_table_address_ + (sprite_sets_[active_sprite_set_].active_sprites[sprite].index << 2) + field],
+				&sprite.info[field],
+				&ram_[sprite_attribute_table_address_ + (sprite.index << 2) + field],
 				static_cast<size_t>(std::min(4, final_field) - field));
 		}
 
 		field = std::min(4, final_field);
-		const int sprite_offset = sprite_sets_[active_sprite_set_].active_sprites[sprite].info[2] & ~(sprites_16x16_ ? 3 : 0);
-		const int sprite_address =
-			sprite_generator_table_address_ + (sprite_offset << 3) + sprite_sets_[active_sprite_set_].active_sprites[sprite].row;
+		const int sprite_offset = sprite.info[2] & ~(sprites_16x16_ ? 3 : 0);
+		const int sprite_address = sprite_generator_table_address_ + (sprite_offset << 3) + sprite.row;
 		while(field < final_field) {
-			sprite_sets_[active_sprite_set_].active_sprites[sprite].image[field - 4] = ram_[sprite_address + ((field - 4) << 4)];
+			sprite.image[field - 4] = ram_[sprite_address + ((field - 4) << 4)];
 			field++;
 		}
 
 		if(!cycles_left) return;
 		field = 0;
-		sprite++;
+		sprite_id++;
 	}
 }
 
