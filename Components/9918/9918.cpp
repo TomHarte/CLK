@@ -350,19 +350,39 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							output_column_ = pixels_end;
 						} break;
 
-						case LineMode::Character:
-							while(output_column_ < pixels_end) {
-								int base = (output_column_ - first_pixel_column_);
-								int address = base >> 3;
-								uint8_t colour = colour_buffer_[address];
-								uint8_t pattern = pattern_buffer_[address];
-								pattern >>= ((base&7)^7);
+						case LineMode::Character: {
+							const int shift = (output_column_ - first_pixel_column_) & 7;
+							int byte_column = (output_column_ - first_pixel_column_) >> 3;
 
-								*pixel_target_ = (pattern&1) ? palette[colour >> 4] : palette[colour & 15];
-								pixel_target_ ++;
-								output_column_ ++;
+							int pixels_left = pixels_end - output_column_;
+							int length = std::min(pixels_left, 8 - shift);
+
+							int pattern = pattern_buffer_[byte_column] << shift;
+							uint8_t colour = colour_buffer_[byte_column];
+							uint32_t colours[2] = {
+								(colour & 15) ? palette[colour & 15] : background_colour_,
+								(colour >> 4) ? palette[colour >> 4] : background_colour_
+							};
+
+							while(true) {
+								pixels_left -= length;
+								while(length--) {
+									*pixel_target_ = colours[(pattern >> 7)&0x01];
+									pixel_target_++;
+									pattern <<= 1;
+								}
+
+								if(!pixels_left) break;
+								length = std::min(8, pixels_left);
+								byte_column++;
+
+								pattern = pattern_buffer_[byte_column];
+								colour = colour_buffer_[byte_column];
+								colours[0] = (colour & 15) ? palette[colour & 15] : background_colour_;
+								colours[1] = (colour >> 4) ? palette[colour >> 4] : background_colour_;
 							}
-						break;
+							output_column_ = pixels_end;
+						} break;
 					}
 
 					if(output_column_ == first_right_border_column_) {
