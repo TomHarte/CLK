@@ -28,29 +28,31 @@ const uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
 const uint32_t palette[16] = {
 	palette_pack(0, 0, 0),
 	palette_pack(0, 0, 0),
-	palette_pack(90, 201, 81),
-	palette_pack(149, 231, 133),
+	palette_pack(33, 200, 66),
+	palette_pack(94, 220, 120),
 
-	palette_pack(113, 104, 183),
-	palette_pack(146, 132, 255),
-	palette_pack(200, 114, 89),
-	palette_pack(115, 222, 255),
+	palette_pack(84, 85, 237),
+	palette_pack(125, 118, 252),
+	palette_pack(212, 82, 77),
+	palette_pack(66, 235, 245),
 
-	palette_pack(238, 124, 90),
-	palette_pack(255, 166, 132),
-	palette_pack(219, 232, 92),
-	palette_pack(240, 247, 143),
+	palette_pack(252, 85, 84),
+	palette_pack(255, 121, 120),
+	palette_pack(212, 193, 84),
+	palette_pack(230, 206, 128),
 
-	palette_pack(78, 176, 63),
-	palette_pack(202, 118, 216),
-	palette_pack(233, 233, 233),
+	palette_pack(33, 176, 59),
+	palette_pack(201, 91, 186),
+	palette_pack(204, 204, 204),
 	palette_pack(255, 255, 255)
 };
 
 }
 
 TMS9918::TMS9918(Personality p) :
-	crt_(new Outputs::CRT::CRT(342, 1, Outputs::CRT::DisplayType::NTSC60, 4)) {
+	// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
+	// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
+	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -142,10 +144,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	cycles_error_ = int_cycles & 7;
 	int_cycles >>= 3;
 	if(!int_cycles) return;
-
-	//
-	// Break that down as:
-	// 26 cycles sync;
 
 	while(int_cycles) {
 		// Determine how much time has passed in the remainder of this line, and proceed.
@@ -293,7 +291,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// Output horizontal sync
 			// ----------------------
 			if(!output_column_ && column_ >= 26) {
-				crt_->output_sync(static_cast<unsigned int>(26));
+				crt_->output_sync(13 * 4);
+				crt_->output_default_colour_burst(13 * 4);
 				output_column_ = 26;
 			}
 
@@ -440,7 +439,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 
 					if(output_column_ == first_right_border_column_) {
-						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
+						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_) * 4, 4);
 						pixel_target_ = nullptr;
 					}
 				}
@@ -456,12 +455,13 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		} else if(row_ >= first_vsync_line_ && row_ < first_vsync_line_+3) {
 			// Vertical sync.
 			if(column_ == 342) {
-				crt_->output_sync(static_cast<unsigned int>(342));
+				crt_->output_sync(342 * 4);
 			}
 		} else {
 			// Blank.
 			if(!output_column_ && column_ >= 26) {
-				crt_->output_sync(static_cast<unsigned int>(26));
+				crt_->output_sync(13 * 4);
+				crt_->output_default_colour_burst(13 * 4);
 				output_column_ = 26;
 			}
 			if(output_column_ >= 26) {
@@ -504,7 +504,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 void TMS9918::output_border(int cycles) {
 	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
 	if(pixel_target_) *pixel_target_ = palette[background_colour_];
-	crt_->output_level(static_cast<unsigned int>(cycles));
+	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
 }
 
 // TODO: as a temporary development measure, memory access below is magically instantaneous. Correct that.
