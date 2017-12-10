@@ -44,7 +44,18 @@ class TMS9918 {
 		void set_register(int address, uint8_t value);
 		uint8_t get_register(int address);
 
+		/*!
+			Returns the amount of time until get_interrupt_line would next return true if
+			there are no interceding calls to set_register or get_register.
+
+			If get_interrupt_line is true now, returns zero. If get_interrupt_line would
+			never return true, returns -1.
+		*/
 		HalfCycles get_time_until_interrupt();
+
+		/*!
+			@returns @c true if the interrupt line is currently active; @c false otherwise.
+		*/
 		bool get_interrupt_line();
 
 	private:

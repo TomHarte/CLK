@@ -47,6 +47,12 @@ const uint32_t palette[16] = {
 	palette_pack(255, 255, 255)
 };
 
+const uint8_t StatusInterrupt = 0x80;
+const uint8_t StatusFifthSprite = 0x40;
+
+const int StatusSpriteCollisionShift = 5;
+const uint8_t StatusSpriteCollision = 0x20;
+
 }
 
 TMS9918::TMS9918(Personality p) :
@@ -67,7 +73,7 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 }
 
 void TMS9918::test_sprite(int sprite_number) {
-	if(!(status_ & 0x40)) {
+	if(!(status_ & StatusFifthSprite)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
 	if(sprites_stopped_)
@@ -85,7 +91,7 @@ void TMS9918::test_sprite(int sprite_number) {
 
 	const int active_sprite_slot = sprite_sets_[active_sprite_set_].active_sprite_slot;
 	if(active_sprite_slot == 4) {
-		status_ |= 0x40;
+		status_ |= StatusFifthSprite;
 		return;
 	}
 
@@ -416,7 +422,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 										} else if(sprite.shift_position < 32) {
 											int mask = sprite.image[sprite.shift_position >> 4] << ((sprite.shift_position&15) >> 1);
 											mask = (mask >> 7) & 1;
-											status_ |= (mask & sprite_mask) << 5;
+											status_ |= (mask & sprite_mask) << StatusSpriteCollisionShift;
 											sprite_mask |= mask;
 											sprite.shift_position += shift_advance;
 
@@ -481,7 +487,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		if(column_ == 342) {
 			access_pointer_ = column_ = output_column_ = 0;
 			row_ = (row_ + 1) % frame_lines_;
-			if(row_ == 192) status_ |= 0x80;
+			if(row_ == 192) status_ |= StatusInterrupt;
 
 			screen_mode_ = next_screen_mode_;
 			blank_screen_ = next_blank_screen_;
@@ -599,7 +605,7 @@ uint8_t TMS9918::get_register(int address) {
 
 	// Reads from address 1 get the status register.
 	uint8_t result = status_;
-	status_ &= ~(0x80 | 0x40 | 0x20);
+	status_ &= ~(StatusInterrupt | StatusFifthSprite | StatusSpriteCollision);
 	return result;
 }
 
@@ -613,5 +619,5 @@ uint8_t TMS9918::get_register(int address) {
 }
 
 bool TMS9918::get_interrupt_line() {
-	return (status_ & 0x80) && generate_interrupts_;
+	return (status_ & StatusInterrupt) && generate_interrupts_;
 }
