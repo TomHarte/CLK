@@ -102,8 +102,11 @@ class TMS9918 {
 			struct ActiveSprite {
 				int index = 0;
 				int row = 0;
+
 				uint8_t info[4];
 				uint8_t image[2];
+
+				int shift_position = 0;
 			} active_sprites[4];
 			int active_sprite_slot = 0;
 		} sprite_sets_[2];

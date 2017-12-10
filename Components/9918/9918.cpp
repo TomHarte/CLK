@@ -89,7 +89,7 @@ void TMS9918::test_sprite(int sprite_number) {
 
 	SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot];
 	sprite.index = sprite_number;
-	sprite.row = sprite_row;
+	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
 	sprite_sets_[active_sprite_set_].active_sprite_slot++;
 }
 
@@ -128,7 +128,7 @@ void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
 
 void TMS9918::run_for(const HalfCycles cycles) {
 	// As specific as I've been able to get:
-	// Scanline time is always 227.75 cycles.
+	// Scanline time is always 228 cycles.
 	// PAL output is 313 lines total. NTSC output is 262 lines total.
 	// Interrupt is signalled upon entering the lower border.
 
@@ -351,10 +351,26 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						} break;
 
 						case LineMode::Character: {
+							// If this is the start of the visible area, seed sprite shifter positions.
+							SpriteSet &sprite_set = sprite_sets_[active_sprite_set_ ^ 1];
+							if(line_mode_ == LineMode::Character && output_column_ == first_pixel_column_) {
+								int c = sprite_set.active_sprite_slot;
+								while(c--) {
+									SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
+									sprite.shift_position = -sprite.info[1];
+									if(sprite.info[3] & 0x80) {
+										sprite.shift_position += 32;
+										if(sprite.shift_position > 0 && !sprites_magnified_)
+											sprite.shift_position *= 2;
+									}
+								}
+							}
+
+							// Paint the background tiles.
 							const int shift = (output_column_ - first_pixel_column_) & 7;
 							int byte_column = (output_column_ - first_pixel_column_) >> 3;
 
-							int pixels_left = pixels_end - output_column_;
+							const int pixels_left = pixels_end - output_column_;
 							int length = std::min(pixels_left, 8 - shift);
 
 							int pattern = pattern_buffer_[byte_column] << shift;
@@ -364,16 +380,17 @@ void TMS9918::run_for(const HalfCycles cycles) {
 								(colour >> 4) ? palette[colour >> 4] : background_colour_
 							};
 
+							int background_pixels_left = pixels_left;
 							while(true) {
-								pixels_left -= length;
+								background_pixels_left -= length;
 								while(length--) {
 									*pixel_target_ = colours[(pattern >> 7)&0x01];
 									pixel_target_++;
 									pattern <<= 1;
 								}
 
-								if(!pixels_left) break;
-								length = std::min(8, pixels_left);
+								if(!background_pixels_left) break;
+								length = std::min(8, background_pixels_left);
 								byte_column++;
 
 								pattern = pattern_buffer_[byte_column];
@@ -381,27 +398,48 @@ void TMS9918::run_for(const HalfCycles cycles) {
 								colours[0] = (colour & 15) ? palette[colour & 15] : background_colour_;
 								colours[1] = (colour >> 4) ? palette[colour >> 4] : background_colour_;
 							}
+
+							// Paint sprites and check for collisions.
+							if(sprite_set.active_sprite_slot) {
+								int sprite_pixels_left = pixels_left;
+								const int shift_advance = sprites_magnified_ ? 1 : 2;
+//								const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+								while(sprite_pixels_left--) {
+									uint32_t sprite_colour = pixel_base_[output_column_ - first_pixel_column_];
+									int sprite_mask = 0;
+									int c = sprite_set.active_sprite_slot;
+									while(c--) {
+										SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
+
+										if(sprite.shift_position < 0) {
+											sprite.shift_position++;
+											continue;
+										} else if(sprite.shift_position < 32) {
+											int mask = sprite.image[sprite.shift_position >> 4] << ((sprite.shift_position&15) >> 1);
+											mask = (mask >> 7) & 1;
+											status_ |= (mask & sprite_mask) << 5;
+											sprite_mask |= mask;
+											sprite.shift_position += shift_advance;
+
+											// TODO: can a non-conditional version be found like that commented out below, but
+											// which accounts for colour 0 being invisible?
+//											sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
+											if((sprite.info[3]&15) && mask) {
+												sprite_colour = palette[sprite.info[3]&15];
+											}
+										}
+									}
+
+									pixel_base_[output_column_ - first_pixel_column_] = sprite_colour;
+									output_column_++;
+								}
+							}
+
 							output_column_ = pixels_end;
 						} break;
 					}
 
 					if(output_column_ == first_right_border_column_) {
-						// Just chuck the sprites on. Quick hack!
-						int last_sprite_set = active_sprite_set_ ^ 1;
-						int c = sprite_sets_[last_sprite_set].active_sprite_slot;
-						while(c--) {
-							SpriteSet::ActiveSprite &sprite = sprite_sets_[last_sprite_set].active_sprites[c];
-							if(!(sprite.info[3]&15)) continue;
-
-							for(int p = 0; p < (sprites_16x16_ ? 16 : 8); ++p) {
-								int x = sprite.info[1] + p;
-								if(sprite.info[3] & 0x80) x -= 32;
-								if(x >= 0 && x < 256) {
-									if(((sprite.image[p >> 3] << (p&7)) & 0x80)) pixel_base_[x] = palette[sprite.info[3]&15];
-								}
-							}
-						}
-
 						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_), 1);
 						pixel_target_ = nullptr;
 					}
