@@ -17,7 +17,7 @@ namespace {
 
 const uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
 	uint32_t result = 0;
-	uint8_t *result_ptr = reinterpret_cast<uint8_t *>(&result);
+	uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
 	result_ptr[0] = r;
 	result_ptr[1] = g;
 	result_ptr[2] = b;
@@ -302,11 +302,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				output_column_ = 26;
 			}
 
-			// --------------------------
-			// TODO: output colour burst.
-			// --------------------------
-
-
 			// -------------------
 			// Output left border.
 			// -------------------
@@ -381,8 +376,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							int pattern = pattern_buffer_[byte_column] << shift;
 							uint8_t colour = colour_buffer_[byte_column];
 							uint32_t colours[2] = {
-								(colour & 15) ? palette[colour & 15] : background_colour_,
-								(colour >> 4) ? palette[colour >> 4] : background_colour_
+								palette[(colour & 15) ? (colour & 15) : background_colour_],
+								palette[(colour >> 4) ? (colour >> 4) : background_colour_]
 							};
 
 							int background_pixels_left = pixels_left;
@@ -400,8 +395,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 								pattern = pattern_buffer_[byte_column];
 								colour = colour_buffer_[byte_column];
-								colours[0] = (colour & 15) ? palette[colour & 15] : background_colour_;
-								colours[1] = (colour >> 4) ? palette[colour >> 4] : background_colour_;
+								colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
+								colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
 							}
 
 							// Paint sprites and check for collisions.
