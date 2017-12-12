@@ -86,16 +86,17 @@ class ConcreteMachine:
 				// TODO: should clear other page 1 pointers, should allow for paging cartridges, etc.
 				size_t base = segment.start_address >> 14;
 				for(size_t c = 0; c < cartridge_.size(); c += 16384) {
-					slot_read_pointers_[1][(c >> 14) + base] = cartridge_.data() + c;
+					memory_slots_[1].read_pointers[(c >> 14) + base] = cartridge_.data() + c;
 				}
 			}
 			return true;
 		}
 
 		void page_memory(uint8_t value) {
+//			printf("Page: %02x\n", value);
 			for(size_t c = 0; c < 4; ++c) {
-				read_pointers_[c] = slot_read_pointers_[value & 3][c];
-				write_pointers_[c] = slot_write_pointers_[value & 3][c];
+				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
+				write_pointers_[c] = memory_slots_[value & 3].write_pointers[c];
 				value >>= 2;
 			}
 		}
@@ -167,6 +168,10 @@ class ConcreteMachine:
 						case 0xaa:	case 0xab:
 							i8255_.set_register(address, *cycle.value);
 						break;
+
+						case 0xfc: case 0xfd: case 0xfe: case 0xff:
+//							printf("RAM banking %02x: %02x\n", port, *cycle.value);
+						break;
 					}
 				} break;
 
@@ -202,22 +207,24 @@ class ConcreteMachine:
 			basic_.resize(16384);
 
 			main_ = std::move(*roms[1]);
-			main_.resize(16384);
+			main_.resize(32768);
 
 			for(size_t c = 0; c < 4; ++c) {
 				for(size_t slot = 0; slot < 3; ++slot) {
-					slot_read_pointers_[slot][c] = unpopulated_;
-					slot_write_pointers_[slot][c] = scratch_;
+					memory_slots_[slot].read_pointers[c] = unpopulated_;
+					memory_slots_[slot].write_pointers[c] = scratch_;
 				}
-				slot_read_pointers_[3][c] =
-				slot_write_pointers_[3][c] = &ram_[c * 16384];
+
+				memory_slots_[3].read_pointers[c] =
+				memory_slots_[3].write_pointers[c] = &ram_[c * 16384];
 			}
-			slot_read_pointers_[0][0] = main_.data();
-			slot_read_pointers_[0][1] = basic_.data();
+
+			memory_slots_[0].read_pointers[0] = main_.data();
+			memory_slots_[0].read_pointers[1] = &main_[16384];
 
 			for(size_t c = 0; c < 4; ++c) {
-				read_pointers_[c] = slot_read_pointers_[0][c];
-				write_pointers_[c] = slot_write_pointers_[0][c];
+				read_pointers_[c] = memory_slots_[0].read_pointers[c];
+				write_pointers_[c] = memory_slots_[0].write_pointers[c];
 			}
 
 			return true;
@@ -287,8 +294,10 @@ class ConcreteMachine:
 		uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
 
-		uint8_t *slot_read_pointers_[4][4];
-		uint8_t *slot_write_pointers_[4][4];
+		struct MemorySlots {
+			uint8_t *read_pointers[4];
+			uint8_t *write_pointers[4];
+		} memory_slots_[4];
 
 		uint8_t ram_[65536];
 		uint8_t scratch_[16384];
