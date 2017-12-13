@@ -168,7 +168,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// ------------------------------
 		// Perform video memory accesses.
 		// ------------------------------
-		if(row_	< 192 && !blank_screen_) {
+		if(((row_ < 192) || (row_ == frame_lines_-1)) && !blank_screen_) {
 			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
 				case LineMode::Text:
