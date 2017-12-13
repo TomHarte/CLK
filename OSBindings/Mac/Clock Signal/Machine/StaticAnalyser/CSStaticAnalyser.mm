@@ -17,6 +17,7 @@
 #import "CSAmstradCPC.h"
 #import "CSAtari2600.h"
 #import "CSElectron.h"
+#import "CSMSX.h"
 #import "CSOric.h"
 #import "CSVic20.h"
 #import "CSZX8081+Instantiation.h"
@@ -45,6 +46,7 @@
 		case StaticAnalyser::Target::AmstradCPC:	return nil;
 		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
 		case StaticAnalyser::Target::Electron:		return @"ElectronOptions";
+		case StaticAnalyser::Target::MSX:			return @"MSXOptions";
 		case StaticAnalyser::Target::Oric:			return @"OricOptions";
 		case StaticAnalyser::Target::Vic20:			return @"Vic20Options";
 		case StaticAnalyser::Target::ZX8081:		return @"ZX8081Options";
@@ -57,6 +59,7 @@
 		case StaticAnalyser::Target::AmstradCPC:	return [[CSAmstradCPC alloc] init];
 		case StaticAnalyser::Target::Atari2600:		return [[CSAtari2600 alloc] init];
 		case StaticAnalyser::Target::Electron:		return [[CSElectron alloc] init];
+		case StaticAnalyser::Target::MSX:			return [[CSMSX alloc] init];
 		case StaticAnalyser::Target::Oric:			return [[CSOric alloc] init];
 		case StaticAnalyser::Target::Vic20:			return [[CSVic20 alloc] init];
 		case StaticAnalyser::Target::ZX8081:		return [[CSZX8081 alloc] initWithIntendedTarget:_target];

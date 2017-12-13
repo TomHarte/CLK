@@ -21,14 +21,15 @@ enum Type: IntType {
 	BBCModelA		=	1 << 6,
 	BBCModelB		=	1 << 7,
 	Commodore		=	1 << 8,
-	Oric			=	1 << 9,
-	ZX80			=	1 << 10,
-	ZX81			=	1 << 11,
+	MSX				=	1 << 9,
+	Oric			=	1 << 10,
+	ZX80			=	1 << 11,
+	ZX81			=	1 << 12,
 
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
 	ZX8081			=	ZX80 | ZX81,
-	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81,
-	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric,
+	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX,
+	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX,
 };
 
 class TypeDistinguisher {

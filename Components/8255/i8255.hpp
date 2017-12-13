@@ -76,8 +76,8 @@ template <class T> class i8255 {
 
 	private:
 		void update_outputs() {
-			port_handler_.set_value(0, outputs_[0]);
-			port_handler_.set_value(1, outputs_[1]);
+			if(!(control_ & 0x10)) port_handler_.set_value(0, outputs_[0]);
+			if(!(control_ & 0x02)) port_handler_.set_value(1, outputs_[1]);
 			port_handler_.set_value(2, outputs_[2]);
 		}
 

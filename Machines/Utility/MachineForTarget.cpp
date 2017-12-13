@@ -12,6 +12,7 @@
 #include "../Atari2600/Atari2600.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Electron/Electron.hpp"
+#include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
 #include "../ZX8081/ZX8081.hpp"
 
@@ -22,6 +23,7 @@
 		case StaticAnalyser::Target::AmstradCPC:	return new TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());
 		case StaticAnalyser::Target::Atari2600:		return new TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
 		case StaticAnalyser::Target::Electron:		return new TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());
+		case StaticAnalyser::Target::MSX:			return new TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());
 		case StaticAnalyser::Target::Oric:			return new TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());
 		case StaticAnalyser::Target::Vic20:			return new TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());
 		case StaticAnalyser::Target::ZX8081:		return new TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));
@@ -35,6 +37,7 @@ std::string Machine::ShortNameForTargetMachine(const StaticAnalyser::Target::Mac
 		case StaticAnalyser::Target::AmstradCPC:	return "AmstradCPC";
 		case StaticAnalyser::Target::Atari2600:		return "Atari2600";
 		case StaticAnalyser::Target::Electron:		return "Electron";
+		case StaticAnalyser::Target::MSX:			return "MSX";
 		case StaticAnalyser::Target::Oric:			return "Oric";
 		case StaticAnalyser::Target::Vic20:			return "Vic20";
 		case StaticAnalyser::Target::ZX8081:		return "ZX8081";
@@ -48,6 +51,7 @@ std::string Machine::LongNameForTargetMachine(StaticAnalyser::Target::Machine ma
 		case StaticAnalyser::Target::AmstradCPC:	return "Amstrad CPC";
 		case StaticAnalyser::Target::Atari2600:		return "Atari 2600";
 		case StaticAnalyser::Target::Electron:		return "Acorn Electron";
+		case StaticAnalyser::Target::MSX:			return "MSX";
 		case StaticAnalyser::Target::Oric:			return "Oric";
 		case StaticAnalyser::Target::Vic20:			return "Vic 20";
 		case StaticAnalyser::Target::ZX8081:		return "ZX80/81";
