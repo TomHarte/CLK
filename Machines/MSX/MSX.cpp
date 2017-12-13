@@ -197,17 +197,13 @@ class ConcreteMachine:
 			auto roms = roms_with_names(
 				"MSX",
 				{
-					"basic.rom",
-					"main_msx1.rom"
+					"msx.rom"
 				});
 
-			if(!roms[0] || !roms[1]) return false;
+			if(!roms[0]) return false;
 
-			basic_ = std::move(*roms[0]);
-			basic_.resize(16384);
-
-			main_ = std::move(*roms[1]);
-			main_.resize(32768);
+			rom_ = std::move(*roms[0]);
+			rom_.resize(32768);
 
 			for(size_t c = 0; c < 4; ++c) {
 				for(size_t slot = 0; slot < 3; ++slot) {
@@ -219,8 +215,8 @@ class ConcreteMachine:
 				memory_slots_[3].write_pointers[c] = &ram_[c * 16384];
 			}
 
-			memory_slots_[0].read_pointers[0] = main_.data();
-			memory_slots_[0].read_pointers[1] = &main_[16384];
+			memory_slots_[0].read_pointers[0] = rom_.data();
+			memory_slots_[0].read_pointers[1] = &rom_[16384];
 
 			for(size_t c = 0; c < 4; ++c) {
 				read_pointers_[c] = memory_slots_[0].read_pointers[c];
@@ -302,7 +298,7 @@ class ConcreteMachine:
 		uint8_t ram_[65536];
 		uint8_t scratch_[16384];
 		uint8_t unpopulated_[16384];
-		std::vector<uint8_t> basic_, main_;
+		std::vector<uint8_t> rom_;
 		std::vector<uint8_t> cartridge_;
 
 		HalfCycles time_since_vdp_update_;
