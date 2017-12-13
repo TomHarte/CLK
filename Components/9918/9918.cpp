@@ -204,14 +204,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 
 					// Four more access windows: no collection.
-					if(access_pointer_ >= 15 && access_pointer_ < 19)
+					if(access_pointer_ >= 15 && access_pointer_ < 19) {
 						access_pointer_ = std::min(19, access_slot);
 
-					// Start new sprite set if this is location 19.
-					if(access_pointer_ == 19) {
-						active_sprite_set_ ^= 1;
-						sprite_sets_[active_sprite_set_].active_sprite_slot = 0;
-						sprites_stopped_ = false;
+						// Start new sprite set if this is location 19.
+						if(access_pointer_ == 19) {
+							active_sprite_set_ ^= 1;
+							sprite_sets_[active_sprite_set_].active_sprite_slot = 0;
+							sprites_stopped_ = false;
+						}
 					}
 
 					// Then eight access windows fetch the y position for the first eight sprites.
