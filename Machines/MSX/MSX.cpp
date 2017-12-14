@@ -175,6 +175,10 @@ class ConcreteMachine:
 					}
 				} break;
 
+				case CPU::Z80::PartialMachineCycle::Interrupt:
+					*cycle.value = 0xff;
+				break;
+
 				default: break;
 			}
 
