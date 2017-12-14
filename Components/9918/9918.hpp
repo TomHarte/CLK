@@ -65,6 +65,10 @@ class TMS9918 {
 
 		uint16_t ram_pointer_ = 0;
 		uint8_t read_ahead_buffer_ = 0;
+		enum class MemoryAccess {
+			Read, Write, None
+		} queued_access_ = MemoryAccess::None;
+		uint16_t queued_address_;
 
 		uint8_t status_ = 0;
 
@@ -100,8 +104,9 @@ class TMS9918 {
 
 		// Horizontal selections.
 		enum class LineMode {
-			Text,
-			Character
+			Text = 0,
+			Character = 1,
+			Refresh = 2
 		} line_mode_ = LineMode::Text;
 		int first_pixel_column_, first_right_border_column_;
 

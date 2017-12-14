@@ -144,24 +144,61 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	// potential errors mapping back and forth.
 	half_cycles_into_frame_ = (half_cycles_into_frame_ + cycles) % HalfCycles(frame_lines_ * 228 * 2);
 
-	// Convert to 342 cycles per line; the internal clock is 1.5 times the
-	// nominal 3.579545 Mhz that I've advertised for this part.
+	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
+	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
+	// for this part. So multiply by three quarters.
 	int int_cycles = (cycles.as_int() * 3) + cycles_error_;
-	cycles_error_ = int_cycles & 7;
-	int_cycles >>= 3;
+	cycles_error_ = int_cycles & 3;
+	int_cycles >>= 2;
 	if(!int_cycles) return;
 
 	while(int_cycles) {
 		// Determine how much time has passed in the remainder of this line, and proceed.
 		int cycles_left = std::min(342 - column_, int_cycles);
+
+
+
+		// ------------------------------------
+		// Potentially perform a memory access.
+		// ------------------------------------
+		if(queued_access_ != MemoryAccess::None) {
+			int time_until_access_slot = 0;
+			switch(line_mode_) {
+				case LineMode::Refresh:
+					if(column_ < 53 || column_ >= 307) time_until_access_slot = column_&1;
+					else time_until_access_slot = 3 - ((column_ - 53)&3);
+					// i.e. 53 -> 3, 52 -> 2, 51 -> 1, 50 -> 0, etc
+				break;
+				case LineMode::Text:
+					if(column_ < 59 || column_ >= 299) time_until_access_slot = column_&1;
+					else time_until_access_slot = 5 - ((column_ + 3)%6);
+					// i.e. 59 -> 3, 60 -> 2, 61 -> 1, etc
+				break;
+				case LineMode::Character:
+					if(column_ < 9) time_until_access_slot = column_&1;
+					else if(column_ < 30) time_until_access_slot = 30 - column_;
+					else if(column_ < 37) time_until_access_slot = column_&1;
+					else if(column_ < 311) time_until_access_slot = 31 - ((column_ + 7)&31);
+					// i.e. 53 -> 3, 54 -> 2, 55 -> 1, 56 -> 0, 57 -> 31, etc
+					else if(column_ < 313) time_until_access_slot = column_&1;
+					else time_until_access_slot = 342 - column_;
+				break;
+			}
+
+			if(cycles_left >= time_until_access_slot) {
+				if(queued_access_ == MemoryAccess::Write) {
+					ram_[queued_address_] = read_ahead_buffer_;
+				} else {
+					read_ahead_buffer_ = ram_[queued_address_];
+				}
+				queued_access_ = MemoryAccess::None;
+			}
+		}
+
+
+
 		column_ += cycles_left;		// column_ is now the column that has been reached in this line.
 		int_cycles -= cycles_left;	// Count down duration to run for.
-
-
-
-		// ------------------------------
-		// TODO: memory access slot here.
-		// ------------------------------
 
 
 
@@ -171,6 +208,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		if(((row_ < 192) || (row_ == frame_lines_-1)) && !blank_screen_) {
 			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
+				default: break;
+
 				case LineMode::Text:
 					access_pointer_ = std::min(30, access_slot);
 					if(access_pointer_ >= 30 && access_pointer_ < 150) {
@@ -327,6 +366,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 				if(output_column_ < pixels_end) {
 					switch(line_mode_) {
+						default: break;
+
 						case LineMode::Text: {
 							const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
@@ -499,6 +540,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					first_right_border_column_ = 319;
 				break;
 			}
+			if(blank_screen_ || (row_ >= 192 && row_ != frame_lines_-1)) line_mode_ = LineMode::Refresh;
 		}
 	}
 }
@@ -509,15 +551,17 @@ void TMS9918::output_border(int cycles) {
 	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
 }
 
-// TODO: as a temporary development measure, memory access below is magically instantaneous. Correct that.
-
 void TMS9918::set_register(int address, uint8_t value) {
 	// Writes to address 0 are writes to the video RAM. Store
 	// the value and return.
 	if(!(address & 1)) {
 		write_phase_ = false;
 		read_ahead_buffer_ = value;
-		ram_[ram_pointer_ & 16383] = value;
+
+		// Enqueue the write to occur at the next available slot.
+		queued_access_ = MemoryAccess::Write;
+		queued_address_ = ram_pointer_ & 16383;
+
 		ram_pointer_++;
 		return;
 	}
@@ -594,7 +638,11 @@ uint8_t TMS9918::get_register(int address) {
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
 	if(!(address & 1)) {
 		uint8_t result = read_ahead_buffer_;
-		read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
+
+		// Enqueue the write to occur at the next available slot.
+		queued_access_ = MemoryAccess::Read;
+		queued_address_ = ram_pointer_ & 16383;
+
 		ram_pointer_++;
 		return result;
 	}
