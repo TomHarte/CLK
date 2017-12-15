@@ -654,7 +654,7 @@ uint8_t TMS9918::get_register(int address) {
 
 	const int half_cycles_per_frame = frame_lines_ * 228 * 2;
 	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
-	return HalfCycles(half_cycles_remaining);
+	return HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
 }
 
 bool TMS9918::get_interrupt_line() {
