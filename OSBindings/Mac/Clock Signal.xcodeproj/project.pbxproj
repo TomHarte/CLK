@@ -568,6 +568,7 @@
 		4BCF1FA81DADC5250039D2E7 /* CSOric.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA71DADC5250039D2E7 /* CSOric.mm */; };
 		4BCF1FAB1DADD41B0039D2E7 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA91DADD41B0039D2E7 /* StaticAnalyser.cpp */; };
 		4BD14B111D74627C0088EAD6 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */; };
+		4BD388421FE34E010042B588 /* 9918Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388401FE34E010042B588 /* 9918Base.cpp */; };
 		4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD3A3091EE755C800B5B501 /* Video.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */; };
@@ -1234,6 +1235,8 @@
 		4BCF1FAA1DADD41B0039D2E7 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Oric/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BD14B0F1D74627C0088EAD6 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BD14B101D74627C0088EAD6 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = ../../StaticAnalyser/Acorn/StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4BD388401FE34E010042B588 /* 9918Base.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = 9918Base.cpp; path = 9918/Implementation/9918Base.cpp; sourceTree = "<group>"; };
+		4BD388411FE34E010042B588 /* 9918Base.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = 9918Base.hpp; path = 9918/Implementation/9918Base.hpp; sourceTree = "<group>"; };
 		4BD3A3091EE755C800B5B501 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ZX8081/Video.cpp; sourceTree = "<group>"; };
 		4BD3A30A1EE755C800B5B501 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = ZX8081/Video.hpp; sourceTree = "<group>"; };
 		4BD468F51D8DF41D0084958B /* 1770.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 1770.cpp; path = 1770/1770.cpp; sourceTree = "<group>"; };
@@ -1382,6 +1385,7 @@
 			children = (
 				4B0E04F91FC9FA3100F43484 /* 9918.cpp */,
 				4B0E04F81FC9FA3000F43484 /* 9918.hpp */,
+				4BD388431FE34E060042B588 /* Implementation */,
 			);
 			name = 9918;
 			sourceTree = "<group>";
@@ -2615,6 +2619,15 @@
 			name = Acorn;
 			sourceTree = "<group>";
 		};
+		4BD388431FE34E060042B588 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BD388401FE34E010042B588 /* 9918Base.cpp */,
+				4BD388411FE34E010042B588 /* 9918Base.hpp */,
+			);
+			name = Implementation;
+			sourceTree = "<group>";
+		};
 		4BD468F81D8DF4290084958B /* 1770 */ = {
 			isa = PBXGroup;
 			children = (
@@ -3388,6 +3401,7 @@
 				4BE77A2E1D84ADFB00BC3827 /* File.cpp in Sources */,
 				4B14978B1EE4AC5E00CE2596 /* StaticAnalyser.cpp in Sources */,
 				4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */,
+				4BD388421FE34E010042B588 /* 9918Base.cpp in Sources */,
 				4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
 				4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */,
