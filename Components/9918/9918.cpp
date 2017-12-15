@@ -55,10 +55,14 @@ const uint8_t StatusSpriteCollision = 0x20;
 
 }
 
-TMS9918::TMS9918(Personality p) :
+TMS9918Base::TMS9918Base() :
 	// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
 	// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
-	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {
+	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {}
+
+TMS9918::TMS9918(Personality p) {
+	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
+	// into whether there's a more natural form.
 	crt_->set_rgb_sampling_function(
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
@@ -72,7 +76,7 @@ std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
 	return crt_;
 }
 
-void TMS9918::test_sprite(int sprite_number) {
+void TMS9918Base::test_sprite(int sprite_number) {
 	if(!(status_ & StatusFifthSprite)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
@@ -101,7 +105,7 @@ void TMS9918::test_sprite(int sprite_number) {
 	sprite_sets_[active_sprite_set_].active_sprite_slot++;
 }
 
-void TMS9918::get_sprite_contents(int field, int cycles_left, int screen_row) {
+void TMS9918Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 	int sprite_id = field / 6;
 	field %= 6;
 
@@ -187,10 +191,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 			if(cycles_left >= time_until_access_slot) {
 				if(queued_access_ == MemoryAccess::Write) {
-					ram_[queued_address_] = read_ahead_buffer_;
+					ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 				} else {
-					read_ahead_buffer_ = ram_[queued_address_];
+					read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
 				}
+				ram_pointer_++;
 				queued_access_ = MemoryAccess::None;
 			}
 		}
@@ -445,7 +450,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							if(sprite_set.active_sprite_slot) {
 								int sprite_pixels_left = pixels_left;
 								const int shift_advance = sprites_magnified_ ? 1 : 2;
-//								const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+
+								const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+								const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
 								while(sprite_pixels_left--) {
 									uint32_t sprite_colour = pixel_base_[output_column_ - first_pixel_column_];
 									int sprite_mask = 0;
@@ -463,12 +471,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 											sprite_mask |= mask;
 											sprite.shift_position += shift_advance;
 
-											// TODO: can a non-conditional version be found like that commented out below, but
-											// which accounts for colour 0 being invisible?
-//											sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
-											if((sprite.info[3]&15) && mask) {
-												sprite_colour = palette[sprite.info[3]&15];
-											}
+											mask &= colour_masks[sprite.info[3]&15];
+											sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
 										}
 									}
 
@@ -545,7 +549,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	}
 }
 
-void TMS9918::output_border(int cycles) {
+void TMS9918Base::output_border(int cycles) {
 	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
 	if(pixel_target_) *pixel_target_ = palette[background_colour_];
 	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
@@ -556,13 +560,11 @@ void TMS9918::set_register(int address, uint8_t value) {
 	// the value and return.
 	if(!(address & 1)) {
 		write_phase_ = false;
-		read_ahead_buffer_ = value;
 
 		// Enqueue the write to occur at the next available slot.
+		read_ahead_buffer_ = value;
 		queued_access_ = MemoryAccess::Write;
-		queued_address_ = ram_pointer_ & 16383;
 
-		ram_pointer_++;
 		return;
 	}
 
@@ -580,7 +582,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 		switch(value & 7) {
 			case 0:
 				next_screen_mode_ = (next_screen_mode_ & 6) | ((low_write_ & 2) >> 1);
-//				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 1:
@@ -593,7 +594,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 				sprite_height_ = 8;
 				if(sprites_16x16_) sprite_height_ <<= 1;
 				if(sprites_magnified_) sprite_height_ <<= 1;
-//				printf("NSM: %02x\n", next_screen_mode_);
 			break;
 
 			case 2:
@@ -626,8 +626,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 		ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
 		if(!(value & 0x40)) {
 			// Officially a 'read' set, so perform lookahead.
-			read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
-			ram_pointer_++;
+			queued_access_ = MemoryAccess::Read;
 		}
 	}
 }
@@ -637,13 +636,9 @@ uint8_t TMS9918::get_register(int address) {
 
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
 	if(!(address & 1)) {
-		uint8_t result = read_ahead_buffer_;
-
 		// Enqueue the write to occur at the next available slot.
+		uint8_t result = read_ahead_buffer_;
 		queued_access_ = MemoryAccess::Read;
-		queued_address_ = ram_pointer_ & 16383;
-
-		ram_pointer_++;
 		return result;
 	}
 
@@ -659,7 +654,7 @@ uint8_t TMS9918::get_register(int address) {
 
 	const int half_cycles_per_frame = frame_lines_ * 228 * 2;
 	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
-	return HalfCycles(half_cycles_remaining);
+	return HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
 }
 
 bool TMS9918::get_interrupt_line() {

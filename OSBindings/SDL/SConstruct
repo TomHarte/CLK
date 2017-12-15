@@ -15,6 +15,7 @@ SOURCES += glob.glob('../../Components/6522/Implementation/*.cpp')
 SOURCES += glob.glob('../../Components/6560/*.cpp')
 SOURCES += glob.glob('../../Components/8272/*.cpp')
 SOURCES += glob.glob('../../Components/9918/*.cpp')
+SOURCES += glob.glob('../../Components/9918/Implementation/*.cpp')
 SOURCES += glob.glob('../../Components/AY38910/*.cpp')
 
 SOURCES += glob.glob('../../Concurrency/*.cpp')
