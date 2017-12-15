@@ -626,8 +626,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 		ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
 		if(!(value & 0x40)) {
 			// Officially a 'read' set, so perform lookahead.
-			read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
-			ram_pointer_++;
+			queued_access_ = MemoryAccess::Read;
 		}
 	}
 }
