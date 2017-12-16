@@ -79,3 +79,20 @@ void AsyncTaskQueue::flush() {
 	flush_condition->wait(lock);
 #endif
 }
+
+void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
+	if(!deferred_tasks_) {
+		deferred_tasks_.reset(new std::list<std::function<void(void)>>);
+	}
+	deferred_tasks_->push_back(function);
+}
+
+void DeferringAsyncTaskQueue::perform() {
+	std::shared_ptr<std::list<std::function<void(void)>>> deferred_tasks = deferred_tasks_;
+	deferred_tasks_.reset();
+	enqueue([deferred_tasks] {
+		for(auto &function : *deferred_tasks) {
+			function();
+		}
+	});
+}

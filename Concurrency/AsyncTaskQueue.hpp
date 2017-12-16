@@ -59,6 +59,37 @@ class AsyncTaskQueue {
 #endif
 };
 
+/*!
+	A deferring async task queue is one that accepts a list of functions to be performed but defers
+	any action until told to perform. It performs them by enquing a single asynchronous task that will
+	perform the deferred tasks in order.
+
+	It therefore offers similar semantics to an asynchronous task queue, but allows for management of
+	synchronisation costs, since neither defer nor perform make any effort to be thread safe.
+*/
+class DeferringAsyncTaskQueue: public AsyncTaskQueue {
+	public:
+		/*!
+			Adds a function to the deferral list.
+
+			This is not thread safe; it should be serialised with other calls to itself and to perform.
+		*/
+		void defer(std::function<void(void)> function);
+
+		/*!
+			Enqueues a function that will perform all currently deferred functions, in the
+			order that they were deferred.
+
+			This is not thread safe; it should be serialised with other calls to itself and to defer.
+		*/
+		void perform();
+
+	private:
+		// TODO: this is a shared_ptr because of the issues capturing moveables in C++11;
+		// switch to a unique_ptr if/when adapting to C++14
+		std::shared_ptr<std::list<std::function<void(void)>>> deferred_tasks_;
+};
+
 }
 
 #endif /* Concurrency_hpp */
