@@ -73,11 +73,11 @@ class TIA {
 		uint8_t get_collision_flags(int offset);
 		void clear_collision_flags();
 
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
+		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
 
 	private:
 		TIA(bool create_crt);
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 		std::function<void(uint8_t *output_buffer)> line_end_function_;
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160

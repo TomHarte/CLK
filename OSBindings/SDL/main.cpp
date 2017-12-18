@@ -42,10 +42,10 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 };
 
 // This is set to a relatively large number for now.
-struct SpeakerDelegate: public Outputs::Speaker::Delegate {
+struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	static const int buffer_size = 1024;
 
-	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);

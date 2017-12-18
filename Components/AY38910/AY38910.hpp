@@ -9,7 +9,8 @@
 #ifndef AY_3_8910_hpp
 #define AY_3_8910_hpp
 
-#include "../../Outputs/Speaker.hpp"
+#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
+#include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace GI {
 namespace AY38910 {
@@ -55,13 +56,10 @@ enum ControlLines {
 	noise generator and a volume envelope generator, which also provides two bidirectional
 	interface ports.
 */
-class AY38910: public ::Outputs::Filter<AY38910> {
+class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new AY38910.
-		AY38910();
-
-		/// Sets the clock rate at which this AY38910 will be run.
-		void set_clock_rate(double clock_rate);
+		AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue);
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -86,9 +84,11 @@ class AY38910: public ::Outputs::Filter<AY38910> {
 		void set_port_handler(PortHandler *);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
-		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void get_samples(std::size_t number_of_samples, int16_t *target);
 
 	private:
+		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+
 		int selected_register_ = 0;
 		uint8_t registers_[16];
 		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

@@ -1,15 +1,16 @@
 //
-//  Speaker.hpp
+//  TIASound.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 03/12/2016.
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_Speaker_hpp
-#define Atari2600_Speaker_hpp
+#ifndef Atari2600_TIASound_hpp
+#define Atari2600_TIASound_hpp
 
-#include "../../Outputs/Speaker.hpp"
+#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
+#include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Atari2600 {
 
@@ -17,17 +18,19 @@ namespace Atari2600 {
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
 const int CPUTicksPerAudioTick = 2;
 
-class Speaker: public ::Outputs::Filter<Speaker> {
+class TIASound: public Outputs::Speaker::SampleSource {
 	public:
-		Speaker();
+		TIASound(Concurrency::DeferringAsyncTaskQueue &audio_queue);
 
 		void set_volume(int channel, uint8_t volume);
 		void set_divider(int channel, uint8_t divider);
 		void set_control(int channel, uint8_t control);
 
-		void get_samples(unsigned int number_of_samples, int16_t *target);
+		void get_samples(std::size_t number_of_samples, int16_t *target);
 
 	private:
+		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+
 		uint8_t volume_[2];
 		uint8_t divider_[2];
 		uint8_t control_[2];

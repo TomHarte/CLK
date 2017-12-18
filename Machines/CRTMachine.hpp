@@ -10,7 +10,7 @@
 #define CRTMachine_hpp
 
 #include "../Outputs/CRT/CRT.hpp"
-#include "../Outputs/Speaker.hpp"
+#include "../Outputs/Speaker/Speaker.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
 #include "ROMMachine.hpp"
 
@@ -36,10 +36,10 @@ class Machine: public ROMMachine::Machine {
 		virtual void close_output() = 0;
 
 		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
-		virtual std::shared_ptr<Outputs::CRT::CRT> get_crt() = 0;
+		virtual Outputs::CRT::CRT *get_crt() = 0;
 
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
-		virtual std::shared_ptr<Outputs::Speaker> get_speaker() = 0;
+		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
 
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;

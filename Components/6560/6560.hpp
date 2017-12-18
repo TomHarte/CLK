@@ -9,22 +9,27 @@
 #ifndef _560_hpp
 #define _560_hpp
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Outputs/Speaker.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../Concurrency/AsyncTaskQueue.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
+#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
 
 namespace MOS {
 
 // audio state
-class Speaker: public ::Outputs::Filter<Speaker> {
+class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 	public:
+		AudioGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue);
+
 		void set_volume(uint8_t volume);
 		void set_control(int channel, uint8_t value);
 
-		void get_samples(unsigned int number_of_samples, int16_t *target);
-		void skip_samples(unsigned int number_of_samples);
+		void get_samples(std::size_t number_of_samples, int16_t *target);
+		void skip_samples(std::size_t number_of_samples);
 
 	private:
+		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+
 		unsigned int counters_[4] = {2, 1, 0, 0}; 	// create a slight phase offset for the three channels
 		unsigned int shift_registers_[4] = {0, 0, 0, 0};
 		uint8_t control_registers_[4] = {0, 0, 0, 0};
@@ -43,7 +48,9 @@ template <class T> class MOS6560 {
 	public:
 		MOS6560() :
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::DisplayType::NTSC60, 2)),
-				speaker_(new Speaker) {
+				audio_generator_(audio_queue_),
+				speaker_(audio_generator_)
+		{
 			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
@@ -59,11 +66,11 @@ template <class T> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_->set_input_rate(static_cast<float>(clock_rate / 4.0));
+			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() { return crt_; }
-		std::shared_ptr<Outputs::Speaker> get_speaker() { return speaker_; }
+		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
+		Outputs::Speaker::Speaker *get_speaker() { return nullptr; }	// speaker_;
 
 		enum OutputMode {
 			PAL, NTSC
@@ -318,7 +325,10 @@ template <class T> class MOS6560 {
 		/*!
 			Causes the 6560 to flush as much pending CRT and speaker communications as possible.
 		*/
-		inline void flush() { update_audio(); speaker_->flush(); }
+		inline void flush() {
+			update_audio();
+			audio_queue_.perform();
+		}
 
 		/*!
 			Writes to a 6560 register.
@@ -356,13 +366,13 @@ template <class T> class MOS6560 {
 				case 0xc:
 				case 0xd:
 					update_audio();
-					speaker_->set_control(address - 0xa, value);
+					audio_generator_.set_control(address - 0xa, value);
 				break;
 
 				case 0xe:
 					update_audio();
 					registers_.auxiliary_colour = colours_[value >> 4];
-					speaker_->set_volume(value & 0xf);
+					audio_generator_.set_volume(value & 0xf);
 				break;
 
 				case 0xf: {
@@ -398,12 +408,15 @@ template <class T> class MOS6560 {
 		}
 
 	private:
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
-		std::shared_ptr<Speaker> speaker_;
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		AudioGenerator audio_generator_;
+		Outputs::Speaker::LowpassSpeaker<AudioGenerator> speaker_;
+
 		Cycles cycles_since_speaker_update_;
 		void update_audio() {
-			speaker_->run_for(Cycles(cycles_since_speaker_update_.divide(Cycles(4))));
+			speaker_.run_for(audio_queue_, Cycles(cycles_since_speaker_update_.divide(Cycles(4))));
 		}
 
 		// register state

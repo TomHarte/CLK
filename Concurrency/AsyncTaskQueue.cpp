@@ -88,6 +88,7 @@ void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 }
 
 void DeferringAsyncTaskQueue::perform() {
+	if(!deferred_tasks_) return;
 	std::shared_ptr<std::list<std::function<void(void)>>> deferred_tasks = deferred_tasks_;
 	deferred_tasks_.reset();
 	enqueue([deferred_tasks] {

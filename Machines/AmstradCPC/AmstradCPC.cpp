@@ -115,14 +115,8 @@ class InterruptTimer {
 class AYDeferrer {
 	public:
 		/// Constructs a new AY instance and sets its clock rate.
-		inline void setup_output() {
-			ay_.reset(new GI::AY38910::AY38910);
-			ay_->set_input_rate(1000000);
-		}
-
-		/// Destructs the AY.
-		inline void close_output() {
-			ay_.reset();
+		AYDeferrer() : ay_(audio_queue_), speaker_(ay_) {
+			speaker_.set_input_rate(1000000);
 		}
 
 		/// Adds @c half_cycles half cycles to the amount of time that has passed.
@@ -132,26 +126,28 @@ class AYDeferrer {
 
 		/// Enqueues an update-to-now into the AY's deferred queue.
 		inline void update() {
-			ay_->run_for(cycles_since_update_.divide_cycles(Cycles(4)));
+			speaker_.run_for(audio_queue_, cycles_since_update_.divide_cycles(Cycles(4)));
 		}
 
 		/// Issues a request to the AY to perform all processing up to the current time.
 		inline void flush() {
-			ay_->flush();
+			audio_queue_.perform();
 		}
 
 		/// @returns the speaker the AY is using for output.
-		std::shared_ptr<Outputs::Speaker> get_speaker() {
-			return ay_;
+		Outputs::Speaker::Speaker *get_speaker() {
+			return &speaker_;
 		}
 
 		/// @returns the AY itself.
-		GI::AY38910::AY38910 *ay() {
-			return ay_.get();
+		GI::AY38910::AY38910 &ay() {
+			return ay_;
 		}
 
 	private:
-		std::shared_ptr<GI::AY38910::AY38910> ay_;
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910 ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 		HalfCycles cycles_since_update_;
 };
 
@@ -319,8 +315,8 @@ class CRTCBusHandler {
 		}
 
 		/// @returns the CRT.
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() {
-			return crt_;
+		Outputs::CRT::CRT *get_crt() {
+			return crt_.get();
 		}
 
 		/*!
@@ -503,7 +499,7 @@ class CRTCBusHandler {
 		bool was_enabled_ = false, was_sync_ = false, was_hsync_ = false, was_vsync_ = false;
 		int cycles_into_hsync_ = 0;
 
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
 		uint8_t *ram_ = nullptr;
@@ -623,7 +619,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				case 0:
 					// Port A is connected to the AY's data bus.
 					ay_.update();
-					ay_.ay()->set_data_input(value);
+					ay_.ay().set_data_input(value);
 				break;
 				case 1:
 					// Port B is an input only. So output goes nowehere.
@@ -639,7 +635,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					tape_player_.set_tape_output((value & 0x20) ? true : false);
 
 					// Bits 6 and 7 set BDIR and BC1 for the AY.
-					ay_.ay()->set_control_lines(
+					ay_.ay().set_control_lines(
 						(GI::AY38910::ControlLines)(
 							((value & 0x80) ? GI::AY38910::BDIR : 0) |
 							((value & 0x40) ? GI::AY38910::BC1 : 0) |
@@ -652,7 +648,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		/// The i8255 will call this to obtain a new input for @c port.
 		uint8_t get_value(int port) {
 			switch(port) {
-				case 0: return ay_.ay()->get_data_output();	// Port A is wired to the AY
+				case 0: return ay_.ay().get_data_output();	// Port A is wired to the AY
 				case 1:	return
 					(crtc_.get_bus_state().vsync ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
 					(tape_player_.get_input() ? 0x80 : 0x00) |		// Bit 7 returns cassette input.
@@ -703,6 +699,8 @@ class ConcreteMachine:
 
 			tape_player_.set_sleep_observer(this);
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+
+			ay_.ay().set_port_handler(&key_state_);
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -845,23 +843,20 @@ class ConcreteMachine:
 		/// A CRTMachine function; indicates that outputs should be created now.
 		void setup_output(float aspect_ratio) override final {
 			crtc_bus_handler_.setup_output(aspect_ratio);
-			ay_.setup_output();
-			ay_.ay()->set_port_handler(&key_state_);
 		}
 
 		/// A CRTMachine function; indicates that outputs should be destroyed now.
 		void close_output() override final {
 			crtc_bus_handler_.close_output();
-			ay_.close_output();
 		}
 
 		/// @returns the CRT in use.
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
+		Outputs::CRT::CRT *get_crt() override final {
 			return crtc_bus_handler_.get_crt();
 		}
 
 		/// @returns the speaker in use.
-		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() override final {
 			return ay_.get_speaker();
 		}
 

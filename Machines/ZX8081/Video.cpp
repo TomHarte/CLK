@@ -100,6 +100,6 @@ void Video::output_byte(uint8_t byte) {
 	}
 }
 
-std::shared_ptr<Outputs::CRT::CRT> Video::get_crt() {
-	return crt_;
+Outputs::CRT::CRT *Video::get_crt() {
+	return crt_.get();
 }

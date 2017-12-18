@@ -29,7 +29,7 @@ class Video {
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video();
 		/// @returns The CRT this video feed is feeding.
-		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		Outputs::CRT::CRT *get_crt();
 
 		/// Advances time by @c cycles.
 		void run_for(const HalfCycles);
@@ -46,7 +46,7 @@ class Video {
 		uint8_t *line_data_ = nullptr;
 		uint8_t *line_data_pointer_ = nullptr;
 		unsigned int cycles_since_update_ = 0;
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		void flush(bool next_sync);
 };

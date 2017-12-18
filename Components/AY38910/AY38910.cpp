@@ -10,7 +10,7 @@
 
 using namespace GI::AY38910;
 
-AY38910::AY38910() {
+AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
 	// set up envelope lookup tables
 	for(int c = 0; c < 16; c++) {
 		for(int p = 0; p < 32; p++) {
@@ -63,11 +63,7 @@ AY38910::AY38910() {
 	volumes_[0] = 0;
 }
 
-void AY38910::set_clock_rate(double clock_rate) {
-	set_input_rate(static_cast<float>(clock_rate));
-}
-
-void AY38910::get_samples(unsigned int number_of_samples, int16_t *target) {
+void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 	unsigned int c = 0;
 	while((master_divider_&7) && c < number_of_samples) {
 		target[c] = output_volume_;
@@ -169,7 +165,7 @@ void AY38910::set_register_value(uint8_t value) {
 	registers_[selected_register_] = value;
 	if(selected_register_ < 14) {
 		int selected_register = selected_register_;
-		enqueue([=] () {
+		task_queue_.defer([=] () {
 			uint8_t masked_value = value;
 			switch(selected_register) {
 				case 0: case 2: case 4:

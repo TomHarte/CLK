@@ -137,8 +137,7 @@ class ConcreteMachine:
 		// to satisfy CRTMachine::Machine
 		void setup_output(float aspect_ratio) override {
 			bus_->tia_.reset(new TIA);
-			bus_->speaker_.reset(new Speaker);
-			bus_->speaker_->set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
+			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
 			bus_->tia_->get_crt()->set_delegate(this);
 		}
 
@@ -146,12 +145,12 @@ class ConcreteMachine:
 			bus_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override {
+		Outputs::CRT::CRT *get_crt() override {
 			return bus_->tia_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() override {
-			return bus_->speaker_;
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return &bus_->speaker_;
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -189,8 +188,8 @@ class ConcreteMachine:
 						bus_->tia_->set_output_mode(TIA::OutputMode::PAL);
 					}
 
-					bus_->speaker_->set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));
-					bus_->speaker_->set_high_frequency_cut_off(static_cast<float>(clock_rate / (static_cast<double>(CPUTicksPerAudioTick) * 2.0)));
+					bus_->speaker_.set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));
+					bus_->speaker_.set_high_frequency_cutoff(static_cast<float>(clock_rate / (static_cast<double>(CPUTicksPerAudioTick) * 2.0)));
 					set_clock_rate(clock_rate);
 				}
 			}

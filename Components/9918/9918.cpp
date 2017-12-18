@@ -72,8 +72,8 @@ TMS9918::TMS9918(Personality p) {
 	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 }
 
-std::shared_ptr<Outputs::CRT::CRT> TMS9918::get_crt() {
-	return crt_;
+Outputs::CRT::CRT *TMS9918::get_crt() {
+	return crt_.get();
 }
 
 void TMS9918Base::test_sprite(int sprite_number) {
