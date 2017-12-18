@@ -70,7 +70,11 @@ template <class T> class MOS6560 {
 		}
 
 		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
-		Outputs::Speaker::Speaker *get_speaker() { return nullptr; }	// speaker_;
+		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
+
+		void set_high_frequency_cutoff(float cutoff) {
+			speaker_.set_high_frequency_cutoff(cutoff);
+		}
 
 		enum OutputMode {
 			PAL, NTSC

@@ -631,7 +631,7 @@ class ConcreteMachine:
 
 		void setup_output(float aspect_ratio) override final {
 			mos6560_.reset(new Vic6560());
-//			mos6560_->get_speaker()->set_high_frequency_cut_off(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
+			mos6560_->set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 			// Make a guess: PAL. Without setting a clock rate the 6560 isn't fully set up so contractually something must be set.
 			set_pal_6560();
 		}
@@ -645,8 +645,7 @@ class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
-			return nullptr;
-//			return mos6560_->get_speaker();
+			return mos6560_->get_speaker();
 		}
 
 		void mos6522_did_change_interrupt_status(void *mos6522) override final {
