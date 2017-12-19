@@ -11,7 +11,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
-#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Processors/6502/6502.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 

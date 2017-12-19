@@ -12,7 +12,8 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
-#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 namespace MOS {
 

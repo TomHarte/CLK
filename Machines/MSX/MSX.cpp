@@ -21,6 +21,8 @@
 #include "../ConfigurationTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+
 namespace MSX {
 
 struct AYPortHandler: public GI::AY38910::PortHandler {

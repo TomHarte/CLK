@@ -9,7 +9,7 @@
 #ifndef Electron_SoundGenerator_hpp
 #define Electron_SoundGenerator_hpp
 
-#include "../../Outputs/Speaker/Implementation/FilteringSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Electron {

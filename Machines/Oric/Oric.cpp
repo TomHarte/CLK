@@ -24,6 +24,7 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include <cstdint>
 #include <memory>

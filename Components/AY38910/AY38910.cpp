@@ -8,6 +8,8 @@
 
 #include "AY38910.hpp"
 
+#include <cmath>
+
 using namespace GI::AY38910;
 
 AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {

@@ -15,6 +15,7 @@
 #include "TIASound.hpp"
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Atari2600 {
 

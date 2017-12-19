@@ -23,6 +23,7 @@
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include <cstdint>
 #include <vector>
