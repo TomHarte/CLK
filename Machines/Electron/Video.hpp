@@ -31,7 +31,7 @@ class VideoOutput {
 		VideoOutput(uint8_t *memory);
 
 		/// @returns the CRT to which output is being painted.
-		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		Outputs::CRT::CRT *get_crt();
 
 		/// Produces the next @c cycles of video output.
 		void run_for(const Cycles cycles);
@@ -111,7 +111,7 @@ class VideoOutput {
 		uint8_t *initial_output_target_ = nullptr;
 		unsigned int current_output_divider_ = 1;
 
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		struct DrawAction {
 			enum Type {

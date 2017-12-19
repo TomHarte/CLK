@@ -22,6 +22,7 @@
 #include "Video.hpp"
 
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -225,11 +226,11 @@ template<bool is_zx81> class ConcreteMachine:
 			video_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
+		Outputs::CRT::CRT *get_crt() override final {
 			return video_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() override final {
 			return nullptr;
 		}
 

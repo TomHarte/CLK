@@ -148,11 +148,11 @@ template<class T> class Cartridge:
 							case 0x2c:	update_video(); tia_->clear_collision_flags();										break;
 
 							case 0x15:
-							case 0x16:	update_audio(); speaker_->set_control(decodedAddress - 0x15, *value);				break;
+							case 0x16:	update_audio(); tia_sound_.set_control(decodedAddress - 0x15, *value);				break;
 							case 0x17:
-							case 0x18:	update_audio(); speaker_->set_divider(decodedAddress - 0x17, *value);				break;
+							case 0x18:	update_audio(); tia_sound_.set_divider(decodedAddress - 0x17, *value);				break;
 							case 0x19:
-							case 0x1a:	update_audio(); speaker_->set_volume(decodedAddress - 0x19, *value);				break;
+							case 0x1a:	update_audio(); tia_sound_.set_volume(decodedAddress - 0x19, *value);				break;
 						}
 					}
 				}
@@ -180,7 +180,7 @@ template<class T> class Cartridge:
 		void flush() {
 			update_audio();
 			update_video();
-			speaker_->flush();
+			audio_queue_.perform();
 		}
 
 	protected:

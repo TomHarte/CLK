@@ -21,6 +21,8 @@
 #include "../ConfigurationTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+
 namespace MSX {
 
 struct AYPortHandler: public GI::AY38910::PortHandler {
@@ -44,30 +46,31 @@ class ConcreteMachine:
 		ConcreteMachine():
 			z80_(*this),
 			i8255_(i8255_port_handler_),
+			ay_(audio_queue_),
+			speaker_(ay_),
 			i8255_port_handler_(*this) {
 			set_clock_rate(3579545);
 			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 			clear_all_keys();
+
+			ay_.set_port_handler(&ay_port_handler_);
+			speaker_.set_input_rate(3579545.0f / 2.0f);
 		}
 
 		void setup_output(float aspect_ratio) override {
 			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
-			ay_.reset(new GI::AY38910::AY38910());
-			ay_->set_port_handler(&ay_port_handler_);
-			ay_->set_input_rate(3579545.0f / 2.0f);
 		}
 
 		void close_output() override {
 			vdp_.reset();
-			ay_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override {
+		Outputs::CRT::CRT *get_crt() override {
 			return vdp_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() override {
-			return ay_;
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return &speaker_;
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -130,10 +133,10 @@ class ConcreteMachine:
 						break;
 
 						case 0xa2:
-							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
-							*cycle.value = ay_->get_data_output();
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+							speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
+							*cycle.value = ay_.get_data_output();
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -158,10 +161,10 @@ class ConcreteMachine:
 						break;
 
 						case 0xa0:	case 0xa1:
-							ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
-							ay_->set_data_input(*cycle.value);
-							ay_->set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+							speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
+							ay_.set_data_input(*cycle.value);
+							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
 						break;
 
 						case 0xa8:	case 0xa9:
@@ -192,8 +195,8 @@ class ConcreteMachine:
 
 		void flush() {
 			vdp_->run_for(time_since_vdp_update_.flush());
-			ay_->run_for(time_since_ay_update_.divide_cycles(Cycles(2)));
-			ay_->flush();
+			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+			audio_queue_.perform();
 		}
 
 		// Obtains the system ROMs.
@@ -286,7 +289,10 @@ class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
-		std::shared_ptr<GI::AY38910::AY38910> ay_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910 ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;

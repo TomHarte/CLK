@@ -11,16 +11,19 @@
 
 #include "Atari2600.hpp"
 #include "PIA.hpp"
-#include "Speaker.hpp"
 #include "TIA.hpp"
+#include "TIASound.hpp"
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Atari2600 {
 
 class Bus {
 	public:
 		Bus() :
+			tia_sound_(audio_queue_),
+			speaker_(tia_sound_),
 			tia_input_value_{0xff, 0xff},
 			cycles_since_speaker_update_(0) {}
 
@@ -30,7 +33,10 @@ class Bus {
 		// the RIOT, TIA and speaker
 		PIA mos6532_;
 		std::shared_ptr<TIA> tia_;
-		std::shared_ptr<Speaker> speaker_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		TIASound tia_sound_;
+		Outputs::Speaker::LowpassSpeaker<TIASound> speaker_;
 
 		// joystick state
 		uint8_t tia_input_value_[2];
@@ -39,7 +45,7 @@ class Bus {
 		// speaker backlog accumlation counter
 		Cycles cycles_since_speaker_update_;
 		inline void update_audio() {
-			speaker_->run_for(cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
+			speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
 		}
 
 		// video backlog accumulation counter

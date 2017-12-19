@@ -8,18 +8,19 @@
 
 #include "Electron.hpp"
 
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../Processors/6502/6502.hpp"
-#include "../../Storage/Tape/Tape.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/StandardOptions.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Processors/6502/6502.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 
 #include "../Utility/Typer.hpp"
 
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
 #include "Plus3.hpp"
-#include "Speaker.hpp"
+#include "SoundGenerator.hpp"
 #include "Tape.hpp"
 #include "Video.hpp"
 
@@ -37,13 +38,18 @@ class ConcreteMachine:
 	public Tape::Delegate,
 	public Utility::TypeRecipient {
 	public:
-		ConcreteMachine() : m6502_(*this) {
+		ConcreteMachine() :
+			m6502_(*this),
+			sound_generator_(audio_queue_),
+			speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));
 			for(int c = 0; c < 16; c++)
 				memset(roms_[c], 0xff, 16384);
 
 			tape_.set_delegate(this);
 			set_clock_rate(2000000);
+
+			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 		}
 
 		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) override final {
@@ -180,7 +186,7 @@ class ConcreteMachine:
 							bool new_speaker_is_enabled = (*value & 6) == 2;
 							if(new_speaker_is_enabled != speaker_is_enabled_) {
 								update_audio();
-								speaker_->set_is_enabled(new_speaker_is_enabled);
+								sound_generator_.set_is_enabled(new_speaker_is_enabled);
 								speaker_is_enabled_ = new_speaker_is_enabled;
 							}
 
@@ -241,7 +247,7 @@ class ConcreteMachine:
 					case 0xfe06:
 						if(!isReadOperation(operation)) {
 							update_audio();
-							speaker_->set_divider(*value);
+							sound_generator_.set_divider(*value);
 							tape_.set_counter(*value);
 						}
 					break;
@@ -372,29 +378,23 @@ class ConcreteMachine:
 		forceinline void flush() {
 			update_display();
 			update_audio();
-			speaker_->flush();
+			audio_queue_.perform();
 		}
 
 		void setup_output(float aspect_ratio) override final {
 			video_output_.reset(new VideoOutput(ram_));
-
-			// The maximum output frequency is 62500Hz and all other permitted output frequencies are integral divisions of that;
-			// however setting the speaker on or off can happen on any 2Mhz cycle, and probably (?) takes effect immediately. So
-			// run the speaker at a 2000000Hz input rate, at least for the time being.
-			speaker_.reset(new Speaker);
-			speaker_->set_input_rate(2000000 / Speaker::clock_rate_divider);
 		}
 
 		void close_output() override final {
 			video_output_.reset();
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
+		Outputs::CRT::CRT *get_crt() override final {
 			return video_output_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
-			return speaker_;
+		Outputs::Speaker::Speaker *get_speaker() override final {
+			return &speaker_;
 		}
 
 		void run_for(const Cycles cycles) override final {
@@ -469,9 +469,7 @@ class ConcreteMachine:
 		}
 
 		inline void update_audio() {
-			if(cycles_since_audio_update_ > 0) {
-				speaker_->run_for(cycles_since_audio_update_.divide(Cycles(Speaker::clock_rate_divider)));
-			}
+			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(SoundGenerator::clock_rate_divider)));
 		}
 
 		inline void signal_interrupt(Interrupt interrupt) {
@@ -531,7 +529,11 @@ class ConcreteMachine:
 
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
-		std::shared_ptr<Speaker> speaker_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		SoundGenerator sound_generator_;
+		Outputs::Speaker::LowpassSpeaker<SoundGenerator> speaker_;
+
 		bool speaker_is_enabled_ = false;
 };
 

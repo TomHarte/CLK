@@ -12,14 +12,18 @@
 
 using namespace MOS;
 
-void Speaker::set_volume(uint8_t volume) {
-	enqueue([=]() {
+AudioGenerator::AudioGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+	audio_queue_(audio_queue) {}
+
+
+void AudioGenerator::set_volume(uint8_t volume) {
+	audio_queue_.defer([=]() {
 		volume_ = volume;
 	});
 }
 
-void Speaker::set_control(int channel, uint8_t value) {
-	enqueue([=]() {
+void AudioGenerator::set_control(int channel, uint8_t value) {
+	audio_queue_.defer([=]() {
 		control_registers_[channel] = value;
 	});
 }
@@ -101,7 +105,7 @@ static uint8_t noise_pattern[] = {
 // testing against 0x80. The effect should be the same: loading with 0x7f means an output update every cycle, loading with 0x7e
 // means every second cycle, etc.
 
-void Speaker::get_samples(unsigned int number_of_samples, int16_t *target) {
+void AudioGenerator::get_samples(std::size_t number_of_samples, int16_t *target) {
 	for(unsigned int c = 0; c < number_of_samples; c++) {
 		update(0, 2, shift);
 		update(1, 1, shift);
@@ -119,7 +123,7 @@ void Speaker::get_samples(unsigned int number_of_samples, int16_t *target) {
 	}
 }
 
-void Speaker::skip_samples(unsigned int number_of_samples) {
+void AudioGenerator::skip_samples(std::size_t number_of_samples) {
 	for(unsigned int c = 0; c < number_of_samples; c++) {
 		update(0, 2, shift);
 		update(1, 1, shift);

@@ -52,7 +52,7 @@ class TMS9918: public TMS9918Base {
 		void set_tv_standard(TVStandard standard);
 
 		/*! Provides the CRT this TMS is connected to. */
-		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		Outputs::CRT::CRT *get_crt();
 
 		/*!
 			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code

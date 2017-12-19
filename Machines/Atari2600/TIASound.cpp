@@ -6,31 +6,32 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "Speaker.hpp"
+#include "TIASound.hpp"
 
 using namespace Atari2600;
 
-Atari2600::Speaker::Speaker() :
+Atari2600::TIASound::TIASound(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+	audio_queue_(audio_queue),
 	poly4_counter_{0x00f, 0x00f},
 	poly5_counter_{0x01f, 0x01f},
 	poly9_counter_{0x1ff, 0x1ff}
 {}
 
-void Atari2600::Speaker::set_volume(int channel, uint8_t volume) {
-	enqueue([=]() {
+void Atari2600::TIASound::set_volume(int channel, uint8_t volume) {
+	audio_queue_.defer([=]() {
 		volume_[channel] = volume & 0xf;
 	});
 }
 
-void Atari2600::Speaker::set_divider(int channel, uint8_t divider) {
-	enqueue([=]() {
+void Atari2600::TIASound::set_divider(int channel, uint8_t divider) {
+	audio_queue_.defer([=]() {
 		divider_[channel] = divider & 0x1f;
 		divider_counter_[channel] = 0;
 	});
 }
 
-void Atari2600::Speaker::set_control(int channel, uint8_t control) {
-	enqueue([=]() {
+void Atari2600::TIASound::set_control(int channel, uint8_t control) {
+	audio_queue_.defer([=]() {
 		control_[channel] = control & 0xf;
 	});
 }
@@ -39,7 +40,7 @@ void Atari2600::Speaker::set_control(int channel, uint8_t control) {
 #define advance_poly5(c) poly5_counter_[channel] = (poly5_counter_[channel] >> 1) | (((poly5_counter_[channel] << 4) ^ (poly5_counter_[channel] << 2))&0x010)
 #define advance_poly9(c) poly9_counter_[channel] = (poly9_counter_[channel] >> 1) | (((poly9_counter_[channel] << 4) ^ (poly9_counter_[channel] << 8))&0x100)
 
-void Atari2600::Speaker::get_samples(unsigned int number_of_samples, int16_t *target) {
+void Atari2600::TIASound::get_samples(std::size_t number_of_samples, int16_t *target) {
 	for(unsigned int c = 0; c < number_of_samples; c++) {
 		target[c] = 0;
 		for(int channel = 0; channel < 2; channel++) {

@@ -17,14 +17,14 @@ namespace Oric {
 class VideoOutput {
 	public:
 		VideoOutput(uint8_t *memory);
-		std::shared_ptr<Outputs::CRT::CRT> get_crt();
+		Outputs::CRT::CRT *get_crt();
 		void run_for(const Cycles cycles);
 		void set_colour_rom(const std::vector<uint8_t> &rom);
 		void set_output_device(Outputs::CRT::OutputDevice output_device);
 
 	private:
 		uint8_t *ram_;
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		// Counters and limits
 		int counter_ = 0, frame_counter_ = 0;

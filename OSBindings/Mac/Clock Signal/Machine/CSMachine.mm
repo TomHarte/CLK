@@ -22,7 +22,7 @@
 #import "NSData+StdVector.h"
 
 @interface CSMachine()
-- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
+- (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)machineDidChangeClockRate;
 - (void)machineDidChangeClockIsUnlimited;
 @end
@@ -34,8 +34,8 @@ struct LockProtectedDelegate {
 	__unsafe_unretained CSMachine *machine;
 };
 
-struct SpeakerDelegate: public Outputs::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker *speaker, const std::vector<int16_t> &buffer) {
+struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) {
 		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 		[machineAccessLock unlock];
@@ -95,7 +95,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	return self;
 }
 
-- (void)speaker:(Outputs::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
+- (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
 }
 
@@ -128,7 +128,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -142,9 +142,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	}
 }
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
 	@synchronized(self) {
-		std::shared_ptr<Outputs::Speaker> speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize);
 			speaker->set_delegate(delegate);

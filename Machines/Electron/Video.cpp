@@ -66,8 +66,8 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 
 // MARK: - CRT getter
 
-std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
-	return crt_;
+Outputs::CRT::CRT *VideoOutput::get_crt() {
+	return crt_.get();
 }
 
 // MARK: - Display update methods

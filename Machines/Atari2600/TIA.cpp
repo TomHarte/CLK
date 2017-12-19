@@ -7,7 +7,9 @@
 //
 
 #include "TIA.hpp"
+
 #include <cassert>
+#include <cstring>
 
 using namespace Atari2600;
 namespace {
@@ -379,7 +381,7 @@ void TIA::output_for_cycles(int number_of_cycles) {
 
 	if(!output_cursor) {
 		if(line_end_function_) line_end_function_(collision_buffer_);
-		memset(collision_buffer_, 0, sizeof(collision_buffer_));
+		std::memset(collision_buffer_, 0, sizeof(collision_buffer_));
 
 		ball_.motion_time %= 228;
 		player_[0].motion_time %= 228;

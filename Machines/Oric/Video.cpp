@@ -67,8 +67,8 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	}
 }
 
-std::shared_ptr<Outputs::CRT::CRT> VideoOutput::get_crt() {
-	return crt_;
+Outputs::CRT::CRT *VideoOutput::get_crt() {
+	return crt_.get();
 }
 
 void VideoOutput::run_for(const Cycles cycles) {

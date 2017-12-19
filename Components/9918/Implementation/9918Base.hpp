@@ -21,7 +21,7 @@ class TMS9918Base {
 	protected:
 		TMS9918Base();
 
-		std::shared_ptr<Outputs::CRT::CRT> crt_;
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		uint8_t ram_[16384];
 

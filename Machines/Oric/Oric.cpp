@@ -24,6 +24,7 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -113,7 +114,8 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 */
 class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	public:
-		VIAPortHandler(TapePlayer &tape_player, Keyboard &keyboard) : tape_player_(tape_player), keyboard_(keyboard) {}
+		VIAPortHandler(Concurrency::DeferringAsyncTaskQueue &audio_queue, GI::AY38910::AY38910 &ay8910, Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
+			audio_queue_(audio_queue), ay8910_(ay8910), speaker_(speaker), tape_player_(tape_player), keyboard_(keyboard) {}
 
 		/*!
 			Reponds to the 6522's control line output change signal; on an Oric A2 is connected to
@@ -123,7 +125,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			if(line) {
 				if(port) ay_bdir_ = value; else ay_bc1_ = value;
 				update_ay();
-				ay8910_->set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
+				ay8910_.set_control_lines( (GI::AY38910::ControlLines)((ay_bdir_ ? GI::AY38910::BDIR : 0) | (ay_bc1_ ? GI::AY38910::BC1 : 0) | GI::AY38910::BC2));
 			}
 		}
 
@@ -137,7 +139,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 				tape_player_.set_motor_control(value & 0x40);
 			} else {
 				update_ay();
-				ay8910_->set_data_input(value);
+				ay8910_.set_data_input(value);
 			}
 		}
 
@@ -146,10 +148,10 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		*/
 		uint8_t get_port_input(MOS::MOS6522::Port port) {
 			if(port) {
-				uint8_t column = ay8910_->get_port_output(false) ^ 0xff;
+				uint8_t column = ay8910_.get_port_output(false) ^ 0xff;
 				return keyboard_.query_column(column) ? 0x08 : 0x00;
 			} else {
-				return ay8910_->get_data_output();
+				return ay8910_.get_data_output();
 			}
 		}
 
@@ -162,24 +164,21 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		/// Flushes any queued behaviour (which, specifically, means on the AY).
 		void flush() {
-			ay8910_->run_for(cycles_since_ay_update_.flush());
-			ay8910_->flush();
-		}
-
-		/// Sets the AY in use by the machine the VIA that uses this port handler sits within.
-		void set_ay(GI::AY38910::AY38910 *ay) {
-			ay8910_ = ay;
+			update_ay();
+			audio_queue_.perform();
 		}
 
 	private:
 		void update_ay() {
-			ay8910_->run_for(cycles_since_ay_update_.flush());
+			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush());
 		}
 		bool ay_bdir_ = false;
 		bool ay_bc1_ = false;
 		Cycles cycles_since_ay_update_;
 
-		GI::AY38910::AY38910 *ay8910_ = nullptr;
+		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+		GI::AY38910::AY38910 &ay8910_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> &speaker_;
 		TapePlayer &tape_player_;
 		Keyboard &keyboard_;
 };
@@ -195,7 +194,9 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
-				via_port_handler_(tape_player_, keyboard_),
+				ay8910_(audio_queue_),
+				speaker_(ay8910_),
+				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
 				via_(via_port_handler_),
 				paged_rom_(rom_) {
 			set_clock_rate(1000000);
@@ -371,9 +372,7 @@ class ConcreteMachine:
 
 		// to satisfy CRTMachine::Machine
 		void setup_output(float aspect_ratio) override final {
-			ay8910_.reset(new GI::AY38910::AY38910());
-			ay8910_->set_clock_rate(1000000);
-			via_port_handler_.set_ay(ay8910_.get());
+			speaker_.set_input_rate(1000000.0f);
 
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
@@ -382,16 +381,14 @@ class ConcreteMachine:
 
 		void close_output() override final {
 			video_output_.reset();
-			ay8910_.reset();
-			via_port_handler_.set_ay(nullptr);
 		}
 
-		std::shared_ptr<Outputs::CRT::CRT> get_crt() override final {
+		Outputs::CRT::CRT *get_crt() override final {
 			return video_output_->get_crt();
 		}
 
-		std::shared_ptr<Outputs::Speaker> get_speaker() override final {
-			return ay8910_;
+		Outputs::Speaker::Speaker *get_speaker() override final {
+			return &speaker_;
 		}
 
 		void run_for(const Cycles cycles) override final {
@@ -488,7 +485,10 @@ class ConcreteMachine:
 
 		// Outputs
 		std::unique_ptr<VideoOutput> video_output_;
-		std::shared_ptr<GI::AY38910::AY38910> ay8910_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910 ay8910_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 
 		// Inputs
 		Oric::KeyboardMapper keyboard_mapper_;
