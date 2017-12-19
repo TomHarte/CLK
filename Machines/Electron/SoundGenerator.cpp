@@ -8,6 +8,8 @@
 
 #include "SoundGenerator.hpp"
 
+#include <cstring>
+
 using namespace Electron;
 
 SoundGenerator::SoundGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
@@ -21,7 +23,7 @@ void SoundGenerator::get_samples(std::size_t number_of_samples, int16_t *target)
 			counter_ = (counter_ + 1) % ((divider_+1) * 2);
 		}
 	} else {
-		memset(target, 0, sizeof(int16_t) * number_of_samples);
+		std::memset(target, 0, sizeof(int16_t) * number_of_samples);
 	}
 }
 

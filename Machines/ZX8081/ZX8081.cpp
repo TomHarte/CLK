@@ -22,6 +22,7 @@
 #include "Video.hpp"
 
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <vector>
 
