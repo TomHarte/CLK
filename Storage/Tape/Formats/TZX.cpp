@@ -28,7 +28,7 @@ TZX::TZX(const char *file_name) :
 	uint8_t minor_version = file_.get8();
 
 	// Reject if an incompatible version
-	if(major_version != 1 || minor_version > 20)  throw ErrorNotTZX;
+	if(major_version != 1 || minor_version > 21)  throw ErrorNotTZX;
 
 	virtual_reset();
 }
@@ -53,7 +53,7 @@ void TZX::get_next_pulses() {
 			return;
 		}
 
-//		printf("TZX %ld\n", ftell(file_));
+		printf("TZX %02x\n", chunk_id);
 		switch(chunk_id) {
 			case 0x10:	get_standard_speed_data_block();	break;
 			case 0x11:	get_turbo_speed_data_block();		break;

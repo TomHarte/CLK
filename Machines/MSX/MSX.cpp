@@ -82,7 +82,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 				// Bit 6: keyboard switch (not universal)
 
 				// Bit 7: tape input
-				return 0x7f | (tape_player_.get_input() ? 0x80 : 0x00);
+				return 0x7f | (tape_player_.get_input() ? 0x00 : 0x80);
 			}
 			return 0xff;
 		}
@@ -340,7 +340,7 @@ class ConcreteMachine:
 							//	b5 	audio output
 
 							//	b4: cassette motor relay
-							tape_player_.set_motor_control(!!(value & 0x10));
+							tape_player_.set_motor_control(!(value & 0x10));
 
 							//	b7: keyboard click
 							bool new_audio_level = !!(value & 0x80);
