@@ -76,6 +76,8 @@ void TZX::get_next_pulses() {
 			case 0x31:	ignore_message_block();				break;
 			case 0x33:	get_hardware_type();				break;
 
+			case 0x4b:	get_kansas_city_block();			break;
+
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
 				// so there is no route past an unimplemented chunk.
@@ -203,9 +205,7 @@ void TZX::get_turbo_speed_data_block() {
 
 void TZX::get_data_block(const DataBlock &data_block) {
 	// Output pilot tone.
-	for(unsigned int c = 0; c < data_block.length_of_pilot_tone; c++) {
-		post_pulse(data_block.length_of_pilot_pulse);
-	}
+	post_pulses(data_block.length_of_pilot_tone, data_block.length_of_pilot_pulse);
 
 	// Output sync pulses.
 	post_pulse(data_block.length_of_sync_first_pulse);
@@ -237,7 +237,7 @@ void TZX::get_pure_tone_data_block() {
 	uint16_t length_of_pulse = file_.get16le();
 	uint16_t nunber_of_pulses = file_.get16le();
 
-	while(nunber_of_pulses--) post_pulse(length_of_pulse);
+	post_pulses(nunber_of_pulses, length_of_pulse);
 }
 
 void TZX::get_pure_data_block() {
@@ -267,7 +267,67 @@ void TZX::get_pause() {
 	}
 }
 
+void TZX::get_kansas_city_block() {
+	uint32_t block_length = file_.get32le();
+
+	const uint16_t pause_after_block = file_.get16le();
+	const uint16_t pilot_pulse_duration = file_.get16le();
+	const uint16_t pilot_length = file_.get16le();
+	uint16_t pulse_durations[2];
+	pulse_durations[0] = file_.get16le();
+	pulse_durations[1] = file_.get16le();
+	const uint8_t packed_pulse_counts = file_.get8();
+	const unsigned int pulse_counts[2] = {
+		static_cast<unsigned int>((((packed_pulse_counts >> 4) - 1) & 15) + 1),
+		static_cast<unsigned int>((((packed_pulse_counts & 15) - 1) & 15) + 1)
+	};
+	const uint8_t padding_flags = file_.get8();
+
+	const unsigned int number_of_leading_pulses = ((padding_flags >> 6)&3) * pulse_counts[(padding_flags >> 5) & 1];
+	const unsigned int leading_pulse_length = pulse_durations[(padding_flags >> 5) & 1];
+
+	const unsigned int number_of_trailing_pulses = ((padding_flags >> 3)&3) * pulse_counts[(padding_flags >> 2) & 1];
+	const unsigned int trailing_pulse_length = pulse_durations[(padding_flags >> 2) & 1];
+
+	block_length -= 12;
+
+	// Output pilot tone.
+	post_pulses(pilot_length, pilot_pulse_duration);
+
+	// Output data.
+	while(block_length--) {
+		post_pulses(number_of_leading_pulses, leading_pulse_length);
+
+		uint8_t new_byte = file_.get8();
+		int bits = 8;
+		if(padding_flags & 1) {
+			// Output MSB first.
+			while(bits--) {
+				int bit = (new_byte >> 7) & 1;
+				new_byte <<= 1;
+				post_pulses(pulse_counts[bit], pulse_durations[bit]);
+			}
+		} else {
+			// Output LSB first.
+			while(bits--) {
+				int bit = new_byte & 1;
+				new_byte >>= 1;
+				post_pulses(pulse_counts[bit], pulse_durations[bit]);
+			}
+		}
+
+		post_pulses(number_of_trailing_pulses, trailing_pulse_length);
+	}
+
+	// Output gap.
+	post_gap(pause_after_block);
+}
+
 // MARK: - Output
+
+void TZX::post_pulses(unsigned int count, unsigned int length) {
+	while(count--) post_pulse(length);
+}
 
 void TZX::post_pulse(unsigned int length) {
 	post_pulse(Storage::Time(length, StandardTZXClock));

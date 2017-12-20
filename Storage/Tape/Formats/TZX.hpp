@@ -46,6 +46,7 @@ class TZX: public PulseQueuedTape {
 		void get_pure_data_block();
 		void get_generalised_data_block();
 		void get_pause();
+		void get_kansas_city_block();
 
 		void get_hardware_type();
 
@@ -80,6 +81,7 @@ class TZX: public PulseQueuedTape {
 		void get_data_block(const DataBlock &);
 		void get_data(const Data &);
 
+		void post_pulses(unsigned int count, unsigned int length);
 		void post_pulse(unsigned int length);
 		void post_gap(unsigned int milliseconds);
 
