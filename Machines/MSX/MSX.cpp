@@ -21,9 +21,45 @@
 #include "../ConfigurationTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 namespace MSX {
+
+/*!
+	Provides a sample source that can programmatically be set to one of two values.
+*/
+class AudioToggle: public Outputs::Speaker::SampleSource {
+	public:
+		AudioToggle(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+			audio_queue_(audio_queue) {}
+
+		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+			for(std::size_t sample = 0; sample < number_of_samples; ++sample) {
+				target[sample] = level_;
+			}
+		}
+
+		void skip_samples(const std::size_t number_of_samples) {}
+
+		void set_output(bool enabled) {
+			if(is_enabled_ == enabled) return;
+			is_enabled_ = enabled;
+			audio_queue_.defer([=] {
+				level_ = enabled ? 4096 : 0;
+			});
+		}
+
+		bool get_output() {
+			return is_enabled_;
+		}
+
+	private:
+		bool is_enabled_ = false;
+		int16_t level_ = 0;
+		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+};
 
 struct AYPortHandler: public GI::AY38910::PortHandler {
 	void set_port_output(bool port_b, uint8_t value) {
@@ -47,8 +83,10 @@ class ConcreteMachine:
 			z80_(*this),
 			i8255_(i8255_port_handler_),
 			ay_(audio_queue_),
-			speaker_(ay_),
-			i8255_port_handler_(*this) {
+			audio_toggle_(audio_queue_),
+			mixer_(ay_, audio_toggle_),
+			speaker_(mixer_),
+			i8255_port_handler_(*this, audio_toggle_) {
 			set_clock_rate(3579545);
 			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 			clear_all_keys();
@@ -96,7 +134,6 @@ class ConcreteMachine:
 		}
 
 		void page_memory(uint8_t value) {
-//			printf("Page: %02x\n", value);
 			for(size_t c = 0; c < 4; ++c) {
 				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
 				write_pointers_[c] = memory_slots_[value & 3].write_pointers[c];
@@ -133,7 +170,7 @@ class ConcreteMachine:
 						break;
 
 						case 0xa2:
-							speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+							update_audio();
 							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
 							*cycle.value = ay_.get_data_output();
 							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
@@ -161,7 +198,7 @@ class ConcreteMachine:
 						break;
 
 						case 0xa0:	case 0xa1:
-							speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+							update_audio();
 							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
 							ay_.set_data_input(*cycle.value);
 							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
@@ -195,7 +232,7 @@ class ConcreteMachine:
 
 		void flush() {
 			vdp_->run_for(time_since_vdp_update_.flush());
-			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+			update_audio();
 			audio_queue_.perform();
 		}
 
@@ -256,21 +293,34 @@ class ConcreteMachine:
 		}
 
 	private:
+		void update_audio() {
+			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+		}
+
 		class i8255PortHandler: public Intel::i8255::PortHandler {
 			public:
-				i8255PortHandler(ConcreteMachine &machine) : machine_(machine) {}
+				i8255PortHandler(ConcreteMachine &machine, AudioToggle &audio_toggle) :
+					machine_(machine), audio_toggle_(audio_toggle) {}
 
 				void set_value(int port, uint8_t value) {
 					switch(port) {
 						case 0:	machine_.page_memory(value);	break;
-						case 2:
+						case 2: {
 							// TODO:
-							//	b7	keyboard click
 							//	b6	caps lock LED
 							//	b5 	audio output
 							//	b4	cassette motor relay
+
+							//	b7: keyboard click
+							bool new_audio_level = !!(value & 0x80);
+							if(audio_toggle_.get_output() != new_audio_level) {
+								machine_.update_audio();
+								audio_toggle_.set_output(new_audio_level);
+							}
+
+							// b0–b3: keyboard line
 							machine_.set_keyboard_line(value & 0xf);
-						break;
+						} break;
 						default: printf("What what what what?\n"); break;
 					}
 				}
@@ -284,6 +334,7 @@ class ConcreteMachine:
 
 			private:
 				ConcreteMachine &machine_;
+				AudioToggle &audio_toggle_;
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
@@ -292,7 +343,9 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		AudioToggle audio_toggle_;
+		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle>> speaker_;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
