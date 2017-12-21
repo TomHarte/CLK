@@ -20,7 +20,7 @@ enum Key: uint16_t {
 
 	Line(0, Key7,				Key6,					Key5,					Key4,				Key3,			Key2,				Key1,			Key0)
 	Line(1, KeySemicolon,		KeyRightSquareBracket,	KeyLeftSquareBracket,	KeyBackSlash,		KeyEquals,		KeyMinus,			Key9,			Key8)
-	Line(2, KeyB,				KeyA,					KeyNA,					KeyForwardSlash,	KeyFullStop,	KeyComma,			KeyQuote,		KeyGrave)
+	Line(2, KeyB,				KeyA,					KeyNA,					KeyForwardSlash,	KeyFullStop,	KeyComma,			KeyGrave,		KeyQuote)
 	Line(3, KeyJ,				KeyI,					KeyH,					KeyG,				KeyF,			KeyE,				KeyD,			KeyC)
 	Line(4, KeyR,				KeyQ,					KeyP,					KeyO,				KeyN,			KeyM,				KeyL,			KeyK)
 	Line(5, KeyZ,				KeyY,					KeyX,					KeyW,				KeyV,			KeyU,				KeyT,			KeyS)
