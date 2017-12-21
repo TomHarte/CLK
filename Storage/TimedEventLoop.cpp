@@ -65,17 +65,28 @@ void TimedEventLoop::jump_to_next_event() {
 
 void TimedEventLoop::set_next_event_time_interval(Time interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event].
-	int64_t denominator = (int64_t)interval.clock_rate * (int64_t)subcycles_until_event_.clock_rate;
+	int64_t denominator = static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.clock_rate);
 	int64_t numerator =
-		(int64_t)subcycles_until_event_.clock_rate * (int64_t)input_clock_rate_ * (int64_t)interval.length +
-		(int64_t)interval.clock_rate * (int64_t)subcycles_until_event_.length;
+		static_cast<int64_t>(subcycles_until_event_.clock_rate) * static_cast<int64_t>(input_clock_rate_) * static_cast<int64_t>(interval.length) +
+		static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.length);
 
-	// Simplify if necessary.
-	if(denominator > std::numeric_limits<unsigned int>::max()) {
+	// Simplify if necessary: try just simplifying the interval and recalculating; if that doesn't
+	// work then try simplifying the whole thing.
+	if(numerator < 0 || denominator < 0 || denominator > std::numeric_limits<unsigned int>::max()) {
+		interval.simplify();
+		denominator = static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.clock_rate);
+		numerator =
+			static_cast<int64_t>(subcycles_until_event_.clock_rate) * static_cast<int64_t>(input_clock_rate_) * static_cast<int64_t>(interval.length) +
+			static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.length);
+	}
+
+	if(numerator < 0 || denominator < 0 || denominator > std::numeric_limits<unsigned int>::max()) {
 		int64_t common_divisor = NumberTheory::greatest_common_divisor(numerator % denominator, denominator);
 		denominator /= common_divisor;
 		numerator /= common_divisor;
 	}
+
+	// TODO: if that doesn't work then reduce precision.
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
