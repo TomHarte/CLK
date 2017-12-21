@@ -114,6 +114,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
 		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)
+		Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)												// TSX
 		Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)											// TZX
 		Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)											// UEF (tape)
 

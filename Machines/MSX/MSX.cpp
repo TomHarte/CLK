@@ -17,6 +17,8 @@
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
+#include "../../Storage/Tape/Tape.hpp"
+
 #include "../CRTMachine.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../KeyboardMachine.hpp"
@@ -61,15 +63,32 @@ class AudioToggle: public Outputs::Speaker::SampleSource {
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 };
 
-struct AYPortHandler: public GI::AY38910::PortHandler {
-	void set_port_output(bool port_b, uint8_t value) {
-//		printf("AY port %c output: %02x\n", port_b ? 'b' : 'a', value);
-	}
+class AYPortHandler: public GI::AY38910::PortHandler {
+	public:
+		AYPortHandler(Storage::Tape::BinaryTapePlayer &tape_player) : tape_player_(tape_player) {}
 
-	uint8_t get_port_input(bool port_b) {
-//		printf("AY port %c input\n", port_b ? 'b' : 'a');
-		return 0xff;
-	}
+		void set_port_output(bool port_b, uint8_t value) {
+			if(port_b) {
+				// Bits 0–3: touchpad handshaking (?)
+				// Bit 4—5: monostable timer pulses
+				// Bit 6: joystick select
+				// Bit 7: code LED, if any
+			}
+		}
+
+		uint8_t get_port_input(bool port_b) {
+			if(!port_b) {
+				// Bits 0–5: Joystick (up, down, left, right, A, B)
+				// Bit 6: keyboard switch (not universal)
+
+				// Bit 7: tape input
+				return 0x7f | (tape_player_.get_input() ? 0x00 : 0x80);
+			}
+			return 0xff;
+		}
+
+	private:
+		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
 
 class ConcreteMachine:
@@ -86,7 +105,9 @@ class ConcreteMachine:
 			audio_toggle_(audio_queue_),
 			mixer_(ay_, audio_toggle_),
 			speaker_(mixer_),
-			i8255_port_handler_(*this, audio_toggle_) {
+			tape_player_(3579545 * 2),
+			i8255_port_handler_(*this, audio_toggle_, tape_player_),
+			ay_port_handler_(tape_player_) {
 			set_clock_rate(3579545);
 			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 			clear_all_keys();
@@ -130,6 +151,11 @@ class ConcreteMachine:
 					memory_slots_[1].read_pointers[(c >> 14) + base] = cartridge_.data() + c;
 				}
 			}
+
+			if(!media.tapes.empty()) {
+				tape_player_.set_tape(media.tapes.front());
+			}
+
 			return true;
 		}
 
@@ -222,6 +248,9 @@ class ConcreteMachine:
 				default: break;
 			}
 
+			// Update the tape. (TODO: allow for sleeping)
+			tape_player_.run_for(cycle.length.as_int());
+
 			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
 			// but otherwise runs without pause.
 			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
@@ -299,8 +328,8 @@ class ConcreteMachine:
 
 		class i8255PortHandler: public Intel::i8255::PortHandler {
 			public:
-				i8255PortHandler(ConcreteMachine &machine, AudioToggle &audio_toggle) :
-					machine_(machine), audio_toggle_(audio_toggle) {}
+				i8255PortHandler(ConcreteMachine &machine, AudioToggle &audio_toggle, Storage::Tape::BinaryTapePlayer &tape_player) :
+					machine_(machine), audio_toggle_(audio_toggle), tape_player_(tape_player) {}
 
 				void set_value(int port, uint8_t value) {
 					switch(port) {
@@ -309,7 +338,9 @@ class ConcreteMachine:
 							// TODO:
 							//	b6	caps lock LED
 							//	b5 	audio output
-							//	b4	cassette motor relay
+
+							//	b4: cassette motor relay
+							tape_player_.set_motor_control(!(value & 0x10));
 
 							//	b7: keyboard click
 							bool new_audio_level = !!(value & 0x80);
@@ -335,6 +366,7 @@ class ConcreteMachine:
 			private:
 				ConcreteMachine &machine_;
 				AudioToggle &audio_toggle_;
+				Storage::Tape::BinaryTapePlayer &tape_player_;
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
@@ -346,6 +378,8 @@ class ConcreteMachine:
 		AudioToggle audio_toggle_;
 		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle> mixer_;
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle>> speaker_;
+
+		Storage::Tape::BinaryTapePlayer tape_player_;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;

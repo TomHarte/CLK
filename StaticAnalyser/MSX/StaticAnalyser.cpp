@@ -65,6 +65,9 @@ void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &dest
 
 	target.media.cartridges = MSXCartridgesFrom(media.cartridges);
 
+	// TODO: tape parsing. Be dumb for now.
+	target.media.tapes = media.tapes;
+
 	if(!target.media.empty()) {
 		target.machine = Target::MSX;
 		target.probability = 1.0;
