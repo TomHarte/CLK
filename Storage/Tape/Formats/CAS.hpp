@@ -39,6 +39,15 @@ class CAS: public Tape {
 
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
+
+		uint8_t input_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+		enum class Phase {
+			Header,
+			Bytes,
+			Gap
+		} phase_ = Phase::Header;
+		int distance_into_phase_ = 0;
 };
 
 }
