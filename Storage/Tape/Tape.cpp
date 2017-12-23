@@ -89,8 +89,7 @@ void TapePlayer::get_next_pulse() {
 	if(tape_) {
 		current_pulse_ = tape_->get_next_pulse();
 		if(tape_->is_at_end()) update_sleep_observer();
-	}
-	else {
+	} else {
 		current_pulse_.length.length = 1;
 		current_pulse_.length.clock_rate = 1;
 		current_pulse_.type = Tape::Pulse::Zero;
