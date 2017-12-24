@@ -52,10 +52,16 @@ CAS::CAS(const char *file_name) {
 		// Add a new chunk for the new incoming data.
 		active_file->chunks.emplace_back();
 
-		// Keep going until another header arrives.
+		// Keep going until another header arrives or the file ends.
 		while(std::memcmp(lookahead, header_signature, sizeof(header_signature)) && !file.eof()) {
 			active_file->chunks.back().push_back(lookahead[0]);
 			get_next(file, lookahead, 1);
+		}
+
+		// If the file ended, flush the lookahead.
+		if(file.eof()) {
+			for(int index = 0; index < 8; index++)
+				active_file->chunks.back().push_back(lookahead[index]);
 		}
 
 		switch(active_file->type) {
