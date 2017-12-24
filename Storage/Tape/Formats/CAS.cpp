@@ -78,6 +78,10 @@ CAS::CAS(const char *file_name) {
 	}
 }
 
+/*!
+	Treating @c buffer as a sliding lookahead, shifts it @c quantity elements to the left and
+	populates the new empty area to the right from @c file.
+*/
 void CAS::get_next(Storage::FileHolder &file, uint8_t (&buffer)[8], std::size_t quantity) {
 	assert(quantity <= 8);
 
@@ -103,7 +107,10 @@ void CAS::virtual_reset() {
 
 Tape::Pulse CAS::virtual_get_next_pulse() {
 	Pulse pulse;
-	pulse.length.clock_rate = 4800;
+	pulse.length.clock_rate = 9600;
+	// Clock rate is four times the baud rate (of 2400), because the quickest thing that might need
+	// to be communicated is a '1', which is two cycles at the baud rate, i.e. four events:
+	// high, low, high, low.
 
 	// If this is a gap, then that terminates a file. If this is already the end
 	// of the file then perpetual gaps await.
@@ -128,10 +135,16 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 		default: break;
 
 		case Phase::Header: {
+			// In the header, all bits are 1s, so let the default value stand. Just check whether the
+			// header is ended and, if so, move on to bytes.
 			distance_into_bit_++;
 			if(distance_into_bit_ == 2) {
 				distance_into_phase_++;
-				if(distance_into_phase_ == (chunk_pointer_ ? 15360 : 3840)) {
+				distance_into_bit_ = 0;
+
+				// This code always produces a 2400 baud signal; so use the appropriate Red Book-supplied
+				// constants to check whether the header has come to an end.
+				if(distance_into_phase_ == (chunk_pointer_ ? 7936 : 31744)) {
 					phase_ = Phase::Bytes;
 					distance_into_phase_ = 0;
 					distance_into_bit_ = 0;
@@ -140,7 +153,8 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 		} break;
 
 		case Phase::Bytes: {
-			int byte_value = files_[file_pointer_].chunks[chunk_pointer_][distance_into_phase_ / 11];
+			// Provide bits with a single '0' start bit and two '1' stop bits.
+			uint8_t byte_value = files_[file_pointer_].chunks[chunk_pointer_][distance_into_phase_ / 11];
 			int bit_offset = distance_into_phase_ % 11;
 			switch(bit_offset) {
 				case 0:		bit = 0;									break;
@@ -149,6 +163,15 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 				case 10:	bit = 1;									break;
 			}
 
+			// Lots of branches below, to the effect that:
+			//
+			// if bit is finished, and if all bytes in chunk have been posted then:
+			//
+			//	- if this is the final chunk in the file then, if there are further files switch to a gap.
+			//	Otherwise note end of file.
+			//
+			//	- otherwise, roll onto the next header.
+			//
 			distance_into_bit_++;
 			if(distance_into_bit_ == (bit ? 4 : 2)) {
 				distance_into_bit_ = 0;
@@ -158,14 +181,16 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 					chunk_pointer_++;
 					if(chunk_pointer_ == files_[file_pointer_].chunks.size()) {
 						chunk_pointer_ = 0;
-						file_pointer_++;
 						phase_ = (chunk_pointer_ == files_.size()) ? Phase::EndOfFile : Phase::Gap;
+					} else {
+						phase_ = Phase::Header;
 					}
 				}
 			}
 		} break;
 	}
 
+	// A '1' is encoded with twice the frequency of a '0'.
 	pulse.length.length = static_cast<unsigned int>(2 - bit);
 	pulse.type = (distance_into_bit_ & 1) ? Pulse::Type::High : Pulse::Type::Low;
 
