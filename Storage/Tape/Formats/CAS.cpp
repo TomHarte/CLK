@@ -120,7 +120,6 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 
 		if(phase_ == Phase::Gap) {
 			phase_ = Phase::Header;
-			file_pointer_ ++;
 			chunk_pointer_ = 0;
 			distance_into_phase_ = 0;
 		}
@@ -181,7 +180,8 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 					chunk_pointer_++;
 					if(chunk_pointer_ == files_[file_pointer_].chunks.size()) {
 						chunk_pointer_ = 0;
-						phase_ = (chunk_pointer_ == files_.size()) ? Phase::EndOfFile : Phase::Gap;
+						file_pointer_++;
+						phase_ = (file_pointer_ == files_.size()) ? Phase::EndOfFile : Phase::Gap;
 					} else {
 						phase_ = Phase::Header;
 					}
