@@ -12,6 +12,9 @@
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
 
+#include <cstdint>
+#include <vector>
+
 namespace Storage {
 namespace Tape {
 
@@ -35,10 +38,35 @@ class CAS: public Tape {
 		bool is_at_end();
 
 	private:
-		Storage::FileHolder file_;
-
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
+
+		// Helper for populating the file list, below.
+		void get_next(Storage::FileHolder &file, uint8_t (&buffer)[8], std::size_t quantity);
+
+		// Storage for the array of files to transcribe into audio.
+		enum class Block {
+			BSAVE,
+			CSAVE,
+			ASCII
+		};
+		struct File {
+			Block type;
+			std::vector<std::vector<std::uint8_t>> chunks;
+		};
+		std::vector<File> files_;
+
+		// Tracker for active state within the file list.
+		std::size_t file_pointer_ = 0;
+		std::size_t chunk_pointer_ = 0;
+		enum class Phase {
+			Header,
+			Bytes,
+			Gap,
+			EndOfFile
+		} phase_ = Phase::Header;
+		std::size_t distance_into_phase_ = 0;
+		std::size_t distance_into_bit_ = 0;
 };
 
 }
