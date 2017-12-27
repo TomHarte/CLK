@@ -132,8 +132,10 @@ class BinaryTapePlayer: public TapePlayer {
 	public:
 		BinaryTapePlayer(unsigned int input_clock_rate);
 		void set_motor_control(bool enabled);
+		bool get_motor_control() const;
+
 		void set_tape_output(bool set);
-		bool get_input();
+		bool get_input() const;
 
 		void run_for(const Cycles cycles);
 
