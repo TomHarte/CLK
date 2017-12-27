@@ -17,6 +17,7 @@
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
+#include "../../Storage/Tape/Parsers/MSX.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../CRTMachine.hpp"
@@ -178,6 +179,31 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+					if(address == 0x1a63) {
+						// TAPION
+						tape_player_.set_motor_control(true);
+						using Parser = Storage::Tape::MSX::Parser;
+						std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
+						ram_[0xFCA4] = new_speed->minimum_start_bit_duration;
+						ram_[0xFCA5] = new_speed->low_high_disrimination_duration;
+
+						*cycle.value = 0xc9;
+						break;
+					}
+
+					if(address == 0x1abc) {
+						// TAPIN
+						using Parser = Storage::Tape::MSX::Parser;
+						Parser::FileSpeed tape_speed;
+						tape_speed.minimum_start_bit_duration = ram_[0xFCA4];
+						tape_speed.low_high_disrimination_duration = ram_[0xFCA5];
+//						printf("Low lim: %02x / win wid: %02x\n", ram_[0xFCA4], ram_[0xFCA5]);
+						int next_byte = Parser::get_byte(tape_speed, tape_player_);
+						z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+
+						*cycle.value = 0xc9;
+						break;
+					}
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
 				break;
