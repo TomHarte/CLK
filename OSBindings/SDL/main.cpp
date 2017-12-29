@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
 					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
 						Utility::TypeRecipient *type_recipient = machine->type_recipient();
 						if(type_recipient) {
-							type_recipient->set_typer_for_string(SDL_GetClipboardText());
+							type_recipient->type_string(SDL_GetClipboardText());
 							break;
 						}
 					}

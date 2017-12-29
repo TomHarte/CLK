@@ -115,7 +115,7 @@ class ConcreteMachine:
 
 		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			if(target.loading_command.length()) {
-				set_typer_for_string(target.loading_command.c_str());
+				type_string(target.loading_command);
 			}
 
 			if(target.acorn.should_shift_restart) {
@@ -414,9 +414,9 @@ class ConcreteMachine:
 			return Cycles(625*128*2);	// accept a new character every two frames
 		}
 
-		void set_typer_for_string(const char *string) override final {
+		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
 		KeyboardMapper &get_keyboard_mapper() override {

@@ -902,7 +902,7 @@ class ConcreteMachine:
 
 			// Type whatever is required.
 			if(target.loading_command.length()) {
-				set_typer_for_string(target.loading_command.c_str());
+				type_string(target.loading_command);
 			}
 
 			insert_media(target.media);
@@ -953,9 +953,9 @@ class ConcreteMachine:
 
 // MARK: - Keyboard
 
-		void set_typer_for_string(const char *string) override final {
+		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
 		HalfCycles get_typer_delay() override final {

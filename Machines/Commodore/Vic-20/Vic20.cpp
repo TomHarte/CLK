@@ -348,7 +348,7 @@ class ConcreteMachine:
 
 		void configure_as_target(const StaticAnalyser::Target &target) override final {
 			if(target.loading_command.length()) {
-				set_typer_for_string(target.loading_command.c_str());
+				type_string(target.loading_command);
 			}
 
 			switch(target.vic20.memory_model) {
@@ -653,9 +653,9 @@ class ConcreteMachine:
 			m6502_.set_irq_line(keyboard_via_.get_interrupt_line());
 		}
 
-		void set_typer_for_string(const char *string) override final {
+		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) override final {
