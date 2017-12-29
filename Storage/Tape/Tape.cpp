@@ -130,11 +130,15 @@ void BinaryTapePlayer::set_motor_control(bool enabled) {
 	}
 }
 
+bool BinaryTapePlayer::get_motor_control() const {
+	return motor_is_running_;
+}
+
 void BinaryTapePlayer::set_tape_output(bool set) {
 	// TODO
 }
 
-bool BinaryTapePlayer::get_input() {
+bool BinaryTapePlayer::get_input() const {
 	return motor_is_running_ && input_level_;
 }
 

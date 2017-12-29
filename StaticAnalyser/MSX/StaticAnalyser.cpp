@@ -8,13 +8,17 @@
 
 #include "StaticAnalyser.hpp"
 
+#include "Tape.hpp"
+
 /*
-DEFB "AB" ; expansion ROM header
-DEFW initcode ; start of the init code, 0 if no initcode
-DEFW callstat; pointer to CALL statement handler, 0 if no such handler
-DEFW device; pointer to expansion device handler, 0 if no such handler
-DEFW basic ; pointer to the start of a tokenized basicprogram, 0 if no basicprogram
-DEFS 6,0 ; room reserved for future extensions
+	Expected standard cartridge format:
+
+		DEFB "AB" ; expansion ROM header
+		DEFW initcode ; start of the init code, 0 if no initcode
+		DEFW callstat; pointer to CALL statement handler, 0 if no such handler
+		DEFW device; pointer to expansion device handler, 0 if no such handler
+		DEFW basic ; pointer to the start of a tokenized basicprogram, 0 if no basicprogram
+		DEFS 6,0 ; room reserved for future extensions
 */
 static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		MSXCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
@@ -29,31 +33,17 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		// Which must be a multiple of 16 kb in size.
 		Storage::Cartridge::Cartridge::Segment segment = segments.front();
 		const size_t data_size = segment.data.size();
-		if(data_size < 0x4000 || data_size & 0x3fff) continue;
+		if(data_size < 0x2000 || data_size & 0x3fff) continue;
 
 		// Check for a ROM header at address 0; TODO: if it's not found then try 0x4000
 		// and consider swapping the image.
 
 		// Check for the expansion ROM header and the reserved bytes.
 		if(segment.data[0] != 0x41 || segment.data[1] != 0x42) continue;
-		bool all_zeroes = true;
-		for(size_t c = 0; c < 6; ++c) {
-			if(segment.data[10 + c] != 0) all_zeroes = false;
-		}
-		if(!all_zeroes) continue;
 
-		// Pick a paging address based on the four pointers.
-		uint16_t start_address = 0xc000;
-		for(size_t c = 0; c < 8; c += 2) {
-			uint16_t code_pointer = static_cast<uint16_t>(segment.data[2 + c] | segment.data[3 + c] << 8);
-			if(code_pointer) {
-				start_address = std::min(static_cast<uint16_t>(code_pointer &~ 0x3fff), start_address);
-			}
-		}
-
-		// That'll do then, but apply the detected start address.
+		// Apply the standard MSX start address.
 		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge({
-			Storage::Cartridge::Cartridge::Segment(start_address, segment.data)
+			Storage::Cartridge::Cartridge::Segment(0x4000, segment.data)
 		}));
 	}
 
@@ -63,10 +53,22 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &destination) {
 	Target target;
 
+	// Obtain only those cartridges which it looks like an MSX would understand.
 	target.media.cartridges = MSXCartridgesFrom(media.cartridges);
 
-	// TODO: tape parsing. Be dumb for now.
-	target.media.tapes = media.tapes;
+	// Check tapes for loadable files.
+	for(const auto &tape : media.tapes) {
+		std::vector<File> files_on_tape = GetFiles(tape);
+		if(!files_on_tape.empty()) {
+			switch(files_on_tape.front().type) {
+				case File::Type::ASCII:				target.loading_command = "RUN\"CAS:\r";			break;
+				case File::Type::TokenisedBASIC:	target.loading_command = "CLOAD\rRUN\r";		break;
+				case File::Type::Binary:			target.loading_command = "BLOAD\"CAS:\",R\r";	break;
+				default: break;
+			}
+			target.media.tapes.push_back(tape);
+		}
+	}
 
 	if(!target.media.empty()) {
 		target.machine = Target::MSX;

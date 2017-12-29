@@ -27,3 +27,6 @@ void Machine::reset_all_keys(Inputs::Keyboard *keyboard) {
 Inputs::Keyboard &Machine::get_keyboard() {
 	return keyboard_;
 }
+
+void Machine::type_string(const std::string &) {
+}

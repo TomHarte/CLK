@@ -115,7 +115,7 @@ struct Target {
 		} amstradcpc;
 	};
 
-	std::string loadingCommand;
+	std::string loading_command;
 	Media media;
 };
 

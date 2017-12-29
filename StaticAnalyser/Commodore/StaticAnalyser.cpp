@@ -82,7 +82,7 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 			string_stream << "1";
 		}
 		string_stream << "\nRUN\n";
-		target.loadingCommand = string_stream.str();
+		target.loading_command = string_stream.str();
 
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {

@@ -97,7 +97,7 @@ void StaticAnalyser::Oric::AddTargets(const Media &media, std::list<Target> &des
 			}
 
 			target.media.tapes.push_back(tape);
-			target.loadingCommand = "CLOAD\"\"\n";
+			target.loading_command = "CLOAD\"\"\n";
 		}
 	}
 

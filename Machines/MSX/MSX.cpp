@@ -17,6 +17,7 @@
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
+#include "../../Storage/Tape/Parsers/MSX.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../CRTMachine.hpp"
@@ -27,7 +28,15 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
+#include "../../Configurable/StandardOptions.hpp"
+
 namespace MSX {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGBComposite | Configurable::QuickLoadTape)
+	);
+}
 
 /*!
 	Provides a sample source that can programmatically be set to one of two values.
@@ -96,7 +105,8 @@ class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public Configurable::Device {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -138,6 +148,10 @@ class ConcreteMachine:
 
 		void configure_as_target(const StaticAnalyser::Target &target) override {
 			insert_media(target.media);
+
+			if(target.loading_command.length()) {
+				type_string(target.loading_command);
+			}
 		}
 
 		bool insert_media(const StaticAnalyser::Media &media) override {
@@ -159,6 +173,10 @@ class ConcreteMachine:
 			return true;
 		}
 
+		void type_string(const std::string &string) override final {
+			input_text_ += string;
+		}
+
 		void page_memory(uint8_t value) {
 			for(size_t c = 0; c < 4; ++c) {
 				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
@@ -178,6 +196,60 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+					if(use_fast_tape_) {
+						if(address == 0x1a63) {
+							// TAPION
+
+							// Enable the tape motor.
+							i8255_.set_register(0xab, 0x8);
+
+							// Disable interrupts.
+							z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
+							z80_.set_value_of_register(CPU::Z80::Register::IFF2, 0);
+
+							// Use the parser to find a header, and if one is found then populate
+							// LOWLIM and WINWID, and reset carry. Otherwise set carry.
+							using Parser = Storage::Tape::MSX::Parser;
+							std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
+							if(new_speed) {
+								ram_[0xfca4] = new_speed->minimum_start_bit_duration;
+								ram_[0xfca5] = new_speed->low_high_disrimination_duration;
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+							} else {
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							}
+
+							// RET.
+							*cycle.value = 0xc9;
+							break;
+						}
+
+						if(address == 0x1abc) {
+							// TAPIN
+
+							// Grab the current values of LOWLIM and WINWID.
+							using Parser = Storage::Tape::MSX::Parser;
+							Parser::FileSpeed tape_speed;
+							tape_speed.minimum_start_bit_duration = ram_[0xfca4];
+							tape_speed.low_high_disrimination_duration = ram_[0xfca5];
+
+							// Ask the tape parser to grab a byte.
+							int next_byte = Parser::get_byte(tape_speed, tape_player_);
+
+							// If a byte was found, return it with carry unset. Otherwise set carry to
+							// indicate error.
+							if(next_byte >= 0) {
+								z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+							} else {
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							}
+
+							// RET.
+							*cycle.value = 0xc9;
+							break;
+						}
+					}
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
 				break;
@@ -243,6 +315,32 @@ class ConcreteMachine:
 
 				case CPU::Z80::PartialMachineCycle::Interrupt:
 					*cycle.value = 0xff;
+
+					// Take this as a convenient moment to jump into the keyboard buffer, if desired.
+					if(!input_text_.empty()) {
+						// TODO: is it safe to assume these addresses?
+						const int buffer_start = 0xfbf0;
+						const int buffer_end = 0xfb18;
+
+						int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
+						int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
+
+						const int buffer_size = buffer_end - buffer_start;
+						int available_space = write_address + buffer_size - read_address - 1;
+
+						const std::size_t characters_to_write = std::min(static_cast<std::size_t>(available_space), input_text_.size());
+						write_address -= buffer_start;
+						for(std::size_t c = 0; c < characters_to_write; ++c) {
+							char character = input_text_[c];
+							ram_[write_address + buffer_start] = static_cast<uint8_t>(character);
+							write_address = (write_address + 1) % buffer_size;
+						}
+						write_address += buffer_start;
+						input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_to_write));
+
+						ram_[0xf3f8] = static_cast<uint8_t>(write_address);
+						ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
+					}
 				break;
 
 				default: break;
@@ -321,6 +419,37 @@ class ConcreteMachine:
 			return keyboard_mapper_;
 		}
 
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return MSX::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				use_fast_tape_ = quickload;
+			}
+
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				get_crt()->set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
+		}
+
 	private:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
@@ -380,6 +509,7 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool use_fast_tape_ = false;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
@@ -404,6 +534,7 @@ class ConcreteMachine:
 
 		uint8_t key_states_[16];
 		int selected_key_line_ = 0;
+		std::string input_text_;
 
 		MSX::KeyboardMapper keyboard_mapper_;
 };

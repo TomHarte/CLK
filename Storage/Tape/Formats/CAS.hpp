@@ -42,22 +42,19 @@ class CAS: public Tape {
 		Pulse virtual_get_next_pulse();
 
 		// Helper for populating the file list, below.
-		void get_next(Storage::FileHolder &file, uint8_t (&buffer)[8], std::size_t quantity);
+		void get_next(Storage::FileHolder &file, uint8_t (&buffer)[10], std::size_t quantity);
 
-		// Storage for the array of files to transcribe into audio.
-		enum class Block {
-			BSAVE,
-			CSAVE,
-			ASCII
+		// Storage for the array of data blobs to transcribe into audio;
+  		// each chunk is preceded by a header which may be long, and is optionally
+    	// also preceded by a gap.
+		struct Chunk {
+  			bool has_gap;
+     		bool long_header;
+			std::vector<std::uint8_t> data;
 		};
-		struct File {
-			Block type;
-			std::vector<std::vector<std::uint8_t>> chunks;
-		};
-		std::vector<File> files_;
+		std::vector<Chunk> chunks_;
 
 		// Tracker for active state within the file list.
-		std::size_t file_pointer_ = 0;
 		std::size_t chunk_pointer_ = 0;
 		enum class Phase {
 			Header,

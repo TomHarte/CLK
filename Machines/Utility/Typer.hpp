@@ -10,6 +10,8 @@
 #define Typer_hpp
 
 #include <memory>
+#include <string>
+
 #include "../KeyboardMachine.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
@@ -50,8 +52,7 @@ class Typer {
 				virtual void typer_reset(Typer *typer) = 0;
 		};
 
-		Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
-		~Typer();
+		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
 
 		void run_for(const HalfCycles duration);
 		bool type_next_character();
@@ -62,7 +63,7 @@ class Typer {
 		const char EndString = 0x03;	// i.e. ASCII end of text
 
 	private:
-		char *string_;
+		std::string string_;
 		std::size_t string_pointer_ = 0;
 
 		HalfCycles frequency_;
@@ -82,15 +83,9 @@ class Typer {
 class TypeRecipient: public Typer::Delegate {
 	public:
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
-		void set_typer_for_string(const char *string, std::unique_ptr<CharacterMapper> character_mapper) {
+		void add_typer(const std::string &string, std::unique_ptr<CharacterMapper> character_mapper) {
 			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this));
 		}
-
-		/*!
-			Provided as a hook for subclasses to implement so that external callers can install a typer
-			without needing inside knowledge as to where the character mapper comes from.
-		*/
-		virtual void set_typer_for_string(const char *string) = 0;
 
 		/*!
 			Provided in order to conform to that part of the Typer::Delegate interface that goes above and

@@ -278,8 +278,8 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
+			if(target.loading_command.length()) {
+				type_string(target.loading_command);
 			}
 
 			insert_media(target.media);
@@ -293,9 +293,9 @@ template<bool is_zx81> class ConcreteMachine:
 			return !media.tapes.empty();
 		}
 
-		void set_typer_for_string(const char *string) override final {
+		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81_));
-			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
 		// Obtains the system ROMs.

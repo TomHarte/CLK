@@ -188,9 +188,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 }
 
 - (void)paste:(NSString *)paste {
-	Utility::TypeRecipient *typeRecipient = _machine->type_recipient();
-	if(typeRecipient)
-		typeRecipient->set_typer_for_string([paste UTF8String]);
+	KeyboardMachine::Machine *keyboardMachine = _machine->type_recipient();
+	if(keyboardMachine)
+		keyboardMachine->type_string([paste UTF8String]);
 }
 
 - (void)applyTarget:(const StaticAnalyser::Target &)target {

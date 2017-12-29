@@ -10,6 +10,7 @@
 #define KeyboardMachine_h
 
 #include <cstdint>
+#include <string>
 
 #include "../Inputs/Keyboard.hpp"
 
@@ -29,6 +30,13 @@ class Machine: public Inputs::Keyboard::Delegate {
 			Instructs that all keys should now be treated as released.
 		*/
 		virtual void clear_all_keys() = 0;
+
+		/*!
+			Causes the machine to attempt to type the supplied string.
+
+			This is best effort. Success or failure is permitted to be a function of machine and current state.
+		*/
+		virtual void type_string(const std::string &);
 
 		/*!
 			Provides a destination for keyboard input.

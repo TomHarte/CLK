@@ -261,8 +261,8 @@ class ConcreteMachine:
 				microdisc_.set_delegate(this);
 			}
 
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
+			if(target.loading_command.length()) {
+				type_string(target.loading_command);
 			}
 
 			if(target.oric.use_atmos_rom) {
@@ -407,9 +407,9 @@ class ConcreteMachine:
 		}
 
 		// for Utility::TypeRecipient::Delegate
-		void set_typer_for_string(const char *string) override final {
+		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
-			Utility::TypeRecipient::set_typer_for_string(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
 		// for Microdisc::Delegate

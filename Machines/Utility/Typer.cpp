@@ -8,23 +8,22 @@
 
 #include "Typer.hpp"
 
-#include <cstdlib>
-#include <cstring>
+#include <sstream>
 
 using namespace Utility;
 
-Typer::Typer(const char *string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
+Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
 		frequency_(frequency),
 		counter_(-delay),
 		delegate_(delegate),
 		character_mapper_(std::move(character_mapper)) {
-	std::size_t string_size = std::strlen(string) + 3;
-	string_ = (char *)std::malloc(string_size);
-	snprintf(string_, string_size, "%c%s%c", Typer::BeginString, string, Typer::EndString);
+	std::ostringstream string_stream;
+	string_stream << Typer::BeginString << string << Typer::EndString;
+	string_ = string_stream.str();
 }
 
 void Typer::run_for(const HalfCycles duration) {
-	if(string_) {
+	if(string_pointer_ < string_.size()) {
 		if(counter_ < 0 && counter_ + duration >= 0) {
 			if(!type_next_character()) {
 				delegate_->typer_reset(this);
@@ -32,7 +31,7 @@ void Typer::run_for(const HalfCycles duration) {
 		}
 
 		counter_ += duration;
-		while(string_ && counter_ > frequency_) {
+		while(string_pointer_ < string_.size() && counter_ > frequency_) {
 			counter_ -= frequency_;
 			if(!type_next_character()) {
 				delegate_->typer_reset(this);
@@ -58,26 +57,16 @@ bool Typer::try_type_next_character() {
 }
 
 bool Typer::type_next_character() {
-	if(string_ == nullptr) return false;
+	if(string_pointer_ == string_.size()) return false;
 
 	if(!try_type_next_character()) {
 		phase_ = 0;
-		if(!string_[string_pointer_]) {
-			std::free(string_);
-			string_ = nullptr;
-			return false;
-		}
-
 		string_pointer_++;
 	} else {
 		phase_++;
 	}
 
 	return true;
-}
-
-Typer::~Typer() {
-	std::free(string_);
 }
 
 // MARK: - Character mapper
