@@ -9,6 +9,8 @@
 #ifndef MSX_hpp
 #define MSX_hpp
 
+#include "../../Configurable/Configurable.hpp"
+
 namespace MSX {
 
 class Machine {
@@ -16,6 +18,8 @@ class Machine {
 		virtual ~Machine();
 		static Machine *MSX();
 };
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
 }
 

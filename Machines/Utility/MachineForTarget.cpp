@@ -64,6 +64,7 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> options;
 
 	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Electron), Electron::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::MSX), MSX::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Oric), Oric::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::Vic20), Commodore::Vic20::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(StaticAnalyser::Target::ZX8081), ZX8081::get_options()));

@@ -28,7 +28,15 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
+#include "../../Configurable/StandardOptions.hpp"
+
 namespace MSX {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGBComposite | Configurable::QuickLoadTape)
+	);
+}
 
 /*!
 	Provides a sample source that can programmatically be set to one of two values.
@@ -97,7 +105,8 @@ class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+	public KeyboardMachine::Machine,
+	public Configurable::Device {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -187,57 +196,59 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(address == 0x1a63) {
-						// TAPION
+					if(use_fast_tape_) {
+						if(address == 0x1a63) {
+							// TAPION
 
-						// Enable the tape motor.
-						i8255_.set_register(0xab, 0x8);
+							// Enable the tape motor.
+							i8255_.set_register(0xab, 0x8);
 
-						// Disable interrupts.
-						z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
-						z80_.set_value_of_register(CPU::Z80::Register::IFF2, 0);
+							// Disable interrupts.
+							z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
+							z80_.set_value_of_register(CPU::Z80::Register::IFF2, 0);
 
-						// Use the parser to find a header, and if one is found then populate
-						// LOWLIM and WINWID, and reset carry. Otherwise set carry.
-						using Parser = Storage::Tape::MSX::Parser;
-						std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
-						if(new_speed) {
-							ram_[0xfca4] = new_speed->minimum_start_bit_duration;
-							ram_[0xfca5] = new_speed->low_high_disrimination_duration;
-							z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
-						} else {
-							z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							// Use the parser to find a header, and if one is found then populate
+							// LOWLIM and WINWID, and reset carry. Otherwise set carry.
+							using Parser = Storage::Tape::MSX::Parser;
+							std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
+							if(new_speed) {
+								ram_[0xfca4] = new_speed->minimum_start_bit_duration;
+								ram_[0xfca5] = new_speed->low_high_disrimination_duration;
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+							} else {
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							}
+
+							// RET.
+							*cycle.value = 0xc9;
+							break;
 						}
 
-						// RET.
-						*cycle.value = 0xc9;
-						break;
-					}
+						if(address == 0x1abc) {
+							// TAPIN
 
-					if(address == 0x1abc) {
-						// TAPIN
+							// Grab the current values of LOWLIM and WINWID.
+							using Parser = Storage::Tape::MSX::Parser;
+							Parser::FileSpeed tape_speed;
+							tape_speed.minimum_start_bit_duration = ram_[0xfca4];
+							tape_speed.low_high_disrimination_duration = ram_[0xfca5];
 
-						// Grab the current values of LOWLIM and WINWID.
-						using Parser = Storage::Tape::MSX::Parser;
-						Parser::FileSpeed tape_speed;
-						tape_speed.minimum_start_bit_duration = ram_[0xfca4];
-						tape_speed.low_high_disrimination_duration = ram_[0xfca5];
+							// Ask the tape parser to grab a byte.
+							int next_byte = Parser::get_byte(tape_speed, tape_player_);
 
-						// Ask the tape parser to grab a byte.
-						int next_byte = Parser::get_byte(tape_speed, tape_player_);
+							// If a byte was found, return it with carry unset. Otherwise set carry to
+							// indicate error.
+							if(next_byte >= 0) {
+								z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+							} else {
+								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							}
 
-						// If a byte was found, return it with carry unset. Otherwise set carry to
-						// indicate error.
-						if(next_byte >= 0) {
-							z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
-							z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
-						} else {
-							z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+							// RET.
+							*cycle.value = 0xc9;
+							break;
 						}
-
-						// RET.
-						*cycle.value = 0xc9;
-						break;
 					}
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
@@ -408,6 +419,37 @@ class ConcreteMachine:
 			return keyboard_mapper_;
 		}
 
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return MSX::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				use_fast_tape_ = quickload;
+			}
+
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				get_crt()->set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
+		}
+
 	private:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
@@ -467,6 +509,7 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool use_fast_tape_ = false;
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
