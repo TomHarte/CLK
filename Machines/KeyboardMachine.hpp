@@ -10,6 +10,7 @@
 #define KeyboardMachine_h
 
 #include <cstdint>
+#include <string>
 
 #include "../Inputs/Keyboard.hpp"
 
