@@ -61,9 +61,9 @@ void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &dest
 		std::vector<File> files_on_tape = GetFiles(tape);
 		if(!files_on_tape.empty()) {
 			switch(files_on_tape.front().type) {
-				case File::Type::ASCII:				target.loading_command = "RUN\"CAS:\n";			break;
-				case File::Type::TokenisedBASIC:	target.loading_command = "CLOAD\nRUN\n";		break;
-				case File::Type::Binary:			target.loading_command = "BLOAD\"CAS:\",R\n";	break;
+				case File::Type::ASCII:				target.loading_command = "RUN\"CAS:\r";			break;
+				case File::Type::TokenisedBASIC:	target.loading_command = "CLOAD\rRUN\r";		break;
+				case File::Type::Binary:			target.loading_command = "BLOAD\"CAS:\",R\r";	break;
 				default: break;
 			}
 			target.media.tapes.push_back(tape);

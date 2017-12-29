@@ -139,6 +139,10 @@ class ConcreteMachine:
 
 		void configure_as_target(const StaticAnalyser::Target &target) override {
 			insert_media(target.media);
+
+			if(target.loading_command.length()) {
+				type_string(target.loading_command);
+			}
 		}
 
 		bool insert_media(const StaticAnalyser::Media &media) override {
@@ -158,6 +162,10 @@ class ConcreteMachine:
 			}
 
 			return true;
+		}
+
+		void type_string(const std::string &string) override final {
+			input_text_ += string;
 		}
 
 		void page_memory(uint8_t value) {
@@ -296,6 +304,32 @@ class ConcreteMachine:
 
 				case CPU::Z80::PartialMachineCycle::Interrupt:
 					*cycle.value = 0xff;
+
+					// Take this as a convenient moment to jump into the keyboard buffer, if desired.
+					if(!input_text_.empty()) {
+						// TODO: is it safe to assume these addresses?
+						const int buffer_start = 0xfbf0;
+						const int buffer_end = 0xfb18;
+
+						int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
+						int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
+
+						const int buffer_size = buffer_end - buffer_start;
+						int available_space = write_address + buffer_size - read_address - 1;
+
+						const std::size_t characters_to_write = std::min(static_cast<std::size_t>(available_space), input_text_.size());
+						write_address -= buffer_start;
+						for(std::size_t c = 0; c < characters_to_write; ++c) {
+							char character = input_text_[c];
+							ram_[write_address + buffer_start] = static_cast<uint8_t>(character);
+							write_address = (write_address + 1) % buffer_size;
+						}
+						write_address += buffer_start;
+						input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_to_write));
+
+						ram_[0xf3f8] = static_cast<uint8_t>(write_address);
+						ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
+					}
 				break;
 
 				default: break;
@@ -457,6 +491,7 @@ class ConcreteMachine:
 
 		uint8_t key_states_[16];
 		int selected_key_line_ = 0;
+		std::string input_text_;
 
 		MSX::KeyboardMapper keyboard_mapper_;
 };

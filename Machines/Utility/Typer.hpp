@@ -88,12 +88,6 @@ class TypeRecipient: public Typer::Delegate {
 		}
 
 		/*!
-			Provided as a hook for subclasses to implement so that external callers can install a typer
-			without needing inside knowledge as to where the character mapper comes from.
-		*/
-		virtual void type_string(const std::string &) = 0;
-
-		/*!
 			Provided in order to conform to that part of the Typer::Delegate interface that goes above and
 			beyond KeyboardMachine::Machine; responds to the end of typing by clearing all keys.
 		*/
