@@ -41,15 +41,18 @@ CAS::CAS(const char *file_name) {
 		chunk.long_header = bytes_are_equal && ((lookahead[0] == 0xd3) || (lookahead[0] == 0xd0) || (lookahead[0] == 0xea));
 		chunk.has_gap = chunk.long_header && (chunks_.size() > 1);
 
-		// Keep going until another header arrives or the file ends.
-		while(std::memcmp(lookahead, header_signature, sizeof(header_signature)) && !file.eof()) {
+		// Keep going until another header arrives or the file ends. Headers require the magic byte sequence,
+		// and also must be eight-byte aligned within the file.
+		while(	!file.eof() &&
+				(std::memcmp(lookahead, header_signature, sizeof(header_signature)) || ((file.tell()-10)&7))) {
 			chunk.data.push_back(lookahead[0]);
 			get_next(file, lookahead, 1);
 		}
 
-		// If the file ended, flush the lookahead.
+		// If the file ended, flush the lookahead. The final thing in it will be a 0xff from the read that
+		// triggered the eof, so don't include that.
 		if(file.eof()) {
-			for(std::size_t index = 0; index < sizeof(lookahead); index++)
+			for(std::size_t index = 0; index < sizeof(lookahead) - 1; index++)
 				chunk.data.push_back(lookahead[index]);
 		}
 	}
