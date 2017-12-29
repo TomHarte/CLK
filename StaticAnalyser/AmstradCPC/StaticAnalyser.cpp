@@ -95,7 +95,7 @@ static void InspectCatalogue(
 
 	// If there's just one file, run that.
 	if(candidate_files.size() == 1) {
-		target.loadingCommand = RunCommandFor(*candidate_files[0]);
+		target.loading_command = RunCommandFor(*candidate_files[0]);
 		return;
 	}
 
@@ -126,7 +126,7 @@ static void InspectCatalogue(
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		std::size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loadingCommand = RunCommandFor(*candidate_files[selected_file]);
+		target.loading_command = RunCommandFor(*candidate_files[selected_file]);
 		return;
 	}
 
@@ -143,14 +143,14 @@ static void InspectCatalogue(
 	if(name_counts.size() == 2) {
 		for(auto &pair : name_counts) {
 			if(pair.second == 1) {
-				target.loadingCommand = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
+				target.loading_command = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
 				return;
 			}
 		}
 	}
 
 	// Desperation.
-	target.loadingCommand = "cat\n";
+	target.loading_command = "cat\n";
 }
 
 static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, StaticAnalyser::Target &target) {
@@ -169,7 +169,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, St
 
 		// This is a system disk, then launch it as though it were CP/M.
 		if(!matched) {
-			target.loadingCommand = "|cpm\n";
+			target.loading_command = "|cpm\n";
 			return true;
 		}
 	}
@@ -191,7 +191,7 @@ void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target
 		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 		// enter and responding to the follow-on prompt to press a key, so just type for
 		// a while. Yuck!
-		target.loadingCommand = "|tape\nrun\"\n1234567890";
+		target.loading_command = "|tape\nrun\"\n1234567890";
 	}
 
 	if(!target.media.disks.empty()) {

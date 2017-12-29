@@ -114,8 +114,8 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) override final {
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
+			if(target.loading_command.length()) {
+				set_typer_for_string(target.loading_command.c_str());
 			}
 
 			if(target.acorn.should_shift_restart) {

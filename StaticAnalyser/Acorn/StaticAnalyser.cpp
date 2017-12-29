@@ -96,7 +96,7 @@ void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &de
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			target.loadingCommand = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			target.loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
 
 			target.media.tapes = media.tapes;
 		}
@@ -116,7 +116,7 @@ void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &de
 			if(bootOption != Catalogue::BootOption::None)
 				target.acorn.should_shift_restart = true;
 			else
-				target.loadingCommand = "*CAT\n";
+				target.loading_command = "*CAT\n";
 		}
 	}
 

@@ -901,8 +901,8 @@ class ConcreteMachine:
 			read_pointers_[3] = roms_[upper_rom_].data();
 
 			// Type whatever is required.
-			if(target.loadingCommand.length()) {
-				set_typer_for_string(target.loadingCommand.c_str());
+			if(target.loading_command.length()) {
+				set_typer_for_string(target.loading_command.c_str());
 			}
 
 			insert_media(target.media);

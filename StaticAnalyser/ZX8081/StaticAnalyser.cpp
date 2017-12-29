@@ -56,9 +56,9 @@ void StaticAnalyser::ZX8081::AddTargets(const Media &media, std::list<Target> &d
 
 			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
 			if(target.zx8081.isZX81) {
-				target.loadingCommand = "J\"\"\n";
+				target.loading_command = "J\"\"\n";
 			} else {
-				target.loadingCommand = "W\n";
+				target.loading_command = "W\n";
 			}
 
 			destination.push_back(target);
