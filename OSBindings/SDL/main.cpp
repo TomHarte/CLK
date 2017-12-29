@@ -439,8 +439,8 @@ int main(int argc, char *argv[]) {
 				case SDL_KEYDOWN:
 					// Syphon off the key-press if it's control+shift+V (paste).
 					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-						KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine()();
-						if(type_recipient) {
+						KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
+						if(keyboard_machine) {
 							keyboard_machine->type_string(SDL_GetClipboardText());
 							break;
 						}
