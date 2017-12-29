@@ -69,11 +69,11 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	*/
 	total_length = total_length / 256.0f;	 		// To get the average, in microseconds.
 	// To convert to the loop count format used by the MSX BIOS.
-	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 1.5f));
+	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
 
 	std::unique_ptr<FileSpeed> result(new FileSpeed);
-	result->minimum_start_bit_duration = int_result + ((int_result + 1) >> 1);
-	result->low_high_disrimination_duration = int_result;
+	result->minimum_start_bit_duration = int_result;
+	result->low_high_disrimination_duration = (int_result * 3) >> 2;
 
 	return result;
 }
@@ -99,19 +99,27 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	*/
 	float minimum_start_bit_duration = static_cast<float>(speed.minimum_start_bit_duration) * 0.00001145f;
 	while(!tape_player.get_tape()->is_at_end()) {
-		while(!tape_player.get_tape()->is_at_end() && !tape_player.get_input()) {
+		// Find a negative transition.
+		while(!tape_player.get_tape()->is_at_end() && tape_player.get_input()) {
 			tape_player.run_for_input_pulse();
 		}
 
-		bool level = true;
+		// Measure the following cycle (i.e. two transitions).
+		bool level = tape_player.get_input();
 		float time_to_transition = 0.0f;
+		int transitions = 0;
 		while(!tape_player.get_tape()->is_at_end()) {
 			time_to_transition += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
-			if(level != tape_player.get_input())
-				break;
+			if(level != tape_player.get_input()) {
+				level = tape_player.get_input();
+				transitions++;
+				if(transitions == 2)
+					break;
+			}
 		}
 
+		// Check length against 'LOWLIM' (i.e. the minimum start bit duration).
 		if(time_to_transition > minimum_start_bit_duration) {
 			break;
 		}
@@ -125,10 +133,10 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	*/
 	int result = 0;
 	const int cycles_per_window = static_cast<int>(
+		0.5f +
 		static_cast<float>(speed.low_high_disrimination_duration) *
 		0.0000173f *
-		static_cast<float>(tape_player.get_input_clock_rate()) *
-		2.0f
+		static_cast<float>(tape_player.get_input_clock_rate())
 	);
 	int bits_left = 8;
 	bool level = tape_player.get_input();
@@ -139,8 +147,10 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		while(!tape_player.get_tape()->is_at_end() && cycles_remaining) {
 			const int cycles_until_next_event = static_cast<int>(tape_player.get_cycles_until_next_event());
 			const int cycles_to_run_for = std::min(cycles_until_next_event, cycles_remaining);
+
 			cycles_remaining -= cycles_to_run_for;
 			tape_player.run_for(Cycles(cycles_to_run_for));
+
 			if(level != tape_player.get_input()) {
 				level = tape_player.get_input();
 				transitions++;
