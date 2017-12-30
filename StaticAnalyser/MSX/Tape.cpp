@@ -77,13 +77,15 @@ std::vector<File> StaticAnalyser::MSX::GetFiles(const std::shared_ptr<Storage::T
 				file_speed = Parser::find_header(tape_player);
 				if(!file_speed) break;
 				int c = 256;
+				bool contains_end_of_file = false;
 				while(c--) {
 					int byte = Parser::get_byte(*file_speed, tape_player);
 					if(byte == -1) break;
+					contains_end_of_file |= (byte == 0x1a);
 					file.data.push_back(static_cast<uint8_t>(byte));
 				}
 				if(c != -1) break;
-				if(file.data.back() == 0x1a) {
+				if(contains_end_of_file) {
 					files.push_back(std::move(file));
 					break;
 				}
