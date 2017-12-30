@@ -62,6 +62,7 @@ bool Typer::type_next_character() {
 	if(!try_type_next_character()) {
 		phase_ = 0;
 		string_pointer_++;
+		if(string_pointer_ == string_.size()) return false;
 	} else {
 		phase_++;
 	}
