@@ -7,8 +7,9 @@
 //
 
 #import "CSMachine.h"
+#import "CSFastLoading.h"
 
-@interface CSMSX : CSMachine
+@interface CSMSX : CSMachine <CSFastLoading>
 
 - (instancetype)init;
 
