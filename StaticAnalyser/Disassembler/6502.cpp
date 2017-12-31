@@ -6,24 +6,25 @@
 //  Copyright © 2016 Thomas Harte. All rights reserved.
 //
 
-#include "Disassembler6502.hpp"
-#include <map>
+#include "6502.hpp"
+
+#include "Kernel.hpp"
 
 using namespace StaticAnalyser::MOS6502;
+namespace  {
 
-struct PartialDisassembly {
-	Disassembly disassembly;
-	std::vector<uint16_t> remaining_entry_points;
-};
+using PartialDisassembly = StaticAnalyser::Disassembly::PartialDisassembly<Disassembly, uint16_t>;
+
+struct MOS6502Disassembler {
 
 static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
 	disassembly.disassembly.internal_calls.insert(entry_point);
 	uint16_t address = entry_point;
-	while(1) {
+	while(true) {
 		std::size_t local_address = address_mapper(address);
 		if(local_address >= memory.size()) return;
 
-		struct Instruction instruction;
+		Instruction instruction;
 		instruction.address = address;
 		address++;
 
@@ -307,31 +308,13 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 	}
 }
 
-Disassembly StaticAnalyser::MOS6502::Disassemble(const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, std::vector<uint16_t> entry_points) {
-	PartialDisassembly partialDisassembly;
-	partialDisassembly.remaining_entry_points = entry_points;
+};
 
-	while(!partialDisassembly.remaining_entry_points.empty()) {
-		// pull the next entry point from the back of the vector
-		uint16_t next_entry_point = partialDisassembly.remaining_entry_points.back();
-		partialDisassembly.remaining_entry_points.pop_back();
+}	// end of anonymous namespace
 
-		// if that address has already bene visited, forget about it
-		if(partialDisassembly.disassembly.instructions_by_address.find(next_entry_point) != partialDisassembly.disassembly.instructions_by_address.end()) continue;
-
-		// if it's outgoing, log it as such and forget about it; otherwise disassemble
-		std::size_t mapped_entry_point = address_mapper(next_entry_point);
-		if(mapped_entry_point >= memory.size())
-			partialDisassembly.disassembly.outward_calls.insert(next_entry_point);
-		else
-			AddToDisassembly(partialDisassembly, memory, address_mapper, next_entry_point);
-	}
-
-	return std::move(partialDisassembly.disassembly);
-}
-
-std::function<std::size_t(uint16_t)> StaticAnalyser::MOS6502::OffsetMapper(uint16_t start_address) {
-	return [start_address](uint16_t argument) {
-		return static_cast<std::size_t>(argument - start_address);
-	};
+Disassembly StaticAnalyser::MOS6502::Disassemble(
+	const std::vector<uint8_t> &memory,
+	const std::function<std::size_t(uint16_t)> &address_mapper,
+	std::vector<uint16_t> entry_points) {
+	return StaticAnalyser::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points);
 }

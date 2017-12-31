@@ -8,7 +8,7 @@
 
 #include "StaticAnalyser.hpp"
 
-#include "../Disassembler/Disassembler6502.hpp"
+#include "../Disassembler/6502.hpp"
 
 using namespace StaticAnalyser::Atari;
 

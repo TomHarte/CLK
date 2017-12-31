@@ -9,7 +9,8 @@
 #include "StaticAnalyser.hpp"
 
 #include "Tape.hpp"
-#include "../Disassembler/Disassembler6502.hpp"
+#include "../Disassembler/6502.hpp"
+#include "../Disassembler/AddressMapper.hpp"
 
 using namespace StaticAnalyser::Oric;
 
@@ -88,7 +89,7 @@ void StaticAnalyser::Oric::AddTargets(const Media &media, std::list<Target> &des
 				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};
 					StaticAnalyser::MOS6502::Disassembly disassembly =
-						StaticAnalyser::MOS6502::Disassemble(file.data, StaticAnalyser::MOS6502::OffsetMapper(file.starting_address), entry_points);
+						StaticAnalyser::MOS6502::Disassemble(file.data, StaticAnalyser::Disassembler::OffsetMapper(file.starting_address), entry_points);
 
 					int basic10_score = Basic10Score(disassembly);
 					int basic11_score = Basic11Score(disassembly);
