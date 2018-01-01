@@ -40,6 +40,15 @@ enum class Atari2600PagingModel {
 	Pitfall2
 };
 
+enum class MSXCartridgeType {
+	None,
+	Konami,
+	KonamiWithSCC,
+	ASCII8kb,
+	ASCII16kb,
+	RType
+};
+
 enum class ZX8081MemoryModel {
 	Unexpanded,
 	SixteenKB,
@@ -113,6 +122,10 @@ struct Target {
 		struct {
 			AmstradCPCModel model;
 		} amstradcpc;
+
+		struct {
+			MSXCartridgeType paging_model;
+		} msx;
 	};
 
 	std::string loading_command;
