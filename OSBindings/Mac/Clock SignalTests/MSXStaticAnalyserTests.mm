@@ -220,7 +220,10 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		}
 
 		// assert equality
-		XCTAssert(targets.front().msx.paging_model == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front().msx.paging_model);
+		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file");
+		if(!targets.empty()) {
+			XCTAssert(targets.front().msx.paging_model == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front().msx.paging_model);
+		}
 	}
 }
 

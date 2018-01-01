@@ -46,7 +46,6 @@ enum class MSXCartridgeType {
 	KonamiWithSCC,
 	ASCII8kb,
 	ASCII16kb,
-	RType,
 	FMPac
 };
 
