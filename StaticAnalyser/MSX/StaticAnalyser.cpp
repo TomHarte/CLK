@@ -9,6 +9,8 @@
 #include "StaticAnalyser.hpp"
 
 #include "Tape.hpp"
+#include "../Disassembler/Z80.hpp"
+#include "../Disassembler/AddressMapper.hpp"
 
 /*
 	Expected standard cartridge format:
@@ -21,7 +23,7 @@
 		DEFS 6,0 ; room reserved for future extensions
 */
 static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		MSXCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+		MSXCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges, StaticAnalyser::Target &target) {
 	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> msx_cartridges;
 
 	for(const auto &cartridge : cartridges) {
@@ -41,6 +43,46 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		// Check for the expansion ROM header and the reserved bytes.
 		if(segment.data[0] != 0x41 || segment.data[1] != 0x42) continue;
 
+		uint16_t init_address = static_cast<uint16_t>(segment.data[2] | (segment.data[3] << 8));
+		// TODO: check for a rational init address?
+
+		// If this ROM is greater than 32kb in size then some sort of MegaROM scheme must
+		// be at play; disassemble to try to figure it out.
+		if(data_size > 0x4000) {
+			std::vector<uint8_t> first_segment;
+			first_segment.insert(first_segment.begin(), segment.data.begin(), segment.data.begin() + 32768);
+			StaticAnalyser::Z80::Disassembly disassembly =
+				StaticAnalyser::Z80::Disassemble(
+					first_segment,
+					StaticAnalyser::Disassembler::OffsetMapper(0x4000),
+					{ init_address }
+				);
+
+			// Look for LD (nnnn), A instructions, and collate those addresses.
+			using Instruction = StaticAnalyser::Z80::Instruction;
+			std::map<uint16_t, int> address_counts;
+			for(const auto &instruction_pair : disassembly.instructions_by_address) {
+				if(	instruction_pair.second.operation == Instruction::Operation::LD &&
+					instruction_pair.second.destination == Instruction::Location::Operand_Indirect &&
+					instruction_pair.second.source == Instruction::Location::A) {
+					address_counts[static_cast<uint16_t>(instruction_pair.second.operand)]++;
+				}
+			}
+
+			// Sort possible cartridge types.
+			using Possibility = std::pair<StaticAnalyser::MSXCartridgeType, int>;
+			std::vector<Possibility> possibilities;
+			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::Konami, address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000]));
+			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::KonamiWithSCC, address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000]));
+			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII8kb, address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800]));
+			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII16kb, address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff]));
+			std::sort(possibilities.begin(), possibilities.end(), [](const Possibility &a, const Possibility &b) {
+				return a.second > b.second;
+			});
+
+			target.msx.paging_model = possibilities[0].first;
+		}
+
 		// Apply the standard MSX start address.
 		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge({
 			Storage::Cartridge::Cartridge::Segment(0x4000, segment.data)
@@ -54,7 +96,7 @@ void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &dest
 	Target target;
 
 	// Obtain only those cartridges which it looks like an MSX would understand.
-	target.media.cartridges = MSXCartridgesFrom(media.cartridges);
+	target.media.cartridges = MSXCartridgesFrom(media.cartridges, target);
 
 	// Check tapes for loadable files.
 	for(const auto &tape : media.tapes) {
