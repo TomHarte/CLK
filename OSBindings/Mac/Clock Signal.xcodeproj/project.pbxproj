@@ -267,6 +267,8 @@
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B95FA9D1F11893B0008E395 /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
+		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
+		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B9C9D751FF81CC00030A129 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D731FF81CC00030A129 /* Z80.cpp */; };
 		4B9C9D781FF81ED30030A129 /* AddressMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */; };
 		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
@@ -901,6 +903,8 @@
 		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
+		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
+		4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSROMFetcher.mm; sourceTree = "<group>"; };
 		4B9C9D731FF81CC00030A129 /* Z80.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Z80.cpp; path = ../../StaticAnalyser/Disassembler/Z80.cpp; sourceTree = "<group>"; };
 		4B9C9D741FF81CC00030A129 /* Z80.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = ../../StaticAnalyser/Disassembler/Z80.hpp; sourceTree = "<group>"; };
 		4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AddressMapper.cpp; path = ../../StaticAnalyser/Disassembler/AddressMapper.cpp; sourceTree = "<group>"; };
@@ -1501,9 +1505,11 @@
 				4B2A53951D117D36003C6002 /* CSMachine.h */,
 				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */,
+				4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */,
 				4B2A53971D117D36003C6002 /* KeyCodes.h */,
 				4B8FE2251DA1DE2D0090D3CE /* NSBundle+DataResource.h */,
 				4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */,
+				4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */,
 				4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */,
 				4B2A53961D117D36003C6002 /* CSMachine.mm */,
 				4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */,
@@ -3480,6 +3486,7 @@
 				4B4518871F75E91A00926311 /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
+				4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */,
 				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
 				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
@@ -3527,6 +3534,7 @@
 			files = (
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */,
+				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,

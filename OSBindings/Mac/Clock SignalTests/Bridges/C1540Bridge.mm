@@ -9,6 +9,7 @@
 #import "C1540Bridge.h"
 #include "C1540.hpp"
 #include "NSData+StdVector.h"
+#include "CSROMFetcher.hpp"
 
 class VanillaSerialPort: public Commodore::Serial::Port {
 	public:
@@ -20,7 +21,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 };
 
 @implementation C1540Bridge {
-	Commodore::C1540::Machine _c1540;
+	std::unique_ptr<Commodore::C1540::Machine> _c1540;
 	std::shared_ptr<Commodore::Serial::Bus> _serialBus;
 	std::shared_ptr<VanillaSerialPort> _serialPort;
 }
@@ -31,18 +32,16 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 		_serialBus.reset(new ::Commodore::Serial::Bus);
 		_serialPort.reset(new VanillaSerialPort);
 
-		_c1540.set_serial_bus(_serialBus);
+		_c1540.reset(new Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
+		CSApplyROMFetcher(*_c1540);
+		_c1540->set_serial_bus(_serialBus);
 		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 	}
 	return self;
 }
 
-- (void)setROM:(NSData *)ROM {
-	_c1540.set_rom(ROM.stdVector8);
-}
-
 - (void)runForCycles:(NSUInteger)numberOfCycles {
-	_c1540.run_for(Cycles((int)numberOfCycles));
+	_c1540->run_for(Cycles((int)numberOfCycles));
 }
 
 - (void)setAttentionLine:(BOOL)attentionLine {

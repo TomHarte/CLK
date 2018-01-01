@@ -12,12 +12,6 @@ class C1540Tests: XCTestCase {
 
 	fileprivate func with1540(_ action: (C1540Bridge) -> ()) {
 		let bridge = C1540Bridge()
-
-		if let path = Bundle.main.path(forResource: "1541", ofType: "bin", inDirectory: "ROMImages/Commodore1540") {
-			let data = try? Data(contentsOf: URL(fileURLWithPath: path))
-			bridge.setROM(data)
-		}
-
 		action(bridge)
 	}
 
