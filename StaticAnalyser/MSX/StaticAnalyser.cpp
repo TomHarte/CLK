@@ -12,6 +12,8 @@
 #include "../Disassembler/Z80.hpp"
 #include "../Disassembler/AddressMapper.hpp"
 
+#include <algorithm>
+
 /*
 	Expected standard cartridge format:
 
