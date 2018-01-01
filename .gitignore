@@ -18,9 +18,10 @@ DerivedData
 *.xcuserstate
 .DS_Store
 
-# Exclude system ROMs
+# Exclude system ROMs and unit test ROMs
 ROMImages/*
-OSBindings/Mac/Clock SignalTests/Atari\ ROMs
+OSBindings/Mac/Clock SignalTests/Atari ROMs
+OSBindings/Mac/Clock SignalTests/MSX ROMs
 
 # Exclude intermediate build products
 *.o

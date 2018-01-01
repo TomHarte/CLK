@@ -269,6 +269,8 @@
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
+		4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */; };
+		4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B98A1CD1FFADEC400ADF63B /* MSX ROMs */; };
 		4B9C9D751FF81CC00030A129 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D731FF81CC00030A129 /* Z80.cpp */; };
 		4B9C9D781FF81ED30030A129 /* AddressMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */; };
 		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
@@ -905,6 +907,8 @@
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
 		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
 		4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSROMFetcher.mm; sourceTree = "<group>"; };
+		4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MSXStaticAnalyserTests.mm; sourceTree = "<group>"; };
+		4B98A1CD1FFADEC400ADF63B /* MSX ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "MSX ROMs"; sourceTree = "<group>"; };
 		4B9C9D731FF81CC00030A129 /* Z80.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Z80.cpp; path = ../../StaticAnalyser/Disassembler/Z80.cpp; sourceTree = "<group>"; };
 		4B9C9D741FF81CC00030A129 /* Z80.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = ../../StaticAnalyser/Disassembler/Z80.hpp; sourceTree = "<group>"; };
 		4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AddressMapper.cpp; path = ../../StaticAnalyser/Disassembler/AddressMapper.cpp; sourceTree = "<group>"; };
@@ -1425,6 +1429,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
@@ -2437,6 +2442,7 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */,
 				4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
@@ -3093,6 +3099,7 @@
 				4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */,
 				4BB2997D1B587D8400A49093 /* ldxay in Resources */,
 				4BB299D71B587D8400A49093 /* staax in Resources */,
+				4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */,
 				4BB2990C1B587D8400A49093 /* asoax in Resources */,
 				4BB299191B587D8400A49093 /* bita in Resources */,
 				4BB2992A1B587D8400A49093 /* cia2ta in Resources */,
@@ -3551,6 +3558,7 @@
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
+				4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */,
 				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
