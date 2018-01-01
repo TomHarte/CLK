@@ -39,18 +39,27 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		const size_t data_size = segment.data.size();
 		if(data_size < 0x2000 || data_size & 0x3fff) continue;
 
-		// Check for a ROM header at address 0; TODO: if it's not found then try 0x4000
-		// and consider swapping the image.
+		// Check for a ROM header at address 0; if it's not found then try 0x4000
+		// and adjust the start address;
+		uint16_t start_address = 0;
+		bool found_start = false;
+		if(segment.data[0] == 0x41 && segment.data[1] == 0x42) {
+			start_address = 0x4000;
+			found_start = true;
+		} else if(segment.data.size() >= 0x8000 && segment.data[0x4000] == 0x41 && segment.data[0x4001] == 0x42) {
+			start_address = 0;
+			found_start = true;
+		}
 
-		// Check for the expansion ROM header and the reserved bytes.
-		if(segment.data[0] != 0x41 || segment.data[1] != 0x42) continue;
+		// Reject cartridge if the ROM header wasn't found.
+		if(!found_start) continue;
 
 		uint16_t init_address = static_cast<uint16_t>(segment.data[2] | (segment.data[3] << 8));
 		// TODO: check for a rational init address?
 
-		// If this ROM is greater than 32kb in size then some sort of MegaROM scheme must
+		// If this ROM is greater than 48kb in size then some sort of MegaROM scheme must
 		// be at play; disassemble to try to figure it out.
-		if(data_size > 0x4000) {
+		if(data_size > 0xc000) {
 			std::vector<uint8_t> first_segment;
 			first_segment.insert(first_segment.begin(), segment.data.begin(), segment.data.begin() + 32768);
 			StaticAnalyser::Z80::Disassembly disassembly =
@@ -87,7 +96,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// Apply the standard MSX start address.
 		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge({
-			Storage::Cartridge::Cartridge::Segment(0x4000, segment.data)
+			Storage::Cartridge::Cartridge::Segment(start_address, segment.data)
 		}));
 	}
 
