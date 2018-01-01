@@ -65,7 +65,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 			StaticAnalyser::Z80::Disassembly disassembly =
 				StaticAnalyser::Z80::Disassemble(
 					first_segment,
-					StaticAnalyser::Disassembler::OffsetMapper(0x4000),
+					StaticAnalyser::Disassembler::OffsetMapper(start_address),
 					{ init_address }
 				);
 
