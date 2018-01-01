@@ -46,7 +46,8 @@ enum class MSXCartridgeType {
 	KonamiWithSCC,
 	ASCII8kb,
 	ASCII16kb,
-	RType
+	RType,
+	FMPac
 };
 
 enum class ZX8081MemoryModel {
