@@ -10,6 +10,7 @@
 #define StaticAnalyser_Disassembler_Z80_hpp
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
