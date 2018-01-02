@@ -60,11 +60,11 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		// If this ROM is greater than 48kb in size then some sort of MegaROM scheme must
 		// be at play; disassemble to try to figure it out.
 		if(data_size > 0xc000) {
-			std::vector<uint8_t> first_segment;
-			first_segment.insert(first_segment.begin(), segment.data.begin(), segment.data.begin() + 32768);
+			std::vector<uint8_t> first_8k;
+			first_8k.insert(first_8k.begin(), segment.data.begin(), segment.data.begin() + 8192);
 			StaticAnalyser::Z80::Disassembly disassembly =
 				StaticAnalyser::Z80::Disassemble(
-					first_segment,
+					first_8k,
 					StaticAnalyser::Disassembler::OffsetMapper(start_address),
 					{ init_address }
 				);
@@ -83,12 +83,15 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 			// Sort possible cartridge types.
 			using Possibility = std::pair<StaticAnalyser::MSXCartridgeType, int>;
 			std::vector<Possibility> possibilities;
+			// Add to list in order of declining probability, so that stable_sort below prefers the more likely option
+			// in a tie.
+			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII8kb, address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800]));
 			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::Konami, address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000]));
 			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::KonamiWithSCC, address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000]));
-			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII8kb, address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800]));
 			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII16kb, address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff]));
-			std::sort(possibilities.begin(), possibilities.end(), [](const Possibility &a, const Possibility &b) {
-				return a.second > b.second;
+			std::stable_sort(possibilities.begin(), possibilities.end(), [](const Possibility &a, const Possibility &b) {
+				if(a.second != b.second) return a.second > b.second;
+				return a.first > b.first;
 			});
 
 			target.msx.paging_model = possibilities[0].first;

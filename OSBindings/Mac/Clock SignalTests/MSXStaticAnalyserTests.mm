@@ -199,12 +199,8 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 @implementation MSXStaticAnalyserTests
 
 - (void)testROMs {
-	int errorBuckets[6] = {0, 0, 0, 0, 0, 0};
 	NSString *basePath = [[[NSBundle bundleForClass:[self class]] resourcePath] stringByAppendingPathComponent:@"MSX ROMs"];
 	for(NSString *testFile in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:nil]) {
-		if([testFile rangeOfString:@"Animal Land"].location != NSNotFound) {
-			NSLog(@"");
-		}
 		NSString *fullPath = [basePath stringByAppendingPathComponent:testFile];
 
 		// get a SHA1 for the file
@@ -222,22 +218,12 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		if(!romRecord) {
 			continue;
 		}
-		if(romRecord.cartridgeType != StaticAnalyser::MSXCartridgeType::Konami) {
-			continue;
-		}
 
 		// assert equality
-		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file");
+		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file", testFile);
 		if(!targets.empty()) {
 			XCTAssert(targets.front().msx.paging_model == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front().msx.paging_model);
-			if(targets.front().msx.paging_model != romRecord.cartridgeType) {
-				errorBuckets[(int)romRecord.cartridgeType]++;
-			}
 		}
-	}
-
-	for(int c = 0; c < 6; ++c) {
-		if(errorBuckets[c]) NSLog(@"%d errors for %d", errorBuckets[c], c);
 	}
 }
 
