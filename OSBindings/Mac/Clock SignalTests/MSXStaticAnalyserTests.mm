@@ -35,7 +35,7 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"2639792df6f7c7cfaffc2616b0e1849f18897ace", ASCII16kb)		// Aliens. Alien 2 (1987)(Square)(JP).rom
 	Record(@"0d9c472cf7687b86f3fe2e5af6545a26a0efd5fc", ASCII16kb)		// Aliens. Alien 2 (1987)(Square)(JP)[a2].rom
 	Record(@"5380e913d8dac23470446844cab21f6921101af8", ASCII16kb)		// Aliens. Alien 2 (1987)(Square)(JP)[a].rom
-	Record(@"db33011d006201b3bd3bbc4c7c952da2990f36e4", Konami)			// Animal Land Murder Case (1987)(Enix)(JP).rom
+	Record(@"db33011d006201b3bd3bbc4c7c952da2990f36e4", KonamiWithSCC)	// Animal Land Murder Case (1987)(Enix)(JP).rom
 	Record(@"495876c504bdc4de24860ea15b25dda8f3b06c49", ASCII8kb)		// Animal Land Murder Case (1987)(Enix)(JP)[a].rom
 	Record(@"72815a7213f899a454bcf76733834ba499d35cd8", ASCII16kb)		// Astro Marine Corps (1989)(Dinamic Software)(ES).rom
 	Record(@"709fb35338f21897e275237cc4c5615d0a5c2753", ASCII8kb)		// Batman (1986)(Pack In Video)(JP).rom
@@ -53,7 +53,7 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"e6419519c2d3247ea395e4feaa494a2e23e469ce", ASCII8kb)		// Deep Dungeon (1988)(Scaptrust)(JP).rom
 	Record(@"d82135a5e28b750c44995af116db890a15f6428a", ASCII8kb)		// Deep Dungeon II (1988)(Scaptrust)(JP).rom
 	Record(@"63d4e39c59f24f880809caa534d7a46ae83f4c9f", ASCII16kb)		// Demon Crystal Saga II - Knither Special (1987)(Radio Wave Newspaper Publisher)(JP).rom
-	Record(@"d5b164797bc969b55c1a6f4006a4535c3fb03cf0", Konami)			// Demonia (1986)(Microids)(GB)(fr).rom
+	Record(@"d5b164797bc969b55c1a6f4006a4535c3fb03cf0", ASCII8kb)		// Demonia (1986)(Microids)(GB)(fr).rom
 	Record(@"7e9a9ce7c18206b325830e9cdcbb27179118de96", Konami)			// Dragon Quest (1986)(Enix)(JP).rom
 	Record(@"7b94a728a5945a53d518c18994e1e09a09ec3c1b", ASCII8kb)		// Dragon Quest (1986)(Enix)(JP)[a].rom
 	Record(@"3df7c19f739d74d6efdfd8151343e5a55d4ac842", ASCII8kb)		// Dragon Quest II (1988)(Enix)(JP).rom
@@ -102,7 +102,7 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"d63e20369f98487767810a0c57603bef6a2a07e5", KonamiWithSCC)	// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[a][RC-751].rom
 	Record(@"c66483cd0d83292e4f2b54a3e89bd96b8bf9abb2", KonamiWithSCC)	// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[penguin version][RC-751].rom
 	Record(@"ab30cdeaacbdf14e6366d43d881338178fc665cb", KonamiWithSCC)	// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[RC-751].rom
-	Record(@"fd7b23a4f1c2058b966b5ddd52cf7ae44a0eebb0", ASCII8kb)		// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[SCC][RC-751].rom
+	Record(@"fd7b23a4f1c2058b966b5ddd52cf7ae44a0eebb0", ASCII8kb)		// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[[SCC]][RC-751].rom
 	Record(@"4127844955388f812e33437f618936dc98944c0a", KonamiWithSCC)	// Gradius 2. Nemesis 2 (1987)(Konami)(JP)[t][RC-751].rom
 	Record(@"50efb7040339632cf8bddbc1d3eaae1fb2e2188f", ASCII8kb)		// Gradius. Nemesis (1986)(Konami)(JP)[a][RC-742].rom
 	Record(@"f0e4168ea18188fca2581526c2503223b9a28581", Konami)			// Gradius. Nemesis (1986)(Konami)(JP)[a][SCC][RC-742].rom
@@ -199,8 +199,12 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 @implementation MSXStaticAnalyserTests
 
 - (void)testROMs {
+	int errorBuckets[6] = {0, 0, 0, 0, 0, 0};
 	NSString *basePath = [[[NSBundle bundleForClass:[self class]] resourcePath] stringByAppendingPathComponent:@"MSX ROMs"];
 	for(NSString *testFile in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:nil]) {
+		if([testFile rangeOfString:@"Animal Land"].location != NSNotFound) {
+			NSLog(@"");
+		}
 		NSString *fullPath = [basePath stringByAppendingPathComponent:testFile];
 
 		// get a SHA1 for the file
@@ -218,12 +222,22 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		if(!romRecord) {
 			continue;
 		}
+		if(romRecord.cartridgeType != StaticAnalyser::MSXCartridgeType::Konami) {
+			continue;
+		}
 
 		// assert equality
 		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file");
 		if(!targets.empty()) {
 			XCTAssert(targets.front().msx.paging_model == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front().msx.paging_model);
+			if(targets.front().msx.paging_model != romRecord.cartridgeType) {
+				errorBuckets[(int)romRecord.cartridgeType]++;
+			}
 		}
+	}
+
+	for(int c = 0; c < 6; ++c) {
+		if(errorBuckets[c]) NSLog(@"%d errors for %d", errorBuckets[c], c);
 	}
 }
 
