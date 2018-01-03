@@ -59,42 +59,129 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// If this ROM is greater than 48kb in size then some sort of MegaROM scheme must
 		// be at play; disassemble to try to figure it out.
+		target.msx.paging_model = StaticAnalyser::MSXCartridgeType::None;
 		if(data_size > 0xc000) {
-			std::vector<uint8_t> first_8k;
-			first_8k.insert(first_8k.begin(), segment.data.begin(), segment.data.begin() + 8192);
+			std::vector<uint8_t> first_16k;
+			first_16k.insert(first_16k.begin(), segment.data.begin(), segment.data.begin() + 8192);
 			StaticAnalyser::Z80::Disassembly disassembly =
 				StaticAnalyser::Z80::Disassemble(
-					first_8k,
+					first_16k,
 					StaticAnalyser::Disassembler::OffsetMapper(start_address),
 					{ init_address }
 				);
 
-			// Look for LD (nnnn), A instructions, and collate those addresses.
+			// Look for a indirect store followed by an unconditional JP or CALL into another
+			// segment, that's a fairly explicit sign where found.
 			using Instruction = StaticAnalyser::Z80::Instruction;
-			std::map<uint16_t, int> address_counts;
-			for(const auto &instruction_pair : disassembly.instructions_by_address) {
-				if(	instruction_pair.second.operation == Instruction::Operation::LD &&
-					instruction_pair.second.destination == Instruction::Location::Operand_Indirect &&
-					instruction_pair.second.source == Instruction::Location::A) {
-					address_counts[static_cast<uint16_t>(instruction_pair.second.operand)]++;
+			std::map<uint16_t, Instruction> &instructions = disassembly.instructions_by_address;
+			bool is_ascii = false;
+			auto iterator = instructions.begin();
+			while(iterator != instructions.end()) {
+				auto next_iterator = iterator;
+				next_iterator++;
+				if(next_iterator == instructions.end()) break;
+
+				if(	iterator->second.operation == Instruction::Operation::LD &&
+					iterator->second.destination == Instruction::Location::Operand_Indirect &&
+					(
+						iterator->second.operand == 0x5000 ||
+						iterator->second.operand == 0x6000 ||
+						iterator->second.operand == 0x6800 ||
+						iterator->second.operand == 0x7000 ||
+						iterator->second.operand == 0x77ff ||
+						iterator->second.operand == 0x7800 ||
+						iterator->second.operand == 0x8000 ||
+						iterator->second.operand == 0x9000 ||
+						iterator->second.operand == 0xa000
+					) &&
+					(
+						next_iterator->second.operation == Instruction::Operation::CALL ||
+						next_iterator->second.operation == Instruction::Operation::JP
+					) &&
+					((next_iterator->second.operand >> 13) != (0x4000 >> 13))
+				) {
+					const uint16_t address = static_cast<uint16_t>(next_iterator->second.operand);
+					switch(iterator->second.operand) {
+						case 0x6000:
+							if(address >= 0x6000 && address < 0x8000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+							}
+						break;
+						case 0x6800:
+							if(address >= 0x6000 && address < 0x6800) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII8kb;
+							}
+						break;
+						case 0x7000:
+							if(address >= 0x6000 && address < 0x8000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+							}
+							if(address >= 0x7000 && address < 0x7800) {
+								is_ascii = true;
+							}
+						break;
+						case 0x77ff:
+							if(address >= 0x7000 && address < 0x7800) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII16kb;
+							}
+						break;
+						case 0x7800:
+							if(address >= 0xa000 && address < 0xc000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII8kb;
+							}
+						break;
+						case 0x8000:
+							if(address >= 0x8000 && address < 0xa000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+							}
+						break;
+						case 0x9000:
+							if(address >= 0x8000 && address < 0xa000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+							}
+						break;
+						case 0xa000:
+							if(address >= 0xa000 && address < 0xc000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::Konami;
+							}
+						break;
+						case 0xb000:
+							if(address >= 0xa000 && address < 0xc000) {
+								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+							}
+						break;
+					}
 				}
+
+				iterator = next_iterator;
 			}
 
-			// Sort possible cartridge types.
-			using Possibility = std::pair<StaticAnalyser::MSXCartridgeType, int>;
-			std::vector<Possibility> possibilities;
-			// Add to list in order of declining probability, so that stable_sort below prefers the more likely option
-			// in a tie.
-			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII8kb, address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800]));
-			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::Konami, address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000]));
-			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::KonamiWithSCC, address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000]));
-			possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII16kb, address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff]));
-			std::stable_sort(possibilities.begin(), possibilities.end(), [](const Possibility &a, const Possibility &b) {
-				if(a.second != b.second) return a.second > b.second;
-				return a.first > b.first;
-			});
+			if(target.msx.paging_model == StaticAnalyser::MSXCartridgeType::None) {
+				// Look for LD (nnnn), A instructions, and collate those addresses.
+				std::map<uint16_t, int> address_counts;
+				for(const auto &instruction_pair : instructions) {
+					if(	instruction_pair.second.operation == Instruction::Operation::LD &&
+						instruction_pair.second.destination == Instruction::Location::Operand_Indirect &&
+						instruction_pair.second.source == Instruction::Location::A) {
+						address_counts[static_cast<uint16_t>(instruction_pair.second.operand)]++;
+					}
+				}
 
-			target.msx.paging_model = possibilities[0].first;
+				// Sort possible cartridge types.
+				using Possibility = std::pair<StaticAnalyser::MSXCartridgeType, int>;
+				std::vector<Possibility> possibilities;
+				// Add to list in order of declining probability, so that stable_sort below prefers
+				// the more likely option in a tie.
+				possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII8kb, address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800]));
+				possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::ASCII16kb, address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff]));
+				if(!is_ascii) possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::Konami, address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000]));
+				if(!is_ascii) possibilities.push_back(std::make_pair(StaticAnalyser::MSXCartridgeType::KonamiWithSCC, address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000]));
+				std::stable_sort(possibilities.begin(), possibilities.end(), [](const Possibility &a, const Possibility &b) {
+					return a.second > b.second;
+				});
+
+				target.msx.paging_model = possibilities[0].first;
+			}
 		}
 
 		// Apply the standard MSX start address.
