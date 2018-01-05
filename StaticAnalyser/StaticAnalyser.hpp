@@ -124,7 +124,7 @@ struct Target {
 		} amstradcpc;
 
 		struct {
-			MSXCartridgeType paging_model;
+			MSXCartridgeType cartridge_type;
 		} msx;
 	};
 

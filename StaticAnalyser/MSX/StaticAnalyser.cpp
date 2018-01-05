@@ -59,7 +59,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// If this ROM is greater than 48kb in size then some sort of MegaROM scheme must
 		// be at play; disassemble to try to figure it out.
-		target.msx.paging_model = StaticAnalyser::MSXCartridgeType::None;
+		target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::None;
 		if(data_size > 0xc000) {
 			std::vector<uint8_t> first_16k;
 			first_16k.insert(first_16k.begin(), segment.data.begin(), segment.data.begin() + 8192);
@@ -104,17 +104,17 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 					switch(iterator->second.operand) {
 						case 0x6000:
 							if(address >= 0x6000 && address < 0x8000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
 							}
 						break;
 						case 0x6800:
 							if(address >= 0x6000 && address < 0x6800) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII8kb;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::ASCII8kb;
 							}
 						break;
 						case 0x7000:
 							if(address >= 0x6000 && address < 0x8000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
 							}
 							if(address >= 0x7000 && address < 0x7800) {
 								is_ascii = true;
@@ -122,32 +122,32 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 						break;
 						case 0x77ff:
 							if(address >= 0x7000 && address < 0x7800) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII16kb;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::ASCII16kb;
 							}
 						break;
 						case 0x7800:
 							if(address >= 0xa000 && address < 0xc000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::ASCII8kb;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::ASCII8kb;
 							}
 						break;
 						case 0x8000:
 							if(address >= 0x8000 && address < 0xa000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
 							}
 						break;
 						case 0x9000:
 							if(address >= 0x8000 && address < 0xa000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
 							}
 						break;
 						case 0xa000:
 							if(address >= 0xa000 && address < 0xc000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::Konami;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::Konami;
 							}
 						break;
 						case 0xb000:
 							if(address >= 0xa000 && address < 0xc000) {
-								target.msx.paging_model = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
+								target.msx.cartridge_type = StaticAnalyser::MSXCartridgeType::KonamiWithSCC;
 							}
 						break;
 					}
@@ -156,7 +156,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 				iterator = next_iterator;
 			}
 
-			if(target.msx.paging_model == StaticAnalyser::MSXCartridgeType::None) {
+			if(target.msx.cartridge_type == StaticAnalyser::MSXCartridgeType::None) {
 				// Look for LD (nnnn), A instructions, and collate those addresses.
 				std::map<uint16_t, int> address_counts;
 				for(const auto &instruction_pair : instructions) {
@@ -180,7 +180,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 					return a.second > b.second;
 				});
 
-				target.msx.paging_model = possibilities[0].first;
+				target.msx.cartridge_type = possibilities[0].first;
 			}
 		}
 

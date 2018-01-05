@@ -677,6 +677,10 @@
 		4B1497971EE4B97F00CE2596 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ZX8081Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BitReverse.cpp; path = Data/BitReverse.cpp; sourceTree = "<group>"; };
 		4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = BitReverse.hpp; path = Data/BitReverse.hpp; sourceTree = "<group>"; };
+		4B1667F61FFF1E2400A16032 /* Konami.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Konami.hpp; path = MSX/Cartridges/Konami.hpp; sourceTree = "<group>"; };
+		4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII16kb.hpp; path = MSX/Cartridges/ASCII16kb.hpp; sourceTree = "<group>"; };
+		4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII8kb.hpp; path = MSX/Cartridges/ASCII8kb.hpp; sourceTree = "<group>"; };
+		4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KonamiWithSCC.hpp; path = MSX/Cartridges/KonamiWithSCC.hpp; sourceTree = "<group>"; };
 		4B1BA0881FD4967700CB4ADA /* CSMSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSMSX.h; sourceTree = "<group>"; };
 		4B1BA0891FD4967800CB4ADA /* CSMSX.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSMSX.mm; sourceTree = "<group>"; };
 		4B1BA08C1FD498B000CB4ADA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MSXOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -844,6 +848,7 @@
 		4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502Base.cpp; sourceTree = "<group>"; };
 		4B7041271F92C26900735E45 /* JoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JoystickMachine.hpp; sourceTree = "<group>"; };
 		4B70412A1F92C2A700735E45 /* Joystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Joystick.hpp; sourceTree = "<group>"; };
+		4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ROMSlotHandler.hpp; path = MSX/ROMSlotHandler.hpp; sourceTree = "<group>"; };
 		4B7136841F78724F008B8ED9 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4B7136851F78724F008B8ED9 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4B7136871F78725F008B8ED9 /* Shifter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shifter.cpp; sourceTree = "<group>"; };
@@ -1463,6 +1468,17 @@
 			name = ZX8081;
 			sourceTree = "<group>";
 		};
+		4B1667F81FFF1E2900A16032 /* Cartridges */ = {
+			isa = PBXGroup;
+			children = (
+				4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */,
+				4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */,
+				4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */,
+				4B1667F61FFF1E2400A16032 /* Konami.hpp */,
+			);
+			name = Cartridges;
+			sourceTree = "<group>";
+		};
 		4B1E85791D174DEC001EF87D /* 6532 */ = {
 			isa = PBXGroup;
 			children = (
@@ -1984,10 +2000,12 @@
 		4B79A4FC1FC8FF9800EEDAD5 /* MSX */ = {
 			isa = PBXGroup;
 			children = (
-				4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */,
-				4B79A5001FC913C900EEDAD5 /* MSX.hpp */,
 				4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */,
+				4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */,
 				4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */,
+				4B79A5001FC913C900EEDAD5 /* MSX.hpp */,
+				4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */,
+				4B1667F81FFF1E2900A16032 /* Cartridges */,
 			);
 			name = MSX;
 			sourceTree = "<group>";
