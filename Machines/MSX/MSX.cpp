@@ -163,17 +163,17 @@ class ConcreteMachine:
 			switch(target.msx.cartridge_type) {
 				default: break;
 				case StaticAnalyser::MSXCartridgeType::Konami:
-					memory_slots_[1].handler.reset(new Cartridge::KonamiROMSlotHandler(*this, 1));
+					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
 				break;
 				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
 					// TODO: enable an SCC.
-					memory_slots_[1].handler.reset(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1));
+					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1));
 				break;
 				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
-					memory_slots_[1].handler.reset(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
 				break;
 				case StaticAnalyser::MSXCartridgeType::ASCII16kb:
-					memory_slots_[1].handler.reset(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+					memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
 				break;
 			}
 		}
@@ -196,20 +196,35 @@ class ConcreteMachine:
 			input_text_ += string;
 		}
 
+		// MARK: MSX::MemoryMap
 		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) override {
-			// TODO: deal with out-of-bounds pages.
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
 			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = &memory_slots_[slot].source[source_address];
+				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
+				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] =
+					(source_address < memory_slots_[slot].source.size()) ? &memory_slots_[slot].source[source_address] : unpopulated_;
 				source_address += 8192;
 			}
 
 			page_memory(paged_memory_);
 		}
 
+		void unmap(int slot, uint16_t destination_address, std::size_t length) override {
+			assert(!(destination_address & 8191));
+			assert(!(length & 8191));
+			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+
+			for(std::size_t c = 0; c < (length >> 13); ++c) {
+				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
+			}
+
+			page_memory(paged_memory_);
+		}
+
+		// MARK: Ordinary paging.
 		void page_memory(uint8_t value) {
 			paged_memory_ = value;
 			for(std::size_t c = 0; c < 8; c += 2) {
@@ -221,6 +236,7 @@ class ConcreteMachine:
 			}
 		}
 
+		// MARK: Z80::BusHandler
 		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
@@ -287,15 +303,23 @@ class ConcreteMachine:
 						}
 					}
 				case CPU::Z80::PartialMachineCycle::Read:
-					*cycle.value = read_pointers_[address >> 13][address & 8191];
+					if(read_pointers_[address >> 13]) {
+						*cycle.value = read_pointers_[address >> 13][address & 8191];
+					} else {
+						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+						*cycle.value = memory_slots_[slot_hit].handler->read(address);
+					}
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Write: {
 					write_pointers_[address >> 13][address & 8191] = *cycle.value;
 
 					int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-					if(memory_slots_[slot_hit].handler)
+					if(memory_slots_[slot_hit].handler) {
+						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
 						memory_slots_[slot_hit].handler->write(address, *cycle.value);
+					}
 				} break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -394,6 +418,10 @@ class ConcreteMachine:
 			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
 			time_since_vdp_update_ += cycle.length + addition;
 			time_since_ay_update_ += cycle.length + addition;
+			memory_slots_[0].cycles_since_update  += cycle.length + addition;
+			memory_slots_[1].cycles_since_update  += cycle.length + addition;
+			memory_slots_[2].cycles_since_update  += cycle.length + addition;
+			memory_slots_[3].cycles_since_update  += cycle.length + addition;
 			return addition;
 		}
 
@@ -557,8 +585,15 @@ class ConcreteMachine:
 			uint8_t *read_pointers[8];
 			uint8_t *write_pointers[8];
 
+			void set_handler(ROMSlotHandler *slot_handler) {
+				handler.reset(slot_handler);
+				wrapping_strategy = handler->wrapping_strategy();
+			}
+
 			std::unique_ptr<ROMSlotHandler> handler;
 			std::vector<uint8_t> source;
+			HalfCycles cycles_since_update;
+			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
 		} memory_slots_[4];
 
 		uint8_t ram_[65536];
