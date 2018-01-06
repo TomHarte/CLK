@@ -92,7 +92,7 @@ class TMS9918Base {
 
 		int access_pointer_ = 0;
 
-		inline void test_sprite(int sprite_number);
+		inline void test_sprite(int sprite_number, int screen_row);
 		inline void get_sprite_contents(int start, int cycles, int screen_row);
 };
 
