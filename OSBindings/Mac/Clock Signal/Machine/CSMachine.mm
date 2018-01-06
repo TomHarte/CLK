@@ -10,6 +10,8 @@
 #import "CSMachine+Subclassing.h"
 #import "CSMachine+Target.h"
 
+#include "CSROMFetcher.hpp"
+
 #include "ConfigurationTarget.hpp"
 #include "JoystickMachine.hpp"
 #include "KeyboardMachine.hpp"
@@ -74,23 +76,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_machine->crt_machine()->set_delegate(&_machineDelegate);
-		_machine->crt_machine()->set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
-			NSString *subDirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
-			std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
-			for(auto &name: names) {
-				NSData *fileData = [[NSBundle mainBundle] dataForResource:[NSString stringWithUTF8String:name.c_str()] withExtension:nil subdirectory:subDirectory];
-
-				if(!fileData)
-					results.emplace_back(nullptr);
-				else {
-					std::unique_ptr<std::vector<std::uint8_t>> data(new std::vector<std::uint8_t>);
-					*data = fileData.stdVector8;
-					results.emplace_back(std::move(data));
-				}
-			}
-
-			return results;
-		});
+		CSApplyROMFetcher(*_machine->crt_machine());
 	}
 	return self;
 }

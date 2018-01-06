@@ -267,6 +267,10 @@
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B95FA9D1F11893B0008E395 /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
 		4B96F7221D75119A0058BB2D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7201D75119A0058BB2D /* Tape.cpp */; };
+		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
+		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
+		4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */; };
+		4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B98A1CD1FFADEC400ADF63B /* MSX ROMs */; };
 		4B9C9D751FF81CC00030A129 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D731FF81CC00030A129 /* Z80.cpp */; };
 		4B9C9D781FF81ED30030A129 /* AddressMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */; };
 		4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9CCDA01DA279CA0098B625 /* Vic20OptionsPanel.swift */; };
@@ -673,6 +677,10 @@
 		4B1497971EE4B97F00CE2596 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ZX8081Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BitReverse.cpp; path = Data/BitReverse.cpp; sourceTree = "<group>"; };
 		4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = BitReverse.hpp; path = Data/BitReverse.hpp; sourceTree = "<group>"; };
+		4B1667F61FFF1E2400A16032 /* Konami.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Konami.hpp; path = MSX/Cartridges/Konami.hpp; sourceTree = "<group>"; };
+		4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII16kb.hpp; path = MSX/Cartridges/ASCII16kb.hpp; sourceTree = "<group>"; };
+		4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII8kb.hpp; path = MSX/Cartridges/ASCII8kb.hpp; sourceTree = "<group>"; };
+		4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KonamiWithSCC.hpp; path = MSX/Cartridges/KonamiWithSCC.hpp; sourceTree = "<group>"; };
 		4B1BA0881FD4967700CB4ADA /* CSMSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSMSX.h; sourceTree = "<group>"; };
 		4B1BA0891FD4967800CB4ADA /* CSMSX.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSMSX.mm; sourceTree = "<group>"; };
 		4B1BA08C1FD498B000CB4ADA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MSXOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -840,6 +848,7 @@
 		4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502Base.cpp; sourceTree = "<group>"; };
 		4B7041271F92C26900735E45 /* JoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JoystickMachine.hpp; sourceTree = "<group>"; };
 		4B70412A1F92C2A700735E45 /* Joystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Joystick.hpp; sourceTree = "<group>"; };
+		4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ROMSlotHandler.hpp; path = MSX/ROMSlotHandler.hpp; sourceTree = "<group>"; };
 		4B7136841F78724F008B8ED9 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4B7136851F78724F008B8ED9 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4B7136871F78725F008B8ED9 /* Shifter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shifter.cpp; sourceTree = "<group>"; };
@@ -901,6 +910,10 @@
 		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B96F7201D75119A0058BB2D /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = ../../StaticAnalyser/Acorn/Tape.cpp; sourceTree = "<group>"; };
 		4B96F7211D75119A0058BB2D /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Tape.hpp; path = ../../StaticAnalyser/Acorn/Tape.hpp; sourceTree = "<group>"; };
+		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
+		4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSROMFetcher.mm; sourceTree = "<group>"; };
+		4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MSXStaticAnalyserTests.mm; sourceTree = "<group>"; };
+		4B98A1CD1FFADEC400ADF63B /* MSX ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "MSX ROMs"; sourceTree = "<group>"; };
 		4B9C9D731FF81CC00030A129 /* Z80.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Z80.cpp; path = ../../StaticAnalyser/Disassembler/Z80.cpp; sourceTree = "<group>"; };
 		4B9C9D741FF81CC00030A129 /* Z80.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = ../../StaticAnalyser/Disassembler/Z80.hpp; sourceTree = "<group>"; };
 		4B9C9D761FF81ED30030A129 /* AddressMapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AddressMapper.cpp; path = ../../StaticAnalyser/Disassembler/AddressMapper.cpp; sourceTree = "<group>"; };
@@ -1421,6 +1434,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
@@ -1452,6 +1466,17 @@
 				4B1497911EE4B5A800CE2596 /* ZX8081.hpp */,
 			);
 			name = ZX8081;
+			sourceTree = "<group>";
+		};
+		4B1667F81FFF1E2900A16032 /* Cartridges */ = {
+			isa = PBXGroup;
+			children = (
+				4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */,
+				4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */,
+				4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */,
+				4B1667F61FFF1E2400A16032 /* Konami.hpp */,
+			);
+			name = Cartridges;
 			sourceTree = "<group>";
 		};
 		4B1E85791D174DEC001EF87D /* 6532 */ = {
@@ -1501,9 +1526,11 @@
 				4B2A53951D117D36003C6002 /* CSMachine.h */,
 				4B2A53941D117D36003C6002 /* CSMachine+Subclassing.h */,
 				4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */,
+				4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */,
 				4B2A53971D117D36003C6002 /* KeyCodes.h */,
 				4B8FE2251DA1DE2D0090D3CE /* NSBundle+DataResource.h */,
 				4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */,
+				4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */,
 				4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */,
 				4B2A53961D117D36003C6002 /* CSMachine.mm */,
 				4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */,
@@ -1973,10 +2000,12 @@
 		4B79A4FC1FC8FF9800EEDAD5 /* MSX */ = {
 			isa = PBXGroup;
 			children = (
-				4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */,
-				4B79A5001FC913C900EEDAD5 /* MSX.hpp */,
 				4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */,
+				4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */,
 				4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */,
+				4B79A5001FC913C900EEDAD5 /* MSX.hpp */,
+				4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */,
+				4B1667F81FFF1E2900A16032 /* Cartridges */,
 			);
 			name = MSX;
 			sourceTree = "<group>";
@@ -2431,6 +2460,7 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */,
 				4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
@@ -3087,6 +3117,7 @@
 				4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */,
 				4BB2997D1B587D8400A49093 /* ldxay in Resources */,
 				4BB299D71B587D8400A49093 /* staax in Resources */,
+				4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */,
 				4BB2990C1B587D8400A49093 /* asoax in Resources */,
 				4BB299191B587D8400A49093 /* bita in Resources */,
 				4BB2992A1B587D8400A49093 /* cia2ta in Resources */,
@@ -3480,6 +3511,7 @@
 				4B4518871F75E91A00926311 /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4B2A53A31D117D36003C6002 /* CSVic20.mm in Sources */,
 				4B2A53A21D117D36003C6002 /* CSElectron.mm in Sources */,
+				4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */,
 				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
 				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
@@ -3527,6 +3559,7 @@
 			files = (
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */,
+				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
@@ -3543,6 +3576,7 @@
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
+				4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */,
 				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,

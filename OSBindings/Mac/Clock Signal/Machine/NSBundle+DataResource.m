@@ -10,8 +10,7 @@
 
 @implementation NSBundle (DataResource)
 
-- (NSData *)dataForResource:(NSString *)resource withExtension:(NSString *)extension subdirectory:(NSString *)subdirectory
-{
+- (NSData *)dataForResource:(NSString *)resource withExtension:(NSString *)extension subdirectory:(NSString *)subdirectory {
 	NSURL *url = [self URLForResource:resource withExtension:extension subdirectory:subdirectory];
 	if(!url) return nil;
 	return [NSData dataWithContentsOfURL:url];

@@ -9,6 +9,12 @@
 #include "MSX.hpp"
 
 #include "Keyboard.hpp"
+#include "ROMSlotHandler.hpp"
+
+#include "Cartridges/ASCII8kb.hpp"
+#include "Cartridges/ASCII16kb.hpp"
+#include "Cartridges/Konami.hpp"
+#include "Cartridges/KonamiWithSCC.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
@@ -106,7 +112,8 @@ class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
-	public Configurable::Device {
+	public Configurable::Device,
+	public MemoryMap {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -152,18 +159,30 @@ class ConcreteMachine:
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
+
+			switch(target.msx.cartridge_type) {
+				default: break;
+				case StaticAnalyser::MSXCartridgeType::Konami:
+					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
+				break;
+				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
+					// TODO: enable an SCC.
+					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1));
+				break;
+				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
+					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+				break;
+				case StaticAnalyser::MSXCartridgeType::ASCII16kb:
+					memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+				break;
+			}
 		}
 
 		bool insert_media(const StaticAnalyser::Media &media) override {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
-				cartridge_ = segment.data;
-
-				// TODO: should clear other page 1 pointers, should allow for paging cartridges, etc.
-				size_t base = segment.start_address >> 14;
-				for(size_t c = 0; c < cartridge_.size(); c += 16384) {
-					memory_slots_[1].read_pointers[(c >> 14) + base] = cartridge_.data() + c;
-				}
+				memory_slots_[1].source = segment.data;
+				map(1, 0, static_cast<uint16_t>(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 			}
 
 			if(!media.tapes.empty()) {
@@ -177,14 +196,47 @@ class ConcreteMachine:
 			input_text_ += string;
 		}
 
+		// MARK: MSX::MemoryMap
+		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) override {
+			assert(!(destination_address & 8191));
+			assert(!(length & 8191));
+			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+
+			for(std::size_t c = 0; c < (length >> 13); ++c) {
+				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
+				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] =
+					(source_address < memory_slots_[slot].source.size()) ? &memory_slots_[slot].source[source_address] : unpopulated_;
+				source_address += 8192;
+			}
+
+			page_memory(paged_memory_);
+		}
+
+		void unmap(int slot, uint16_t destination_address, std::size_t length) override {
+			assert(!(destination_address & 8191));
+			assert(!(length & 8191));
+			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+
+			for(std::size_t c = 0; c < (length >> 13); ++c) {
+				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
+			}
+
+			page_memory(paged_memory_);
+		}
+
+		// MARK: Ordinary paging.
 		void page_memory(uint8_t value) {
-			for(size_t c = 0; c < 4; ++c) {
+			paged_memory_ = value;
+			for(std::size_t c = 0; c < 8; c += 2) {
 				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
 				write_pointers_[c] = memory_slots_[value & 3].write_pointers[c];
+				read_pointers_[c+1] = memory_slots_[value & 3].read_pointers[c+1];
+				write_pointers_[c+1] = memory_slots_[value & 3].write_pointers[c+1];
 				value >>= 2;
 			}
 		}
 
+		// MARK: Z80::BusHandler
 		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
@@ -196,7 +248,7 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(use_fast_tape_) {
+					if(use_fast_tape_ && tape_player_.has_tape()) {
 						if(address == 0x1a63) {
 							// TAPION
 
@@ -251,12 +303,24 @@ class ConcreteMachine:
 						}
 					}
 				case CPU::Z80::PartialMachineCycle::Read:
-					*cycle.value = read_pointers_[address >> 14][address & 16383];
+					if(read_pointers_[address >> 13]) {
+						*cycle.value = read_pointers_[address >> 13][address & 8191];
+					} else {
+						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+						*cycle.value = memory_slots_[slot_hit].handler->read(address);
+					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Write:
-					write_pointers_[address >> 14][address & 16383] = *cycle.value;
-				break;
+				case CPU::Z80::PartialMachineCycle::Write: {
+					write_pointers_[address >> 13][address & 8191] = *cycle.value;
+
+					int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+					if(memory_slots_[slot_hit].handler) {
+						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+						memory_slots_[slot_hit].handler->write(address, *cycle.value);
+					}
+				} break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch(address & 0xff) {
@@ -354,6 +418,10 @@ class ConcreteMachine:
 			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
 			time_since_vdp_update_ += cycle.length + addition;
 			time_since_ay_update_ += cycle.length + addition;
+			memory_slots_[0].cycles_since_update  += cycle.length + addition;
+			memory_slots_[1].cycles_since_update  += cycle.length + addition;
+			memory_slots_[2].cycles_since_update  += cycle.length + addition;
+			memory_slots_[3].cycles_since_update  += cycle.length + addition;
 			return addition;
 		}
 
@@ -373,26 +441,21 @@ class ConcreteMachine:
 
 			if(!roms[0]) return false;
 
-			rom_ = std::move(*roms[0]);
-			rom_.resize(32768);
+			memory_slots_[0].source = std::move(*roms[0]);
+			memory_slots_[0].source.resize(32768);
 
-			for(size_t c = 0; c < 4; ++c) {
+			for(size_t c = 0; c < 8; ++c) {
 				for(size_t slot = 0; slot < 3; ++slot) {
 					memory_slots_[slot].read_pointers[c] = unpopulated_;
 					memory_slots_[slot].write_pointers[c] = scratch_;
 				}
 
 				memory_slots_[3].read_pointers[c] =
-				memory_slots_[3].write_pointers[c] = &ram_[c * 16384];
+				memory_slots_[3].write_pointers[c] = &ram_[c * 8192];
 			}
 
-			memory_slots_[0].read_pointers[0] = rom_.data();
-			memory_slots_[0].read_pointers[1] = &rom_[16384];
-
-			for(size_t c = 0; c < 4; ++c) {
-				read_pointers_[c] = memory_slots_[0].read_pointers[c];
-				write_pointers_[c] = memory_slots_[0].write_pointers[c];
-			}
+			map(0, 0, 0, 32768);
+			page_memory(0);
 
 			return true;
 		}
@@ -514,19 +577,28 @@ class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
 
-		uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
+		uint8_t paged_memory_ = 0;
+		uint8_t *read_pointers_[8];
+		uint8_t *write_pointers_[8];
 
 		struct MemorySlots {
-			uint8_t *read_pointers[4];
-			uint8_t *write_pointers[4];
+			uint8_t *read_pointers[8];
+			uint8_t *write_pointers[8];
+
+			void set_handler(ROMSlotHandler *slot_handler) {
+				handler.reset(slot_handler);
+				wrapping_strategy = handler->wrapping_strategy();
+			}
+
+			std::unique_ptr<ROMSlotHandler> handler;
+			std::vector<uint8_t> source;
+			HalfCycles cycles_since_update;
+			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
 		} memory_slots_[4];
 
 		uint8_t ram_[65536];
-		uint8_t scratch_[16384];
-		uint8_t unpopulated_[16384];
-		std::vector<uint8_t> rom_;
-		std::vector<uint8_t> cartridge_;
+		uint8_t scratch_[8192];
+		uint8_t unpopulated_[8192];
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_ay_update_;

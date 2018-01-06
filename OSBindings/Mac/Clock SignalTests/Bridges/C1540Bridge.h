@@ -15,6 +15,5 @@
 @property (nonatomic) BOOL clockLine;
 
 - (void)runForCycles:(NSUInteger)numberOfCycles;
-- (void)setROM:(NSData *)ROM;
 
 @end

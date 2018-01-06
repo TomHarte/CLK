@@ -46,7 +46,7 @@ enum class MSXCartridgeType {
 	KonamiWithSCC,
 	ASCII8kb,
 	ASCII16kb,
-	RType
+	FMPac
 };
 
 enum class ZX8081MemoryModel {
@@ -124,7 +124,7 @@ struct Target {
 		} amstradcpc;
 
 		struct {
-			MSXCartridgeType paging_model;
+			MSXCartridgeType cartridge_type;
 		} msx;
 	};
 
