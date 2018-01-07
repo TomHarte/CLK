@@ -66,7 +66,7 @@ AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_
 }
 
 void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
-	unsigned int c = 0;
+	std::size_t c = 0;
 	while((master_divider_&7) && c < number_of_samples) {
 		target[c] = output_volume_;
 		master_divider_++;
