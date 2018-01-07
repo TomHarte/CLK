@@ -73,7 +73,7 @@ void SCC::write(uint16_t address, uint8_t value) {
 			} break;
 
 			case 0x8a: case 0x8b: case 0x8c: case 0x8d: case 0x8e:
-				channels_[address - 0x8a].amplitude = value;
+				channels_[address - 0x8a].amplitude = value & 0xf;
 			break;
 
 			case 0x8f:
@@ -88,13 +88,13 @@ void SCC::write(uint16_t address, uint8_t value) {
 void SCC::evaluate_output_volume() {
 	output_volume_ =
 		static_cast<int16_t>(
-			((
+			(
 				(channel_enable_ & 0x01) ? static_cast<int8_t>(waves_[0].samples[channels_[0].offset]) * channels_[0].amplitude : 0 +
 				(channel_enable_ & 0x02) ? static_cast<int8_t>(waves_[1].samples[channels_[1].offset]) * channels_[1].amplitude : 0 +
 				(channel_enable_ & 0x04) ? static_cast<int8_t>(waves_[2].samples[channels_[2].offset]) * channels_[2].amplitude : 0 +
 				(channel_enable_ & 0x08) ? static_cast<int8_t>(waves_[3].samples[channels_[3].offset]) * channels_[3].amplitude : 0 +
 				(channel_enable_ & 0x10) ? static_cast<int8_t>(waves_[3].samples[channels_[4].offset]) * channels_[4].amplitude : 0
-			) * 16) / 5
+			)
 		);
 }
 
