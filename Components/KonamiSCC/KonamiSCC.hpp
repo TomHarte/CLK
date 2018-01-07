@@ -39,19 +39,32 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		uint8_t read(uint16_t address);
 
 	private:
+		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+
+		// State from here on down is accessed ony from the audio thread.
+		int master_divider_ = 0;
+		int16_t output_volume_ = 0;
+
 		struct Channel {
 			int period = 0;
 			int amplitude = 0;
+
+			int tone_counter = 0;
+			int offset = 0;
 		} channels_[5];
 
 		struct Wavetable {
-			std::int16_t samples[32];
+			std::uint8_t samples[32];
 		} waves_[4];
 
 		std::uint8_t channel_enable_ = 0;
 		std::uint8_t test_register_ = 0;
 
-		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		void evaluate_output_volume();
+
+		// This keeps a copy of wave memory that is accessed from the
+		// main emulation thread.
+		std::uint8_t ram_[128];
 };
 
 }
