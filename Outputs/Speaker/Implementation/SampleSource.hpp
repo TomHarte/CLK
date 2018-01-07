@@ -37,6 +37,15 @@ class SampleSource {
 			std::int16_t scratch_pad[number_of_samples];
 			get_samples(number_of_samples, scratch_pad);
 		}
+
+		/*!
+			@returns @c true if it is trivially true that a call to get_samples would just
+				fill the target with zeroes; @c false if a call might return all zeroes or
+				might not.
+		*/
+		bool is_silent() {
+			return false;
+		}
 };
 
 }

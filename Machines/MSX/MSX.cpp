@@ -22,6 +22,7 @@
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/KonamiSCC/KonamiSCC.hpp"
 
 #include "../../Storage/Tape/Parsers/MSX.hpp"
 #include "../../Storage/Tape/Tape.hpp"
@@ -120,7 +121,8 @@ class ConcreteMachine:
 			i8255_(i8255_port_handler_),
 			ay_(audio_queue_),
 			audio_toggle_(audio_queue_),
-			mixer_(ay_, audio_toggle_),
+			scc_(audio_queue_),
+			mixer_(ay_, audio_toggle_, scc_),
 			speaker_(mixer_),
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
@@ -167,7 +169,7 @@ class ConcreteMachine:
 				break;
 				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
 					// TODO: enable an SCC.
-					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1));
+					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
 				break;
 				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
 					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
@@ -317,6 +319,7 @@ class ConcreteMachine:
 
 					int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
 					if(memory_slots_[slot_hit].handler) {
+						update_audio();
 						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
 						memory_slots_[slot_hit].handler->write(address, *cycle.value);
 					}
@@ -568,8 +571,9 @@ class ConcreteMachine:
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
 		AudioToggle audio_toggle_;
-		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle>> speaker_;
+		Konami::SCC scc_;
+		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool use_fast_tape_ = false;
