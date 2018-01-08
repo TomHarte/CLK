@@ -21,7 +21,7 @@ namespace Disk {
 class MFMSectorDump: public DiskImage {
 	public:
 		MFMSectorDump(const char *file_name);
-		void set_geometry(int sectors_per_track, uint8_t sector_size, bool is_double_density);
+		void set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, bool is_double_density);
 
 		bool get_is_read_only() override;
 		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
@@ -36,6 +36,7 @@ class MFMSectorDump: public DiskImage {
 		int sectors_per_track_ = 0;
 		uint8_t sector_size_ = 0;
 		bool is_double_density_ = true;
+		uint8_t first_sector_ = 0;
 };
 
 }

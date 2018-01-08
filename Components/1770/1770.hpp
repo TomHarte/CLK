@@ -116,7 +116,8 @@ class WD1770: public Storage::Disk::MFMController {
 			Command			= (1 << 3),	// Indicates receipt of a new command.
 			HeadLoad		= (1 << 4),	// Indicates the head has been loaded (1973 only).
 			Timer			= (1 << 5),	// Indicates that the delay_time_-powered timer has timed out.
-			IndexHoleTarget	= (1 << 6)	// Indicates that index_hole_count_ has reached index_hole_count_target_.
+			IndexHoleTarget	= (1 << 6),	// Indicates that index_hole_count_ has reached index_hole_count_target_.
+			ForceInterrupt	= (1 << 7)	// Indicates a forced interrupt.
 		};
 		void posit_event(int type);
 		int interesting_event_mask_;

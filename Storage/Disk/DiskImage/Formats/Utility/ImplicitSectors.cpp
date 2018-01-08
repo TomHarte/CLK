@@ -28,7 +28,7 @@ std::shared_ptr<Track> Storage::Disk::track_for_sectors(uint8_t *const source, u
 
 		Storage::Encodings::MFM::Sector &new_sector = sectors.back();
 		new_sector.address.track = track;
-		new_sector.address.side = size;
+		new_sector.address.side = side;
 		new_sector.address.sector = first_sector;
 		first_sector++;
 		new_sector.size = size;

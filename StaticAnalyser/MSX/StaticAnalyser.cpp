@@ -213,6 +213,9 @@ void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &dest
 		}
 	}
 
+	// Blindly accept disks for now.
+	target.media.disks = media.disks;
+
 	if(!target.media.empty()) {
 		target.machine = Target::MSX;
 		target.probability = 1.0;

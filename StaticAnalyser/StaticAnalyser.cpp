@@ -30,6 +30,7 @@
 #include "../Storage/Disk/DiskImage/Formats/D64.hpp"
 #include "../Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "../Storage/Disk/DiskImage/Formats/HFE.hpp"
+#include "../Storage/Disk/DiskImage/Formats/MSXDSK.hpp"
 #include "../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "../Storage/Disk/DiskImage/Formats/SSD.hpp"
 
@@ -91,6 +92,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
 		Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
+		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
 		Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
 		Format("hfe", result.disks, Disk::DiskImageHolder<Storage::Disk::HFE>, TargetPlatform::AmstradCPC)		// HFE (TODO: plus other target platforms)

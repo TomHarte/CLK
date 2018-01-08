@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provies a @c Disk containing an Oric MFM-stype disk image — a stream of the MFM data bits with clocks omitted.
+	Provides a @c Disk containing an Oric MFM-stype disk image — a stream of the MFM data bits with clocks omitted.
 */
 class OricMFMDSK: public DiskImage {
 	public:
@@ -31,7 +31,7 @@ class OricMFMDSK: public DiskImage {
 			ErrorNotOricMFMDSK,
 		};
 
-		// implemented to satisfy @c Disk
+		// implemented to satisfy @c DiskImage
 		int get_head_position_count() override;
 		int get_head_count() override;
 		bool get_is_read_only() override;
