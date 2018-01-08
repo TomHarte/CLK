@@ -593,6 +593,8 @@
 		4BEA52661DF3472B007E74F2 /* TIASound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA52641DF3472B007E74F2 /* TIASound.cpp */; };
 		4BEBFB4D2002C4BF000708CC /* MSXDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */; };
 		4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */; };
+		4BEBFB512002DB30000708CC /* DiskROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4F2002DB30000708CC /* DiskROM.cpp */; };
+		4BEBFB522002DB30000708CC /* DiskROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4F2002DB30000708CC /* DiskROM.cpp */; };
 		4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
@@ -1312,6 +1314,8 @@
 		4BEAC08E1E7E110500EE56B2 /* Pitfall2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Pitfall2.hpp; sourceTree = "<group>"; };
 		4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MSXDSK.cpp; sourceTree = "<group>"; };
 		4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MSXDSK.hpp; sourceTree = "<group>"; };
+		4BEBFB4F2002DB30000708CC /* DiskROM.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DiskROM.cpp; path = MSX/DiskROM.cpp; sourceTree = "<group>"; };
+		4BEBFB502002DB30000708CC /* DiskROM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DiskROM.hpp; path = MSX/DiskROM.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -2019,8 +2023,10 @@
 		4B79A4FC1FC8FF9800EEDAD5 /* MSX */ = {
 			isa = PBXGroup;
 			children = (
+				4BEBFB4F2002DB30000708CC /* DiskROM.cpp */,
 				4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */,
 				4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */,
+				4BEBFB502002DB30000708CC /* DiskROM.hpp */,
 				4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */,
 				4B79A5001FC913C900EEDAD5 /* MSX.hpp */,
 				4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */,
@@ -3376,6 +3382,7 @@
 				4B055A7F1FAE852F0060FFFF /* StaticAnalyser.cpp in Sources */,
 				4B055ADB1FAE9B460060FFFF /* 6560.cpp in Sources */,
 				4B055AA01FAE85DA0060FFFF /* MFMSectorDump.cpp in Sources */,
+				4BEBFB522002DB30000708CC /* DiskROM.cpp in Sources */,
 				4B055AA11FAE85DA0060FFFF /* OricMFMDSK.cpp in Sources */,
 				4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */,
 				4B055A891FAE85580060FFFF /* StaticAnalyser.cpp in Sources */,
@@ -3490,6 +3497,7 @@
 				4BF829661D8F732B001BAE39 /* Disk.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
 				4B1BA08A1FD4967800CB4ADA /* CSMSX.mm in Sources */,
+				4BEBFB512002DB30000708CC /* DiskROM.cpp in Sources */,
 				4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */,
 				4BC5E4921D7ED365008CF980 /* StaticAnalyser.cpp in Sources */,
 				4BC830D11D6E7C690000A26F /* Tape.cpp in Sources */,

@@ -8,6 +8,7 @@
 
 #include "MSX.hpp"
 
+#include "DiskROM.hpp"
 #include "Keyboard.hpp"
 #include "ROMSlotHandler.hpp"
 
@@ -156,19 +157,28 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) override {
+			// Add a disk cartridge if any disks were supplied.
+			if(!target.media.disks.empty()) {
+				map(2, 0, 0x4000, 0x2000);
+				unmap(2, 0x6000, 0x2000);
+				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
+			}
+
+			// Insert the media.
 			insert_media(target.media);
 
+			// Type whatever has been requested.
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
 
+			// Attach the hardware necessary for a game cartridge, if any.
 			switch(target.msx.cartridge_type) {
 				default: break;
 				case StaticAnalyser::MSXCartridgeType::Konami:
 					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
 				break;
 				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
-					// TODO: enable an SCC.
 					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
 				break;
 				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
@@ -189,6 +199,16 @@ class ConcreteMachine:
 
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
+			}
+
+			if(!media.disks.empty()) {
+				DiskROM *disk_rom = dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
+				int drive = 0;
+				for(auto &disk : media.disks) {
+					disk_rom->set_disk(disk, drive);
+					drive++;
+					if(drive == 2) break;
+				}
 			}
 
 			return true;
@@ -439,13 +459,17 @@ class ConcreteMachine:
 			auto roms = roms_with_names(
 				"MSX",
 				{
-					"msx.rom"
+					"msx.rom",
+					"disk.rom"
 				});
 
-			if(!roms[0]) return false;
+			if(!roms[0] || !roms[1]) return false;
 
 			memory_slots_[0].source = std::move(*roms[0]);
 			memory_slots_[0].source.resize(32768);
+
+			memory_slots_[2].source = std::move(*roms[1]);
+			memory_slots_[2].source.resize(16384);
 
 			for(size_t c = 0; c < 8; ++c) {
 				for(size_t slot = 0; slot < 3; ++slot) {
