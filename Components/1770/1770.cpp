@@ -180,6 +180,7 @@ void WD1770::posit_event(int new_event_type) {
 		resume_point_ = 0;
 		update_status([] (Status &status) {
 			status.type = Status::One;
+			status.data_request = false;
 		});
 	} else {
 		if(!(interesting_event_mask_ & static_cast<int>(new_event_type))) return;
@@ -475,7 +476,7 @@ void WD1770::posit_event(int new_event_type) {
 				sector_++;
 				goto test_type2_write_protection;
 			}
-			printf("Read sector %d\n", sector_);
+			printf("Finished reading sector %d\n", sector_);
 			goto wait_for_command;
 		}
 		goto type2_check_crc;
