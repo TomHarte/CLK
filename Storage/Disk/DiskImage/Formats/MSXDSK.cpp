@@ -55,5 +55,5 @@ int MSXDSK::get_head_count() {
 }
 
 long MSXDSK::get_file_offset_for_position(Track::Address address) {
-	return (address.position*2 + address.head) * 512 * 9;
+	return (address.position*head_count_ + address.head) * 512 * 9;
 }
