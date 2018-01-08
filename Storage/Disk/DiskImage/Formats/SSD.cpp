@@ -33,7 +33,7 @@ SSD::SSD(const char *file_name) : MFMSectorDump(file_name) {
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;
 
-	set_geometry(sectors_per_track, sector_size, false);
+	set_geometry(sectors_per_track, sector_size, 0, false);
 }
 
 int SSD::get_head_position_count() {

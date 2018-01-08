@@ -33,7 +33,7 @@ AcornADF::AcornADF(const char *file_name) : MFMSectorDump(file_name) {
 	file_.read(bytes, 4);
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw ErrorNotAcornADF;
 
-	set_geometry(sectors_per_track, sector_size, true);
+	set_geometry(sectors_per_track, sector_size, 0, true);
 }
 
 int AcornADF::get_head_position_count() {
