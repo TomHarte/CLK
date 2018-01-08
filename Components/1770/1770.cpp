@@ -23,10 +23,16 @@ void WD1770::set_register(int address, uint8_t value) {
 	switch(address&3) {
 		case 0: {
 			if((value&0xf0) == 0xd0) {
-				printf("!!!TODO: force interrupt!!!\n");
-				update_status([] (Status &status) {
-					status.type = Status::One;
-				});
+				if(value == 0xd0) {
+					// Force interrupt **immediately**.
+					printf("Force interrupt immediately\n");
+					posit_event(static_cast<int>(Event1770::ForceInterrupt));
+				} else {
+					printf("!!!TODO: force interrupt!!!\n");
+					update_status([] (Status &status) {
+						status.type = Status::One;
+					});
+				}
 			} else {
 				command_ = value;
 				posit_event(static_cast<int>(Event1770::Command));
@@ -169,13 +175,22 @@ void WD1770::posit_event(int new_event_type) {
 		}
 	}
 
-	if(!(interesting_event_mask_ & static_cast<int>(new_event_type))) return;
-	interesting_event_mask_ &= ~new_event_type;
+	if(new_event_type == static_cast<int>(Event1770::ForceInterrupt)) {
+		interesting_event_mask_ = 0;
+		resume_point_ = 0;
+		update_status([] (Status &status) {
+			status.type = Status::One;
+		});
+	} else {
+		if(!(interesting_event_mask_ & static_cast<int>(new_event_type))) return;
+		interesting_event_mask_ &= ~new_event_type;
+	}
 
 	Status new_status;
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
+	case 0:
 	wait_for_command:
 		printf("Idle...\n");
 		set_data_mode(DataMode::Scanning);
