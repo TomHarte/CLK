@@ -44,6 +44,9 @@ uint8_t DiskROM::read(uint16_t address) {
 	if(address >= 0x7ff8 && address < 0x7ffc) {
 		return get_register(address);
 	}
+	if(address == 0x7fff) {
+		return (get_data_request_line() ? 0x00 : 0x80) | (get_interrupt_request_line() ? 0x00 : 0x40);
+	}
 	return rom_[address & 0x3fff];
 }
 
