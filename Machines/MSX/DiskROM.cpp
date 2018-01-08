@@ -25,7 +25,6 @@ void DiskROM::write(uint16_t address, uint8_t value) {
 			selected_head_ = value & 1;
 			if(drives_[0]) drives_[0]->set_head(selected_head_);
 			if(drives_[1]) drives_[1]->set_head(selected_head_);
-			printf("HEAD: %d\n", selected_head_);
 		break;
 		case 0x7ffd: {
 			selected_drive_ = value & 1;
@@ -34,8 +33,6 @@ void DiskROM::write(uint16_t address, uint8_t value) {
 			bool drive_motor = !!(value & 0x80);
 			if(drives_[0]) drives_[0]->set_motor_on(drive_motor);
 			if(drives_[1]) drives_[1]->set_motor_on(drive_motor);
-			printf("DRIVE: %d\n", selected_head_);
-			printf("MOTOR ON: %s\n", (value & 0x80) ? "on" : "off");
 		} break;
 	}
 }
@@ -60,7 +57,6 @@ void DiskROM::run_for(HalfCycles half_cycles) {
 }
 
 void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
-	printf("Disk to %d\n", drive);
 	if(!drives_[drive]) {
 		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300, 2));
 		drives_[drive]->set_head(selected_head_);
@@ -72,8 +68,4 @@ void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 void DiskROM::set_head_load_request(bool head_load) {
 	// Magic!
 	set_head_loaded(head_load);
-}
-
-bool DiskROM::get_drive_is_ready() {
-	return true;
 }
