@@ -29,6 +29,7 @@
 #include "../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "../Storage/Disk/DiskImage/Formats/D64.hpp"
 #include "../Storage/Disk/DiskImage/Formats/G64.hpp"
+#include "../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "../Storage/Disk/DiskImage/Formats/MSXDSK.hpp"
 #include "../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
@@ -90,6 +91,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)										// CDT
 		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)										// CSW
 		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
+		Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
 		Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
