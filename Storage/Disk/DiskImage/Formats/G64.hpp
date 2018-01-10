@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provies a @c Disk containing a G64 disk image — a raw but perfectly-clocked GCR stream.
+	Provides a @c Disk containing a G64 disk image — a raw but perfectly-clocked GCR stream.
 */
 class G64: public DiskImage {
 	public:

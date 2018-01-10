@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provies the base for writeable [M]FM disk images that just contain contiguous sector content dumps.
+	Provides the base for writeable [M]FM disk images that just contain contiguous sector content dumps.
 */
 class MFMSectorDump: public DiskImage {
 	public:

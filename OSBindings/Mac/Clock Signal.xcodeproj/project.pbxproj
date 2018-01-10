@@ -281,6 +281,8 @@
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA799951D8B656E0045123D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA799931D8B656E0045123D /* StaticAnalyser.cpp */; };
 		4BAD13441FF709C700FD114A /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
+		4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
+		4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
 		4BB298F11B587D8400A49093 /*  start in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E51B587D8300A49093 /*  start */; };
@@ -938,6 +940,8 @@
 		4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfigurationTarget.hpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
+		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
+		4BAF2B4D2004580C00480230 /* DMK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMK.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
 		4BB146C61F49D7D700253439 /* Sleeper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sleeper.hpp; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
@@ -1786,6 +1790,7 @@
 				4B45188D1F75FD1B00926311 /* AcornADF.cpp */,
 				4B45188F1F75FD1B00926311 /* CPCDSK.cpp */,
 				4B4518911F75FD1B00926311 /* D64.cpp */,
+				4BAF2B4C2004580C00480230 /* DMK.cpp */,
 				4B4518931F75FD1B00926311 /* G64.cpp */,
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
@@ -1795,6 +1800,7 @@
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
 				4B4518901F75FD1B00926311 /* CPCDSK.hpp */,
 				4B4518921F75FD1B00926311 /* D64.hpp */,
+				4BAF2B4D2004580C00480230 /* DMK.hpp */,
 				4B4518941F75FD1B00926311 /* G64.hpp */,
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
@@ -3406,6 +3412,7 @@
 				4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */,
 				4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */,
 				4B055AE01FAE9B660060FFFF /* CRT.cpp in Sources */,
+				4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */,
 				4B0E04F21FC9EAA800F43484 /* StaticAnalyser.cpp in Sources */,
 				4B055AD01FAE9B030060FFFF /* Tape.cpp in Sources */,
 				4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */,
@@ -3439,6 +3446,7 @@
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
+				4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,

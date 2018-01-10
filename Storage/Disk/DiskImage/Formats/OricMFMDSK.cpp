@@ -8,10 +8,10 @@
 
 #include "OricMFMDSK.hpp"
 
-#include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/MFM/Constants.hpp"
 #include "../../Encodings/MFM/Shifter.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
+#include "../../Track/PCMTrack.hpp"
 #include "../../Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
@@ -109,9 +109,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 	}
 
 	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
-
-	std::shared_ptr<PCMTrack> track(new PCMTrack(segment));
-	return track;
+	return std::make_shared<PCMTrack>(segment);
 }
 
 void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {

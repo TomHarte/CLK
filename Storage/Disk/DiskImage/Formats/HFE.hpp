@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provies a @c Disk containing an HFE disk image — a bit stream representation of a floppy.
+	Provides a @c Disk containing an HFE disk image — a bit stream representation of a floppy.
 */
 class HFE: public DiskImage {
 	public:

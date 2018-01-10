@@ -26,7 +26,7 @@ namespace Disk {
 */
 struct PCMSegment {
 	Time length_of_a_bit;
-	unsigned int number_of_bits;
+	unsigned int number_of_bits = 0;
 	std::vector<uint8_t> data;
 
 	PCMSegment(Time length_of_a_bit, unsigned int number_of_bits, std::vector<uint8_t> data)
@@ -35,6 +35,11 @@ struct PCMSegment {
 
 	int bit(std::size_t index) const {
 		return (data[index >> 3] >> (7 ^ (index & 7)))&1;
+	}
+
+	void clear() {
+		number_of_bits = 0;
+		data.clear();
 	}
 };
 
