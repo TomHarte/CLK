@@ -96,33 +96,25 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		"The cassette is first read continuously until a start bit is found.
 		This is done by locating a negative transition, measuring the following
 		cycle length (1B1FH) and comparing this to see if it is greater than LOWLIM."
+
+		... but I don't buy that, as it makes the process overly dependent on phase.
+		So I'm going to look for the next two consecutive pulses that are each big
+		enough to be half of a zero.
 	*/
-	float minimum_start_bit_duration = static_cast<float>(speed.minimum_start_bit_duration) * 0.00001145f;
+	const float minimum_start_bit_duration = static_cast<float>(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
+	int input = 0;
 	while(!tape_player.get_tape()->is_at_end()) {
-		// Find a negative transition.
-		while(!tape_player.get_tape()->is_at_end() && tape_player.get_input()) {
-			tape_player.run_for_input_pulse();
-		}
-
-		// Measure the following cycle (i.e. two transitions).
+		// Find next transition.
 		bool level = tape_player.get_input();
-		float time_to_transition = 0.0f;
-		int transitions = 0;
-		while(!tape_player.get_tape()->is_at_end()) {
-			time_to_transition += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+		float duration = 0.0;
+		while(level == tape_player.get_input()) {
+			duration += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
-			if(level != tape_player.get_input()) {
-				level = tape_player.get_input();
-				transitions++;
-				if(transitions == 2)
-					break;
-			}
 		}
 
-		// Check length against 'LOWLIM' (i.e. the minimum start bit duration).
-		if(time_to_transition > minimum_start_bit_duration) {
-			break;
-		}
+		input = (input << 1);
+		if(duration >= minimum_start_bit_duration) input |= 1;
+		if((input&3) == 3) break;
 	}
 
 	/*
