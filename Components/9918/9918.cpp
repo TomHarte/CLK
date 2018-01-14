@@ -70,6 +70,7 @@ TMS9918::TMS9918(Personality p) {
 		"}");
 	crt_->set_output_device(Outputs::CRT::OutputDevice::Monitor);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
+	crt_->set_input_gamma(2.8f);
 }
 
 Outputs::CRT::CRT *TMS9918::get_crt() {
