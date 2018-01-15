@@ -45,8 +45,8 @@
 	switch(_target.machine) {
 		case StaticAnalyser::Target::AmstradCPC:	return nil;
 		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
-		case StaticAnalyser::Target::Electron:		return @"ElectronOptions";
-		case StaticAnalyser::Target::MSX:			return @"MSXOptions";
+		case StaticAnalyser::Target::Electron:		return @"QuickLoadCompositeOptions";
+		case StaticAnalyser::Target::MSX:			return @"QuickLoadCompositeOptions";
 		case StaticAnalyser::Target::Oric:			return @"OricOptions";
 		case StaticAnalyser::Target::Vic20:			return @"Vic20Options";
 		case StaticAnalyser::Target::ZX8081:		return @"ZX8081Options";

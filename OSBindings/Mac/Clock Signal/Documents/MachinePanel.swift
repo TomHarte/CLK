@@ -15,12 +15,10 @@ class MachinePanel: NSPanel {
 	final func prefixedUserDefaultsKey(_ key: String) -> String {
 		return "\(self.machine.userDefaultsPrefix).\(key)"
 	}
-	var fastLoadingUserDefaultsKey: String {
-		get {
-			return prefixedUserDefaultsKey("fastLoading")
-		}
-	}
 
+	var fastLoadingUserDefaultsKey: String {
+		return prefixedUserDefaultsKey("fastLoading")
+	}
 	@IBOutlet var fastLoadingButton: NSButton?
 	@IBAction func setFastLoading(_ sender: NSButton!) {
 		if let fastLoadingMachine = machine as? CSFastLoading {
@@ -30,10 +28,20 @@ class MachinePanel: NSPanel {
 		}
 	}
 
+	var displayTypeUserDefaultsKey: String {
+		return prefixedUserDefaultsKey("displayType")
+	}
+	@IBOutlet var displayTypeButton: NSPopUpButton?
+	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
+		machine.useCompositeOutput = (sender.indexOfSelectedItem == 1)
+		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
+	}
+
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 		standardUserDefaults.register(defaults: [
-			fastLoadingUserDefaultsKey: true
+			fastLoadingUserDefaultsKey: true,
+			displayTypeUserDefaultsKey: 0
 		])
 
 		if let fastLoadingMachine = machine as? CSFastLoading {
@@ -41,5 +49,9 @@ class MachinePanel: NSPanel {
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
 		}
+
+		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
+		machine.useCompositeOutput = (displayType == 1)
+		self.displayTypeButton?.selectItem(at: displayType)
 	}
 }
