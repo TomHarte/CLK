@@ -413,7 +413,7 @@ void OpenGLOutputBuilder::set_gamma() {
 }
 
 float OpenGLOutputBuilder::get_composite_output_width() const {
-	return (static_cast<float>(colour_cycle_numerator_) * 4.0f) / static_cast<float>(colour_cycle_denominator_ * IntermediateBufferWidth);
+	return static_cast<float>(colour_cycle_numerator_ * 8) / static_cast<float>(colour_cycle_denominator_ * IntermediateBufferWidth);
 }
 
 void OpenGLOutputBuilder::set_output_shader_width() {
