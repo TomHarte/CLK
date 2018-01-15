@@ -412,8 +412,16 @@ void OpenGLOutputBuilder::set_gamma() {
 	if(output_shader_program_) output_shader_program_->set_gamma_ratio(gamma_);
 }
 
+/*!
+	@returns The multiplier to apply to x positions received at the shader in order to produce locations in the intermediate
+		texture. Intermediate textures are in phase with the composite signal, so this is a function of (i) composite frequency
+		(determining how much of the texture adds up to a single line); and (ii) input frequency (determining what the input
+		positions mean as a fraction of a line).
+*/
 float OpenGLOutputBuilder::get_composite_output_width() const {
-	return (static_cast<float>(colour_cycle_numerator_) * 4.0f) / static_cast<float>(colour_cycle_denominator_ * IntermediateBufferWidth);
+	return
+		(static_cast<float>(colour_cycle_numerator_ * 4) / static_cast<float>(colour_cycle_denominator_ * IntermediateBufferWidth)) *
+		(static_cast<float>(IntermediateBufferWidth) / static_cast<float>(cycles_per_line_));
 }
 
 void OpenGLOutputBuilder::set_output_shader_width() {
