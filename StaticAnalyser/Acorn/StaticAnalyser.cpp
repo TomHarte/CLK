@@ -23,9 +23,9 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		// only one mapped item is allowed
 		if(segments.size() != 1) continue;
 
-		// which must be 16 kb in size
+		// which must be 8 or 16 kb in size
 		Storage::Cartridge::Cartridge::Segment segment = segments.front();
-		if(segment.data.size() != 0x4000) continue;
+		if(segment.data.size() != 0x4000 && segment.data.size() != 0x2000) continue;
 
 		// is a copyright string present?
 		uint8_t copyright_offset = segment.data[7];
