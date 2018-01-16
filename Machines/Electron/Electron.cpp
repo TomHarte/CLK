@@ -66,7 +66,13 @@ class ConcreteMachine:
 				break;
 			}
 
-			std::memcpy(target, &data[0], std::min(static_cast<std::size_t>(16384), data.size()));
+			// Copy in, with mirroring.
+			std::size_t rom_ptr = 0;
+			while(rom_ptr < 16384) {
+				std::size_t size_to_copy = std::min(16384 - rom_ptr, data.size());
+				std::memcpy(&target[rom_ptr], data.data(), size_to_copy);
+				rom_ptr += size_to_copy;
+			}
 		}
 
 		// Obtains the system ROMs.
