@@ -24,7 +24,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		if(segments.size() != 1) continue;
 
 		// which must be 8 or 16 kb in size
-		Storage::Cartridge::Cartridge::Segment segment = segments.front();
+		const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 		if(segment.data.size() != 0x4000 && segment.data.size() != 0x2000) continue;
 
 		// is a copyright string present?

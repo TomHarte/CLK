@@ -28,11 +28,27 @@ namespace Cartridge {
 class Cartridge {
 	public:
 		struct Segment {
-			Segment(size_t start_address, size_t end_address, std::vector<uint8_t> data) :
-				start_address(start_address), end_address(end_address), data(std::move(data)) {}
+			Segment(size_t start_address, size_t end_address, std::vector<uint8_t> &&data) :
+				start_address(start_address), end_address(end_address), data(data) {}
 
-			Segment(size_t start_address, std::vector<uint8_t> data) :
+			Segment(size_t start_address, size_t end_address, const std::vector<uint8_t> &data) :
+				start_address(start_address), end_address(end_address), data(data) {}
+
+			Segment(size_t start_address, std::vector<uint8_t> &&data) :
 				Segment(start_address, start_address + data.size(), data) {}
+
+			Segment(size_t start_address, const std::vector<uint8_t> &data) :
+				Segment(start_address, start_address + data.size(), data) {}
+
+			Segment(Segment &&segment) :
+				start_address(segment.start_address),
+				end_address(segment.end_address),
+				data(std::move(segment.data)) {}
+
+			Segment(const Segment &segment) :
+				start_address(segment.start_address),
+				end_address(segment.end_address),
+				data(segment.data) {}
 
 			/// Indicates that an address is unknown.
 			static const size_t UnknownAddress;
