@@ -188,7 +188,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
 		if(segment.data.size() & 0x1fff) {
 			std::vector<uint8_t> truncated_data;
-			std::vector<uint8_t>::difference_type truncated_size = static_cast<std::vector<uint8_t>::difference_type>(segment.data.size() & ~0x1fff);
+			std::vector<uint8_t>::difference_type truncated_size = static_cast<std::vector<uint8_t>::difference_type>(segment.data.size()) & ~0x1fff;
 			truncated_data.insert(truncated_data.begin(), segment.data.begin(), segment.data.begin() + truncated_size);
 			output_segments.emplace_back(start_address, truncated_data);
 		} else {
