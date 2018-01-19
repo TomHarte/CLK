@@ -34,10 +34,10 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		// Only one mapped item is allowed.
 		if(segments.size() != 1) continue;
 
-		// Which must be a multiple of 16 kb in size.
+		// Which must be no more than 63 bytes larger than a multiple of 8 kb in size.
 		Storage::Cartridge::Cartridge::Segment segment = segments.front();
 		const size_t data_size = segment.data.size();
-		if(data_size < 0x2000 || data_size & 0x3fff) continue;
+		if(data_size < 0x2000 || (data_size & 0x1fff) > 64) continue;
 
 		// Check for a ROM header at address 0; if it's not found then try 0x4000
 		// and adjust the start address;
@@ -184,10 +184,17 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 			}
 		}
 
-		// Apply the standard MSX start address.
-		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge({
-			Storage::Cartridge::Cartridge::Segment(start_address, segment.data)
-		}));
+		// Size down to a multiple of 8kb in size and apply the start address.
+		std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
+		if(segment.data.size() & 0x1fff) {
+			std::vector<uint8_t> truncated_data;
+			std::vector<uint8_t>::difference_type truncated_size = static_cast<std::vector<uint8_t>::difference_type>(segment.data.size()) & ~0x1fff;
+			truncated_data.insert(truncated_data.begin(), segment.data.begin(), segment.data.begin() + truncated_size);
+			output_segments.emplace_back(start_address, truncated_data);
+		} else {
+			output_segments.emplace_back(start_address, segment.data);
+		}
+		msx_cartridges.emplace_back(new Storage::Cartridge::Cartridge(output_segments));
 	}
 
 	return msx_cartridges;
