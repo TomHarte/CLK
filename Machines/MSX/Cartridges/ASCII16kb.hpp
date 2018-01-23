@@ -26,11 +26,11 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 				break;
 				case 0xc:
 					if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x4000, 0x4000);
+					map_.map(slot_, value * 0x4000, 0x4000, 0x4000);
 				break;
 				case 0xe:
 					if(address == 0x7000 || address == 0x77ff) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x8000, 0x4000);
+					map_.map(slot_, value * 0x4000, 0x8000, 0x4000);
 				break;
 			}
 		}

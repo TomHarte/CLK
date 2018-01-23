@@ -26,15 +26,15 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 				break;
 				case 3:
 					if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x6000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 4:
 					if(address == 0x8000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x8000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0x8000, 0x2000);
 				break;
 				case 5:
 					if(address == 0xa000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0xa000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}

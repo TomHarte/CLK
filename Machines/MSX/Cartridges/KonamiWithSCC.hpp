@@ -27,11 +27,11 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 				break;
 				case 0x0a:
 					if(address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x4000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0x4000, 0x2000);
 				break;
 				case 0x0e:
 					if(address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0x6000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 0x12:
 					if(address == 0x9000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
@@ -40,7 +40,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 						map_.unmap(slot_, 0x8000, 0x2000);
 					} else {
 						scc_is_visible_ = false;
-						map_.map(slot_, value * 8192, 0x8000, 0x2000);
+						map_.map(slot_, value * 0x2000, 0x8000, 0x2000);
 					}
 				break;
 				case 0x13:
@@ -53,7 +53,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 				break;
 				case 0x16:
 					if(address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
-					map_.map(slot_, value * 8192, 0xa000, 0x2000);
+					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}
