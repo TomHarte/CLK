@@ -21,14 +21,19 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 
 		void write(uint16_t address, uint8_t value) {
 			switch(address >> 13) {
-				default: break;
+				default:
+					confidence_counter_.add_miss();
+				break;
 				case 3:
+					if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 8192, 0x6000, 0x2000);
 				break;
 				case 4:
+					if(address == 0x8000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 8192, 0x8000, 0x2000);
 				break;
 				case 5:
+					if(address == 0xa000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 8192, 0xa000, 0x2000);
 				break;
 			}

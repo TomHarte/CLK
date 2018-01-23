@@ -154,6 +154,10 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+
+			if(memory_slots_[1].handler) {
+				printf("%0.2f\n", memory_slots_[1].handler->get_confidence());
+			}
 		}
 
 		void configure_as_target(const StaticAnalyser::Target &target) override {

@@ -10,6 +10,7 @@
 #define ROMSlotHandler_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../DynamicAnalyser/ConfidenceCounter.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -57,12 +58,19 @@ class ROMSlotHandler {
 			/// Empty causes all out-of-bounds accesses to read a vacant bus.
 			Empty
 		};
-		/*!
-			Returns the wrapping strategy to apply to mapping requests from this ROM slot.
-		*/
+
+		/*! @returns The wrapping strategy to apply to mapping requests from this ROM slot. */
 		virtual WrappingStrategy wrapping_strategy() const {
 			return WrappingStrategy::Repeat;
 		}
+
+		/*! @returns The probability that this handler is correct for the data it owns. */
+		float get_confidence() {
+			return confidence_counter_.get_probability();
+		}
+
+	protected:
+		DynamicAnalyser::ConfidenceCounter confidence_counter_;
 };
 
 }
