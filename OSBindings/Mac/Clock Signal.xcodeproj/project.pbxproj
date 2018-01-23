@@ -215,6 +215,10 @@
 		4B54C0C51F8D91D90050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0C41F8D91D90050900F /* Keyboard.cpp */; };
 		4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0C61F8D91E50050900F /* Keyboard.cpp */; };
 		4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0CA1F8D92580050900F /* Keyboard.cpp */; };
+		4B5539FF201583AD00027510 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5539FD201583AD00027510 /* ConfidenceCounter.cpp */; };
+		4B553A00201583AD00027510 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5539FD201583AD00027510 /* ConfidenceCounter.cpp */; };
+		4B553A032015855900027510 /* ConfidenceSummary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B553A012015855900027510 /* ConfidenceSummary.cpp */; };
+		4B553A042015855900027510 /* ConfidenceSummary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B553A012015855900027510 /* ConfidenceSummary.cpp */; };
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
@@ -822,6 +826,11 @@
 		4B54C0C71F8D91E50050900F /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = Electron/Keyboard.hpp; sourceTree = "<group>"; };
 		4B54C0C91F8D92580050900F /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = ZX8081/Keyboard.hpp; sourceTree = "<group>"; };
 		4B54C0CA1F8D92580050900F /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = ZX8081/Keyboard.cpp; sourceTree = "<group>"; };
+		4B5539F62015820B00027510 /* ConfidenceSource.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ConfidenceSource.hpp; sourceTree = "<group>"; };
+		4B5539FD201583AD00027510 /* ConfidenceCounter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConfidenceCounter.cpp; sourceTree = "<group>"; };
+		4B5539FE201583AD00027510 /* ConfidenceCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfidenceCounter.hpp; sourceTree = "<group>"; };
+		4B553A012015855900027510 /* ConfidenceSummary.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConfidenceSummary.cpp; sourceTree = "<group>"; };
+		4B553A022015855900027510 /* ConfidenceSummary.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfidenceSummary.hpp; sourceTree = "<group>"; };
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
 		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
@@ -1855,6 +1864,19 @@
 			path = 1540;
 			sourceTree = "<group>";
 		};
+		4B5539F52015820B00027510 /* DynamicAnalyser */ = {
+			isa = PBXGroup;
+			children = (
+				4B5539F62015820B00027510 /* ConfidenceSource.hpp */,
+				4B5539FD201583AD00027510 /* ConfidenceCounter.cpp */,
+				4B5539FE201583AD00027510 /* ConfidenceCounter.hpp */,
+				4B553A012015855900027510 /* ConfidenceSummary.cpp */,
+				4B553A022015855900027510 /* ConfidenceSummary.hpp */,
+			);
+			name = DynamicAnalyser;
+			path = ../../DynamicAnalyser;
+			sourceTree = "<group>";
+		};
 		4B55CE551C3B7D360093A61B /* Documents */ = {
 			isa = PBXGroup;
 			children = (
@@ -2431,6 +2453,7 @@
 				4BC9DF4A1D04691600F44158 /* Components */,
 				4B3940E81DA83C8700427841 /* Concurrency */,
 				4B31B88E1FBFBCD800C140D5 /* Configurable */,
+				4B5539F52015820B00027510 /* DynamicAnalyser */,
 				4B055A761FAE78210060FFFF /* Frameworks */,
 				4B86E2581F8C628F006FAA45 /* Inputs */,
 				4BB73EDC1B587CA500552FC2 /* Machines */,
@@ -3317,6 +3340,7 @@
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
 				4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */,
 				4B055A8A1FAE855B0060FFFF /* Tape.cpp in Sources */,
+				4B553A042015855900027510 /* ConfidenceSummary.cpp in Sources */,
 				4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */,
 				4B055AC11FAE98DC0060FFFF /* MachineForTarget.cpp in Sources */,
 				4B055AD81FAE9B180060FFFF /* Video.cpp in Sources */,
@@ -3391,6 +3415,7 @@
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4B055A841FAE85450060FFFF /* Disk.cpp in Sources */,
 				4B055A831FAE85410060FFFF /* Tape.cpp in Sources */,
+				4B553A00201583AD00027510 /* ConfidenceCounter.cpp in Sources */,
 				4B055AC61FAE9AEE0060FFFF /* TIASound.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
 				4B055AC81FAE9AFB0060FFFF /* C1540.cpp in Sources */,
@@ -3531,6 +3556,7 @@
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,
+				4B553A032015855900027510 /* ConfidenceSummary.cpp in Sources */,
 				4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */,
 				4BF1354C1D6D2C300054B2EA /* StaticAnalyser.cpp in Sources */,
 				4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */,
@@ -3565,6 +3591,7 @@
 				4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
+				4B5539FF201583AD00027510 /* ConfidenceCounter.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
