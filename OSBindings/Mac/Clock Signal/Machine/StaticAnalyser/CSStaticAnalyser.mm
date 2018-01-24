@@ -25,15 +25,14 @@
 #import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser {
-	StaticAnalyser::Target _target;
+	std::vector<StaticAnalyser::Target> _targets;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
 	if(self) {
-		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([url fileSystemRepresentation]);
-		if(!targets.size()) return nil;
-		_target = targets.front();
+		_targets = StaticAnalyser::GetTargets([url fileSystemRepresentation]);
+		if(!_targets.size()) return nil;
 
 		// TODO: can this better be supplied by the analyser?
 		_displayName = [[url pathComponents] lastObject];
@@ -42,7 +41,7 @@
 }
 
 - (NSString *)optionsPanelNibName {
-	switch(_target.machine) {
+	switch(_targets.front().machine) {
 		case StaticAnalyser::Target::AmstradCPC:	return nil;
 		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
 		case StaticAnalyser::Target::Electron:		return @"QuickLoadCompositeOptions";
@@ -55,20 +54,20 @@
 }
 
 - (CSMachine *)newMachine {
-	switch(_target.machine) {
+	switch(_targets.front().machine) {
 		case StaticAnalyser::Target::AmstradCPC:	return [[CSAmstradCPC alloc] init];
 		case StaticAnalyser::Target::Atari2600:		return [[CSAtari2600 alloc] init];
 		case StaticAnalyser::Target::Electron:		return [[CSElectron alloc] init];
 		case StaticAnalyser::Target::MSX:			return [[CSMSX alloc] init];
 		case StaticAnalyser::Target::Oric:			return [[CSOric alloc] init];
 		case StaticAnalyser::Target::Vic20:			return [[CSVic20 alloc] init];
-		case StaticAnalyser::Target::ZX8081:		return [[CSZX8081 alloc] initWithIntendedTarget:_target];
+		case StaticAnalyser::Target::ZX8081:		return [[CSZX8081 alloc] initWithIntendedTarget:_targets.front()];
 		default: return nil;
 	}
 }
 
 - (void)applyToMachine:(CSMachine *)machine {
-	[machine applyTarget:_target];
+	[machine applyTarget:_targets.front()];
 }
 
 @end

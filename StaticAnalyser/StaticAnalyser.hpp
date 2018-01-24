@@ -14,7 +14,6 @@
 #include "../Storage/Cartridge/Cartridge.hpp"
 
 #include <string>
-#include <list>
 #include <vector>
 
 namespace StaticAnalyser {
@@ -65,9 +64,9 @@ enum class AmstradCPCModel {
 	A list of disks, tapes and cartridges.
 */
 struct Media {
-	std::list<std::shared_ptr<Storage::Disk::Disk>> disks;
-	std::list<std::shared_ptr<Storage::Tape::Tape>> tapes;
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
+	std::vector<std::shared_ptr<Storage::Disk::Disk>> disks;
+	std::vector<std::shared_ptr<Storage::Tape::Tape>> tapes;
+	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
 
 	bool empty() const {
 		return disks.empty() && tapes.empty() && cartridges.empty();
@@ -137,7 +136,7 @@ struct Target {
 
 	@returns The list of potential targets, sorted from most to least probable.
 */
-std::list<Target> GetTargets(const char *file_name);
+std::vector<Target> GetTargets(const char *file_name);
 
 /*!
 	Inspects the supplied file and determines the media included.

@@ -118,7 +118,7 @@ static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 	return file;
 }
 
-std::list<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::vector<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	Storage::Tape::Acorn::Parser parser;
 
 	// populate chunk list
@@ -131,7 +131,7 @@ std::list<File> StaticAnalyser::Acorn::GetFiles(const std::shared_ptr<Storage::T
 	}
 
 	// decompose into file list
-	std::list<File> file_list;
+	std::vector<File> file_list;
 
 	while(chunk_list.size()) {
 		std::unique_ptr<File> next_file = GetNextFile(chunk_list);

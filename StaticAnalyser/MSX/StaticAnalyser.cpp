@@ -24,9 +24,9 @@
 		DEFW basic ; pointer to the start of a tokenized basicprogram, 0 if no basicprogram
 		DEFS 6,0 ; room reserved for future extensions
 */
-static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		MSXCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges, StaticAnalyser::Target &target) {
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> msx_cartridges;
+static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
+		MSXCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges, StaticAnalyser::Target &target) {
+	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> msx_cartridges;
 
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
@@ -200,7 +200,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return msx_cartridges;
 }
 
-void StaticAnalyser::MSX::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::MSX::AddTargets(const Media &media, std::vector<Target> &destination) {
 	Target target;
 
 	// Obtain only those cartridges which it looks like an MSX would understand.

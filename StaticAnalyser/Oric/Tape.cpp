@@ -11,8 +11,8 @@
 
 using namespace StaticAnalyser::Oric;
 
-std::list<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	std::list<File> files;
+std::vector<File> StaticAnalyser::Oric::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	std::vector<File> files;
 	Storage::Tape::Oric::Parser parser;
 
 	while(!tape->is_at_end()) {

@@ -14,7 +14,7 @@
 namespace StaticAnalyser {
 namespace AmstradCPC {
 
-void AddTargets(const Media &media, std::list<Target> &destination);
+void AddTargets(const Media &media, std::vector<Target> &destination);
 
 }
 }

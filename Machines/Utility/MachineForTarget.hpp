@@ -20,6 +20,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 namespace Machine {
 
@@ -38,10 +39,10 @@ struct DynamicMachine {
 
 /*!
 	Allocates an instance of DynamicMachine holding a machine that can
-	receive the supplied target. The machine has been allocated on the heap.
-	It is the caller's responsibility to delete the class when finished.
+	receive the supplied static analyser result. The machine has been allocated
+	on the heap. It is the caller's responsibility to delete the class when finished.
 */
-DynamicMachine *MachineForTarget(const StaticAnalyser::Target &target);
+DynamicMachine *MachineForTargets(const std::vector<StaticAnalyser::Target> &target);
 
 /*!
 	Returns a short string name for the machine identified by the target,

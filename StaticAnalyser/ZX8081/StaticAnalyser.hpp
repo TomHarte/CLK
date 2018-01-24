@@ -15,7 +15,7 @@
 namespace StaticAnalyser {
 namespace ZX8081 {
 
-void AddTargets(const Media &media, std::list<Target> &destination, TargetPlatform::IntType potential_platforms);
+void AddTargets(const Media &media, std::vector<Target> &destination, TargetPlatform::IntType potential_platforms);
 
 }
 }

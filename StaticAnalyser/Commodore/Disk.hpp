@@ -11,12 +11,12 @@
 
 #include "../../Storage/Disk/Disk.hpp"
 #include "File.hpp"
-#include <list>
+#include <vector>
 
 namespace StaticAnalyser {
 namespace Commodore {
 
-std::list<File> GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
+std::vector<File> GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 }
 }

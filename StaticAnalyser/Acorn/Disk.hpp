@@ -18,7 +18,7 @@ namespace Acorn {
 /// Describes a DFS- or ADFS-format catalogue(/directory) — the list of files available and the catalogue's boot option.
 struct Catalogue {
 	std::string name;
-	std::list<File> files;
+	std::vector<File> files;
 	enum class BootOption {
 		None,
 		LoadBOOT,

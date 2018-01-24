@@ -9,7 +9,6 @@
 #ifndef StaticAnalyser_Acorn_File_hpp
 #define StaticAnalyser_Acorn_File_hpp
 
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,7 +37,7 @@ struct File {
 		std::vector<uint8_t> data;
 	};
 
-	std::list<Chunk> chunks;
+	std::vector<Chunk> chunks;
 };
 
 }

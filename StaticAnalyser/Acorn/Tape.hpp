@@ -17,7 +17,7 @@
 namespace StaticAnalyser {
 namespace Acorn {
 
-std::list<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
+std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
 }

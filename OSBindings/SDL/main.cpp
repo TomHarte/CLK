@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets(arguments.file_name.c_str());
+	std::vector<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets(arguments.file_name.c_str());
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << std::endl;
 		return -1;
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
 	SpeakerDelegate speaker_delegate;
 
 	// Create and configure a machine.
-	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTarget(targets.front()));
+	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTargets(targets));
 
 	updater.set_clock_rate(machine->crt_machine()->get_clock_rate());
 	crt_delegate.best_effort_updater = &updater;

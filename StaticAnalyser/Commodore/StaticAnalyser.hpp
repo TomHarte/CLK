@@ -14,7 +14,7 @@
 namespace StaticAnalyser {
 namespace Commodore {
 
-void AddTargets(const Media &media, std::list<Target> &destination);
+void AddTargets(const Media &media, std::vector<Target> &destination);
 
 }
 }

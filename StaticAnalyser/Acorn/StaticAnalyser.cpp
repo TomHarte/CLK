@@ -13,9 +13,9 @@
 
 using namespace StaticAnalyser::Acorn;
 
-static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		AcornCartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> acorn_cartridges;
+static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
+		AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> acorn_cartridges;
 
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
@@ -56,7 +56,7 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::Acorn::AddTargets(const Media &media, std::vector<Target> &destination) {
 	Target target;
 	target.machine = Target::Electron;
 	target.probability = 1.0; // TODO: a proper estimation
@@ -70,7 +70,7 @@ void StaticAnalyser::Acorn::AddTargets(const Media &media, std::list<Target> &de
 	// if there are any tapes, attempt to get data from the first
 	if(media.tapes.size() > 0) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
-		std::list<File> files = GetFiles(tape);
+		std::vector<File> files = GetFiles(tape);
 		tape->reset();
 
 		// continue if there are any files

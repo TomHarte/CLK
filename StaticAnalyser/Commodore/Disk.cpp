@@ -165,8 +165,8 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		}
 };
 
-std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
-	std::list<File> files;
+std::vector<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+	std::vector<File> files;
 	CommodoreGCRParser parser;
 	parser.drive->set_disk(disk);
 

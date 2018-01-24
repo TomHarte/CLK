@@ -177,7 +177,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, St
 	return false;
 }
 
-void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::AmstradCPC::AddTargets(const Media &media, std::vector<Target> &destination) {
 	Target target;
 	target.machine = Target::AmstradCPC;
 	target.probability = 1.0;

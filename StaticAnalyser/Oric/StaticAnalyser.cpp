@@ -73,7 +73,7 @@ static int Basic11Score(const StaticAnalyser::MOS6502::Disassembly &disassembly)
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
-void StaticAnalyser::Oric::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::Oric::AddTargets(const Media &media, std::vector<Target> &destination) {
 	Target target;
 	target.machine = Target::Oric;
 	target.probability = 1.0;
@@ -82,7 +82,7 @@ void StaticAnalyser::Oric::AddTargets(const Media &media, std::list<Target> &des
 	int basic11_votes = 0;
 
 	for(auto &tape : media.tapes) {
-		std::list<File> tape_files = GetFiles(tape);
+		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(tape_files.size()) {
 			for(auto file : tape_files) {

@@ -139,8 +139,8 @@ Media StaticAnalyser::GetMedia(const char *file_name) {
 	return GetMediaAndPlatforms(file_name, throwaway);
 }
 
-std::list<Target> StaticAnalyser::GetTargets(const char *file_name) {
-	std::list<Target> targets;
+std::vector<Target> StaticAnalyser::GetTargets(const char *file_name) {
+	std::vector<Target> targets;
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.

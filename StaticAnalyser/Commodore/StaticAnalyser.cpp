@@ -17,9 +17,9 @@
 
 using namespace StaticAnalyser::Commodore;
 
-static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		Vic20CartridgesFrom(const std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
-	std::list<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
+static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
+		Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
 
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
@@ -38,13 +38,13 @@ static std::list<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::Commodore::AddTargets(const Media &media, std::vector<Target> &destination) {
 	Target target;
 	target.machine = Target::Vic20;	// TODO: machine estimation
 	target.probability = 1.0; // TODO: a proper estimation
 
 	int device = 0;
-	std::list<File> files;
+	std::vector<File> files;
 	bool is_disk = false;
 
 	// strip out inappropriate cartridges
@@ -52,10 +52,10 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 
 	// check disks
 	for(auto &disk : media.disks) {
-		std::list<File> disk_files = GetFiles(disk);
+		std::vector<File> disk_files = GetFiles(disk);
 		if(!disk_files.empty()) {
 			is_disk = true;
-			files.splice(files.end(), disk_files);
+			files.insert(files.end(), disk_files.begin(), disk_files.end());
 			target.media.disks.push_back(disk);
 			if(!device) device = 8;
 		}
@@ -63,10 +63,10 @@ void StaticAnalyser::Commodore::AddTargets(const Media &media, std::list<Target>
 
 	// check tapes
 	for(auto &tape : media.tapes) {
-		std::list<File> tape_files = GetFiles(tape);
+		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(!tape_files.empty()) {
-			files.splice(files.end(), tape_files);
+			files.insert(files.end(), tape_files.begin(), tape_files.end());
 			target.media.tapes.push_back(tape);
 			if(!device) device = 1;
 		}

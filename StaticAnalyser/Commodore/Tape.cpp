@@ -12,9 +12,9 @@
 
 using namespace StaticAnalyser::Commodore;
 
-std::list<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::vector<File> StaticAnalyser::Commodore::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	Storage::Tape::Commodore::Parser parser;
-	std::list<File> file_list;
+	std::vector<File> file_list;
 
 	std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape);
 

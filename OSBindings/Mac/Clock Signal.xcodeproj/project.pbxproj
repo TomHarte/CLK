@@ -166,6 +166,7 @@
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
+		4B2F67F12018312F00251FB5 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9C9D731FF81CC00030A129 /* Z80.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B322E011F5A2990004EB04C /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322DFD1F5A2981004EB04C /* Z80AllRAM.cpp */; };
@@ -2848,13 +2849,13 @@
 				4BF1354A1D6D2C300054B2EA /* StaticAnalyser.cpp */,
 				4BF1354B1D6D2C300054B2EA /* StaticAnalyser.hpp */,
 				4BD14B121D7462810088EAD6 /* Acorn */,
+				4B38F3451F2EB41800D9235D /* AmstradCPC */,
 				4BA799961D8B65730045123D /* Atari */,
 				4BC830D21D6E7C6D0000A26F /* Commodore */,
 				4B5A12581DD55873007A2231 /* Disassembler */,
+				4B0E04F01FC9E89100F43484 /* MSX */,
 				4BCF1FAC1DADD41F0039D2E7 /* Oric */,
 				4B14978C1EE4AC6200CE2596 /* ZX80/81 */,
-				4B38F3451F2EB41800D9235D /* AmstradCPC */,
-				4B0E04F01FC9E89100F43484 /* MSX */,
 			);
 			name = StaticAnalyser;
 			sourceTree = "<group>";
@@ -3380,6 +3381,7 @@
 				4B055A881FAE85530060FFFF /* 6502.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
+				4B2F67F12018312F00251FB5 /* Z80.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
 				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
 				4B055ADD1FAE9B460060FFFF /* i8272.cpp in Sources */,

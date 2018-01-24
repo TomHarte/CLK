@@ -178,7 +178,7 @@ static void DeterminePagingForCartridge(StaticAnalyser::Target &target, const St
 	}
 }
 
-void StaticAnalyser::Atari::AddTargets(const Media &media, std::list<Target> &destination) {
+void StaticAnalyser::Atari::AddTargets(const Media &media, std::vector<Target> &destination) {
 	// TODO: sanity checking; is this image really for an Atari 2600.
 	Target target;
 	target.machine = Target::Atari2600;
