@@ -20,6 +20,7 @@
 #include "StandardOptions.hpp"
 #include "Typer.hpp"
 
+#import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
@@ -61,13 +62,16 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	SpeakerDelegate _speakerDelegate;
 	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
-	Machine::DynamicMachine *_machine;
+
+	std::vector<StaticAnalyser::Target> _targets;
+	std::unique_ptr<Machine::DynamicMachine> _machine;
 }
 
-- (instancetype)initWithMachine:(void *)machine {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
 	self = [super init];
 	if(self) {
-		_machine = (Machine::DynamicMachine *)machine;
+		_targets = result.targets;
+		_machine.reset(Machine::MachineForTargets(_targets));
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
 		_machineDelegate.machine = self;
@@ -77,6 +81,8 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 		_machine->crt_machine()->set_delegate(&_machineDelegate);
 		CSApplyROMFetcher(*_machine->crt_machine());
+
+		[self applyTarget:_targets.front()];
 	}
 	return self;
 }
@@ -334,6 +340,12 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
 		configurable_device->set_selections(selection_set);
 	}
+}
+
+- (NSString *)userDefaultsPrefix {
+	// Assumes that the first machine in the targets list is the source of user defaults.
+	std::string name = Machine::ShortNameForTargetMachine(_targets.front().machine);
+	return [[NSString stringWithUTF8String:name.c_str()] lowercaseString];
 }
 
 @end

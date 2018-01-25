@@ -114,16 +114,15 @@ class MachineDocument:
 
 	// MARK: configuring
 	func configureAs(_ analysis: CSStaticAnalyser) {
-		if let machine = analysis.newMachine() {
+		if let machine = CSMachine(analyser: analysis) {
 			self.machine = machine
 		}
-		analysis.apply(to: self.machine)
 
-		if let optionsPanelNibName = analysis.optionsPanelNibName {
-			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
-			self.optionsPanel.machine = self.machine
-			showOptions(self)
-		}
+//		if let optionsPanelNibName = analysis.optionsPanelNibName {
+//			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
+//			self.optionsPanel.machine = self.machine
+//			showOptions(self)
+//		}
 	}
 
 	override func read(from url: URL, ofType typeName: String) throws {

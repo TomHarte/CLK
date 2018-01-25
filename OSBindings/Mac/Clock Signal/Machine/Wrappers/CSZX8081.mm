@@ -17,7 +17,7 @@
 
 - (instancetype)initWithIntendedTarget:(const StaticAnalyser::Target &)target {
 	_zx8081 = Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));
-	return [super initWithMachine:&_zx8081];
+	return nil;//[super initWithMachine:&_zx8081];
 }
 
 - (NSString *)userDefaultsPrefix {	return @"zx8081";	}

@@ -18,7 +18,7 @@
 
 - (instancetype)init {
 	_atari2600 = Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
-	return [super initWithMachine:&_atari2600];
+	return nil;//[super initWithMachine:&_atari2600];
 }
 
 - (void)setResetLineEnabled:(BOOL)enabled {

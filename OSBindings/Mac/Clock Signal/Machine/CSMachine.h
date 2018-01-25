@@ -7,8 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "CSOpenGLView.h"
+
 #import "CSAudioQueue.h"
+#import "CSOpenGLView.h"
+#import "CSStaticAnalyser.h"
 
 @class CSMachine;
 @protocol CSMachineDelegate
@@ -22,10 +24,9 @@
 /*!
 	Initialises an instance of CSMachine.
 
-	@param machine The pointer to an instance of @c Machine::DynamicMachine . C++ type is omitted because
-	this header is visible to Swift, and the designated initialiser cannot be placed into a category.
+	@param result The CSStaticAnalyser result that describes the machine needed.
 */
-- (instancetype)initWithMachine:(void *)machine NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result NS_DESIGNATED_INITIALIZER;
 
 - (void)runForNumberOfCycles:(int)numberOfCycles;
 
