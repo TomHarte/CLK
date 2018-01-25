@@ -261,8 +261,65 @@ int main(int argc, char *argv[]) {
 	CRTMachineDelegate crt_delegate;
 	SpeakerDelegate speaker_delegate;
 
+	// For vanilla SDL purposes, assume system ROMs can be found in one of:
+	//
+	//	/usr/local/share/CLK/[system]; or
+	//	/usr/share/CLK/[system]
+	std::vector<std::string> rom_names;
+	std::string machine_name;
+	ROMMachine::ROMFetcher rom_fetcher = [&rom_names, &machine_name]
+		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+			rom_names.insert(rom_names.end(), names.begin(), names.end());
+			machine_name = machine;
+
+			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
+			for(auto &name: names) {
+				std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
+				FILE *file = std::fopen(local_path.c_str(), "rb");
+				if(!file) {
+					std::string path = "/usr/share/CLK/" + machine + "/" + name;
+					file = std::fopen(path.c_str(), "rb");
+				}
+
+				if(!file) {
+					results.emplace_back(nullptr);
+					continue;
+				}
+
+				std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+
+				std::fseek(file, 0, SEEK_END);
+				data->resize(std::ftell(file));
+				std::fseek(file, 0, SEEK_SET);
+				std::size_t read = fread(data->data(), 1, data->size(), file);
+				std::fclose(file);
+
+				if(read == data->size())
+					results.emplace_back(std::move(data));
+				else
+					results.emplace_back(nullptr);
+			}
+
+			return results;
+		};
+
 	// Create and configure a machine.
-	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTargets(targets));
+	::Machine::Error error;
+	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTargets(targets, rom_fetcher, error));
+	if(!machine) {
+		switch(error) {
+			default: break;
+			case ::Machine::Error::MissingROM:
+				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
+				std::cerr << "One or more of the following were needed but not found:" << std::endl;
+				for(auto &name: rom_names) {
+					std::cerr << machine_name << '/' << name << std::endl;
+				}
+			break;
+		}
+
+		return -1;
+	}
 
 	updater.set_clock_rate(machine->crt_machine()->get_clock_rate());
 	crt_delegate.best_effort_updater = &updater;
@@ -301,57 +358,6 @@ int main(int argc, char *argv[]) {
 
 	GLint target_framebuffer = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
-
-	// For vanilla SDL purposes, assume system ROMs can be found in one of:
-	//
-	//	/usr/local/share/CLK/[system]; or
-	//	/usr/share/CLK/[system]
-	std::vector<std::string> rom_names;
-	std::string machine_name;
-	bool roms_loaded = machine->crt_machine()->set_rom_fetcher( [&rom_names, &machine_name]
-		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-			rom_names.insert(rom_names.end(), names.begin(), names.end());
-			machine_name = machine;
-
-			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-			for(auto &name: names) {
-				std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
-				FILE *file = std::fopen(local_path.c_str(), "rb");
-				if(!file) {
-					std::string path = "/usr/share/CLK/" + machine + "/" + name;
-					file = std::fopen(path.c_str(), "rb");
-				}
-
-				if(!file) {
-					results.emplace_back(nullptr);
-					continue;
-				}
-
-				std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
-
-				std::fseek(file, 0, SEEK_END);
-				data->resize(std::ftell(file));
-				std::fseek(file, 0, SEEK_SET);
-				std::size_t read = fread(data->data(), 1, data->size(), file);
-				std::fclose(file);
-
-				if(read == data->size())
-					results.emplace_back(std::move(data));
-				else
-					results.emplace_back(nullptr);
-			}
-
-			return results;
-		});
-
-	if(!roms_loaded) {
-		std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
-		std::cerr << "One or more of the following were needed but not found:" << std::endl;
-		for(auto &name: rom_names) {
-			std::cerr << machine_name << '/' << name << std::endl;
-		}
-		return -1;
-	}
 
 	machine->configuration_target()->configure_as_target(*targets.front());
 
@@ -435,7 +441,7 @@ int main(int argc, char *argv[]) {
 					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
 					machine->configuration_target()->insert_media(media);
 				} break;
-				
+
 				case SDL_KEYDOWN:
 					// Syphon off the key-press if it's control+shift+V (paste).
 					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {

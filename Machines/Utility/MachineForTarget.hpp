@@ -29,6 +29,7 @@ namespace Machine {
 	the machine's parent class or, therefore, the need to establish a common one.
 */
 struct DynamicMachine {
+	virtual ~DynamicMachine() {}
 	virtual ConfigurationTarget::Machine *configuration_target() = 0;
 	virtual CRTMachine::Machine *crt_machine() = 0;
 	virtual JoystickMachine::Machine *joystick_machine() = 0;
@@ -37,12 +38,18 @@ struct DynamicMachine {
 	virtual Utility::TypeRecipient *type_recipient() = 0;
 };
 
+enum class Error {
+	None,
+	UnknownMachine,
+	MissingROM
+};
+
 /*!
 	Allocates an instance of DynamicMachine holding a machine that can
 	receive the supplied static analyser result. The machine has been allocated
 	on the heap. It is the caller's responsibility to delete the class when finished.
 */
-DynamicMachine *MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets);
+DynamicMachine *MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ::ROMMachine::ROMFetcher &rom_fetcher, Error &error);
 
 /*!
 	Returns a short string name for the machine identified by the target,

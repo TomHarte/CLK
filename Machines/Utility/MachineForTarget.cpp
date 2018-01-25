@@ -18,19 +18,41 @@
 
 #include "TypedDynamicMachine.hpp"
 
-::Machine::DynamicMachine *::Machine::MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets) {
+::Machine::DynamicMachine *::Machine::MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
 	// TODO: deal with target lists containing more than one machine.
-	switch(targets.front()->machine) {
-		case Analyser::Machine::AmstradCPC:	return new TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());
-		case Analyser::Machine::Atari2600:	return new TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
-		case Analyser::Machine::Electron:	return new TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());
-		case Analyser::Machine::MSX:		return new TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());
-		case Analyser::Machine::Oric:		return new TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());
-		case Analyser::Machine::Vic20:		return new TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());
-		case Analyser::Machine::ZX8081:		return new TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(*targets.front()));
 
-		default:	return nullptr;
+	error = Error::None;
+	::Machine::DynamicMachine *machine = nullptr;
+	switch(targets.front()->machine) {
+		case Analyser::Machine::AmstradCPC:	machine = new TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());			break;
+		case Analyser::Machine::Atari2600:	machine = new TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
+		case Analyser::Machine::Electron:	machine = new TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());				break;
+		case Analyser::Machine::MSX:		machine = new TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());								break;
+		case Analyser::Machine::Oric:		machine = new TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());							break;
+		case Analyser::Machine::Vic20:		machine = new TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());	break;
+		case Analyser::Machine::ZX8081:		machine = new TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(*targets.front()));		break;
+
+		default:
+			error = Error::UnknownMachine;
+		return nullptr;
 	}
+
+	// TODO: this shouldn't depend on CRT machine's inclusion of ROM machine.
+	CRTMachine::Machine *crt_machine = machine->crt_machine();
+	if(crt_machine) {
+		if(!machine->crt_machine()->set_rom_fetcher(rom_fetcher)) {
+			delete machine;
+			error = Error::MissingROM;
+			return nullptr;
+		}
+	}
+
+	ConfigurationTarget::Machine *configuration_target = machine->configuration_target();
+	if(configuration_target) {
+		machine->configuration_target()->configure_as_target(*targets.front());
+	}
+
+	return machine;
 }
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {

@@ -33,7 +33,7 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 		_serialPort.reset(new VanillaSerialPort);
 
 		_c1540.reset(new Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
-		CSApplyROMFetcher(*_c1540);
+		_c1540->set_rom_fetcher(CSROMFetcher());
 		_c1540->set_serial_bus(_serialBus);
 		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 	}

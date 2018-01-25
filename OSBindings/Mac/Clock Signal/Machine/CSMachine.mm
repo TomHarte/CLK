@@ -71,7 +71,11 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	self = [super init];
 	if(self) {
 		_analyser = result;
-		_machine.reset(Machine::MachineForTargets(_analyser.targets));
+
+		Machine::Error error;
+		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(), error));
+		if(!_machine) return nil;
+
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
 		_machineDelegate.machine = self;
@@ -80,9 +84,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_machine->crt_machine()->set_delegate(&_machineDelegate);
-		CSApplyROMFetcher(*_machine->crt_machine());
-
-		[self applyTarget:*_analyser.targets.front()];
 	}
 	return self;
 }
@@ -183,13 +184,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	KeyboardMachine::Machine *keyboardMachine = _machine->type_recipient();
 	if(keyboardMachine)
 		keyboardMachine->type_string([paste UTF8String]);
-}
-
-- (void)applyTarget:(const Analyser::Static::Target &)target {
-	@synchronized(self) {
-		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
-		if(configurationTarget) configurationTarget->configure_as_target(target);
-	}
 }
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {

@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../StaticAnalyser/StaticAnalyser.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
 
 @interface MSXROMRecord : NSObject
 @property(nonatomic, readonly) Analyser::Static::MSXCartridgeType cartridgeType;
@@ -211,7 +211,7 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		for(int c = 0; c < CC_SHA1_DIGEST_LENGTH; c++) [sha1 appendFormat:@"%02x", sha1Bytes[c]];
 
 		// get an analysis of the file
-		std::list<Analyser::Static::Target> targets = Analyser::Static::GetTargets([fullPath UTF8String]);
+		std::vector<std::unique_ptr<Analyser::Static::Target>> targets = Analyser::Static::GetTargets([fullPath UTF8String]);
 
 		// grab the ROM record
 		MSXROMRecord *romRecord = romRecordsBySHA1[sha1];
@@ -222,7 +222,7 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		// assert equality
 		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file", testFile);
 		if(!targets.empty()) {
-			XCTAssert(targets.front().msx.cartridge_type == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front().msx.cartridge_type);
+			XCTAssert(targets.front()->msx.cartridge_type == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front()->msx.cartridge_type);
 		}
 	}
 }
