@@ -17,13 +17,13 @@
 #import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser {
-	std::vector<StaticAnalyser::Target> _targets;
+	std::vector<Analyser::Static::Target> _targets;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
 	if(self) {
-		_targets = StaticAnalyser::GetTargets([url fileSystemRepresentation]);
+		_targets = Analyser::Static::GetTargets([url fileSystemRepresentation]);
 		if(!_targets.size()) return nil;
 
 		// TODO: could this better be supplied by the analyser? A hypothetical file format might
@@ -35,13 +35,13 @@
 
 - (NSString *)optionsPanelNibName {
 	switch(_targets.front().machine) {
-		case StaticAnalyser::Target::AmstradCPC:	return nil;
-		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
-		case StaticAnalyser::Target::Electron:		return @"QuickLoadCompositeOptions";
-		case StaticAnalyser::Target::MSX:			return @"QuickLoadCompositeOptions";
-		case StaticAnalyser::Target::Oric:			return @"OricOptions";
-		case StaticAnalyser::Target::Vic20:			return @"Vic20Options";
-		case StaticAnalyser::Target::ZX8081:		return @"ZX8081Options";
+		case Analyser::Machine::AmstradCPC:	return nil;
+		case Analyser::Machine::Atari2600:	return @"Atari2600Options";
+		case Analyser::Machine::Electron:	return @"QuickLoadCompositeOptions";
+		case Analyser::Machine::MSX:		return @"QuickLoadCompositeOptions";
+		case Analyser::Machine::Oric:		return @"OricOptions";
+		case Analyser::Machine::Vic20:		return @"Vic20Options";
+		case Analyser::Machine::ZX8081:		return @"ZX8081Options";
 		default: return nil;
 	}
 }
@@ -50,20 +50,20 @@
 	[machine applyTarget:_targets.front()];
 }
 
-- (std::vector<StaticAnalyser::Target> &)targets {
+- (std::vector<Analyser::Static::Target> &)targets {
 	return _targets;
 }
 
 @end
 
 @implementation CSMediaSet {
-	StaticAnalyser::Media _media;
+	Analyser::Static::Media _media;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
 	if(self) {
-		_media = StaticAnalyser::GetMedia([url fileSystemRepresentation]);
+		_media = Analyser::Static::GetMedia([url fileSystemRepresentation]);
 	}
 	return self;
 }

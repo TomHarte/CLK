@@ -257,7 +257,7 @@ uint16_t Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape
 }
 
 /*!
-	Per the contract with StaticAnalyser::TapeParser; sums time across pulses. If this pulse
+	Per the contract with Analyser::Static::TapeParser; sums time across pulses. If this pulse
 	indicates a high to low transition, inspects the time since the last transition, to produce
 	a long, medium, short or unrecognised wave period.
 */
@@ -284,7 +284,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 }
 
 /*!
-	Per the contract with StaticAnalyser::TapeParser; produces any of a word marker, an end-of-block marker,
+	Per the contract with Analyser::Static::TapeParser; produces any of a word marker, an end-of-block marker,
 	a zero, a one or a lead-in symbol based on the currently captured waves.
 */
 void Parser::inspect_waves(const std::vector<WaveType> &waves)

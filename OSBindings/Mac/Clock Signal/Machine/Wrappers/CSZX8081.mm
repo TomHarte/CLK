@@ -15,7 +15,7 @@
 	Machine::TypedDynamicMachine<ZX8081::Machine> _zx8081;
 }
 
-- (instancetype)initWithIntendedTarget:(const StaticAnalyser::Target &)target {
+- (instancetype)initWithIntendedTarget:(const Analyser::Static::Target &)target {
 	_zx8081 = Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));
 	return nil;//[super initWithMachine:&_zx8081];
 }

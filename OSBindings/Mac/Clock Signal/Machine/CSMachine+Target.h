@@ -12,7 +12,7 @@
 
 @interface CSMachine(Target)
 
-- (void)applyTarget:(const StaticAnalyser::Target &)target;
-- (void)applyMedia:(const StaticAnalyser::Media &)media;
+- (void)applyTarget:(const Analyser::Static::Target &)target;
+- (void)applyMedia:(const Analyser::Static::Media &)media;
 
 @end

@@ -63,7 +63,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
 
-	std::vector<StaticAnalyser::Target> _targets;
+	std::vector<Analyser::Static::Target> _targets;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
 }
 
@@ -185,14 +185,14 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		keyboardMachine->type_string([paste UTF8String]);
 }
 
-- (void)applyTarget:(const StaticAnalyser::Target &)target {
+- (void)applyTarget:(const Analyser::Static::Target &)target {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
 		if(configurationTarget) configurationTarget->configure_as_target(target);
 	}
 }
 
-- (void)applyMedia:(const StaticAnalyser::Media &)media {
+- (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
 		if(configurationTarget) configurationTarget->insert_media(media);

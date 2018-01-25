@@ -10,7 +10,7 @@
 #define ROMSlotHandler_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../DynamicAnalyser/ConfidenceCounter.hpp"
+#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
 
 #include <cstddef>
 #include <cstdint>

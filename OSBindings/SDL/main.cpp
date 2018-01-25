@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	std::vector<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets(arguments.file_name.c_str());
+	std::vector<Analyser::Static::Target> targets = Analyser::Static::GetTargets(arguments.file_name.c_str());
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << std::endl;
 		return -1;
@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
 				break;
 
 				case SDL_DROPFILE: {
-					StaticAnalyser::Media media = StaticAnalyser::GetMedia(event.drop.file);
+					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
 					machine->configuration_target()->insert_media(media);
 				} break;
 				

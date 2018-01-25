@@ -11,6 +11,6 @@
 
 @interface CSZX8081 (Instantiation)
 
-- (instancetype)initWithIntendedTarget:(const StaticAnalyser::Target &)target;
+- (instancetype)initWithIntendedTarget:(const Analyser::Static::Target &)target;
 
 @end

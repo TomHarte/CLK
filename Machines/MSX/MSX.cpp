@@ -160,7 +160,7 @@ class ConcreteMachine:
 			}
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) override {
+		void configure_as_target(const Analyser::Static::Target &target) override {
 			// Add a disk cartridge if any disks were supplied.
 			if(!target.media.disks.empty()) {
 				map(2, 0, 0x4000, 0x2000);
@@ -179,22 +179,22 @@ class ConcreteMachine:
 			// Attach the hardware necessary for a game cartridge, if any.
 			switch(target.msx.cartridge_type) {
 				default: break;
-				case StaticAnalyser::MSXCartridgeType::Konami:
+				case Analyser::Static::MSXCartridgeType::Konami:
 					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
 				break;
-				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
+				case Analyser::Static::MSXCartridgeType::KonamiWithSCC:
 					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
 				break;
-				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
+				case Analyser::Static::MSXCartridgeType::ASCII8kb:
 					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
 				break;
-				case StaticAnalyser::MSXCartridgeType::ASCII16kb:
+				case Analyser::Static::MSXCartridgeType::ASCII16kb:
 					memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
 				break;
 			}
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) override {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
