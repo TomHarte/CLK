@@ -17,8 +17,6 @@
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;
 
-- (void)applyToMachine:(CSMachine *)machine;
-
 @end
 
 @interface CSMediaSet : NSObject

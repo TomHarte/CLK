@@ -73,10 +73,10 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
-void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<Target> &destination) {
-	Target target;
-	target.machine = Machine::Oric;
-	target.probability = 1.0;
+void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+	std::unique_ptr<Target> target(new Target);
+	target->machine = Machine::Oric;
+	target->probability = 1.0;
 
 	int basic10_votes = 0;
 	int basic11_votes = 0;
@@ -97,23 +97,23 @@ void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<Target> 
 				}
 			}
 
-			target.media.tapes.push_back(tape);
-			target.loading_command = "CLOAD\"\"\n";
+			target->media.tapes.push_back(tape);
+			target->loading_command = "CLOAD\"\"\n";
 		}
 	}
 
 	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
 	if(!media.disks.empty()) {
-		target.oric.has_microdisc = true;
-		target.media.disks = media.disks;
+		target->oric.has_microdisc = true;
+		target->media.disks = media.disks;
 	} else {
-		target.oric.has_microdisc = false;
+		target->oric.has_microdisc = false;
 	}
 
 	// TODO: really this should add two targets if not all votes agree
-	target.oric.use_atmos_rom = basic11_votes >= basic10_votes;
-	if(target.oric.has_microdisc) target.oric.use_atmos_rom = true;
+	target->oric.use_atmos_rom = basic11_votes >= basic10_votes;
+	if(target->oric.has_microdisc) target->oric.use_atmos_rom = true;
 
-	if(target.media.tapes.size() || target.media.disks.size() || target.media.cartridges.size())
-		destination.push_back(target);
+	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())
+		destination.push_back(std::move(target));
 }

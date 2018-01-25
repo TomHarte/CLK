@@ -17,7 +17,7 @@
 #import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser {
-	std::vector<Analyser::Static::Target> _targets;
+	std::vector<std::unique_ptr<Analyser::Static::Target>> _targets;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
@@ -34,7 +34,7 @@
 }
 
 - (NSString *)optionsPanelNibName {
-	switch(_targets.front().machine) {
+	switch(_targets.front()->machine) {
 		case Analyser::Machine::AmstradCPC:	return nil;
 		case Analyser::Machine::Atari2600:	return @"Atari2600Options";
 		case Analyser::Machine::Electron:	return @"QuickLoadCompositeOptions";
@@ -46,11 +46,7 @@
 	}
 }
 
-- (void)applyToMachine:(CSMachine *)machine {
-	[machine applyTarget:_targets.front()];
-}
-
-- (std::vector<Analyser::Static::Target> &)targets {
+- (std::vector<std::unique_ptr<Analyser::Static::Target>> &)targets {
 	return _targets;
 }
 

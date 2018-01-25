@@ -200,32 +200,32 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return msx_cartridges;
 }
 
-void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<Target> &destination) {
-	Target target;
+void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+	std::unique_ptr<Target> target(new Target);
 
 	// Obtain only those cartridges which it looks like an MSX would understand.
-	target.media.cartridges = MSXCartridgesFrom(media.cartridges, target);
+	target->media.cartridges = MSXCartridgesFrom(media.cartridges, *target);
 
 	// Check tapes for loadable files.
 	for(const auto &tape : media.tapes) {
 		std::vector<File> files_on_tape = GetFiles(tape);
 		if(!files_on_tape.empty()) {
 			switch(files_on_tape.front().type) {
-				case File::Type::ASCII:				target.loading_command = "RUN\"CAS:\r";			break;
-				case File::Type::TokenisedBASIC:	target.loading_command = "CLOAD\rRUN\r";		break;
-				case File::Type::Binary:			target.loading_command = "BLOAD\"CAS:\",R\r";	break;
+				case File::Type::ASCII:				target->loading_command = "RUN\"CAS:\r";		break;
+				case File::Type::TokenisedBASIC:	target->loading_command = "CLOAD\rRUN\r";		break;
+				case File::Type::Binary:			target->loading_command = "BLOAD\"CAS:\",R\r";	break;
 				default: break;
 			}
-			target.media.tapes.push_back(tape);
+			target->media.tapes.push_back(tape);
 		}
 	}
 
 	// Blindly accept disks for now.
-	target.media.disks = media.disks;
+	target->media.disks = media.disks;
 
-	if(!target.media.empty()) {
-		target.machine = Machine::MSX;
-		target.probability = 1.0;
-		destination.push_back(target);
+	if(!target->media.empty()) {
+		target->machine = Machine::MSX;
+		target->probability = 1.0;
+		destination.push_back(std::move(target));
 	}
 }

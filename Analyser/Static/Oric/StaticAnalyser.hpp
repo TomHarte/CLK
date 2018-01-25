@@ -15,7 +15,7 @@ namespace Analyser {
 namespace Static {
 namespace Oric {
 
-void AddTargets(const Media &media, std::vector<Target> &destination);
+void AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination);
 
 }
 }

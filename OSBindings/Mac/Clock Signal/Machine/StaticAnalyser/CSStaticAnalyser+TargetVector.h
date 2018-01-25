@@ -10,6 +10,6 @@
 
 @interface CSStaticAnalyser (ResultVector)
 
-- (std::vector<Analyser::Static::Target> &)targets;
+- (std::vector<std::unique_ptr<Analyser::Static::Target>> &)targets;
 
 @end

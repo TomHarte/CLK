@@ -2060,11 +2060,11 @@
 		4B8944E3201967B4007DE474 /* Dynamic */ = {
 			isa = PBXGroup;
 			children = (
-				4B8944E4201967B4007DE474 /* ConfidenceSummary.hpp */,
-				4B8944E5201967B4007DE474 /* ConfidenceSource.hpp */,
 				4B8944E6201967B4007DE474 /* ConfidenceCounter.cpp */,
-				4B8944E7201967B4007DE474 /* ConfidenceCounter.hpp */,
 				4B8944E8201967B4007DE474 /* ConfidenceSummary.cpp */,
+				4B8944E7201967B4007DE474 /* ConfidenceCounter.hpp */,
+				4B8944E5201967B4007DE474 /* ConfidenceSource.hpp */,
+				4B8944E4201967B4007DE474 /* ConfidenceSummary.hpp */,
 			);
 			path = Dynamic;
 			sourceTree = "<group>";
@@ -2090,12 +2090,12 @@
 			isa = PBXGroup;
 			children = (
 				4B8944EC201967B4007DE474 /* Disk.cpp */,
-				4B8944ED201967B4007DE474 /* StaticAnalyser.hpp */,
-				4B8944EE201967B4007DE474 /* File.hpp */,
-				4B8944EF201967B4007DE474 /* Tape.hpp */,
+				4B8944F2201967B4007DE474 /* StaticAnalyser.cpp */,
 				4B8944F0201967B4007DE474 /* Tape.cpp */,
 				4B8944F1201967B4007DE474 /* Disk.hpp */,
-				4B8944F2201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B8944EE201967B4007DE474 /* File.hpp */,
+				4B8944ED201967B4007DE474 /* StaticAnalyser.hpp */,
+				4B8944EF201967B4007DE474 /* Tape.hpp */,
 			);
 			path = Acorn;
 			sourceTree = "<group>";
@@ -2103,8 +2103,8 @@
 		4B8944F3201967B4007DE474 /* Atari */ = {
 			isa = PBXGroup;
 			children = (
-				4B8944F4201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944F5201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B8944F4201967B4007DE474 /* StaticAnalyser.hpp */,
 			);
 			path = Atari;
 			sourceTree = "<group>";
@@ -2112,10 +2112,10 @@
 		4B8944F6201967B4007DE474 /* Oric */ = {
 			isa = PBXGroup;
 			children = (
+				4B8944FA201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B8944F9201967B4007DE474 /* Tape.cpp */,
 				4B8944F7201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944F8201967B4007DE474 /* Tape.hpp */,
-				4B8944F9201967B4007DE474 /* Tape.cpp */,
-				4B8944FA201967B4007DE474 /* StaticAnalyser.cpp */,
 			);
 			path = Oric;
 			sourceTree = "<group>";
@@ -2124,12 +2124,12 @@
 			isa = PBXGroup;
 			children = (
 				4B8944FC201967B4007DE474 /* Disk.cpp */,
-				4B894502201967B4007DE474 /* Disk.hpp */,
 				4B894500201967B4007DE474 /* File.cpp */,
-				4B8944FE201967B4007DE474 /* File.hpp */,
 				4B894503201967B4007DE474 /* StaticAnalyser.cpp */,
-				4B8944FD201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B894501201967B4007DE474 /* Tape.cpp */,
+				4B894502201967B4007DE474 /* Disk.hpp */,
+				4B8944FE201967B4007DE474 /* File.hpp */,
+				4B8944FD201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944FF201967B4007DE474 /* Tape.hpp */,
 			);
 			path = Commodore;
@@ -2138,8 +2138,8 @@
 		4B894504201967B4007DE474 /* ZX8081 */ = {
 			isa = PBXGroup;
 			children = (
-				4B894505201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B894506201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B894505201967B4007DE474 /* StaticAnalyser.hpp */,
 			);
 			path = ZX8081;
 			sourceTree = "<group>";
@@ -2147,13 +2147,13 @@
 		4B894507201967B4007DE474 /* Disassembler */ = {
 			isa = PBXGroup;
 			children = (
-				4B894508201967B4007DE474 /* 6502.hpp */,
-				4B894509201967B4007DE474 /* AddressMapper.hpp */,
-				4B89450A201967B4007DE474 /* Z80.hpp */,
 				4B89450B201967B4007DE474 /* 6502.cpp */,
 				4B89450C201967B4007DE474 /* AddressMapper.cpp */,
 				4B89450D201967B4007DE474 /* Z80.cpp */,
+				4B894508201967B4007DE474 /* 6502.hpp */,
+				4B894509201967B4007DE474 /* AddressMapper.hpp */,
 				4B89450E201967B4007DE474 /* Kernel.hpp */,
+				4B89450A201967B4007DE474 /* Z80.hpp */,
 			);
 			path = Disassembler;
 			sourceTree = "<group>";
@@ -2161,10 +2161,10 @@
 		4B89450F201967B4007DE474 /* MSX */ = {
 			isa = PBXGroup;
 			children = (
+				4B894513201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B894512201967B4007DE474 /* Tape.cpp */,
 				4B894510201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B894511201967B4007DE474 /* Tape.hpp */,
-				4B894512201967B4007DE474 /* Tape.cpp */,
-				4B894513201967B4007DE474 /* StaticAnalyser.cpp */,
 			);
 			path = MSX;
 			sourceTree = "<group>";
@@ -2172,8 +2172,8 @@
 		4B894514201967B4007DE474 /* AmstradCPC */ = {
 			isa = PBXGroup;
 			children = (
-				4B894515201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B894516201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B894515201967B4007DE474 /* StaticAnalyser.hpp */,
 			);
 			path = AmstradCPC;
 			sourceTree = "<group>";

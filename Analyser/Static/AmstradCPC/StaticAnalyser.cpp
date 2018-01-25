@@ -58,7 +58,7 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 
 static void InspectCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
-	Analyser::Static::Target &target) {
+	const std::unique_ptr<Analyser::Static::Target> &target) {
 
 	std::vector<const Storage::Disk::CPM::File *> candidate_files;
 	candidate_files.reserve(catalogue.files.size());
@@ -95,7 +95,7 @@ static void InspectCatalogue(
 
 	// If there's just one file, run that.
 	if(candidate_files.size() == 1) {
-		target.loading_command = RunCommandFor(*candidate_files[0]);
+		target->loading_command = RunCommandFor(*candidate_files[0]);
 		return;
 	}
 
@@ -126,7 +126,7 @@ static void InspectCatalogue(
 	}
 	if(basic_files == 1 || implicit_suffixed_files == 1) {
 		std::size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target.loading_command = RunCommandFor(*candidate_files[selected_file]);
+		target->loading_command = RunCommandFor(*candidate_files[selected_file]);
 		return;
 	}
 
@@ -143,17 +143,17 @@ static void InspectCatalogue(
 	if(name_counts.size() == 2) {
 		for(auto &pair : name_counts) {
 			if(pair.second == 1) {
-				target.loading_command = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
+				target->loading_command = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
 				return;
 			}
 		}
 	}
 
 	// Desperation.
-	target.loading_command = "cat\n";
+	target->loading_command = "cat\n";
 }
 
-static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, Analyser::Static::Target &target) {
+static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::Target> &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
 	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
 	if(boot_sector != nullptr && !boot_sector->samples.empty()) {
@@ -169,7 +169,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, An
 
 		// This is a system disk, then launch it as though it were CP/M.
 		if(!matched) {
-			target.loading_command = "|cpm\n";
+			target->loading_command = "|cpm\n";
 			return true;
 		}
 	}
@@ -177,24 +177,24 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, An
 	return false;
 }
 
-void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<Target> &destination) {
-	Target target;
-	target.machine = Machine::AmstradCPC;
-	target.probability = 1.0;
-	target.media.disks = media.disks;
-	target.media.tapes = media.tapes;
-	target.media.cartridges = media.cartridges;
+void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+	std::unique_ptr<Target> target(new Target);
+	target->machine = Machine::AmstradCPC;
+	target->probability = 1.0;
+	target->media.disks = media.disks;
+	target->media.tapes = media.tapes;
+	target->media.cartridges = media.cartridges;
 
-	target.amstradcpc.model = AmstradCPCModel::CPC6128;
+	target->amstradcpc.model = AmstradCPCModel::CPC6128;
 
-	if(!target.media.tapes.empty()) {
+	if(!target->media.tapes.empty()) {
 		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 		// enter and responding to the follow-on prompt to press a key, so just type for
 		// a while. Yuck!
-		target.loading_command = "|tape\nrun\"\n1234567890";
+		target->loading_command = "|tape\nrun\"\n1234567890";
 	}
 
-	if(!target.media.disks.empty()) {
+	if(!target->media.disks.empty()) {
 		Storage::Disk::CPM::ParameterBlock data_format;
 		data_format.sectors_per_track = 9;
 		data_format.tracks = 40;
@@ -203,11 +203,11 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<Ta
 		data_format.catalogue_allocation_bitmap = 0xc000;
 		data_format.reserved_tracks = 0;
 
-		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), data_format);
+		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), data_format);
 		if(data_catalogue) {
 			InspectCatalogue(*data_catalogue, target);
 		} else {
-			if(!CheckBootSector(target.media.disks.front(), target)) {
+			if(!CheckBootSector(target->media.disks.front(), target)) {
 				Storage::Disk::CPM::ParameterBlock system_format;
 				system_format.sectors_per_track = 9;
 				system_format.tracks = 40;
@@ -216,7 +216,7 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<Ta
 				system_format.catalogue_allocation_bitmap = 0xc000;
 				system_format.reserved_tracks = 2;
 
-				std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target.media.disks.front(), system_format);
+				std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), system_format);
 				if(system_catalogue) {
 					InspectCatalogue(*system_catalogue, target);
 				}
@@ -224,5 +224,5 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<Ta
 		}
 	}
 
-	destination.push_back(target);
+	destination.push_back(std::move(target));
 }

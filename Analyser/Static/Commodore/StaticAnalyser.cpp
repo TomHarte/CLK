@@ -38,17 +38,17 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Target> &destination) {
-	Target target;
-	target.machine = Machine::Vic20;	// TODO: machine estimation
-	target.probability = 1.0; // TODO: a proper estimation
+void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+	std::unique_ptr<Target> target(new Target);
+	target->machine = Machine::Vic20;	// TODO: machine estimation
+	target->probability = 1.0; // TODO: a proper estimation
 
 	int device = 0;
 	std::vector<File> files;
 	bool is_disk = false;
 
 	// strip out inappropriate cartridges
-	target.media.cartridges = Vic20CartridgesFrom(media.cartridges);
+	target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
 
 	// check disks
 	for(auto &disk : media.disks) {
@@ -56,7 +56,7 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Tar
 		if(!disk_files.empty()) {
 			is_disk = true;
 			files.insert(files.end(), disk_files.begin(), disk_files.end());
-			target.media.disks.push_back(disk);
+			target->media.disks.push_back(disk);
 			if(!device) device = 8;
 		}
 	}
@@ -67,13 +67,13 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Tar
 		tape->reset();
 		if(!tape_files.empty()) {
 			files.insert(files.end(), tape_files.begin(), tape_files.end());
-			target.media.tapes.push_back(tape);
+			target->media.tapes.push_back(tape);
 			if(!device) device = 1;
 		}
 	}
 
 	if(!files.empty()) {
-		target.vic20.memory_model = Vic20MemoryModel::Unexpanded;
+		target->vic20.memory_model = Vic20MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
   		if(files.front().is_basic()) {
@@ -82,17 +82,17 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Tar
 			string_stream << "1";
 		}
 		string_stream << "\nRUN\n";
-		target.loading_command = string_stream.str();
+		target->loading_command = string_stream.str();
 
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
 			case 0x1001:
 			default: break;
 			case 0x1201:
-				target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
 			break;
 			case 0x0401:
-				target.vic20.memory_model = Vic20MemoryModel::EightKB;
+				target->vic20.memory_model = Vic20MemoryModel::EightKB;
 			break;
 		}
 
@@ -108,9 +108,9 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Tar
 				// An unexpanded machine has 3583 bytes free for BASIC;
 				// a 3kb expanded machine has 6655 bytes free.
 				if(file_size > 6655)
-					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				else if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded && file_size > 3583)
-					target.vic20.memory_model = Vic20MemoryModel::EightKB;
+					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				else if(target->vic20.memory_model == Vic20MemoryModel::Unexpanded && file_size > 3583)
+					target->vic20.memory_model = Vic20MemoryModel::EightKB;
 			}
 			else
 			{*/
@@ -129,13 +129,13 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<Tar
 				// If anything above the 8kb mark is touched, mark as a 32kb machine; otherwise if the
 				// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
 				if(starting_address + file_size > 0x2000)
-					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				else if(target.vic20.memory_model == Vic20MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
-					target.vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				else if(target->vic20.memory_model == Vic20MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
+					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
 //			}
 		}
 	}
 
-	if(!target.media.tapes.empty() || !target.media.cartridges.empty() || !target.media.disks.empty())
-		destination.push_back(target);
+	if(!target->media.empty())
+		destination.push_back(std::move(target));
 }

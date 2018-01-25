@@ -88,8 +88,8 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)		// ADF
 		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// BIN
 		Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)												// CAS
-		Format("cdt", result.tapes, Tape::TZX,	TargetPlatform::AmstradCPC)										// CDT
-		Format("csw", result.tapes, Tape::CSW,	TargetPlatform::AllTape)										// CSW
+		Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)										// CDT
+		Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)											// CSW
 		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
 		Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
 		Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
@@ -139,8 +139,8 @@ Media Analyser::Static::GetMedia(const char *file_name) {
 	return GetMediaAndPlatforms(file_name, throwaway);
 }
 
-std::vector<Target> Analyser::Static::GetTargets(const char *file_name) {
-	std::vector<Target> targets;
+std::vector<std::unique_ptr<Target>> Analyser::Static::GetTargets(const char *file_name) {
+	std::vector<std::unique_ptr<Target>> targets;
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
@@ -158,8 +158,8 @@ std::vector<Target> Analyser::Static::GetTargets(const char *file_name) {
 	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets, potential_platforms);
 
 	// Reset any tapes to their initial position
-	for(auto target : targets) {
-		for(auto tape : media.tapes) {
+	for(auto &target : targets) {
+		for(auto &tape : target->media.tapes) {
 			tape->reset();
 		}
 	}

@@ -13,7 +13,7 @@
 
 #include <SDL2/SDL.h>
 
-#include "../../StaticAnalyser/StaticAnalyser.hpp"
+#include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
 #include "../../Machines/ConfigurationTarget.hpp"
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	std::vector<Analyser::Static::Target> targets = Analyser::Static::GetTargets(arguments.file_name.c_str());
+	std::vector<std::unique_ptr<Analyser::Static::Target>> targets = Analyser::Static::GetTargets(arguments.file_name.c_str());
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << std::endl;
 		return -1;
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	machine->configuration_target()->configure_as_target(targets.front());
+	machine->configuration_target()->configure_as_target(*targets.front());
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	machine->crt_machine()->setup_output(4.0 / 3.0);

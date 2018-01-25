@@ -63,15 +63,15 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
 
-	std::vector<Analyser::Static::Target> _targets;
+	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
 	self = [super init];
 	if(self) {
-		_targets = result.targets;
-		_machine.reset(Machine::MachineForTargets(_targets));
+		_analyser = result;
+		_machine.reset(Machine::MachineForTargets(_analyser.targets));
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
 		_machineDelegate.machine = self;
@@ -82,7 +82,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		_machine->crt_machine()->set_delegate(&_machineDelegate);
 		CSApplyROMFetcher(*_machine->crt_machine());
 
-		[self applyTarget:_targets.front()];
+		[self applyTarget:*_analyser.targets.front()];
 	}
 	return self;
 }
@@ -344,7 +344,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (NSString *)userDefaultsPrefix {
 	// Assumes that the first machine in the targets list is the source of user defaults.
-	std::string name = Machine::ShortNameForTargetMachine(_targets.front().machine);
+	std::string name = Machine::ShortNameForTargetMachine(_analyser.targets.front()->machine);
 	return [[NSString stringWithUTF8String:name.c_str()] lowercaseString];
 }
 

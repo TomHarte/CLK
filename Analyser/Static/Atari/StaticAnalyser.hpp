@@ -15,7 +15,7 @@ namespace Analyser {
 namespace Static {
 namespace Atari {
 
-void AddTargets(const Media &media, std::vector<Target> &destination);
+void AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination);
 
 }
 }

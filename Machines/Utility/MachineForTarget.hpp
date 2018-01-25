@@ -42,7 +42,7 @@ struct DynamicMachine {
 	receive the supplied static analyser result. The machine has been allocated
 	on the heap. It is the caller's responsibility to delete the class when finished.
 */
-DynamicMachine *MachineForTargets(const std::vector<Analyser::Static::Target> &target);
+DynamicMachine *MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets);
 
 /*!
 	Returns a short string name for the machine identified by the target,

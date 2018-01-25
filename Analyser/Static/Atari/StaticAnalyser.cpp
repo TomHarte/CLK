@@ -178,14 +178,14 @@ static void DeterminePagingForCartridge(Analyser::Static::Target &target, const 
 	}
 }
 
-void Analyser::Static::Atari::AddTargets(const Media &media, std::vector<Target> &destination) {
+void Analyser::Static::Atari::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	// TODO: sanity checking; is this image really for an Atari 2600.
-	Target target;
-	target.machine = Machine::Atari2600;
-	target.probability = 1.0;
-	target.media.cartridges = media.cartridges;
-	target.atari.paging_model = Atari2600PagingModel::None;
-	target.atari.uses_superchip = false;
+	std::unique_ptr<Target> target(new Target);
+	target->machine = Machine::Atari2600;
+	target->probability = 1.0;
+	target->media.cartridges = media.cartridges;
+	target->atari.paging_model = Atari2600PagingModel::None;
+	target->atari.uses_superchip = false;
 
 	// try to figure out the paging scheme
 	if(!media.cartridges.empty()) {
@@ -193,9 +193,9 @@ void Analyser::Static::Atari::AddTargets(const Media &media, std::vector<Target>
 
 		if(segments.size() == 1) {
 			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
-			DeterminePagingForCartridge(target, segment);
+			DeterminePagingForCartridge(*target, segment);
 		}
 	}
 
-	destination.push_back(target);
+	destination.push_back(std::move(target));
 }

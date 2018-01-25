@@ -56,16 +56,16 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<Target> &destination) {
-	Target target;
-	target.machine = Machine::Electron;
-	target.probability = 1.0; // TODO: a proper estimation
-	target.acorn.has_dfs = false;
-	target.acorn.has_adfs = false;
-	target.acorn.should_shift_restart = false;
+void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+	std::unique_ptr<Target> target(new Target);
+	target->machine = Machine::Electron;
+	target->probability = 1.0; // TODO: a proper estimation
+	target->acorn.has_dfs = false;
+	target->acorn.has_adfs = false;
+	target->acorn.should_shift_restart = false;
 
 	// strip out inappropriate cartridges
-	target.media.cartridges = AcornCartridgesFrom(media.cartridges);
+	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// if there are any tapes, attempt to get data from the first
 	if(media.tapes.size() > 0) {
@@ -96,9 +96,9 @@ void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<Target>
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			target.loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			target->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
 
-			target.media.tapes = media.tapes;
+			target->media.tapes = media.tapes;
 		}
 	}
 
@@ -108,18 +108,18 @@ void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<Target>
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
-			target.media.disks = media.disks;
-			target.acorn.has_dfs = !!dfs_catalogue;
-			target.acorn.has_adfs = !!adfs_catalogue;
+			target->media.disks = media.disks;
+			target->acorn.has_dfs = !!dfs_catalogue;
+			target->acorn.has_adfs = !!adfs_catalogue;
 
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None)
-				target.acorn.should_shift_restart = true;
+				target->acorn.should_shift_restart = true;
 			else
-				target.loading_command = "*CAT\n";
+				target->loading_command = "*CAT\n";
 		}
 	}
 
-	if(target.media.tapes.size() || target.media.disks.size() || target.media.cartridges.size())
-		destination.push_back(target);
+	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())
+		destination.push_back(std::move(target));
 }

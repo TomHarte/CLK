@@ -82,7 +82,10 @@ struct Media {
 */
 struct Target {
 	Machine machine;
+	Media media;
+
 	float probability;
+	std::string loading_command;
 
 	// TODO: this is too C-like a solution; make Target a base class and
 	// turn the following into information held by more specific subclasses.
@@ -121,9 +124,6 @@ struct Target {
 			MSXCartridgeType cartridge_type;
 		} msx;
 	};
-
-	std::string loading_command;
-	Media media;
 };
 
 /*!
@@ -131,7 +131,7 @@ struct Target {
 
 	@returns The list of potential targets, sorted from most to least probable.
 */
-std::vector<Target> GetTargets(const char *file_name);
+std::vector<std::unique_ptr<Target>> GetTargets(const char *file_name);
 
 /*!
 	Inspects the supplied file and determines the media included.
