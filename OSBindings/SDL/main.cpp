@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
 	// Determine the machine for the supplied file.
 	std::vector<std::unique_ptr<Analyser::Static::Target>> targets = Analyser::Static::GetTargets(arguments.file_name.c_str());
 	if(targets.empty()) {
-		std::cerr << "Cannot open " << arguments.file_name << std::endl;
+		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
 		return -1;
 	}
 
@@ -358,8 +358,6 @@ int main(int argc, char *argv[]) {
 
 	GLint target_framebuffer = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
-
-	machine->configuration_target()->configure_as_target(*targets.front());
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	machine->crt_machine()->setup_output(4.0 / 3.0);
