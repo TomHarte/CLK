@@ -84,7 +84,7 @@ struct Target {
 	Machine machine;
 	Media media;
 
-	float probability;
+	float confidence;
 	std::string loading_command;
 
 	// TODO: this is too C-like a solution; make Target a base class and

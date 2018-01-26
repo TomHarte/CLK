@@ -180,7 +180,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, co
 void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::AmstradCPC;
-	target->probability = 1.0;
+	target->confidence = 1.0;
 	target->media.disks = media.disks;
 	target->media.tapes = media.tapes;
 	target->media.cartridges = media.cartridges;

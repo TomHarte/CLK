@@ -31,7 +31,7 @@ class ConfidenceSummary: public ConfidenceSource {
 			const std::vector<float> &weights);
 
 		/*! @returns The weighted sum of all sources. */
-		float get_probability() override;
+		float get_confidence() override;
 
 	private:
 		std::vector<ConfidenceSource *> sources_;

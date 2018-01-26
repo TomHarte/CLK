@@ -10,7 +10,7 @@
 
 using namespace DynamicAnalyser;
 
-float ConfidenceCounter::get_probability() {
+float ConfidenceCounter::get_confidence() {
 	return static_cast<float>(hits_) / static_cast<float>(hits_ + misses_);
 }
 

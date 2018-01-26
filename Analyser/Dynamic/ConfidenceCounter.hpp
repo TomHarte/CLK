@@ -21,7 +21,7 @@ namespace DynamicAnalyser {
 class ConfidenceCounter: public ConfidenceSource {
 	public:
 		/*! @returns The computed probability, based on the history of events. */
-		float get_probability() override;
+		float get_confidence() override;
 
 		/*! Records an event that implies this is the appropriate class — pushes probability up towards 1.0. */
 		void add_hit();

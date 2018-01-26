@@ -19,10 +19,10 @@ ConfidenceSummary::ConfidenceSummary(const std::vector<ConfidenceSource *> &sour
 	weight_sum_ = std::accumulate(weights.begin(), weights.end(), 0.0f);
 }
 
-float ConfidenceSummary::get_probability() {
+float ConfidenceSummary::get_confidence() {
 	float result = 0.0f;
 	for(std::size_t index = 0; index < sources_.size(); ++index) {
-		result += sources_[index]->get_probability() * weights_[index];
+		result += sources_[index]->get_confidence() * weights_[index];
 	}
 	return result / weight_sum_;
 }

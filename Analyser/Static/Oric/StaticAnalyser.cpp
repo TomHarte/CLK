@@ -76,7 +76,7 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Oric;
-	target->probability = 1.0;
+	target->confidence = 1.0;
 
 	int basic10_votes = 0;
 	int basic11_votes = 0;
