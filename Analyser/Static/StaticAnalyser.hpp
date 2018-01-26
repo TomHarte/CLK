@@ -42,15 +42,6 @@ enum class Atari2600PagingModel {
 	Pitfall2
 };
 
-enum class MSXCartridgeType {
-	None,
-	Konami,
-	KonamiWithSCC,
-	ASCII8kb,
-	ASCII16kb,
-	FMPac
-};
-
 enum class ZX8081MemoryModel {
 	Unexpanded,
 	SixteenKB,
@@ -119,10 +110,6 @@ struct Target {
 		struct {
 			AmstradCPCModel model;
 		} amstradcpc;
-
-		struct {
-			MSXCartridgeType cartridge_type;
-		} msx;
 	};
 };
 

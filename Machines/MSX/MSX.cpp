@@ -12,6 +12,7 @@
 #include "Keyboard.hpp"
 #include "ROMSlotHandler.hpp"
 
+#include "../../Analyser/Static/MSX/Cartridge.hpp"
 #include "Cartridges/ASCII8kb.hpp"
 #include "Cartridges/ASCII16kb.hpp"
 #include "Cartridges/Konami.hpp"
@@ -175,23 +176,6 @@ class ConcreteMachine:
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
-
-			// Attach the hardware necessary for a game cartridge, if any.
-			switch(target.msx.cartridge_type) {
-				default: break;
-				case Analyser::Static::MSXCartridgeType::Konami:
-					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
-				break;
-				case Analyser::Static::MSXCartridgeType::KonamiWithSCC:
-					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
-				break;
-				case Analyser::Static::MSXCartridgeType::ASCII8kb:
-					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
-				break;
-				case Analyser::Static::MSXCartridgeType::ASCII16kb:
-					memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
-				break;
-			}
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
@@ -199,6 +183,25 @@ class ConcreteMachine:
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
 				map(1, 0, static_cast<uint16_t>(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+
+				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
+				if(msx_cartridge) {
+					switch(msx_cartridge->type) {
+						default: break;
+						case Analyser::Static::MSX::Cartridge::Konami:
+							memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
+						break;
+						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
+							memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
+						break;
+						case Analyser::Static::MSX::Cartridge::ASCII8kb:
+							memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+						break;
+						case Analyser::Static::MSX::Cartridge::ASCII16kb:
+							memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+						break;
+					}
+				}
 			}
 
 			if(!media.tapes.empty()) {
