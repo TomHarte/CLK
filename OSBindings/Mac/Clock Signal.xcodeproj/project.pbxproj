@@ -161,6 +161,7 @@
 		4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CB1D318B44005DD7A7 /* MOS6532Bridge.mm */; };
 		4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */; };
 		4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BF5AE1F146264005B6C36 /* CSW.cpp */; };
+		4B3FCC40201EC24200960631 /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
 		4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
 		4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E7F1F1C45A00009ABD6 /* TZX.cpp */; };
 		4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */; };
@@ -749,6 +750,8 @@
 		4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine6502.mm; sourceTree = "<group>"; };
 		4B3BF5AE1F146264005B6C36 /* CSW.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSW.cpp; sourceTree = "<group>"; };
 		4B3BF5AF1F146264005B6C36 /* CSW.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CSW.hpp; sourceTree = "<group>"; };
+		4B3FCC3E201EC24200960631 /* MultiMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiMachine.hpp; sourceTree = "<group>"; };
+		4B3FCC3F201EC24200960631 /* MultiMachine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMachine.cpp; sourceTree = "<group>"; };
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
 		4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CPM.hpp; path = Parsers/CPM.hpp; sourceTree = "<group>"; };
 		4B448E7F1F1C45A00009ABD6 /* TZX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TZX.cpp; sourceTree = "<group>"; };
@@ -1687,6 +1690,15 @@
 			path = Bridges;
 			sourceTree = "<group>";
 		};
+		4B3FCC3D201EC24200960631 /* MultiMachine */ = {
+			isa = PBXGroup;
+			children = (
+				4B3FCC3E201EC24200960631 /* MultiMachine.hpp */,
+				4B3FCC3F201EC24200960631 /* MultiMachine.cpp */,
+			);
+			path = MultiMachine;
+			sourceTree = "<group>";
+		};
 		4B3FE75F1F3CF6BA00448EE4 /* Parsers */ = {
 			isa = PBXGroup;
 			children = (
@@ -2066,6 +2078,7 @@
 				4B8944E7201967B4007DE474 /* ConfidenceCounter.hpp */,
 				4B8944E5201967B4007DE474 /* ConfidenceSource.hpp */,
 				4B8944E4201967B4007DE474 /* ConfidenceSummary.hpp */,
+				4B3FCC3D201EC24200960631 /* MultiMachine */,
 			);
 			path = Dynamic;
 			sourceTree = "<group>";
@@ -3564,6 +3577,7 @@
 				4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */,
 				4B8FE2201DA19D7C0090D3CE /* Atari2600OptionsPanel.swift in Sources */,
 				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
+				4B3FCC40201EC24200960631 /* MultiMachine.cpp in Sources */,
 				4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */,
 				4B9CCDA11DA279CA0098B625 /* Vic20OptionsPanel.swift in Sources */,
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,

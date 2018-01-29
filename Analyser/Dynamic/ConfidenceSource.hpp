@@ -9,7 +9,8 @@
 #ifndef ConfidenceSource_hpp
 #define ConfidenceSource_hpp
 
-namespace DynamicAnalyser {
+namespace Analyser {
+namespace Dynamic {
 
 /*!
 	Provides an abstract interface through which objects can declare the probability
@@ -21,6 +22,7 @@ struct ConfidenceSource {
 	virtual float get_confidence() = 0;
 };
 
+}
 }
 
 #endif /* ConfidenceSource_hpp */

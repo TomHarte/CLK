@@ -13,7 +13,8 @@
 
 #include <vector>
 
-namespace DynamicAnalyser {
+namespace Analyser {
+namespace Dynamic {
 
 /*!
 	Summaries a collection of confidence sources by calculating their weighted sum.
@@ -39,6 +40,7 @@ class ConfidenceSummary: public ConfidenceSource {
 		float weight_sum_;
 };
 
+}
 }
 
 #endif /* ConfidenceSummary_hpp */

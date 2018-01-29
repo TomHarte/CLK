@@ -41,7 +41,8 @@ struct DynamicMachine {
 enum class Error {
 	None,
 	UnknownMachine,
-	MissingROM
+	MissingROM,
+	NoTargets
 };
 
 /*!

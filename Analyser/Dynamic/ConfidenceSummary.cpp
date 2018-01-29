@@ -11,7 +11,7 @@
 #include <cassert>
 #include <numeric>
 
-using namespace DynamicAnalyser;
+using namespace Analyser::Dynamic;
 
 ConfidenceSummary::ConfidenceSummary(const std::vector<ConfidenceSource *> &sources, const std::vector<float> &weights) :
 	sources_(sources), weights_(weights) {

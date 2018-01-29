@@ -70,7 +70,7 @@ class ROMSlotHandler {
 		}
 
 	protected:
-		DynamicAnalyser::ConfidenceCounter confidence_counter_;
+		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 };
 
 }

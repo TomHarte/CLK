@@ -8,7 +8,7 @@
 
 #include "ConfidenceCounter.hpp"
 
-using namespace DynamicAnalyser;
+using namespace Analyser::Dynamic;
 
 float ConfidenceCounter::get_confidence() {
 	return static_cast<float>(hits_) / static_cast<float>(hits_ + misses_);

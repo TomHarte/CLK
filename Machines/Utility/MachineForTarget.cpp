@@ -16,24 +16,25 @@
 #include "../Oric/Oric.hpp"
 #include "../ZX8081/ZX8081.hpp"
 
+#include "../../Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
-::Machine::DynamicMachine *::Machine::MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
-	// TODO: deal with target lists containing more than one machine.
+namespace {
 
-	error = Error::None;
+::Machine::DynamicMachine *MachineForTarget(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
+	error = Machine::Error::None;
 	::Machine::DynamicMachine *machine = nullptr;
-	switch(targets.front()->machine) {
-		case Analyser::Machine::AmstradCPC:	machine = new TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());			break;
-		case Analyser::Machine::Atari2600:	machine = new TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
-		case Analyser::Machine::Electron:	machine = new TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());				break;
-		case Analyser::Machine::MSX:		machine = new TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());								break;
-		case Analyser::Machine::Oric:		machine = new TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());							break;
-		case Analyser::Machine::Vic20:		machine = new TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());	break;
-		case Analyser::Machine::ZX8081:		machine = new TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(*targets.front()));		break;
+	switch(target.machine) {
+		case Analyser::Machine::AmstradCPC:	machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());			break;
+		case Analyser::Machine::Atari2600:	machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());			break;
+		case Analyser::Machine::Electron:	machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());				break;
+		case Analyser::Machine::MSX:		machine = new Machine::TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());								break;
+		case Analyser::Machine::Oric:		machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());							break;
+		case Analyser::Machine::Vic20:		machine = new Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());	break;
+		case Analyser::Machine::ZX8081:		machine = new Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));				break;
 
 		default:
-			error = Error::UnknownMachine;
+			error = Machine::Error::UnknownMachine;
 		return nullptr;
 	}
 
@@ -42,17 +43,40 @@
 	if(crt_machine) {
 		if(!machine->crt_machine()->set_rom_fetcher(rom_fetcher)) {
 			delete machine;
-			error = Error::MissingROM;
+			error = Machine::Error::MissingROM;
 			return nullptr;
 		}
 	}
 
 	ConfigurationTarget::Machine *configuration_target = machine->configuration_target();
 	if(configuration_target) {
-		machine->configuration_target()->configure_as_target(*targets.front());
+		machine->configuration_target()->configure_as_target(target);
 	}
 
 	return machine;
+}
+
+}
+
+::Machine::DynamicMachine *::Machine::MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
+	// Zero targets implies no machine.
+	if(targets.empty()) {
+		error = Error::NoTargets;
+		return nullptr;
+	}
+
+	// If there's more than one target, get all the machines and combine them into a multimachine.
+	if(targets.size() > 1) {
+		std::vector<std::unique_ptr<Machine::DynamicMachine>> machines;
+		for(const auto &target: targets) {
+			machines.emplace_back(MachineForTarget(*target, rom_fetcher, error));
+		}
+
+		return new Analyser::Dynamic::MultiMachine(std::move(machines));
+	}
+
+	// There's definitely exactly one target.
+	return MachineForTarget(*targets.front(), rom_fetcher, error);
 }
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
