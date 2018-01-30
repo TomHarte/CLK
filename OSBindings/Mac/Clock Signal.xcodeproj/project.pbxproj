@@ -568,6 +568,8 @@
 		4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */; };
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */; };
+		4BBB70A4202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */; };
+		4BBB70A5202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */; };
 		4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC951C1F368D83008F4C34 /* i8272.cpp */; };
 		4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF49AE1ED2880200AB3669 /* FUSETests.swift */; };
 		4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */; };
@@ -1248,6 +1250,9 @@
 		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
 		4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntermediateShader.cpp; sourceTree = "<group>"; };
 		4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IntermediateShader.hpp; sourceTree = "<group>"; };
+		4BBB709C2020109C002FE009 /* DynamicMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DynamicMachine.hpp; sourceTree = "<group>"; };
+		4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiConfigurationTarget.hpp; sourceTree = "<group>"; };
+		4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiConfigurationTarget.cpp; sourceTree = "<group>"; };
 		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = i8272.cpp; path = 8272/i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8272.hpp; path = 8272/i8272.hpp; sourceTree = "<group>"; };
@@ -1693,8 +1698,9 @@
 		4B3FCC3D201EC24200960631 /* MultiMachine */ = {
 			isa = PBXGroup;
 			children = (
-				4B3FCC3E201EC24200960631 /* MultiMachine.hpp */,
 				4B3FCC3F201EC24200960631 /* MultiMachine.cpp */,
+				4B3FCC3E201EC24200960631 /* MultiMachine.hpp */,
+				4BBB70A1202011C2002FE009 /* Implementation */,
 			);
 			path = MultiMachine;
 			sourceTree = "<group>";
@@ -2618,6 +2624,7 @@
 				4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */,
 				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
 				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
+				4BBB709C2020109C002FE009 /* DynamicMachine.hpp */,
 				4B7041271F92C26900735E45 /* JoystickMachine.hpp */,
 				4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */,
 				4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */,
@@ -2645,6 +2652,15 @@
 			);
 			name = Processors;
 			path = ../../Processors;
+			sourceTree = "<group>";
+		};
+		4BBB70A1202011C2002FE009 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */,
+				4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */,
+			);
+			path = Implementation;
 			sourceTree = "<group>";
 		};
 		4BBC951F1F368D87008F4C34 /* 8272 */ = {
@@ -3423,6 +3439,7 @@
 				4BAD13441FF709C700FD114A /* MSX.cpp in Sources */,
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
+				4BBB70A5202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4B055AC61FAE9AEE0060FFFF /* TIASound.cpp in Sources */,
@@ -3565,6 +3582,7 @@
 				4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
+				4BBB70A4202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,

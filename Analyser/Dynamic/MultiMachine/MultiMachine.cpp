@@ -11,10 +11,11 @@
 using namespace Analyser::Dynamic;
 
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
-	machines_(std::move(machines)) {}
+	machines_(std::move(machines)),
+	configuration_target_(machines_) {}
 
 ConfigurationTarget::Machine *MultiMachine::configuration_target() {
-	return nullptr;
+	return &configuration_target_;
 }
 
 CRTMachine::Machine *MultiMachine::crt_machine() {

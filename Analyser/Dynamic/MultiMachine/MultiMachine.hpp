@@ -9,7 +9,9 @@
 #ifndef MultiMachine_hpp
 #define MultiMachine_hpp
 
-#include "../../../Machines/Utility/MachineForTarget.hpp"
+#include "../../../Machines/DynamicMachine.hpp"
+
+#include "Implementation/MultiConfigurationTarget.hpp"
 
 #include <memory>
 #include <vector>
@@ -42,6 +44,8 @@ class MultiMachine: public ::Machine::DynamicMachine {
 
 	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
+
+		MultiConfigurationTarget configuration_target_;
 };
 
 }
