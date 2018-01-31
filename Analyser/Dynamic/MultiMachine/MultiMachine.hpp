@@ -12,6 +12,7 @@
 #include "../../../Machines/DynamicMachine.hpp"
 
 #include "Implementation/MultiConfigurationTarget.hpp"
+#include "Implementation/MultiCRTMachine.hpp"
 
 #include <memory>
 #include <vector>
@@ -46,6 +47,7 @@ class MultiMachine: public ::Machine::DynamicMachine {
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
 
 		MultiConfigurationTarget configuration_target_;
+		MultiCRTMachine crt_machine_;
 };
 
 }

@@ -12,14 +12,15 @@ using namespace Analyser::Dynamic;
 
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
 	machines_(std::move(machines)),
-	configuration_target_(machines_) {}
+	configuration_target_(machines_),
+	crt_machine_(machines_) {}
 
 ConfigurationTarget::Machine *MultiMachine::configuration_target() {
 	return &configuration_target_;
 }
 
 CRTMachine::Machine *MultiMachine::crt_machine() {
-	return nullptr;
+	return &crt_machine_;
 }
 
 JoystickMachine::Machine *MultiMachine::joystick_machine() {
