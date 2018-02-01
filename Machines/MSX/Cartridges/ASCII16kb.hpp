@@ -19,7 +19,7 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 		ASCII16kbROMSlotHandler(MSX::MemoryMap &map, int slot) :
 			map_(map), slot_(slot) {}
 
-		void write(uint16_t address, uint8_t value) {
+		void write(uint16_t address, uint8_t value) override {
 			switch(address >> 11) {
 				default:
 					confidence_counter_.add_miss();
@@ -33,6 +33,10 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 					map_.map(slot_, value * 0x4000, 0x8000, 0x4000);
 				break;
 			}
+		}
+
+		virtual void print_type() override {
+			printf("A16");
 		}
 
 	private:

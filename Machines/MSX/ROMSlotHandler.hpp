@@ -69,6 +69,9 @@ class ROMSlotHandler {
 			return confidence_counter_.get_confidence();
 		}
 
+		virtual void print_type() {
+		}
+
 	protected:
 		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 };

@@ -52,16 +52,11 @@ struct DefaultBookender: public TextureBuilder::Bookender {
 }
 
 TextureBuilder::TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit) :
-		bytes_per_pixel_(bytes_per_pixel) {
+		bytes_per_pixel_(bytes_per_pixel), texture_unit_(texture_unit) {
 	image_.resize(bytes_per_pixel * InputBufferBuilderWidth * InputBufferBuilderHeight);
 	glGenTextures(1, &texture_name_);
 
-	glActiveTexture(texture_unit);
-	glBindTexture(GL_TEXTURE_2D, texture_name_);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	bind();
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
 
 	set_bookender(nullptr);
@@ -69,6 +64,15 @@ TextureBuilder::TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit)
 
 TextureBuilder::~TextureBuilder() {
 	glDeleteTextures(1, &texture_name_);
+}
+
+void TextureBuilder::bind() {
+	glActiveTexture(texture_unit_);
+	glBindTexture(GL_TEXTURE_2D, texture_name_);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 inline uint8_t *TextureBuilder::pointer_to_location(uint16_t x, uint16_t y) {

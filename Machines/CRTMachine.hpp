@@ -44,6 +44,10 @@ class Machine: public ROMMachine::Machine {
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;
 
+		/// @returns The confidence that this machine is running content it understands.
+		virtual float get_confidence() { return 0.5f; }
+		virtual void print_type() {}
+
 		// TODO: sever the clock-rate stuff.
 		virtual double get_clock_rate() {
 			return clock_rate_;

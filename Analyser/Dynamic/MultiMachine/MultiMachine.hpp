@@ -32,7 +32,7 @@ namespace Dynamic {
 	If confidence for any machine becomes disproportionately low compared to
 	the others in the set, that machine is removed from the array.
 */
-class MultiMachine: public ::Machine::DynamicMachine {
+class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::Delegate {
 	public:
 		MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines);
 
@@ -42,6 +42,8 @@ class MultiMachine: public ::Machine::DynamicMachine {
 		KeyboardMachine::Machine *keyboard_machine() override;
 		Configurable::Device *configurable_device() override;
 		Utility::TypeRecipient *type_recipient() override;
+
+		void multi_crt_did_run_machines() override;
 
 	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;

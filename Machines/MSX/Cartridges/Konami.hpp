@@ -19,7 +19,7 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 		KonamiROMSlotHandler(MSX::MemoryMap &map, int slot) :
 			map_(map), slot_(slot) {}
 
-		void write(uint16_t address, uint8_t value) {
+		void write(uint16_t address, uint8_t value) override {
 			switch(address >> 13) {
 				default:
 					confidence_counter_.add_miss();
@@ -39,6 +39,9 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 			}
 		}
 
+		virtual void print_type() override {
+			printf("K");
+		}
 	private:
 		MSX::MemoryMap &map_;
 		int slot_;

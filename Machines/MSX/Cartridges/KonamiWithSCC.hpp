@@ -67,6 +67,10 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			return 0xff;
 		}
 
+		virtual void print_type() override {
+			printf("KSCC");
+		}
+
 	private:
 		MSX::MemoryMap &map_;
 		int slot_;

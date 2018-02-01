@@ -155,9 +155,18 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+		}
 
+		float get_confidence() override {
 			if(memory_slots_[1].handler) {
-				printf("%0.2f\n", memory_slots_[1].handler->get_confidence());
+				return memory_slots_[1].handler->get_confidence();
+			}
+			return 0.5f;
+		}
+
+		void print_type() override {
+			if(memory_slots_[1].handler) {
+				memory_slots_[1].handler->print_type();
 			}
 		}
 

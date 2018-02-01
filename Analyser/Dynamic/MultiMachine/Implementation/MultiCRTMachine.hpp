@@ -34,8 +34,18 @@ struct MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machi
 		void machine_did_change_clock_rate(Machine *machine) override;
 		void machine_did_change_clock_is_unlimited(Machine *machine) override;
 
+		void did_change_machine_order();
+
+		struct Delegate {
+			virtual void multi_crt_did_run_machines() = 0;
+		};
+		void set_delegate(Delegate *delegate) {
+			delegate_ = delegate;
+		}
+
 	private:
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
+		Delegate *delegate_ = nullptr;
 };
 
 }

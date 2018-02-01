@@ -14,6 +14,12 @@ MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::Dy
 	machines_(machines) {}
 
 void MultiCRTMachine::setup_output(float aspect_ratio) {
+//	auto reverse_iterator = machines_.rbegin();
+//	while(reverse_iterator != machines_.rend()) {
+//		CRTMachine::Machine *crt_machine = (*reverse_iterator)->crt_machine();
+//		if(crt_machine) crt_machine->setup_output(aspect_ratio);
+//		reverse_iterator++;
+//	}
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt_machine = machine->crt_machine();
 		if(crt_machine) crt_machine->setup_output(aspect_ratio);
@@ -43,7 +49,7 @@ void MultiCRTMachine::run_for(const Cycles cycles) {
 		if(crt_machine) crt_machine->run_for(cycles);
 	}
 
-	// TODO: announce an opportunity potentially to reorder the list of machines.
+	if(delegate_) delegate_->multi_crt_did_run_machines();
 }
 
 double MultiCRTMachine::get_clock_rate() {
@@ -55,6 +61,10 @@ double MultiCRTMachine::get_clock_rate() {
 bool MultiCRTMachine::get_clock_is_unlimited() {
 	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
 	return crt_machine ? crt_machine->get_clock_is_unlimited() : false;
+}
+
+void MultiCRTMachine::did_change_machine_order() {
+	// TODO
 }
 
 void MultiCRTMachine::set_delegate(::CRTMachine::Machine::Delegate *delegate) {
