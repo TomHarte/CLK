@@ -131,6 +131,13 @@
 		4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497901EE4B5A800CE2596 /* ZX8081.cpp */; };
 		4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B1497961EE4B97F00CE2596 /* ZX8081Options.xib */; };
 		4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
+		4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
+		4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
+		4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
+		4B1B88C0202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */; };
+		4B1B88C1202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */; };
+		4B1B88C8202E469300B67DFF /* MultiJoystickMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */; };
+		4B1B88C9202E469400B67DFF /* MultiJoystickMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */; };
 		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
@@ -691,6 +698,12 @@
 		4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII16kb.hpp; path = MSX/Cartridges/ASCII16kb.hpp; sourceTree = "<group>"; };
 		4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII8kb.hpp; path = MSX/Cartridges/ASCII8kb.hpp; sourceTree = "<group>"; };
 		4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KonamiWithSCC.hpp; path = MSX/Cartridges/KonamiWithSCC.hpp; sourceTree = "<group>"; };
+		4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiKeyboardMachine.cpp; sourceTree = "<group>"; };
+		4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiKeyboardMachine.hpp; sourceTree = "<group>"; };
+		4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiConfigurable.cpp; sourceTree = "<group>"; };
+		4B1B88BF202E3DB200B67DFF /* MultiConfigurable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiConfigurable.hpp; sourceTree = "<group>"; };
+		4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiJoystickMachine.cpp; sourceTree = "<group>"; };
+		4B1B88C7202E469300B67DFF /* MultiJoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiJoystickMachine.hpp; sourceTree = "<group>"; };
 		4B1D08051E0F7A1100763741 /* TimeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TimeTests.mm; sourceTree = "<group>"; };
 		4B1E857B1D174DEC001EF87D /* 6532.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6532.hpp; sourceTree = "<group>"; };
 		4B1E85801D176468001EF87D /* 6532Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6532Tests.swift; sourceTree = "<group>"; };
@@ -2665,6 +2678,12 @@
 				4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */,
 				4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */,
 				4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */,
+				4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */,
+				4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */,
+				4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */,
+				4B1B88BF202E3DB200B67DFF /* MultiConfigurable.hpp */,
+				4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */,
+				4B1B88C7202E469300B67DFF /* MultiJoystickMachine.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
@@ -3359,6 +3378,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */,
+				4B1B88C9202E469400B67DFF /* MultiJoystickMachine.cpp in Sources */,
 				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B055ACB1FAE9AFB0060FFFF /* SerialBus.cpp in Sources */,
@@ -3396,6 +3416,7 @@
 				4B055AC71FAE9AEE0060FFFF /* TIA.cpp in Sources */,
 				4B055AD21FAE9B0B0060FFFF /* Keyboard.cpp in Sources */,
 				4B89451B201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
+				4B1B88C1202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */,
 				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
 				4B89452B201967B4007DE474 /* File.cpp in Sources */,
@@ -3414,6 +3435,7 @@
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
+				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
 				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
@@ -3447,6 +3469,7 @@
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
 				4BBB70A5202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */,
+				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4B055AC61FAE9AEE0060FFFF /* TIASound.cpp in Sources */,
@@ -3512,6 +3535,7 @@
 				4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */,
 				4B894530201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */,
+				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
 				4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
@@ -3638,9 +3662,11 @@
 				4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */,
 				4B8334821F5D9FF70097E338 /* PartialMachineCycle.cpp in Sources */,
+				4B1B88C0202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 				4B894534201967B4007DE474 /* AddressMapper.cpp in Sources */,
+				4B1B88C8202E469300B67DFF /* MultiJoystickMachine.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

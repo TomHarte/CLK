@@ -425,8 +425,8 @@ class ConcreteMachine:
 			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

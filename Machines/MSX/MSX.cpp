@@ -529,8 +529,8 @@ class ConcreteMachine:
 			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

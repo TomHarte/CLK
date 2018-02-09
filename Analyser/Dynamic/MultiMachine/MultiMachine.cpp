@@ -12,8 +12,11 @@ using namespace Analyser::Dynamic;
 
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
 	machines_(std::move(machines)),
+	configurable_(machines_),
 	configuration_target_(machines_),
-	crt_machine_(machines_) {
+	crt_machine_(machines_),
+	joystick_machine_(machines),
+	keyboard_machine_(machines_) {
 	crt_machine_.set_delegate(this);
 }
 
@@ -26,19 +29,15 @@ CRTMachine::Machine *MultiMachine::crt_machine() {
 }
 
 JoystickMachine::Machine *MultiMachine::joystick_machine() {
-	return nullptr;
+	return &joystick_machine_;
 }
 
 KeyboardMachine::Machine *MultiMachine::keyboard_machine() {
-	return nullptr;
+	return &keyboard_machine_;
 }
 
 Configurable::Device *MultiMachine::configurable_device() {
-	return nullptr;
-}
-
-Utility::TypeRecipient *MultiMachine::type_recipient() {
-	return nullptr;
+	return &configurable_;
 }
 
 void MultiMachine::multi_crt_did_run_machines() {

@@ -349,8 +349,8 @@ template<bool is_zx81> class ConcreteMachine:
 		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

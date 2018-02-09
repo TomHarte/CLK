@@ -11,8 +11,11 @@
 
 #include "../../../Machines/DynamicMachine.hpp"
 
+#include "Implementation/MultiConfigurable.hpp"
 #include "Implementation/MultiConfigurationTarget.hpp"
 #include "Implementation/MultiCRTMachine.hpp"
+#include "Implementation/MultiJoystickMachine.hpp"
+#include "Implementation/MultiKeyboardMachine.hpp"
 
 #include <memory>
 #include <vector>
@@ -41,15 +44,17 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		JoystickMachine::Machine *joystick_machine() override;
 		KeyboardMachine::Machine *keyboard_machine() override;
 		Configurable::Device *configurable_device() override;
-		Utility::TypeRecipient *type_recipient() override;
 
 		void multi_crt_did_run_machines() override;
 
 	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
 
+		MultiConfigurable configurable_;
 		MultiConfigurationTarget configuration_target_;
 		MultiCRTMachine crt_machine_;
+		MultiJoystickMachine joystick_machine_;
+		MultiKeyboardMachine keyboard_machine_;
 };
 
 }

@@ -976,8 +976,8 @@ class ConcreteMachine:
 			key_state_.clear_all_keys();
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 	private:

@@ -13,14 +13,13 @@
 #include "../../../../Machines/CRTMachine.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
 
-
 #include <memory>
 #include <vector>
 
 namespace Analyser {
 namespace Dynamic {
 
-struct MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machine::Delegate {
+class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machine::Delegate {
 	public:
 		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 

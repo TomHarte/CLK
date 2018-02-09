@@ -61,12 +61,11 @@ class Machine: public Inputs::Keyboard::Delegate {
 		*/
 		static const uint16_t KeyNotMapped = 0xfffe;
 
-	protected:
 		/*!
 			Allows individual machines to provide the mapping between host keys
 			as per Inputs::Keyboard and their native scheme.
 		*/
-		virtual KeyboardMapper &get_keyboard_mapper() = 0;
+		virtual KeyboardMapper *get_keyboard_mapper();
 
 	private:
 		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;

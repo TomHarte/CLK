@@ -432,8 +432,8 @@ class ConcreteMachine:
 			set_interrupt_line();
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

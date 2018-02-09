@@ -662,8 +662,8 @@ class ConcreteMachine:
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

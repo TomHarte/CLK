@@ -26,6 +26,10 @@ struct Option {
 	virtual ~Option() {}
 
 	Option(const std::string &long_name, const std::string &short_name) : long_name(long_name), short_name(short_name) {}
+
+	virtual bool operator==(const Option &rhs) {
+		return long_name == rhs.long_name && short_name == rhs.short_name;
+	}
 };
 
 struct BooleanOption: public Option {
@@ -35,6 +39,12 @@ struct BooleanOption: public Option {
 struct ListOption: public Option {
 	std::vector<std::string> options;
 	ListOption(const std::string &long_name, const std::string &short_name, const std::vector<std::string> &options) : Option(long_name, short_name), options(options) {}
+
+	virtual bool operator==(const Option &rhs) {
+		const ListOption *list_rhs = dynamic_cast<const ListOption *>(&rhs);
+		if(!list_rhs) return false;
+		return long_name == rhs.long_name && short_name == rhs.short_name && options == list_rhs->options;
+	}
 };
 
 struct BooleanSelection;
