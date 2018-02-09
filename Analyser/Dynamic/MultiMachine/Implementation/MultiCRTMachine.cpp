@@ -46,7 +46,7 @@ Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
 void MultiCRTMachine::run_for(const Cycles cycles) {
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt_machine = machine->crt_machine();
-		if(crt_machine) crt_machine->run_for(cycles);
+		if(crt_machine && crt_machine->get_confidence() >= 0.01f) crt_machine->run_for(cycles);
 	}
 
 	if(delegate_) delegate_->multi_crt_did_run_machines();

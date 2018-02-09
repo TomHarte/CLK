@@ -21,6 +21,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot), scc_(scc) {}
 
 		void write(uint16_t address, uint8_t value) override {
+//			printf("KSCC %04x ", address);
 			switch(address >> 11) {
 				default:
 					confidence_counter_.add_miss();

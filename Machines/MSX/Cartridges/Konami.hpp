@@ -20,6 +20,7 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value) override {
+//			printf("K %04x ", address);
 			switch(address >> 13) {
 				default:
 					confidence_counter_.add_miss();

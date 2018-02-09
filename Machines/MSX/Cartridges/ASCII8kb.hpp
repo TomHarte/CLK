@@ -20,6 +20,7 @@ class ASCII8kbROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value) override {
+//			printf("A8 %04x ", address);
 			switch(address >> 11) {
 				default:
 					confidence_counter_.add_miss();

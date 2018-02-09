@@ -158,6 +158,7 @@ class ConcreteMachine:
 		}
 
 		float get_confidence() override {
+			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
 			if(memory_slots_[1].handler) {
 				return memory_slots_[1].handler->get_confidence();
 			}
@@ -339,6 +340,13 @@ class ConcreteMachine:
 							*cycle.value = 0xc9;
 							break;
 						}
+					}
+
+					if(!address) {
+						pc_zero_accesses_++;
+					}
+					if(read_pointers_[address >> 13] == unpopulated_) {
+						performed_unmapped_access_ = true;
 					}
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(read_pointers_[address >> 13]) {
@@ -653,6 +661,9 @@ class ConcreteMachine:
 		std::string input_text_;
 
 		MSX::KeyboardMapper keyboard_mapper_;
+
+		int pc_zero_accesses_ = 0;
+		bool performed_unmapped_access_ = false;
 };
 
 }
