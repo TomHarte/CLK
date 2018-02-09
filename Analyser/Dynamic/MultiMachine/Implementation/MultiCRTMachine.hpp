@@ -9,8 +9,10 @@
 #ifndef MultiCRTMachine_hpp
 #define MultiCRTMachine_hpp
 
+#include "../../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../../Machines/CRTMachine.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
+
 
 #include <memory>
 #include <vector>
@@ -45,7 +47,22 @@ struct MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machi
 
 	private:
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
+		std::vector<Concurrency::AsyncTaskQueue> queues_;
 		Delegate *delegate_ = nullptr;
+
+		/*!
+			Performs a parallel for operation across all machines, performing the supplied
+			function on each and returning only once all applications have completed.
+
+			No guarantees are extended as to which thread operations will occur on.
+		*/
+		void perform_parallel(const std::function<void(::CRTMachine::Machine *)> &);
+
+		/*!
+			Performs a serial for operation across all machines, performing the supplied
+			function on each on the calling thread.
+		*/
+		void perform_serial(const std::function<void(::CRTMachine::Machine *)> &);
 };
 
 }

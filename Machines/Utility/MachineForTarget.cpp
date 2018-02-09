@@ -70,6 +70,11 @@ namespace {
 		std::vector<std::unique_ptr<Machine::DynamicMachine>> machines;
 		for(const auto &target: targets) {
 			machines.emplace_back(MachineForTarget(*target, rom_fetcher, error));
+
+			// Exit early if any errors have occurred.
+			if(error != Error::None) {
+				return nullptr;
+			}
 		}
 
 		return new Analyser::Dynamic::MultiMachine(std::move(machines));
