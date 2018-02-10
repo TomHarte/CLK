@@ -16,7 +16,7 @@ DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
 	set_is_double_density(true);
 }
 
-void DiskROM::write(uint16_t address, uint8_t value) {
+void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
 	switch(address) {
 		case 0x7ff8: case 0x7ff9: case 0x7ffa: case 0x7ffb:
 			set_register(address, value);

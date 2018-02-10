@@ -20,22 +20,22 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 		KonamiWithSCCROMSlotHandler(MSX::MemoryMap &map, int slot, Konami::SCC &scc) :
 			map_(map), slot_(slot), scc_(scc) {}
 
-		void write(uint16_t address, uint8_t value) override {
+		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
 //			printf("KSCC %04x ", address);
 			switch(address >> 11) {
 				default:
-					confidence_counter_.add_miss();
+					if(pc_is_outside_bios) confidence_counter_.add_miss();
 				break;
 				case 0x0a:
-					if(address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios && address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 0x2000, 0x4000, 0x2000);
 				break;
 				case 0x0e:
-					if(address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios && address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 0x12:
-					if(address == 0x9000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios && address == 0x9000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					if((value&0x3f) == 0x3f) {
 						scc_is_visible_ = true;
 						map_.unmap(slot_, 0x8000, 0x2000);
@@ -46,14 +46,14 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 				break;
 				case 0x13:
 					if(scc_is_visible_) {
-						confidence_counter_.add_hit();
+						if(pc_is_outside_bios) confidence_counter_.add_hit();
 						scc_.write(address, value);
 					} else {
-						confidence_counter_.add_miss();
+						if(pc_is_outside_bios) confidence_counter_.add_miss();
 					}
 				break;
 				case 0x16:
-					if(address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios && address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
 				break;
 			}

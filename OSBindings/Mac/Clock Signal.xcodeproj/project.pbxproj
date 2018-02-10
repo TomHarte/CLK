@@ -2674,16 +2674,16 @@
 		4BBB70A1202011C2002FE009 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
-				4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */,
+				4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */,
 				4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */,
 				4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */,
-				4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */,
-				4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */,
-				4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */,
-				4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */,
-				4B1B88BF202E3DB200B67DFF /* MultiConfigurable.hpp */,
 				4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */,
+				4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */,
+				4B1B88BF202E3DB200B67DFF /* MultiConfigurable.hpp */,
+				4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */,
+				4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */,
 				4B1B88C7202E469300B67DFF /* MultiJoystickMachine.hpp */,
+				4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

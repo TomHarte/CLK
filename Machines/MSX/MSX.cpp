@@ -348,6 +348,7 @@ class ConcreteMachine:
 					if(read_pointers_[address >> 13] == unpopulated_) {
 						performed_unmapped_access_ = true;
 					}
+					pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(read_pointers_[address >> 13]) {
 						*cycle.value = read_pointers_[address >> 13][address & 8191];
@@ -365,7 +366,7 @@ class ConcreteMachine:
 					if(memory_slots_[slot_hit].handler) {
 						update_audio();
 						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
-						memory_slots_[slot_hit].handler->write(address, *cycle.value);
+						memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
 					}
 				} break;
 
@@ -664,6 +665,7 @@ class ConcreteMachine:
 
 		int pc_zero_accesses_ = 0;
 		bool performed_unmapped_access_ = false;
+		uint16_t pc_address_;
 };
 
 }

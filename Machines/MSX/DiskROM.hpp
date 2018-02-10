@@ -22,7 +22,7 @@ class DiskROM: public ROMSlotHandler, public WD::WD1770 {
 	public:
 		DiskROM(const std::vector<uint8_t> &rom);
 
-		void write(uint16_t address, uint8_t value) override;
+		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override;
 		uint8_t read(uint16_t address) override;
 		void run_for(HalfCycles half_cycles) override;
 

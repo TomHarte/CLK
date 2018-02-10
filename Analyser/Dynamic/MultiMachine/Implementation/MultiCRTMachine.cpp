@@ -34,10 +34,11 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 		});
 	}
 
-	do {
+	while(true) {
 		std::unique_lock<std::mutex> lock(mutex);
 		condition.wait(lock);
-	} while(outstanding_machines);
+		if(!outstanding_machines) break;
+	}
 }
 
 void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Machine *)> &function) {
@@ -89,17 +90,17 @@ bool MultiCRTMachine::get_clock_is_unlimited() {
 }
 
 void MultiCRTMachine::did_change_machine_order() {
-	// TODO
+	// TODO: shuffle delegates and announce potential output rate changes.
 }
 
 void MultiCRTMachine::set_delegate(::CRTMachine::Machine::Delegate *delegate) {
-	// TODO
+	// TODO: 
 }
 
 void MultiCRTMachine::machine_did_change_clock_rate(Machine *machine) {
-	// TODO
+	// TODO: consider passing along.
 }
 
 void MultiCRTMachine::machine_did_change_clock_is_unlimited(Machine *machine) {
-	// TODO
+	// TODO: consider passing along.
 }

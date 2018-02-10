@@ -47,7 +47,7 @@ class ROMSlotHandler {
 		virtual void run_for(HalfCycles half_cycles) {}
 
 		/*! Announces an attempt to write @c value to @c address. */
-		virtual void write(uint16_t address, uint8_t value) = 0;
+		virtual void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) = 0;
 
 		/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
 		virtual uint8_t read(uint16_t address) { return 0xff; }
