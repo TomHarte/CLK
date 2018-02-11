@@ -18,7 +18,7 @@
 namespace Analyser {
 namespace Dynamic {
 
-struct MultiConfigurationTarget: public ::ConfigurationTarget::Machine {
+struct MultiConfigurationTarget: public ConfigurationTarget::Machine {
 	public:
 		MultiConfigurationTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
@@ -26,7 +26,7 @@ struct MultiConfigurationTarget: public ::ConfigurationTarget::Machine {
 		bool insert_media(const Analyser::Static::Media &media) override;
 
 	private:
-		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
+		std::vector<ConfigurationTarget::Machine *> targets_;
 };
 
 }

@@ -18,6 +18,7 @@
 #include "Implementation/MultiKeyboardMachine.hpp"
 
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace Analyser {
@@ -49,6 +50,7 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 
 	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
+		std::mutex machines_mutex_;
 
 		MultiConfigurable configurable_;
 		MultiConfigurationTarget configuration_target_;

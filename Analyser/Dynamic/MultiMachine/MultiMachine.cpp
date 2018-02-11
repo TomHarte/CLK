@@ -14,7 +14,7 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 	machines_(std::move(machines)),
 	configurable_(machines_),
 	configuration_target_(machines_),
-	crt_machine_(machines_),
+	crt_machine_(machines_, machines_mutex_),
 	joystick_machine_(machines),
 	keyboard_machine_(machines_) {
 	crt_machine_.set_delegate(this);
@@ -41,6 +41,7 @@ Configurable::Device *MultiMachine::configurable_device() {
 }
 
 void MultiMachine::multi_crt_did_run_machines() {
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	DynamicMachine *front = machines_.front().get();
 //	for(const auto &machine: machines_) {
 //		CRTMachine::Machine *crt = machine->crt_machine();
@@ -49,6 +50,7 @@ void MultiMachine::multi_crt_did_run_machines() {
 //		printf("; ");
 //	}
 //	printf("\n");
+
 	std::stable_sort(machines_.begin(), machines_.end(), [] (const auto &lhs, const auto &rhs){
 		CRTMachine::Machine *lhs_crt = lhs->crt_machine();
 		CRTMachine::Machine *rhs_crt = rhs->crt_machine();

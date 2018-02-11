@@ -13,25 +13,29 @@
 
 using namespace Analyser::Dynamic;
 
-MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) :
-	machines_(machines), queues_(machines.size()) {}
+MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex) :
+	machines_(machines), machines_mutex_(machines_mutex), queues_(machines.size()) {}
 
 void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Machine *)> &function) {
 	// Apply a blunt force parallelisation of the machines; each run_for is dispatched
 	// to a separate queue and this queue will block until all are done.
+	volatile std::size_t outstanding_machines;
 	std::condition_variable condition;
 	std::mutex mutex;
-	std::size_t outstanding_machines = machines_.size();
+	{
+		std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+		outstanding_machines = machines_.size();
 
-	for(std::size_t index = 0; index < machines_.size(); ++index) {
-		queues_[index].enqueue([&mutex, &condition, this, index, function, &outstanding_machines]() {
-			CRTMachine::Machine *crt_machine = machines_[index]->crt_machine();
-			if(crt_machine) function(crt_machine);
+		for(std::size_t index = 0; index < machines_.size(); ++index) {
+			queues_[index].enqueue([&mutex, &condition, this, index, function, &outstanding_machines]() {
+				CRTMachine::Machine *crt_machine = machines_[index]->crt_machine();
+				if(crt_machine) function(crt_machine);
 
-			std::unique_lock<std::mutex> lock(mutex);
-			outstanding_machines--;
-			condition.notify_all();
-		});
+				std::unique_lock<std::mutex> lock(mutex);
+				outstanding_machines--;
+				condition.notify_all();
+			});
+		}
 	}
 
 	while(true) {
@@ -42,6 +46,7 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 }
 
 void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Machine *)> &function) {
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt_machine = machine->crt_machine();
 		if(crt_machine) function(crt_machine);
@@ -61,11 +66,13 @@ void MultiCRTMachine::close_output() {
 }
 
 Outputs::CRT::CRT *MultiCRTMachine::get_crt() {
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
 	return crt_machine ? crt_machine->get_crt() : nullptr;
 }
 
 Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
 	return crt_machine ? crt_machine->get_speaker() : nullptr;
 }
@@ -80,11 +87,13 @@ void MultiCRTMachine::run_for(const Cycles cycles) {
 
 double MultiCRTMachine::get_clock_rate() {
 	// TODO: something smarter than this? Not all clock rates will necessarily be the same.
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
 	return crt_machine ? crt_machine->get_clock_rate() : 0.0;
 }
 
 bool MultiCRTMachine::get_clock_is_unlimited() {
+	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
 	return crt_machine ? crt_machine->get_clock_is_unlimited() : false;
 }

@@ -14,6 +14,7 @@
 #include "../../../../Machines/DynamicMachine.hpp"
 
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace Analyser {
@@ -21,7 +22,7 @@ namespace Dynamic {
 
 class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machine::Delegate {
 	public:
-		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
+		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex);
 
 		void setup_output(float aspect_ratio) override;
 		void close_output() override;
@@ -46,6 +47,7 @@ class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machin
 
 	private:
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
+		std::mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
 		Delegate *delegate_ = nullptr;
 
