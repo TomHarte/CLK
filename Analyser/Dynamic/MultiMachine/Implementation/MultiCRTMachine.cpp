@@ -24,25 +24,25 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 	std::mutex mutex;
 	{
 		std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+		std::lock_guard<std::mutex> lock(mutex);
 		outstanding_machines = machines_.size();
 
 		for(std::size_t index = 0; index < machines_.size(); ++index) {
-			queues_[index].enqueue([&mutex, &condition, this, index, function, &outstanding_machines]() {
-				CRTMachine::Machine *crt_machine = machines_[index]->crt_machine();
+			CRTMachine::Machine *crt_machine = machines_[index]->crt_machine();
+			queues_[index].enqueue([&mutex, &condition, crt_machine, function, &outstanding_machines]() {
 				if(crt_machine) function(crt_machine);
 
-				std::unique_lock<std::mutex> lock(mutex);
-				outstanding_machines--;
+				{
+					std::lock_guard<std::mutex> lock(mutex);
+					outstanding_machines--;
+				}
 				condition.notify_all();
 			});
 		}
 	}
 
-	while(true) {
-		std::unique_lock<std::mutex> lock(mutex);
-		condition.wait(lock);
-		if(!outstanding_machines) break;
-	}
+	std::unique_lock<std::mutex> lock(mutex);
+	condition.wait(lock, [&outstanding_machines] { return !outstanding_machines; });
 }
 
 void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Machine *)> &function) {
