@@ -25,8 +25,7 @@ static NSLock *CSAudioQueueDeallocLock;
 @implementation CSWeakAudioQueuePointer
 @end
 
-@implementation CSAudioQueue
-{
+@implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
 	AudioQueueBufferRef _storedBuffers[NumberOfStoredAudioQueueBuffer];
 	NSLock *_storedBuffersLock;
@@ -38,13 +37,10 @@ static NSLock *CSAudioQueueDeallocLock;
 /*!
 	@returns @c YES if the queue is running dry; @c NO otherwise.
 */
-- (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer
-{
+- (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer {
 	[_storedBuffersLock lock];
-	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
-	{
-		if(!_storedBuffers[c] || buffer->mAudioDataBytesCapacity > _storedBuffers[c]->mAudioDataBytesCapacity)
-		{
+	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++) {
+		if(!_storedBuffers[c] || buffer->mAudioDataBytesCapacity > _storedBuffers[c]->mAudioDataBytesCapacity) {
 			if(_storedBuffers[c]) AudioQueueFreeBuffer(_audioQueue, _storedBuffers[c]);
 			_storedBuffers[c] = buffer;
 			[_storedBuffersLock unlock];
@@ -59,12 +55,10 @@ static NSLock *CSAudioQueueDeallocLock;
 static void audioOutputCallback(
 	void *inUserData,
 	AudioQueueRef inAQ,
-	AudioQueueBufferRef inBuffer)
-{
+	AudioQueueBufferRef inBuffer) {
 	// Pull the delegate call for audio queue running dry outside of the locked region, to allow non-deadlocking
 	// lifecycle -dealloc events to result from it.
-	if([CSAudioQueueDeallocLock tryLock])
-	{
+	if([CSAudioQueueDeallocLock tryLock]) {
 		CSAudioQueue *queue = ((__bridge CSWeakAudioQueuePointer *)inUserData).queue;
 		BOOL isRunningDry = NO;
 		isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
@@ -76,14 +70,11 @@ static void audioOutputCallback(
 
 #pragma mark - Standard object lifecycle
 
-- (instancetype)initWithSamplingRate:(Float64)samplingRate
-{
+- (instancetype)initWithSamplingRate:(Float64)samplingRate {
 	self = [super init];
 
-	if(self)
-	{
-		if(!CSAudioQueueDeallocLock)
-		{
+	if(self) {
+		if(!CSAudioQueueDeallocLock) {
 			CSAudioQueueDeallocLock = [[NSLock alloc] init];
 		}
 		_storedBuffersLock = [[NSLock alloc] init];
@@ -122,8 +113,7 @@ static void audioOutputCallback(
 				NULL,
 				kCFRunLoopCommonModes,
 				0,
-				&_audioQueue))
-		{
+				&_audioQueue)) {
 			AudioQueueStart(_audioQueue, NULL);
 		}
 	}
@@ -131,16 +121,13 @@ static void audioOutputCallback(
 	return self;
 }
 
-- (instancetype)init
-{
+- (instancetype)init {
 	return [self initWithSamplingRate:[[self class] preferredSamplingRate]];
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
 	[CSAudioQueueDeallocLock lock];
-	if(_audioQueue)
-	{
+	if(_audioQueue) {
 		AudioQueueDispose(_audioQueue, true);
 		_audioQueue = NULL;
 	}
@@ -167,15 +154,12 @@ static void audioOutputCallback(
 
 #pragma mark - Audio enqueuer
 
-- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples
-{
+- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples {
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
 
 	[_storedBuffersLock lock];
-	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++)
-	{
-		if(_storedBuffers[c] && _storedBuffers[c]->mAudioDataBytesCapacity >= bufferBytes)
-		{
+	for(int c = 0; c < NumberOfStoredAudioQueueBuffer; c++) {
+		if(_storedBuffers[c] && _storedBuffers[c]->mAudioDataBytesCapacity >= bufferBytes) {
 			memcpy(_storedBuffers[c]->mAudioData, buffer, bufferBytes);
 			_storedBuffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
 
@@ -197,8 +181,7 @@ static void audioOutputCallback(
 
 #pragma mark - Sampling Rate getters
 
-+ (AudioDeviceID)defaultOutputDevice
-{
++ (AudioDeviceID)defaultOutputDevice {
 	AudioObjectPropertyAddress address;
 	address.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
 	address.mScope = kAudioObjectPropertyScopeGlobal;
@@ -209,8 +192,7 @@ static void audioOutputCallback(
 	return AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, sizeof(AudioObjectPropertyAddress), NULL, &size, &deviceID) ? 0 : deviceID;
 }
 
-+ (Float64)preferredSamplingRate
-{
++ (Float64)preferredSamplingRate {
 	AudioObjectPropertyAddress address;
 	address.mSelector = kAudioDevicePropertyNominalSampleRate;
 	address.mScope = kAudioObjectPropertyScopeGlobal;
