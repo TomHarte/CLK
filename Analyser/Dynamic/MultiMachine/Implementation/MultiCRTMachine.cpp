@@ -42,7 +42,7 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 	}
 
 	std::unique_lock<std::mutex> lock(mutex);
-	condition.wait(lock, [&outstanding_machines] { return !outstanding_machines; });
+	if(outstanding_machines) condition.wait(lock, [&outstanding_machines] { return !outstanding_machines; });
 }
 
 void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Machine *)> &function) {
