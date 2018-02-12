@@ -23,7 +23,7 @@ class ASCII8kbROMSlotHandler: public ROMSlotHandler {
 //			printf("A8 %04x ", address);
 			switch(address >> 11) {
 				default:
-					confidence_counter_.add_miss();
+					if(pc_is_outside_bios) confidence_counter_.add_miss();
 				break;
 				case 0xc:
 					if(pc_is_outside_bios) {
