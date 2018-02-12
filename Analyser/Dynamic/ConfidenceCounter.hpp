@@ -31,8 +31,8 @@ class ConfidenceCounter: public ConfidenceSource {
 		void add_miss();
 
 		/*!
-			Records an event that provides no strong evidence either way — one that
-			could be a hit but could be a miss — pushes probability up or down towards 0.5.
+			Records an event that could be correct but isn't necessarily so; which can push probability
+			down towards 0.5, but will never push it upwards.
 		*/
 		void add_equivocal();
 

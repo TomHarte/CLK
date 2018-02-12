@@ -23,6 +23,8 @@ void ConfidenceCounter::add_miss() {
 }
 
 void ConfidenceCounter::add_equivocal() {
-	hits_++;
-	misses_++;
+	if(hits_ > misses_) {
+		hits_++;
+		misses_++;
+	}
 }
