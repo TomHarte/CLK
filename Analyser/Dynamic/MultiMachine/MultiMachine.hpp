@@ -57,6 +57,9 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		MultiCRTMachine crt_machine_;
 		MultiJoystickMachine joystick_machine_;
 		MultiKeyboardMachine keyboard_machine_;
+
+		void pick_first();
+		bool has_picked_ = false;
 };
 
 }

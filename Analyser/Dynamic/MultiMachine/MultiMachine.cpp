@@ -21,35 +21,55 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 }
 
 ConfigurationTarget::Machine *MultiMachine::configuration_target() {
-	return &configuration_target_;
+	if(has_picked_) {
+		return machines_.front()->configuration_target();
+	} else {
+		return &configuration_target_;
+	}
 }
 
 CRTMachine::Machine *MultiMachine::crt_machine() {
-	return &crt_machine_;
+	if(has_picked_) {
+		return machines_.front()->crt_machine();
+	} else {
+		return &crt_machine_;
+	}
 }
 
 JoystickMachine::Machine *MultiMachine::joystick_machine() {
-	return &joystick_machine_;
+	if(has_picked_) {
+		return machines_.front()->joystick_machine();
+	} else {
+		return &joystick_machine_;
+	}
 }
 
 KeyboardMachine::Machine *MultiMachine::keyboard_machine() {
-	return &keyboard_machine_;
+	if(has_picked_) {
+		return machines_.front()->keyboard_machine();
+	} else {
+		return &keyboard_machine_;
+	}
 }
 
 Configurable::Device *MultiMachine::configurable_device() {
-	return &configurable_;
+	if(has_picked_) {
+		return machines_.front()->configurable_device();
+	} else {
+		return &configurable_;
+	}
 }
 
 void MultiMachine::multi_crt_did_run_machines() {
 	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
 	DynamicMachine *front = machines_.front().get();
-//	for(const auto &machine: machines_) {
-//		CRTMachine::Machine *crt = machine->crt_machine();
-//		printf("%0.2f ", crt->get_confidence());
-//		crt->print_type();
-//		printf("; ");
-//	}
-//	printf("\n");
+	for(const auto &machine: machines_) {
+		CRTMachine::Machine *crt = machine->crt_machine();
+		printf("%0.2f ", crt->get_confidence());
+		crt->print_type();
+		printf("; ");
+	}
+	printf("\n");
 
 	std::stable_sort(machines_.begin(), machines_.end(), [] (const auto &lhs, const auto &rhs){
 		CRTMachine::Machine *lhs_crt = lhs->crt_machine();
@@ -60,4 +80,15 @@ void MultiMachine::multi_crt_did_run_machines() {
 	if(machines_.front().get() != front) {
 		crt_machine_.did_change_machine_order();
 	}
+
+	if(machines_.front()->crt_machine()->get_confidence() > 0.9) {
+		pick_first();
+	}
+}
+
+void MultiMachine::pick_first() {
+	has_picked_ = true;
+//	machines_.erase(machines_.begin() + 1, machines_.end());
+	// TODO: this isn't quite correct, because it may leak OpenGL/etc resources through failure to
+	// request a close_output while the context is active.
 }
