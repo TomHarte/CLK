@@ -27,15 +27,21 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
 				break;
 				case 0x0a:
-					if(pc_is_outside_bios && address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios) {
+						if(address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					}
 					map_.map(slot_, value * 0x2000, 0x4000, 0x2000);
 				break;
 				case 0x0e:
-					if(pc_is_outside_bios && address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios) {
+						if(address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					}
 					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 0x12:
-					if(pc_is_outside_bios && address == 0x9000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios) {
+						if(address == 0x9000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					}
 					if((value&0x3f) == 0x3f) {
 						scc_is_visible_ = true;
 						map_.unmap(slot_, 0x8000, 0x2000);
@@ -53,7 +59,9 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 					}
 				break;
 				case 0x16:
-					if(pc_is_outside_bios && address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					if(pc_is_outside_bios) {
+						if(address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
+					}
 					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
