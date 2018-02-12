@@ -81,7 +81,10 @@ void MultiMachine::multi_crt_did_run_machines() {
 		crt_machine_.did_change_machine_order();
 	}
 
-	if(machines_.front()->crt_machine()->get_confidence() > 0.9) {
+	if(
+		(machines_.front()->crt_machine()->get_confidence() > 0.9f) ||
+		(machines_.front()->crt_machine()->get_confidence() >= 2.0f * machines_[1]->crt_machine()->get_confidence())
+	) {
 		pick_first();
 	}
 }
