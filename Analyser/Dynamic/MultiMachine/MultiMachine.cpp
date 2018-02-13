@@ -95,3 +95,7 @@ void MultiMachine::pick_first() {
 	// TODO: this isn't quite correct, because it may leak OpenGL/etc resources through failure to
 	// request a close_output while the context is active.
 }
+
+void *MultiMachine::raw_pointer() {
+	return nullptr;
+}

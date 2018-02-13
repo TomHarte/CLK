@@ -118,11 +118,11 @@ class MachineDocument:
 			self.machine = machine
 		}
 
-//		if let optionsPanelNibName = analysis.optionsPanelNibName {
-//			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
-//			self.optionsPanel.machine = self.machine
-//			showOptions(self)
-//		}
+		if let optionsPanelNibName = analysis.optionsPanelNibName {
+			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
+			self.optionsPanel.machine = self.machine
+			showOptions(self)
+		}
 	}
 
 	override func read(from url: URL, ofType typeName: String) throws {

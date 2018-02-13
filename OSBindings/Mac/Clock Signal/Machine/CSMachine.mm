@@ -7,7 +7,6 @@
 //
 
 #import "CSMachine.h"
-#import "CSMachine+Subclassing.h"
 #import "CSMachine+Target.h"
 
 #include "CSROMFetcher.hpp"
@@ -340,6 +339,16 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	// Assumes that the first machine in the targets list is the source of user defaults.
 	std::string name = Machine::ShortNameForTargetMachine(_analyser.targets.front()->machine);
 	return [[NSString stringWithUTF8String:name.c_str()] lowercaseString];
+}
+
+#pragma mark - Special machines
+
+- (CSAtari2600 *)atari2600 {
+	return [[CSAtari2600 alloc] initWithAtari2600:_machine->raw_pointer() owner:self];
+}
+
+- (CSZX8081 *)zx8081 {
+	return [[CSZX8081 alloc] initWithZX8081:_machine->raw_pointer() owner:self];
 }
 
 @end

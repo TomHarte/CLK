@@ -9,25 +9,27 @@
 #import "CSZX8081.h"
 
 #include "ZX8081.hpp"
-#include "TypedDynamicMachine.hpp"
 
 @implementation CSZX8081 {
-	Machine::TypedDynamicMachine<ZX8081::Machine> _zx8081;
+	ZX8081::Machine *_zx8081;
+	__weak CSMachine *_machine;
 }
 
-- (instancetype)initWithIntendedTarget:(const Analyser::Static::Target &)target {
-	_zx8081 = Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));
-	return nil;//[super initWithMachine:&_zx8081];
+- (instancetype)initWithZX8081:(void *)zx8081 owner:(CSMachine *)machine {
+	self = [super init];
+	if(self) {
+		_zx8081 = (ZX8081::Machine *)zx8081;
+		_machine = machine;
+	}
+	return self;
 }
-
-- (NSString *)userDefaultsPrefix {	return @"zx8081";	}
 
 #pragma mark - Options
 
 - (void)setTapeIsPlaying:(BOOL)tapeIsPlaying {
-	@synchronized(self) {
+	@synchronized(_machine) {
 		_tapeIsPlaying = tapeIsPlaying;
-		_zx8081.get()->set_tape_is_playing(tapeIsPlaying ? true : false);
+		_zx8081->set_tape_is_playing(tapeIsPlaying ? true : false);
 	}
 }
 

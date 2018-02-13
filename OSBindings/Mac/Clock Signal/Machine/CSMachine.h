@@ -18,6 +18,10 @@
 - (void)machineDidChangeClockIsUnlimited:(CSMachine *)machine;
 @end
 
+// Deliberately low; to ensure CSMachine has been declared as an @class already.
+#import "CSAtari2600.h"
+#import "CSZX8081.h"
+
 @interface CSMachine : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -53,5 +57,9 @@
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) BOOL useCompositeOutput;
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
+
+// Special-case accessors; undefined behaviour if accessed for a machine not of the corresponding type.
+@property (nonatomic, readonly) CSAtari2600 *atari2600;
+@property (nonatomic, readonly) CSZX8081 *zx8081;
 
 @end

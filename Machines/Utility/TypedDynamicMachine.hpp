@@ -45,6 +45,10 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return get<Configurable::Device>();
 		}
 
+		void *raw_pointer() override {
+			return get();
+		}
+
 	private:
 		template <typename Class> Class *get() {
 			return dynamic_cast<Class *>(machine_.get());

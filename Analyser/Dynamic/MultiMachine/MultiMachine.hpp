@@ -45,8 +45,10 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		JoystickMachine::Machine *joystick_machine() override;
 		KeyboardMachine::Machine *keyboard_machine() override;
 		Configurable::Device *configurable_device() override;
+		void *raw_pointer() override;
 
 		void multi_crt_did_run_machines() override;
+
 
 	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
