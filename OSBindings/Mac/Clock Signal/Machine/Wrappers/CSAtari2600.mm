@@ -25,26 +25,38 @@
 }
 
 - (void)setColourButton:(BOOL)colourButton {
-	_colourButton = colourButton;
-
 	@synchronized(_machine) {
 		_atari2600->set_switch_is_enabled(Atari2600SwitchColour, colourButton);
 	}
 }
 
-- (void)setLeftPlayerDifficultyButton:(BOOL)leftPlayerDifficultyButton {
-	_leftPlayerDifficultyButton = leftPlayerDifficultyButton;
+- (BOOL)colourButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchColour);
+	}
+}
 
+- (void)setLeftPlayerDifficultyButton:(BOOL)leftPlayerDifficultyButton {
 	@synchronized(_machine) {
 		_atari2600->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
 	}
 }
 
-- (void)setRightPlayerDifficultyButton:(BOOL)rightPlayerDifficultyButton {
-	_rightPlayerDifficultyButton = rightPlayerDifficultyButton;
+- (BOOL)leftPlayerDifficultyButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty);
+	}
+}
 
+- (void)setRightPlayerDifficultyButton:(BOOL)rightPlayerDifficultyButton {
 	@synchronized(_machine) {
 		_atari2600->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
+	}
+}
+
+- (BOOL)rightPlayerDifficultyButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty);
 	}
 }
 

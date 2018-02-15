@@ -28,8 +28,13 @@
 
 - (void)setTapeIsPlaying:(BOOL)tapeIsPlaying {
 	@synchronized(_machine) {
-		_tapeIsPlaying = tapeIsPlaying;
 		_zx8081->set_tape_is_playing(tapeIsPlaying ? true : false);
+	}
+}
+
+- (BOOL)tapeIsPlaying {
+	@synchronized(_machine) {
+		return _zx8081->get_tape_is_playing();
 	}
 }
 

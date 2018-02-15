@@ -130,6 +130,18 @@ class ConcreteMachine:
 			}
 		}
 
+		bool get_switch_is_enabled(Atari2600Switch input) override {
+			uint8_t port_input = bus_->mos6532_.get_port_input(1);
+			switch(input) {
+				case Atari2600SwitchReset:					return !!(port_input & 0x01);
+				case Atari2600SwitchSelect:					return !!(port_input & 0x02);
+				case Atari2600SwitchColour:					return !!(port_input & 0x08);
+				case Atari2600SwitchLeftPlayerDifficulty:	return !!(port_input & 0x40);
+				case Atari2600SwitchRightPlayerDifficulty:	return !!(port_input & 0x80);
+				default:									return false;
+			}
+		}
+
 		void set_reset_switch(bool state) override {
 			bus_->set_reset_line(state);
 		}

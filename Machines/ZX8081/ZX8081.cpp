@@ -341,8 +341,13 @@ template<bool is_zx81> class ConcreteMachine:
 				tape_player_.set_motor_control(false);
 			}
 		}
+
 		void set_tape_is_playing(bool is_playing) override final {
 			tape_player_.set_motor_control(is_playing);
+		}
+
+		bool get_tape_is_playing() override final {
+			return tape_player_.get_motor_control();
 		}
 
 		// MARK: - Typer timing
