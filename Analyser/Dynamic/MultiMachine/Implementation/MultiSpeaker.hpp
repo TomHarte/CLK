@@ -13,6 +13,7 @@
 #include "../../../../Outputs/Speaker/Speaker.hpp"
 
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace Analyser {
@@ -34,6 +35,7 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		std::vector<Outputs::Speaker::Speaker *> speakers_;
 		Outputs::Speaker::Speaker *front_speaker_ = nullptr;
 		Outputs::Speaker::Speaker::Delegate *delegate_ = nullptr;
+		std::mutex front_speaker_mutex_;
 };
 
 }

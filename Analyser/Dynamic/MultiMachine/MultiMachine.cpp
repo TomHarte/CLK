@@ -62,7 +62,6 @@ Configurable::Device *MultiMachine::configurable_device() {
 
 void MultiMachine::multi_crt_did_run_machines() {
 	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
-	DynamicMachine *front = machines_.front().get();
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt = machine->crt_machine();
 		printf("%0.2f ", crt->get_confidence());
@@ -71,6 +70,7 @@ void MultiMachine::multi_crt_did_run_machines() {
 	}
 	printf("\n");
 
+	DynamicMachine *front = machines_.front().get();
 	std::stable_sort(machines_.begin(), machines_.end(), [] (const auto &lhs, const auto &rhs){
 		CRTMachine::Machine *lhs_crt = lhs->crt_machine();
 		CRTMachine::Machine *rhs_crt = rhs->crt_machine();
