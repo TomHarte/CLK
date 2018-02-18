@@ -13,6 +13,8 @@
 #include "../../../../Machines/CRTMachine.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
 
+#include "MultiSpeaker.hpp"
+
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -49,6 +51,7 @@ class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machin
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
 		std::mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
+		MultiSpeaker *speaker_ = nullptr;
 		Delegate *delegate_ = nullptr;
 
 		/*!

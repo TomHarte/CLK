@@ -14,7 +14,9 @@
 using namespace Analyser::Dynamic;
 
 MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex) :
-	machines_(machines), machines_mutex_(machines_mutex), queues_(machines.size()) {}
+	machines_(machines), machines_mutex_(machines_mutex), queues_(machines.size()) {
+	speaker_ = MultiSpeaker::create(machines);
+}
 
 void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Machine *)> &function) {
 	// Apply a blunt force parallelisation of the machines; each run_for is dispatched
@@ -72,9 +74,7 @@ Outputs::CRT::CRT *MultiCRTMachine::get_crt() {
 }
 
 Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
-	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
-	return crt_machine ? crt_machine->get_speaker() : nullptr;
+	return speaker_;
 }
 
 void MultiCRTMachine::run_for(const Cycles cycles) {
@@ -99,7 +99,10 @@ bool MultiCRTMachine::get_clock_is_unlimited() {
 }
 
 void MultiCRTMachine::did_change_machine_order() {
-	// TODO: shuffle delegates and announce potential output rate changes.
+	if(speaker_) {
+		std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+		speaker_->set_new_front_machine(machines_.front().get());
+	}
 }
 
 void MultiCRTMachine::set_delegate(::CRTMachine::Machine::Delegate *delegate) {
