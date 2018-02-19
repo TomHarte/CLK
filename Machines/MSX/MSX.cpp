@@ -228,6 +228,8 @@ class ConcreteMachine:
 				}
 			}
 
+			set_use_fast_tape();
+
 			return true;
 		}
 
@@ -287,7 +289,7 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(use_fast_tape_ && tape_player_.has_tape()) {
+					if(use_fast_tape_) {
 						if(address == 0x1a63) {
 							// TAPION
 
@@ -542,7 +544,8 @@ class ConcreteMachine:
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				use_fast_tape_ = quickload;
+				allow_fast_tape_ = quickload;
+				set_use_fast_tape();
 			}
 
 			Configurable::Display display;
@@ -625,7 +628,11 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
+		void set_use_fast_tape() {
+			use_fast_tape_ = allow_fast_tape_ && tape_player_.has_tape();
+		}
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
